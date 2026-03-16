@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -17,7 +16,7 @@ import {
 } from 'sentry/views/issueDetails/streamline/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
+import {StreamlinedGroupHeader} from 'sentry/views/issueDetails/streamline/header/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {
@@ -60,34 +59,42 @@ export function GroupDetailsLayout({
             id={IssueDetailsTour.AGGREGATES}
             demoTourId={DemoTourStep.ISSUES_AGGREGATES}
             tourContext={IssueDetailsTourContext}
-            title={t('View data in aggregate')}
+            title={t('See overall impact')}
             description={t(
-              'The top section of the page always displays data in aggregate, including trends over time or tag value distributions.'
+              "Here you'll see aggregate metrics like frequency over time, total affected users, and where it occurs (environment, release, device, etc.)."
             )}
             position="bottom"
           >
-            <EventDetailsHeader event={event} group={group} project={project} />
+            {tourProps => (
+              <div {...tourProps}>
+                <EventDetailsHeader event={event} group={group} project={project} />
+              </div>
+            )}
           </SharedTourElement>
           <SharedTourElement<IssueDetailsTour>
             id={IssueDetailsTour.EVENT_DETAILS}
             demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
             tourContext={IssueDetailsTourContext}
-            title={t('Explore details')}
+            title={t('Investigate the issue')}
             description={t(
-              'Here we capture everything we know about this data example, like context, trace, breadcrumbs, replay, and tags.'
+              'See all the issue context including the stack trace, tags, screenshots and connected replays, logs, and traces.'
             )}
             position="top"
           >
-            <GroupContent>
-              {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
-                <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                  <IssueEventNavigation event={event} group={group} />
-                  {/* Since the event details header is disabled, display the sidebar toggle here */}
-                  {!hasFilterBar && <ToggleSidebar size="sm" />}
-                </NavigationSidebarWrapper>
-              )}
-              <ContentPadding>{children}</ContentPadding>
-            </GroupContent>
+            {tourProps => (
+              <div {...tourProps}>
+                <GroupContent>
+                  {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING && (
+                    <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
+                      <IssueEventNavigation event={event} group={group} />
+                      {/* Since the event details header is disabled, display the sidebar toggle here */}
+                      {!hasFilterBar && <ToggleSidebar size="sm" />}
+                    </NavigationSidebarWrapper>
+                  )}
+                  <ContentPadding>{children}</ContentPadding>
+                </GroupContent>
+              </div>
+            )}
           </SharedTourElement>
         </div>
         <StreamlinedSidebar group={group} event={event} project={project} />
@@ -118,7 +125,7 @@ const GroupContent = styled('section')`
     border-right: 1px solid ${p => p.theme.tokens.border.primary};
   }
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    border-bottom-width: 1px solid ${p => p.theme.tokens.border.primary};
+    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   }
 `;
 
@@ -127,7 +134,7 @@ const NavigationSidebarWrapper = styled('div')<{
 }>`
   position: relative;
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   padding: ${p =>
     p.hasToggleSidebar
       ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`

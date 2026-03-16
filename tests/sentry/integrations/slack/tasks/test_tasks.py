@@ -387,7 +387,6 @@ class SlackTasksTest(TestCase):
     def test_task_encounters_serialization_exception(
         self, mock_serializer, mock_get_channel_id, mock_set_value
     ):
-
         data = self.metric_alert_data()
         # Ensure this field is removed, to avoid known serialization issue
         data["triggers"][0]["actions"][0]["inputChannelId"] = ""

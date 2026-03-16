@@ -1,8 +1,8 @@
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {mobile, replayMobilePlatforms} from 'sentry/data/platformCategories';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
-export default function useAllMobileProj({replayPlatforms}: {replayPlatforms?: boolean}) {
+export function useAllMobileProj({replayPlatforms}: {replayPlatforms?: boolean}) {
   const {
     selection: {projects: projectIds},
   } = usePageFilters();

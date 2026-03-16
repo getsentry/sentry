@@ -23,7 +23,7 @@ class SlowDBQueryDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = SlowDBQueryDetector(self._settings, event)
+        detector = SlowDBQueryDetector(self._settings[SlowDBQueryDetector.settings_key], event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -140,8 +140,8 @@ class SlowDBQueryDetectorTest(TestCase):
         )
         slow_span_event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
-        detector = SlowDBQueryDetector(settings, slow_span_event)
+        settings = get_detection_settings(project)
+        detector = SlowDBQueryDetector(settings[SlowDBQueryDetector.settings_key], slow_span_event)
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -151,7 +151,7 @@ class SlowDBQueryDetectorTest(TestCase):
             value={"slow_db_queries_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
-        detector = SlowDBQueryDetector(settings, slow_span_event)
+        settings = get_detection_settings(project)
+        detector = SlowDBQueryDetector(settings[SlowDBQueryDetector.settings_key], slow_span_event)
 
         assert not detector.is_creation_allowed_for_project(project)

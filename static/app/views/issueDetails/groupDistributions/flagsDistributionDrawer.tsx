@@ -1,26 +1,26 @@
 import {Fragment, useState} from 'react';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {
   EventDrawerBody,
   EventNavigator,
   EventStickyControls,
 } from 'sentry/components/events/eventDrawer';
-import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
-import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
-import SuspectTable from 'sentry/components/issues/suspect/suspectTable';
+import {FeatureFlagSort} from 'sentry/components/events/featureFlags/featureFlagSort';
+import {OrderBy} from 'sentry/components/events/featureFlags/utils';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useParams} from 'sentry/utils/useParams';
-import GroupDistributionsSearchInput from 'sentry/views/issueDetails/groupDistributions/groupDistributionsSearchInput';
-import HeaderTitle from 'sentry/views/issueDetails/groupDistributions/headerTitle';
-import TagFlagPicker from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
+import {GroupDistributionsSearchInput} from 'sentry/views/issueDetails/groupDistributions/groupDistributionsSearchInput';
+import {HeaderTitle} from 'sentry/views/issueDetails/groupDistributions/headerTitle';
+import {TagFlagPicker} from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsDrawerContent';
-import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
+import {FlagDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface Props {
@@ -29,63 +29,23 @@ interface Props {
   setTab: (value: DrawerTab) => void;
 }
 
-export default function FlagsDistributionDrawer({group, organization, setTab}: Props) {
+export function FlagsDistributionDrawer({group, organization, setTab}: Props) {
   const environments = useEnvironmentsFromUrl();
   const {tagKey} = useParams<{tagKey: string}>();
 
-  // If we're showing the suspect section at all
-  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
-
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy>(SortBy.ALPHABETICAL);
   const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.A_TO_Z);
 
-  const sortByOptions = enableSuspectFlags
-    ? [
-        {
-          label: t('Alphabetical'),
-          value: SortBy.ALPHABETICAL,
-        },
-        {
-          label: t('Distribution'),
-          value: SortBy.DISTRIBUTION,
-        },
-      ]
-    : [
-        {
-          label: t('Alphabetical'),
-          value: SortBy.ALPHABETICAL,
-        },
-      ];
-  const orderByOptions = enableSuspectFlags
-    ? [
-        {
-          label: t('A-Z'),
-          value: OrderBy.A_TO_Z,
-        },
-        {
-          label: t('Z-A'),
-          value: OrderBy.Z_TO_A,
-        },
-        {
-          label: t('High to Low'),
-          value: OrderBy.HIGH_TO_LOW,
-        },
-        {
-          label: t('Low to High'),
-          value: OrderBy.LOW_TO_HIGH,
-        },
-      ]
-    : [
-        {
-          label: t('A-Z'),
-          value: OrderBy.A_TO_Z,
-        },
-        {
-          label: t('Z-A'),
-          value: OrderBy.Z_TO_A,
-        },
-      ];
+  const orderByOptions = [
+    {
+      label: t('A-Z'),
+      value: OrderBy.A_TO_Z,
+    },
+    {
+      label: t('Z-A'),
+      value: OrderBy.Z_TO_A,
+    },
+  ];
 
   return (
     <Fragment>
@@ -97,15 +57,11 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
         />
       </EventNavigator>
       <EventDrawerBody>
-        {!tagKey && enableSuspectFlags ? (
-          <SuspectTable environments={environments} group={group} />
-        ) : null}
-
         {tagKey ? null : (
           <EventStickyControls>
             <TagFlagPicker setTab={setTab} tab={DrawerTab.FEATURE_FLAGS} />
 
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <GroupDistributionsSearchInput
                 includeFeatureFlagsTab
                 search={search}
@@ -127,18 +83,9 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
                     sortMethod: value as string,
                   });
                 }}
-                setSortBy={value => {
-                  setSortBy(value);
-                  trackAnalytics('flags.sort_flags', {
-                    organization,
-                    sortMethod: value as string,
-                  });
-                }}
-                sortBy={sortBy}
                 orderByOptions={orderByOptions}
-                sortByOptions={sortByOptions}
               />
-            </ButtonBar>
+            </Grid>
           </EventStickyControls>
         )}
 
@@ -153,7 +100,6 @@ export default function FlagsDistributionDrawer({group, organization, setTab}: P
               group={group}
               orderBy={orderBy}
               search={search}
-              sortBy={sortBy}
             />
           </AnalyticsArea>
         )}

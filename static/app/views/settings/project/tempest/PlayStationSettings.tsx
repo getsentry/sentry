@@ -1,15 +1,15 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -27,14 +27,14 @@ import {MessageType} from 'sentry/views/settings/project/tempest/types';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 import {CredentialRow} from './CredentialRow';
-import EmptyState from './EmptyState';
+import {EmptyState} from './EmptyState';
 
 interface Props {
   organization: Organization;
   project: Project;
 }
 
-export default function PlayStationSettings({organization, project}: Props) {
+export function PlayStationSettings({organization, project}: Props) {
   const hasWriteAccess = useHasTempestWriteAccess();
   const navigate = useNavigate();
   const location = useLocation();
@@ -114,13 +114,12 @@ export default function PlayStationSettings({organization, project}: Props) {
         <LoadingIndicator />
       ) : (
         <Flex direction="column" gap="md" align="end">
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {hasCredentials && (
               <Button
                 size="sm"
                 onClick={() => {
                   navigate({
-                    pathname: location.pathname,
                     query: {
                       ...location.query,
                       setupInstructions: !isSetupInstructionsOpen,
@@ -134,7 +133,7 @@ export default function PlayStationSettings({organization, project}: Props) {
               </Button>
             )}
             <AddCredentialsButton project={project} origin="project-settings" />
-          </ButtonBar>
+          </Grid>
           {showEmptyState ? (
             <FullWidthPanel>
               <EmptyState

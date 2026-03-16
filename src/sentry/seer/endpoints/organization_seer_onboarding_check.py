@@ -5,9 +5,10 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -20,6 +21,10 @@ from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
+
+
+def is_in_seer_config_reminder_list(organization: Organization) -> bool:
+    return organization.slug in options.get("seer.organizations.force-config-reminder")
 
 
 def has_supported_scm_integration(organization_id: int) -> bool:
@@ -62,7 +67,7 @@ def is_autofix_enabled(organization_id: int) -> bool:
     )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -86,6 +91,7 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
         has_scm_integration = has_supported_scm_integration(organization.id)
         code_review_enabled = is_code_review_enabled(organization.id)
         autofix_enabled = is_autofix_enabled(organization.id)
+        needs_config_reminder = is_in_seer_config_reminder_list(organization)
         is_seer_configured = has_scm_integration and (code_review_enabled or autofix_enabled)
 
         return Response(
@@ -93,6 +99,7 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
                 "hasSupportedScmIntegration": has_scm_integration,
                 "isCodeReviewEnabled": code_review_enabled,
                 "isAutofixEnabled": autofix_enabled,
+                "needsConfigReminder": needs_config_reminder,
                 "isSeerConfigured": is_seer_configured,
             }
         )

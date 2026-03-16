@@ -393,7 +393,6 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
     @patch.dict(NotificationAction._registry, {})
     def test_post_simple(self) -> None:
-
         class MockActionRegistration(ActionRegistration):
             validate_action = MagicMock()
 

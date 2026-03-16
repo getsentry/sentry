@@ -18,8 +18,8 @@ import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
-import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 
 jest.mock('getsentry/components/upgradeNowModal/usePreviewData');
@@ -42,7 +42,7 @@ function renderMockRequests({
   act(() => SubscriptionStore.set(organization.slug, subscription));
 
   MockApiClient.addMockResponse({
-    url: `/subscriptions/org-slug/`,
+    url: `/customers/org-slug/`,
     body: {
       planTier,
       canSelfServe,
@@ -350,6 +350,7 @@ describe('ProductSelectionAvailability', () => {
         reservedSeerAutofix: undefined,
         reservedSeerScanner: undefined,
         reservedSeerUsers: undefined,
+        reservedSizeAnalyses: 0,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});

@@ -120,7 +120,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_multi_trace_conversation(self) -> None:
         """Test returns all spans for a conversation across multiple traces"""
-        now = before_now(days=30).replace(microsecond=0)
+        now = before_now(days=10).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id_1 = uuid4().hex
         trace_id_2 = uuid4().hex
@@ -175,7 +175,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_returns_conversation_attributes(self) -> None:
         """Test that the endpoint returns all AI conversation attributes"""
-        now = before_now(days=40).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
@@ -230,7 +230,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_pagination(self) -> None:
         """Test pagination works correctly"""
-        now = before_now(days=50).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -276,7 +276,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_span_ordering(self) -> None:
         """Test spans are ordered by timestamp ascending"""
-        now = before_now(days=60).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
 
@@ -311,7 +311,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_only_returns_matching_conversation(self) -> None:
         """Test that only spans from the requested conversation are returned"""
-        now = before_now(days=70).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         conversation_id_1 = uuid4().hex
         conversation_id_2 = uuid4().hex
         trace_id = uuid4().hex
@@ -361,7 +361,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
     def test_returns_tool_attributes(self) -> None:
         """Test that tool spans include gen_ai.tool.name attribute"""
-        now = before_now(days=80).replace(microsecond=0)
+        now = before_now(days=5).replace(microsecond=0)
         trace_id = uuid4().hex
         conversation_id = uuid4().hex
 
@@ -388,3 +388,88 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["span.op"] == "gen_ai.execute_tool"
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
+
+    def test_stats_period_overrides_to_30d(self) -> None:
+        """Test that statsPeriod is overridden to 30d so all recent data is returned"""
+        timestamp = before_now(days=15).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=timestamp,
+            op="gen_ai.chat",
+            trace_id=trace_id,
+        )
+
+        # statsPeriod=1h would normally restrict to last hour and exclude our 15-day-old span,
+        # but endpoint overrides to 30d
+        query = {
+            "project": [self.project.id],
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 1
+        assert response.data[0]["gen_ai.conversation.id"] == conversation_id
+
+    def test_tokens_on_multiple_span_types(self) -> None:
+        """Test that raw spans are returned with their individual token/cost values.
+
+        This endpoint returns raw span data without aggregation. Consumers must
+        filter by gen_ai.operation.type:ai_client when summing tokens/costs
+        to avoid double counting from agent spans that may also have token data.
+        """
+        now = before_now(days=5).replace(microsecond=0)
+        trace_id = uuid4().hex
+        conversation_id = uuid4().hex
+
+        # Agent span with tokens/cost
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.invoke_agent",
+            operation_type="invoke_agent",
+            description="Test Agent",
+            agent_name="Test Agent",
+            trace_id=trace_id,
+            tokens=500,
+            cost=0.05,
+        )
+
+        # ai_client span with tokens/cost
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            tokens=100,
+            cost=0.01,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert len(response.data) == 2
+
+        # Sort by timestamp to ensure consistent order (oldest first)
+        spans = sorted(response.data, key=lambda s: s["precise.start_ts"])
+
+        # First span is the agent span with its own token values
+        agent_span = spans[0]
+        assert agent_span["gen_ai.operation.type"] == "invoke_agent"
+        assert agent_span["gen_ai.usage.total_tokens"] == 500
+        assert agent_span["gen_ai.cost.total_tokens"] == 0.05
+
+        # Second span is the ai_client span with its own token values
+        ai_client_span = spans[1]
+        assert ai_client_span["gen_ai.operation.type"] == "ai_client"
+        assert ai_client_span["gen_ai.usage.total_tokens"] == 100
+        assert ai_client_span["gen_ai.cost.total_tokens"] == 0.01

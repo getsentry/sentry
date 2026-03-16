@@ -776,7 +776,6 @@ class EnhancementsTest(TestCase):
 # Note: This primarily tests `assemble_stacktrace_component`'s handling of `contributes` values, as
 # hints are tested separately in `test_hints.py`.
 class AssembleStacktraceComponentTest(TestCase):
-
     @dataclass
     class DummyRustFrame:
         contributes: bool | None
@@ -837,13 +836,13 @@ class AssembleStacktraceComponentTest(TestCase):
             stacktrace_component.values,
             expected_frame_results,
         ):
-            assert (
-                frame_component.contributes is expected_contributes
-            ), f"frame {i} has incorrect `contributes` value. Expected {expected_contributes} but got {frame_component.contributes}."
+            assert frame_component.contributes is expected_contributes, (
+                f"frame {i} has incorrect `contributes` value. Expected {expected_contributes} but got {frame_component.contributes}."
+            )
 
-            assert (
-                frame_component.hint == expected_hint
-            ), f"frame {i} has incorrect `hint` value. Expected '{expected_hint}' but got '{frame_component.hint}'."
+            assert frame_component.hint == expected_hint, (
+                f"frame {i} has incorrect `hint` value. Expected '{expected_hint}' but got '{frame_component.hint}'."
+            )
 
     def test_marks_system_frames_non_contributing_in_app_variant(self) -> None:
         # For the app variant, out-of-app frames are automatically marked non-contributing when

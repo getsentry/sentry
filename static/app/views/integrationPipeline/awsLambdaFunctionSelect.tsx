@@ -4,22 +4,23 @@ import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';
 import {Observer} from 'mobx-react-lite';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Switch} from 'sentry/components/core/switch';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import type {JsonFormObject} from 'sentry/components/forms/types';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tn} from 'sentry/locale';
 
-import FooterWithButtons from './components/footerWithButtons';
-import HeaderWithHelp from './components/headerWithHelp';
+import {FooterWithButtons} from './components/footerWithButtons';
+import {HeaderWithHelp} from './components/headerWithHelp';
 
 const LAMBDA_COUNT_THRESHOLD = 10;
 
@@ -36,7 +37,7 @@ type State = {
 
 const getLabel = (func: LambdaFunction) => func.FunctionName;
 
-export default class AwsLambdaFunctionSelect extends Component<Props, State> {
+export class AwsLambdaFunctionSelect extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     makeObservable(this, {allStatesToggled: computed});

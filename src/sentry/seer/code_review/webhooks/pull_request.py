@@ -10,6 +10,8 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.integrations.github.client import GitHubReaction
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
@@ -23,7 +25,7 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_eyes_reaction
+from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_reaction
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +92,7 @@ def handle_pull_request_event(
     event: Mapping[str, Any],
     organization: Organization,
     repo: Repository,
+    tags: Mapping[str, Any],
     integration: RpcIntegration | None = None,
     org_code_review_settings: CodeReviewSettings | None = None,
     **kwargs: Any,
@@ -99,11 +102,9 @@ def handle_pull_request_event(
 
     This handler processes PR events and sends them directly to Seer
     """
-    extra = {"organization_id": organization.id, "repo": repo.name}
-
     pull_request = event.get("pull_request")
     if not pull_request:
-        logger.warning(Log.MISSING_PULL_REQUEST.value, extra=extra)
+        logger.warning(Log.MISSING_PULL_REQUEST.value)
         record_webhook_handler_error(
             github_event, "unknown", CodeReviewErrorType.MISSING_PULL_REQUEST
         )
@@ -111,24 +112,23 @@ def handle_pull_request_event(
 
     action_value = event.get("action")
     if not action_value or not isinstance(action_value, str):
-        logger.warning(Log.MISSING_ACTION.value, extra=extra)
+        logger.warning(Log.MISSING_ACTION.value)
         record_webhook_handler_error(github_event, "unknown", CodeReviewErrorType.MISSING_ACTION)
         return
-    extra["action"] = action_value
 
     record_webhook_received(github_event, action_value)
 
     try:
         action = PullRequestAction(action_value)
     except ValueError:
-        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=extra)
+        logger.warning(Log.UNSUPPORTED_ACTION.value)
         record_webhook_filtered(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
 
     if action not in WHITELISTED_ACTIONS:
-        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=extra)
+        logger.warning(Log.UNSUPPORTED_ACTION.value)
         record_webhook_filtered(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
@@ -142,6 +142,14 @@ def handle_pull_request_event(
         record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
         return
 
+    # If no triggers are configured for this repo, no pr_review was ever sent for it,
+    # so there is nothing for Seer to process on close.
+    if action == PullRequestAction.CLOSED and (
+        org_code_review_settings is None or not org_code_review_settings.triggers
+    ):
+        record_webhook_filtered(github_event, action_value, WebhookFilteredReason.TRIGGER_DISABLED)
+        return
+
     # Skip draft check for CLOSED actions to ensure Seer receives cleanup notifications
     # even if the PR was converted to draft before closing
     if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
@@ -149,7 +157,12 @@ def handle_pull_request_event(
 
     pr_number = pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
-        delete_existing_reactions_and_add_eyes_reaction(
+        # We don't ever need to delete :eyes: since we later add it back to the PR description idempotently.
+        reactions_to_delete = [GitHubReaction.HOORAY]
+        if is_github_rate_limit_sensitive(organization.slug):
+            reactions_to_delete = []
+
+        delete_existing_reactions_and_add_reaction(
             github_event=github_event,
             github_event_action=action_value,
             integration=integration,
@@ -157,6 +170,8 @@ def handle_pull_request_event(
             repo=repo,
             pr_number=str(pr_number),
             comment_id=None,
+            reactions_to_delete=reactions_to_delete,
+            reaction_to_add=GitHubReaction.EYES,
         )
 
     from .task import schedule_task
@@ -168,4 +183,5 @@ def handle_pull_request_event(
         organization=organization,
         repo=repo,
         target_commit_sha=_get_target_commit_sha(github_event, event, repo, integration),
+        tags=tags,
     )

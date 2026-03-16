@@ -1,16 +1,15 @@
 import {useEffect, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
 
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {TextArea} from 'sentry/components/core/textarea';
 import type {BranchOverride, RepoSettings} from 'sentry/components/events/autofix/types';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {
   IconAdd,
   IconClose,
@@ -20,7 +19,6 @@ import {
   IconTag,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 
 interface Props {
@@ -172,7 +170,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       <InputGroup.TrailingItems>
                         <ClearButton
                           size="xs"
-                          borderless
+                          priority="transparent"
                           icon={<IconClose size="xs" />}
                           onClick={() => {
                             setBranchInputValue('');
@@ -182,7 +180,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                             setIsDirty(true);
                           }}
                           aria-label={t('Clear branch and use default')}
-                          title={t('Clear branch and use default')}
+                          tooltipProps={{title: t('Clear branch and use default')}}
                         />
                       </InputGroup.TrailingItems>
                     )}
@@ -191,7 +189,7 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                     size="xs"
                     icon={<IconAdd />}
                     onClick={addBranchOverride}
-                    borderless
+                    priority="transparent"
                   >
                     {t('Add an override for a tag')}
                   </AddOverrideButton>
@@ -258,11 +256,11 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                       </Flex>
                       <Button
                         size="sm"
-                        borderless
+                        priority="transparent"
                         icon={<IconDelete size="sm" variant="muted" />}
                         onClick={() => removeBranchOverride(index)}
                         aria-label={t('Remove override')}
-                        title={t('Remove override')}
+                        tooltipProps={{title: t('Remove override')}}
                       />
                     </BranchOverrideItem>
                   ))}
@@ -293,14 +291,14 @@ export function AutofixRepoItem({repo, onRemove, settings, onSettingsChange}: Pr
                 </Button>
               </Confirm>
               {isDirty && (
-                <ButtonBar gap="xs">
+                <Grid flow="column" align="center" gap="xs">
                   <Button size="md" onClick={cancelChanges}>
                     {t('Cancel')}
                   </Button>
                   <Button size="md" priority="primary" onClick={saveChanges}>
                     {t('Save')}
                   </Button>
-                </ButtonBar>
+                </Grid>
               )}
             </Flex>
           </Stack>
@@ -315,7 +313,7 @@ const SelectedRepoHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1.5)} ${space(3)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space['2xl']};
   cursor: pointer;
 `;
 
@@ -326,15 +324,15 @@ const RepoName = styled('div')`
 const RepoProvider = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const ExpandedContent = styled('div')`
-  padding: 0 ${space(2)} ${space(1)} 40px;
+  padding: 0 ${p => p.theme.space.xl} ${p => p.theme.space.md} 40px;
   background-color: ${p => p.theme.tokens.background.primary};
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
@@ -378,7 +376,7 @@ const ClearButton = styled(Button)`
 `;
 
 const StyledIconExpandToggle = styled(IconExpandToggle)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const AddOverrideButton = styled(Button)`

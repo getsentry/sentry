@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
@@ -14,7 +15,6 @@ import {
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   type DatasetConfig,
   type SearchBarData,
@@ -27,7 +27,6 @@ import {
   transformEventsResponseToTable,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
-import {useHasTraceMetricsDashboards} from 'sentry/views/dashboards/hooks/useHasTraceMetricsDashboards';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
@@ -42,7 +41,7 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributesWithConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -78,27 +77,26 @@ function TraceMetricsSearchBar({
   const {
     selection: {projects},
   } = usePageFilters();
-  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
   const {state: widgetBuilderState} = useWidgetBuilderContext();
 
   const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.TRACEMETRICS,
-    enabled: hasTraceMetricsDashboards,
-    query: createTraceMetricFilter(traceMetric),
-  };
-
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(
-      traceItemAttributeConfig,
+    useTraceMetricItemAttributes(
+      {query: createTraceMetricFilter(traceMetric)},
       'string',
       HiddenTraceMetricSearchFields
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(
-      traceItemAttributeConfig,
+    useTraceMetricItemAttributes(
+      {query: createTraceMetricFilter(traceMetric)},
       'number',
+      HiddenTraceMetricSearchFields
+    );
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceMetricItemAttributes(
+      {query: createTraceMetricFilter(traceMetric)},
+      'boolean',
       HiddenTraceMetricSearchFields
     );
 
@@ -107,8 +105,10 @@ function TraceMetricsSearchBar({
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       itemType={TraceItemDataset.TRACEMETRICS}
+      booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
+      booleanSecondaryAliases={booleanSecondaryAliases}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
       searchSource="dashboards"
@@ -126,27 +126,27 @@ function useTraceMetricsSearchBarDataProvider(
   props: SearchBarDataProviderProps
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
-  const hasTraceMetricsDashboards = useHasTraceMetricsDashboards();
   const {state: widgetBuilderState} = useWidgetBuilderContext();
 
   const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
 
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.TRACEMETRICS,
-    enabled: hasTraceMetricsDashboards,
-    query: createTraceMetricFilter(traceMetric),
-  };
-
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceMetricItemAttributes(
+      {query: createTraceMetricFilter(traceMetric)},
+      'boolean'
+    );
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.TRACEMETRICS,
+      booleanAttributes,
       numberAttributes,
       stringAttributes,
+      booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
       searchSource: 'dashboards',
@@ -162,9 +162,16 @@ function useTraceMetricsSearchBarDataProvider(
 }
 
 export function formatTraceMetricsFunction(
-  valueToParse: string,
+  valueToParse: string | string[],
   defaultValue?: string | ReactNode
 ) {
+  if (Array.isArray(valueToParse)) {
+    const parsedFunctions = valueToParse.map(v => parseFunction(v));
+    const functionNames = parsedFunctions.map(f => f?.name).join(', ');
+    const firstFunction = parsedFunctions[0];
+    return `${functionNames}(${firstFunction?.arguments[1] ?? '…'})`;
+  }
+
   const parsedFunction = parseFunction(valueToParse);
   if (parsedFunction) {
     return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
@@ -176,6 +183,7 @@ export const TraceMetricsConfig: DatasetConfig<
   EventsTimeSeriesResponse,
   EventsTableData
 > = {
+  defaultCategoryField: 'project',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -196,8 +204,9 @@ export const TraceMetricsConfig: DatasetConfig<
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
-    DisplayType.LINE,
     DisplayType.BIG_NUMBER,
+    DisplayType.CATEGORICAL_BAR,
+    DisplayType.LINE,
   ],
   useSeriesQuery: useTraceMetricsSeriesQuery,
   useTableQuery: useTraceMetricsTableQuery,

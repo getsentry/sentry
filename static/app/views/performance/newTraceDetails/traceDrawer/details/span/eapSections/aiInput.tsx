@@ -3,15 +3,14 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {Button} from 'sentry/components/core/button';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
@@ -20,6 +19,10 @@ import {
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {
+  parseJsonWithFix,
+  tryParseJson,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
@@ -33,59 +36,102 @@ const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
 const SUPPORTED_CONTENT_PARTS = ['text', ...FILE_CONTENT_PARTS] as const;
 
-function renderTextMessages(content: any) {
-  if (!Array.isArray(content)) {
-    return content;
-  }
-  return content
-    .filter((part: any) => SUPPORTED_CONTENT_PARTS.includes(part.type))
-    .map((part: any) =>
-      FILE_CONTENT_PARTS.includes(part.type)
-        ? `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`
-        : part.text.trim()
-    )
+function extractTextFromContentParts(parts: any[]): string {
+  return parts
+    .filter((part: any) => part?.type && SUPPORTED_CONTENT_PARTS.includes(part.type))
+    .map((part: any) => {
+      if (FILE_CONTENT_PARTS.includes(part.type)) {
+        return `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`;
+      }
+      // Handle both part.text and part.content (some SDKs use content instead of text)
+      const text = part.text ?? part.content;
+      return typeof text === 'string' ? text.trim() : text;
+    })
     .join('\n');
+}
+
+function renderTextMessages(content: any): any {
+  if (Array.isArray(content)) {
+    return extractTextFromContentParts(content);
+  }
+  return content;
 }
 
 function renderToolMessage(content: any) {
   return content;
 }
 
+/**
+ * Extracts the messages array from potentially nested structures.
+ *
+ * This is a temporary solution. OpenRouter should send the data in the correct
+ * format (direct array). We plan to contact them or contribute a fix upstream.
+ *
+ * Currently handles formats like:
+ * - Direct array: [{role, content}, ...]
+ * - Wrapped object: {messages: [{role, content}, ...]}
+ * - Stringified wrapper: {messages: "[{role, content}, ...]"}
+ */
+function extractMessagesArray(value: any): any[] | null {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (value && typeof value === 'object' && value.messages) {
+    const inner = value.messages;
+    if (Array.isArray(inner)) {
+      return inner;
+    }
+    if (typeof inner === 'string') {
+      const parsed = JSON.parse(inner);
+      return extractMessagesArray(parsed);
+    }
+  }
+
+  return null;
+}
+
 function parseAIMessages(messages: string): AIMessage[] | string {
   try {
-    const array: any[] = Array.isArray(messages) ? messages : JSON.parse(messages);
-    return array
+    const parsed = Array.isArray(messages) ? messages : JSON.parse(messages);
+    const messagesArray = extractMessagesArray(parsed);
+
+    if (!messagesArray) {
+      return messages;
+    }
+
+    return messagesArray
       .map((message: any) => {
         if (!message.role || !message.content) {
           return null;
         }
+        const parsedContent = tryParseJson(message.content);
         return {
           role: message.role,
           content:
             message.role === 'tool'
-              ? renderToolMessage(message.content)
-              : renderTextMessages(message.content),
+              ? renderToolMessage(parsedContent)
+              : renderTextMessages(parsedContent),
         };
       })
       .filter(
         (message): message is Exclude<typeof message, null> =>
           message !== null && Boolean(message.content)
       );
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.prompt.messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return messages;
   }
 }
 
-function transformInputMessages(inputMessages: string) {
+function transformInputMessages(inputMessages: string): {
+  fixedInvalidJson: boolean;
+  result: string | undefined;
+} {
   try {
-    const json = JSON.parse(inputMessages);
+    const {parsed: json, fixedInvalidJson} = parseJsonWithFix(inputMessages);
+    if (json === null) {
+      return {result: undefined, fixedInvalidJson};
+    }
     const result = [];
     const {system, prompt} = json;
     if (system) {
@@ -100,22 +146,27 @@ function transformInputMessages(inputMessages: string) {
         content: [{type: 'text', text: prompt}],
       });
     }
-    return JSON.stringify(result);
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.input_messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
-    return undefined;
+    return {
+      result: JSON.stringify(result),
+      fixedInvalidJson,
+    };
+  } catch {
+    return {
+      result: undefined,
+      fixedInvalidJson: false,
+    };
   }
 }
 
-function transformPrompt(prompt: string) {
+function transformPrompt(prompt: string): {
+  fixedInvalidJson: boolean;
+  result: string | undefined;
+} {
   try {
-    const json = JSON.parse(prompt);
+    const {parsed: json, fixedInvalidJson} = parseJsonWithFix(prompt);
+    if (json === null) {
+      return {result: undefined, fixedInvalidJson};
+    }
     const result = [];
     const {system, messages} = json;
     if (system) {
@@ -128,26 +179,36 @@ function transformPrompt(prompt: string) {
     if (parsedMessages) {
       result.push(...parsedMessages);
     }
-    return JSON.stringify(result);
-  } catch (error) {
-    try {
-      Sentry.captureException(new Error('Error parsing ai.prompt', {cause: error}));
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
-    return undefined;
+    return {
+      result: JSON.stringify(result),
+      fixedInvalidJson,
+    };
+  } catch {
+    return {
+      result: undefined,
+      fixedInvalidJson: false,
+    };
   }
 }
 
 /**
  * Transforms messages from the new parts-based format to the standard content format.
  * The new format uses a `parts` array with typed objects instead of a `content` field.
+ *
+ * Exported for testing purposes only.
  */
-function transformPartsMessages(messages: string): string | undefined {
+export function transformPartsMessages(messages: string): {
+  fixedInvalidJson: boolean;
+  result: string | undefined;
+} {
   try {
-    const parsed = JSON.parse(messages);
+    const {parsed, fixedInvalidJson} = parseJsonWithFix(messages);
+
     if (!Array.isArray(parsed)) {
-      return undefined;
+      return {
+        result: undefined,
+        fixedInvalidJson,
+      };
     }
 
     const transformed = parsed.map((msg: any) => {
@@ -181,9 +242,15 @@ function transformPartsMessages(messages: string): string | undefined {
       return {role: msg.role, content};
     });
 
-    return JSON.stringify(transformed);
+    return {
+      result: JSON.stringify(transformed),
+      fixedInvalidJson,
+    };
   } catch {
-    return undefined;
+    return {
+      result: undefined,
+      fixedInvalidJson: false,
+    };
   }
 }
 
@@ -196,7 +263,7 @@ function getAIInputMessages(
   node: EapSpanNode | SpanNode | TransactionNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
-): string | null {
+): {fixedInvalidJson: boolean; messages: string | null} {
   const systemInstructions = getTraceNodeAttribute(
     'gen_ai.system_instructions',
     node,
@@ -211,9 +278,16 @@ function getAIInputMessages(
     attributes
   );
   if (inputMessages) {
-    const transformed =
-      transformPartsMessages(inputMessages.toString()) ?? inputMessages.toString();
-    return prependSystemInstructions(transformed, systemInstructions?.toString());
+    const {result: transformed, fixedInvalidJson} = transformPartsMessages(
+      inputMessages.toString()
+    );
+    return {
+      messages: prependSystemInstructions(
+        transformed ?? inputMessages.toString(),
+        systemInstructions?.toString()
+      ),
+      fixedInvalidJson,
+    };
   }
 
   const requestMessages = getTraceNodeAttribute(
@@ -222,11 +296,18 @@ function getAIInputMessages(
     event,
     attributes
   );
+
   if (requestMessages) {
-    return prependSystemInstructions(
-      requestMessages.toString(),
-      systemInstructions?.toString()
+    const {result: transformed, fixedInvalidJson} = transformPartsMessages(
+      requestMessages.toString()
     );
+    return {
+      messages: prependSystemInstructions(
+        transformed ?? requestMessages.toString(),
+        systemInstructions?.toString()
+      ),
+      fixedInvalidJson,
+    };
   }
 
   const legacyInputMessages = getTraceNodeAttribute(
@@ -236,25 +317,38 @@ function getAIInputMessages(
     attributes
   );
   if (legacyInputMessages) {
-    const transformed = transformInputMessages(legacyInputMessages.toString());
+    const {result: transformed, fixedInvalidJson} = transformInputMessages(
+      legacyInputMessages.toString()
+    );
     if (transformed) {
-      return prependSystemInstructions(transformed, systemInstructions?.toString());
+      return {
+        messages: prependSystemInstructions(transformed, systemInstructions?.toString()),
+        fixedInvalidJson,
+      };
     }
   }
 
   const prompt = getTraceNodeAttribute('ai.prompt', node, event, attributes);
   if (prompt) {
-    const transformed = transformPrompt(prompt.toString());
+    const {result: transformed, fixedInvalidJson} = transformPrompt(prompt.toString());
     if (transformed) {
-      return prependSystemInstructions(transformed, systemInstructions?.toString());
+      return {
+        messages: prependSystemInstructions(transformed, systemInstructions?.toString()),
+        fixedInvalidJson,
+      };
     }
   }
 
   if (systemInstructions) {
-    return JSON.stringify([{role: 'system', content: systemInstructions.toString()}]);
+    return {
+      messages: JSON.stringify([
+        {role: 'system', content: systemInstructions.toString()},
+      ]),
+      fixedInvalidJson: false,
+    };
   }
 
-  return null;
+  return {messages: null, fixedInvalidJson: false};
 }
 
 /**
@@ -350,10 +444,12 @@ export function AIInputSection({
   node,
   attributes,
   event,
+  initialCollapse,
 }: {
   node: EapSpanNode | SpanNode | TransactionNode;
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
+  initialCollapse?: boolean;
 }) {
   const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
   const originalMessagesLength = getTraceNodeAttribute(
@@ -363,11 +459,11 @@ export function AIInputSection({
     attributes
   );
 
-  const promptMessages = shouldRender
+  const {messages: promptMessages, fixedInvalidJson} = shouldRender
     ? getAIInputMessages(node, attributes, event)
-    : null;
+    : {messages: null, fixedInvalidJson: false};
 
-  const messages = defined(promptMessages) && parseAIMessages(promptMessages.toString());
+  const messages = defined(promptMessages) && parseAIMessages(promptMessages);
 
   const toolArgs = getAIToolInput(node, attributes, event);
   const embeddingsInput = getTraceNodeAttribute(
@@ -386,9 +482,11 @@ export function AIInputSection({
 
   return (
     <FoldSection
+      key={node.id}
       sectionKey={SectionKey.AI_INPUT}
       title={t('Input')}
       disableCollapsePersistence
+      initialCollapse={initialCollapse}
     >
       {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (
@@ -404,6 +502,7 @@ export function AIInputSection({
           originalLength={
             defined(originalMessagesLength) ? Number(originalMessagesLength) : undefined
           }
+          fixedInvalidJson={fixedInvalidJson}
         />
       ) : null}
       {toolArgs ? (
@@ -426,6 +525,36 @@ const MAX_MESSAGES_AT_START = 2;
 const MAX_MESSAGES_AT_END = 1;
 const MAX_MESSAGES_TO_SHOW = MAX_MESSAGES_AT_START + MAX_MESSAGES_AT_END;
 
+function TruncationAlert({
+  areOldMessagesTruncated,
+  fixedInvalidJson,
+}: {
+  areOldMessagesTruncated: boolean;
+  fixedInvalidJson: boolean;
+}) {
+  if (!areOldMessagesTruncated && !fixedInvalidJson) {
+    return null;
+  }
+
+  const link = (
+    <ExternalLink href="https://develop.sentry.dev/sdk/expected-features/data-handling/#variable-size" />
+  );
+
+  return (
+    <Container paddingBottom="lg">
+      <Alert variant="muted">
+        {areOldMessagesTruncated
+          ? tct(
+              'Due to [link:size limitations], the oldest messages got dropped from the history.',
+              {link}
+            )
+          : tct('Due to [link:size limitations], the content was truncated.', {link})}
+        {fixedInvalidJson ? ` ${t('Truncated parts are marked with (~~).')}` : null}
+      </Alert>
+    </Container>
+  );
+}
+
 /**
  * As the whole message history takes up too much space we only show the first two (as those often contain the system and initial user prompt)
  * and the last messages with the option to expand
@@ -433,7 +562,9 @@ const MAX_MESSAGES_TO_SHOW = MAX_MESSAGES_AT_START + MAX_MESSAGES_AT_END;
 function MessagesArrayRenderer({
   messages,
   originalLength,
+  fixedInvalidJson,
 }: {
+  fixedInvalidJson: boolean;
   messages: AIMessage[];
   originalLength?: number;
 }) {
@@ -448,21 +579,6 @@ function MessagesArrayRenderer({
       setIsExpanded(messages.length <= MAX_MESSAGES_TO_SHOW);
     }
   }, [messages.length, previousMessagesLength]);
-
-  const truncationAlert = isTruncated ? (
-    <Container paddingBottom="lg">
-      <Alert variant="muted">
-        {tct(
-          'Due to [link:size limitations], the oldest messages got dropped from the history.',
-          {
-            link: (
-              <ExternalLink href="https://develop.sentry.dev/sdk/expected-features/data-handling/#variable-size" />
-            ),
-          }
-        )}
-      </Alert>
-    </Container>
-  ) : null;
 
   const renderMessage = (message: AIMessage, index: number) => {
     return (
@@ -485,7 +601,10 @@ function MessagesArrayRenderer({
   if (isExpanded) {
     return (
       <Fragment>
-        {truncationAlert}
+        <TruncationAlert
+          areOldMessagesTruncated={isTruncated}
+          fixedInvalidJson={fixedInvalidJson}
+        />
         {messages.map(renderMessage)}
       </Fragment>
     );
@@ -493,7 +612,10 @@ function MessagesArrayRenderer({
 
   return (
     <Fragment>
-      {truncationAlert}
+      <TruncationAlert
+        areOldMessagesTruncated={isTruncated}
+        fixedInvalidJson={fixedInvalidJson}
+      />
       {messages.slice(0, MAX_MESSAGES_AT_START).map(renderMessage)}
       <ButtonDivider>
         <Button onClick={() => setIsExpanded(true)} size="xs">
@@ -518,5 +640,5 @@ const ButtonDivider = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: ${space(4)} 0;
+  margin: ${p => p.theme.space['3xl']} 0;
 `;

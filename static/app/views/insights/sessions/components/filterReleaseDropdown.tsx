@@ -1,10 +1,10 @@
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
-export default function FilterReleaseDropdown({
+export function FilterReleaseDropdown({
   filters,
   setFilters,
 }: {

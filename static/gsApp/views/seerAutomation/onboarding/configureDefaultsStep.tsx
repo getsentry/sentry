@@ -1,23 +1,24 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import defaultsImg from 'sentry-images/spot/seer-config-error.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Link} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
 import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -72,6 +73,9 @@ export function ConfigureDefaultsStep() {
           setCurrentStep(currentStep + 1);
         },
         onError: () => {
+          Sentry.captureException(
+            new Error('Seer Onboarding: Unable to update defaults')
+          );
           addErrorMessage(
             t('Failed to update Seer default settings, reload and try again')
           );

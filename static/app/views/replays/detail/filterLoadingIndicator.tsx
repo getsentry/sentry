@@ -1,9 +1,9 @@
 import type {ReactNode} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 
 interface Props {
@@ -11,7 +11,7 @@ interface Props {
   isLoading: boolean;
 }
 
-export default function FilterLoadingIndicator({children, isLoading}: Props) {
+export function FilterLoadingIndicator({children, isLoading}: Props) {
   return (
     <Stack justify="between" flexGrow={1} gap="md">
       {children}

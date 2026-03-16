@@ -1,20 +1,20 @@
 import {useEffect, type ReactNode} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {ExternalLink} from '@sentry/scraps/link/link';
-import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {TabKey, useActiveReplayTab} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {hasLogsOnReplays} from 'sentry/views/explore/logs/hasLogsOnReplays';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -73,7 +73,7 @@ type Props = {
   isVideoReplay: boolean;
 };
 
-export default function FocusTabs({isVideoReplay}: Props) {
+export function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({

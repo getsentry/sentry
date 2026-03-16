@@ -1,18 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import {space} from 'sentry/styles/space';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 
 import type {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import DropdownActions from 'admin/components/dropdownActions';
-import PageHeader from 'admin/components/pageHeader';
+import {DropdownActions} from 'admin/components/dropdownActions';
+import {PageHeader} from 'admin/components/pageHeader';
 
 export type ActionItem = {
   key: string;
@@ -121,7 +120,7 @@ type Props = {
   sections?: SectionItem[];
 };
 
-function DetailsPage({
+export function DetailsPage({
   rootName,
   name,
   crumbs = [],
@@ -173,7 +172,5 @@ function DetailsPage({
 }
 
 const SectionBody = styled('div')<{withPadding?: boolean}>`
-  ${p => p.withPadding && `padding: ${space(2)}`};
+  ${p => p.withPadding && `padding: ${p.theme.space.xl}`};
 `;
-
-export default DetailsPage;

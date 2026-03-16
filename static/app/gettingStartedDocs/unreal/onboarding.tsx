@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   DocsParams,
@@ -9,22 +10,31 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getConsoleExtensions} from 'sentry/components/onboarding/gettingStartedDoc/utils/consoleExtensions';
 import {t, tct} from 'sentry/locale';
 
-type Params = DocsParams;
+import {logsVerify} from './logs';
 
-const getVerifySnippet = () => `
-#include "SentrySubsystem.h"
+const getVerifySnippet = (params: DocsParams) => {
+  const logsCode = params.isLogsSelected
+    ? `
+
+    // Send logs at different severity levels
+    SentrySubsystem->LogInfo(TEXT("A simple log message"), TEXT("GameFlow"));`
+    : '';
+
+  return `#include "SentrySubsystem.h"
 
 void Verify()
 {
     // Obtain reference to GameInstance
     UGameInstance* GameInstance = ...;
 
-    // Capture message
     USentrySubsystem* SentrySubsystem = GameInstance->GetSubsystem<USentrySubsystem>();
-    SentrySubsystem->CaptureMessage(TEXT("Capture message"));
-}`;
 
-const getSettingsConfigureSnippet = (params: Params) => `
+    // Capture message
+    SentrySubsystem->CaptureMessage(TEXT("Capture message"));${logsCode}
+}`;
+};
+
+const getSettingsConfigureSnippet = (params: DocsParams) => `
 #include "SentrySubsystem.h"
 
 FConfigureSettingsDelegate OnConfigureSettings;
@@ -39,7 +49,14 @@ void UMyGameInstance::ConfigureSentrySettings(USentrySettings* Settings)
     Settings->SendDefaultPii = true;
 
     // If your game/app doesn't have sensitive data, you can get screenshots on error events automatically
-    Settings->AttachScreenshot = true;
+    Settings->AttachScreenshot = true;${
+      params.isLogsSelected
+        ? `
+
+    // Enable structured logging
+    Settings->EnableStructuredLogging = true;`
+        : ''
+    }
 }
 
 ...
@@ -47,7 +64,7 @@ void UMyGameInstance::ConfigureSentrySettings(USentrySettings* Settings)
 USentrySubsystem* SentrySubsystem = GEngine->GetEngineSubsystem<USentrySubsystem>();
 SentrySubsystem->InitializeWithSettings(OnConfigureSettings);`;
 
-const getCrashReporterConfigSnippet = (params: Params) => `
+const getCrashReporterConfigSnippet = (params: DocsParams) => `
 [CrashReportClient]
 CrashReportClientVersion=1.0
 DataRouterUrl="${params.dsn.unreal}"`;
@@ -111,6 +128,19 @@ export const onboarding: OnboardingConfig = {
           code: params.dsn.public,
         },
         {
+          type: 'conditional',
+          condition: params.isLogsSelected,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'To enable structured logging, check the [strong:Enable Structured Logging] option in the Sentry configuration window.',
+                {strong: <strong />}
+              ),
+            },
+          ],
+        },
+        {
           type: 'text',
           text: tct(
             "By default, the SDK initializes automatically when the application starts. Alternatively, you can disable the [strong:Initialize SDK automatically] option, in which case you'll need to initialize the SDK manually",
@@ -138,10 +168,18 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'cpp',
-          code: getVerifySnippet(),
+          code: getVerifySnippet(params),
         },
       ],
     },
+    ...(params.isLogsSelected
+      ? ([
+          {
+            title: t('Logs'),
+            content: [logsVerify(params)],
+          },
+        ] satisfies OnboardingStep[])
+      : []),
     {
       title: t('Crash Reporter Client'),
       content: [

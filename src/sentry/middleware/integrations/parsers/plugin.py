@@ -9,7 +9,7 @@ from django.http.response import HttpResponseBase
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.types.region import RegionResolutionError, get_region_by_name
+from sentry.types.region import CellResolutionError, get_cell_by_name
 from sentry_plugins.bitbucket.endpoints.webhook import BitbucketPluginWebhookEndpoint
 from sentry_plugins.github.webhooks.non_integration import GithubPluginWebhookEndpoint
 
@@ -46,8 +46,8 @@ class PluginRequestParser(BaseRequestParser):
             return HttpResponse(status=400)
 
         try:
-            region = get_region_by_name(mapping.region_name)
-        except RegionResolutionError as e:
+            region = get_cell_by_name(mapping.cell_name)
+        except CellResolutionError as e:
             logging_extra["error"] = str(e)
             logging_extra["mapping_id"] = mapping.id
             logger.info("%s.no_region", self.provider, extra=logging_extra)

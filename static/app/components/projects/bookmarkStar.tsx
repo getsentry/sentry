@@ -1,25 +1,29 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
+
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {update} from 'sentry/actionCreators/projects';
-import {Button} from 'sentry/components/core/button';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
-type Props = {
+interface BookmarkStarProps extends Omit<ButtonProps, 'as' | 'onToggle'> {
   organization: Organization;
   project: Project;
-  className?: string;
   onToggle?: (isBookmarked: boolean) => void;
-};
+}
 
-function BookmarkStar({className, organization, project, onToggle}: Props) {
+export function BookmarkStar({
+  organization,
+  project,
+  onToggle,
+  tooltipProps,
+  ...props
+}: BookmarkStarProps) {
   const api = useApi({persistInFlight: true});
   const [isBookmarked, setIsBookmarked] = useState(project.isBookmarked);
 
@@ -41,35 +45,22 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
     },
   });
 
-  const label = isBookmarked ? t('Remove Bookmark') : t('Bookmark');
-
   return (
-    <BookmarkStarButton
-      title={label}
-      aria-label={label}
+    <Button
+      tooltipProps={{
+        ...tooltipProps,
+        title: isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
+      }}
+      aria-label={isBookmarked ? t('Remove Bookmark') : t('Bookmark')}
       aria-pressed={isBookmarked}
       busy={isBookmarking}
       onClick={() => handleBookmarkToggle({isBookmarked: !isBookmarked})}
       size="zero"
-      borderless
-      className={className}
+      priority="transparent"
       icon={
         <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />
       }
+      {...props}
     />
   );
 }
-
-const BookmarkStarButton = styled(Button)`
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  margin: -${space(0.5)};
-
-  svg {
-    /* Negative margin for visual centering within the button */
-    margin-top: -1px;
-  }
-`;
-
-export default BookmarkStar;

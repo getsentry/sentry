@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import reformat_timestamp_ms_to_isoformat
@@ -15,7 +15,7 @@ from sentry.models.organization import Organization
 from sentry.replays.permissions import has_replay_permission
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
     """The generic Events endpoints require that the cross-project selection feature
     be enabled before they return across multiple projects.
@@ -36,7 +36,6 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
     def get_field_list(
         self, organization: Organization, request: Request, param_name: str = "field"
     ) -> list[str]:
-
         fields = [
             "error.type",
             "id",

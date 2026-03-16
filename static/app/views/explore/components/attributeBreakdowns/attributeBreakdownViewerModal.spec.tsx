@@ -1,8 +1,17 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
+import {closeModal} from 'sentry/actionCreators/modal';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 
 import AttributeBreakdownViewerModal from './attributeBreakdownViewerModal';
+
+jest.mock('sentry/actionCreators/modal');
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
@@ -12,15 +21,26 @@ jest.mock('echarts-for-react/lib/core', () => {
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
+const mockCloseModal = jest.mocked(closeModal);
+
 const stubProps = {
   Header: stubEl,
   Footer: stubEl as ModalRenderProps['Footer'],
   Body: stubEl as ModalRenderProps['Body'],
   CloseButton: stubEl,
-  closeModal: () => undefined,
+  closeModal: mockCloseModal,
 };
 
 describe('AttributeBreakdownViewerModal', () => {
+  beforeEach(() => {
+    mockCloseModal.mockClear();
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: jest.fn(() => Promise.resolve()),
+      },
+    });
+  });
+
   describe('single mode', () => {
     const mockAttributeDistribution = {
       attributeName: 'browser.name',
@@ -40,6 +60,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
+          query=""
         />
       );
 
@@ -53,6 +74,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
+          query=""
         />
       );
 
@@ -67,6 +89,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
+          query=""
         />
       );
 
@@ -80,6 +103,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={mockCohortCount}
+          query=""
         />
       );
 
@@ -107,6 +131,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={attributeDistribution}
           cohortCount={cohortCount}
+          query=""
         />
       );
 
@@ -121,6 +146,7 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={mockAttributeDistribution}
           cohortCount={cohortCount}
+          query=""
         />
       );
 
@@ -138,10 +164,12 @@ describe('AttributeBreakdownViewerModal', () => {
           mode="single"
           attributeDistribution={attributeDistribution}
           cohortCount={mockCohortCount}
+          query=""
         />
       );
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
+      expect(screen.queryByText('echarts mock')).not.toBeInTheDocument();
     });
   });
 
@@ -174,6 +202,7 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
+          query=""
         />
       );
 
@@ -188,6 +217,7 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
+          query=""
         />
       );
 
@@ -204,6 +234,7 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
+          query=""
         />
       );
 
@@ -218,6 +249,7 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
+          query=""
         />
       );
 
@@ -241,6 +273,7 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
+          query=""
         />
       );
 
@@ -258,6 +291,7 @@ describe('AttributeBreakdownViewerModal', () => {
           attribute={mockAttribute}
           cohort1Total={0}
           cohort2Total={0}
+          query=""
         />
       );
 
@@ -277,10 +311,213 @@ describe('AttributeBreakdownViewerModal', () => {
           }}
           cohort1Total={mockCohort1Total}
           cohort2Total={mockCohort2Total}
+          query=""
         />
       );
 
       expect(screen.getByRole('heading', {name: 'empty.attribute'})).toBeInTheDocument();
+      expect(screen.queryByText('echarts mock')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('cell actions', () => {
+    const mockAttributeDistribution = {
+      attributeName: 'browser.name',
+      values: [
+        {label: 'Chrome', value: 500},
+        {label: 'Firefox', value: 300},
+      ],
+    };
+
+    const mockCohortCount = 1000;
+
+    it('allows cell actions for Value column', async () => {
+      render(
+        <AttributeBreakdownViewerModal
+          {...stubProps}
+          mode="single"
+          attributeDistribution={mockAttributeDistribution}
+          cohortCount={mockCohortCount}
+          query=""
+        />
+      );
+
+      const cells = screen.getAllByRole('cell');
+      // First cell should be the Value column (Chrome)
+      const valueCell = cells[0]!;
+      const valueCellButton = within(valueCell).getByRole('button');
+      await userEvent.click(valueCellButton);
+
+      // Verify all expected menu items are present
+      expect(await screen.findByText('View span samples')).toBeInTheDocument();
+      expect(screen.getByText('Add to filter')).toBeInTheDocument();
+      expect(screen.getByText('Exclude from filter')).toBeInTheDocument();
+      expect(screen.getByText('Copy to clipboard')).toBeInTheDocument();
+    });
+
+    it('does not allow cell actions for non-Value columns', () => {
+      render(
+        <AttributeBreakdownViewerModal
+          {...stubProps}
+          mode="single"
+          attributeDistribution={mockAttributeDistribution}
+          cohortCount={mockCohortCount}
+          query=""
+        />
+      );
+
+      const cells = screen.getAllByRole('cell');
+      // Count column should be the second cell (500)
+      const countCell = cells[1]!;
+      // Non-Value columns should not have action buttons
+      expect(within(countCell).queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    it('navigates correctly when OPEN_ROW_IN_EXPLORE action is triggered', async () => {
+      const {router} = render(
+        <AttributeBreakdownViewerModal
+          {...stubProps}
+          mode="single"
+          attributeDistribution={mockAttributeDistribution}
+          cohortCount={mockCohortCount}
+          query=""
+        />
+      );
+
+      const cells = screen.getAllByRole('cell');
+      const valueCell = cells[0]!;
+      const valueCellButton = within(valueCell).getByRole('button');
+      await userEvent.click(valueCellButton);
+
+      const menuOption = await screen.findByText('View span samples');
+      await userEvent.click(menuOption);
+
+      await waitFor(() => expect(router.location.pathname).toContain('/explore/traces/'));
+      expect(router.location.query.query).toContain('browser.name:Chrome');
+      expect(mockCloseModal).toHaveBeenCalled();
+    });
+
+    it('navigates with attribute_breakdowns table when ADD action is triggered', async () => {
+      const {router} = render(
+        <AttributeBreakdownViewerModal
+          {...stubProps}
+          mode="single"
+          attributeDistribution={mockAttributeDistribution}
+          cohortCount={mockCohortCount}
+          query=""
+        />
+      );
+
+      const cells = screen.getAllByRole('cell');
+      const valueCell = cells[0]!;
+      const valueCellButton = within(valueCell).getByRole('button');
+      await userEvent.click(valueCellButton);
+
+      const menuOption = await screen.findByText('Add to filter');
+      await userEvent.click(menuOption);
+
+      await waitFor(() => expect(router.location.pathname).toContain('/explore/traces/'));
+      expect(router.location.query.table).toBe('attribute_breakdowns');
+      expect(router.location.query.query).toContain('browser.name:Chrome');
+      expect(mockCloseModal).toHaveBeenCalled();
+    });
+
+    it('navigates with negated filter when EXCLUDE action is triggered', async () => {
+      const {router} = render(
+        <AttributeBreakdownViewerModal
+          {...stubProps}
+          mode="single"
+          attributeDistribution={mockAttributeDistribution}
+          cohortCount={mockCohortCount}
+          query=""
+        />
+      );
+
+      const cells = screen.getAllByRole('cell');
+      const valueCell = cells[0]!;
+      const valueCellButton = within(valueCell).getByRole('button');
+      await userEvent.click(valueCellButton);
+
+      const menuOption = await screen.findByText('Exclude from filter');
+      await userEvent.click(menuOption);
+
+      await waitFor(() => expect(router.location.pathname).toContain('/explore/traces/'));
+      expect(router.location.query.table).toBe('attribute_breakdowns');
+      expect(router.location.query.query).toContain('!browser.name:Chrome');
+      expect(mockCloseModal).toHaveBeenCalled();
+    });
+
+    it('copies value to clipboard when COPY_TO_CLIPBOARD action is triggered', async () => {
+      const writeTextMock = jest.fn(() => Promise.resolve());
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: writeTextMock,
+        },
+      });
+
+      render(
+        <AttributeBreakdownViewerModal
+          {...stubProps}
+          mode="single"
+          attributeDistribution={mockAttributeDistribution}
+          cohortCount={mockCohortCount}
+          query=""
+        />
+      );
+
+      const cells = screen.getAllByRole('cell');
+      const valueCell = cells[0]!;
+      const valueCellButton = within(valueCell).getByRole('button');
+      await userEvent.click(valueCellButton);
+
+      const menuOption = await screen.findByText('Copy to clipboard');
+      await userEvent.click(menuOption);
+
+      await waitFor(() => {
+        expect(writeTextMock).toHaveBeenCalledWith('Chrome');
+      });
+      expect(mockCloseModal).toHaveBeenCalled();
+    });
+
+    it('works correctly in comparison mode', async () => {
+      const mockAttribute = {
+        attributeName: 'browser.name',
+        cohort1: [
+          {label: 'Chrome', value: 500},
+          {label: 'Firefox', value: 300},
+        ],
+        cohort2: [
+          {label: 'Chrome', value: 400},
+          {label: 'Firefox', value: 350},
+        ],
+        order: {
+          rrf: 0.5,
+          rrr: 0.3,
+        },
+      };
+
+      const {router} = render(
+        <AttributeBreakdownViewerModal
+          {...stubProps}
+          mode="comparison"
+          attribute={mockAttribute}
+          cohort1Total={800}
+          cohort2Total={750}
+          query=""
+        />
+      );
+
+      const cells = screen.getAllByRole('cell');
+      const valueCell = cells[0]!;
+      const valueCellButton = within(valueCell).getByRole('button');
+      await userEvent.click(valueCellButton);
+
+      const menuOption = await screen.findByText('View span samples');
+      await userEvent.click(menuOption);
+
+      await waitFor(() => expect(router.location.pathname).toContain('/explore/traces/'));
+      expect(router.location.query.query).toContain('browser.name:Chrome');
+      expect(mockCloseModal).toHaveBeenCalled();
     });
   });
 });

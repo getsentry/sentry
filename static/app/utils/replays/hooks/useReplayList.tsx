@@ -1,11 +1,11 @@
 import {useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
-import fetchReplayList from 'sentry/utils/replays/fetchReplayList';
-import useApi from 'sentry/utils/useApi';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {fetchReplayList} from 'sentry/utils/replays/fetchReplayList';
+import {useApi} from 'sentry/utils/useApi';
 import type {
   ReplayListLocationQuery,
   ReplayListQueryReferrer,
@@ -28,7 +28,7 @@ type Result = State;
  * @deprecated due to its reliance on EventView which is unpleasant to work with
  * Use useApiQuery instead
  */
-function useReplayList({
+export function useReplayList({
   enabled = true,
   eventView,
   location,
@@ -87,5 +87,3 @@ function useReplayList({
 
   return data;
 }
-
-export default useReplayList;

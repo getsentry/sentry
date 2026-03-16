@@ -9,11 +9,11 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
@@ -30,8 +30,8 @@ import {
   type AggregationKey,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles';
@@ -42,8 +42,10 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
+  useSpanItemAttributes,
+  useTraceItemDatasetAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   useQueryParamsCrossEvents,
   useQueryParamsFields,
@@ -64,7 +66,6 @@ import {findSuggestedColumns} from 'sentry/views/explore/utils';
 const crossEventDropdownItems: DropdownMenuProps['items'] = [
   {key: 'spans', label: t('Spans')},
   {key: 'logs', label: t('Logs')},
-  {key: 'metrics', label: t('Metrics')},
 ];
 
 function CrossEventQueryingDropdown() {
@@ -104,7 +105,7 @@ function CrossEventQueryingDropdown() {
           isDisabled={isDisabled}
           triggerProps={{
             ...triggerProps,
-            title: tooltipTitle,
+            tooltipProps: {title: tooltipTitle},
             size: 'md',
             showChevron: false,
             icon: <IconAdd />,
@@ -128,17 +129,15 @@ const SpansTabCrossEventSearchBar = memo(
     const crossEvents = useQueryParamsCrossEvents();
     const setCrossEvents = useSetQueryParamsCrossEvents();
 
-    const {tags: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-      useTraceItemTags('number');
-    const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-      useTraceItemTags('string');
-
     const traceItemType =
-      type === 'spans'
-        ? TraceItemDataset.SPANS
-        : type === 'logs'
-          ? TraceItemDataset.LOGS
-          : TraceItemDataset.TRACEMETRICS;
+      type === 'logs' ? TraceItemDataset.LOGS : TraceItemDataset.SPANS;
+
+    const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+      useTraceItemDatasetAttributes(traceItemType, {}, 'number');
+    const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+      useTraceItemDatasetAttributes(traceItemType, {}, 'string');
+    const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+      useTraceItemDatasetAttributes(traceItemType, {}, 'boolean');
 
     const eapSpanSearchQueryBuilderProps = useMemo(
       () => ({
@@ -169,16 +168,20 @@ const SpansTabCrossEventSearchBar = memo(
             : undefined,
         supportedAggregates:
           mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+        booleanAttributes,
         numberAttributes,
         stringAttributes,
         matchKeySuggestions: [
           {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
           {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
         ],
+        booleanSecondaryAliases,
         numberSecondaryAliases,
         stringSecondaryAliases,
       }),
       [
+        booleanAttributes,
+        booleanSecondaryAliases,
         crossEvents,
         index,
         mode,
@@ -235,12 +238,10 @@ function SpansTabCrossEventSearchBars() {
   }
 
   return crossEvents.map((crossEvent, index) => {
-    const traceItemType =
-      crossEvent.type === 'spans'
-        ? TraceItemDataset.SPANS
-        : crossEvent.type === 'logs'
-          ? TraceItemDataset.LOGS
-          : TraceItemDataset.TRACEMETRICS;
+    let traceItemType = TraceItemDataset.SPANS;
+    if (crossEvent.type === 'logs') {
+      traceItemType = TraceItemDataset.LOGS;
+    }
 
     const maxCrossEventQueriesReached = index >= MAX_CROSS_EVENT_QUERIES;
 
@@ -260,7 +261,6 @@ function SpansTabCrossEventSearchBars() {
               options={[
                 {value: 'spans', label: t('Spans')},
                 {value: 'logs', label: t('Logs')},
-                {value: 'metrics', label: t('Metrics')},
               ]}
               onChange={({value: newValue}) => {
                 if (!isCrossEventType(newValue)) return;
@@ -292,8 +292,10 @@ function SpansTabCrossEventSearchBars() {
               disabled
               itemType={traceItemType}
               initialQuery={crossEvent.query}
+              booleanAttributes={{}}
               numberAttributes={{}}
               stringAttributes={{}}
+              booleanSecondaryAliases={{}}
               numberSecondaryAliases={{}}
               stringSecondaryAliases={{}}
               searchSource="explore"
@@ -306,13 +308,11 @@ function SpansTabCrossEventSearchBars() {
             />
           </SearchQueryBuilderProvider>
         ) : (
-          <TraceItemAttributeProvider traceItemType={traceItemType} enabled>
-            <SpansTabCrossEventSearchBar
-              index={index}
-              query={crossEvent.query}
-              type={crossEvent.type}
-            />
-          </TraceItemAttributeProvider>
+          <SpansTabCrossEventSearchBar
+            index={index}
+            query={crossEvent.query}
+            type={crossEvent.type}
+          />
         )}
         <Button
           icon={<IconDelete />}
@@ -378,10 +378,12 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const hasCrossEvents =
     hasCrossEventQueryingFlag && defined(crossEvents) && crossEvents.length > 0;
 
-  const {tags: numberAttributes, isLoading: numberAttributesLoading} =
-    useTraceItemTags('number');
-  const {tags: stringAttributes, isLoading: stringAttributesLoading} =
-    useTraceItemTags('string');
+  const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
+    useSpanItemAttributes({}, 'number');
+  const {attributes: stringAttributes, isLoading: stringAttributesLoading} =
+    useSpanItemAttributes({}, 'string');
+  const {attributes: booleanAttributes, isLoading: booleanAttributesLoading} =
+    useSpanItemAttributes({}, 'boolean');
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
@@ -392,6 +394,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       onSearch: (newQuery: string) => {
         const newSearch = new MutableSearch(newQuery);
         const suggestedColumns = findSuggestedColumns(newSearch, oldSearch, {
+          booleanAttributes,
           numberAttributes,
           stringAttributes,
         });
@@ -427,6 +430,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
       onCaseInsensitiveClick: setCaseInsensitive,
     }),
     [
+      booleanAttributes,
       caseInsensitive,
       fields,
       hasRawSearchReplacement,
@@ -454,34 +458,48 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
           id={ExploreSpansTour.SEARCH_BAR}
           title={t('Start Your Search')}
           description={t(
-            'Specify the keys you’d like to narrow your search down to (ex. span.operation) and then any values (ex. db, res, http, etc.).'
+            "Specify the keys you'd like to narrow your search down to (ex. span.operation) and then any values (ex. db, res, http, etc.)."
           )}
           position="bottom"
           margin={-8}
         >
-          <Grid gap="md" columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr min-content'}}>
-            <StyledPageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter {...datePageFilterProps} />
-            </StyledPageFilterBar>
-            <SpansSearchBar spanSearchQueryBuilderProps={spanSearchQueryBuilderProps} />
-            {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
-            {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
-          </Grid>
-          {hasCrossEvents ? null : (
-            <ExploreSchemaHintsSection>
-              <SchemaHintsList
-                supportedAggregates={
-                  mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-                }
-                numberTags={numberAttributes}
-                stringTags={stringAttributes}
-                isLoading={numberAttributesLoading || stringAttributesLoading}
-                exploreQuery={query}
-                source={SchemaHintsSources.EXPLORE}
-              />
-            </ExploreSchemaHintsSection>
+          {tourProps => (
+            <div {...tourProps}>
+              <Grid
+                gap="md"
+                columns={{sm: '1fr', md: 'minmax(300px, auto) 1fr min-content'}}
+              >
+                <StyledPageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter {...datePageFilterProps} />
+                </StyledPageFilterBar>
+                <SpansSearchBar
+                  spanSearchQueryBuilderProps={spanSearchQueryBuilderProps}
+                />
+                {hasCrossEventQueryingFlag ? <CrossEventQueryingDropdown /> : null}
+                {hasCrossEvents ? <SpansTabCrossEventSearchBars /> : null}
+              </Grid>
+              {hasCrossEvents ? null : (
+                <ExploreSchemaHintsSection>
+                  <SchemaHintsList
+                    supportedAggregates={
+                      mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+                    }
+                    booleanTags={booleanAttributes}
+                    numberTags={numberAttributes}
+                    stringTags={stringAttributes}
+                    isLoading={
+                      numberAttributesLoading ||
+                      stringAttributesLoading ||
+                      booleanAttributesLoading
+                    }
+                    exploreQuery={query}
+                    source={SchemaHintsSources.EXPLORE}
+                  />
+                </ExploreSchemaHintsSection>
+              )}
+            </div>
           )}
         </TourElement>
       </SearchQueryBuilderProvider>

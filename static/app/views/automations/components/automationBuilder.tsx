@@ -1,11 +1,12 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Select} from 'sentry/components/core/select';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {PurpleTextButton} from 'sentry/components/workflowEngine/ui/purpleTextButton';
 import {IconAdd, IconDelete, IconMail} from 'sentry/icons';
@@ -17,10 +18,10 @@ import {
   type DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
-import ActionNodeList from 'sentry/views/automations/components/actionNodeList';
+import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
 import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
@@ -28,12 +29,12 @@ import {
   stripActionFields,
   validateActions,
 } from 'sentry/views/automations/components/automationFormData';
-import DataConditionNodeList from 'sentry/views/automations/components/dataConditionNodeList';
+import {DataConditionNodeList} from 'sentry/views/automations/components/dataConditionNodeList';
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {useSendTestNotification} from 'sentry/views/automations/hooks';
 import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
 
-export default function AutomationBuilder() {
+export function AutomationBuilder() {
   const {state, actions, showTriggerLogicTypeSelector} = useAutomationBuilderContext();
   const {mutationErrors} = useAutomationBuilderErrorContext();
   const organization = useOrganization();
@@ -118,7 +119,7 @@ export default function AutomationBuilder() {
         ))}
         <span>
           <PurpleTextButton
-            borderless
+            priority="transparent"
             icon={<IconAdd />}
             size="xs"
             onClick={() => actions.addIf()}
@@ -212,7 +213,7 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
               aria-label={t('Delete If/Then Block')}
               size="sm"
               icon={<IconDelete />}
-              borderless
+              priority="transparent"
               onClick={() => actions.removeIf(actionFilter.id)}
               className="delete-condition-group"
             />

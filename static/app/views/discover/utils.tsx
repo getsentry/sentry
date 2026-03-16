@@ -2,8 +2,8 @@ import type {Location} from 'history';
 import * as Papa from 'papaparse';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
@@ -14,7 +14,7 @@ import type {
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -54,7 +54,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {
   getAllViews,
   getTransactionViews,
@@ -170,7 +170,7 @@ export function getPrebuiltQueries(organization: Organization) {
 function disableMacros(value: string | null | boolean | number) {
   const unsafeCharacterRegex = /^[=+\-@]/;
 
-  if (typeof value === 'string' && `${value}`.match(unsafeCharacterRegex)) {
+  if (typeof value === 'string' && value.match(unsafeCharacterRegex)) {
     return `'${value}`;
   }
 
@@ -888,7 +888,7 @@ export function constructAddQueryToDashboardLink({
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
-      ...convertWidgetToBuilderStateParams(widget),
+      ...convertWidgetToQueryParams(widget),
       source,
     },
   };

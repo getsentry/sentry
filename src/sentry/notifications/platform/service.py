@@ -16,10 +16,10 @@ from sentry.notifications.platform.provider import NotificationProvider
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.rollout import NotificationRolloutService
 from sentry.notifications.platform.target import NotificationTargetDto
-from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
+    NotificationSource,
     NotificationStrategy,
     NotificationTarget,
     NotificationTemplate,
@@ -44,7 +44,7 @@ class NotificationService[T: NotificationData]:
 
     @staticmethod
     def has_access(
-        organization: Organization | RpcOrganization, source: NotificationTemplateSource
+        organization: Organization | RpcOrganization, source: NotificationSource
     ) -> bool:
         return NotificationRolloutService(organization=organization).should_notify(source=source)
 
@@ -178,7 +178,7 @@ class NotificationService[T: NotificationData]:
     name="src.sentry.notifications.platform.service.notify_target_async",
     namespace=notifications_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def notify_target_async(
     *,

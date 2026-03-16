@@ -7,9 +7,8 @@ import {
   useDelayedLoadingState,
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 
 type SpanEvidencePreviewProps = {
@@ -103,7 +102,7 @@ export function SpanEvidencePreview({
 
 const EmptyWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
   font-size: ${p => p.theme.font.size.md};
   display: flex;
   align-items: center;
@@ -113,5 +112,5 @@ const EmptyWrapper = styled('div')`
 
 const SpanEvidencePreviewWrapper = styled('div')`
   width: 700px;
-  padding: ${space(1.5)} ${space(1.5)} 0 ${space(1.5)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} 0 ${p => p.theme.space.lg};
 `;

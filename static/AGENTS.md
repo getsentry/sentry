@@ -17,7 +17,7 @@
 - `package.json`: Node.js dependencies and scripts
 - `rspack.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
-- `eslint.config.mjs`: ESLint configuration
+- `eslint.config.ts`: ESLint configuration
 - `stylelint.config.js`: CSS/styling linting
 - **Components**: `static/app/components/{component}/`
 - **Views**: `static/app/views/{area}/{page}.tsx`
@@ -56,7 +56,9 @@ const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
 
-## Design system
+## UI Patterns
+
+- When implementing advanced copy to clipboard functionality like markdown or JSON, avoid using separate buttons to copy different formats and prefer using sentry/components/copyAsDropdown and provide the different format options.
 
 ### General practices
 

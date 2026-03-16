@@ -6,7 +6,6 @@ from enum import StrEnum
 from typing import Any, Literal, Protocol, Self
 
 from sentry.integrations.types import ExternalProviderEnum
-from sentry.notifications.platform.templates.types import NotificationTemplateSource
 
 
 class NotificationCategory(StrEnum):
@@ -23,34 +22,65 @@ class NotificationCategory(StrEnum):
     REPOSITORY = "repository"
     SEER = "seer"
 
-    def get_sources(self) -> list[str]:
+    def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
 
 
-NOTIFICATION_SOURCE_MAP = {
+class NotificationSource(StrEnum):
+    """
+    A name for a notification being sent. Each notification sent should have a unique source.
+    """
+
+    # DEBUG
+    TEST = "test"
+    ERROR_ALERT = "error-alert-service"
+    DEPLOYMENT = "deployment-service"
+    SLOW_LOAD_METRIC_ALERT = "slow-load-metric-alert"
+    PERFORMANCE_MONITORING = "performance-monitoring"
+    TEAM_COMMUNICATION = "team-communication"
+
+    # DATA_EXPORT
+    DATA_EXPORT_SUCCESS = "data-export-success"
+    DATA_EXPORT_FAILURE = "data-export-failure"
+
+    # DYNAMIC_SAMPLING
+    CUSTOM_RULE_SAMPLES_FULFILLED = "custom-rule-samples-fulfilled"
+
+    # REPOSITORY
+    UNABLE_TO_DELETE_REPOSITORY = "unable-to-delete-repository"
+
+    # SEER
+    SEER_AUTOFIX_ERROR = "seer-autofix-error"
+    SEER_AUTOFIX_UPDATE = "seer-autofix-update"
+    SEER_AUTOFIX_TRIGGER = "seer-autofix-trigger"
+    SEER_AUTOFIX_FOOTER = "seer-autofix-footer"
+    SEER_AUTOFIX_SUCCESS = "seer-autofix-success"
+
+
+NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
     NotificationCategory.DEBUG: [
-        "test",
-        "error-alert-service",
-        "deployment-service",
-        "slow-load-metric-alert",
-        "performance-monitoring",
-        "team-communication",
+        NotificationSource.TEST,
+        NotificationSource.ERROR_ALERT,
+        NotificationSource.DEPLOYMENT,
+        NotificationSource.SLOW_LOAD_METRIC_ALERT,
+        NotificationSource.PERFORMANCE_MONITORING,
+        NotificationSource.TEAM_COMMUNICATION,
     ],
     NotificationCategory.DATA_EXPORT: [
-        "data-export-success",
-        "data-export-failure",
+        NotificationSource.DATA_EXPORT_SUCCESS,
+        NotificationSource.DATA_EXPORT_FAILURE,
     ],
     NotificationCategory.DYNAMIC_SAMPLING: [
-        "custom-rule-samples-fulfilled",
+        NotificationSource.CUSTOM_RULE_SAMPLES_FULFILLED,
     ],
     NotificationCategory.REPOSITORY: [
-        "unable-to-delete-repository",
+        NotificationSource.UNABLE_TO_DELETE_REPOSITORY,
     ],
     NotificationCategory.SEER: [
-        "seer-autofix-trigger",
-        "seer-autofix-error",
-        "seer-autofix-success",
-        "seer-autofix-update",
+        NotificationSource.SEER_AUTOFIX_TRIGGER,
+        NotificationSource.SEER_AUTOFIX_ERROR,
+        NotificationSource.SEER_AUTOFIX_SUCCESS,
+        NotificationSource.SEER_AUTOFIX_UPDATE,
     ],
 }
 
@@ -106,7 +136,7 @@ class NotificationData(Protocol):
     All data passing through the notification platform must adhere to this protocol.
     """
 
-    source: NotificationTemplateSource
+    source: NotificationSource
     """
     The source is uniquely attributable to the way this notification was sent. It will be tracked in
     metrics/analytics to determine the egress from a given code-path or service.

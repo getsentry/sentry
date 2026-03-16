@@ -4,21 +4,22 @@ import {mergeProps} from '@react-aria/utils';
 import {type OverlayTriggerState} from '@react-stately/overlays';
 
 import {Button} from '@sentry/scraps/button';
-import {ControlContext} from '@sentry/scraps/compactSelect/control';
+import {
+  CompactSelect,
+  ControlContext,
+  type SingleSelectProps,
+} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {
-  CompactSelect,
-  type SingleSelectProps,
-} from 'sentry/components/core/compactSelect';
-
-import Divider from './divider';
+import {Divider} from './divider';
 import type {RouteWithName} from './types';
 
-interface BreadcrumbDropdownProps
-  extends Omit<SingleSelectProps<string>, 'onChange' | 'clearable'> {
+interface BreadcrumbDropdownProps extends Omit<
+  SingleSelectProps<string>,
+  'onChange' | 'clearable'
+> {
   name: React.ReactNode;
   onCrumbSelect: (value: string) => void;
   route: RouteWithName;
@@ -26,7 +27,7 @@ interface BreadcrumbDropdownProps
   isLast?: boolean;
 }
 
-function BreadcrumbDropdown({
+export function BreadcrumbDropdown({
   hasMenu,
   route,
   isLast,
@@ -54,7 +55,7 @@ function BreadcrumbDropdown({
 
   return (
     <CompactSelect
-      searchable
+      search
       options={options.map(item => ({...item, hideCheck: true}))}
       onChange={selected => {
         onCrumbSelect(selected.value);
@@ -144,5 +145,3 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
     </Flex>
   );
 }
-
-export default BreadcrumbDropdown;

@@ -1,19 +1,20 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import Placeholder from 'sentry/components/placeholder';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import GridEditable from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UptimeCheck} from 'sentry/views/alerts/rules/uptime/types';
 import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -27,6 +28,15 @@ type Props = {
   traceSampling: boolean;
   uptimeChecks: UptimeCheck[];
 };
+
+type ColumnKey =
+  | 'traceItemId'
+  | 'timestamp'
+  | 'checkStatus'
+  | 'httpStatusCode'
+  | 'durationMs'
+  | 'regionName'
+  | 'traceId';
 
 /**
  * This value is used when a trace was not recorded since the field is required.
@@ -70,20 +80,21 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
     <GridEditable
       emptyMessage={t('No matching uptime checks found')}
       data={uptimeChecks}
+      fit="max-content"
       columnOrder={[
-        {key: 'timestamp', width: 150, name: t('Timestamp')},
-        {key: 'checkStatus', width: 250, name: t('Status')},
-        {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
-        {key: 'durationMs', width: 110, name: t('Duration')},
-        {key: 'regionName', width: 200, name: t('Region')},
-        {key: 'traceId', width: 150, name: t('Trace')},
+        {key: 'traceItemId', width: 95, name: t('ID')},
+        {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: t('Timestamp')},
+        {key: 'checkStatus', width: COL_WIDTH_UNDEFINED, name: t('Status')},
+        {key: 'httpStatusCode', width: COL_WIDTH_UNDEFINED, name: t('HTTP Code')},
+        {key: 'durationMs', width: COL_WIDTH_UNDEFINED, name: t('Duration')},
+        {key: 'regionName', width: COL_WIDTH_UNDEFINED, name: t('Region')},
+        {key: 'traceId', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
       ]}
       columnSortBy={[]}
       grid={{
-        renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell
-            column={column as GridColumnOrder<keyof UptimeCheck>}
+            column={column as GridColumnOrder<ColumnKey>}
             traceSampling={traceSampling}
             check={dataRow}
             spanCount={traceSpanCounts?.[dataRow.traceId]}
@@ -101,7 +112,7 @@ function CheckInBodyCell({
   traceSampling,
 }: {
   check: UptimeCheck;
-  column: GridColumnOrder<keyof UptimeCheck>;
+  column: GridColumnOrder<ColumnKey>;
   spanCount: number | undefined;
   traceSampling: boolean;
 }) {
@@ -163,9 +174,29 @@ function CheckInBodyCell({
         ? reasonToText[checkStatusReason](check)
         : null;
       return (
-        <Cell style={{color}}>
+        <StatusCell color={color}>
           {statusToText[checkStatus]}{' '}
           {checkStatusReasonLabel && t('(%s)', checkStatusReasonLabel)}
+        </StatusCell>
+      );
+    }
+    case 'traceItemId': {
+      if (isMiss || traceId === EMPTY_TRACE) {
+        return <Cell>{emptyCell}</Cell>;
+      }
+
+      return (
+        <Cell>
+          <Link
+            to={getUptimeTraceLink({
+              organization,
+              timestamp,
+              traceId,
+              targetId: check.traceItemId,
+            })}
+          >
+            {getShortEventId(check.traceItemId)}
+          </Link>
         </Cell>
       );
     }
@@ -185,7 +216,7 @@ function CheckInBodyCell({
 
       const badge =
         totalSpanCount === undefined ? (
-          <Placeholder height="20px" width="70px" />
+          <Placeholder height="20px" width="60px" />
         ) : hasOnlySystemSpans ? (
           <Tooltip
             isHoverable
@@ -210,13 +241,11 @@ function CheckInBodyCell({
       return (
         <TraceCell>
           <Link
-            to={{
-              pathname: `/organizations/${organization.slug}/performance/trace/${traceId}/`,
-              query: {
-                includeUptime: '1',
-                timestamp: new Date(timestamp).getTime() / 1000,
-              },
-            }}
+            to={getUptimeTraceLink({
+              organization,
+              timestamp,
+              traceId,
+            })}
           >
             {getShortEventId(traceId)}
           </Link>
@@ -231,11 +260,31 @@ function CheckInBodyCell({
   }
 }
 
+function getUptimeTraceLink({
+  organization,
+  timestamp,
+  traceId,
+  targetId,
+}: {
+  organization: Organization;
+  timestamp: string;
+  traceId: string;
+  targetId?: string;
+}) {
+  return {
+    pathname: `/organizations/${organization.slug}/performance/trace/${traceId}/`,
+    query: {
+      timestamp: new Date(timestamp).getTime() / 1000,
+      ...(targetId ? {node: `uptime-check-${targetId}`} : {}),
+    },
+  };
+}
+
 const Cell = styled('div')`
   display: flex;
   align-items: center;
   text-align: left;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const TimeCell = styled(Cell)`
@@ -245,7 +294,9 @@ const TimeCell = styled(Cell)`
 `;
 
 const TraceCell = styled(Cell)`
-  display: grid;
-  grid-template-columns: 65px max-content;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.xs};
+`;
+
+const StatusCell = styled(Cell)<{color: string}>`
+  color: ${p => p.color};
 `;

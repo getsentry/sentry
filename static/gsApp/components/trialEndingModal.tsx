@@ -2,16 +2,16 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import {IconBusiness, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName, getTrialDaysLeft, isTrialPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -139,7 +139,7 @@ function TrialEndingModal({organization, subscription, closeModal}: Props) {
 }
 
 const TrialEndInfo = styled('div')`
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
 
   p {
     font-size: ${p => p.theme.font.size.lg};
@@ -153,16 +153,16 @@ const TrialEndInfo = styled('div')`
 
 const PathWrapper = styled('div')`
   display: grid;
-  margin: 0 -${space(4)} -${space(4)};
+  margin: 0 -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']};
   grid-template-columns: 1fr 1fr;
   border-top: 1px solid ${p => p.theme.colors.gray200};
 `;
 
 const PathContainer = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
   display: grid;
   grid-auto-rows: max-content;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 
   &:first-of-type {
     border-right: 1px solid ${p => p.theme.colors.gray200};
@@ -173,10 +173,10 @@ const Bullets = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   grid-auto-rows: max-content;
-  gap: ${space(1)} ${space(1.5)};
+  gap: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const PathHeading = styled('h5')`

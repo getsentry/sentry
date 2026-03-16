@@ -2,10 +2,10 @@ import React, {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
 import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
 import {
   generateSourceCards,
@@ -17,11 +17,10 @@ import {
   getExpandedInsightSources,
 } from 'sentry/components/events/autofix/utils/insightUtils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {cardAnimationProps, FlippedReturnIcon} from './autofixInsightCard';
 
@@ -159,8 +158,8 @@ export function InsightSourcesFooter({
               <FooterSubmitButton
                 type="submit"
                 size="zero"
-                borderless
-                title={t('Give feedback and rethink the answer')}
+                priority="transparent"
+                tooltipProps={{title: t('Give feedback and rethink the answer')}}
                 disabled={!newInsightText.trim()}
               >
                 <FlippedReturnIcon />
@@ -192,12 +191,12 @@ const FooterInputWrapper = styled('form')`
 `;
 
 const FooterInput = styled(Input)`
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
 `;
 
 const FooterSubmitButton = styled(Button)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
   top: 50%;
   transform: translateY(-50%);
   height: 24px;

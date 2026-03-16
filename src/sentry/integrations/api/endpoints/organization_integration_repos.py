@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.bases.organization_integrations import (
@@ -24,7 +24,7 @@ class IntegrationRepository(TypedDict):
     defaultBranch: str | None
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -55,9 +55,9 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
         if integration.status == ObjectStatus.DISABLED:
             return self.respond({"repos": []})
 
-        installed_repos = Repository.objects.filter(integration_id=integration.id).exclude(
-            status=ObjectStatus.HIDDEN
-        )
+        installed_repos = Repository.objects.filter(
+            integration_id=integration.id, organization_id=organization.id
+        ).exclude(status=ObjectStatus.HIDDEN)
         installed_repo_names = {installed_repo.name for installed_repo in installed_repos}
 
         install = integration.get_installation(organization_id=organization.id)

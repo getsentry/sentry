@@ -3,22 +3,22 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {TabList} from '@sentry/scraps/tabs';
+
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Badge} from 'sentry/components/core/badge';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Link} from 'sentry/components/core/link';
-import {TabList} from 'sentry/components/core/tabs';
-import Count from 'sentry/components/count';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
+import {Count} from 'sentry/components/count';
+import {EventOrGroupTitle} from 'sentry/components/eventOrGroupTitle';
+import {EventMessage} from 'sentry/components/events/eventMessage';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {ReplayCountBadge} from 'sentry/components/replays/replayCountBadge';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
@@ -26,12 +26,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 
 import {GroupActions} from './actions';
@@ -184,7 +184,7 @@ function GroupHeaderTabs({
   );
 }
 
-function GroupHeader({baseUrl, group, organization, event, project}: Props) {
+export function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   const location = useLocation();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
@@ -211,7 +211,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   return (
     <Layout.Header>
       <div className={className}>
-        <BreadcrumbActionWrapper>
+        <Flex justify="between" align="center" gap="md">
           <Breadcrumbs
             crumbs={[
               {
@@ -231,7 +231,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
             disabled={disableActions}
             event={event}
           />
-        </BreadcrumbActionWrapper>
+        </Flex>
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
@@ -297,21 +297,11 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   );
 }
 
-export default GroupHeader;
-
-const BreadcrumbActionWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
 const HeaderRow = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   justify-content: space-between;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
@@ -327,7 +317,7 @@ const TitleWrapper = styled('div')`
 const TitleHeading = styled('div')`
   display: flex;
   line-height: 2;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
@@ -336,7 +326,7 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
 
 const StatsWrapper = styled('div')`
   display: flex;
-  gap: calc(${space(3)} + ${space(3)});
+  gap: calc(${p => p.theme.space['2xl']} + ${p => p.theme.space['2xl']});
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     justify-content: flex-end;
@@ -346,11 +336,11 @@ const StatsWrapper = styled('div')`
 const IconBadge = styled(Badge)`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const StyledTabList = styled(TabList)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const PriorityContainer = styled('div')`

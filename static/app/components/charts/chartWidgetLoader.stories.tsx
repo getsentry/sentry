@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
-import documentation from '!!type-loader!sentry/components/charts/chartWidgetLoader';
 
-import {CodeBlock} from 'sentry/components/core/code';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import * as Storybook from 'sentry/stories';
 
-export default Storybook.story('ChartWidgetLoader', (story, APIReference) => {
-  APIReference(documentation.props?.ChartWidgetLoader);
+export const documentation =
+  import('!!type-loader!sentry/components/charts/chartWidgetLoader');
 
+export default Storybook.story('ChartWidgetLoader', story => {
   story('Getting Started', () => {
     return (
       <Fragment>

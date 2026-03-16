@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
@@ -21,7 +22,7 @@ type Props = ModalRenderProps & {
   windowOptions: Array<SelectValue<number>>;
 };
 
-export default function CustomIgnoreCountModal(props: Props) {
+export function CustomIgnoreCountModal(props: Props) {
   const [count, setCount] = useState<number>(100);
   const [window, setWindow] = useState<number | null>(null);
   const {
@@ -78,12 +79,12 @@ export default function CustomIgnoreCountModal(props: Props) {
         />
       </Body>
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" onClick={handleSubmit}>
             {t('Ignore')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );

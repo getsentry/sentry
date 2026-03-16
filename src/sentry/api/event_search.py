@@ -76,6 +76,7 @@ filter = date_filter
        / aggregate_size_filter
        / aggregate_date_filter
        / aggregate_rel_date_filter
+       / has_in_filter
        / has_filter
        / is_filter
        / text_in_filter
@@ -123,8 +124,11 @@ aggregate_date_filter = negation? aggregate_key sep operator? iso_8601_date_form
 # aggregate for relative dates
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
+# has filter for not null type checks (single or comma-separated keys)
+has_in_filter = negation? &"has:" search_key sep has_in_list
+
 # has filter for not null type checks
-has_filter = negation? &"has:" search_key sep (text_key / search_value)
+has_filter = negation? &"has:" search_key sep has_item
 
 # is filter. Specific to issue search
 is_filter = negation? &"is:" search_key sep search_value
@@ -168,6 +172,12 @@ numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed
 boolean_value          = ~r"(true|1|false|0)"i &end_value
 text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
 numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
+
+has_item               = text_key / search_value
+has_in_list            = open_bracket has_item (spaces comma spaces !comma has_item?)* closed_bracket &end_value
+
+# NOTE: These wildcard operators are internal implementation details and
+# should not be included in product docs. Users should use `*` instead.
 wildcard_op            = wildcard_unicode (contains / starts_with / ends_with) wildcard_unicode
 
 # See: https://stackoverflow.com/a/39617181/790169
@@ -206,6 +216,8 @@ closed_bracket       = "]"
 sep                  = ":"
 negation             = "!"
 # Note: wildcard unicode is defined in src/sentry/search/events/constants.py
+# NOTE: These wildcard operators are internal implementation details and
+# should not be included in product docs. Users should use `*` instead.
 wildcard_unicode     = "\uF00D"
 contains             = "Contains"
 starts_with          = "StartsWith"
@@ -511,7 +523,7 @@ class SearchValue(NamedTuple):
         elif self.is_wildcard() and isinstance(self.raw_value, str):
             return translate_wildcard(self.raw_value)
         elif self.is_wildcard() and isinstance(self.raw_value, (list, tuple)):
-            return f"({"|".join(map(translate_wildcard, self.raw_value))})"
+            return f"({'|'.join(map(translate_wildcard, self.raw_value))})"
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
         elif isinstance(self.raw_value, (list, tuple)):
@@ -734,10 +746,12 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[TBool: (
-        Literal[True],
-        Literal[False],
-    )](
+    def create_from[
+        TBool: (
+            Literal[True],
+            Literal[False],
+        )
+    ](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[Any],
         *,
@@ -747,10 +761,12 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[TBool: (
-        Literal[True],
-        Literal[False],
-    )](
+    def create_from[
+        TBool: (
+            Literal[True],
+            Literal[False],
+        )
+    ](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[TBool],
         **overrides: Any,
@@ -821,7 +837,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             key in self.config.numeric_keys
             or is_measurement(key)
             or is_span_op_breakdown(key)
-            or self.get_field_type(key) in ["number", "integer"]
+            or self.get_field_type(key) in ["number", "integer", "currency"]
             or self.is_duration_key(key)
             or self.is_size_key(key)
         )
@@ -1322,34 +1338,45 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         self,
         node: Node,
         children: tuple[
-            Node | tuple[Node],  # ! if present
-            Node,  # has: lookahead
-            SearchKey,  # SearchKey('has')
-            Node,  # :
-            tuple[SearchKey],
+            Node | tuple[Node],
+            Node,
+            SearchKey,
+            Node,
+            SearchKey,
         ],
     ) -> SearchFilter:
         # the key is has here, which we don't need
-        negation, _, _, _, (search_key,) = children
-
-        # Some datasets do not support the !has filter, but we allow
-        # team_key_transaction because we control that field and special
-        # case the way it's processed in search
-        if (
-            not self.config.allow_not_has_filter
-            and is_negated(negation)
-            and search_key.name != TEAM_KEY_TRANSACTION_ALIAS
-        ):
-            raise IncompatibleMetricsQuery(NOT_HAS_FILTER_ERROR_MESSAGE)
-
-        # if it matched search value instead, it's not a valid key
-        if isinstance(search_key, SearchValue):
-            raise InvalidSearchQuery(
-                'Invalid format for "has" search: was expecting a field or tag instead'
-            )
+        negation, _, _, _, search_key = children
+        (search_key,) = self._validate_has_search_keys(negation, [search_key])
 
         operator = "=" if is_negated(negation) else "!="
         return SearchFilter(search_key, operator, SearchValue(""))
+
+    def _validate_has_search_keys(
+        self, negation: Node | tuple[Node], search_keys: Sequence[SearchKey]
+    ) -> list[SearchKey]:
+        validated_search_keys = []
+        for search_key in search_keys:
+            if isinstance(search_key, SearchValue):
+                raise InvalidSearchQuery(
+                    'Invalid format for "has" search: was expecting a field or tag instead'
+                )
+            validated_search_keys.append(search_key)
+
+        # Some datasets do not support the !has filter, but we allow
+        # team_key_transaction because we control that field and special
+        # case the way it's processed in search.
+        if (
+            not self.config.allow_not_has_filter
+            and is_negated(negation)
+            and not (
+                len(validated_search_keys) == 1
+                and validated_search_keys[0].name == TEAM_KEY_TRANSACTION_ALIAS
+            )
+        ):
+            raise IncompatibleMetricsQuery(NOT_HAS_FILTER_ERROR_MESSAGE)
+
+        return validated_search_keys
 
     def visit_is_filter(
         self,
@@ -1736,6 +1763,9 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
     ) -> list[tuple[str, str]]:
         return process_list(children[1], children[2])
 
+    def visit_has_item(self, node: Node, children: tuple[SearchKey]) -> SearchKey:
+        return children[0]
+
     def visit_iso_8601_date_format(self, node: Node, children: object) -> str:
         return node.text
 
@@ -1791,6 +1821,46 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
     def visit_spaces(self, node: Node, children: object) -> str:
         return " "
+
+    def visit_has_in_list(
+        self,
+        node: Node,
+        children: tuple[
+            str,
+            SearchKey,
+            tuple[tuple[str, Node, str, Node, tuple[SearchKey]], ...],
+            str,
+            Node,
+        ],
+    ) -> list[SearchKey]:
+        return process_list(children[1], children[2])
+
+    def visit_has_in_filter(
+        self,
+        node: Node,
+        children: tuple[
+            Node | tuple[Node],
+            Node,
+            SearchKey,
+            Node,
+            list[SearchKey],
+        ],
+    ) -> ParenExpression:
+        (negation, _, _, _, search_keys) = children
+        search_keys = self._validate_has_search_keys(negation, search_keys)
+
+        operator = "=" if is_negated(negation) else "!="
+        joining_operator: QueryOp = "AND" if is_negated(negation) else "OR"
+        search_value = SearchValue("")
+        all_filters = [
+            SearchFilter(search_key, operator, search_value) for search_key in search_keys
+        ]
+        tokens: list[QueryToken] = []
+        for index, search_filter in enumerate(all_filters):
+            tokens.append(search_filter)
+            if index != len(all_filters) - 1:
+                tokens.append(joining_operator)
+        return ParenExpression(tokens)
 
     def generic_visit(self, node: Node, children: Sequence[Any]) -> Any:
         return children or node

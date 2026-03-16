@@ -9,7 +9,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueTitle} from 'sentry/types/group';
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {
@@ -68,9 +68,9 @@ describe('projectPerformance', () => {
   let deleteMock: jest.Mock;
 
   const initialRouterConfig = {
-    routes: ['/organizations/:orgId/settings/projects/:projectId/performance/'],
+    routes: ['/settings/:orgId/projects/:projectId/performance/'],
     location: {
-      pathname: `/organizations/${org.slug}/settings/projects/${project.slug}/performance/`,
+      pathname: `/settings/${org.slug}/projects/${project.slug}/performance/`,
       query: {},
     },
     params: {
@@ -138,11 +138,7 @@ describe('projectPerformance', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/setup-check/',
       method: 'GET',
-      body: {
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-        },
-      },
+      body: {},
     });
   });
 

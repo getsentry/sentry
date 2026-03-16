@@ -3,24 +3,22 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import toNumber from 'lodash/toNumber';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {ExternalLink, Link} from '@sentry/scraps/link/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-import {Disclosure} from 'sentry/components/core/disclosure';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
-import {Text} from 'sentry/components/core/text/text';
-import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
-import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
+import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
-import {space} from 'sentry/styles/space';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
@@ -128,6 +126,20 @@ const mapMetricDetectorFormErrors = (error: unknown) => {
       ...error,
       ...error.dataSource,
     };
+  }
+  if ('dataSources' in error) {
+    if (Array.isArray(error.dataSources)) {
+      return {
+        ...error,
+        ...error.dataSources[0],
+      };
+    }
+    if (typeof error.dataSources === 'object') {
+      return {
+        ...error,
+        ...error.dataSources,
+      };
+    }
   }
   return error;
 };
@@ -696,7 +708,7 @@ const StyledIconWarning = styled(IconWarning)`
 const DatasetRow = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   max-width: 425px;
 `;
 
@@ -727,7 +739,7 @@ const DirectionField = styled(SelectField)`
 
 const DetectionTypeField = styled(SegmentedRadioField)`
   padding-left: 0;
-  padding-block: ${space(1)};
+  padding-block: ${p => p.theme.space.md};
   border-bottom: none;
   max-width: 840px;
 
@@ -795,5 +807,5 @@ const PriorityLabel = styled('span')`
 
 const RequiredAsterisk = styled('span')`
   color: ${p => p.theme.tokens.content.danger};
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space['2xs']};
 `;

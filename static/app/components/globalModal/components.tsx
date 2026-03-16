@@ -1,24 +1,26 @@
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 const ModalHeader = styled('header')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   position: relative;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(3)} ${space(3)};
-  margin: -${space(4)} -${space(2)} ${space(3)} -${space(3)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']};
+  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space.xl}
+    ${p => p.theme.space['2xl']} -${p => p.theme.space['2xl']};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(3)} ${space(4)};
-    margin: -${space(4)} -${space(4)} ${space(3)} -${space(4)};
+    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
+    margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
+      ${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']};
   }
 
   h1,
@@ -40,7 +42,7 @@ function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
       aria-label={t('Close Modal')}
       size="xs"
       icon={<IconClose size="xs" />}
-      borderless
+      priority="transparent"
       {...p}
     />
   );
@@ -62,12 +64,14 @@ const ModalFooter = styled('footer')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
   justify-content: flex-end;
-  padding: ${space(3)} ${space(2)};
-  margin: ${space(3)} -${space(3)} -${space(4)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
+  margin: ${p => p.theme.space['2xl']} -${p => p.theme.space['2xl']} -${p =>
+      p.theme.space['3xl']};
 
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(3)} ${space(4)};
-    margin: ${space(3)} -${space(4)} -${space(4)};
+    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']};
+    margin: ${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']} -${p =>
+        p.theme.space['3xl']};
   }
 `;
 

@@ -4,17 +4,18 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {
@@ -35,7 +36,7 @@ import {
   getPlanCategoryName,
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
-import CheckoutOption from 'getsentry/views/amCheckout/components/checkoutOption';
+import {CheckoutOption} from 'getsentry/views/amCheckout/components/checkoutOption';
 import {renderPerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
 import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
 import {
@@ -64,20 +65,20 @@ export interface SpendLimitSettingsProps {
   isOpen?: boolean;
 }
 
-interface BudgetModeSettingsProps
-  extends Omit<
-    SpendLimitSettingsProps,
-    'header' | 'currentReserved' | 'organization' | 'addOns' | 'subscription'
-  > {}
+interface BudgetModeSettingsProps extends Omit<
+  SpendLimitSettingsProps,
+  'header' | 'currentReserved' | 'organization' | 'addOns' | 'subscription'
+> {}
 
-interface InnerSpendLimitSettingsProps
-  extends Omit<SpendLimitSettingsProps, 'header' | 'subscription'> {}
+interface InnerSpendLimitSettingsProps extends Omit<
+  SpendLimitSettingsProps,
+  'header' | 'subscription'
+> {}
 
-interface SharedSpendLimitPriceTableProps
-  extends Pick<
-    SpendLimitSettingsProps,
-    'activePlan' | 'currentReserved' | 'organization'
-  > {
+interface SharedSpendLimitPriceTableProps extends Pick<
+  SpendLimitSettingsProps,
+  'activePlan' | 'currentReserved' | 'organization'
+> {
   includedAddOns: AddOnCategory[];
 }
 interface SpendLimitInputProps extends Pick<SpendLimitSettingsProps, 'activePlan'> {

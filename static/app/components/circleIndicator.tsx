@@ -17,7 +17,7 @@ const defaultProps = {
   size: 14,
 };
 
-const CircleIndicator = styled('div')<Props>`
+export const CircleIndicator = styled('div')<Props>`
   display: inline-block;
   position: relative;
   border-radius: 50%;
@@ -26,8 +26,6 @@ const CircleIndicator = styled('div')<Props>`
   background: ${p =>
     p.color ??
     ((p.enabled ?? defaultProps.enabled)
-      ? p.theme.tokens.content.success
-      : p.theme.tokens.content.danger)};
+      ? p.theme.tokens.background.success.vibrant
+      : p.theme.tokens.background.danger.vibrant)};
 `;
-
-export default CircleIndicator;

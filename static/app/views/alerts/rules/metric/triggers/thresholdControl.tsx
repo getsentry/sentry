@@ -1,10 +1,11 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {NumberDragInput} from 'sentry/components/core/input/numberDragInput';
-import {Select} from 'sentry/components/core/select';
+import {NumberDragInput} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ThresholdControlValue} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
@@ -84,7 +85,7 @@ class ThresholdControl extends Component<Props, State> {
     const inputValue = currentValue ?? threshold ?? '';
 
     return (
-      <Wrapper>
+      <Flex align="center" gap="md">
         <Container comparisonType={comparisonType}>
           <SelectContainer>
             <Select
@@ -132,7 +133,7 @@ class ThresholdControl extends Component<Props, State> {
           </SelectContainer>
           {!hideControl && (
             <ThresholdContainer comparisonType={comparisonType}>
-              <ThresholdInput>
+              <Flex align="center" position="relative">
                 <NumberDragInput
                   min={0}
                   step={1}
@@ -150,23 +151,17 @@ class ThresholdControl extends Component<Props, State> {
                   // Disable lastpass autocomplete
                   data-lpignore="true"
                 />
-              </ThresholdInput>
+              </Flex>
               {comparisonType === AlertRuleComparisonType.CHANGE && (
                 <PercentWrapper>%</PercentWrapper>
               )}
             </ThresholdContainer>
           )}
         </Container>
-      </Wrapper>
+      </Flex>
     );
   }
 }
-
-const Wrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
 
 const Container = styled('div')<{comparisonType: AlertRuleComparisonType}>`
   flex: 2;
@@ -174,7 +169,7 @@ const Container = styled('div')<{comparisonType: AlertRuleComparisonType}>`
   align-items: center;
   flex-direction: ${p =>
     p.comparisonType === AlertRuleComparisonType.COUNT ? 'row' : 'row-reverse'};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const SelectContainer = styled('div')`
@@ -188,15 +183,8 @@ const ThresholdContainer = styled('div')<{comparisonType: AlertRuleComparisonTyp
   align-items: center;
 `;
 
-const ThresholdInput = styled('div')`
-  position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-`;
-
 const PercentWrapper = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 export default ThresholdControl;

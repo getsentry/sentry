@@ -6,7 +6,6 @@ import orjson
 from django.utils import timezone
 
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.platform.types import (
     CodeBlock,
     CodeTextBlock,
@@ -14,6 +13,7 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
+    NotificationSource,
     NotificationTemplate,
     ParagraphBlock,
     PlainTextBlock,
@@ -26,7 +26,7 @@ def format_date(date: datetime) -> str:
 
 @dataclass(frozen=True)
 class DataExportSuccess(NotificationData):
-    source = NotificationTemplateSource.DATA_EXPORT_SUCCESS
+    source = NotificationSource.DATA_EXPORT_SUCCESS
     export_url: str
     expiration_date: datetime
 
@@ -58,7 +58,7 @@ class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
 
 @dataclass(frozen=True)
 class DataExportFailure(NotificationData):
-    source = NotificationTemplateSource.DATA_EXPORT_FAILURE
+    source = NotificationSource.DATA_EXPORT_FAILURE
     error_message: str
     error_payload: dict[str, Any]
     creation_date: datetime

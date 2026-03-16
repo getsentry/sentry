@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space, type ValidSize} from 'sentry/styles/space';
+import type {SpaceSize} from 'sentry/utils/theme';
 import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 
 interface ScrollCarouselProps {
@@ -15,7 +16,7 @@ interface ScrollCarouselProps {
   children: React.ReactNode;
   className?: string;
   'data-test-id'?: string;
-  gap?: ValidSize;
+  gap?: SpaceSize;
   jumpItemCount?: number;
   orientation?: 'horizontal' | 'vertical';
   transparentMask?: boolean;
@@ -59,7 +60,7 @@ const getOffsetRect = (el: HTMLElement, relativeTo: HTMLElement) => {
 
 export function ScrollCarousel({
   children,
-  gap = 1,
+  gap = 'md',
   transparentMask = false,
   jumpItemCount = DEFAULT_JUMP_ITEM_COUNT,
   orientation = 'horizontal',
@@ -112,7 +113,7 @@ export function ScrollCarousel({
     <ScrollCarouselWrapper orientation={orientation}>
       <ScrollContainer
         ref={scrollContainerRef}
-        style={{gap: space(gap)}}
+        gap={gap}
         orientation={orientation}
         role="group"
         {...props}
@@ -138,7 +139,7 @@ export function ScrollCarousel({
           aria-label={isVertical ? t('Scroll up') : t('Scroll left')}
           icon={<StyledIconChevron direction={isVertical ? 'up' : 'left'} />}
           orientation={orientation}
-          borderless
+          priority="transparent"
         />
       )}
       {!isAtEnd && (
@@ -148,7 +149,7 @@ export function ScrollCarousel({
           aria-label={isVertical ? t('Scroll down') : t('Scroll right')}
           icon={<StyledIconChevron direction={isVertical ? 'down' : 'right'} />}
           orientation={orientation}
-          borderless
+          priority="transparent"
         />
       )}
     </ScrollCarouselWrapper>
@@ -166,8 +167,12 @@ const ScrollCarouselWrapper = styled('div')<{orientation: 'horizontal' | 'vertic
     `}
 `;
 
-const ScrollContainer = styled('div')<{orientation: 'horizontal' | 'vertical'}>`
+const ScrollContainer = styled('div')<{
+  gap: SpaceSize;
+  orientation: 'horizontal' | 'vertical';
+}>`
   display: flex;
+  gap: ${p => p.theme.space[p.gap]};
   ${p =>
     p.orientation === 'horizontal'
       ? css`

@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
   changeOrganizationSlug,
@@ -7,24 +9,22 @@ import {
   updateOrganization,
 } from 'sentry/actionCreators/organizations';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import List from 'sentry/components/list';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import Panel from 'sentry/components/panels/panel';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {defaultEnableSeerFeaturesValue} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
 import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
@@ -65,7 +65,7 @@ export default function OrganizationGeneralSettings() {
 
   const handleSaveForm: React.ComponentProps<
     typeof OrganizationSettingsForm
-  >['onSave'] = (prevData: Organization, updated: Organization) => {
+  >['onSave'] = (prevData, updated) => {
     if (updated.slug && updated.slug !== prevData.slug) {
       changeOrganizationSlug(prevData, updated);
 

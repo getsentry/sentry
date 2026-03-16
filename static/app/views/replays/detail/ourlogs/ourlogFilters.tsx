@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
+import {FiltersGrid} from 'sentry/views/replays/detail/filtersGrid';
 import {OpenInLogsButton} from 'sentry/views/replays/detail/ourlogs/openInLogsButton';
-import type useOurLogFilters from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
+import {type useOurLogFilters} from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
 
 type Props = {
   logItems: OurLogsResponseItem[];

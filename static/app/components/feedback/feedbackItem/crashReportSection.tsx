@@ -1,13 +1,13 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
+import {Alert} from '@sentry/scraps/alert';
+
+import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
+import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
+import {useFetchCrashReport} from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
 import Placeholder from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -17,11 +17,7 @@ interface Props {
   projectSlug: string;
 }
 
-export default function CrashReportSection({
-  crashReportId,
-  organization,
-  projectSlug,
-}: Props) {
+export function CrashReportSection({crashReportId, organization, projectSlug}: Props) {
   const {isFetching, groupData} = useFetchCrashReport({
     crashReportId,
     organization,
@@ -64,6 +60,7 @@ const IssueDetailsContainer = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   position: relative;
-  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.lg} ${p => p.theme.space.lg}
+    ${p => p.theme.space.xl};
   overflow: auto;
 `;

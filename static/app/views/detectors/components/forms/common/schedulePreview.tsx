@@ -1,8 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Container} from '@sentry/scraps/layout/container';
+import {Container} from '@sentry/scraps/layout';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
@@ -15,7 +16,7 @@ import type {
   TickStyle,
   TimeWindowConfig,
 } from 'sentry/components/checkInTimeline/types';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
@@ -55,6 +56,62 @@ const tickStyle: TickStyle<SchedulePreviewStatus> = theme => ({
     hatchTick: theme.colors.green200,
   },
 });
+
+/**
+ * Hook to detect when the sticky preview container's bottom edge
+ * intersects with the next sibling element below it.
+ */
+function useStickyBottomIntersection(
+  containerRef: React.RefObject<HTMLDivElement | null>
+) {
+  const theme = useTheme();
+  const [isIntersecting, setIsIntersecting] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return undefined;
+    }
+
+    const borderRadius = parseFloat(theme.radius.md);
+
+    const checkOverlap = () => {
+      // Inset by the border radius so the corners transition right as the
+      // curve of one panel meets the flat edge of the other.
+      const stickyBottom = container.getBoundingClientRect().bottom - borderRadius;
+
+      // True only when the sticky's bottom edge is inside a panel — i.e. the
+      // panel's top is above and its bottom is below the threshold.
+      let overlapping = false;
+      let sibling = container.nextElementSibling;
+      while (sibling) {
+        const rect = sibling.getBoundingClientRect();
+        if (rect.top < stickyBottom && rect.bottom > stickyBottom) {
+          overlapping = true;
+          break;
+        }
+        sibling = sibling.nextElementSibling;
+      }
+      setIsIntersecting(overlapping);
+    };
+
+    let rafId: number;
+    const onScroll = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(checkOverlap);
+    };
+
+    window.addEventListener('scroll', onScroll, {passive: true});
+    checkOverlap();
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(rafId);
+    };
+  }, [containerRef, theme]);
+
+  return isIntersecting;
+}
 
 export function SchedulePreview({statusToText, ...detectorFields}: SchedulePreviewProps) {
   const {timeLineWidthTrackerRef, timeWindowConfig, samples, isLoading, errors} =
@@ -177,6 +234,9 @@ function ContentWrapper({
   children: React.ReactNode;
   timelineWidthTrackerRef: React.RefObject<HTMLDivElement | null>;
 }) {
+  const stickyContainerRef = useRef<HTMLDivElement>(null);
+  const isIntersecting = useStickyBottomIntersection(stickyContainerRef);
+
   return (
     <StyledContainer
       position="sticky"
@@ -184,7 +244,8 @@ function ContentWrapper({
       height="138px"
       background="primary"
       border="primary"
-      radius="md"
+      radius={isIntersecting ? 'md md 0 0' : 'md'}
+      ref={stickyContainerRef}
     >
       <Container position="absolute" width="100%" ref={timelineWidthTrackerRef} />
       {children}

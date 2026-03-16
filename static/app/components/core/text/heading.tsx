@@ -1,8 +1,9 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {rc} from 'sentry/components/core/layout/styles';
-import type {FontSize} from 'sentry/utils/theme';
+import {rc, type Responsive} from '@sentry/scraps/layout';
+
+import type {HeadingSize} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 import {type BaseTextProps, type ExclusiveTextEllipsisProps} from './text';
@@ -16,6 +17,11 @@ export type HeadingProps = BaseHeadingProps & {
    */
   as: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   ref?: React.Ref<HTMLHeadingElement | null> | undefined;
+  /**
+   * The size of the text.
+   * @default md
+   */
+  size?: Responsive<HeadingSize>;
   /**
    * Deprecated in favor of the Text component API.
    * If you have an is an unsupported use-case, please contact design engineering for support.
@@ -59,6 +65,7 @@ export const Heading = styled(
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
   white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
   text-wrap: ${p => p.textWrap ?? undefined};
+  word-break: ${p => p.wordBreak ?? undefined};
 
   font-family: ${p => p.theme.font.family[p.monospace ? 'mono' : 'sans']};
   font-weight: ${p => p.theme.font.weight[p.monospace ? 'mono' : 'sans'].medium};
@@ -80,7 +87,7 @@ export const Heading = styled(
   padding: 0;
 `;
 
-function getDefaultHeadingFontSize(as: HeadingProps['as']): FontSize {
+function getDefaultHeadingFontSize(as: HeadingProps['as']): HeadingSize {
   switch (as) {
     case 'h1':
       return '2xl';

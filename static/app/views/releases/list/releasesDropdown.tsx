@@ -1,7 +1,6 @@
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 
 type Props = {
   label: string;
@@ -10,7 +9,7 @@ type Props = {
   selected: string;
 };
 
-function ReleasesDropdown({label: prefix, options, selected, onSelect}: Props) {
+export function ReleasesDropdown({label: prefix, options, selected, onSelect}: Props) {
   const mappedOptions = Object.entries(options).map(
     ([key, {label, tooltip, disabled}]) => ({
       value: key,
@@ -35,5 +34,3 @@ function ReleasesDropdown({label: prefix, options, selected, onSelect}: Props) {
     />
   );
 }
-
-export default ReleasesDropdown;

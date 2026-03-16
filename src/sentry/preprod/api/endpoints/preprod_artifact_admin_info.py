@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.preprod.analytics import PreprodArtifactApiAdminGetInfoEvent
 from sentry.preprod.models import (
@@ -20,7 +20,7 @@ from sentry.preprod.models import (
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@internal_cell_silo_endpoint
 class PreprodArtifactAdminInfoEndpoint(Endpoint):
     owner = ApiOwner.EMERGE_TOOLS
     permission_classes = (StaffPermission,)
@@ -84,7 +84,7 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
             InstallablePreprodArtifact.objects.filter(preprod_artifact_id=head_artifact_id_int)
         )
 
-        mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+        mobile_app_info = preprod_artifact.get_mobile_app_info()
 
         artifact_info = {
             "id": preprod_artifact.id,

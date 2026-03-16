@@ -12,8 +12,11 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem as EAPTraceItem
 
+from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.preprod.eap.constants import PREPROD_NAMESPACE
+from sentry.constants import DataCategory
+from sentry.models.organization import Organization
+from sentry.preprod.eap.constants import PREPROD_NAMESPACE, get_preprod_trace_id
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
     PreprodArtifact,
@@ -27,6 +30,7 @@ from sentry.utils.kafka_config import get_topic_definition
 
 def produce_preprod_size_metric_to_eap(
     size_metric: PreprodArtifactSizeMetrics,
+    organization: Organization,
     organization_id: int,
     project_id: int,
 ) -> None:
@@ -46,11 +50,7 @@ def produce_preprod_size_metric_to_eap(
 
     artifact = size_metric.preprod_artifact
 
-    # Generate a unique trace_id for this preprod artifact using UUID5 with PREPROD_NAMESPACE.
-    # This ensures no collision with other trace types in EAP.
-    # Design: Use preprod_artifact_id to group related components of the SAME build
-    # (e.g., main app + Watch extension + dynamic features) under one trace.
-    trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(size_metric.preprod_artifact_id)).hex
+    trace_id = get_preprod_trace_id(size_metric.preprod_artifact_id)
 
     # Generate deterministic item_id based on size_metric.id.
     # This enables ReplacingMergeTree deduplication when reprocessing the same metric.
@@ -60,7 +60,7 @@ def produce_preprod_size_metric_to_eap(
     item_id_str = f"size_metric_{size_metric.id}"
     item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
 
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    mobile_app_info = artifact.get_mobile_app_info()
     attributes: dict[str, Any] = {
         "preprod_artifact_id": size_metric.preprod_artifact_id,
         "size_metric_id": size_metric.id,
@@ -114,7 +114,10 @@ def produce_preprod_size_metric_to_eap(
         timestamp=proto_timestamp,
         trace_id=trace_id,
         received=received,
-        retention_days=90,  # Default retention for preprod data
+        retention_days=quotas.backend.get_event_retention(
+            organization=organization, category=DataCategory.SIZE_ANALYSIS
+        )
+        or 90,
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,
@@ -127,6 +130,7 @@ def produce_preprod_size_metric_to_eap(
 
 def produce_preprod_build_distribution_to_eap(
     artifact: PreprodArtifact,
+    organization: Organization,
     organization_id: int,
     project_id: int,
 ) -> None:
@@ -146,9 +150,8 @@ def produce_preprod_build_distribution_to_eap(
     received = Timestamp()
     received.FromDatetime(artifact.date_added)
 
-    # Generate trace_id for this preprod artifact - same as size metrics to enable grouping.
-    # This allows queries to join build distribution data with size metrics via trace_id.
-    trace_id = uuid.uuid5(PREPROD_NAMESPACE, str(artifact.id)).hex
+    # Same trace_id as size metrics to enable grouping/joining via trace_id.
+    trace_id = get_preprod_trace_id(artifact.id)
 
     # Generate deterministic item_id based on artifact.id.
     # Unlike size metrics (one per size_metric.id), build distribution has one record per artifact.
@@ -156,7 +159,7 @@ def produce_preprod_build_distribution_to_eap(
     item_id_str = f"build_distribution_{artifact.id}"
     item_id = hex_to_item_id(uuid.uuid5(PREPROD_NAMESPACE, item_id_str).hex)
 
-    mobile_app_info = getattr(artifact, "mobile_app_info", None)
+    mobile_app_info = artifact.get_mobile_app_info()
     attributes: dict[str, Any] = {
         "preprod_artifact_id": artifact.id,
         "sub_item_type": "build_distribution",
@@ -226,7 +229,10 @@ def produce_preprod_build_distribution_to_eap(
         timestamp=proto_timestamp,
         trace_id=trace_id,
         received=received,
-        retention_days=90,
+        retention_days=quotas.backend.get_event_retention(
+            organization=organization, category=DataCategory.INSTALLABLE_BUILD
+        )
+        or 90,
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,

@@ -22,7 +22,7 @@ type GetStacktraceBodyArgs = {
  *
  * @returns Array of formatted strings each representing a stack trace, one per exception found in the event.
  */
-export default function getStacktraceBody({
+export function getStacktraceBody({
   event,
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,

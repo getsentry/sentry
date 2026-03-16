@@ -1,10 +1,10 @@
 import uniqBy from 'lodash/uniqBy';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {ProjectSdkUpdates} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 import {MIN_SDK_VERSION_BY_PLATFORM} from 'sentry/views/insights/database/settings';
 

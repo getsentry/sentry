@@ -5,8 +5,8 @@ import type {Query} from 'history';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {
@@ -21,17 +21,17 @@ import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {TrendFunctionField, TrendView} from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
 import {modifyTrendView, normalizeTrends} from 'sentry/views/performance/trends/utils';
-import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
+import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import type {ViewProps} from 'sentry/views/performance/types';
 import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
-import Content from './content';
+import {Content} from './content';
 
 type Props = ViewProps & {
   eventView: EventView;
@@ -43,7 +43,7 @@ type Props = ViewProps & {
   withBreakpoint?: boolean;
 };
 
-function TrendChart({
+export function TrendChart({
   project,
   environment,
   organization,
@@ -285,5 +285,3 @@ function TrendChart({
     </Fragment>
   );
 }
-
-export default TrendChart;

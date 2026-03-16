@@ -1,10 +1,11 @@
 import {useEffect, useRef} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useWindowVirtualizer, type Virtualizer} from '@tanstack/react-virtual';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {ColorBar} from 'sentry/components/prevent/virtualRenderers/colorBar';
 import {
   LINE_HEIGHT,
@@ -21,7 +22,6 @@ import {useIsOverflowing} from 'sentry/components/prevent/virtualRenderers/useIs
 import {useSyncScrollMargin} from 'sentry/components/prevent/virtualRenderers/useSyncScrollMargin';
 import {useSyncTotalWidth} from 'sentry/components/prevent/virtualRenderers/useSyncTotalWidth';
 import {useSyncWrapperWidth} from 'sentry/components/prevent/virtualRenderers/useSyncWrapperWidth';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
@@ -243,6 +243,7 @@ export function VirtualDiffRenderer({
   hashedPath,
   lineData,
 }: VirtualDiffRendererProps) {
+  const theme = useTheme();
   const widthDivRef = useRef<HTMLPreElement>(null);
   const codeDisplayOverlayRef = useRef<HTMLDivElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -319,8 +320,8 @@ export function VirtualDiffRenderer({
             padding: 0,
             borderTopLeftRadius: '0px',
             borderTopRightRadius: '0px',
-            borderBottomLeftRadius: isOverflowing ? '0px' : space(0.75),
-            borderBottomRightRadius: isOverflowing ? '0px' : space(0.75),
+            borderBottomLeftRadius: isOverflowing ? '0px' : theme.space.sm,
+            borderBottomRightRadius: isOverflowing ? '0px' : theme.space.sm,
           }}
         >
           <CodeBody
@@ -386,13 +387,13 @@ const CodePreWrapper = styled('pre')<{isOverflowing: boolean}>`
   height: 100%;
   scrollbar-width: none;
 
-  border-left: ${space(0.25)} solid ${p => p.theme.colors.gray200};
-  border-right: ${space(0.25)} solid ${p => p.theme.colors.gray200};
+  border-left: ${p => p.theme.space['2xs']} solid ${p => p.theme.colors.gray200};
+  border-right: ${p => p.theme.space['2xs']} solid ${p => p.theme.colors.gray200};
 
   ${p => {
     if (!p.isOverflowing) {
       return css`
-        border-bottom: ${space(0.25)} solid ${p.theme.colors.gray200};
+        border-bottom: ${p.theme.space['2xs']} solid ${p.theme.colors.gray200};
       `;
     }
     return '';

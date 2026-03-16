@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -33,7 +33,7 @@ from sentry.workflow_engine.endpoints.validators.detector_workflow import (
 from sentry.workflow_engine.models import Workflow
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
     publish_status = {
@@ -58,8 +58,10 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         },
         examples=WorkflowEngineExamples.GET_WORKFLOW,
     )
-    def get(self, request: Request, organization: Organization, workflow: Workflow):
+    def get(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Returns an alert.
         """
         serialized_workflow = serialize(
@@ -85,8 +87,10 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
         },
         examples=WorkflowEngineExamples.UPDATE_WORKFLOW,
     )
-    def put(self, request: Request, organization: Organization, workflow: Workflow):
+    def put(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Updates an alert.
         """
         validator = WorkflowValidator(
@@ -149,8 +153,10 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization: Organization, workflow: Workflow):
+    def delete(self, request: Request, organization: Organization, workflow: Workflow) -> Response:
         """
+        ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
+
         Deletes an alert.
         """
         RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)

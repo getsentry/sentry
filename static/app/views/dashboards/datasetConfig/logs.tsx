@@ -1,5 +1,6 @@
 import pickBy from 'lodash/pickBy';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -12,8 +13,7 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Aggregation, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   handleOrderByReset,
   type DatasetConfig,
@@ -39,26 +39,23 @@ import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {
-  useTraceItemAttributes,
-  useTraceItemAttributesWithConfig,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {LOG_AGGREGATES} from 'sentry/views/explore/logs/logsToolbar';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
-  fields: ['count()'],
+  fields: ['count(message)'],
   columns: [],
   fieldAliases: [],
-  aggregates: ['count()'],
+  aggregates: ['count(message)'],
   conditions: '',
-  orderby: '-count()',
+  orderby: '-count(message)',
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
-  function: ['count', '', undefined, undefined],
+  function: ['count', 'message', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
 };
 
@@ -70,7 +67,14 @@ const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
       acc[AggregationKey.COUNT] = {
         isSortable: true,
         outputType: null,
-        parameters: [],
+        parameters: [
+          {
+            kind: 'column',
+            columnTypes: ['string'],
+            defaultValue: 'message',
+            required: true,
+          },
+        ],
       };
     } else if (aggregate === AggregationKey.COUNT_UNIQUE) {
       acc[AggregationKey.COUNT_UNIQUE] = {
@@ -113,20 +117,25 @@ function LogsSearchBar({
   WidgetBuilderSearchBarProps,
   'widgetQuery' | 'onSearch' | 'portalTarget' | 'onClose'
 >) {
+  const organization = useOrganization();
   const {
     selection: {projects},
   } = usePageFilters();
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string');
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number');
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'boolean');
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={widgetQuery.conditions}
       onSearch={onSearch}
       itemType={TraceItemDataset.LOGS}
+      booleanAttributes={booleanAttributes}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
+      booleanSecondaryAliases={booleanSecondaryAliases}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
       searchSource="dashboards"
@@ -143,21 +152,20 @@ function useLogsSearchBarDataProvider(props: SearchBarDataProviderProps): Search
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
 
-  const traceItemAttributeConfig = {
-    traceItemType: TraceItemDataset.LOGS,
-    enabled: isLogsEnabled(organization),
-  };
-
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'string');
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributesWithConfig(traceItemAttributeConfig, 'number');
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useLogItemAttributes({enabled: isLogsEnabled(organization)}, 'boolean');
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.LOGS,
+      booleanAttributes,
       numberAttributes,
       stringAttributes,
+      booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
       searchSource: 'dashboards',
@@ -175,6 +183,7 @@ export const LogsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultCategoryField: 'severity',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -193,6 +202,7 @@ export const LogsConfig: DatasetConfig<
     DisplayType.AREA,
     DisplayType.BAR,
     DisplayType.BIG_NUMBER,
+    DisplayType.CATEGORICAL_BAR,
     DisplayType.LINE,
     DisplayType.TABLE,
     DisplayType.TOP_N,
@@ -252,7 +262,7 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     fieldValue?.kind === 'function' &&
     fieldValue?.function[0] === AggregationKey.COUNT
   ) {
-    return true; // COUNT() doesn't need parameters for logs
+    return option.value.meta.name === 'message';
   }
 
   const expectedDataTypes =

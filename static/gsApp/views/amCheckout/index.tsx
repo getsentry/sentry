@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
@@ -6,30 +6,30 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import LogoSentry from 'sentry/components/logoSentry';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {LogoSentry} from 'sentry/components/logoSentry';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {QueryClient} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withApi} from 'sentry/utils/withApi';
+import {withOrganization} from 'sentry/utils/withOrganization';
 import {activateZendesk, hasZendesk} from 'sentry/utils/zendesk';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
 import {
   ANNUAL,
@@ -59,13 +59,13 @@ import {
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import withPromotions from 'getsentry/utils/withPromotions';
-import Cart from 'getsentry/views/amCheckout/components/cart';
-import CheckoutSuccess from 'getsentry/views/amCheckout/components/checkoutSuccess';
-import AddBillingInformation from 'getsentry/views/amCheckout/steps/addBillingInfo';
-import BuildYourPlan from 'getsentry/views/amCheckout/steps/buildYourPlan';
-import ChooseYourBillingCycle from 'getsentry/views/amCheckout/steps/chooseYourBillingCycle';
-import SetSpendLimit from 'getsentry/views/amCheckout/steps/setSpendLimit';
+import {withPromotions} from 'getsentry/utils/withPromotions';
+import {Cart} from 'getsentry/views/amCheckout/components/cart';
+import {CheckoutSuccess} from 'getsentry/views/amCheckout/components/checkoutSuccess';
+import {AddBillingInformation} from 'getsentry/views/amCheckout/steps/addBillingInfo';
+import {BuildYourPlan} from 'getsentry/views/amCheckout/steps/buildYourPlan';
+import {ChooseYourBillingCycle} from 'getsentry/views/amCheckout/steps/chooseYourBillingCycle';
+import {SetSpendLimit} from 'getsentry/views/amCheckout/steps/setSpendLimit';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
@@ -111,6 +111,7 @@ function AMCheckout(props: Props) {
     promotionData,
   } = props;
 
+  const hasFetchedBillingConfig = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | boolean>(false);
   const [formData, setFormData] = useState<CheckoutFormData | null>(null);
@@ -574,7 +575,10 @@ function AMCheckout(props: Props) {
 
   useEffect(() => {
     if (subscription.canSelfServe) {
-      fetchBillingConfig();
+      if (!hasFetchedBillingConfig.current) {
+        hasFetchedBillingConfig.current = true;
+        fetchBillingConfig();
+      }
     } else {
       handleRedirect();
     }
@@ -815,7 +819,7 @@ function AMCheckout(props: Props) {
             to={`/settings/${organization.slug}/billing/`}
             icon={<IconChevron direction="left" />}
             size="xs"
-            borderless
+            priority="transparent"
             onClick={() => {
               trackGetsentryAnalytics('checkout.exit', {
                 subscription,

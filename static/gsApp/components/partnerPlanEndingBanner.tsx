@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 import PartnerPlanEndingBackground from 'getsentry-images/partnership/plan-ending.svg';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex, Stack} from 'sentry/components/core/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {IconClock} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import type {Subscription} from 'getsentry/types';
@@ -17,7 +17,7 @@ import {
 } from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-function PartnerPlanEndingBanner({
+export function PartnerPlanEndingBanner({
   subscription,
   organization,
 }: {
@@ -96,7 +96,7 @@ const PartnerPlanEndingBannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: 600;
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
@@ -114,5 +114,3 @@ const IllustrationContainer = styled('img')`
     flex-grow: 1;
   }
 `;
-
-export default PartnerPlanEndingBanner;

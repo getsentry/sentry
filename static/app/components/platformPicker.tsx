@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
-import {Button} from 'sentry/components/core/button';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {Button} from '@sentry/scraps/button';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import LoadingMask from 'sentry/components/loadingMask';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -18,18 +19,17 @@ import {
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 const PlatformList = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: repeat(auto-fill, 112px);
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   &.centered {
     justify-content: center;
@@ -287,13 +287,13 @@ function PlatformPicker({
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const NavContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   grid-template-columns: 1fr minmax(0, 200px);
   align-items: start;
 
@@ -306,7 +306,7 @@ const NavContainer = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   min-width: 6rem;
   max-width: 12rem;
-  margin-top: -${space(0.25)};
+  margin-top: -${p => p.theme.space['2xs']};
   margin-left: auto;
   flex-shrink: 0;
   flex-basis: 0;
@@ -314,7 +314,7 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
-  margin: ${space(2)};
+  margin: ${p => p.theme.space.xl};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
@@ -354,7 +354,7 @@ const PlatformCard = styled(
       {selected && visibleSelection && (
         <ClearButton
           icon={<IconClose />}
-          borderless
+          priority="transparent"
           size="xs"
           onClick={onClear}
           aria-label={t('Clear')}
@@ -389,7 +389,7 @@ const PlatformCard = styled(
     font-size: ${p => p.theme.font.size.xs};
     text-transform: uppercase;
     margin: 0;
-    padding: 0 ${space(0.5)};
+    padding: 0 ${p => p.theme.space.xs};
     line-height: 1.2;
   }
 `;

@@ -88,7 +88,7 @@ class OrgAuthToken(ReplicatedControlModel):
     ) -> int | None:
         # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
         # source module in such a way that this is no longer an issue.
-        from sentry.api.utils import generate_region_url
+        from sentry.api.utils import generate_locality_url
         from sentry.utils.security.orgauthtoken_token import (
             SystemUrlPrefixMissingException,
             generate_token,
@@ -106,7 +106,7 @@ class OrgAuthToken(ReplicatedControlModel):
                 return None
 
             try:
-                token_str = generate_token(org_slug, generate_region_url())
+                token_str = generate_token(org_slug, generate_locality_url())
             except SystemUrlPrefixMissingException:
                 return None
             self.token_hashed = hash_token(token_str)
@@ -124,7 +124,7 @@ class OrgAuthToken(ReplicatedControlModel):
 
         region_replica_service.upsert_replicated_org_auth_token(
             token=serialize_org_auth_token(self),
-            region_name=region_name,
+            cell_name=region_name,
         )
 
 

@@ -1,22 +1,24 @@
 import {Fragment, useState} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import RepositoryRow from 'sentry/components/repositoryRow';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {RepositoryRow} from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import RepositoryStore from 'sentry/stores/repositoryStore';
+import {RepositoryStore} from 'sentry/stores/repositoryStore';
 import type {Integration, Repository} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationReposAddRepository} from './integrationReposAddRepository';
 
@@ -24,7 +26,7 @@ type Props = {
   integration: Integration;
 };
 
-function IntegrationRepos(props: Props) {
+export function IntegrationRepos(props: Props) {
   const [integrationReposErrorStatus, setIntegrationReposeErrorStatus] = useState<
     number | null | undefined
   >(null);
@@ -32,7 +34,9 @@ function IntegrationRepos(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const location = useLocation();
-  const ENDPOINT = `/organizations/${organization.slug}/repos/`;
+  const ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 
   const {
     data: fetchedItemList,
@@ -141,5 +145,3 @@ function IntegrationRepos(props: Props) {
     </Fragment>
   );
 }
-
-export default IntegrationRepos;

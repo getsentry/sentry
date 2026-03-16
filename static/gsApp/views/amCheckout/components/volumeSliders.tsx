@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import {Flex} from '@sentry/scraps/layout';
+
+import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconLightning, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -19,7 +20,7 @@ import {
   getSingularCategoryName,
   isByteCategory,
 } from 'getsentry/utils/dataCategory';
-import UnitTypeItem from 'getsentry/views/amCheckout/components/unitTypeItem';
+import {UnitTypeItem} from 'getsentry/views/amCheckout/components/unitTypeItem';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 

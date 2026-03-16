@@ -12,7 +12,6 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test, create_test_regions
 from sentry.users.models.user import User
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 @control_silo_test(regions=create_test_regions("us", "de"))
@@ -60,9 +59,7 @@ class TestSentryAppDeletionTask(TestCase):
         # use a raw sql query to ensure it still exists.
         c = connections[router.db_for_write(SentryApp)].cursor()
         c.execute(
-            "SELECT count(1) "
-            "FROM sentry_sentryapp "
-            "WHERE id = %s AND date_deleted IS NOT NULL",
+            "SELECT count(1) FROM sentry_sentryapp WHERE id = %s AND date_deleted IS NOT NULL",
             [self.sentry_app.id],
         )
 
@@ -80,7 +77,6 @@ class TestSentryAppDeletionTask(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.sentry_app.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )
@@ -94,7 +90,6 @@ class TestSentryAppDeletionTask(TestCase):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": "1212121212",
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )

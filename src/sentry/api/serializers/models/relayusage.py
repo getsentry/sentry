@@ -1,5 +1,15 @@
+from typing import TypedDict
+
 from sentry.api.serializers import Serializer, register
 from sentry.models.relay import RelayUsage
+
+
+class OrganizationRelayResponse(TypedDict):
+    relayId: str
+    version: str
+    publicKey: str
+    firstSeen: str
+    lastSeen: str
 
 
 @register(RelayUsage)

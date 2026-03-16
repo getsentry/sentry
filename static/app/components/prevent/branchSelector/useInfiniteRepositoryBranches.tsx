@@ -2,13 +2,14 @@ import {useMemo} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchDataQuery,
   useInfiniteQuery,
   type InfiniteData,
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type RepositoryBranchItem = {
   name: string;
@@ -26,7 +27,10 @@ interface RepositoryBranches {
   totalCount: number;
 }
 
-type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions];
+type QueryKey = [
+  url: ReturnType<typeof getApiUrl>,
+  endpointOptions: QueryKeyEndpointOptions,
+];
 
 type Props = {
   term?: string;
@@ -43,7 +47,16 @@ export function useInfiniteRepositoryBranches({term}: Props) {
     QueryKey
   >({
     queryKey: [
-      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repository/${repository}/branches/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repository/$repository/branches/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            owner: integratedOrgId!,
+            repository: repository!,
+          },
+        }
+      ),
       {query: {term}},
     ],
     queryFn: async ({

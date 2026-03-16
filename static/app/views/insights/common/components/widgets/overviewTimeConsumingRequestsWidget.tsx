@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getIntervalForTimeSeriesQuery} from 'sentry/utils/timeSeries/getIntervalForTimeSeriesQuery';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -208,7 +209,7 @@ export default function OverviewTimeConsumingRequestsWidget(
               <Button
                 size="xs"
                 aria-label={t('Open Full-Screen View')}
-                borderless
+                priority="transparent"
                 icon={<IconExpand />}
                 onClick={() => {
                   openInsightChartModal({

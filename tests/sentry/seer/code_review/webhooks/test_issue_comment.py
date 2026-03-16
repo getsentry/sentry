@@ -69,6 +69,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             "comment": {
                 "body": comment_body,
                 "id": comment_id,
+                "created_at": "2024-01-15T10:30:00Z",
             },
             "issue": {
                 "number": 42,
@@ -119,7 +120,7 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_not_called()
 
     @patch(
-        "sentry.seer.code_review.webhooks.issue_comment.delete_existing_reactions_and_add_eyes_reaction"
+        "sentry.seer.code_review.webhooks.issue_comment.delete_existing_reactions_and_add_reaction"
     )
     def test_skips_reaction_when_no_comment_id(self, mock_reaction: MagicMock) -> None:
         """Test that reaction is skipped when comment has no ID, but processing continues."""
@@ -140,8 +141,8 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             assert response.status_code == 204
             self.mock_seer.assert_not_called()
 
-    def test_success_case(self) -> None:
-        """Test that Seer request includes trigger metadata from the comment."""
+    def test_success_case_uses_review_request_endpoint(self) -> None:
+        """Test that issue comment uses review-request endpoint."""
         with self.code_review_setup(), self.tasks():
             event_dict = orjson.loads(
                 self._build_issue_comment_event(f"Please {SENTRY_REVIEW_COMMAND} this PR")
@@ -155,12 +156,5 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
                 "sentry-ecosystem/repo", "123456789", GitHubReaction.EYES
             )
             self.mock_seer.assert_called_once()
-
             call_args = self.mock_seer.call_args
-            assert call_args[1]["path"] == "/v1/automation/overwatch-request"
-            payload = call_args[1]["payload"]
-            assert payload["request_type"] == "pr-review"
-            assert payload["data"]["repo"]["base_commit_sha"] == "abc123"
-            assert payload["data"]["config"]["trigger_user"] == "test-user"
-            assert payload["data"]["config"]["trigger_comment_id"] == 123456789
-            assert payload["data"]["config"]["trigger_comment_type"] == "issue_comment"
+            assert call_args[1]["path"] == "/v1/code_review/review-request"

@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
@@ -17,8 +19,6 @@ import {
   openProjectCreationModal,
   type ModalRenderProps,
 } from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
 import PlatformPicker, {
   type Category,
   type Platform,
@@ -26,15 +26,14 @@ import PlatformPicker, {
 import type {TeamOption} from 'sentry/components/teamSelector';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
-import slugify from 'sentry/utils/slugify';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {slugify} from 'sentry/utils/slugify';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
 import IssueAlertOptions, {
   getRequestDataFragment,
@@ -269,7 +268,7 @@ export const modalCss = css`
 
 const Label = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const TeamInput = styled(TeamSelector)`
@@ -277,7 +276,7 @@ const TeamInput = styled(TeamSelector)`
 `;
 
 const Subtitle = styled('p')`
-  margin: ${space(2)} 0 ${space(1)} 0;
+  margin: ${p => p.theme.space.xl} 0 ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

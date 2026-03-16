@@ -29,7 +29,6 @@ METRIC_ID_AGG_OPTION = {
 
 
 def get_aggregation_options(mri: str) -> dict[AggregationOption, TimeWindow] | None:
-
     use_case_id: UseCaseID = extract_use_case_id(mri)
 
     # We first check if the particular metric ID has a specified aggregation

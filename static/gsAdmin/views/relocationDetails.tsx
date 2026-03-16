@@ -1,6 +1,9 @@
 import {useState} from 'react';
 import moment from 'moment-timezone';
 
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {Link} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -9,36 +12,34 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {Link} from 'sentry/components/core/link';
-import UserBadge from 'sentry/components/idBadge/userBadge';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Truncate from 'sentry/components/truncate';
-import ConfigStore from 'sentry/stores/configStore';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Truncate} from 'sentry/components/truncate';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
-import CustomerName from 'admin/components/customerName';
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
+import {CustomerName} from 'admin/components/customerName';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
 import type {ActionItem} from 'admin/components/detailsPage';
-import DetailsPage from 'admin/components/detailsPage';
-import RelocationAbortModal from 'admin/components/relocationAbortModal';
-import RelocationBadge from 'admin/components/relocationBadge';
-import RelocationCancelModal from 'admin/components/relocationCancelModal';
-import RelocationPauseModal from 'admin/components/relocationPauseModal';
-import RelocationRetryModal from 'admin/components/relocationRetryModal';
-import RelocationUnpauseModal from 'admin/components/relocationUnpauseModal';
+import {DetailsPage} from 'admin/components/detailsPage';
+import {RelocationAbortModal} from 'admin/components/relocationAbortModal';
+import {RelocationBadge} from 'admin/components/relocationBadge';
+import {RelocationCancelModal} from 'admin/components/relocationCancelModal';
+import {RelocationPauseModal} from 'admin/components/relocationPauseModal';
+import {RelocationRetryModal} from 'admin/components/relocationRetryModal';
+import {RelocationUnpauseModal} from 'admin/components/relocationUnpauseModal';
 import ResultGrid from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 
 enum ArtifactsState {
   DISABLED = 0,
@@ -56,7 +57,7 @@ type RelocationArtifact = {
 };
 
 // A map of each expected relocation artifact to a user-legible description of what it is.
-const expectedRelocationArtifacts: Map<string, string> = new Map(
+const expectedRelocationArtifacts = new Map<string, string>(
   Object.entries({
     'conf/cloudbuild.yaml':
       'The execution script that Google CloudBuild will run when validating this relocation.',
@@ -170,7 +171,7 @@ const getUserRow = (row: any) => [
   </td>,
 ];
 
-function RelocationDetails() {
+export function RelocationDetails() {
   const {regionName, relocationUuid} = useParams<{
     regionName: string;
     relocationUuid: string;
@@ -397,12 +398,12 @@ function RelocationDetails() {
           </DetailLabel>
           <DetailLabel title="Autopause">
             {relocationData.scheduledPauseAtStep
-              ? `${titleCase(relocationData.scheduledPauseAtStep)}`
+              ? titleCase(relocationData.scheduledPauseAtStep)
               : '--'}
           </DetailLabel>
           <DetailLabel title="Owner Notified Of">
             {relocationData.latestNotified
-              ? `${titleCase(relocationData.latestNotified)}`
+              ? titleCase(relocationData.latestNotified)
               : '--'}
           </DetailLabel>
           <DetailLabel title="Unclaimed Users Last Notified">
@@ -437,7 +438,7 @@ function RelocationDetails() {
         }
 
         acc.push(
-          <span key={`${step}`}>
+          <span key={step}>
             {acc.length > 0 ? <span> | </span> : null}
             {text}
           </span>
@@ -552,7 +553,7 @@ function RelocationDetails() {
         panelTitle="Relocated Customers"
         path={`/_admin/relocations/${relocationData.uuid}/`}
         api={regionApi}
-        endpoint="/customers/"
+        endpoint={`/_admin/cells/${regionName}/customers/`}
         method="GET"
         columns={[
           <th key="customer">Customer</th>,
@@ -634,5 +635,3 @@ function RelocationDetails() {
     />
   );
 }
-
-export default RelocationDetails;

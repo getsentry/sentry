@@ -1,0 +1,159 @@
+from unittest.mock import MagicMock, patch
+
+from sentry.models.apitoken import ApiToken
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
+
+
+class IssueViewTitleGenerateEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-issue-view-title-generate"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
+        self.url = f"/api/0/organizations/{self.organization.slug}/issue-view-title/generate/"
+
+    def _create_token(self, scope: str) -> ApiToken:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return ApiToken.objects.create(user=self.user, scope_list=[scope])
+
+    def _post_with_token(self, token: ApiToken, query: str = "is:unresolved"):
+        return self.client.post(
+            self.url,
+            data={"query": query},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    def test_successful_title_generation(self, mock_request: MagicMock) -> None:
+        mock_response = MagicMock(status=200)
+        mock_response.json.return_value = {"content": "My Assigned Errors"}
+        mock_request.return_value = mock_response
+
+        response = self.client.post(
+            self.url,
+            data={"query": "is:unresolved assigned:me level:error"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"title": "My Assigned Errors"}
+        mock_request.assert_called_once()
+
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    def test_title_is_stripped(self, mock_request: MagicMock) -> None:
+        mock_response = MagicMock(status=200)
+        mock_response.json.return_value = {"content": "  Title With Whitespace  "}
+        mock_request.return_value = mock_response
+
+        response = self.client.post(
+            self.url,
+            data={"query": "is:unresolved"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data == {"title": "Title With Whitespace"}
+
+    def test_missing_query_parameter(self) -> None:
+        response = self.client.post(self.url, data={}, format="json")
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Missing required parameter: query"}
+
+    def test_empty_query_parameter(self) -> None:
+        response = self.client.post(self.url, data={"query": ""}, format="json")
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "Missing required parameter: query"}
+
+    def test_ai_features_disabled_for_org(self) -> None:
+        self.organization.update_option("sentry:hide_ai_features", True)
+
+        response = self.client.post(
+            self.url,
+            data={"query": "is:unresolved"},
+            format="json",
+        )
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "AI features are disabled for this organization."}
+
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    def test_seer_api_error(self, mock_request: MagicMock) -> None:
+        mock_request.side_effect = Exception("Connection error")
+
+        response = self.client.post(
+            self.url,
+            data={"query": "is:unresolved"},
+            format="json",
+        )
+
+        assert response.status_code == 500
+        assert response.data == {"detail": "Failed to generate title"}
+
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    def test_empty_response_from_seer(self, mock_request: MagicMock) -> None:
+        mock_response = MagicMock(status=200)
+        mock_response.json.return_value = {"content": None}
+        mock_request.return_value = mock_response
+
+        response = self.client.post(
+            self.url,
+            data={"query": "is:unresolved"},
+            format="json",
+        )
+
+        assert response.status_code == 500
+        assert response.data == {"detail": "Failed to generate title"}
+
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    def test_long_query_is_truncated(self, mock_request: MagicMock) -> None:
+        mock_response = MagicMock(status=200)
+        mock_response.json.return_value = {"content": "Generated Title"}
+        mock_request.return_value = mock_response
+
+        long_query = "x" * 600
+
+        response = self.client.post(
+            self.url,
+            data={"query": long_query},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        call_args = mock_request.call_args
+        request_body = call_args.args[0]
+        assert len(long_query[:500]) == 500
+        assert "x" * 500 in request_body["prompt"]
+        assert "x" * 600 not in request_body["prompt"]
+
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    def test_org_read_permission(self, mock_request: MagicMock) -> None:
+        mock_response = MagicMock(status=200)
+        mock_response.json.return_value = {"content": "My Assigned Errors"}
+        mock_request.return_value = mock_response
+
+        for scope in ["org:read", "org:write", "org:admin"]:
+            token = self._create_token(scope)
+            response = self._post_with_token(
+                token,
+                query="is:unresolved assigned:me level:error",
+            )
+
+            assert response.status_code == 200
+            assert response.data == {"title": "My Assigned Errors"}
+
+    @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
+    def test_requires_org_scope(self, mock_request: MagicMock) -> None:
+        token = self._create_token("project:read")
+        response = self._post_with_token(
+            token,
+            query="is:unresolved assigned:me level:error",
+        )
+
+        assert response.status_code == 403
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+        mock_request.assert_not_called()

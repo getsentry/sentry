@@ -2,11 +2,11 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BreadcrumbTimeDisplay,
@@ -21,7 +21,6 @@ import {
 } from 'sentry/components/events/interfaces/breadcrumbs';
 import {IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -101,7 +100,7 @@ export function EventBreadcrumbsSection({event}: EventBreadcrumbsSectionProps) {
         maxMenuHeight={400}
         trigger={props => (
           <OverlayTrigger.Button
-            borderless
+            priority="transparent"
             showChevron={false}
             icon={<IconFilter />}
             aria-label={t('Filter Breadcrumbs')}
@@ -117,7 +116,7 @@ export function EventBreadcrumbsSection({event}: EventBreadcrumbsSectionProps) {
         position="bottom-end"
         trigger={props => (
           <OverlayTrigger.IconButton
-            borderless
+            priority="transparent"
             icon={<IconSort />}
             aria-label={t('Sort Breadcrumbs')}
             title={t('Sort')}
@@ -163,7 +162,7 @@ const BreadcrumbsContainer = styled('div')`
 
 const ActionsWrapper = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 
   @container (max-width: 400px) {
@@ -188,6 +187,6 @@ const ScrollContainer = styled('div')`
 
 const EmptyMessage = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   text-align: center;
 `;

@@ -1,6 +1,7 @@
+import {Button} from '@sentry/scraps/button';
+
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import {Button} from 'sentry/components/core/button';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -13,7 +14,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
-import MissingPerformanceButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingPerformanceButtons';
+import {MissingPerformanceButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingPerformanceButtons';
 
 import {ActionWrapper} from './actionWrapper';
 
@@ -106,7 +107,7 @@ const useApdex = (props: Props) => {
   };
 };
 
-function ProjectApdexScoreCard(props: Props) {
+export function ProjectApdexScoreCard(props: Props) {
   const {organization, hasTransactions} = props;
 
   const {data, previousData, isLoading, error, refetch} = useApdex(props);
@@ -180,5 +181,3 @@ function ProjectApdexScoreCard(props: Props) {
     />
   );
 }
-
-export default ProjectApdexScoreCard;

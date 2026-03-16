@@ -3,10 +3,10 @@ from django.urls import reverse
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-forwarding"
 
@@ -18,35 +18,14 @@ class DataForwardingIndexEndpointTest(APITestCase):
         """
         Override get_response to always add the required feature flag.
         """
-        with self.feature(
-            {
-                "organizations:data-forwarding-revamp-access": True,
-                "organizations:data-forwarding": True,
-            }
-        ):
+        with self.feature({"organizations:data-forwarding": True}):
             return super().get_response(*args, **kwargs)
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
-
-    def test_without_revamp_feature_flag_access(self) -> None:
-        with self.feature(
-            {
-                "organizations:data-forwarding-revamp-access": False,
-                "organizations:data-forwarding": True,
-            }
-        ):
-            response = self.client.get(reverse(self.endpoint, args=(self.organization.slug,)))
-            assert response.status_code == 403
-
     def test_without_data_forwarding_feature_flag_access(self) -> None:
-        with self.feature(
-            {
-                "organizations:data-forwarding-revamp-access": True,
-                "organizations:data-forwarding": False,
-            }
-        ):
+        with self.feature({"organizations:data-forwarding": False}):
             response = self.client.get(reverse(self.endpoint, args=(self.organization.slug,)))
             assert response.status_code == 200
 
@@ -154,27 +133,12 @@ class DataForwardingIndexGetTest(DataForwardingIndexEndpointTest):
         assert response.data[0]["isEnabled"] is False
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingIndexPostTest(DataForwardingIndexEndpointTest):
     method = "POST"
 
-    def test_without_revamp_feature_flag_access(self) -> None:
-        with self.feature(
-            {
-                "organizations:data-forwarding-revamp-access": False,
-                "organizations:data-forwarding": True,
-            }
-        ):
-            response = self.client.post(reverse(self.endpoint, args=(self.organization.slug,)))
-            assert response.status_code == 403
-
     def test_without_data_forwarding_feature_flag_access(self) -> None:
-        with self.feature(
-            {
-                "organizations:data-forwarding-revamp-access": True,
-                "organizations:data-forwarding": False,
-            }
-        ):
+        with self.feature({"organizations:data-forwarding": False}):
             response = self.client.post(reverse(self.endpoint, args=(self.organization.slug,)))
             assert response.status_code == 403
 

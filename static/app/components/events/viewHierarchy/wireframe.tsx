@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
@@ -13,7 +14,6 @@ import {
 } from 'sentry/components/events/viewHierarchy/utils';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 
@@ -29,10 +29,17 @@ type WireframeProps = {
   hierarchy: ViewHierarchyWindow[];
   onNodeSelect: (node?: ViewHierarchyWindow) => void;
   platform?: string;
+  positioning?: 'absolute' | 'relative';
   selectedNode?: ViewHierarchyWindow;
 };
 
-function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeProps) {
+function Wireframe({
+  hierarchy,
+  selectedNode,
+  onNodeSelect,
+  positioning,
+  platform,
+}: WireframeProps) {
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
@@ -49,9 +56,10 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
     () =>
       getHierarchyDimensions(
         hierarchy,
-        ['flutter', 'dart-flutter'].includes(platform ?? '')
+        positioning === 'absolute' ||
+          (!positioning && ['flutter', 'dart-flutter'].includes(platform ?? ''))
       ),
-    [hierarchy, platform]
+    [hierarchy, platform, positioning]
   );
   const nodeLookupMap = useMemo(() => {
     const map = new Map<ViewHierarchyWindow, ViewNode>();
@@ -170,8 +178,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, platform}: WireframeP
 
     let start: vec2 | null;
     let isDragging = false;
-    const selectedRect: Rect | null =
-      (selectedNode && nodeLookupMap.get(selectedNode)?.rect) ?? null;
+    const selectedRect = (selectedNode && nodeLookupMap.get(selectedNode)?.rect) ?? null;
     let hoveredRect: Rect | null = null;
     const currTransformationMatrix = mat3.clone(transformationMatrix);
     const lastMousePosition = vec2.create();
@@ -362,11 +369,11 @@ const InteractionContainer = styled('div')`
 
 const Controls = styled('div')`
   position: absolute;
-  top: ${space(2)};
-  right: ${space(2)};
+  top: ${p => p.theme.space.xl};
+  right: ${p => p.theme.space.xl};
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const InteractionOverlayCanvas = styled('canvas')`

@@ -2,14 +2,14 @@ import {useTheme} from '@emotion/react';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
-import LoadingError from 'sentry/components/loadingError';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingError} from 'sentry/components/loadingError';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import StreamGroup, {LoadingStreamGroup} from 'sentry/components/stream/group';
-import GroupStore from 'sentry/stores/groupStore';
+import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
-import useApi from 'sentry/utils/useApi';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -70,7 +70,7 @@ function LoadingSkeleton({
   );
 }
 
-function GroupListBody({
+export function GroupListBody({
   groupIds,
   memberList,
   query,
@@ -147,14 +147,18 @@ function GroupList({
         const hasGuideAnchor = id === topIssue;
         const group = GroupStore.get(id) as Group | undefined;
 
+        if (!group) {
+          return null;
+        }
+
         return (
           <StreamGroup
             key={id}
-            id={id}
+            group={group}
             statsPeriod={groupStatsPeriod}
             query={query}
             hasGuideAnchor={hasGuideAnchor}
-            memberList={group?.project ? memberList[group.project.slug] : undefined}
+            memberList={group.project ? memberList[group.project.slug] : undefined}
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
             canSelect={!selectDisabled}
@@ -166,5 +170,3 @@ function GroupList({
     </PanelBody>
   );
 }
-
-export default GroupListBody;

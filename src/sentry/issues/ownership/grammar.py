@@ -434,9 +434,9 @@ def convert_codeowners_syntax(
                 )
                 # flatten multiple '/' if not protocol
                 formatted_path = re.sub(r"(?<!:)\/{2,}", "/", path_with_stack_root)
-                result += f'codeowners:{formatted_path} {" ".join(sentry_assignees)}\n'
+                result += f"codeowners:{formatted_path} {' '.join(sentry_assignees)}\n"
             else:
-                result += f'codeowners:{path} {" ".join(sentry_assignees)}\n'
+                result += f"codeowners:{path} {' '.join(sentry_assignees)}\n"
 
     return result
 

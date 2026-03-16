@@ -1,21 +1,18 @@
 import {useMemo} from 'react';
-import type {Query} from 'history';
 
 import {getFieldTypeFromUnit} from 'sentry/components/events/eventCustomPerformanceMetrics';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type MeasurementsMetaResponse = Record<string, {functions: string[]; unit: string}>;
 
 export function useCustomMeasurements(selection?: PageFilters) {
   const organization = useOrganization();
-  const query: Query = selection?.datetime
-    ? normalizeDateTimeParams(selection.datetime)
-    : {};
+  const query = selection?.datetime ? normalizeDateTimeParams(selection.datetime) : {};
 
   if (selection?.projects) {
     query.project = selection.projects.map(String);

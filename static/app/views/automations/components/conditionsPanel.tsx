@@ -8,7 +8,6 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {
   ActionType,
-  SentryAppIdentifier,
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
@@ -27,7 +26,7 @@ type ConditionsPanelProps = {
   triggers: DataConditionGroup | null;
 };
 
-function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
+export function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (
     <Panel>
       <ConditionGroupWrapper>
@@ -70,13 +69,8 @@ function findActionHandler(
   availableActions: ActionHandler[]
 ): ActionHandler | undefined {
   if (action.type === ActionType.SENTRY_APP) {
-    if (action.config.sentryAppIdentifier === SentryAppIdentifier.SENTRY_APP_ID) {
-      return availableActions.find(
-        handler => handler.sentryApp?.id === action.config.targetIdentifier
-      );
-    }
     return availableActions.find(
-      handler => handler.sentryApp?.installationUuid === action.config.targetIdentifier
+      handler => handler.sentryApp?.id === action.config.targetIdentifier
     );
   }
   return availableActions.find(handler => handler.type === action.type);
@@ -201,5 +195,3 @@ const IconPadding = styled('span')`
   height: 100%;
   vertical-align: middle;
 `;
-
-export default ConditionsPanel;

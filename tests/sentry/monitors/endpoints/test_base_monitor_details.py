@@ -695,9 +695,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             status_code=400,
             **{"config": {"schedule": "0 0 0 * * *"}},
         )
-        assert (
-            resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported"
-        ), resp.content
+        assert resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported", (
+            resp.content
+        )
 
         resp = self.get_error_response(
             self.organization.slug,
@@ -707,9 +707,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             # Using a \u3000 ideographic space
             **{"config": {"schedule": "0 0 0 * *　*"}},
         )
-        assert (
-            resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported"
-        ), resp.content
+        assert resp.data["config"]["schedule"][0] == "Only 5 field crontab syntax is supported", (
+            resp.content
+        )
 
     def test_cronjob_interval(self) -> None:
         monitor = self._create_monitor()

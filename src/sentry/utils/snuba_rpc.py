@@ -11,6 +11,7 @@ import sentry_sdk
 import sentry_sdk.scope
 import urllib3
 from google.protobuf.json_format import MessageToJson
+from google.protobuf.message import DecodeError as ProtobufDecodeError
 from google.protobuf.message import Message as ProtobufMessage
 from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
@@ -71,7 +72,7 @@ def log_snuba_info(content: str) -> None:
         with open(SNUBA_INFO_FILE, "a") as file:
             file.writelines(content)
     else:
-        print(content)  # NOQA: only prints when an env variable is set
+        print(content)  # noqa: S002, T201 -- only prints when an env variable is set
 
 
 class SnubaRPCError(SnubaError):
@@ -83,7 +84,7 @@ class SnubaRPCRateLimitExceeded(SnubaRPCError):
 
 
 class SnubaRPCRequest(Protocol):
-    def SerializeToString(self, deterministic: bool = ...) -> bytes: ...
+    def SerializeToString(self, *, deterministic: bool = ...) -> bytes: ...
 
     @property
     def meta(
@@ -91,12 +92,16 @@ class SnubaRPCRequest(Protocol):
     ) -> RequestMeta: ...
 
 
-def table_rpc(requests: list[TraceItemTableRequest]) -> list[TraceItemTableResponse]:
-    return _make_rpc_requests(table_requests=requests).table_response
+def table_rpc(
+    requests: list[TraceItemTableRequest], debug: str | bool = False
+) -> list[TraceItemTableResponse]:
+    return _make_rpc_requests(table_requests=requests, debug=debug).table_response
 
 
-def timeseries_rpc(requests: list[TimeSeriesRequest]) -> list[TimeSeriesResponse]:
-    return _make_rpc_requests(timeseries_requests=requests).timeseries_response
+def timeseries_rpc(
+    requests: list[TimeSeriesRequest], debug: str | bool = False
+) -> list[TimeSeriesResponse]:
+    return _make_rpc_requests(timeseries_requests=requests, debug=debug).timeseries_response
 
 
 def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
@@ -110,6 +115,7 @@ def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
 def _make_rpc_requests(
     table_requests: list[TraceItemTableRequest] | None = None,
     timeseries_requests: list[TimeSeriesRequest] | None = None,
+    debug: str | bool = False,
 ) -> MultiRpcResponse:
     """Given lists of requests batch and run them together"""
     # Throw the two lists together, _make_rpc_requests will just run them all
@@ -125,20 +131,24 @@ def _make_rpc_requests(
             else "EndpointTimeSeries"
         )
         endpoint_names.append(endpoint_name)
+        logger_extra = {
+            "rpc_query": json.loads(MessageToJson(request)),
+            "referrer": request.meta.referrer,
+            "organization_id": request.meta.organization_id,
+            "trace_item_type": request.meta.trace_item_type,
+            "debug": debug is not False,
+        }
+        if isinstance(debug, str):
+            logger_extra["debug_msg"] = debug
         logger.info(
             f"Running a {endpoint_name} RPC query",  # noqa: LOG011
-            extra={
-                "rpc_query": json.loads(MessageToJson(request)),
-                "referrer": request.meta.referrer,
-                "organization_id": request.meta.organization_id,
-                "trace_item_type": request.meta.trace_item_type,
-            },
+            extra=logger_extra,
         )
 
     referrers = [req.meta.referrer for req in requests]
-    assert (
-        len(referrers) == len(requests) == len(endpoint_names)
-    ), "Length of Referrers must match length of requests for making requests"
+    assert len(referrers) == len(requests) == len(endpoint_names), (
+        "Length of Referrers must match length of requests for making requests"
+    )
 
     if referrers:
         sentry_sdk.set_tag("query.referrer", referrers[0])
@@ -176,14 +186,18 @@ def _make_rpc_requests(
                 rpc_rows = len(table_response.column_values[0].results)
             else:
                 rpc_rows = 0
+            logger_extra = {
+                "rpc_rows": rpc_rows,
+                "organization_id": request.meta.organization_id,
+                "page_token": table_response.page_token,
+                "meta": table_response.meta,
+                "debug": debug is not False,
+            }
+            if isinstance(debug, str):
+                logger_extra["debug_msg"] = debug
             logger.info(
                 "Table RPC query response",
-                extra={
-                    "rpc_rows": rpc_rows,
-                    "organization_id": request.meta.organization_id,
-                    "page_token": table_response.page_token,
-                    "meta": table_response.meta,
-                },
+                extra=logger_extra,
             )
             metrics.distribution("snuba_rpc.table_response.length", rpc_rows)
         elif isinstance(request, TimeSeriesRequest):
@@ -195,13 +209,17 @@ def _make_rpc_requests(
                 rpc_rows = len(timeseries_response.result_timeseries[0].data_points)
             else:
                 rpc_rows = 0
+            logger_extra = {
+                "rpc_rows": rpc_rows,
+                "organization_id": request.meta.organization_id,
+                "meta": timeseries_response.meta,
+                "debug": debug is not False,
+            }
+            if isinstance(debug, str):
+                logger_extra["debug_msg"] = debug
             logger.info(
                 "Timeseries RPC query response",
-                extra={
-                    "rpc_rows": rpc_rows,
-                    "organization_id": request.meta.organization_id,
-                    "meta": timeseries_response.meta,
-                },
+                extra=logger_extra,
             )
             metrics.distribution("snuba_rpc.timeseries_response.length", rpc_rows)
     return MultiRpcResponse(table_results, timeseries_results)
@@ -361,8 +379,7 @@ def _make_rpc_request(
                     raise SnubaRPCError(err)
                 span.set_tag("timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:
-                    error = ErrorProto()
-                    error.ParseFromString(http_resp.data)
+                    error = _parse_error(http_resp)
                     if SNUBA_INFO:
                         log_snuba_info(f"{referrer}.error:\n{error}")
                     if http_resp.status == 404:
@@ -371,6 +388,19 @@ def _make_rpc_request(
                         raise SnubaRPCRateLimitExceeded(error)
                     raise SnubaRPCError(error)
                 return http_resp
+
+
+def _parse_error(http_resp: BaseHTTPResponse) -> ErrorProto:
+    error = ErrorProto()
+    try:
+        error.ParseFromString(http_resp.data)
+    except ProtobufDecodeError:
+        try:
+            body = http_resp.data.decode("utf-8")
+        except (UnicodeDecodeError, AttributeError):
+            body = "<non-text response body>"
+        raise SnubaRPCError(f"Snuba RPC returned HTTP {http_resp.status}: {body}")
+    return error
 
 
 def create_subscription(req: CreateSubscriptionRequest) -> CreateSubscriptionResponse:

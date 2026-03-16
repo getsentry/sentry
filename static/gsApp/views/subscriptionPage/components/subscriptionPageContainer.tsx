@@ -1,10 +1,10 @@
 import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Container} from 'sentry/components/core/layout';
-import type {ContainerProps} from 'sentry/components/core/layout/container';
+import {Container} from '@sentry/scraps/layout';
+import type {ContainerProps} from '@sentry/scraps/layout';
 
-export default function SubscriptionPageContainer({
+export function SubscriptionPageContainer({
   children,
   background,
   ...rest

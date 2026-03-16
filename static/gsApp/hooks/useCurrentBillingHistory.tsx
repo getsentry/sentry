@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {BillingHistory} from 'getsentry/types';
 
@@ -12,11 +13,18 @@ export function useCurrentBillingHistory() {
     data: history,
     isPending,
     isError,
-  } = useApiQuery<BillingHistory>([`/customers/${organization.slug}/history/current/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<BillingHistory>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/history/current/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
-  const currentHistory: BillingHistory | null = useMemo(() => {
+  const currentHistory = useMemo(() => {
     return history ?? null;
   }, [history]);
 

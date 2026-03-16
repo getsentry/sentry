@@ -87,9 +87,9 @@ class HybridCloudForeignKey(models.BigIntegerField[FieldSetType, FieldGetType]):
         ).name.upper()
 
         parts = foreign_model.split(".")
-        assert (
-            len(parts) == 2
-        ), f"{self.__class__.__name__} model reference must be <app>.<ModelName>, got {foreign_model}"
+        assert len(parts) == 2, (
+            f"{self.__class__.__name__} model reference must be <app>.<ModelName>, got {foreign_model}"
+        )
         self.foreign_model_name = foreign_model
 
         kwds.setdefault("db_index", True)

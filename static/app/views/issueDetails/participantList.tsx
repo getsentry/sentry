@@ -2,12 +2,11 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
+import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 
@@ -64,7 +63,7 @@ export function ParticipantList({teams = [], users, children}: ParticipantListPr
       <ParticipantWrapper onClick={() => setIsExpanded(!isExpanded)} role="button">
         {children}
         <Button
-          borderless
+          priority="transparent"
           size="zero"
           icon={
             <IconChevron
@@ -101,7 +100,7 @@ const ParticipantWrapper = styled('div')`
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 
   & > span {
     cursor: pointer;
@@ -132,7 +131,7 @@ const ParticipantListWrapper = styled('div')`
 const ListTitle = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
@@ -143,8 +142,8 @@ const ListTitle = styled('div')`
 const UserRow = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  gap: ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.md};
   line-height: 1.2;
   font-size: ${p => p.theme.font.size.sm};
 `;

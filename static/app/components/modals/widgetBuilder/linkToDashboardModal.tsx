@@ -2,17 +2,17 @@ import {Fragment, useCallback, useEffect, useState, type ReactNode} from 'react'
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+
 import {fetchDashboard, fetchDashboards} from 'sentry/actionCreators/dashboards';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Select} from 'sentry/components/core/select';
-import Spinner from 'sentry/components/forms/spinner';
+import {Spinner} from 'sentry/components/forms/spinner';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import type {
@@ -185,7 +185,7 @@ export function LinkToDashboardModal({
         <StyledButtonBar gap="lg">
           <Button
             disabled={!canSubmit}
-            title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+            tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             onClick={() => linkToDashboard()}
             aria-label={t('Link to dashboard')}
           >
@@ -198,13 +198,15 @@ export function LinkToDashboardModal({
 }
 
 const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space.lg};
     width: 100%;
 
     > button {

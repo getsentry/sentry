@@ -1,14 +1,15 @@
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
@@ -48,8 +49,7 @@ import {BASE_FIELD_ALIASES, INGESTION_DELAY} from 'sentry/views/insights/setting
 import type {SpanFields} from 'sentry/views/insights/types';
 
 export interface InsightsTimeSeriesWidgetProps
-  extends WidgetTitleProps,
-    LoadableChartWidgetProps {
+  extends WidgetTitleProps, LoadableChartWidgetProps {
   error: Error | null;
   isLoading: boolean;
   visualizationType: 'line' | 'area' | 'bar';
@@ -253,7 +253,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
               <Button
                 size="xs"
                 aria-label={t('Open Full-Screen View')}
-                borderless
+                priority="transparent"
                 icon={<IconExpand />}
                 onClick={() => {
                   openInsightChartModal({

@@ -2,26 +2,25 @@ import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Button} from 'sentry/components/core/button';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {
   useHandleAssigneeChange,
   type OnAssignCallback,
 } from 'sentry/components/group/assigneeSelector';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
-import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
@@ -31,10 +30,10 @@ import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useApi from 'sentry/utils/useApi';
-import useCommitters from 'sentry/utils/useCommitters';
+import {useApi} from 'sentry/utils/useApi';
+import {useCommitters} from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
  * example: codeowners:/issues -> [['codeowners', '/issues']]
@@ -286,7 +285,7 @@ function AssignedTo({
               }}
               aria-label={t('Create Ownership Rule')}
               icon={<IconSettings />}
-              borderless
+              priority="transparent"
               size="xs"
             />
           </GuideAnchor>
@@ -315,7 +314,7 @@ const StyledAssigneeSelectorDropdown = styled(AssigneeSelectorDropdown)`
 const DropdownButton = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-content: space-between;
   width: 100%;
   cursor: pointer;
@@ -324,7 +323,7 @@ const DropdownButton = styled('div')`
 const ActorWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   max-width: 100%;
   line-height: 1;
 `;
@@ -340,7 +339,7 @@ const ActorName = styled('div')`
 
 const StyledSidebarTitle = styled(SidebarSection.Title)`
   justify-content: space-between;
-  margin-right: -${space(1)};
+  margin-right: -${p => p.theme.space.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

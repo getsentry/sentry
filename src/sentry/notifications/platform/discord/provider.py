@@ -92,7 +92,6 @@ class DiscordRenderer(NotificationRenderer[DiscordRenderable]):
 
     @classmethod
     def render_body_blocks(cls, body: list[NotificationBodyFormattingBlock]) -> str:
-
         description = []
         for block in body:
             if block.type == NotificationBodyFormattingBlockType.PARAGRAPH:

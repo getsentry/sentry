@@ -4,19 +4,18 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
 
 import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
+import {BreadcrumbItemContent} from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {Timeline} from 'sentry/components/timeline';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import isValidDate from 'sentry/utils/date/isValidDate';
+import {isValidDate} from 'sentry/utils/date/isValidDate';
 
 function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
   const currentTimezone = useTimezone();
@@ -80,7 +79,7 @@ interface BreadcrumbsTimelineProps {
   startTimeString?: string;
 }
 
-export default function BreadcrumbsTimeline({
+export function BreadcrumbsTimeline({
   breadcrumbs,
   containerElement,
   startTimeString,
@@ -203,7 +202,7 @@ const Subtitle = styled('p')`
 `;
 
 const Timestamp = styled('div')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
   min-width: 50px;
@@ -215,7 +214,7 @@ const Timestamp = styled('div')`
 `;
 
 const ContentWrapper = styled('div')`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 `;
 
 const BreadcrumbItem = styled(Timeline.Item)`
@@ -233,7 +232,7 @@ const BreadcrumbItem = styled(Timeline.Item)`
 const DescriptionList = styled('dl')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(0.75)} ${space(1)};
+  gap: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   text-align: left;
   margin: 0;
 `;
@@ -241,7 +240,7 @@ const DescriptionList = styled('dl')`
 const TimestampValues = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   font-family: ${p => p.theme.font.family.mono};
 `;
 

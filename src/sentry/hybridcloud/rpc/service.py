@@ -32,12 +32,12 @@ from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.types.region import Region, RegionMappingNotFound
+from sentry.types.region import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
-    from sentry.hybridcloud.rpc.resolvers import RegionResolutionStrategy
+    from sentry.hybridcloud.rpc.resolvers import CellResolutionStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -97,17 +97,17 @@ class RpcMethodSignature(SerializableFunctionSignature):
     def get_name_segments(self) -> Sequence[str]:
         return self.service_name, self.method_name
 
-    def _extract_region_resolution(self) -> RegionResolutionStrategy | None:
+    def _extract_region_resolution(self) -> CellResolutionStrategy | None:
         region_resolution = getattr(self.base_function, _REGION_RESOLUTION_ATTR, None)
 
-        is_region_service = self.base_service_cls.local_mode == SiloMode.REGION
+        is_region_service = self.base_service_cls.local_mode == SiloMode.CELL
         if not is_region_service and region_resolution is not None:
             raise self._setup_exception(
-                "@regional_rpc_method should be used only on a service with "
-                "`local_mode = SiloMode.REGION`"
+                "@cell_rpc_method should be used only on a service with "
+                "`local_mode = SiloMode.CELL`"
             )
         if is_region_service and region_resolution is None:
-            raise self._setup_exception("Needs @regional_rpc_method")
+            raise self._setup_exception("Needs @cell_rpc_method")
 
         return region_resolution
 
@@ -118,7 +118,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
         try:
             region = self._region_resolution.resolve(arguments)
             return _RegionResolutionResult(region)
-        except RegionMappingNotFound:
+        except CellMappingNotFound:
             if getattr(self.base_function, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
                 return _RegionResolutionResult(None, is_early_halt=True)
             else:
@@ -127,7 +127,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
 
 @dataclass(frozen=True)
 class _RegionResolutionResult:
-    region: Region | None
+    region: Cell | None
     is_early_halt: bool = False
 
     def __post_init__(self) -> None:
@@ -177,8 +177,8 @@ def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
     return method
 
 
-def regional_rpc_method(
-    resolve: RegionResolutionStrategy,
+def cell_rpc_method(
+    resolve: CellResolutionStrategy,
     return_none_if_mapping_not_found: bool = False,
 ) -> Callable[[Callable[..., _T]], Callable[..., _T]]:
     """Decorate methods to be exposed as part of the RPC interface.
@@ -198,6 +198,10 @@ def regional_rpc_method(
         return rpc_method(method)
 
     return decorator
+
+
+# TODO(cells): remove once getsentry updated
+regional_rpc_method = cell_rpc_method
 
 
 _global_service_registry: dict[str, DelegatingRpcService] = {}
@@ -342,7 +346,7 @@ class RpcService(abc.ABC):
                         f"Signature was not initialized for {cls.__name__}.{method_name}",
                     )
 
-                if cls.local_mode == SiloMode.REGION:
+                if cls.local_mode == SiloMode.CELL:
                     result = signature.resolve_to_region(kwargs)
                     if result.is_early_halt:
                         return None
@@ -417,6 +421,22 @@ class RpcRemoteException(RpcException):
     """Indicate that an RPC service returned an error status code."""
 
 
+class RpcValidationException(RpcException):
+    """
+    Indicate that an RPC service call encountered a validation error that can be shown to the user.
+    The RPC endpoint will convert these errors into HTTP 422 responses.
+    """
+
+    def __init__(self, detail: str, code: str, service_name: str, method_name: str) -> None:
+        super().__init__(service_name=service_name, method_name=method_name, message=detail)
+        self.detail = detail
+        self.code = code
+
+
+class RpcSlugCollisionException(RpcRemoteException):
+    """Indicate that an RPC service returned a slug collision error (409 Conflict)."""
+
+
 class RpcResponseException(RpcException):
     """Indicate that the response from a remote RPC service violated expectations."""
 
@@ -466,7 +486,7 @@ _RPC_CONTENT_CHARSET = "utf-8"
 
 
 def dispatch_remote_call(
-    region: Region | None,
+    region: Cell | None,
     service_name: str,
     method_name: str,
     serial_arguments: ArgumentDict,
@@ -478,7 +498,7 @@ def dispatch_remote_call(
 
 @dataclass(frozen=True)
 class _RemoteSiloCall:
-    region: Region | None
+    region: Cell | None
     service_name: str
     method_name: str
     serial_arguments: ArgumentDict
@@ -525,9 +545,9 @@ class _RemoteSiloCall:
         retry_key = f"{self.service_name}.{self.method_name}"
         try:
             retry_counts_map = options.get("hybridcloud.rpc.method_retry_overrides")
-            assert isinstance(
-                retry_counts_map, dict
-            ), "An invalid RPC retry override option was set"
+            assert isinstance(retry_counts_map, dict), (
+                "An invalid RPC retry override option was set"
+            )
             if retry_key in retry_counts_map:
                 return int(retry_counts_map[retry_key])
         except Exception:
@@ -541,9 +561,9 @@ class _RemoteSiloCall:
         timeout_key = f"{self.service_name}.{self.method_name}"
         try:
             timeout_overrides_map = options.get("hybridcloud.rpc.method_timeout_overrides")
-            assert isinstance(
-                timeout_overrides_map, dict
-            ), "An invalid RPC timeout override option was set"
+            assert isinstance(timeout_overrides_map, dict), (
+                "An invalid RPC timeout override option was set"
+            )
 
             if timeout_key in timeout_overrides_map:
                 return float(timeout_overrides_map[timeout_key])
@@ -606,6 +626,17 @@ class _RemoteSiloCall:
         scope.set_tag("rpc_method", rpc_method)
         scope.set_tag("rpc_status_code", response.status_code)
 
+        if response.status_code == 422:
+            # Validation/Operation errors that should be shown to end user behave the same
+            # in test/production mode.
+            body = response.json()
+            raise RpcValidationException(
+                detail=body["detail"],
+                code=body["code"],
+                service_name=self.service_name,
+                method_name=self.method_name,
+            )
+
         if in_test_environment():
             if response.status_code == 500:
                 raise self._remote_exception(
@@ -615,6 +646,7 @@ class _RemoteSiloCall:
             raise self._remote_exception(
                 f"Error ({response.status_code} status) invoking rpc at {self.path!r}: {detail}"
             )
+
         # Careful not to reveal too much information in production
         if response.status_code == 403:
             raise self._remote_exception("Unauthorized service access")
@@ -639,7 +671,7 @@ class _RemoteSiloCall:
         )
 
         if self.region:
-            target_mode = SiloMode.REGION
+            target_mode = SiloMode.CELL
         else:
             target_mode = SiloMode.CONTROL
 

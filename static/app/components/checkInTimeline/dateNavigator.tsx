@@ -1,4 +1,5 @@
-import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -30,7 +31,7 @@ export function DateNavigator({direction, dateNavigation, ...props}: Props) {
   return (
     <Button
       icon={<IconChevron direction={iconDirection} />}
-      title={!disabled && title}
+      tooltipProps={{title: !disabled && title}}
       aria-label={title}
       onClick={action}
       disabled={disabled}

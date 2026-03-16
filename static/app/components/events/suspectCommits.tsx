@@ -4,20 +4,19 @@ import styled from '@emotion/styled';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {SuspectCommitHeader} from 'sentry/components/events/styles';
 import {SuspectCommitFeedback} from 'sentry/components/events/suspectCommitFeedback';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useCommitters from 'sentry/utils/useCommitters';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useCommitters} from 'sentry/utils/useCommitters';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface CommitWithGroupOwner extends Commit {
@@ -95,7 +94,7 @@ export function SuspectCommits({
   return hasStreamlinedUI ? (
     <SuspectCommitWrapper>
       <ScrollCarousel
-        gap={1.5}
+        gap="lg"
         transparentMask
         jumpItemCount={1}
         aria-label={t('Suspect commits')}
@@ -162,7 +161,7 @@ const StyledPanel = styled(Panel)`
 const ExpandButton = styled('button')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const Title = styled('div')`
@@ -180,14 +179,14 @@ const StreamlinedPanel = styled(Panel)`
   width: 100%;
   min-width: 65%;
   &:last-child {
-    margin-right: ${space(2)};
+    margin-right: ${p => p.theme.space.xl};
   }
   &:first-child {
-    margin-left: ${space(2)};
+    margin-left: ${p => p.theme.space.xl};
   }
 `;
 
 const SuspectCommitWrapper = styled('div')`
-  margin-right: -${space(2)};
-  margin-left: -${space(2)};
+  margin-right: -${p => p.theme.space.xl};
+  margin-left: -${p => p.theme.space.xl};
 `;

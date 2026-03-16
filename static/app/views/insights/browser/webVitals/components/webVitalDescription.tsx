@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
@@ -141,33 +141,29 @@ export function WebVitalDescription({score, value, webVital}: Props) {
           webVital: webVital.toUpperCase(),
         })}
       </Stack>
-      <SupportedBrowsers>
-        {Object.values(Browser).map(browser => (
-          <Flex align="center" gap="md" key={browser}>
-            {vitalSupportedBrowsers[
-              WebVital[webVital.toUpperCase() as Uppercase<typeof webVital>]
-            ]?.includes(browser) ? (
-              <IconCheckmark variant="success" size="sm" />
-            ) : (
-              <IconClose variant="danger" size="sm" />
-            )}
-            {browser}
-          </Flex>
-        ))}
-      </SupportedBrowsers>
-      <ReferenceLink>{link}</ReferenceLink>
+      <Stack gap="xl">
+        <Flex display="inline-flex" wrap="wrap" gap="xl">
+          {Object.values(Browser).map(browser => (
+            <Flex align="center" gap="md" key={browser}>
+              {vitalSupportedBrowsers[
+                WebVital[webVital.toUpperCase() as Uppercase<typeof webVital>]
+              ]?.includes(browser) ? (
+                <IconCheckmark variant="success" size="sm" />
+              ) : (
+                <IconClose variant="danger" size="sm" />
+              )}
+              {browser}
+            </Flex>
+          ))}
+        </Flex>
+        <ReferenceLink>{link}</ReferenceLink>
+      </Stack>
     </div>
   );
 }
 
-const SupportedBrowsers = styled('div')`
-  display: inline-flex;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
-`;
-
 const ReferenceLink = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Value = styled('h2')`
@@ -187,6 +183,6 @@ const WebVitalScore = styled('div')`
   display: flex;
   align-items: anchor-center;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
-  gap: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
 `;

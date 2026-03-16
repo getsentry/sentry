@@ -1,8 +1,9 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tag} from '@sentry/scraps/badge';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Actor} from 'sentry/types/core';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
@@ -56,7 +57,7 @@ export function CollapsedAvatars({
   );
 }
 
-function AvatarList({
+export function AvatarList({
   avatarSize = 28,
   maxVisibleAvatars = 5,
   typeAvatars = 'users',
@@ -154,8 +155,6 @@ function AvatarList({
   );
 }
 
-export default AvatarList;
-
 // used in releases list page to do some alignment
 const AvatarListWrapper = styled('div')`
   display: flex;
@@ -164,7 +163,7 @@ const AvatarListWrapper = styled('div')`
 `;
 
 const AvatarStyle = (p: {theme: Theme}) => css`
-  border: 2px solid ${p.theme.tokens.background.primary};
+  border: 2px solid ${p.theme.tokens.border.primary};
   margin-left: -8px;
   cursor: default;
 

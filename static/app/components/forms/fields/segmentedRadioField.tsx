@@ -1,16 +1,18 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Radio} from 'sentry/components/core/radio';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Radio} from '@sentry/scraps/radio';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
 import FormField from 'sentry/components/forms/formField';
-import {space} from 'sentry/styles/space';
 
-interface SegmentedRadioFieldProps<Choices extends string = string>
-  extends Omit<InputFieldProps, 'type'> {
+interface SegmentedRadioFieldProps<Choices extends string = string> extends Omit<
+  InputFieldProps,
+  'type'
+> {
   choices?: RadioGroupProps<Choices>['choices'];
 }
 
@@ -24,7 +26,7 @@ function handleChange(
   onBlur(id, e);
 }
 
-function SegmentedRadioField<Choices extends string = string>(
+export function SegmentedRadioField<Choices extends string = string>(
   props: SegmentedRadioFieldProps<Choices>
 ) {
   return (
@@ -110,10 +112,10 @@ const RadioItem = styled('label', {shouldForwardProp})<{
   disabled?: boolean;
 }>`
   position: relative;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
   font-weight: ${p => p.theme.font.weight.sans.regular};
@@ -122,7 +124,7 @@ const RadioItem = styled('label', {shouldForwardProp})<{
 
   &[aria-checked='true'] {
     border-color: ${p => p.theme.tokens.border.accent.vibrant} !important;
-    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.accent.vibrant};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
     z-index: ${p => p.theme.zIndex.initial};
   }
 
@@ -178,5 +180,3 @@ const Description = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4em;
 `;
-
-export default SegmentedRadioField;

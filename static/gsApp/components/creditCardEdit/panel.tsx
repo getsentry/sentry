@@ -1,16 +1,17 @@
 import {Fragment, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import CreditCardSetup from 'getsentry/components/creditCardEdit/setup';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {FTCConsentLocation, Subscription} from 'getsentry/types';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import type {GetsentryEventKey} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -30,7 +31,7 @@ interface CreditCardPanelProps {
 /**
  * Panel displaying existing credit card details.
  */
-function CreditCardPanel({
+export function CreditCardPanel({
   organization,
   subscription,
   location,
@@ -137,5 +138,3 @@ function CreditCardPanel({
     </Flex>
   );
 }
-
-export default CreditCardPanel;

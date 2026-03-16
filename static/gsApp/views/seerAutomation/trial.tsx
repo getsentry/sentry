@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 import seerConfigCheck from 'getsentry-images/spot/seer-config-check.svg';
@@ -6,24 +6,21 @@ import seerConfigConnect2 from 'getsentry-images/spot/seer-config-connect-2.svg'
 import seerConfigHand2 from 'getsentry-images/spot/seer-config-hand-2.svg';
 import seerConfigMain from 'getsentry-images/spot/seer-config-main.svg';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer/interactionStateLayer';
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Grid} from '@sentry/scraps/layout/grid';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {ExternalLink} from '@sentry/scraps/link/link';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
 
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 
 const BUTTONS = [
@@ -63,13 +60,13 @@ export default function SeerAutomationTrial() {
     // If the org is on the old-seer plan then they shouldn't be here on this new settings page
     // they need to goto the old settings page, or get downgraded off old seer.
     if (!showNewSeer(organization)) {
-      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
       return;
     }
 
     // If you've already got Seer, then go to settings and you should see the new ones.
     if (organization.features.includes('seat-based-seer-enabled')) {
-      navigate(normalizeUrl(`/organizations/${organization.slug}/settings/seer/`));
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
       return;
     }
 
@@ -77,7 +74,7 @@ export default function SeerAutomationTrial() {
   }, [navigate, organization.features, organization.slug, organization]);
 
   return (
-    <Fragment>
+    <AnalyticsArea name="trial">
       <Flex justify="center">
         <img
           src={seerConfigMain}
@@ -170,6 +167,6 @@ export default function SeerAutomationTrial() {
           </Flex>
         </Stack>
       </Container>
-    </Fragment>
+    </AnalyticsArea>
   );
 }

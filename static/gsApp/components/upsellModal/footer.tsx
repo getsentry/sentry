@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -19,7 +19,7 @@ interface UpsellFooterProps {
   source?: string;
 }
 
-function Footer({
+export function Footer({
   subscription,
   organization,
   source,
@@ -91,5 +91,3 @@ const SidebarFooter = styled('div')`
     margin-bottom: 0.5rem;
   }
 `;
-
-export default Footer;

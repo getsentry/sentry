@@ -2,18 +2,37 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import {Tag} from '@sentry/scraps/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {FieldObject, JsonFormObject} from 'sentry/components/forms/types';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {
   DataForwarderProviderSlug,
   type DataForwarder,
 } from 'sentry/views/settings/organizationDataForwarding/util/types';
+
+export function getCreateTooltip(params: {
+  hasAccess: boolean;
+  hasAvailability: boolean;
+  hasFeature: boolean;
+}): string | undefined {
+  if (!params.hasFeature) {
+    return t('This feature is not available for your organization');
+  }
+  if (!params.hasAccess) {
+    return t(
+      'You must be an organization owner, manager or admin to configure data forwarding.'
+    );
+  }
+  if (!params.hasAvailability) {
+    return t('Maximum data forwarders configured.');
+  }
+  return undefined;
+}
 
 export function getDataForwarderFormGroups({
   provider,

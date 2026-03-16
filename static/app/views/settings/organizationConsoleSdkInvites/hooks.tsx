@@ -5,6 +5,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {tct} from 'sentry/locale';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   useApiQuery,
@@ -34,7 +35,11 @@ interface UseRevokeConsoleSdkPlatformInviteParams {
 
 export function useConsoleSdkInvites(orgSlug: string) {
   return useApiQuery<ConsoleSdkInviteUser[]>(
-    [`/organizations/${orgSlug}/console-sdk-invites/`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/console-sdk-invites/`, {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+    ],
     {
       staleTime: 5000,
     }

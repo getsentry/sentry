@@ -4,15 +4,14 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Link} from 'sentry/components/core/link';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMouseTracking from 'sentry/utils/useMouseTracking';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMouseTracking} from 'sentry/utils/useMouseTracking';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import PerformanceScoreRing from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
+import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
 import type {
   ProjectScore,
   WebVitals,
@@ -134,7 +133,7 @@ function WebVitalLabel({
   );
 }
 
-function PerformanceScoreRingWithTooltips({
+export function PerformanceScoreRingWithTooltips({
   projectScore,
   projectData,
   ringBackgroundColors,
@@ -377,7 +376,7 @@ const PerformanceScoreRingTooltip = styled('div')<{x: number; y: number}>`
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   transform: translate3d(${p => p.x - 100}px, ${p => p.y - 74}px, 0px);
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   width: 200px;
   height: 60px;
   display: flex;
@@ -392,6 +391,7 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
   pointer-events: none;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   border-top: 8px solid ${p => p.theme.tokens.background.primary};
   margin-left: -8px;
   &:before {
@@ -409,7 +409,7 @@ const PerformanceScoreRingTooltipArrow = styled('div')`
 
 const Dot = styled('span')<{color: string}>`
   display: inline-block;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
   border-radius: 10px;
   width: 10px;
   height: 10px;
@@ -419,5 +419,3 @@ const Dot = styled('span')<{color: string}>`
 const TooltipValue = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default PerformanceScoreRingWithTooltips;

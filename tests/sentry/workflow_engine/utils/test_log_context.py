@@ -16,7 +16,6 @@ class LogContextTest(TestCase):
         assert isinstance(logger, log_context._Adapter)
 
     def test_root_decorator(self) -> None:
-
         @log_context.root()
         def test_func() -> None:
             context = log_context._log_context_state.get()

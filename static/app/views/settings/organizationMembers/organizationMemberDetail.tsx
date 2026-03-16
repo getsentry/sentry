@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {removeAuthenticator} from 'sentry/actionCreators/account';
 import {
@@ -13,25 +16,22 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import NotFound from 'sentry/components/errors/notFound';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {NotFound} from 'sentry/components/errors/notFound';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member} from 'sentry/types/organization';
-import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
 import {
   setApiQueryData,
   useApiQuery,
@@ -40,15 +40,15 @@ import {
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import Teams from 'sentry/utils/teams';
-import useApi from 'sentry/utils/useApi';
+import {Teams} from 'sentry/utils/teams';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TeamSelectForMember from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TeamSelect as TeamSelectForMember} from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
 
-import OrganizationRoleSelect from './inviteMember/orgRoleSelect';
+import {OrganizationRoleSelect} from './inviteMember/orgRoleSelect';
 
 const MULTIPLE_ORGS = t('Cannot be reset since user is in more than one organization');
 const NOT_ENROLLED = t('Not enrolled in two-factor authentication');
@@ -86,7 +86,9 @@ function MemberStatus({
 }
 
 const getMemberQueryKey = (orgSlug: string, memberId: string): ApiQueryKey => [
-  `/organizations/${orgSlug}/members/${memberId}/`,
+  getApiUrl(`/organizations/$organizationIdOrSlug/members/$memberId/`, {
+    path: {organizationIdOrSlug: orgSlug, memberId},
+  }),
 ];
 
 function OrganizationMemberDetailContent({member}: {member: Member}) {
@@ -275,7 +277,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
               size="xs"
               priority="primary"
               icon={<IconRefresh />}
-              title={t('Generate a new invite link and send a new email.')}
+              tooltipProps={{
+                title: t('Generate a new invite link and send a new email.'),
+              }}
               busy={isInviting}
               onClick={() => inviteMember()}
             >
@@ -427,7 +431,7 @@ const Details = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-template-columns: 2fr 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   width: 100%;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -438,6 +442,6 @@ const Details = styled('div')`
 
 const DetailLabel = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
 `;

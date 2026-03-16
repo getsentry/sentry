@@ -3,8 +3,8 @@ import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {
   ExternalActorMapping,
@@ -12,20 +12,21 @@ import type {
   Integration,
 } from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import IntegrationExternalMappingForm from './integrationExternalMappingForm';
-import IntegrationExternalMappings from './integrationExternalMappings';
+import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
+import {IntegrationExternalMappings} from './integrationExternalMappings';
 
 type Props = {
   integration: Integration;
 };
 
-function IntegrationExternalTeamMappings(props: Props) {
+export function IntegrationExternalTeamMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const location = useLocation();
@@ -33,7 +34,12 @@ function IntegrationExternalTeamMappings(props: Props) {
   // For inline forms, the mappingKey will be the external name (since multiple will be rendered at one time)
   // For the modal form, the mappingKey will be this.modalMappingKey (since only one modal form is rendered at any time)
   const [queryResults, setQueryResults] = useState<Record<string, Team[]>>({});
-  const ORGANIZATION_TEAMS_ENDPOINT = `/organizations/${organization.slug}/teams/`;
+  const ORGANIZATION_TEAMS_ENDPOINT = getApiUrl(
+    '/organizations/$organizationIdOrSlug/teams/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+    }
+  );
 
   const query = {
     ...location.query,
@@ -193,5 +199,3 @@ function IntegrationExternalTeamMappings(props: Props) {
     />
   );
 }
-
-export default IntegrationExternalTeamMappings;

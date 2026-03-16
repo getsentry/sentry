@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
@@ -103,7 +102,7 @@ describe('SpanQueryParamsProvider', () => {
       expect.objectContaining({
         fields: [
           'id',
-          'span.op',
+          'span.name',
           'span.description',
           'span.duration',
           'transaction',
@@ -706,32 +705,6 @@ describe('SpanQueryParamsProvider', () => {
     expect(queryParams).toEqual(
       expect.objectContaining({
         fields: ['id', 'timestamp', 'span.self_time', 'span.duration'],
-      })
-    );
-  });
-
-  it('uses OTel-friendly default fields in OTel-friendly mode', () => {
-    const organization = OrganizationFixture({
-      features: ['performance-otel-friendly-ui'],
-    });
-
-    render(
-      <Wrapper>
-        <Component />
-      </Wrapper>,
-      {organization}
-    );
-
-    expect(queryParams).toEqual(
-      expect.objectContaining({
-        fields: [
-          'id',
-          'span.name',
-          'span.description',
-          'span.duration',
-          'transaction',
-          'timestamp',
-        ],
       })
     );
   });

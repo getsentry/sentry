@@ -1,24 +1,23 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import IdBadge from 'sentry/components/idBadge';
-import Panel from 'sentry/components/panels/panel';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {IdBadge} from 'sentry/components/idBadge';
+import {updateProjects} from 'sentry/components/pageFilters/actions';
+import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 // eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
@@ -136,26 +135,21 @@ class UsageTable extends Component<Props> {
         )}
       </CellStat>,
       <CellStat key={6}>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             icon={<IconGraph type="bar" />}
-            title="Go to project level stats"
             data-test-id={project.slug}
             size="xs"
             onClick={() => {
               this.loadProject(parseInt(stat.project.id, 10));
             }}
           >
-            {t('View Stats')}
+            {t('View Project Stats')}
           </Button>
-          <LinkButton
-            icon={<IconSettings />}
-            size="xs"
-            aria-label={t('Project Settings')}
-            title={t('Go to project settings')}
-            to={stat.projectSettingsLink}
-          />
-        </ButtonBar>
+          <LinkButton icon={<IconSettings />} size="xs" to={stat.projectSettingsLink}>
+            {t('Project Settings')}
+          </LinkButton>
+        </Grid>
       </CellStat>,
     ];
   }
@@ -207,5 +201,5 @@ const StyledIdBadge = styled(IdBadge)`
 
 const SubText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;

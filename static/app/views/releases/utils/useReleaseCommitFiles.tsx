@@ -1,7 +1,7 @@
 import type {CommitFile, Repository} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 // These are the URL params that our project/date/env picker generates (+ cursor for pagination)
 type PageFilterUrlParams =
@@ -13,13 +13,12 @@ type PageFilterUrlParams =
   | 'environment';
 type OtherUrlParams = 'cursor' | 'perPage';
 
-interface UseReleaseCommitFilesParams
-  extends Partial<
-    Record<
-      PageFilterUrlParams | OtherUrlParams,
-      string | string[] | number | null | undefined
-    >
-  > {
+interface UseReleaseCommitFilesParams extends Partial<
+  Record<
+    PageFilterUrlParams | OtherUrlParams,
+    string | string[] | number | null | undefined
+  >
+> {
   release: string;
   activeRepository?: Repository;
 }

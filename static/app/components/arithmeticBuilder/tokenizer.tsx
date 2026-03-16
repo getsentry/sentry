@@ -19,7 +19,7 @@ import {
 } from 'sentry/components/arithmeticBuilder/token';
 import {defined} from 'sentry/utils';
 
-import grammar from './grammar.pegjs';
+import {parse} from './grammar.pegjs';
 
 function space(prev: LocationRange | null, next: LocationRange | null): TokenFreeText {
   const location: LocationRange = {
@@ -50,7 +50,7 @@ function tryTokenizeExpression(expression: string): Token[] {
   }
 
   const tc = new TokenConverter();
-  return grammar.parse(expression, {tc});
+  return parse(expression, {tc});
 }
 
 export function tokenizeExpression(expression: string): Token[] {

@@ -1,5 +1,6 @@
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {BillingDetails} from 'getsentry/types';
 
@@ -7,7 +8,11 @@ export function useBillingDetails() {
   const organization = useOrganization();
 
   return useApiQuery<BillingDetails>(
-    [`/customers/${organization.slug}/billing-details/`],
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/billing-details/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {
       staleTime: 0,
       placeholderData: keepPreviousData,

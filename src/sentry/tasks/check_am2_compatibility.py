@@ -513,7 +513,6 @@ class CheckAM2Compatibility:
                 config=QueryBuilderConfig(
                     allow_metric_aggregates=True,
                     auto_fields=False,
-                    use_metrics_layer=False,
                     on_demand_metrics_enabled=False,
                 ),
             )
@@ -723,7 +722,7 @@ def refresh_check_state(org_id):
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=TASK_SOFT_LIMIT_IN_SECONDS + 5,
     retry=Retry(times=1, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_compatibility_check_async(org_id):
     try:

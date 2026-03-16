@@ -1,17 +1,19 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Link} from '@sentry/scraps/link';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventTitleError from 'sentry/components/eventTitleError';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
+import {EventOrGroupTitle} from 'sentry/components/eventOrGroupTitle';
+import {EventTitleError} from 'sentry/components/eventTitleError';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getLocation, isTombstone} from 'sentry/utils/events';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface EventOrGroupHeaderProps {
   data: Group;
@@ -54,6 +56,7 @@ interface IssueTitleProps {
 }
 function IssueTitle(props: IssueTitleProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const commonEleProps = {
     'data-test-id': status === 'resolved' ? 'resolved-issue' : undefined,
   };
@@ -73,6 +76,7 @@ function IssueTitle(props: IssueTitleProps) {
         pathname: props.event_id
           ? `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/`
           : `/organizations/${organization.slug}/issues/${props.data.id}/`,
+        query: extractSelectionParameters(location.query),
       }}
     >
       <IssueTitleChildren data={props.data} organization={organization} />
@@ -94,7 +98,7 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
 }
 
 const Title = styled('div')`
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
   & em {
     font-size: ${p => p.theme.font.size.md};
     font-style: normal;
@@ -134,7 +138,7 @@ const IconWrapper = styled('span')`
   margin-right: 5px;
 `;
 
-const TitleWithLink = styled(GlobalSelectionLink)`
+const TitleWithLink = styled(Link)`
   align-items: center;
   display: block;
   width: 100%;

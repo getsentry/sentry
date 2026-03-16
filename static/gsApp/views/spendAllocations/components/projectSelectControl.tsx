@@ -4,12 +4,13 @@
 
 import {useMemo} from 'react';
 
-import type {ControlProps} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
+import type {ControlProps} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type Props = {
   disabled: boolean;
@@ -18,7 +19,7 @@ type Props = {
   value: string; // project ID
 };
 
-function ProjectSelectControl({
+export function ProjectSelectControl({
   disabled,
   onChange,
   value: valueProp,
@@ -67,5 +68,3 @@ function ProjectSelectControl({
     />
   );
 }
-
-export default ProjectSelectControl;

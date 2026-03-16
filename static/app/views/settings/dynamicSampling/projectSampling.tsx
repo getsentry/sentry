@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
@@ -8,10 +9,8 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsEditTable} from 'sentry/views/settings/dynamicSampling/projectsEditTable';
@@ -158,7 +157,7 @@ export function ProjectSampling() {
 const FormActions = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, max-content);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-content: flex-end;
-  padding-bottom: ${space(4)};
+  padding-bottom: ${p => p.theme.space['3xl']};
 `;

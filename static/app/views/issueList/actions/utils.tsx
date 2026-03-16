@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t, tct, tn} from 'sentry/locale';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-import ExtraDescription from './extraDescription';
+import {ExtraDescription} from './extraDescription';
 
 export const BULK_LIMIT = 1000;
 export const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();

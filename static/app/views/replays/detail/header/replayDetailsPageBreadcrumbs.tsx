@@ -1,12 +1,12 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -17,19 +17,19 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayPlaylistProvider';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
+export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
   const organization = useOrganization();
   const location = useLocation();
@@ -89,45 +89,57 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
       <Flex>
         <Flex align="center" gap="sm">
           <div>
-            <LinkButton
-              size="zero"
-              borderless
-              icon={<IconChevron direction="left" size="xs" />}
+            <Tooltip
+              title={t('Previous replay based on search query')}
               disabled={!previousReplay}
-              to={{
-                pathname: previousReplay
-                  ? makeReplaysPathname({
-                      path: `/${previousReplay.id}/`,
-                      organization,
-                    })
-                  : undefined,
-                query: initialLocation.current.query,
-              }}
-              onClick={() =>
-                trackAnalytics('replay.details-playlist-clicked', {
-                  direction: 'previous',
-                  organization,
-                })
-              }
-            />
-            <LinkButton
-              size="zero"
-              borderless
-              icon={<IconChevron direction="right" size="xs" />}
+            >
+              <LinkButton
+                size="zero"
+                priority="transparent"
+                icon={<IconChevron direction="left" size="xs" />}
+                disabled={!previousReplay}
+                aria-label={t('Previous replay based on search query')}
+                to={{
+                  pathname: previousReplay
+                    ? makeReplaysPathname({
+                        path: `/${previousReplay.id}/`,
+                        organization,
+                      })
+                    : undefined,
+                  query: initialLocation.current.query,
+                }}
+                onClick={() =>
+                  trackAnalytics('replay.details-playlist-clicked', {
+                    direction: 'previous',
+                    organization,
+                  })
+                }
+              />
+            </Tooltip>
+            <Tooltip
+              title={t('Next replay based on search query')}
               disabled={!nextReplay}
-              to={{
-                pathname: nextReplay
-                  ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
-                  : undefined,
-                query: initialLocation.current.query,
-              }}
-              onClick={() =>
-                trackAnalytics('replay.details-playlist-clicked', {
-                  direction: 'next',
-                  organization,
-                })
-              }
-            />
+            >
+              <LinkButton
+                size="zero"
+                priority="transparent"
+                icon={<IconChevron direction="right" size="xs" />}
+                disabled={!nextReplay}
+                aria-label={t('Next replay based on search query')}
+                to={{
+                  pathname: nextReplay
+                    ? makeReplaysPathname({path: `/${nextReplay.id}/`, organization})
+                    : undefined,
+                  query: initialLocation.current.query,
+                }}
+                onClick={() =>
+                  trackAnalytics('replay.details-playlist-clicked', {
+                    direction: 'next',
+                    organization,
+                  })
+                }
+              />
+            </Tooltip>
           </div>
           <Flex
             align="center"
@@ -151,7 +163,7 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             </div>
             {isHovered && (
               <Button
-                title={t('Copy link to replay at current timestamp')}
+                tooltipProps={{title: t('Copy link to replay at current timestamp')}}
                 aria-label={t('Copy link to replay at current timestamp')}
                 onClick={() =>
                   copy(replayUrlWithTimestamp, {
@@ -159,14 +171,16 @@ export default function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                   })
                 }
                 size="zero"
-                borderless
+                priority="transparent"
                 icon={<IconCopy size="xs" variant="muted" />}
               />
             )}
           </Flex>
           {shouldShowRefreshButton ? (
             <Button
-              title={t('Replay is outdated. Refresh for latest activity.')}
+              tooltipProps={{
+                title: t('Replay is outdated. Refresh for latest activity.'),
+              }}
               data-test-id="refresh-button"
               size="zero"
               priority="link"

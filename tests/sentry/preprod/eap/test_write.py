@@ -70,6 +70,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
 
         produce_preprod_size_metric_to_eap(
             size_metric=size_metric,
+            organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
@@ -139,6 +140,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
 
         produce_preprod_size_metric_to_eap(
             size_metric=size_metric,
+            organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
@@ -222,6 +224,7 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
 
         produce_preprod_build_distribution_to_eap(
             artifact=artifact,
+            organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
@@ -284,6 +287,7 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
 
         produce_preprod_build_distribution_to_eap(
             artifact=artifact,
+            organization=self.organization,
             organization_id=self.organization.id,
             project_id=self.project.id,
         )

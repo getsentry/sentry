@@ -5,7 +5,8 @@ import type {Location} from 'history';
 import moment from 'moment-timezone';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {UserAvatar} from '@sentry/scraps/avatar';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   ContextIcon,
@@ -38,7 +39,6 @@ import {userContextToActor} from 'sentry/components/events/interfaces/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -350,7 +350,7 @@ export function getContextIcon({
     case 'user': {
       const user = userContextToActor(value);
       const iconSize = SvgIcon.ICON_SIZES[contextIconProps?.size ?? 'xl'];
-      return <UserAvatar user={user} size={parseInt(iconSize, 10)} gravatar={false} />;
+      return <UserAvatar user={user} size={parseInt(iconSize, 10)} />;
     }
     case 'gpu':
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
@@ -580,7 +580,7 @@ export function getContextSummary({
 
 const RelativeTime = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 export const CONTEXT_DOCS_LINK = `https://docs.sentry.io/platform-redirect/?next=/enriching-events/context/`;

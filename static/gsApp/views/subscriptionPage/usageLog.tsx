@@ -2,34 +2,35 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import upperFirst from 'lodash/upperFirst';
 
+import {Tag} from '@sentry/scraps/badge';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {Timeline} from 'sentry/components/timeline';
 import {IconCircleFill} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getTimeFormat} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
   if (logEntryUser?.isSuperuser) {
@@ -98,7 +99,9 @@ export default function UsageLog() {
     refetch,
   } = useApiQuery<UsageLogs>(
     [
-      `/customers/${organization.slug}/subscription/usage-logs/`,
+      getApiUrl(`/customers/$organizationIdOrSlug/subscription/usage-logs/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         method: 'GET',
         query: {
@@ -152,7 +155,7 @@ export default function UsageLog() {
     <Fragment>
       <Grid gap="2xl" flow="row">
         <CompactSelect
-          searchable
+          search
           clearable
           menuTitle={t('Subscription Actions')}
           options={eventNameOptions}

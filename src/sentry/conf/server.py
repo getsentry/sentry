@@ -23,7 +23,7 @@ from sentry.conf.types.bgtask import BgTaskConfig
 from sentry.conf.types.encrypted_field import EncryptedFieldSettings
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
-from sentry.conf.types.region_config import RegionConfig
+from sentry.conf.types.region_config import CellConfig, LocalityConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
@@ -71,7 +71,8 @@ def env(
     try:
         rv = _env_cache[key]
     except KeyError:
-        if "SENTRY_RUNNING_UWSGI" in os.environ:
+        # TODO: check this is actually still correct, since granian doesn't fork
+        if "SENTRY_RUNNING_GRANIAN" in os.environ:
             # We do this so when the process forks off into uwsgi
             # we want to actually be popping off values. This is so that
             # at runtime, the variables aren't actually available.
@@ -425,7 +426,7 @@ TEMPLATES = [
 
 SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
-    "REGION": ["sentry.RegionOutbox"],
+    "REGION": ["sentry.CellOutbox"],
 }
 
 # Do not modify reordering
@@ -456,6 +457,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.notifications",
     "sentry.flags",
     "sentry.monitors",
+    "sentry.processing_errors",
     "sentry.uptime",
     "sentry.tempest",
     "sentry.replays",
@@ -489,6 +491,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.preprod",
     "sentry.releases",
     "sentry.seer",
+    "sentry.scm",
 )
 
 # Silence internal hints from Django's system checks
@@ -751,8 +754,11 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
-# List of the available regions
-SENTRY_REGION_CONFIG: list[RegionConfig] = []
+# List of the available cells (e.g. "us1", "us2", "de1")
+SENTRY_REGION_CONFIG: list[CellConfig] = []
+
+# Mapping of localities (e.g. "us", "de") to their constituent cells (e.g. "us1", "us2")
+SENTRY_LOCALITIES: list[LocalityConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
@@ -766,6 +772,10 @@ SEER_RPC_SHARED_SECRET: list[str] | None = None
 # Shared secret used to sign cross-region RPC requests to the seer microservice.
 SEER_API_SHARED_SECRET: str = ""
 
+# Sign requests to the SCM RPC endpoint
+# First element is used to sign requests; request is accepted if signed with any element in the list.
+SCM_RPC_SHARED_SECRET: list[str] | None = None
+
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
@@ -775,8 +785,8 @@ if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
 SENTRY_CONTROL_ADDRESS: str | None = os.environ.get("SENTRY_CONTROL_ADDRESS", None)
 
-# Fallback region name for monolith deployments
-# This region name is also used by the ApiGateway to proxy org-less region
+# Fallback cell name for monolith deployments
+# This cell name is also used by the ApiGateway to proxy org-less region
 # requests.
 SENTRY_MONOLITH_REGION: str = "--monolith--"
 
@@ -828,12 +838,17 @@ TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
+# Used to switch from sentry.taskworker to taskbroker_client - Temporary
+TASKWORKER_USE_LIBRARY = os.getenv("TASKWORKER_USE_LIBRARY") == "1"
+
 # The list of modules that workers will import after starting up
 # Taskworkers need to import task modules to make tasks
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
-    "sentry.autopilot.tasks",
+    "sentry.autopilot.tasks.missing_sdk_integration",
+    "sentry.autopilot.tasks.sdk_update",
+    "sentry.autopilot.tasks.trace_instrumentation",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.tasks",
@@ -844,7 +859,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.demo_mode.tasks",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications",
     "sentry.dynamic_sampling.tasks.recalibrate_orgs",
     "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.feedback.tasks.update_user_reports",
@@ -881,20 +895,24 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.notifications.platform.service",
     "sentry.notifications.utils.tasks",
     "sentry.preprod.size_analysis.tasks",
+    "sentry.preprod.snapshots.tasks",
     "sentry.preprod.tasks",
+    "sentry.preprod.vcs.pr_comments.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
+    "sentry.preprod.vcs.status_checks.snapshots.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.replays.data_export",
     "sentry.replays.tasks",
-    "sentry.rules.processing.delayed_processing",
+    "sentry.scm.private.ipc",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.seer.autofix.issue_summary",
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
+    "sentry.seer.entrypoints.slack.messaging",
     "sentry.snuba.tasks",
     "sentry.tasks.activity",
     "sentry.tasks.assemble",
@@ -936,10 +954,10 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.release_registry",
     "sentry.tasks.repository",
     "sentry.tasks.reprocessing2",
+    "sentry.tasks.scim.privilege_sync",
     "sentry.tasks.seer",
     "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
-    "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
@@ -956,6 +974,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
     "sentry.tasks.seer_explorer_index",
+    "sentry.tasks.context_engine_index",
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
@@ -974,10 +993,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
         "schedule": timedelta(seconds=10),
-    },
-    "flush-buffers-batch": {
-        "task": "buffer:sentry.tasks.process_buffer.process_pending_batch",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
@@ -1086,11 +1101,15 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "autopilot-run-sdk-update-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
     },
     "autopilot-run-missing-sdk-integration-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+        "schedule": task_crontab("0", "*/4", "*", "*", "*"),
+    },
+    "autopilot-run-trace-instrumentation-detector": {
+        "task": "autopilot:sentry.autopilot.tasks.run_trace_instrumentation_detector",
+        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
@@ -1103,14 +1122,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "dynamic-sampling-sliding-window-org": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
         "schedule": task_crontab("*/10", "*", "*", "*", "*"),
-    },
-    "custom_rule_notifications": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.custom_rule_notifications",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
-    },
-    "clean_custom_rule_notifications": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
-        "schedule": task_crontab("*/7", "*", "*", "*", "*"),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -1278,6 +1289,7 @@ LOGGING: LoggingConfig = {
         },
         "sentry.rules": {"handlers": ["console"], "propagate": False},
         "sentry.profiles": {"level": "INFO"},
+        "sentry.autopilot.tasks.missing_sdk_integration": {"level": "INFO"},
         "multiprocessing": {
             "handlers": ["console"],
             # https://github.com/celery/celery/commit/597a6b1f3359065ff6dbabce7237f86b866313df
@@ -1386,13 +1398,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 # Sentry and internal client configuration
 
 SENTRY_EARLY_FEATURES = {
-    "organizations:anr-analyze-frames": "Enable anr frame analysis",
-    "organizations:device-classification": "Enable device.class as a selectable column",
-    "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
-    "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",
     "organizations:performance-new-widget-designs": "Enable updated landing page widget designs",
-    "organizations:performance-transaction-name-only-search-indexed": "Enable transaction name only search on indexed",
     "organizations:profiling-global-suspect-functions": "Enable global suspect functions in profiling",
 }
 
@@ -1428,13 +1435,20 @@ SENTRY_PROJECT_KEY: int | None = None
 # Used as a default when in SINGLE_ORGANIZATION mode.
 SENTRY_ORGANIZATION: int | None = None
 
+# Organization ID for granting superuser/staff privileges.
+SUPERUSER_ORG_ID: int | None = None
+
+# SCIM team slugs for managing privileged access.
+# When set, adding/removing members from these teams will grant/revoke the corresponding privileges.
+SENTRY_SCIM_STAFF_TEAM_SLUG: str | None = None
+SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG: str | None = None
+SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG: str | None = None
+
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN: str | None = None
-# DSN for tracking all client HTTP requests (which can be noisy) [experimental]
-SENTRY_FRONTEND_REQUESTS_DSN: str | None = None
 
 # Configuration for the JavaScript SDK's allowUrls option - defaults to ALLOWED_HOSTS
 SENTRY_FRONTEND_WHITELIST_URLS: list[str] | None = None
@@ -1623,6 +1637,10 @@ ENFORCE_CONCURRENT_RATE_LIMITS = False
 # Rate Limit Group Category Defaults
 SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI = 999
 SENTRY_RATELIMITER_GROUP_CLI = 999
+
+# Impersonation Rate Limiting
+# Fixed rate limit applied during impersonation sessions (requests per second)
+SENTRY_IMPERSONATION_RATE_LIMIT = 30
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
@@ -2168,7 +2186,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.1.0"
+SELF_HOSTED_STABLE_VERSION = "26.3.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2192,9 +2210,12 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.discord.DiscordIntegrationProvider",
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
+    "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
 
+
+CLAUDE_CODE_CLIENT_CLASS: str | None = None
 
 SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "release": sentry.__semantic_version__,
@@ -2390,19 +2411,6 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "http://ctxsym.citrix.com/symbols/",
         "is_public": True,
     },
-    "intel": {
-        "type": "http",
-        "id": "sentry:intel",
-        "name": "Intel",
-        "layout": {"type": "symstore"},
-        "filters": {"filetypes": ["pe", "pdb"]},
-        "url": "https://software.intel.com/sites/downloads/symbols/",
-        "headers": {
-            "User-Agent": "curl/7.72.0",
-        },
-        "is_public": True,
-        "has_index": True,
-    },
     "amd": {
         "type": "http",
         "id": "sentry:amd",
@@ -2498,6 +2506,19 @@ SENTRY_BUILTIN_SOURCES = {
         "layout": {"type": "debuginfod"},
         "url": "https://debuginfod.ubuntu.com/buildid/",
         "filters": {"filetypes": ["elf_code", "elf_debug"]},
+        "is_public": True,
+    },
+    # === Gaming / Proton ===
+    # Valve's Proton compatibility layer for running Windows games on Linux.
+    # This symbol server provides debug symbols for Wine/Proton components.
+    # See: https://github.com/ValveSoftware/Proton/blob/proton_10.0/docs/DEBUGGING-WINDOWS.md
+    "proton": {
+        "type": "http",
+        "id": "sentry:proton",
+        "name": "SteamOS / Proton",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["pe", "pdb"]},
+        "url": "https://proton-archive.steamos.cloud/",
         "is_public": True,
     },
 }
@@ -2750,7 +2771,7 @@ BETA_GROUPING_CONFIG = ""
 # How long the migration phase for grouping lasts
 SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 
-SENTRY_USE_UWSGI = True
+SENTRY_USE_GRANIAN = True
 
 # Configure service wrapper for reprocessing2 state
 SENTRY_REPROCESSING_STORE = "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore"
@@ -2822,7 +2843,7 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
 SEER_DEFAULT_URL = "http://127.0.0.1:9091"  # for local development
-SEER_DEFAULT_TIMEOUT = 5
+SEER_DEFAULT_TIMEOUT = 30
 
 SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
@@ -2859,6 +2880,7 @@ SEER_ANOMALY_DETECTION_ALERT_DATA_URL = (
 )
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
+SENTRY_GITHUB_APP_USER_ID = 39604003
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
@@ -3079,9 +3101,6 @@ OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 
 OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
 
-SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
-SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
-
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
 
@@ -3114,7 +3133,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
     # These paths are used by relay which is implicitly region scoped
-    "sentry-api-0-relays-index",
     "sentry-api-0-relay-register-challenge",
     "sentry-api-0-relay-register-response",
     "sentry-api-0-relay-projectconfigs",

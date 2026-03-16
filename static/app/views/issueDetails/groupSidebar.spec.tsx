@@ -14,7 +14,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 
 import GroupSidebar from './groupSidebar';
@@ -88,10 +88,6 @@ describe('GroupSidebar', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),

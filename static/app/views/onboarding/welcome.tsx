@@ -1,23 +1,21 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
+import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import testableTransition from 'sentry/utils/testableTransition';
-import useOrganization from 'sentry/utils/useOrganization';
+import {testableTransition} from 'sentry/utils/testableTransition';
 import FallingError from 'sentry/views/onboarding/components/fallingError';
 import WelcomeBackground from 'sentry/views/onboarding/components/welcomeBackground';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
+import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
+import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
+import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandleComplete';
 
 import type {StepProps} from './types';
 
@@ -50,52 +48,21 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   );
 }
 
-function TargetedOnboardingWelcome(props: StepProps) {
-  const organization = useOrganization();
-  const onboardingContext = useOnboardingContext();
-  const {activateSidebar} = useOnboardingSidebar();
+export function TargetedOnboardingWelcome(props: StepProps) {
+  const theme = useTheme();
+  useWelcomeAnalyticsEffect();
 
-  const source = 'targeted_onboarding';
-
-  useEffect(() => {
-    trackAnalytics('growth.onboarding_start_onboarding', {
-      organization,
-      source,
-    });
-
-    if (onboardingContext.selectedPlatform) {
-      // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
-      onboardingContext.setSelectedPlatform(undefined);
-    }
-  }, [organization, onboardingContext]);
-
-  const handleComplete = useCallback(() => {
-    trackAnalytics('growth.onboarding_clicked_instrument_app', {
-      organization,
-      source,
-    });
-
-    props.onComplete();
-  }, [organization, source, props]);
-
-  const handleSkipOnboarding = useCallback(() => {
-    trackAnalytics('growth.onboarding_clicked_skip', {
-      organization,
-      source,
-    });
-
-    activateSidebar({userClicked: false, source: 'targeted_onboarding_welcome_skip'});
-  }, [organization, source, activateSidebar]);
+  const handleComplete = useWelcomeHandleComplete(props.onComplete);
 
   return (
     <FallingError>
       {({fallingError, fallCount, isFalling}) => (
         <Wrapper>
           <WelcomeBackground />
-          <motion.h1 {...fadeAway} style={{marginBottom: space(0.5)}}>
+          <motion.h1 {...fadeAway} style={{marginBottom: theme.space.xs}}>
             {t('Welcome to Sentry')}
           </motion.h1>
-          <SubHeaderText style={{marginBottom: space(4)}} {...fadeAway}>
+          <SubHeaderText style={{marginBottom: theme.space['3xl']}} {...fadeAway}>
             {t(
               'Your code is probably broken. Maybe not. Find out for sure. Get started below.'
             )}
@@ -109,7 +76,11 @@ function TargetedOnboardingWelcome(props: StepProps) {
               src={OnboardingInstall}
               cta={
                 <Fragment>
-                  <ButtonWithFill onClick={handleComplete} priority="primary">
+                  <ButtonWithFill
+                    onClick={handleComplete}
+                    priority="primary"
+                    data-test-id="onboarding-welcome-start"
+                  >
                     {t('Start')}
                   </ButtonWithFill>
                   {(fallCount === 0 || isFalling) && (
@@ -122,20 +93,13 @@ function TargetedOnboardingWelcome(props: StepProps) {
           <motion.p style={{margin: 0}} {...fadeAway}>
             {t("Gee, I've used Sentry before.")}
             <br />
-            <Link
-              onClick={handleSkipOnboarding}
-              to={`/organizations/${organization.slug}/issues/?referrer=onboarding-welcome-skip`}
-            >
-              {t('Skip onboarding.')}
-            </Link>
+            <WelcomeSkipButton>{t('Skip onboarding.')}</WelcomeSkipButton>
           </motion.p>
         </Wrapper>
       )}
     </FallingError>
   );
 }
-
-export default TargetedOnboardingWelcome;
 
 const PositionedFallingError = styled('span')`
   display: block;
@@ -163,9 +127,9 @@ const Wrapper = styled(motion.div)`
 
 const ActionItem = styled(motion.div)`
   min-height: 120px;
-  border-radius: ${space(0.5)};
-  padding: ${space(2)};
-  margin-bottom: ${space(2)};
+  border-radius: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
   justify-content: space-around;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -182,18 +146,18 @@ const ActionItem = styled(motion.div)`
 
 const TextWrapper = styled('div')`
   text-align: left;
-  margin: auto ${space(3)};
+  margin: auto ${p => p.theme.space['2xl']};
   min-height: 70px;
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     text-align: center;
-    margin: ${space(1)} ${space(1)};
-    margin-top: ${space(3)};
+    margin: ${p => p.theme.space.md} ${p => p.theme.space.md};
+    margin-top: ${p => p.theme.space['2xl']};
   }
 `;
 
 const ActionTitle = styled('h5')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin: 0 0 ${space(0.5)};
+  margin: 0 0 ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
@@ -202,7 +166,7 @@ const SubHeaderText = styled(motion.h6)`
 `;
 
 const ButtonWrapper = styled('div')`
-  margin: ${space(1)};
+  margin: ${p => p.theme.space.md};
   position: relative;
 `;
 

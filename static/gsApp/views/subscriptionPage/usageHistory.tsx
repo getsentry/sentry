@@ -3,26 +3,26 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Container, Flex} from 'sentry/components/core/layout';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {RESERVED_BUDGET_QUOTA, UNLIMITED, UNLIMITED_ONDEMAND} from 'getsentry/constants';
 import type {
   BillingHistory,
@@ -41,8 +41,8 @@ import {
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
-import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import {StripedTable} from './styles';
 
@@ -94,7 +94,9 @@ function UsageHistory({subscription}: Props) {
     getResponseHeader,
   } = useApiQuery<BillingHistory[]>(
     [
-      `/customers/${organization.slug}/history/`,
+      getApiUrl(`/customers/$organizationIdOrSlug/history/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {cursor: location.query.cursor},
       },
@@ -250,7 +252,7 @@ function UsageHistoryRow({history}: RowProps) {
             <Text bold>{tct('[planName] Plan', {planName: history.planName})}</Text>
           </Flex>
         </Flex>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             icon={<IconDownload />}
             onClick={() => {
@@ -275,7 +277,7 @@ function UsageHistoryRow({history}: RowProps) {
           >
             {t('Download Project Breakdown')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Flex>
       {expanded && (
         <Container padding="xl 0">

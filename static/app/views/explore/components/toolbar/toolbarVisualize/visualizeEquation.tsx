@@ -1,10 +1,11 @@
 import {useCallback, useMemo, type ReactNode} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -14,15 +15,15 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {ToolbarRow} from 'sentry/views/explore/components/toolbar/styles';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 
 interface VisualizeEquationProps {
-  onDelete: () => void;
   onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
   label?: ReactNode;
+  onDelete?: () => void;
 }
 
 export function VisualizeEquation({
@@ -33,8 +34,9 @@ export function VisualizeEquation({
 }: VisualizeEquationProps) {
   const expression = stripEquationPrefix(visualize.yAxis);
 
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
+  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
+  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
+  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
 
   const functionArguments: FunctionArgument[] = useMemo(() => {
     return [
@@ -76,6 +78,7 @@ export function VisualizeEquation({
   const getSuggestedAttribute = useExploreSuggestedAttribute({
     numberAttributes: numberTags,
     stringAttributes: stringTags,
+    booleanAttributes: booleanTags,
   });
 
   return (
@@ -91,13 +94,15 @@ export function VisualizeEquation({
           getSuggestedKey={getSuggestedAttribute}
         />
       </Flex>
-      <Button
-        borderless
-        icon={<IconDelete />}
-        size="zero"
-        onClick={onDelete}
-        aria-label={t('Remove Overlay')}
-      />
+      {onDelete && (
+        <Button
+          priority="transparent"
+          icon={<IconDelete />}
+          size="zero"
+          onClick={onDelete}
+          aria-label={t('Remove Overlay')}
+        />
+      )}
     </ToolbarRow>
   );
 }

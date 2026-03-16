@@ -8,8 +8,8 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import OrgDashboards from 'sentry/views/dashboards/orgDashboards';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {OrgDashboards} from 'sentry/views/dashboards/orgDashboards';
 
 describe('OrgDashboards', () => {
   const organization = OrganizationFixture({

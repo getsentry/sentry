@@ -2,18 +2,19 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+
 import GroupList from 'sentry/components/issues/groupList';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type RelatedIssuesResponse = {
   data: number[];
@@ -106,10 +107,10 @@ function RelatedIssuesSection({group, relationType}: RelatedIssuesSectionProps) 
         <Fragment>
           <HeaderWrapper>
             <Title>{title}</Title>
-            <TextButtonWrapper>
+            <Flex justify="between" align="center" marginBottom="md" width="100%">
               <span>{extraInfo}</span>
               {openIssuesButton}
-            </TextButtonWrapper>
+            </Flex>
           </HeaderWrapper>
           <GroupList
             queryParams={{
@@ -175,21 +176,13 @@ export {GroupRelatedIssues};
 
 const Title = styled('h4')`
   font-size: ${p => p.theme.font.size.lg};
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space.sm};
 `;
 
 const HeaderWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   small {
     color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const TextButtonWrapper = styled('div')`
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-  width: 100%;
 `;

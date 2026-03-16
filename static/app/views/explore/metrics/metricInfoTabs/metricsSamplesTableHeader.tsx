@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import {NoPaddingColumns} from 'sentry/views/explore/metrics/constants';
 import {

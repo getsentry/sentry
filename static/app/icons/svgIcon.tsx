@@ -19,7 +19,7 @@ export interface SVGIconProps extends Omit<React.SVGAttributes<SVGSVGElement>, '
 export function SvgIcon(props: SVGIconProps) {
   const theme = useTheme();
   const iconProps = useIconDefaults(props);
-  const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'sm'];
+  const size = iconProps.legacySize ?? ICON_SIZES[iconProps.size ?? 'md'];
 
   const {variant: _variant, size: _size, legacySize: _legacySize, ...rest} = iconProps;
 
@@ -66,7 +66,7 @@ SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE = ICON_DIRECTION_TO_ROTATION_ANGLE;
 const ICON_SIZES: Record<IconSize, string> = {
   xs: '12px',
   sm: '14px',
-  md: '18px',
+  md: '16px',
   lg: '24px',
   xl: '32px',
   '2xl': '72px',

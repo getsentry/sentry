@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -12,7 +13,6 @@ import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section, {SectionSubHeading} from 'sentry/components/workflowEngine/ui/section';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {
   CRON_DEFAULT_CHECKIN_MARGIN,
@@ -229,13 +229,14 @@ const SubSectionSeparator = styled('hr')`
   border: none;
   margin: 0;
   margin-bottom: ${p => p.theme.space.lg};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
 `;
 
 const InputGroup = styled('div')<{removeFieldPadding?: boolean}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   ${p =>
     p.removeFieldPadding &&
@@ -261,7 +262,7 @@ const LabelText = styled(Text)`
 const MultiColumnInput = styled('div')<{columns?: string}>`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: ${p => p.columns};
 
   ${FieldWrapper} {

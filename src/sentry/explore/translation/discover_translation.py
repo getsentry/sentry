@@ -106,7 +106,6 @@ def _format_orderby_for_translation(orderby, columns):
 def _translate_discover_query_field_to_explore_query_schema(
     query: dict[str, Any],
 ) -> tuple[dict[str, Any], DroppedFields]:
-
     conditions = query.get("query", "")
     # have to separate equations and fields
     fields = query.get("fields", [])
@@ -263,7 +262,6 @@ def _translate_discover_query_field_to_explore_query_schema(
 def translate_discover_query_to_explore_query(
     discover_query: DiscoverSavedQuery,
 ) -> ExploreSavedQuery:
-
     translated_query_field, dropped_fields_from_translation = (
         _translate_discover_query_field_to_explore_query_schema(discover_query.query)
     )

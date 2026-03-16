@@ -3,15 +3,14 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -27,7 +26,7 @@ import {
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
@@ -226,7 +225,7 @@ export function ProfilePreview({
 const TextBlock = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   line-height: 1.5;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 function ProfilePreviewLegend() {
@@ -281,9 +280,9 @@ const Image = styled('img')`
 
 const StyledPanelBody = styled(PanelBody)`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   justify-content: space-between;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   container-type: inline-size;
 `;
 
@@ -299,8 +298,8 @@ const ImageContainer = styled('div')`
 
 const FlamegraphContainer = styled('div')`
   height: 200px;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
   position: relative;
 `;
 
@@ -308,7 +307,7 @@ const LegendItem = styled('span')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
 `;

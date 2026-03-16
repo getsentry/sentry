@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import {
@@ -18,7 +18,7 @@ import {
   isEquationAlias,
   parseFunction,
 } from 'sentry/utils/discover/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -28,7 +28,7 @@ import {
   sortDirections,
   type SortDirection,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
+import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -73,7 +73,7 @@ export function SortBySelectors({
   const columnSet = new Set(widgetQuery.columns);
   const [showCustomEquation, setShowCustomEquation] = useState(false);
   const [customEquation, setCustomEquation] = useState<Values>({
-    sortBy: `${EQUATION_PREFIX}`,
+    sortBy: EQUATION_PREFIX,
     sortDirection: values.sortDirection,
   });
   useEffect(() => {
@@ -145,11 +145,17 @@ export function SortBySelectors({
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
         {
-          // Trace Metrics also uses the table sort options because it constrains the options to the selected
-          // group bys and aggregate which is consistent for the explore page (i.e. you can't sort by a field
-          // that is not in the group bys or aggregate).
+          // Table-like displays use `getTableSortOptions` because they constrain options to the selected
+          // columns and aggregates. This includes:
+          // - Table: standard table display
+          // - Details: details display
+          // - Bar (Categorical): bar chart with categorical X-axis (uses table data)
+          // - Trace Metrics: constrains to selected group bys and aggregate, to
+          // keep consistency with Explore (i.e. you can't sort by a field that
+          // is not in the group bys or aggregate)
           displayType === DisplayType.TABLE ||
           displayType === DisplayType.DETAILS ||
+          displayType === DisplayType.CATEGORICAL_BAR ||
           widgetType === WidgetType.TRACEMETRICS ? (
             <Select
               name="sortBy"
@@ -231,7 +237,7 @@ export function SortBySelectors({
                   ) {
                     // Select the default value if it exists, otherwise get the first option from
                     // the new valid options
-                    const defaultValue: string =
+                    const defaultValue =
                       newFunctionOption.value?.meta?.parameters?.[0]?.defaultValue ??
                       newValidOptions[0]?.value ??
                       '';
@@ -287,7 +293,7 @@ export function SortBySelectors({
 
 const Wrapper = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 200px 1fr;

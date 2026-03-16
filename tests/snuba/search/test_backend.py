@@ -34,6 +34,7 @@ from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.utils import snuba
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -3130,11 +3131,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         self.error_group_2 = error_event_2.group
 
     def test_performance_query(self) -> None:
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
@@ -3147,11 +3144,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         # Regression test to catch an issue we had with performance issues showing duplicated in the
         # issue stream. This was  caused by us dual writing perf issues to transactions and to the
         # issue platform. We'd end up reading the same issue twice and duplicate it in the response.
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="!issue.category:error my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
@@ -3159,20 +3152,12 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
         with Feature({"organizations:performance-issues-search": False}):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == []
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == [self.perf_group_1, self.perf_group_2]
 
     def test_error_performance_query(self) -> None:
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(search_filter_query="my_tag:1")
             assert list(results) == [
                 self.perf_group_1,
@@ -3201,11 +3186,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             ]
 
     def test_cursor_performance_issues(self) -> None:
-        with self.feature(
-            [
-                self.perf_group_1.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(self.perf_group_1.issue_type.build_visible_feature_name()):
             results = self.make_query(
                 projects=[self.project],
                 search_filter_query="issue.category:performance my_tag:1",
@@ -3239,11 +3220,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             assert list(results) == []
             assert results.hits == 2
 
-    def test_perf_issue_search_message_term_queries_postgres(self) -> None:
-        from django.db.models import Q
-
-        from sentry.utils import snuba
-
+    def test_perf_issue_search_message_term_queries_snuba(self) -> None:
         transaction_name = "im a little tea pot"
 
         with (
@@ -3276,16 +3253,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
             assert "tea" in tx.search_message
             created_group = mock_eventstream.call_args[0][2].group
 
-        find_group = Group.objects.filter(
-            Q(type=PerformanceRenderBlockingAssetSpanGroupType.type_id, message__icontains="tea")
-        ).first()
-
-        assert created_group == find_group
-        with self.feature(
-            [
-                created_group.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(created_group.issue_type.build_visible_feature_name()):
             result = snuba.raw_query(
                 dataset=Dataset.IssuePlatform,
                 start=self.base_datetime - timedelta(hours=1),
@@ -3357,11 +3325,7 @@ class EventsTransactionsSnubaSearchTest(TestCase, SharedSnubaMixin):
 
         assert error_issue != perf_issue
 
-        with self.feature(
-            [
-                perf_issue.issue_type.build_visible_feature_name(),
-            ]
-        ):
+        with self.feature(perf_issue.issue_type.build_visible_feature_name()):
             assert set(self.make_query(search_filter_query="is:unresolved /api/0/events")) == {
                 perf_issue,
                 error_issue,
@@ -3555,7 +3519,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
 
             with self.feature(
                 [
-                    group_type.build_visible_feature_name(),
+                    *group_type.build_visible_feature_name(),
                     "organizations:performance-issues-search",
                 ]
             ):
@@ -3688,7 +3652,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         )
 
     def test_feedback_category_hidden_default(self) -> None:
-        with self.feature([FeedbackGroup.build_visible_feature_name()]):
+        with self.feature(FeedbackGroup.build_visible_feature_name()):
             event_id_1 = uuid.uuid4().hex
             self.process_occurrence(
                 **{
@@ -3717,7 +3681,7 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
     def test_feedback_category_show_when_filtered_on(self) -> None:
         with self.feature(
             [
-                FeedbackGroup.build_visible_feature_name(),
+                *FeedbackGroup.build_visible_feature_name(),
                 FeedbackGroup.build_ingest_feature_name(),
             ]
         ):
@@ -3745,3 +3709,134 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
             )
             assert group_info is not None
             assert list(results) == [group_info.group]
+
+    def test_generic_long_message_search(self) -> None:
+        long_message = "A" * 260 + " uniquekeyword123"
+
+        event_id = uuid.uuid4().hex
+        _, group_info = self.process_occurrence(
+            event_id=event_id,
+            project_id=self.project.id,
+            fingerprint=["long-message-group"],
+            issue_title=long_message,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+        assert group_info is not None
+
+        # Verify the Postgres Group.message is truncated to 255 chars
+        group = Group.objects.get(id=group_info.group.id)
+        assert "uniquekeyword123" not in group.message
+
+        # Search should still find it via Snuba
+        results = self.make_query(search_filter_query="uniquekeyword123")
+        assert list(results) == [group_info.group]
+
+    def test_feedback_long_message_search(self) -> None:
+        long_message = "This is user feedback. " * 15 + "specificword789"
+
+        with self.feature(
+            [
+                *FeedbackGroup.build_visible_feature_name(),
+                FeedbackGroup.build_ingest_feature_name(),
+            ]
+        ):
+            event_id = uuid.uuid4().hex
+            _, group_info = self.process_occurrence(
+                **{
+                    "project_id": self.project.id,
+                    "event_id": event_id,
+                    "fingerprint": ["feedback-long-msg"],
+                    "issue_title": long_message,
+                    "type": FeedbackGroup.type_id,
+                    "detection_time": datetime.now().timestamp(),
+                    "level": "info",
+                },
+                event_data={
+                    "platform": "python",
+                    "timestamp": before_now(minutes=1).isoformat(),
+                    "received": before_now(minutes=1).isoformat(),
+                },
+            )
+            assert group_info is not None
+
+            # Verify the Postgres Group.message is truncated to 255 chars
+            group = Group.objects.get(id=group_info.group.id)
+            assert "specificword789" not in group.message
+
+            results = self.make_query(
+                search_filter_query="issue.category:feedback specificword789",
+                date_from=self.base_datetime,
+                date_to=self.base_datetime + timedelta(days=10),
+            )
+            assert list(results) == [group_info.group]
+
+    def test_perf_issue_long_message_search(self) -> None:
+        group_type = PerformanceNPlusOneGroupType
+        long_title = "P" * 260 + " perfkeyword456"
+
+        with mock.patch.object(
+            PerformanceNPlusOneGroupType,
+            "noise_config",
+            new=NoiseConfig(0, timedelta(minutes=1)),
+        ):
+            event_id = uuid.uuid4().hex
+            with self.feature(group_type.build_ingest_feature_name()):
+                _, group_info = self.process_occurrence(
+                    event_id=event_id,
+                    project_id=self.project.id,
+                    type=group_type.type_id,
+                    fingerprint=["perf-long-msg"],
+                    issue_title=long_title,
+                    event_data={
+                        "title": "some problem",
+                        "platform": "python",
+                        "tags": {"my_tag": "1"},
+                        "timestamp": before_now(minutes=1).isoformat(),
+                        "received": before_now(minutes=1).isoformat(),
+                    },
+                )
+                assert group_info is not None
+
+            # Verify the Postgres Group.message is truncated to 255 chars
+            group = Group.objects.get(id=group_info.group.id)
+            assert "perfkeyword456" not in group.message
+
+            with self.feature(
+                [
+                    *group_type.build_visible_feature_name(),
+                    "organizations:performance-issues-search",
+                ]
+            ):
+                results = self.make_query(
+                    search_filter_query="issue.category:performance perfkeyword456"
+                )
+                assert list(results) == [group_info.group]
+
+    def test_negated_long_message_search(self) -> None:
+        long_message = "B" * 260 + " excludethis999"
+
+        event_id = uuid.uuid4().hex
+        _, group_info = self.process_occurrence(
+            event_id=event_id,
+            project_id=self.project.id,
+            fingerprint=["negation-test-group"],
+            issue_title=long_message,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+        assert group_info is not None
+
+        # Negated search for the keyword should NOT return this group
+        results = self.make_query(search_filter_query="!message:excludethis999")
+        assert group_info.group not in set(results)

@@ -1,22 +1,24 @@
 import {useMemo, useState} from 'react';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
-import {EventRegressionTable} from './eventRegressionTable';
+import {EventRegressionTable, type EventRegressionTableRow} from './eventRegressionTable';
 
 interface SpanDiff {
   p95_after: number;
@@ -49,7 +51,9 @@ function useFetchAdvancedAnalysis({
   const organization = useOrganization();
   return useApiQuery<SpanDiff[]>(
     [
-      `/organizations/${organization.slug}/events-root-cause-analysis/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/events-root-cause-analysis/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           transaction,
@@ -69,18 +73,14 @@ function useFetchAdvancedAnalysis({
   );
 }
 
-const ADDITIONAL_COLUMNS = [
-  {key: 'operation', name: t('Operation'), width: 120},
-  {key: 'description', name: t('Description'), width: COL_WIDTH_UNDEFINED},
-];
-
 interface AggregateSpanDiffProps {
   event: Event;
   project: Project;
 }
 
-function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
+export function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const isSpansOnly = organization.features.includes(
     'statistical-detectors-rca-spans-only'
   );
@@ -88,43 +88,35 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
   const [causeType, setCauseType] = useState<'duration' | 'throughput'>('duration');
 
   const {transaction, breakpoint} = event?.occurrence?.evidenceData ?? {};
-  const breakpointTimestamp = new Date(breakpoint * 1000).toISOString();
 
   const {start, end} = useRelativeDateTime({
     anchor: breakpoint,
     relativeDays: 7,
     retentionDays: 30,
   });
-
-  const {
-    data: rcaData,
-    isPending: isRcaLoading,
-    isError: isRcaError,
-  } = useFetchAdvancedAnalysis({
-    transaction,
-    start: (start as Date).toISOString(),
-    end: (end as Date).toISOString(),
-    breakpoint: breakpointTimestamp,
-    projectId: project.id,
-    enabled: !isSpansOnly,
-  });
+  const startISO = start.toISOString();
+  const endISO = end.toISOString();
 
   // Initialize the search query with has:span.group because only
   // specific operations have their span.group recorded in the span
   // metrics dataset
-  const search = new MutableSearch('has:span.group');
-  search.addFilterValue('transaction', transaction);
+  const search = useMemo(() => {
+    const spanSearch = new MutableSearch('has:span.group');
+    spanSearch.addFilterValue('transaction', transaction);
+    return spanSearch.formatString();
+  }, [transaction]);
 
   const {
     data: spansData,
     isPending: isSpansDataLoading,
     isError: isSpansDataError,
+    error: spansError,
   } = useSpans(
     {
       search,
       fields: [
         'span.op',
-        'any(span.description)',
+        'span.description',
         'span.group',
         `regression_score(span.self_time,${breakpoint})`,
         `avg_by_timestamp(span.self_time,less,${breakpoint})`,
@@ -139,37 +131,56 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     'api.insights.transactions.statistical-detector-root-cause-analysis'
   );
 
-  const tableData = useMemo(() => {
-    if (isSpansOnly) {
-      return spansData?.map(row => {
-        const commonProps = {
-          operation: row['span.op'],
-          group: row['span.group'],
-          description: row['any(span.description)'] || undefined,
-        };
+  const {
+    data: rcaData,
+    isPending: isRcaLoading,
+    error: rcaError,
+  } = useFetchAdvancedAnalysis({
+    transaction,
+    start: startISO,
+    end: endISO,
+    breakpoint: new Date(breakpoint * 1000).toISOString(),
+    projectId: project.id,
+    enabled: !isSpansOnly || isSpansDataError,
+  });
 
-        if (causeType === 'throughput') {
-          const throughputBefore = row[`epm_by_timestamp(less,${breakpoint})`]!;
-          const throughputAfter = row[`epm_by_timestamp(greater,${breakpoint})`]!;
+  // The spans dataset may reject some legacy RCA fields/functions for certain orgs.
+  // When that happens, fall back to the RCA endpoint so this section still renders.
+  const shouldUseSpansData = isSpansOnly && !isSpansDataError;
+
+  const tableData = useMemo(() => {
+    if (shouldUseSpansData) {
+      return (
+        spansData?.map(row => {
+          const commonProps = {
+            operation: row['span.op'],
+            group: row['span.group'],
+            description: row['span.description'] || undefined,
+          };
+
+          if (causeType === 'throughput') {
+            const throughputBefore = row[`epm_by_timestamp(less,${breakpoint})`]!;
+            const throughputAfter = row[`epm_by_timestamp(greater,${breakpoint})`]!;
+            return {
+              ...commonProps,
+              throughputBefore,
+              throughputAfter,
+              percentageChange: throughputAfter / throughputBefore - 1,
+            };
+          }
+
+          const durationBefore =
+            row[`avg_by_timestamp(span.self_time,less,${breakpoint})`]! / 1e3;
+          const durationAfter =
+            row[`avg_by_timestamp(span.self_time,greater,${breakpoint})`]! / 1e3;
           return {
             ...commonProps,
-            throughputBefore,
-            throughputAfter,
-            percentageChange: throughputAfter / throughputBefore - 1,
+            durationBefore,
+            durationAfter,
+            percentageChange: durationAfter / durationBefore - 1,
           };
-        }
-
-        const durationBefore =
-          row[`avg_by_timestamp(span.self_time,less,${breakpoint})`]! / 1e3;
-        const durationAfter =
-          row[`avg_by_timestamp(span.self_time,greater,${breakpoint})`]! / 1e3;
-        return {
-          ...commonProps,
-          durationBefore,
-          durationAfter,
-          percentageChange: durationAfter / durationBefore - 1,
-        };
-      });
+        }) ?? []
+      );
     }
 
     return (
@@ -193,28 +204,21 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
           durationAfter: row.p95_after / 1e3,
           percentageChange: row.p95_after / row.p95_before - 1,
         };
-      }) || []
+      }) ?? []
     );
-  }, [isSpansOnly, rcaData, spansData, causeType, breakpoint]);
+  }, [shouldUseSpansData, rcaData, spansData, causeType, breakpoint]);
 
-  const tableOptions = useMemo(() => {
-    return {
-      description: {
-        defaultValue: t('(unnamed span)'),
-        link: (dataRow: any) => ({
-          target: getSearchInExploreTargetForSpanDiff(
-            organization,
-            project.id,
-            transaction,
-            dataRow.operation,
-            dataRow.group,
-            (start as Date).toISOString(),
-            (end as Date).toISOString()
-          ),
-        }),
-      },
-    };
-  }, [organization, project, transaction, start, end]);
+  const getDescriptionLink = (dataRow: EventRegressionTableRow) =>
+    getSearchInExploreTargetForSpanDiff({
+      organization,
+      projectIds: project.id,
+      transaction,
+      spanOp: dataRow.operation,
+      spanDescription: dataRow.description ?? '',
+      start: startISO,
+      end: endISO,
+      environment: location.query.environment,
+    });
 
   return (
     <InterimSection
@@ -228,7 +232,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
           onChange={setCauseType}
         >
           <SegmentedControl.Item key="duration">
-            {isSpansOnly ? t('Average Duration') : t('Duration (P95)')}
+            {shouldUseSpansData ? t('Average Duration') : t('Duration (P95)')}
           </SegmentedControl.Item>
           <SegmentedControl.Item key="throughput">
             {t('Throughput')}
@@ -238,30 +242,38 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     >
       <EventRegressionTable
         causeType={causeType}
-        columns={ADDITIONAL_COLUMNS}
         data={tableData}
-        isLoading={isSpansOnly ? isSpansDataLoading : isRcaLoading}
-        isError={isSpansOnly ? isSpansDataError : isRcaError}
-        options={tableOptions}
+        isLoading={shouldUseSpansData ? isSpansDataLoading : isRcaLoading}
+        error={shouldUseSpansData ? spansError : rcaError}
+        onDescriptionLink={getDescriptionLink}
       />
     </InterimSection>
   );
 }
 
-const getSearchInExploreTargetForSpanDiff = (
-  organization: Organization,
-  projectIds: string | string[] | undefined,
-  transaction: string,
-  spanOp: string,
-  spanGroup: string,
-  start: string,
-  end: string
-) => {
+const getSearchInExploreTargetForSpanDiff = ({
+  organization,
+  projectIds,
+  transaction,
+  spanOp,
+  spanDescription,
+  start,
+  end,
+  environment,
+}: {
+  end: string;
+  environment: string | string[] | null | undefined;
+  organization: Organization;
+  projectIds: string | string[] | undefined;
+  spanDescription: string;
+  spanOp: string;
+  start: string;
+  transaction: string;
+}) => {
   const search = new MutableSearch('');
   search.addFilterValue(SpanFields.TRANSACTION, transaction);
-  search.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
   search.addFilterValue(SpanFields.SPAN_OP, spanOp);
-  search.addFilterValue(SpanFields.SPAN_GROUP, spanGroup);
+  search.addFilterValue(SpanFields.SPAN_DESCRIPTION, spanDescription);
 
   return {
     pathname: makeTracesPathname({
@@ -271,11 +283,10 @@ const getSearchInExploreTargetForSpanDiff = (
     query: {
       start,
       end,
+      environment,
       statsPeriod: undefined,
       query: search.formatString(),
       project: projectIds,
     },
   };
 };
-
-export default AggregateSpanDiff;

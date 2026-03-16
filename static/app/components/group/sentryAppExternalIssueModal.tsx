@@ -1,11 +1,11 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
+import {SentryAppExternalIssueForm} from 'sentry/components/group/sentryAppExternalIssueForm';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
@@ -14,8 +14,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
-interface OpenSentryAppIssueModalProps
-  extends Omit<Props, keyof ModalRenderProps | 'disabled'> {
+interface OpenSentryAppIssueModalProps extends Omit<
+  Props,
+  keyof ModalRenderProps | 'disabled'
+> {
   organization: Organization;
 }
 
@@ -101,5 +103,5 @@ function SentryAppExternalIssueModal(props: Props) {
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

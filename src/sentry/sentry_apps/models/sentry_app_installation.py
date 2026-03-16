@@ -27,7 +27,7 @@ from sentry.sentry_apps.utils.errors import (
     SentryAppIntegratorError,
     SentryAppSentryError,
 )
-from sentry.types.region import find_all_region_names, find_regions_for_orgs
+from sentry.types.region import find_all_cell_names, find_cells_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -149,10 +149,10 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
             return None
 
     def outbox_region_names(self) -> Collection[str]:
-        return find_regions_for_orgs([self.organization_id])
+        return find_cells_for_orgs([self.organization_id])
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
-        # Use 0 in case of bad relations from api_applicaiton_id -- the replication ordering for
+        # Use 0 in case of bad relations from api_application_id -- the replication ordering for
         # these isn't so important in that case.
         return super().outboxes_for_update(shard_identifier=self.api_application_id or 0)
 
@@ -163,10 +163,13 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 shard_identifier=self.api_application_id or 0,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE,
-                region_name=region_name,
-                payload={"uuid": self.uuid},
+                cell_name=cell_name,
+                payload={
+                    "sentry_app_id": self.sentry_app_id,
+                    "organization_id": self.organization_id,
+                },
             )
-            for region_name in find_all_region_names()
+            for cell_name in find_all_cell_names()
         ]
 
     def prepare_ui_component(
@@ -180,7 +183,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         )
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.hybridcloud.rpc.caching import region_caching_service
+        from sentry.hybridcloud.rpc.caching import cell_caching_service
         from sentry.sentry_apps.services.app.service import get_installation
 
         if self.api_token is not None:
@@ -188,7 +191,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
             with outbox_context(flush=False):
                 for ob in self.api_token.outboxes_for_update():
                     ob.save()
-        region_caching_service.clear_key(
+        cell_caching_service.clear_key(
             key=get_installation.key_from(self.id), region_name=region_name
         )
 

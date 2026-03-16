@@ -52,6 +52,8 @@ interface ContainerLayoutProps {
   overflowX?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowY?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
 
+  overscrollBehavior?: Responsive<'contain' | 'auto' | 'none'>;
+
   pointerEvents?: Responsive<React.CSSProperties['pointerEvents']>;
 
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
@@ -83,6 +85,13 @@ interface ContainerLayoutProps {
   flexBasis?: Responsive<React.CSSProperties['flexBasis']>;
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
   justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
+
+  visibility?: Responsive<'visible' | 'hidden' | 'collapse'>;
+
+  // Text Wrapping
+  whiteSpace?: Responsive<
+    'break-spaces' | 'normal' | 'nowrap' | 'pre' | 'pre-line' | 'pre-wrap'
+  >;
 
   /**
    * Prefer using Flex or Grid gap as opposed to margin.
@@ -117,6 +126,7 @@ export type ContainerElement =
   | 'aside'
   | 'blockquote'
   | 'div'
+  | 'fieldset'
   | 'figure'
   | 'footer'
   | 'header'
@@ -205,6 +215,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'overflow',
   'overflowX',
   'overflowY',
+  'overscrollBehavior',
   'pointerEvents',
   'padding',
   'paddingTop',
@@ -216,7 +227,9 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'right',
   'row',
   'top',
+  'visibility',
   'width',
+  'whiteSpace',
 ]);
 
 export const Container = styled(
@@ -253,6 +266,8 @@ export const Container = styled(
   ${p => rc('overflow', p.overflow, p.theme)};
   ${p => rc('overflow-x', p.overflowX, p.theme)};
   ${p => rc('overflow-y', p.overflowY, p.theme)};
+
+  ${p => rc('overscroll-behavior', p.overscrollBehavior, p.theme)};
 
   ${p => rc('pointer-events', p.pointerEvents, p.theme)};
 
@@ -301,6 +316,9 @@ export const Container = styled(
   ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
   ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
+
+  ${p => rc('visibility', p.visibility, p.theme)};
+  ${p => rc('white-space', p.whiteSpace, p.theme)};
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.

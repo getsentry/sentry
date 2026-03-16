@@ -1,6 +1,7 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {crashReport} from 'sentry/gettingStartedDocs/go/crashReport';
 import {logs} from 'sentry/gettingStartedDocs/go/logs';
+import {metrics} from 'sentry/gettingStartedDocs/go/metrics';
 import {onboarding} from 'sentry/gettingStartedDocs/go/onboarding';
 import {
   feedbackOnboardingJsLoader,
@@ -18,6 +19,7 @@ const docs: Docs = {
   logsOnboarding: logs({
     docsPlatform: 'go',
   }),
+  metricsOnboarding: metrics,
 };
 
 export default docs;

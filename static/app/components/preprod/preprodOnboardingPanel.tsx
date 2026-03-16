@@ -1,21 +1,21 @@
 import {useTheme} from '@emotion/react';
 
-import sizeAnalysisPreview from 'sentry-images/spot/releases-tour-commits.svg';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Image} from 'sentry/components/core/image';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
 
 type SupportedPlatform = 'ios' | 'android' | 'flutter' | 'react-native';
 
 const PRODUCT_DOC_URL = 'https://docs.sentry.io/product/size-analysis/';
+const PREPROD_ONBOARDING_ARCADE_URL =
+  'https://demo.arcade.software/llDAtVroCp4jCvnPj5qu?embed';
 
 const PLATFORM_DOCS: Array<{
   buttonLabel: string;
@@ -62,8 +62,8 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
   return (
     <Panel>
       <PanelBody>
-        <Flex justify="between" align="start" width="100%" padding="3xl" gap="xl">
-          <Container flex={1}>
+        <Flex align="start" width="100%" padding="3xl" gap="xl">
+          <Container flex={1} minWidth={0}>
             <Heading as="h1" size="2xl">
               {t('Upload Mobile Builds to Sentry')}
             </Heading>
@@ -101,11 +101,24 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
               ) : null}
             </Flex>
           </Container>
-          <Container display={{xs: 'none', md: 'block'}}>
-            <Image
-              src={sizeAnalysisPreview}
-              alt={t('Size analysis illustration')}
-              height="120px"
+          <Container
+            display={{xs: 'none', md: 'block'}}
+            flex={1}
+            minWidth={0}
+            borderLeft="muted"
+            paddingLeft="xl"
+          >
+            <iframe
+              title={t('Pre-release build walkthrough')}
+              src={PREPROD_ONBOARDING_ARCADE_URL}
+              loading="lazy"
+              allowFullScreen
+              style={{
+                width: '100%',
+                height: '360px',
+                border: 0,
+                colorScheme: 'auto',
+              }}
             />
           </Container>
         </Flex>

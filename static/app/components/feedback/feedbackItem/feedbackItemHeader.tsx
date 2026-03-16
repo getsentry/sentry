@@ -1,16 +1,16 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackActions from 'sentry/components/feedback/feedbackItem/feedbackActions';
-import FeedbackShortId from 'sentry/components/feedback/feedbackItem/feedbackShortId';
-import FeedbackViewers from 'sentry/components/feedback/feedbackItem/feedbackViewers';
+import {FeedbackActions} from 'sentry/components/feedback/feedbackItem/feedbackActions';
+import {FeedbackShortId} from 'sentry/components/feedback/feedbackItem/feedbackShortId';
+import {FeedbackViewers} from 'sentry/components/feedback/feedbackItem/feedbackViewers';
 import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
@@ -33,11 +33,7 @@ function dimensionsToSize({width}: Dimensions) {
   return 'large';
 }
 
-export default function FeedbackItemHeader({
-  eventData,
-  feedbackItem,
-  onBackToList,
-}: Props) {
+export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dimensions = useDimensions({elementRef: wrapperRef});
 
@@ -92,8 +88,8 @@ export default function FeedbackItemHeader({
 const VerticalSpacing = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
-  padding: ${space(1)} ${space(2)};
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 

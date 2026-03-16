@@ -1,20 +1,21 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Flex} from 'sentry/components/core/layout';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import BillingDetailsPanel from 'getsentry/components/billingDetails/panel';
-import CreditCardPanel from 'getsentry/components/creditCardEdit/panel';
+import {BillingDetailsPanel} from 'getsentry/components/billingDetails/panel';
+import {CreditCardPanel} from 'getsentry/components/creditCardEdit/panel';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import {FTCConsentLocation} from 'getsentry/types';
-import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
+import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {hasBillingInfo} from 'getsentry/views/amCheckout/utils';
 
-function AddBillingInformation({
+export function AddBillingInformation({
   subscription,
   stepNumber,
   organization,
@@ -64,5 +65,3 @@ function AddBillingInformation({
     </Flex>
   );
 }
-
-export default AddBillingInformation;

@@ -1,5 +1,6 @@
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -11,7 +12,7 @@ type Props = {
   organization: Organization;
 };
 
-function OpenInDiscoverBtn(props: Props) {
+export function OpenInDiscoverBtn(props: Props) {
   const {organization} = props;
   return (
     <Button
@@ -32,4 +33,3 @@ function OpenInDiscoverBtn(props: Props) {
     </Button>
   );
 }
-export default OpenInDiscoverBtn;

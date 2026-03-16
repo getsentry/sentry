@@ -2,7 +2,8 @@ import {Fragment, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   rawSpanKeys,
   type RawSpanType,
@@ -13,9 +14,8 @@ import {
   type SubTimingInfo,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
-import FileSize from 'sentry/components/fileSize';
+import {FileSize} from 'sentry/components/fileSize';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {
@@ -210,7 +210,7 @@ export function SpanKeys({node}: {node: SpanNode}) {
       key: timing.name,
       subject: toTitleCase(timing.name),
       subjectNode: (
-        <TraceDrawerComponents.FlexBox style={{gap: space(0.5)}}>
+        <TraceDrawerComponents.FlexBox style={{gap: theme.space.xs}}>
           <RowTimingPrefix timing={timing} />
           {timing.name}
         </TraceDrawerComponents.FlexBox>

@@ -1,17 +1,17 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import LoadingError from 'sentry/components/loadingError';
+import {Button} from '@sentry/scraps/button';
+
+import {LoadingError} from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
-import AutomationTitleCell from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
+import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -189,7 +189,7 @@ const Container = styled('div')`
 const SimpleTableWithColumns = styled(SimpleTable)`
   grid-template-columns: 1fr 200px 180px auto;
 
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   /*
     The connected column can be added/removed depending on props, so in order to

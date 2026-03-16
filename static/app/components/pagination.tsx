@@ -2,13 +2,11 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -77,7 +75,7 @@ function Pagination({
       data-test-id="pagination"
     >
       {caption && <PaginationCaption>{caption}</PaginationCaption>}
-      <ButtonBar merged gap="0">
+      <ButtonBar>
         <Button
           icon={<IconChevron direction="left" />}
           aria-label={t('Previous')}
@@ -106,7 +104,7 @@ function Pagination({
 const PaginationCaption = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 `;
 
 export default Pagination;

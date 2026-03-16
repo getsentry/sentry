@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DateTime} from 'sentry/components/dateTime';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -19,7 +19,7 @@ type Props = {
   tokenPrefix?: string;
 };
 
-function ApiTokenRow({
+export function ApiTokenRow({
   token,
   onRemove,
   tokenPrefix = '',
@@ -71,12 +71,12 @@ const ScopeList = styled('div')`
   max-width: 400px;
 `;
 
-const Actions = styled(ButtonBar)`
+const Actions = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   justify-content: flex-end;
 `;
 
 const TokenPreview = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default ApiTokenRow;

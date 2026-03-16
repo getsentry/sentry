@@ -1,17 +1,17 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import {CodeBlock} from 'sentry/components/core/code';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ClippedBox} from 'sentry/components/clippedBox';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useRelease} from 'sentry/utils/useRelease';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {

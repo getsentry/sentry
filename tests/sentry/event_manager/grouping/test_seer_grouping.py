@@ -73,7 +73,6 @@ class SeerEventManagerGroupingTest(TestCase):
                 return_value=True,
             ),
         ):
-
             # Project option not set
             self.project.update_option("sentry:similarity_backfill_completed", None)
             new_event = save_new_event({"message": "Adopt don't shop"}, self.project)
@@ -182,6 +181,7 @@ class StoredSeerMetadataTest(TestCase):
         assert metadata.seer_model == expected_seer_model
         assert metadata.seer_matched_grouphash == expected_seer_matched_grouphash
         assert metadata.seer_match_distance == expected_seer_match_distance
+        assert metadata.seer_latest_training_model == expected_seer_model
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_group_with_no_seer_match(self, _: MagicMock) -> None:
@@ -264,7 +264,6 @@ class StoredSeerMetadataTest(TestCase):
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     def test_fills_in_missing_date_added(self, _: MagicMock) -> None:
-
         # Mimic the effects of the race condition wherein two events with the same new hash race to
         # create `GroupHash` and `GroupHashMetadata` records, and each event wins one of the races,
         # which results in the metadata not having a `date_added` value

@@ -1,10 +1,10 @@
 import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useRefChildrenVisibility} from 'sentry/utils/useRefChildrenVisibility';
 
 interface CarouselProps {
@@ -23,7 +23,7 @@ interface CarouselProps {
   visibleRatio?: number;
 }
 
-function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
+export function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const {visibility, childrenEls} = useRefChildrenVisibility({
     children,
@@ -82,7 +82,7 @@ const CarouselContainer = styled('div')`
   /* We provide some margin to make room for the scroll bar. It is applied on
    * the top and bottom for consistency.
    */
-  margin: ${space(0.25)};
+  margin: ${p => p.theme.space['2xs']};
 `;
 
 const CarouselItems = styled('div')`
@@ -92,7 +92,7 @@ const CarouselItems = styled('div')`
   /* We provide some margin to make room for the scroll bar. It is applied on
    * the top and bottom for consistency.
    */
-  padding: ${space(1.5)} 0;
+  padding: ${p => p.theme.space.lg} 0;
 `;
 
 const StyledArrowButton = styled(Button)<{direction: string}>`
@@ -108,5 +108,3 @@ const StyledArrowButton = styled(Button)<{direction: string}>`
   margin: auto;
   background-color: ${p => p.theme.tokens.background.primary};
 `;
-
-export default Carousel;

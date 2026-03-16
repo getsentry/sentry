@@ -1,7 +1,8 @@
 import type {ComponentProps} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Flex} from '@sentry/scraps/layout';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 

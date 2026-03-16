@@ -10,15 +10,18 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useParams} from 'sentry/utils/useParams';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
+import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {
+  useSpanItemAttributes,
+  useTraceItemDatasetAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/spanTagsContext');
+jest.mock('sentry/views/explore/contexts/traceItemAttributeContext');
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/useParams');
 
@@ -30,8 +33,11 @@ describe('WidgetBuilderSlideout', () => {
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
     jest
-      .mocked(useTraceItemTags)
-      .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
+      .mocked(useTraceItemDatasetAttributes)
+      .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
+    jest
+      .mocked(useSpanItemAttributes)
+      .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
 
     jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 

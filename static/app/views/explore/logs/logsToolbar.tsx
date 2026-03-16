@@ -1,12 +1,13 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {AggregationKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
+import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {
   ToolbarFooter,
   ToolbarSection,
@@ -21,12 +22,8 @@ import {
   ToolbarVisualizeDropdown,
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
-import {
-  TraceItemAttributeProvider,
-  useTraceItemAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   OurLogKnownFieldKey,
   type OurLogsAggregate,
@@ -98,66 +95,52 @@ export const LOG_AGGREGATES: Array<SelectOption<OurLogsAggregate>> = [
 export function LogsToolbar() {
   return (
     <Container data-test-id="logs-toolbar">
-      <LogsToolbarVisualizeWrapper />
-      <LogsToolbarGroupByWrapper />
+      <ToolbarVisualize />
+      <ToolbarGroupBy />
     </Container>
   );
 }
 
-function LogsToolbarVisualizeWrapper() {
+function ToolbarVisualize() {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
-  return (
-    <TraceItemAttributeProvider
-      enabled
-      search={debouncedSearch}
-      traceItemType={TraceItemDataset.LOGS}
-    >
-      <ToolbarVisualize onSearch={setSearch} onClose={() => setSearch(undefined)} />
-    </TraceItemAttributeProvider>
-  );
-}
 
-function LogsToolbarGroupByWrapper() {
-  const [search, setSearch] = useState<string | undefined>(undefined);
-  const debouncedSearch = useDebouncedValue(search, 200);
-  return (
-    <TraceItemAttributeProvider
-      enabled
-      search={debouncedSearch}
-      traceItemType={TraceItemDataset.LOGS}
-    >
-      <ToolbarGroupBy onSearch={setSearch} onClose={() => setSearch(undefined)} />
-    </TraceItemAttributeProvider>
-  );
-}
-
-interface LogsToolbarProps {
-  onClose: () => void;
-  onSearch: (search: string) => void;
-}
-
-function ToolbarVisualize({onSearch, onClose}: LogsToolbarProps) {
-  const {attributes: stringTags, isLoading: stringTagsLoading} = useTraceItemAttributes(
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
     'string',
     HiddenLogSearchFields
   );
-  const {attributes: numberTags, isLoading: numberTagsLoading} = useTraceItemAttributes(
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
     'number',
     HiddenLogSearchFields
   );
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
+    'boolean',
+    HiddenLogSearchFields
+  );
 
-  const sortedNumberKeys: string[] = useMemo(() => {
+  const onSearch = setSearch;
+  const onClose = useCallback(() => setSearch(undefined), []);
+
+  const sortedNumberKeys = useMemo(() => {
     const keys = Object.keys(numberTags);
     keys.sort();
     return keys;
   }, [numberTags]);
 
-  const sortedStringKeys: string[] = useMemo(() => {
+  const sortedStringKeys = useMemo(() => {
     const keys = Object.keys(stringTags);
     keys.sort();
     return keys;
   }, [stringTags]);
+
+  const sortedBooleanKeys = useMemo(() => {
+    const keys = Object.keys(booleanTags);
+    keys.sort();
+    return keys;
+  }, [booleanTags]);
 
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
@@ -182,7 +165,7 @@ function ToolbarVisualize({onSearch, onClose}: LogsToolbarProps) {
     [setVisualizes, visualizes]
   );
 
-  const onDelete = useCallback(
+  const handleDelete = useCallback(
     (group: number) => {
       const newVisualizes = visualizes.toSpliced(group, 1).map(visualize => {
         return visualize.serialize();
@@ -200,18 +183,19 @@ function ToolbarVisualize({onSearch, onClose}: LogsToolbarProps) {
       <ToolbarVisualizeHeader />
       {visualizes.map((visualize, group) => {
         if (isVisualizeFunction(visualize)) {
+          const onDelete = canDelete ? () => handleDelete(group) : undefined;
           return (
             <VisualizeDropdown
               key={group}
-              canDelete={canDelete}
-              onDelete={() => onDelete(group)}
+              onDelete={onDelete}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}
               visualize={visualize}
+              sortedBooleanKeys={sortedBooleanKeys}
               sortedNumberKeys={sortedNumberKeys}
               sortedStringKeys={sortedStringKeys}
               onSearch={onSearch}
               onClose={onClose}
-              loading={numberTagsLoading || stringTagsLoading}
+              loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
             />
           );
         }
@@ -228,25 +212,25 @@ function ToolbarVisualize({onSearch, onClose}: LogsToolbarProps) {
 }
 
 interface VisualizeDropdownProps {
-  canDelete: boolean;
   loading: boolean;
   onClose: () => void;
-  onDelete: () => void;
   onReplace: (visualize: Visualize) => void;
   onSearch: (search: string) => void;
+  sortedBooleanKeys: string[];
   sortedNumberKeys: string[];
   sortedStringKeys: string[];
   visualize: VisualizeFunction;
+  onDelete?: () => void;
 }
 
 function VisualizeDropdown({
-  canDelete,
   loading,
   onDelete,
   onReplace,
   onSearch,
   onClose,
   visualize,
+  sortedBooleanKeys,
   sortedNumberKeys,
   sortedStringKeys,
 }: VisualizeDropdownProps) {
@@ -267,69 +251,47 @@ function VisualizeDropdown({
     if (aggregateFunction === AggregationKey.COUNT) {
       return [{label: t('logs'), value: OurLogKnownFieldKey.MESSAGE}];
     }
-
+    const seen = new Set<string>();
     return aggregateFunction === AggregationKey.COUNT_UNIQUE
       ? [
           ...sortedNumberKeys.map(key => {
-            const label = prettifyTagKey(key);
-            return {
-              label,
-              value: key,
-              textValue: key,
-              trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
-              showDetailsInOverlay: true,
-              details: (
-                <AttributeDetails
-                  column={key}
-                  kind={FieldKind.MEASUREMENT}
-                  label={label}
-                  traceItemType={TraceItemDataset.LOGS}
-                />
-              ),
-            };
+            return optionFromTag(
+              {key, name: prettifyTagKey(key), kind: FieldKind.MEASUREMENT},
+              TraceItemDataset.LOGS
+            );
           }),
           ...sortedStringKeys.map(key => {
-            const label = prettifyTagKey(key);
-            return {
-              label,
-              value: key,
-              textValue: key,
-              trailingItems: <TypeBadge kind={FieldKind.TAG} />,
-              showDetailsInOverlay: true,
-              details: (
-                <AttributeDetails
-                  column={key}
-                  kind={FieldKind.TAG}
-                  label={label}
-                  traceItemType={TraceItemDataset.LOGS}
-                />
-              ),
-            };
+            return optionFromTag(
+              {key, name: prettifyTagKey(key), kind: FieldKind.TAG},
+              TraceItemDataset.LOGS
+            );
           }),
-        ].toSorted((a, b) => {
-          const aLabel = prettifyTagKey(a.value);
-          const bLabel = prettifyTagKey(b.value);
-          return aLabel.localeCompare(bLabel);
-        })
+          ...sortedBooleanKeys.map(key => {
+            return optionFromTag(
+              {key, name: prettifyTagKey(key), kind: FieldKind.BOOLEAN},
+              TraceItemDataset.LOGS
+            );
+          }),
+        ]
+          .filter(option => {
+            // Filtering by value here, so it's based off of explicit tags i.e. `key`
+            // or `tags[<key>, <boolean | number | string>]
+            if (seen.has(option.value)) return false;
+            seen.add(option.value);
+            return true;
+          })
+          .toSorted((a, b) => {
+            const aLabel = prettifyTagKey(a.value);
+            const bLabel = prettifyTagKey(b.value);
+            return aLabel.localeCompare(bLabel);
+          })
       : sortedNumberKeys.map(key => {
-          const label = prettifyTagKey(key);
-          return {
-            label,
-            value: key,
-            textValue: key,
-            trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
-            showDetailsInOverlay: true,
-            details: (
-              <AttributeDetails
-                column={key}
-                kind={FieldKind.MEASUREMENT}
-                label={label}
-                traceItemType={TraceItemDataset.LOGS}
-              />
-            ),
-          };
+          return optionFromTag(
+            {key, name: prettifyTagKey(key), kind: FieldKind.MEASUREMENT},
+            TraceItemDataset.LOGS
+          );
         });
-  }, [aggregateFunction, sortedStringKeys, sortedNumberKeys]);
+  }, [aggregateFunction, sortedBooleanKeys, sortedNumberKeys, sortedStringKeys]);
 
   const onChangeAggregate = useCallback(
     (option: SelectOption<SelectKey>) => {
@@ -360,7 +322,6 @@ function VisualizeDropdown({
     <ToolbarVisualizeDropdown
       aggregateOptions={aggregateOptions}
       fieldOptions={fieldOptions}
-      canDelete={canDelete}
       onChangeAggregate={onChangeAggregate}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
@@ -372,77 +333,88 @@ function VisualizeDropdown({
   );
 }
 
-function ToolbarGroupBy({onSearch, onClose}: LogsToolbarProps) {
-  const {attributes: numberTags, isLoading: numberTagsLoading} = useTraceItemAttributes(
+function ToolbarGroupBy() {
+  const [search, setSearch] = useState<string | undefined>(undefined);
+  const debouncedSearch = useDebouncedValue(search, 200);
+
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
     'number',
     HiddenLogSearchFields
   );
-  const {attributes: stringTags, isLoading: stringTagsLoading} = useTraceItemAttributes(
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
     'string',
     HiddenLogSearchFields
   );
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useLogItemAttributes(
+    {search: debouncedSearch},
+    'boolean',
+    HiddenLogSearchFields
+  );
+
+  const onSearch = setSearch;
+  const onClose = useCallback(() => setSearch(undefined), []);
+
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
 
-  const options = useMemo(
-    () =>
-      [
-        {
-          label: '\u2014',
-          value: '',
-          textValue: '\u2014',
-        },
-        ...Object.keys(numberTags ?? {}).map(key => {
-          const label = prettifyTagKey(key);
-          return {
-            label,
-            value: key,
-            textValue: key,
-            trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
-            showDetailsInOverlay: true,
-            details: (
-              <AttributeDetails
-                column={key}
-                kind={FieldKind.MEASUREMENT}
-                label={label}
-                traceItemType={TraceItemDataset.LOGS}
-              />
-            ),
-          };
-        }),
-        ...Object.keys(stringTags ?? {}).map(key => {
-          const label = prettifyTagKey(key);
-          return {
-            label,
-            value: key,
-            textValue: key,
-            trailingItems: <TypeBadge kind={FieldKind.TAG} />,
-            showDetailsInOverlay: true,
-            details: (
-              <AttributeDetails
-                column={key}
-                kind={FieldKind.TAG}
-                label={label}
-                traceItemType={TraceItemDataset.LOGS}
-              />
-            ),
-          };
-        }),
-      ].toSorted((a, b) => {
+  const options = useMemo(() => {
+    const seen = new Set<string>();
+    return [
+      {
+        label: '\u2014',
+        value: '',
+        textValue: '\u2014',
+      },
+      ...Object.keys(numberTags ?? {}).map(key => {
+        return optionFromTag(
+          {key, name: prettifyTagKey(key), kind: FieldKind.MEASUREMENT},
+          TraceItemDataset.LOGS
+        );
+      }),
+      ...Object.keys(stringTags ?? {}).map(key => {
+        return optionFromTag(
+          {key, name: prettifyTagKey(key), kind: FieldKind.TAG},
+          TraceItemDataset.LOGS
+        );
+      }),
+      ...Object.keys(booleanTags ?? {}).map(key => {
+        return optionFromTag(
+          {key, name: prettifyTagKey(key), kind: FieldKind.BOOLEAN},
+          TraceItemDataset.LOGS
+        );
+      }),
+    ]
+      .filter(option => {
+        // Filtering by value here, so it's based off of explicit tags i.e. `key`
+        // or `tags[<key>, <boolean | number | string>]
+        if (seen.has(option.value)) return false;
+        seen.add(option.value);
+        return true;
+      })
+      .toSorted((a, b) => {
         const aLabel = prettifyTagKey(a.value);
         const bLabel = prettifyTagKey(b.value);
         return aLabel.localeCompare(bLabel);
-      }),
-    [numberTags, stringTags]
-  );
+      });
+  }, [booleanTags, numberTags, stringTags]);
 
   const setGroupBysWithOp = useCallback(
     (columns: string[], op: 'insert' | 'update' | 'delete' | 'reorder') => {
-      // automatically switch to aggregates mode when a group by is inserted/updated
-      if (op === 'insert' || op === 'update') {
+      const hasValidGroupBy = columns.some(Boolean);
+
+      // insert/update keeps aggregate mode while a valid group by exists
+      if (op === 'insert' || (op === 'update' && hasValidGroupBy)) {
         setGroupBys(columns, Mode.AGGREGATE);
-      } else {
+        return;
+      }
+
+      if (hasValidGroupBy) {
         setGroupBys(columns);
+      } else {
+        // when the last group by is cleared, return to samples table
+        setGroupBys(columns, Mode.SAMPLES);
       }
     },
     [setGroupBys]
@@ -463,7 +435,7 @@ function ToolbarGroupBy({onSearch, onClose}: LogsToolbarProps) {
               options={options}
               onSearch={onSearch}
               onClose={onClose}
-              loading={numberTagsLoading || stringTagsLoading}
+              loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
             />
           ))}
           <ToolbarFooter>

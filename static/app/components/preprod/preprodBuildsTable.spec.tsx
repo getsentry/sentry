@@ -8,9 +8,7 @@ import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {getInstallBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
-const organization = OrganizationFixture({
-  features: ['preprod-build-distribution'],
-});
+const organization = OrganizationFixture();
 
 const baseBuild = {
   id: 'build-1',
@@ -20,7 +18,7 @@ const baseBuild = {
   app_info: {
     app_id: 'com.example.app',
     name: 'Example App',
-    platform: 'ios' as Platform,
+    platform: 'apple' as Platform,
     build_number: '1',
     version: '1.0.0',
     date_added: '2024-01-01T00:00:00Z',
@@ -86,7 +84,6 @@ describe('PreprodBuildsTable', () => {
       'href',
       getInstallBuildPath({
         organizationSlug: organization.slug,
-        projectId: '1',
         baseArtifactId: 'build-1',
       })
     );

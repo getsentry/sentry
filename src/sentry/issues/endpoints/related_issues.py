@@ -4,7 +4,9 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.related.same_root_cause import same_root_cause_analysis
 from sentry.issues.related.trace_connected import trace_connected_analysis
@@ -19,7 +21,7 @@ class RequestSerializer(serializers.Serializer[None]):
     project_id = serializers.IntegerField(required=False)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class RelatedIssuesEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
@@ -35,6 +37,7 @@ class RelatedIssuesEndpoint(GroupEndpoint):
     )
 
     # We get a Group object since the endpoint is /issues/{issue_id}/related-issues
+    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-related-issues"])
     def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve related issues for a Group

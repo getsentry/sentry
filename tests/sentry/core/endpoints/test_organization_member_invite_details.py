@@ -400,3 +400,39 @@ class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         )
         assert response.data["detail"] == "You do not have permission to perform this action."
         assert OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()
+
+
+@with_feature("organizations:new-organization-member-invite")
+class CrossOrganizationMemberInviteTest(APITestCase):
+    endpoint = "sentry-api-0-organization-member-invite-details"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.other_org = self.create_organization(slug="other-org", owner=self.user)
+        self.invite_in_other_org = self.create_member_invite(
+            organization=self.other_org, email="cross-org@test.com"
+        )
+
+    def test_cannot_get_invite_from_other_org(self) -> None:
+        self.get_error_response(
+            self.organization.slug, self.invite_in_other_org.id, status_code=404
+        )
+
+    def test_cannot_update_invite_from_other_org(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            self.invite_in_other_org.id,
+            method="put",
+            orgRole="manager",
+            status_code=404,
+        )
+
+    def test_cannot_delete_invite_from_other_org(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            self.invite_in_other_org.id,
+            method="delete",
+            status_code=404,
+        )
+        assert OrganizationMemberInvite.objects.filter(id=self.invite_in_other_org.id).exists()

@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {Button} from '@sentry/scraps/button';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconBusiness, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import LearnMoreButton from 'getsentry/components/features/learnMoreButton';
+import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
@@ -17,7 +17,7 @@ type Props = {
   organization: Organization;
 };
 
-function DisabledDiscardGroup({organization, features}: Props) {
+export function DisabledDiscardGroup({organization, features}: Props) {
   return (
     <PlanFeature {...{organization, features}}>
       {({plan}) => (
@@ -79,7 +79,5 @@ const StyledEmptyMessage = styled(EmptyMessage)`
 const ButtonGroup = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
-
-export default DisabledDiscardGroup;

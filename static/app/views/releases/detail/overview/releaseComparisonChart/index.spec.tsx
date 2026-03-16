@@ -133,7 +133,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     expect(
       screen.getByTestId('release-comparison-table').textContent
     ).toMatchInlineSnapshot(
-      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate99.516%95.006%4.51% Healthy98.564%94.001%4.563% Abnormal0%0%0% Errored0.953%1.005%0.052% Unhandled0%0%0% Crashed Session Rate0.484%4.994%4.511% Crash Free User Rate99.908%75%24.908% Healthy98.994%72.022%26.972% Abnormal0%0%0% Errored0.914%2.493%1.579% Unhandled0%0%0% Crashed User Rate0.092%25.485%25.393% Session Count205k9.8k—User Count100k361—Hide 2 Others"`
+      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate99.516%95.006%4.51% Healthy98.564%94.001%4.563% Abnormal0%0%0% Errored0.953%1.005%0.052% Unhandled0%0%0% Crashed Session Rate0.484%4.994%4.511% Crash Free User Rate99.908%75%24.908% Healthy98.994%72.022%26.972% Abnormal0%0%0% Errored0.914%2.493%1.579% Unhandled0%0%0% Crashed User Rate0.092%25.485%25.393% Session Count205K9.8K—User Count100K361—Hide 2 Others"`
     );
 
     // toggle back

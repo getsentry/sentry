@@ -18,7 +18,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer"]
+            features = ["organizations:visibility-explore-view"]
 
         if query is None:
             query = {}
@@ -60,12 +60,11 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
                 duration=100,
                 exclusive_time=100,
                 tags={tag: tag},
-                is_eap=True,
             )
 
         for features in [
             None,  # use the default features
-            ["organizations:performance-trace-explorer"],
+            ["organizations:visibility-explore-view"],
         ]:
             response = self.do_request(
                 features=features,
@@ -110,12 +109,11 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
                 duration=100,
                 exclusive_time=100,
                 measurements={tag: 0},
-                is_eap=True,
             )
 
         for features in [
             None,  # use the default features
-            ["organizations:performance-trace-explorer"],
+            ["organizations:visibility-explore-view"],
         ]:
             response = self.do_request(
                 features=features,
@@ -154,7 +152,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, SpanTestCase, APITest
             "is_feature_enabled": False,
             "is_production": True,
         }
-        self.store_spans([span1, span2], is_eap=True)
+        self.store_spans([span1, span2])
 
         response = self.do_request(
             query={"dataset": "spans", "type": "boolean"},
@@ -175,7 +173,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
 
     def do_request(self, key: str, query=None, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer"]
+            features = ["organizations:visibility-explore-view"]
 
         if query is None:
             query = {}
@@ -220,7 +218,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         response = self.do_request("tag")
@@ -266,7 +263,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -314,7 +310,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -354,7 +349,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 transaction=transaction,
                 duration=100,
                 exclusive_time=100,
-                is_eap=True,
             )
 
         key = "transaction"
@@ -395,7 +389,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -444,7 +437,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -485,7 +477,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         key = "tag"
@@ -526,7 +517,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 duration=100,
                 exclusive_time=100,
                 tags={"tag": tag},
-                is_eap=True,
             )
 
         for key in [
@@ -559,7 +549,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         self.create_project(id=base_id + 399, name="baz")
 
         features = [
-            "organizations:performance-trace-explorer",
+            "organizations:visibility-explore-view",
         ]
 
         for key in ["project", "project.name"]:
@@ -678,7 +668,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 timestamp=timestamp,
                 transaction="foo",
                 status=status,
-                is_eap=True,
             )
 
         response = self.do_request("span.status")
@@ -797,7 +786,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             duration=100,
             exclusive_time=100,
             tags={"tag": "foo"},
-            is_eap=True,
         )
 
         response = self.do_request("tag")

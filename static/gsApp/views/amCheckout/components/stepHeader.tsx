@@ -1,12 +1,12 @@
 import kebabCase from 'lodash/kebabCase';
 
-import {Heading} from 'sentry/components/core/text';
+import {Heading} from '@sentry/scraps/text';
 
 type Props = {
   title: string;
 };
 
-function StepHeader({title}: Props) {
+export function StepHeader({title}: Props) {
   const dataTestId = `header-${kebabCase(title)}`;
 
   return (
@@ -15,5 +15,3 @@ function StepHeader({title}: Props) {
     </Heading>
   );
 }
-
-export default StepHeader;

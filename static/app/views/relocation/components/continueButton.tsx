@@ -1,15 +1,13 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function WrappedButton({...props}) {
   return <Button {...props}>{t('Continue')}</Button>;
 }
 
-const ContinueButton = styled(WrappedButton)`
-  margin-top: ${space(1.5)};
+export const ContinueButton = styled(WrappedButton)`
+  margin-top: ${p => p.theme.space.lg};
 `;
-
-export default ContinueButton;

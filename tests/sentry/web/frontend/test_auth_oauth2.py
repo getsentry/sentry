@@ -117,7 +117,6 @@ class AuthOAuth2Test(AuthProviderTestCase):
         resp = self.client.get(f"{self.sso_path}?{query}", **kwargs)
 
         if expect_success:
-
             if has_2fa:
                 assert resp["Location"] == "/auth/2fa/"
                 with mock.patch(

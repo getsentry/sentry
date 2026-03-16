@@ -1,9 +1,9 @@
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {Organization} from 'sentry/types/organization';
+import type {LinkButtonProps} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
+
 import type {SandboxData} from 'sentry/types/sandbox';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface DemoSandboxButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
   /**
@@ -46,7 +46,7 @@ interface DemoSandboxButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
  * which should include be a button. If the sandbox is hidden,
  * don't render the children
  */
-function DemoSandboxButton({
+export function DemoSandboxButton({
   scenario,
   projectSlug,
   errorType,
@@ -54,7 +54,7 @@ function DemoSandboxButton({
   source,
   ...buttonProps
 }: DemoSandboxButtonProps): React.ReactElement {
-  const organization: Organization = useOrganization();
+  const organization = useOrganization();
   const url = new URL('https://try.sentry-demo.com/demo/start/');
 
   if (scenario) {
@@ -90,5 +90,3 @@ function DemoSandboxButton({
     />
   );
 }
-
-export default DemoSandboxButton;

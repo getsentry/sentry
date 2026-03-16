@@ -4,14 +4,14 @@ import uniqBy from 'lodash/uniqBy';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Container} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ApiResult} from 'sentry/api';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import InfiniteListItems from 'sentry/components/infiniteList/infiniteListItems';
-import InfiniteListState from 'sentry/components/infiniteList/infiniteListState';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ReplayListItem from 'sentry/components/replays/list/__stories__/replayListItem';
+import {InfiniteListItems} from 'sentry/components/infiniteList/infiniteListItems';
+import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListState';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ReplayListItem} from 'sentry/components/replays/list/__stories__/replayListItem';
 import {t} from 'sentry/locale';
 import {type InfiniteData, type UseInfiniteQueryResult} from 'sentry/utils/queryClient';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -23,7 +23,7 @@ interface Props {
   >;
 }
 
-export default function ReplayList({onSelect, queryResult}: Props) {
+export function ReplayList({onSelect, queryResult}: Props) {
   return (
     <InfiniteListState
       queryResult={queryResult}

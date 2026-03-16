@@ -9,6 +9,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -19,10 +20,9 @@ import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/field
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {
   DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
@@ -104,8 +104,8 @@ export function useSaveAsItems({
 
     items.push({
       key: 'save-query',
-      label: <span>{t('A New Query')}</span>,
-      textValue: t('A New Query'),
+      label: <span>{t('New Query')}</span>,
+      textValue: t('New Query'),
       onAction: () => {
         trackAnalytics('logs.save_query_modal', {
           action: 'open',
@@ -140,7 +140,7 @@ export function useSaveAsItems({
           organization,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
           interval,
-          eventTypes: 'trace_item_log',
+          eventTypes: [EventTypes.TRACE_ITEM_LOG],
         }),
         onAction: () => {
           trackAnalytics('logs.save_as', {
@@ -153,8 +153,8 @@ export function useSaveAsItems({
     });
 
     const newAlertLabel = organization.features.includes('workflow-engine-ui')
-      ? t('A Monitor for')
-      : t('An Alert for');
+      ? t('Monitor for')
+      : t('Alert for');
 
     return {
       key: 'create-alert',
@@ -227,12 +227,12 @@ export function useSaveAsItems({
         <Feature
           hookName="feature-disabled:dashboards-edit"
           features="organizations:dashboards-edit"
-          renderDisabled={() => <DisabledText>{t('A Dashboard widget')}</DisabledText>}
+          renderDisabled={() => <DisabledText>{t('Dashboard widget')}</DisabledText>}
         >
-          {t('A Dashboard widget')}
+          {t('Dashboard widget')}
         </Feature>
       ),
-      textValue: t('A Dashboard widget'),
+      textValue: t('Dashboard widget'),
       children: dashboardsUrls,
       disabled: !dashboardsUrls || dashboardsUrls.length === 0,
       isSubmenu: true,

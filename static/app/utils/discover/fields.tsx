@@ -105,12 +105,7 @@ export type QueryFieldValue =
       alias?: string;
     }
   | {
-      function: [
-        AggregationKeyWithAlias,
-        string,
-        AggregationRefinement,
-        AggregationRefinement,
-      ];
+      function: [AggregationKeyWithAlias, string, ...AggregationRefinement[]];
       kind: 'function';
       alias?: string;
     };
@@ -118,7 +113,7 @@ export type QueryFieldValue =
 // Column is just an alias of a Query value
 export type Column = QueryFieldValue;
 
-export type Alignments = 'left' | 'right';
+type Alignments = 'left' | 'right';
 
 export type CountUnit = 'count';
 
@@ -186,6 +181,23 @@ export enum SizeUnit {
   EXBIBYTE = 'exbibyte',
   EXABYTE = 'exabyte',
 }
+
+// NOTE: These units are treated as base 10 (SI) vs. base 2 (IEC). That
+// intuitively makes sense for units like "kilobyte" (vs. kibibyte) where the
+// unit itself indicates its base. If this list contains "byte" (the default
+// unit for size data in Sentry), "byte" becomes a base 10 unit everywhere. That
+// will force effectively all tables and chart to format size data multipliers
+// using base 10. This is not a problem, it's just an important implication to
+// be aware of.
+export const ABYTE_UNITS = [
+  'byte',
+  'kilobyte',
+  'megabyte',
+  'gigabyte',
+  'terabyte',
+  'petabyte',
+  'exabyte',
+];
 
 // Sizes normalized to byte unit
 export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
@@ -923,7 +935,7 @@ export function getAggregateArg(field: string): string | null {
 
 export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
-  if (results && results.length === 3) {
+  if (results?.length === 3) {
     return {
       name: results[1]!,
       arguments: parseArguments(results[2]!),
@@ -1024,7 +1036,7 @@ export function stripEquationPrefix(field: string): string {
 export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
-  if (results && results.length === 2) {
+  if (results?.length === 2) {
     return parseInt(results[1]!, 10);
   }
   return -1;
@@ -1108,8 +1120,7 @@ export function explodeFieldString(field: string, alias?: string): Column {
       function: [
         results.name as AggregationKey,
         results.arguments[0] ?? '',
-        results.arguments[1] as AggregationRefinement,
-        results.arguments[2] as AggregationRefinement,
+        ...results.arguments.slice(1),
       ],
       alias,
     };
@@ -1385,11 +1396,12 @@ const alignedTypes: ColumnValueType[] = [
   'percent_change',
   'rate',
   'size',
+  'currency',
 ];
 
 export function fieldAlignment(
   columnName: string,
-  columnType?: undefined | ColumnValueType,
+  columnType?: ColumnValueType,
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
@@ -1670,6 +1682,13 @@ export function prettifyParsedFunction(func: ParsedFunction) {
     func.arguments[0] === 'message'
   ) {
     return 'count(logs)';
+  }
+
+  // special case for trace metrics format: function(value,metricName,metricType,unit)
+  // display as function(metricName)
+  if (func.arguments.length === 4 && func.arguments[0] === 'value') {
+    const metricName = func.arguments[1];
+    return `${func.name}(${prettifyTagKey(metricName ?? '')})`;
   }
 
   const args = func.arguments.map(prettifyTagKey);

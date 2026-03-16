@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {tct} from 'sentry/locale';
 import type {ChunkType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';

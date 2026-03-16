@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import type {MotionNodeAnimationOptions} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 type Props = {
   animateVariant: MotionNodeAnimationOptions['animate'];
 } & HTMLAttributes<HTMLDivElement>;
 
-function PageCorners({animateVariant, ...rest}: Props) {
+export function PageCorners({animateVariant, ...rest}: Props) {
   const baseTransition = testableTransition({type: 'spring', duration: 0.8});
   // Consistent enter delay for visible variants
   const delayedTransition = testableTransition({type: 'spring', duration: 0.8, delay: 1});
@@ -129,8 +129,6 @@ function PageCorners({animateVariant, ...rest}: Props) {
   );
 }
 
-export default PageCorners;
-
 const TopLeft = styled(motion.svg)`
   position: absolute;
   top: 0;
@@ -162,6 +160,6 @@ const Container = styled('div')`
   left: 0;
   right: 0;
   bottom: 0;
-  color: ${p => p.theme.tokens.background.transparent.accent.muted};
+  color: ${p => p.theme.tokens.graphics.accent.muted};
   opacity: 0.4;
 `;

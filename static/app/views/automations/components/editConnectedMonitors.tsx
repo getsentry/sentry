@@ -2,17 +2,17 @@ import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 're
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import FormContext from 'sentry/components/forms/formContext';
-import useDrawer from 'sentry/components/globalDrawer';
+import {FormContext} from 'sentry/components/forms/formContext';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';
@@ -21,10 +21,9 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import ConnectedMonitorsList from 'sentry/views/automations/components/connectedMonitorsList';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {makeDetectorListQueryKey} from 'sentry/views/detectors/hooks';
@@ -347,7 +346,7 @@ function EditConnectedMonitorsContent({
   );
 }
 
-export default function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
+export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
   const {form} = useContext(FormContext);
   const [firstLoad, setFirstLoad] = useState(true);
   const {connectedDetectors, isLoading} = useConnectedDetectors();

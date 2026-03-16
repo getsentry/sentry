@@ -15,12 +15,12 @@ fingerprint:
 - what-is-love
 title: Hello my sweet Love
 variants:
-  custom_fingerprint:
+  custom_server_fingerprint:
     client_values:
     - client-sent
     contributes: true
     hint: null
-    key: custom_fingerprint
+    key: custom_server_fingerprint
     matched_rule: message:"*love*" -> "what-is-love"
     type: custom_fingerprint
     values:

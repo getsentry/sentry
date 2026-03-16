@@ -5,11 +5,13 @@ import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLooku
 import {PlanMigrationFixture} from 'getsentry-test/fixtures/planMigration';
 import {RecurringCreditFixture} from 'getsentry-test/fixtures/recurringCredit';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+
 import {PendingChangesFixture} from 'getsentry/__fixtures__/pendingChanges';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {CohortId, PlanTier} from 'getsentry/types';
 import Overview from 'getsentry/views/subscriptionPage/overview';
 
@@ -74,13 +76,16 @@ describe('Subscription > Overview', () => {
         onDemandMaxSpend: 0,
         effectiveDate: '2021-09-01',
         onDemandEffectiveDate: '2021-09-01',
-        planDetails: PlanDetailsLookupFixture('mm2_a_100k')!,
+        planDetails: PlanDetailsLookupFixture('mm2_a_100k'),
       }),
     });
 
     it('renders pending changes', async () => {
       SubscriptionStore.set(organization.slug, subscription);
-      render(<Overview />, {organization});
+      render(<Overview />, {
+        organization,
+        additionalWrapper: SecondaryNavigationContextProvider,
+      });
 
       expect(
         await screen.findByText(/The following changes will take effect on/)
@@ -99,7 +104,10 @@ describe('Subscription > Overview', () => {
         body: planMigrations,
       });
 
-      render(<Overview />, {organization});
+      render(<Overview />, {
+        organization,
+        additionalWrapper: SecondaryNavigationContextProvider,
+      });
 
       expect(
         await screen.findByText(textWithMarkupMatcher("We're updating our Team Plan"))
@@ -126,7 +134,10 @@ describe('Subscription > Overview', () => {
         body: planMigrations,
       });
 
-      render(<Overview />, {organization});
+      render(<Overview />, {
+        organization,
+        additionalWrapper: SecondaryNavigationContextProvider,
+      });
 
       expect(
         await screen.findByText(/The following changes will take effect on/)
@@ -146,7 +157,10 @@ describe('Subscription > Overview', () => {
 
     it('renders empty', async () => {
       SubscriptionStore.set(organization.slug, subscription);
-      render(<Overview />, {organization});
+      render(<Overview />, {
+        organization,
+        additionalWrapper: SecondaryNavigationContextProvider,
+      });
 
       expect(await screen.findByText('Subscription')).toBeInTheDocument();
       expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
@@ -160,7 +174,10 @@ describe('Subscription > Overview', () => {
         body: [RecurringCreditFixture()],
       });
 
-      render(<Overview />, {organization});
+      render(<Overview />, {
+        organization,
+        additionalWrapper: SecondaryNavigationContextProvider,
+      });
 
       expect(await screen.findByTestId('recurring-credits-panel')).toBeInTheDocument();
 
@@ -184,7 +201,10 @@ describe('Subscription > Overview', () => {
       body: [RecurringCreditFixture()],
     });
 
-    render(<Overview />, {organization: billingOrg});
+    render(<Overview />, {
+      organization: billingOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
+    });
 
     expect(await screen.findByText(/Usage:/)).toBeInTheDocument(); // title of usage overview table
     expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
@@ -203,37 +223,13 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview />, {organization: billingOrg});
+    render(<Overview />, {
+      organization: billingOrg,
+      additionalWrapper: SecondaryNavigationContextProvider,
+    });
 
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(screen.queryByText(/Usage:/)).not.toBeInTheDocument();
     expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
-  });
-
-  it('opens codecov modal', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/codecov-jwt/`,
-      method: 'GET',
-      body: {token: 'my-token'},
-    });
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      planTier: PlanTier.AM1,
-      organization,
-    });
-    SubscriptionStore.set(organization.slug, subscription);
-
-    render(<Overview />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/settings/${organization.slug}/billing/overview/`,
-          query: {open_codecov_modal: '1'},
-        },
-      },
-    });
-    renderGlobalModal();
-
-    expect(await screen.findByText('Try Code Coverage')).toBeInTheDocument();
   });
 });

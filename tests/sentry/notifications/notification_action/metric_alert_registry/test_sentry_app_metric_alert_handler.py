@@ -22,7 +22,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
@@ -43,7 +42,6 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             config={
                 "target_identifier": str(self.sentry_app.id),
                 "target_type": ActionTarget.SENTRY_APP.value,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
         )
 

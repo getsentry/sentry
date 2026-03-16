@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Grid} from 'sentry/components/core/layout/grid';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricVisualize,

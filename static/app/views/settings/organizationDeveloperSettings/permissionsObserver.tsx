@@ -1,9 +1,10 @@
 import {Component, Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Alert} from '@sentry/scraps/alert';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
@@ -11,8 +12,8 @@ import {
   comparePermissionLevels,
   toResourcePermissions,
 } from 'sentry/utils/consolidatedScopes';
-import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
-import Subscriptions from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 type DefaultProps = {
   appPublished: boolean;
@@ -31,7 +32,7 @@ type State = {
   permissions: Permissions;
 };
 
-export default class PermissionsObserver extends Component<Props, State> {
+export class PermissionsObserver extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
     appPublished: false,

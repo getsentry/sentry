@@ -1,30 +1,31 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   ExternalActorSuggestion,
   Integration,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import IntegrationExternalMappingForm from './integrationExternalMappingForm';
+import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 
 type CodeOwnersAssociationMappings = Record<
   string,
@@ -54,7 +55,7 @@ type LocationQuery = {
   cursor?: string;
 };
 
-function IntegrationExternalMappings(props: Props) {
+export function IntegrationExternalMappings(props: Props) {
   const {
     integration,
     type,
@@ -85,7 +86,9 @@ function IntegrationExternalMappings(props: Props) {
     refetch,
   } = useApiQuery<CodeOwnersAssociationMappings>(
     [
-      `/organizations/${organization.slug}/codeowners-associations/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/codeowners-associations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: {provider: integration.provider.key}},
     ],
     {staleTime: 0}
@@ -159,17 +162,17 @@ function IntegrationExternalMappings(props: Props) {
         message={t('Are you sure you want to remove this external %s mapping?', type)}
       >
         <Button
-          borderless
+          priority="transparent"
           size="sm"
           icon={<IconDelete size="sm" />}
           aria-label={t('Remove user mapping')}
-          title={
-            canDelete
+          tooltipProps={{
+            title: canDelete
               ? t('Remove user mapping')
               : t(
                   'You must be an organization owner, manager or admin to delete an external user mapping.'
-                )
-          }
+                ),
+          }}
         />
       </Confirm>
     ) : (
@@ -220,8 +223,6 @@ function IntegrationExternalMappings(props: Props) {
   );
 }
 
-export default IntegrationExternalMappings;
-
 const MappingTable = styled(PanelTable)`
   overflow: visible;
   grid-template-columns: 1fr max-content 1fr 66px;
@@ -230,29 +231,29 @@ const MappingTable = styled(PanelTable)`
     p.isEmpty
       ? `
   > :not(:nth-child(n + 5)) {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p.theme.space.md} ${p.theme.space.xl};
   }`
       : `
   > :nth-child(n + 5) {
     display: flex;
     align-items: center;
-    padding: ${space(1.5)} ${space(2)};
+    padding: ${p.theme.space.lg} ${p.theme.space.xl};
   }
 
   > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p.theme.space.md} ${p.theme.space.xl};
   }
 `}
 
   > :nth-child(4n) {
-    padding-right: ${space(1)};
+    padding-right: ${p => p.theme.space.md};
     justify-content: end;
   }
 `;
 
 const StyledPluginIcon = styled(PluginIcon)`
   min-width: ${p => p.size}px;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 `;
 
 const ExternalNameColumn = styled('div')`

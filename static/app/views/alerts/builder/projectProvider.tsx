@@ -1,22 +1,23 @@
 import {useEffect, useState} from 'react';
 import {Outlet, useOutletContext} from 'react-router-dom';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Alert} from 'sentry/components/core/alert';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
-import useScrollToTop from 'sentry/utils/useScrollToTop';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useScrollToTop} from 'sentry/utils/useScrollToTop';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 type AlertBuilderOutletContext = {
@@ -37,7 +38,7 @@ export default function AlertBuilderProjectProvider() {
   const organization = useOrganization();
   const location = useLocation();
   const params = useParams<{projectId?: string}>();
-  const router = useRouter();
+  const navigate = useNavigate();
   const isMountedRef = useIsMountedRef();
   const [members, setMembers] = useState<Member[] | undefined>(undefined);
   useScrollToTop({location});
@@ -74,7 +75,8 @@ export default function AlertBuilderProjectProvider() {
         path: '/wizard/',
         organization,
       }) + `?referrer=${location.query.referrer}&project=:projectId`,
-      router
+      navigate,
+      location
     );
   }
 

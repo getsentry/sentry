@@ -2,12 +2,12 @@ import React, {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
-import {TextArea} from 'sentry/components/core/textarea';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
@@ -20,27 +20,27 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
-  useCodingAgentIntegrations,
+  organizationIntegrationsCodingAgents,
   useLaunchCodingAgent,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChat, IconChevron, IconCopy, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
-import AutofixHighlightPopup from './autofixHighlightPopup';
+import {AutofixHighlightPopup} from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
 
 function useSelectRootCause({groupId, runId}: {groupId: string; runId: string}) {
@@ -237,7 +237,7 @@ function CopyRootCauseButton({
   return (
     <Button
       size="sm"
-      title="Copy analysis as Markdown / LLM prompt"
+      tooltipProps={{title: 'Copy analysis as Markdown / LLM prompt'}}
       onClick={() => copy(text, {successMessage: t('Analysis copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
@@ -300,7 +300,7 @@ function SolutionActionButton({
         priority={primaryButtonPriority}
         busy={isSelectingRootCause}
         onClick={submitFindSolution}
-        title={findSolutionTitle}
+        tooltipProps={{title: findSolutionTitle}}
       >
         {t('Find Solution')}
       </Button>
@@ -386,7 +386,7 @@ function SolutionActionButton({
       };
 
   return (
-    <ButtonBar merged gap="0">
+    <ButtonBar>
       <Button
         size="sm"
         priority={primaryButtonPriority}
@@ -433,6 +433,7 @@ function AutofixRootCauseDisplay({
 }: AutofixRootCauseProps) {
   const cause = causes[0];
   const organization = useOrganization();
+  const user = useUser();
   const iconFocusRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement | null>(null);
   const [solutionText, setSolutionText] = useState('');
@@ -440,8 +441,9 @@ function AutofixRootCauseDisplay({
     groupId,
     runId,
   });
-  const {data: codingAgentResponse, isLoading: isLoadingAgents} =
-    useCodingAgentIntegrations();
+  const {data: codingAgentResponse, isLoading: isLoadingAgents} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
   const codingAgentIntegrations = codingAgentResponse?.integrations ?? [];
   const {mutate: launchCodingAgent, isPending: isLaunchingAgent} = useLaunchCodingAgent(
     groupId,
@@ -528,6 +530,13 @@ function AutofixRootCauseDisplay({
       organization,
       group_id: groupId,
     });
+    trackAnalytics('coding_integration.send_to_agent_clicked', {
+      organization,
+      group_id: groupId,
+      provider: integration.provider,
+      source: 'autofix',
+      user_id: user.id,
+    });
   };
 
   // Shared UI state for solution action controls
@@ -591,8 +600,8 @@ function AutofixRootCauseDisplay({
           {t('Root Cause')}
           <Button
             size="zero"
-            borderless
-            title={t('Chat with Seer')}
+            priority="transparent"
+            tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Root Cause Chat"
             analyticsEventKey="autofix.root_cause.chat"
@@ -698,12 +707,12 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
 
 const Description = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  padding-bottom: ${space(2)};
-  margin-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const NoCausesPadding = styled('div')`
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
 `;
 
 const CausesContainer = styled('div')`
@@ -716,7 +725,7 @@ const CausesContainer = styled('div')`
 `;
 
 const Content = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;
 
 const HeaderText = styled('div')`
@@ -724,16 +733,17 @@ const HeaderText = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const CustomRootCausePadding = styled('div')`
-  padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xs']} ${p => p.theme.space.xl}
+    ${p => p.theme.space['2xs']};
 `;
 
 const CauseDescription = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const AnimationWrapper = styled(motion.div)`

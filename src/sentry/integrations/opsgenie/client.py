@@ -82,7 +82,7 @@ class OpsgenieClient(ApiClient):
                 "Triggering Rules": ", ".join([rule.label for rule in rules]),
                 "Release": data.release,
             },
-            "tags": [f'{str(x).replace(",", "")}:{str(y).replace(",", "")}' for x, y in event.tags],
+            "tags": [f"{str(x).replace(',', '')}:{str(y).replace(',', '')}" for x, y in event.tags],
         }
         if group:
             payload["alias"] = f"sentry: {group.id}"

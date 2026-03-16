@@ -1,12 +1,11 @@
 import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Grid} from 'sentry/components/core/layout/grid';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {BranchSelector} from 'sentry/components/prevent/branchSelector/branchSelector';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {DateSelector} from 'sentry/components/prevent/dateSelector/dateSelector';
@@ -20,8 +19,8 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import TestsPreOnboardingPage from 'sentry/views/prevent/tests/preOnboarding';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {TestsPreOnboardingPage} from 'sentry/views/prevent/tests/preOnboarding';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
 import {
   useInfiniteTestResults,
@@ -171,7 +170,7 @@ function Content({response}: TestResultsContentData) {
       <div>
         <TestAnalyticsTable response={response} sort={sorts[0]} />
         <Flex justify="right">
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}

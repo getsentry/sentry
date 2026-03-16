@@ -1,37 +1,35 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {LinkButton} from '@sentry/scraps/button';
+import type {FlexProps} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {addMessage} from 'sentry/actionCreators/indicator';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {FlexProps} from 'sentry/components/core/layout';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SavedQueryVersions} from 'sentry/types/organization';
 import {percent} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -211,10 +209,13 @@ export function GroupTagValues() {
         <Fragment key={tagValueIdx}>
           <NameColumn>
             <NameWrapper data-test-id="group-tag-value">
-              <GlobalSelectionLink
+              <Link
                 to={{
                   pathname: `${baseUrl}events/`,
-                  query: {query: issuesQuery},
+                  query: {
+                    ...extractSelectionParameters(location.query),
+                    query: issuesQuery,
+                  },
                 }}
               >
                 {key === 'user' ? (
@@ -226,7 +227,7 @@ export function GroupTagValues() {
                 ) : (
                   <DeviceName value={tagName} />
                 )}
-              </GlobalSelectionLink>
+              </Link>
             </NameWrapper>
 
             {tagValue.email && (
@@ -295,7 +296,7 @@ export function GroupTagValues() {
       <Layout.Main width="full">
         <Flex justify="between" align="center" wrap="wrap" marginBottom="xl">
           <Title>{t('Tag Details')}</Title>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <LinkButton
               size="sm"
               priority="default"
@@ -313,7 +314,7 @@ export function GroupTagValues() {
                 },
               }}
             />
-          </ButtonBar>
+          </Grid>
         </Flex>
         <StyledPanelTable
           isLoading={isLoading}
@@ -365,13 +366,13 @@ const StyledPanelTable = styled(PanelTable)`
   }
 
   & > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 `;
 
 const StyledLoadingError = styled(LoadingError)`
   grid-column: 1 / -1;
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
   border-radius: 0;
   border-width: 1px 0;
 `;
@@ -390,7 +391,7 @@ const StyledSortLink = styled(Link)`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 function Column(props: FlexProps) {

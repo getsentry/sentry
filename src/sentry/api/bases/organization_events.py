@@ -30,10 +30,16 @@ from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
-from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.discover.models import (
+    DatasetSourcesTypes,
+    DiscoverSavedQuery,
+    DiscoverSavedQueryTypes,
+)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
-from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardDatasetSourcesTypes
+from sentry.models.dashboard_widget import (
+    DatasetSourcesTypes as DashboardDatasetSourcesTypes,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -43,7 +49,8 @@ from sentry.search.eap.constants import (
     SAMPLING_MODE_MAP,
     VALID_GRANULARITIES,
 )
-from sentry.search.eap.types import AdditionalQueries
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import AdditionalQueries, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
@@ -55,7 +62,11 @@ from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
-from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
+from sentry.utils.dates import (
+    get_interval_from_range,
+    get_rollup_from_request,
+    parse_stats_period,
+)
 from sentry.utils.http import absolute_uri
 from sentry.utils.snuba import MAX_FIELDS, SnubaTSResult
 
@@ -101,7 +112,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             features.has("organizations:discover-basic", organization, actor=request.user)
             or features.has("organizations:performance-view", organization, actor=request.user)
             or features.has(
-                "organizations:visibility-explore-view", organization, actor=request.user
+                "organizations:visibility-explore-view",
+                organization,
+                actor=request.user,
             )
         )
 
@@ -132,6 +145,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_dataset(self, request: Request) -> Any:
         dataset_label = request.GET.get("dataset", Dataset.Discover.value)
+        # Feature flag the occurrence endpoint
+        if (
+            dataset_label == SupportedTraceItemType.OCCURRENCES.value
+            and not EAPOccurrencesComparator.should_use_experiment("api.events.endpoints")
+        ):
+            raise ParseError(detail=f"{dataset_label} is not supported currently")
         result = get_dataset(dataset_label)
         if result is None:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
@@ -178,7 +197,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 organization=organization,
                 query_string=query,
                 sampling_mode=sampling_mode,
-                debug=request.user.is_superuser and "debug" in request.GET,
+                debug=request.user.is_superuser and request.GET.get("debug", False),
                 case_insensitive=request.GET.get("caseInsensitive", "0") == "1",
             )
             return params
@@ -325,20 +344,36 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             units[key], meta[key] = self.get_unit_and_type(key, value)
         return meta, units
 
+    def _get_rate_unit(self, field: str) -> str | None:
+        """Get the rate unit for a field by checking for known rate functions."""
+        # Only use the opening parenthesis to identify rate functions because
+        # some functions may contain arguments, making a direct string match not work.
+        per_second_fns = {"eps(", "sps(", "tps(", "sample_eps(", "per_second("}
+        per_minute_fns = {"epm(", "spm(", "tpm(", "sample_epm(", "per_minute("}
+
+        if any(field.startswith(fn) for fn in per_second_fns):
+            return "1/second"
+        if any(field.startswith(fn) for fn in per_minute_fns):
+            return "1/minute"
+        # For equation fields, check if any known rate function appears in the expression
+        if field.startswith("equation|"):
+            for fn in per_second_fns:
+                if fn in field:
+                    return "1/second"
+            for fn in per_minute_fns:
+                if fn in field:
+                    return "1/minute"
+        return None
+
     def get_unit_and_type(self, field: str, field_type: str) -> tuple[str | None, str]:
         if field_type in SIZE_UNITS:
             return field_type, "size"
         elif field_type in DURATION_UNITS:
             return field_type, "duration"
         elif field_type == "rate":
-            if field in ["eps()", "sps()", "tps()", "sample_eps()"]:
-                return "1/second", field_type
-            elif field in ["epm()", "spm()", "tpm()", "sample_epm()"]:
-                return "1/minute", field_type
-            elif field in ["per_second()"]:
-                return "1/second", field_type
-            elif field in ["per_minute()"]:
-                return "1/minute", field_type
+            unit = self._get_rate_unit(field)
+            if unit is not None:
+                return unit, field_type
             else:
                 logger.warning(
                     "sentry.api.bases.organization_events.get_unit_and_type encountered an unknown rate type",
@@ -464,7 +499,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             convert_fields_for_upsampling(data, fields_meta)
 
     def handle_issues(
-        self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization
+        self,
+        results: Sequence[Any],
+        project_ids: Sequence[int],
+        organization: Organization,
     ) -> None:
         issue_ids = {row.get("issue.id") for row in results if row.get("issue.id")}
         issues = Group.objects.get_issues_mapping(issue_ids, project_ids, organization)
@@ -473,7 +511,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 result["issue"] = issues.get(result["issue.id"], "unknown")
 
     def handle_readable_device(
-        self, results: Sequence[Any], project_ids: Sequence[int], organization: Organization
+        self,
+        results: Sequence[Any],
+        project_ids: Sequence[int],
+        organization: Organization,
     ) -> None:
         for result in results:
             if "device" in result:
@@ -482,7 +523,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     result["readable"] = readable_value
 
     def get_rollup(
-        self, request: Request, snuba_params: SnubaParams, top_events: int, use_rpc: bool
+        self,
+        request: Request,
+        snuba_params: SnubaParams,
+        top_events: int,
+        use_rpc: bool,
     ) -> int:
         """TODO: we should eventually rely on `SnubaParams.granularity_secs` instead"""
         try:
@@ -575,7 +620,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 query_columns = get_query_columns(columns, rollup)
             with sentry_sdk.start_span(op="discover.endpoint", name="base.stats_query"):
                 result = get_event_stats(
-                    query_columns, query, snuba_params, rollup, zerofill_results, comparison_delta
+                    query_columns,
+                    query,
+                    snuba_params,
+                    rollup,
+                    zerofill_results,
+                    comparison_delta,
                 )
 
         serializer = SnubaTSResultSerializer(organization, None, request.user)
@@ -609,7 +659,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                             )
                     else:
                         column = resolve_axis_column(
-                            query_columns[0], 0, transform_alias_to_input_format, use_rpc
+                            query_columns[0],
+                            0,
+                            transform_alias_to_input_format,
+                            use_rpc,
                         )
                         results[key] = serializer.serialize(
                             event_result,

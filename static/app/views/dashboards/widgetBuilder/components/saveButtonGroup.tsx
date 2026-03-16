@@ -1,6 +1,6 @@
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 
 import type {SaveButtonProps} from './saveButton';
@@ -10,7 +10,12 @@ type SaveButtonGroupProps = SaveButtonProps & {
   onClose: () => void;
 };
 
-function SaveButtonGroup({isEditing, onSave, setError, onClose}: SaveButtonGroupProps) {
+export function SaveButtonGroup({
+  isEditing,
+  onSave,
+  setError,
+  onClose,
+}: SaveButtonGroupProps) {
   return (
     <Flex gap="lg">
       <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
@@ -20,5 +25,3 @@ function SaveButtonGroup({isEditing, onSave, setError, onClose}: SaveButtonGroup
     </Flex>
   );
 }
-
-export default SaveButtonGroup;

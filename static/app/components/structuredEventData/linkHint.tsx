@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -12,7 +13,7 @@ interface Props {
   meta?: Record<any, any>;
 }
 
-export default function LinkHint({meta, value}: Props) {
+export function LinkHint({meta, value}: Props) {
   if (!isUrl(value) || defined(meta)) {
     return null;
   }

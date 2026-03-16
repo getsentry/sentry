@@ -1,37 +1,32 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ActorAvatar, TeamAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {CompactSelect, type SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Access from 'sentry/components/acl/access';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {
-  CompactSelect,
-  type SelectOptionOrSection,
-} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TextOverflow from 'sentry/components/textOverflow';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEllipsis, IconUser} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
-import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
-import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
+import {AlertLastIncidentActivationInfo} from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
+import {AlertRuleStatus} from 'sentry/views/alerts/list/rules/alertRuleStatus';
+import {CombinedAlertBadge} from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 import {getActor} from 'sentry/views/alerts/list/rules/utils';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
@@ -44,6 +39,7 @@ import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/has
 
 type Props = {
   hasEditAccess: boolean;
+  hasMetricAlerts: boolean;
   onDelete: (projectId: string, rule: CombinedAlerts) => void;
   onOwnerChange: (projectId: string, rule: CombinedAlerts, ownerValue: string) => void;
   organization: Organization;
@@ -52,7 +48,7 @@ type Props = {
   rule: CombinedAlerts;
 };
 
-function RuleListRow({
+export function RuleListRow({
   rule,
   projectsLoaded,
   projects,
@@ -60,6 +56,7 @@ function RuleListRow({
   onDelete,
   onOwnerChange,
   hasEditAccess,
+  hasMetricAlerts,
 }: Props) {
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
@@ -74,8 +71,7 @@ function RuleListRow({
       : rule.projects[0]!;
 
   const ruleType =
-    rule &&
-    rule.type === CombinedAlertType.METRIC &&
+    rule?.type === CombinedAlertType.METRIC &&
     getAlertTypeFromAggregateDataset({
       aggregate: rule.aggregate,
       dataset: rule.dataset,
@@ -125,6 +121,9 @@ function RuleListRow({
   const canEdit = ownerActor?.id
     ? userTeams.some(team => team.id === ownerActor.id)
     : true;
+
+  const isMetricAlert = rule.type === CombinedAlertType.METRIC;
+  const shouldDisableAlertRule = isMetricAlert && !hasMetricAlerts;
 
   const activeActions = {
     [CombinedAlertType.ISSUE]: ['edit', 'duplicate', 'delete'],
@@ -279,9 +278,22 @@ function RuleListRow({
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
         <AlertNameAndStatus>
           <AlertName>
-            <Link to={ruleUrl()}>
-              {rule.name} {titleBadge}
-            </Link>
+            {shouldDisableAlertRule ? (
+              <Tooltip
+                skipWrapper
+                title={t(
+                  'This metric alert is not available. Your organization does not have access to this feature.'
+                )}
+              >
+                <DisabledAlertName>
+                  {rule.name} {titleBadge}
+                </DisabledAlertName>
+              </Tooltip>
+            ) : (
+              <Link to={ruleUrl()}>
+                {rule.name} {titleBadge}
+              </Link>
+            )}
           </AlertName>
           <AlertIncidentDate>
             <AlertLastIncidentActivationInfo rule={rule} />
@@ -319,7 +331,7 @@ function RuleListRow({
                 disabled={!hasEditAccess}
                 options={dropdownTeams}
                 value={assignee}
-                searchable
+                search={{placeholder: t('Filter teams')}}
                 trigger={triggerProps => (
                   <OverlayTrigger.Button
                     {...triggerProps}
@@ -327,35 +339,43 @@ function RuleListRow({
                       assignee ? `Assigned to #${teamName?.name}` : t('Unassigned')
                     }
                     size="zero"
-                    borderless
+                    priority="transparent"
                   >
                     {avatarElement}
                   </OverlayTrigger.Button>
                 )}
-                searchPlaceholder={t('Filter teams')}
                 onChange={handleOwnerChange}
               />
             )}
           </Flex>
         )}
       </Flex>
-      <ActionsColumn>
+      <Flex justify="center" align="center" padding="md">
         <Access access={['alerts:write']}>
-          {({hasAccess}) => (
-            <DropdownMenu
-              items={actions}
-              position="bottom-end"
-              triggerProps={{
-                'aria-label': t('Actions'),
-                size: 'xs',
-                icon: <IconEllipsis />,
-                showChevron: false,
-              }}
-              disabledKeys={hasAccess && canEdit ? [] : ['delete']}
-            />
-          )}
+          {({hasAccess}) => {
+            const disabledKeys: string[] = [];
+            if (!hasAccess || !canEdit) {
+              disabledKeys.push('delete');
+            }
+            if (shouldDisableAlertRule) {
+              disabledKeys.push('edit', 'duplicate');
+            }
+            return (
+              <DropdownMenu
+                items={actions}
+                position="bottom-end"
+                triggerProps={{
+                  'aria-label': t('Actions'),
+                  size: 'xs',
+                  icon: <IconEllipsis />,
+                  showChevron: false,
+                }}
+                disabledKeys={disabledKeys}
+              />
+            );
+          }}
         </Access>
-      </ActionsColumn>
+      </Flex>
     </ErrorBoundary>
   );
 }
@@ -367,8 +387,10 @@ const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
   text-overflow: ellipsis;
   display: flex;
   align-items: center;
-  gap: ${space(2)};
-  ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
+  gap: ${p => p.theme.space.xl};
+  ${p =>
+    p.isIssueAlert &&
+    `padding: ${p.theme.space['2xl']} ${p.theme.space.xl}; line-height: 2.4;`}
 `;
 
 const AlertNameAndStatus = styled('div')`
@@ -401,13 +423,6 @@ const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
 `;
 
-const ActionsColumn = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${space(1)};
-`;
-
 const IconContainer = styled('div')`
   display: flex;
   align-items: center;
@@ -417,16 +432,19 @@ const IconContainer = styled('div')`
 `;
 
 const Label = styled(TextOverflow)`
-  margin-left: ${space(0.75)};
+  margin-left: ${p => p.theme.space.sm};
 `;
 
 const MarginLeft = styled('div')`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
-  margin-right: ${space(1.5)};
+  margin-right: ${p => p.theme.space.lg};
 `;
 
-export default RuleListRow;
+const DisabledAlertName = styled('span')`
+  color: ${p => p.theme.tokens.content.disabled};
+  cursor: not-allowed;
+`;

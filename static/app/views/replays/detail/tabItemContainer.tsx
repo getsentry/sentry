@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-const TabItemContainer = styled('div')`
+export const TabItemContainer = styled('div')`
   position: relative;
   flex-grow: 1;
   overflow: hidden;
@@ -28,5 +28,3 @@ const TabItemContainer = styled('div')`
     border-bottom-color: ${p => p.theme.tokens.border.accent.vibrant};
   }
 `;
-
-export default TabItemContainer;

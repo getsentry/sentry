@@ -4,8 +4,9 @@ import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -50,7 +51,7 @@ type ReadableQuery = {
 };
 
 // This is the `query` property on our SavedQuery, which indicates the actualy query portion of the saved query, hence SavedQueryQuery.
-export class SavedQueryQuery {
+class SavedQueryQuery {
   fields: string[];
   mode: Mode;
   orderby: string;
@@ -189,7 +190,9 @@ export function useGetSavedQueries({
 
   const {data, isLoading, getResponseHeader, ...rest} = useApiQuery<ReadableSavedQuery[]>(
     [
-      `/organizations/${organization.slug}/explore/saved/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           sortBy,
@@ -208,7 +211,13 @@ export function useGetSavedQueries({
 
   const pageLinks = getResponseHeader?.('Link');
 
-  const savedQueries = useMemo(() => data?.map(q => new SavedQuery(q)), [data]);
+  const savedQueries = useMemo(
+    () =>
+      data
+        ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
+        .map(q => new SavedQuery(q)),
+    [data]
+  );
   return {data: savedQueries, isLoading, pageLinks, ...rest};
 }
 
@@ -218,7 +227,11 @@ export function useInvalidateSavedQueries() {
 
   return useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/explore/saved/`],
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ],
     });
   }, [queryClient, organization.slug]);
 }
@@ -226,13 +239,24 @@ export function useInvalidateSavedQueries() {
 export function useGetSavedQuery(id?: string) {
   const organization = useOrganization();
   const {data, isLoading, ...rest} = useApiQuery<ReadableSavedQuery>(
-    [`/organizations/${organization.slug}/explore/saved/${id}/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+        path: {organizationIdOrSlug: organization.slug, id: id!},
+      }),
+    ],
     {
       staleTime: 0,
       enabled: defined(id),
     }
   );
-  const savedQuery = useMemo(() => (defined(data) ? new SavedQuery(data) : data), [data]);
+  const savedQuery = useMemo(() => {
+    if (!defined(data)) {
+      return undefined;
+    }
+    return Array.isArray(data.query) && data.query.length > 0
+      ? new SavedQuery(data)
+      : undefined;
+  }, [data]);
   return {data: savedQuery, isLoading, ...rest};
 }
 
@@ -242,7 +266,11 @@ export function useInvalidateSavedQuery(id?: string) {
 
   return useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${organization.slug}/explore/saved/${id}/`],
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+          path: {organizationIdOrSlug: organization.slug, id: id!},
+        }),
+      ],
     });
   }, [queryClient, organization.slug, id]);
 }

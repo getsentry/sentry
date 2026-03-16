@@ -1,4 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
@@ -7,7 +8,7 @@ type Props = {
   integrations: Integration[] | null;
 };
 
-function ReinstallAlert({integrations = []}: Props) {
+export function ReinstallAlert({integrations = []}: Props) {
   const statusList = integrations?.map(getIntegrationStatus);
   if (statusList?.includes('disabled')) {
     return (
@@ -20,5 +21,3 @@ function ReinstallAlert({integrations = []}: Props) {
   }
   return null;
 }
-
-export default ReinstallAlert;

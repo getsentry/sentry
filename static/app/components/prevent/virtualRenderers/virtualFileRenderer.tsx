@@ -1,9 +1,11 @@
 import {useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useWindowVirtualizer, type Virtualizer} from '@tanstack/react-virtual';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {ColorBar} from 'sentry/components/prevent/virtualRenderers/colorBar';
 import {
   LINE_HEIGHT,
@@ -20,7 +22,6 @@ import {useIsOverflowing} from 'sentry/components/prevent/virtualRenderers/useIs
 import {useSyncScrollMargin} from 'sentry/components/prevent/virtualRenderers/useSyncScrollMargin';
 import {useSyncTotalWidth} from 'sentry/components/prevent/virtualRenderers/useSyncTotalWidth';
 import {useSyncWrapperWidth} from 'sentry/components/prevent/virtualRenderers/useSyncWrapperWidth';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {SyntaxHighlightLine} from 'sentry/utils/usePrismTokens';
@@ -174,6 +175,7 @@ export function VirtualFileRenderer({
   coverage,
   fileName,
 }: VirtualFileRendererProps) {
+  const theme = useTheme();
   const widthDivRef = useRef<HTMLPreElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const scrollBarRef = useRef<HTMLDivElement>(null);
@@ -250,8 +252,8 @@ export function VirtualFileRenderer({
             padding: 0,
             borderTopLeftRadius: '0px',
             borderTopRightRadius: '0px',
-            borderBottomLeftRadius: isOverflowing ? '0px' : space(0.75),
-            borderBottomRightRadius: isOverflowing ? '0px' : space(0.75),
+            borderBottomLeftRadius: isOverflowing ? '0px' : theme.space.sm,
+            borderBottomRightRadius: isOverflowing ? '0px' : theme.space.sm,
           }}
         >
           <CodeBody
@@ -309,9 +311,9 @@ const CodeDisplayOverlay = styled('div')<{styleHeight: number}>`
   scrollbar-width: none;
   position: relative;
   height: ${p => p.styleHeight + 2}px;
-  border-left: ${space(0.25)} solid ${p => p.theme.colors.gray200};
-  border-right: ${space(0.25)} solid ${p => p.theme.colors.gray200};
-  border-bottom: ${space(0.25)} solid ${p => p.theme.colors.gray200};
+  border-left: ${p => p.theme.space['2xs']} solid ${p => p.theme.colors.gray200};
+  border-right: ${p => p.theme.space['2xs']} solid ${p => p.theme.colors.gray200};
+  border-bottom: ${p => p.theme.space['2xs']} solid ${p => p.theme.colors.gray200};
 `;
 
 const CodePreWrapper = styled('pre')<{isOverflowing: boolean}>`

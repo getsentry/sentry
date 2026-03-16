@@ -5,20 +5,19 @@ import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 import {useVirtualizer, useWindowVirtualizer} from '@tanstack/react-virtual';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import FileSize from 'sentry/components/fileSize';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import JumpButtons from 'sentry/components/replays/jumpButtons';
-import useJumpButtons from 'sentry/components/replays/useJumpButtons';
+import {FileSize} from 'sentry/components/fileSize';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {JumpButtons} from 'sentry/components/replays/jumpButtons';
+import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -79,6 +78,7 @@ type LogsTableProps = {
     scrollToDisabled?: boolean;
   };
   allowPagination?: boolean;
+  booleanAttributes?: TagCollection;
   embedded?: boolean;
   embeddedOptions?: {
     openWithExpandedIds?: string[];
@@ -109,6 +109,7 @@ export function LogsInfiniteTable({
   emptyRenderer,
   numberAttributes,
   stringAttributes,
+  booleanAttributes,
   scrollContainer,
   embeddedStyling,
   embeddedOptions,
@@ -157,7 +158,7 @@ export function LogsInfiniteTable({
     return index === -1 ? -2 : index; // If the event is older than all the data, add it to the end with a sentinel value of -2. This causes the useEffect to not continously add it.
   }, [additionalData, baseData, isPending, isError]);
 
-  const data: LogTableRowItem[] = useMemo(() => {
+  const data = useMemo(() => {
     if (
       !additionalData?.event ||
       !baseData ||
@@ -244,13 +245,15 @@ export function LogsInfiniteTable({
     [expandedLogRowsHeights, data]
   );
 
+  const searchString = search.formatString();
   const highlightTerms = useMemo(() => {
     const terms = getLogBodySearchTerms(search);
     if (localOnlyItemFilters?.filterText) {
       terms.push(localOnlyItemFilters.filterText);
     }
     return terms;
-  }, [search, localOnlyItemFilters?.filterText]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchString, localOnlyItemFilters?.filterText]);
 
   const windowVirtualizer = useWindowVirtualizer({
     count: data?.length ?? 0,
@@ -416,7 +419,7 @@ export function LogsInfiniteTable({
       '.log-table-row-chevron-button': {
         width: '24px',
         height: '24px',
-        padding: `${space(0.5)} ${space(0.75)}`,
+        padding: '4px 6px',
         marginRight: '4px',
         display: 'flex',
         alignItems: 'center',
@@ -461,6 +464,7 @@ export function LogsInfiniteTable({
             isFrozen={embedded}
             numberAttributes={numberAttributes}
             stringAttributes={stringAttributes}
+            booleanAttributes={booleanAttributes}
             onResizeMouseDown={onResizeMouseDown}
           />
         )}
@@ -512,7 +516,6 @@ export function LogsInfiniteTable({
                   embeddedOptions={embeddedOptions}
                   sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                   key={virtualRow.key}
-                  canDeferRenderElements
                   onExpand={handleExpand}
                   onCollapse={handleCollapse}
                   logStart={logStart}
@@ -566,10 +569,11 @@ export function LogsInfiniteTable({
 
 function LogsTableHeader({
   isFrozen,
+  booleanAttributes,
   numberAttributes,
   stringAttributes,
   onResizeMouseDown,
-}: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes'> & {
+}: Pick<LogsTableProps, 'numberAttributes' | 'stringAttributes' | 'booleanAttributes'> & {
   isFrozen: boolean;
   onResizeMouseDown: (e: React.MouseEvent<HTMLDivElement>, index: number) => void;
 }) {
@@ -592,7 +596,8 @@ function LogsTableHeader({
           const headerLabel = getTableHeaderLabel(
             field,
             stringAttributes,
-            numberAttributes
+            numberAttributes,
+            booleanAttributes
           );
 
           if (isPending) {

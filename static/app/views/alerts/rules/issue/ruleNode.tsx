@@ -2,18 +2,18 @@ import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Input, NumberInput} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {NumberInput} from 'sentry/components/core/input/numberInput';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
-import TicketRuleModal from 'sentry/components/externalIssues/ticketRuleModal';
+import {TicketRuleModal} from 'sentry/components/externalIssues/ticketRuleModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IssueAlertConfiguration,
   IssueAlertRuleAction,
@@ -33,7 +33,7 @@ import {VALID_ISSUE_CATEGORIES} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
-import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
+import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 
 interface FieldProps {
   data: Props['data'];
@@ -360,10 +360,6 @@ function RuleNode({
       label = 'Send a notification to {targetType}';
     }
 
-    if (data.id === IssueAlertConditionType.REAPPEARED_EVENT) {
-      label = t('The issue changes state from archived to escalating');
-    }
-
     const parts = label.split(/({\w+})/).map((part, i) => {
       if (!/^{\w+}$/.test(part)) {
         return <Separator key={i}>{part}</Separator>;
@@ -597,12 +593,12 @@ function RuleNode({
 
   return (
     <RuleRowContainer incompatible={incompatibleRule}>
-      <RuleRow>
-        <Rule>
+      <Flex align="center" padding="md">
+        <Flex align="center" wrap="wrap" flex="1">
           <input type="hidden" name="id" value={data.id} />
           {renderRow()}
           {renderIntegrationButton()}
-        </Rule>
+        </Flex>
         <DeleteButton
           disabled={disabled}
           aria-label={t('Delete Node')}
@@ -610,7 +606,7 @@ function RuleNode({
           size="sm"
           icon={<IconDelete />}
         />
-      </RuleRow>
+      </Flex>
       {renderIncompatibleRuleBanner()}
       {conditionallyRenderHelpfulBanner()}
     </RuleRowContainer>
@@ -636,15 +632,9 @@ const InlineSelectControl = styled(Select)`
 `;
 
 const Separator = styled('span')`
-  margin-right: ${space(1)};
-  padding-top: ${space(0.5)};
-  padding-bottom: ${space(0.5)};
-`;
-
-const RuleRow = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
+  padding-top: ${p => p.theme.space.xs};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
@@ -652,13 +642,6 @@ const RuleRowContainer = styled('div')<{incompatible?: boolean}>`
   border-radius: ${p => p.theme.radius.md};
   border: 1px ${p => p.theme.tokens.border.secondary} solid;
   border-color: ${p => (p.incompatible ? p.theme.colors.red200 : 'none')};
-`;
-
-const Rule = styled('div')`
-  display: flex;
-  align-items: center;
-  flex: 1;
-  flex-wrap: wrap;
 `;
 
 const DeleteButton = styled(Button)`

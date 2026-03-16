@@ -2,16 +2,16 @@ import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconCircleFill, IconClose, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {DrawerContainerRefContext} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
@@ -291,11 +291,11 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.traceGridRef.style.gridTemplateRows = `1fr minmax(${minimizedBottomDrawerSize}px, 0%)`;
         size.current = minimizedBottomDrawerSize;
       } else if (traceStateRef.current.preferences.layout === 'drawer left') {
-        props.traceGridRef.style.gridTemplateColumns = `minmax(${0}px, 0%) 1fr`;
+        props.traceGridRef.style.gridTemplateColumns = `minmax(0px, 0%) 1fr`;
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
         size.current = 0;
       } else {
-        props.traceGridRef.style.gridTemplateColumns = `1fr minmax(${0}px, 0%)`;
+        props.traceGridRef.style.gridTemplateColumns = `1fr minmax(0px, 0%)`;
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
         size.current = 0;
       }
@@ -478,7 +478,6 @@ function TraceLayoutMinimizeButton(props: {
     <CloseButton
       priority="link"
       size="xs"
-      borderless
       aria-label={t('Close Drawer')}
       icon={<StyledIconClose />}
       onClick={props.onClick}
@@ -504,7 +503,7 @@ const CloseButton = styled(Button)`
 `;
 
 const StyledIconCircleFilled = styled(IconCircleFill)<{fill: string}>`
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
   fill: ${p => p.fill};
 `;
 
@@ -563,8 +562,8 @@ const TabsHeightContainer = styled('div')<{
 const TabsLayout = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr auto;
-  padding-left: ${space(1)};
-  padding-right: ${space(0.5)};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.xs};
   width: 100%;
 `;
 
@@ -575,7 +574,7 @@ const TabsContainer = styled('ul')`
   width: 100%;
   align-items: center;
   justify-content: left;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   padding-left: 0;
   margin-bottom: 0;
 `;
@@ -589,16 +588,17 @@ const TabActions = styled('ul')`
   flex: none;
 
   button {
-    padding: 0 ${space(0.25)};
+    padding: 0 ${p => p.theme.space['2xs']};
   }
 `;
 
 const TabSeparator = styled('span')`
   display: inline-block;
-  margin-left: ${space(0.5)};
-  margin-right: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
+  margin-right: ${p => p.theme.space.xs};
   height: 16px;
   width: 1px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background-color: ${p => p.theme.tokens.border.primary};
   transform: translateY(3px);
 `;
@@ -618,7 +618,7 @@ const Tab = styled('li')`
   display: flex;
   align-items: center;
   border-bottom: 2px solid transparent;
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   position: relative;
 
   &.Static + li:not(.Static) {
@@ -633,6 +633,7 @@ const Tab = styled('li')`
       transform: translateY(-50%);
       height: 16px;
       width: 1px;
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.primary};
     }
   }
@@ -656,7 +657,7 @@ const TabButtonIndicator = styled('div')<{backgroundColor: string}>`
   height: 12px;
   min-width: 12px;
   border-radius: 2px;
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
   background-color: ${p => p.backgroundColor};
 `;
 
@@ -671,7 +672,7 @@ const TabButton = styled('button')`
 
   border-radius: 0;
   margin: 0;
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.primary};
   background: transparent;
@@ -714,6 +715,6 @@ const StyledIconPin = styled(IconPin)`
 `;
 
 const ContentWrapper = styled('div')`
-  inset: ${space(1)};
+  inset: ${p => p.theme.space.md};
   position: absolute;
 `;

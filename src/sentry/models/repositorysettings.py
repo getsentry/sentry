@@ -5,11 +5,12 @@ from enum import StrEnum
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
+from django.db.models.functions import Now
 
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 
 
 class CodeReviewTrigger(StrEnum):
@@ -29,7 +30,7 @@ class CodeReviewSettings:
     triggers: list[CodeReviewTrigger]
 
 
-@region_silo_model
+@cell_silo_model
 class RepositorySettings(Model):
     """
     Stores (organization) repository specific settings.
@@ -45,6 +46,8 @@ class RepositorySettings(Model):
         models.CharField(max_length=32, choices=CodeReviewTrigger.as_choices()),
         default=list,
     )
+    date_added = models.DateTimeField(db_default=Now())
+    date_updated = models.DateTimeField(db_default=Now(), auto_now=True)
 
     class Meta:
         app_label = "sentry"

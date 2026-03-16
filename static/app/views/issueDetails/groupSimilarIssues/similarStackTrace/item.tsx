@@ -1,21 +1,22 @@
 import {useCallback, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+
 import {openDiffModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import Count from 'sentry/components/count';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {Count} from 'sentry/components/count';
+import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
+import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
 import {Hovercard} from 'sentry/components/hovercard';
-import PanelItem from 'sentry/components/panels/panelItem';
-import ScoreBar from 'sentry/components/scoreBar';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {ScoreBar} from 'sentry/components/scoreBar';
 import SimilarScoreCard from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
@@ -94,9 +95,9 @@ export function SimilarStackTraceItem(props: Props) {
     [issue, props]
   );
 
-  const similarInterfaces: Array<'exception' | 'message'> = hasSimilarityEmbeddingsFeature
-    ? ['exception']
-    : ['exception', 'message'];
+  const similarInterfaces = hasSimilarityEmbeddingsFeature
+    ? (['exception'] as const)
+    : (['exception', 'message'] as const);
 
   const cx = classNames('group', {
     isResolved: issue.status === 'resolved',
@@ -116,14 +117,14 @@ export function SimilarStackTraceItem(props: Props) {
           <EventOrGroupExtraDetails data={{...issue, lastSeen: ''}} showAssignee />
         </EventDetails>
 
-        <Diff>
+        <Flex align="center" marginRight="2xs" height="100%">
           <Button onClick={handleShowDiff} size="sm">
             {t('Diff')}
           </Button>
-        </Diff>
+        </Flex>
       </Details>
 
-      <Columns>
+      <Flex align="center" flexShrink={0} width="350px" minWidth="350px">
         <StyledCount value={issue.count} />
         {similarInterfaces.map(interfaceName => {
           const avgScore = aggregate?.[interfaceName];
@@ -144,18 +145,23 @@ export function SimilarStackTraceItem(props: Props) {
 
           return (
             <Column key={interfaceName}>
-              {!hasSimilarityEmbeddingsFeature && (
+              {hasSimilarityEmbeddingsFeature ? (
+                <ScoreBar vertical score={scoreValue} />
+              ) : (
                 <Hovercard
-                  body={scoreList.length && <SimilarScoreCard scoreList={scoreList} />}
+                  body={
+                    scoreList.length > 0 ? (
+                      <SimilarScoreCard scoreList={scoreList} />
+                    ) : null
+                  }
                 >
                   <ScoreBar vertical score={Math.round(scoreValue * 5)} />
                 </Hovercard>
               )}
-              {hasSimilarityEmbeddingsFeature && <ScoreBar vertical score={scoreValue} />}
             </Column>
           );
         })}
-      </Columns>
+      </Flex>
     </StyledPanelItem>
   );
 }
@@ -168,45 +174,30 @@ const Details = styled('div')`
 
   display: grid;
   align-items: start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: max-content auto max-content;
-  margin-left: ${space(2)};
+  margin-left: ${p => p.theme.space.xl};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;
 
-const Columns = styled('div')`
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  min-width: 350px;
-  width: 350px;
-`;
-
-const columnStyle = css`
+const columnStyle = (theme: Theme) => css`
   flex: 1;
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: ${space(0.5)} 0;
+  padding: ${theme.space.xs} 0;
 `;
 
 const Column = styled('div')`
-  ${columnStyle}
+  ${p => columnStyle(p.theme)}
 `;
 
 const StyledCount = styled(Count)`
-  ${columnStyle}
+  ${p => columnStyle(p.theme)}
   font-variant-numeric: tabular-nums;
-`;
-
-const Diff = styled('div')`
-  height: 100%;
-  display: flex;
-  align-items: center;
-  margin-right: ${space(0.25)};
 `;
 
 const EventDetails = styled('div')`

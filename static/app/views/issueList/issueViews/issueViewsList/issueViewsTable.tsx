@@ -5,7 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {RenameIssueViewModal} from 'sentry/views/issueList/issueViews/renameIssueViewModal';
@@ -17,7 +17,7 @@ import {
   GroupSearchViewCreatedBy,
   type GroupSearchView,
 } from 'sentry/views/issueList/types';
-import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
+import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
 
 type IssueViewsTableProps = {
   handleDeleteView: (view: GroupSearchView) => void;

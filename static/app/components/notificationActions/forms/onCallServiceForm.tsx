@@ -1,9 +1,8 @@
 import {useMemo, useState} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import DropdownButton from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -31,7 +30,7 @@ type OnCallServiceFormProps = {
   onSave: () => void;
 };
 
-function OnCallServiceForm({
+export function OnCallServiceForm({
   action,
   onCallService,
   onCancel,
@@ -46,7 +45,7 @@ function OnCallServiceForm({
   );
   const [selectedDisplay, setSelectedDisplay] = useState(action.targetDisplay ?? '');
 
-  const accountOptions: MenuItemProps[] = useMemo(() => {
+  const accountOptions = useMemo(() => {
     return Object.keys(Integrations).map<MenuItemProps>(integrationId => {
       // Get the name of the integration for the integrationId from the first
       // AvailableNotificationAction element in the array
@@ -126,16 +125,14 @@ function OnCallServiceForm({
         />
       </Flex>
 
-      <ButtonBar gap="xs">
+      <Grid flow="column" align="center" gap="xs">
         <Button onClick={onCancel} size="xs">
           {t('Cancel')}
         </Button>
         <Button priority="primary" size="xs" onClick={onSave}>
           {t('Save')}
         </Button>
-      </ButtonBar>
+      </Grid>
     </Flex>
   );
 }
-
-export default OnCallServiceForm;

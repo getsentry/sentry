@@ -1,13 +1,13 @@
 import {useMemo, useState} from 'react';
 
-import {Tag} from '@sentry/scraps/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DiffItem, InsightDiffItem} from 'sentry/views/preprod/types/appSizeTypes';
+import type {InsightDiffItem} from 'sentry/views/preprod/types/appSizeTypes';
 import {getInsightConfig} from 'sentry/views/preprod/utils/insightProcessing';
 import {formattedSizeDiff} from 'sentry/views/preprod/utils/labelUtils';
 
@@ -25,7 +25,7 @@ export function InsightDiffRow({
   const [isExpanded, setIsExpanded] = useState(false);
   const config = getInsightConfig(insight.insight_type);
 
-  const allDiffItems: DiffItem[] = useMemo(
+  const allDiffItems = useMemo(
     () => [...insight.file_diffs, ...insight.group_diffs],
     [insight.file_diffs, insight.group_diffs]
   );

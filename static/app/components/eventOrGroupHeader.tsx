@@ -2,24 +2,24 @@ import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
+import {EventOrGroupTitle} from 'sentry/components/eventOrGroupTitle';
+import {EventMessage} from 'sentry/components/events/eventMessage';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconStar} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getMessage, isGroup, isTombstone} from 'sentry/utils/events';
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
-import EventTitleError from './eventTitleError';
+import {EventTitleError} from './eventTitleError';
 
 interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
@@ -73,7 +73,7 @@ function usePreloadGroupOnHover({
 /**
  * Displays an event or group/issue title (i.e. in Stream)
  */
-function EventOrGroupHeader({
+export function EventOrGroupHeader({
   data,
   query,
   onClick,
@@ -155,7 +155,7 @@ function EventOrGroupHeader({
 }
 
 const Title = styled('div')`
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
   font-size: ${p => p.theme.font.size.lg};
   & em {
     font-size: ${p => p.theme.font.size.md};
@@ -195,8 +195,6 @@ const TitleWithoutLink = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default EventOrGroupHeader;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
   font-weight: ${p => p.theme.font.weight.sans.medium};

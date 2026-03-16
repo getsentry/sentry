@@ -28,8 +28,7 @@ import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
-import {space} from 'sentry/styles/space';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -49,16 +48,16 @@ import type {
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 
-import Grid from './components/grid';
-import Legend from './components/legend';
+import {Grid} from './components/grid';
+import {Legend} from './components/legend';
 import {
   CHART_TOOLTIP_VIEWPORT_OFFSET,
   computeChartTooltip,
   type TooltipSubLabel,
 } from './components/tooltip';
-import XAxis from './components/xAxis';
-import YAxis from './components/yAxis';
-import LineSeries from './series/lineSeries';
+import {XAxis} from './components/xAxis';
+import {YAxis} from './components/yAxis';
+import {LineSeries} from './series/lineSeries';
 import {
   computeEchartsAriaLabels,
   getDiffInMinutes,
@@ -98,8 +97,7 @@ type Truncateable = {
 };
 
 export interface TooltipOption
-  extends Omit<TooltipComponentOption, 'valueFormatter'>,
-    Truncateable {
+  extends Omit<TooltipComponentOption, 'valueFormatter'>, Truncateable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
   formatAxisLabel?: (
     value: number,
@@ -709,7 +707,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     color: ${p.theme.tokens.content.secondary};
     font-family: ${p.theme.font.family.sans};
     font-variant-numeric: tabular-nums;
-    padding: ${space(1)} ${space(2)};
+    padding: ${p.theme.space.md} ${p.theme.space.xl};
     border-radius: ${p.theme.radius.md} ${p.theme.radius.md} 0 0;
     cursor: pointer;
     font-size: ${p.theme.font.size.sm};
@@ -733,7 +731,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     border-radius: ${p.theme.radius.md};
   }
   .tooltip-label {
-    margin-right: ${space(1)};
+    margin-right: ${p.theme.space.md};
     display: block;
     width: 100%;
     white-space: nowrap;
@@ -773,7 +771,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     border-radius: 0 0 ${p.theme.radius.md} ${p.theme.radius.md};
     display: flex;
     justify-content: space-between;
-    gap: ${space(3)};
+    gap: ${p.theme.space['2xl']};
   }
 
   .tooltip-footer-centered {
@@ -785,6 +783,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     &.arrow-top {
       bottom: 100%;
       top: auto;
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       border-bottom: 8px solid ${p.theme.tokens.background.primary};
       border-top: none;
       &:before {
@@ -801,6 +800,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     border-top: 8px solid ${p.theme.tokens.background.primary};
     margin-left: -8px;
     &:before {

@@ -4,6 +4,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 import {OVERVIEW_PAGE_ALLOWED_OPS} from 'sentry/views/insights/pages/backend/settings';
@@ -24,12 +25,15 @@ const disallowedOps = [
 
 const TABLE_QUERY = new MutableSearch('');
 TABLE_QUERY.addOp('(');
+TABLE_QUERY.addOp('(');
 TABLE_QUERY.addFilterValues('!span.op', disallowedOps);
 TABLE_QUERY.addOp(')');
 TABLE_QUERY.addOp('OR');
 TABLE_QUERY.addDisjunctionFilterValues('span.op', OVERVIEW_PAGE_ALLOWED_OPS);
+TABLE_QUERY.addOp(')');
+TABLE_QUERY.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
 
-const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+export const BACKEND_OVERVIEW_FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'requests-widget',
@@ -85,37 +89,33 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       widgetType: WidgetType.SPANS,
     },
     {
-      id: 'recommended-issues-widget',
-      title: 'Recommended Issues',
-      displayType: DisplayType.TABLE,
-      interval: '1h',
-      tableWidths: [-1, -1],
+      id: 'issue-counts',
+      title: t('Issue Counts'),
+      displayType: DisplayType.BAR,
+      widgetType: WidgetType.ISSUE,
+      interval: '5m',
       queries: [
         {
           name: '',
-          fields: ['title', 'lastSeen'],
-          aggregates: [],
-          columns: ['title', 'lastSeen'],
-          fieldAliases: ['', ''],
-          conditions: 'is:unresolved event.type:error',
-          orderby: 'freq',
-          onDemand: [],
-          isHidden: false,
-          linkedDashboards: [],
+          conditions: '',
+          fields: ['count(new_issues)', 'count(resolved_issues)'],
+          aggregates: ['count(new_issues)', 'count(resolved_issues)'],
+          columns: [],
+          orderby: '',
         },
       ],
-      widgetType: WidgetType.ISSUE,
     },
   ],
   0
 );
 
-const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'jobs-chart',
       title: 'Jobs',
       description: '',
+      legendType: 'breakdown',
       displayType: DisplayType.LINE,
       thresholds: null,
       interval: '1h',
@@ -143,6 +143,7 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
     {
       id: 'queries-by-time-spent-chart',
       title: t('Queries by Time Spent'),
+      legendType: 'breakdown',
       description: '',
       displayType: DisplayType.LINE,
       interval: '5m',
@@ -157,7 +158,7 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
           columns: [SpanFields.NORMALIZED_DESCRIPTION],
           fieldAliases: [''],
           conditions: `${SpanFields.DB_SYSTEM}:[${Object.values(SupportedDatabaseSystem).join(',')}]`,
-          orderby: `-p75(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
@@ -174,6 +175,7 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       id: 'cache-miss-rates-chart',
       title: 'Cache Miss Rates',
       description: '',
+      legendType: 'breakdown',
       displayType: DisplayType.LINE,
       thresholds: null,
       interval: '1h',
@@ -197,7 +199,8 @@ const SECOND_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       widgetType: WidgetType.SPANS,
     },
   ],
-  2
+  2,
+  {h: 3, minH: 3}
 );
 
 const TRANSACTIONS_TABLE: Widget = {
@@ -271,8 +274,8 @@ const TRANSACTIONS_TABLE: Widget = {
     x: 0,
     w: 6,
     h: 6,
-    minH: 2,
-    y: 6,
+    minH: TABLE_MIN_HEIGHT,
+    y: 7,
   },
 };
 
@@ -293,5 +296,14 @@ export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
-  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  widgets: [
+    ...BACKEND_OVERVIEW_FIRST_ROW_WIDGETS,
+    ...BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
+    TRANSACTIONS_TABLE,
+  ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['hasInsightsDb', 'hasInsightsHttp'],
+    description: 'Get started with backend tracing',
+  },
 };

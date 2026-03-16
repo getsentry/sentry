@@ -1,20 +1,23 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
+from functools import cache
 
 import sentry_sdk
 from django.db import router, transaction
 from rest_framework import status
 
-from sentry import options
+from sentry import features, options
 from sentry.api.exceptions import SentryAPIException
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.issue_detection.performance_detection import PERFORMANCE_DETECTOR_CONFIG_MAPPINGS
 from sentry.issues import grouptype
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -22,6 +25,7 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.seer.anomaly_detection.store_data_workflow_engine import send_new_detector_data
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
@@ -51,7 +55,38 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
 
-VALID_DEFAULT_DETECTOR_TYPES = [ErrorGroupType.slug, IssueStreamGroupType.slug]
+VALID_DEFAULT_DETECTOR_TYPES = [
+    ErrorGroupType.slug,
+    IssueStreamGroupType.slug,
+    *[m.wfe_detector_type for m in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()],
+]
+
+
+@cache
+def get_disabled_platforms_by_detector_type() -> Mapping[str, frozenset[str]]:
+    """
+    Map WFE detector types to platforms where they should be disabled by default.
+    Derives from DEFAULT_DETECTOR_DISABLING_CONFIGS using the detection_enabled_key.
+    """
+    from sentry.issue_detection.detectors.disable_detectors import (
+        DEFAULT_DETECTOR_DISABLING_CONFIGS,
+    )
+
+    disabled_by_detector_type: dict[str, frozenset[str]] = {}
+
+    for disable_config in DEFAULT_DETECTOR_DISABLING_CONFIGS:
+        detector_option_key = disable_config["detector_project_option"]
+        languages_to_disable = disable_config["languages_to_disable"]
+
+        # Find matching WFE detector via detection_enabled_key
+        for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+            if mapping.detection_enabled_key == detector_option_key:
+                disabled_by_detector_type[mapping.wfe_detector_type] = frozenset(
+                    languages_to_disable
+                )
+                break
+
+    return disabled_by_detector_type
 
 
 class UnableToAcquireLockApiError(SentryAPIException):
@@ -60,7 +95,7 @@ class UnableToAcquireLockApiError(SentryAPIException):
     message = "Unable to acquire lock for issue alert migration."
 
 
-def _ensure_detector(project: Project, type: str) -> Detector:
+def _ensure_detector(project: Project, type: str, default_enabled: bool = True) -> Detector:
     """
     Ensure that a detector of a given type exists for a project.
     If the Detector doesn't already exist, we try to acquire a lock to avoid double-creating,
@@ -104,7 +139,10 @@ def _ensure_detector(project: Project, type: str) -> Detector:
                         ERROR_DETECTOR_NAME
                         if slug == ErrorGroupType.slug
                         else ISSUE_STREAM_DETECTOR_NAME
+                        if slug == IssueStreamGroupType.slug
+                        else group_type.description
                     ),
+                    "enabled": default_enabled,
                 },
             )
             return detector
@@ -228,10 +266,34 @@ def ensure_default_anomaly_detector(
         raise UnableToAcquireLockApiError
 
 
-def ensure_default_detectors(project: Project) -> tuple[Detector, Detector]:
-    return _ensure_detector(project, ErrorGroupType.slug), _ensure_detector(
-        project, IssueStreamGroupType.slug
-    )
+def ensure_performance_detectors(project: Project) -> dict[str, Detector]:
+    if not features.has("projects:workflow-engine-performance-detectors", project):
+        return {}
+
+    disabled_platforms_map = get_disabled_platforms_by_detector_type()
+
+    detectors = {}
+    for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values():
+        detector_type = mapping.wfe_detector_type
+
+        # Determine initial enabled state based on platform and default settings
+        disabled_platforms = disabled_platforms_map.get(detector_type, frozenset())
+        default_enabled = DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS[
+            mapping.detection_enabled_key
+        ]
+        enabled = (project.platform not in disabled_platforms) and default_enabled
+
+        detectors[detector_type] = _ensure_detector(project, detector_type, default_enabled=enabled)
+
+    return detectors
+
+
+def ensure_default_detectors(project: Project) -> dict[str, Detector]:
+    detectors: dict[str, Detector] = {}
+    detectors[ErrorGroupType.slug] = _ensure_detector(project, ErrorGroupType.slug)
+    detectors[IssueStreamGroupType.slug] = _ensure_detector(project, IssueStreamGroupType.slug)
+    detectors.update(ensure_performance_detectors(project))
+    return detectors
 
 
 @dataclass(frozen=True)
@@ -266,6 +328,36 @@ class EventDetectors:
         return {d for d in [self.issue_stream_detector, self.event_detector] if d is not None}
 
 
+def _is_issue_stream_detector_enabled(event_data: WorkflowEventData) -> bool:
+    """
+    Check if the issue stream detector should be enabled for this event's group type.
+
+    Most group types enable the issue stream detector by default. MetricIssue is excluded
+    unless the workflow-engine-metric-issue-ui feature flag is enabled for the organization,
+    which allows incremental rollout of issue alerts for metric issues.
+    """
+    group_type_id = event_data.group.type
+    disabled_type_ids = options.get("workflow_engine.group.type_id.disable_issue_stream_detector")
+    if group_type_id not in disabled_type_ids:
+        return True
+
+    if group_type_id != MetricIssue.type_id:
+        return False
+
+    organization = event_data.event.project.organization
+
+    has_metric_issue_ui = features.has(
+        "organizations:workflow-engine-metric-issue-ui", organization
+    )
+    # For most users, the issue stream detector for metric issues will be rolled out along with the metric issue UI.
+    # For users who find that behavior undesirable, this feature flag will disable it for them.
+    disable_issue_stream_detector_for_metric_issues = features.has(
+        "organizations:workflow-engine-metric-issue-disable-issue-detector-notifications",
+        organization,
+    )
+    return has_metric_issue_ui and not disable_issue_stream_detector_for_metric_issues
+
+
 def get_detectors_for_event_data(
     event_data: WorkflowEventData,
     detector: Detector | None = None,
@@ -273,7 +365,7 @@ def get_detectors_for_event_data(
     """
     Returns a list of detectors for the event to process workflows for.
 
-    We always return at least the issue stream detector, unless excluded via option.
+    We always return at least the issue stream detector, unless excluded via option or feature flag.
     If the event has an associated detector, we return it too.
 
     We expect a detector to be passed in for Activity updates.
@@ -281,9 +373,10 @@ def get_detectors_for_event_data(
     issue_stream_detector: Detector | None = None
 
     try:
-        issue_stream_detector = Detector.get_issue_stream_detector_for_project(
-            event_data.group.project_id
-        )
+        if _is_issue_stream_detector_enabled(event_data):
+            issue_stream_detector = Detector.get_issue_stream_detector_for_project(
+                event_data.group.project_id
+            )
     except Detector.DoesNotExist:
         metrics.incr("workflow_engine.detectors.error")
         logger.exception(
@@ -465,11 +558,29 @@ def associate_new_group_with_detector(group: Group, detector_id: int | None = No
     Return whether the group was associated.
     """
     if detector_id is None:
-        # For error Groups, we know there is a Detector and we can find it by project.
+        # For error Groups, we expect there to be a Detector that we can find by project.
+        # The detector may be missing due to concurrent project deletion.
         if group.type == ErrorGroupType.type_id:
             if not options.get("workflow_engine.associate_error_detectors", False):
                 return False
-            detector_id = Detector.get_error_detector_for_project(group.project.id).id
+            try:
+                detector_id = Detector.get_error_detector_for_project(group.project.id).id
+            except Detector.DoesNotExist:
+                # If the project is mid-deletion, the detector will be missing, so infrequently
+                # hitting this case is fine, but we add a metric to make sure it stays infrequent.
+                metrics.incr(
+                    "workflow_engine.associate_new_group_with_detector",
+                    tags={"group_type": group.type, "result": "error_detector_not_found"},
+                )
+                logger.info(
+                    "associate_new_group_with_detector_error_detector_not_found",
+                    extra={
+                        "group_id": group.id,
+                        "group_type": group.type,
+                        "project_id": group.project.id,
+                    },
+                )
+                return False
         else:
             metrics.incr(
                 "workflow_engine.associate_new_group_with_detector",

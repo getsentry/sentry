@@ -5,14 +5,13 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {DistributedOmit} from 'type-fest';
 
+import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import PanelProvider from 'sentry/utils/panelProvider';
+import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {AlertVariant} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -257,7 +256,7 @@ export function Alert({
           <Flex align="center" alignSelf="flex-start">
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
               aria-label={isExpanded ? t('Collapse') : t('Expand')}
               onClick={() => {
@@ -306,7 +305,7 @@ function AlertIcon({variant}: {variant: AlertProps['variant']}): React.ReactNode
  */
 const Container = styled('div')`
   > div {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;
 

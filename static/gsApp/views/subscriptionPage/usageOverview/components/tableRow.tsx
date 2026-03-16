@@ -3,17 +3,17 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import ProgressRing from 'sentry/components/progressRing';
+import {ProgressRing} from 'sentry/components/progressRing';
 import {IconClock, IconLock, IconPlay, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 
-import StartTrialButton from 'getsentry/components/startTrialButton';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, type ProductTrial} from 'getsentry/types';
@@ -34,8 +34,8 @@ import {
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
-import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
-import ProductTrialRibbon from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
+import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
+import {ProductTrialRibbon} from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
 import {SIDE_PANEL_MIN_SCREEN_BREAKPOINT} from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {UsageOverviewTableProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
@@ -60,7 +60,7 @@ type DisabledProductRowProps = Omit<UsageOverviewTableRowProps, 'isChildProduct'
   showPanelInline: boolean;
 };
 
-function UsageOverviewTableRow({
+export function UsageOverviewTableRow({
   organization,
   product,
   selectedProduct,
@@ -466,8 +466,6 @@ function DisabledProductRow({
     </Fragment>
   );
 }
-
-export default UsageOverviewTableRow;
 
 const Row = styled('tr')`
   &:not(:last-child) {

@@ -5,30 +5,13 @@ import {t} from 'sentry/locale';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
-import {getListBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
+import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 interface UseBuildDetailsActionsProps {
   artifactId: string;
   projectId: string;
-}
-
-type ErrorDetail = string | {code?: string; message?: string} | null | undefined;
-
-function handleStaffPermissionError(responseDetail: ErrorDetail) {
-  if (typeof responseDetail !== 'string' && responseDetail?.code === 'staff-required') {
-    addErrorMessage(
-      t(
-        'Re-authenticate as staff first and then return to this page and try again. Redirecting...'
-      )
-    );
-    setTimeout(() => {
-      window.location.href = '/_admin/';
-    }, 2000);
-    return;
-  }
-
-  addErrorMessage(t('Access denied. You may need to re-authenticate as staff.'));
 }
 
 export function useBuildDetailsActions({
@@ -44,19 +27,13 @@ export function useBuildDetailsActions({
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/projects/${organization.slug}/${projectId}/preprodartifacts/${artifactId}/delete/`,
+        url: `/organizations/${organization.slug}/preprodartifacts/${artifactId}/delete/`,
         method: 'DELETE',
       });
     },
     onSuccess: () => {
       addSuccessMessage(t('Build deleted successfully'));
-      // TODO(preprod): navigate back to the release page once built?
-      navigate(
-        getListBuildPath({
-          organizationSlug: organization.slug,
-          projectId,
-        })
-      );
+      navigate(makeReleasesUrl(organization.slug, projectId));
     },
     onError: () => {
       addErrorMessage(t('Failed to delete build'));
@@ -108,7 +85,7 @@ export function useBuildDetailsActions({
   >({
     mutationFn: () => {
       return fetchMutation({
-        url: `/projects/${organization.slug}/${projectId}/preprod-artifact/rerun-status-checks/${artifactId}/`,
+        url: `/organizations/${organization.slug}/preprod-artifact/rerun-status-checks/${artifactId}/`,
         method: 'POST',
         data: {
           check_types: ['size'],

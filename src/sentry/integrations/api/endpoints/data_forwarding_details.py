@@ -13,7 +13,7 @@ from rest_framework.views import APIView
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -59,7 +59,7 @@ class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
         return False
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Integrations"])
 class DataForwardingDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
@@ -78,11 +78,6 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         **kwargs,
     ):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
-
-        if not features.has("organizations:data-forwarding-revamp-access", kwargs["organization"]):
-            raise PermissionDenied(
-                "This feature is in a limited preview. Reach out to support@sentry.io for access."
-            )
 
         if request.method == "PUT" and not features.has(
             "organizations:data-forwarding", kwargs["organization"]

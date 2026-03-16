@@ -1,22 +1,22 @@
 import {Fragment} from 'react';
+import {Navigate} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import ApiForm from 'sentry/components/forms/apiForm';
+import {ApiForm} from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NarrowLayout from 'sentry/components/narrowLayout';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NarrowLayout} from 'sentry/components/narrowLayout';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
 
 function OrganizationRestore() {
@@ -55,8 +55,7 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
     );
   }
   if (data.status.id === 'active') {
-    browserHistory.replace(normalizeUrl(`/organizations/${orgSlug}/issues/`));
-    return null;
+    return <Navigate replace to={normalizeUrl(`/organizations/${orgSlug}/issues/`)} />;
   }
   if (data.status.id === 'pending_deletion') {
     return <RestoreForm organization={data} endpoint={endpoint} />;
@@ -120,7 +119,7 @@ function RestoreForm({endpoint, organization}: RestoreFormProps) {
 }
 
 const ButtonWrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export default OrganizationRestore;

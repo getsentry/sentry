@@ -8,10 +8,9 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.files.file import File
 from sentry.models.project import Project
@@ -22,7 +21,7 @@ from sentry.utils.http import absolute_uri
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -68,7 +67,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
         if format_type == "plist":
             app_id = preprod_artifact.app_id
 
-            mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+            mobile_app_info = preprod_artifact.get_mobile_app_info()
             build_version = mobile_app_info.build_version if mobile_app_info else None
             app_name = mobile_app_info.app_name if mobile_app_info else None
             if not app_id or not build_version or not app_name:
@@ -119,12 +118,12 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             # Update build distribution data in EAP with new download count
             try:
                 organization = project.organization
-                if features.has("organizations:preprod-build-distribution-eap-write", organization):
-                    produce_preprod_build_distribution_to_eap(
-                        artifact=preprod_artifact,
-                        organization_id=project.organization_id,
-                        project_id=project.id,
-                    )
+                produce_preprod_build_distribution_to_eap(
+                    artifact=preprod_artifact,
+                    organization=organization,
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                )
             except Exception:
                 logger.exception(
                     "Failed to write preprod build distribution to EAP after download",
@@ -137,7 +136,7 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
 
             fp = file_obj.getfile()
             filename = preprod_artifact.app_id or "app"
-            mobile_app_info = getattr(preprod_artifact, "mobile_app_info", None)
+            mobile_app_info = preprod_artifact.get_mobile_app_info()
             build_version = mobile_app_info.build_version if mobile_app_info else None
             if build_version:
                 filename += f"@{build_version}"

@@ -17,7 +17,7 @@ import {
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PAYG_BUSINESS_DEFAULT} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   AddOnCategory,
   OnDemandBudgetMode,
@@ -25,7 +25,7 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
-import Cart from 'getsentry/views/amCheckout/components/cart';
+import {Cart} from 'getsentry/views/amCheckout/components/cart';
 import {type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 // Jun 06 2022 - with milliseconds
@@ -39,9 +39,9 @@ describe('Cart', () => {
     ...routerProps,
     navigate: jest.fn(),
   };
-  const businessPlan = PlanDetailsLookupFixture('am3_business')!;
-  const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf')!;
-  const legacyTeamPlan = PlanDetailsLookupFixture('am2_team')!;
+  const businessPlan = PlanDetailsLookupFixture('am3_business');
+  const teamPlanAnnual = PlanDetailsLookupFixture('am3_team_auf');
+  const legacyTeamPlan = PlanDetailsLookupFixture('am2_team');
 
   const defaultFormData: CheckoutFormData = {
     plan: 'am3_business',
@@ -49,7 +49,7 @@ describe('Cart', () => {
       ...Object.fromEntries(
         Object.entries(businessPlan.planCategories).map(([category, buckets]) => [
           category,
-          buckets[0]!.events,
+          buckets[0].events,
         ])
       ),
       seerAutofix: 0,
@@ -68,7 +68,7 @@ describe('Cart', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });

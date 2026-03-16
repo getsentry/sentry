@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -36,7 +36,7 @@ def should_create_open_periods(type_id: int) -> bool:
     return True
 
 
-@region_silo_model
+@cell_silo_model
 class GroupOpenPeriod(DefaultFieldsModel):
     """
     A GroupOpenPeriod is a period of time where a group is considered "open",
@@ -58,7 +58,6 @@ class GroupOpenPeriod(DefaultFieldsModel):
     date_ended = models.DateTimeField(null=True)
 
     data = models.JSONField(default=dict)
-    event_id = models.CharField(max_length=32, null=True)
 
     class Meta:
         app_label = "sentry"
@@ -206,7 +205,6 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
             date_started=start_time,
             date_ended=None,
             resolution_activity=None,
-            event_id=event_id,
         )
 
         # If we care about this group's activity, create activity entry
@@ -216,6 +214,7 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
                 group_open_period=open_period,
                 type=OpenPeriodActivityType.OPENED,
                 value=group.priority,
+                event_id=event_id,
             )
 
 

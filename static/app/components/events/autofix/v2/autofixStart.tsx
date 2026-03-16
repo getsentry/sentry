@@ -1,8 +1,7 @@
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import {Text} from 'sentry/components/core/text';
 import {t} from 'sentry/locale';
 
 interface ExplorerAutofixStartProps {
@@ -21,7 +20,7 @@ export function ExplorerAutofixStart({
   isLoading,
 }: ExplorerAutofixStartProps) {
   return (
-    <Container padding="3xl">
+    <Container>
       <Flex direction="column" gap="2xl" align="start">
         <Text size="md" variant="muted" align="left">
           {t(

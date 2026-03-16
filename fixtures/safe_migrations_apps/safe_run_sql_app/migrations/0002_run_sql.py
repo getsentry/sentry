@@ -5,7 +5,6 @@ from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
-
     dependencies = [
         ("safe_run_sql_app", "0001_initial"),
     ]

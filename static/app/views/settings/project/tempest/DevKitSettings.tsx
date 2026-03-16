@@ -9,17 +9,16 @@ import devkitCrashesStep4 from 'sentry-images/tempest/devkit-crashes-step4.jpg';
 import devkitCrashesStep5 from 'sentry-images/tempest/devkit-crashes-step5.jpg';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import Accordion from 'sentry/components/container/accordion';
-import {Button} from 'sentry/components/core/button';
+import {Accordion} from 'sentry/components/container/accordion';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {decodeInteger} from 'sentry/utils/queryString';
@@ -32,7 +31,7 @@ interface Props {
   project: Project;
 }
 
-export default function DevKitSettings({organization, project}: Props) {
+export function DevKitSettings({organization, project}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const [expandedAccordionIndex, setExpandedAccordionIndex] = useState<number>(-1);
@@ -68,7 +67,6 @@ export default function DevKitSettings({organization, project}: Props) {
                   initialStep={decodeInteger(location.query.guidedStep)}
                   onStepChange={step => {
                     navigate({
-                      pathname: location.pathname,
                       query: {
                         ...location.query,
                         guidedStep: step,
@@ -239,17 +237,17 @@ const Description = styled('div')``;
 
 const HeaderWrapper = styled('div')`
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const BodyTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')``;
@@ -271,6 +269,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
@@ -278,12 +277,12 @@ const Divider = styled('hr')`
 `;
 
 const CodeSnippetWrapper = styled('div')`
-  margin-bottom: ${space(2)};
-  margin-top: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const DescriptionWrapper = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const CardIllustration = styled('img')`
@@ -297,7 +296,7 @@ const CardIllustration = styled('img')`
 `;
 
 const IntroText = styled('p')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const AccordionHeader = styled('span')`
@@ -305,5 +304,5 @@ const AccordionHeader = styled('span')`
 `;
 
 const AccordionContentWrapper = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;

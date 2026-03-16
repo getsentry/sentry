@@ -66,7 +66,6 @@ export type TracingEventParameters = {
     visualizes_count: number;
     attribute_breakdowns_mode?: 'breakdowns' | 'cohort_comparison';
     cross_event_log_query_count?: number;
-    cross_event_metric_query_count?: number;
     cross_event_span_query_count?: number;
   };
   'trace.explorer.schema_hints_click': {

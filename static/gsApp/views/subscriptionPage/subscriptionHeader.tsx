@@ -1,31 +1,25 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconCodecov} from 'sentry/icons';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import {openCodecovModal} from 'getsentry/actionCreators/modal';
-import PartnerPlanEndingBanner from 'getsentry/components/partnerPlanEndingBanner';
+import {PartnerPlanEndingBanner} from 'getsentry/components/partnerPlanEndingBanner';
 import type {Subscription} from 'getsentry/types';
-import {
-  getPlanIcon,
-  hasAccessToSubscriptionOverview,
-  hasPartnerMigrationFeature,
-} from 'getsentry/utils/billing';
+import {getPlanIcon, hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
-import PartnershipNote from 'getsentry/views/subscriptionPage/partnershipNote';
+import {PartnershipNote} from 'getsentry/views/subscriptionPage/partnershipNote';
 
-import HeaderCards from './headerCards/headerCards';
-import DecidePendingChanges from './decidePendingChanges';
-import ManagedNote from './managedNote';
+import {HeaderCards} from './headerCards/headerCards';
+import {DecidePendingChanges} from './decidePendingChanges';
+import {ManagedNote} from './managedNote';
 import {SubscriptionUpsellBanner} from './subscriptionUpsellBanner';
-import TrialAlert from './trialAlert';
+import {TrialAlert} from './trialAlert';
 import {hasPermissions} from './utils';
 
 type Props = {
@@ -36,7 +30,7 @@ type Props = {
 /**
  * Header and Tab navigation common across subscription views.
  */
-function SubscriptionHeader(props: Props) {
+export function SubscriptionHeader(props: Props) {
   const {subscription, organization} = props;
   const hasBillingPerms = hasPermissions(organization, 'org:billing');
   const isDisabled = isDisabledByPartner(subscription);
@@ -81,15 +75,6 @@ function SubscriptionHeader(props: Props) {
                 {t('Manage plan')}
               </LinkButton>
             )}
-            {hasAccessToSubscriptionOverview(subscription, organization) ? (
-              <Button
-                size="md"
-                icon={<IconCodecov />}
-                onClick={() => openCodecovModal({organization})}
-              >
-                {t('Try Codecov')}
-              </Button>
-            ) : null}
           </Flex>
         </Flex>
       </Flex>
@@ -155,5 +140,3 @@ function BodyWithoutBillingPerms({
     </Fragment>
   );
 }
-
-export default SubscriptionHeader;

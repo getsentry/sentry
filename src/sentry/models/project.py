@@ -24,7 +24,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
@@ -35,7 +35,7 @@ from sentry.db.pending_deletion import (
     rename_on_pending_deletion,
     reset_pending_deletion_field_names,
 )
-from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
@@ -54,7 +54,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
-    from sentry.models.options.project_template_option import ProjectTemplateOptionManager
     from sentry.models.organization import Organization
     from sentry.users.models.user import User
 
@@ -230,7 +229,7 @@ class ProjectManager(BaseManager["Project"]):
 
 
 @snowflake_id_model
-@region_silo_model
+@cell_silo_model
 class Project(Model):
     from sentry.models.projectteam import ProjectTeam
 
@@ -261,7 +260,6 @@ class Project(Model):
     # projects that were created before this field was present
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
-    template = FlexibleForeignKey("sentry.ProjectTemplate", null=True)
 
     # external_id for the projects managed/provisioned through the 3rd party
     external_id = models.CharField(max_length=256, null=True)
@@ -440,12 +438,6 @@ class Project(Model):
 
         return ProjectOption.objects
 
-    @property
-    def template_manager(self) -> ProjectTemplateOptionManager:
-        from sentry.models.options.project_template_option import ProjectTemplateOption
-
-        return ProjectTemplateOption.objects
-
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
@@ -522,12 +514,19 @@ class Project(Model):
 
         self.organization = organization
 
-        try:
-            with transaction.atomic(router.db_for_write(Project)):
-                self.update(organization=organization)
-        except IntegrityError:
-            slugify_instance(self, self.name, organization=organization, max_length=50)
-            self.update(slug=self.slug, organization=organization)
+        # Wrap the org update and ProjectTeam cleanup in a single transaction so
+        # that a crash between the two doesn't leave the project with team
+        # associations from the old organization.
+        with transaction.atomic(router.db_for_write(Project)):
+            try:
+                with transaction.atomic(router.db_for_write(Project)):
+                    self.update(organization=organization)
+            except IntegrityError:
+                slugify_instance(self, self.name, organization=organization, max_length=50)
+                self.update(slug=self.slug, organization=organization)
+
+            if org_changed:
+                ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
 
         # Both environments and releases are bound at an organization level.
         # Due to this, when you transfer a project into another org, we have to
@@ -543,9 +542,6 @@ class Project(Model):
         if org_changed:
             for model in ReleaseProject, ReleaseProjectEnvironment, EnvironmentProject:
                 model.objects.filter(project_id=self.id).delete()
-            # this is getting really gross, but make sure there aren't lingering associations
-            # with old orgs or teams
-            ProjectTeam.objects.filter(project=self, team__organization_id=old_org_id).delete()
 
         rules_by_environment_id = defaultdict(set)
         for rule_id, environment_id in Rule.objects.filter(
@@ -843,8 +839,8 @@ class Project(Model):
         return not value or value == "other" or value in GETTING_STARTED_DOCS_PLATFORMS
 
     @staticmethod
-    def outbox_for_update(project_identifier: int, organization_identifier: int) -> RegionOutbox:
-        return RegionOutbox(
+    def outbox_for_update(project_identifier: int, organization_identifier: int) -> CellOutbox:
+        return CellOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=organization_identifier,
             category=OutboxCategory.PROJECT_UPDATE,

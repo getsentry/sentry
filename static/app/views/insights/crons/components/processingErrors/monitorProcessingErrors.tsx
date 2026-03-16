@@ -2,22 +2,21 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {
   CheckInPayload,
   CheckinProcessingError,
@@ -95,7 +94,7 @@ export function MonitorProcessingErrors({
                   aria-label={isExpanded ? t('Collapse') : t('Expand')}
                   aria-expanded={isExpanded}
                   size="zero"
-                  borderless
+                  priority="transparent"
                   onClick={() => setExpanded(isExpanded ? '' : `${projectId}:${index}`)}
                 />
                 {onDismiss && (
@@ -103,8 +102,8 @@ export function MonitorProcessingErrors({
                     icon={<IconClose size="xs" />}
                     aria-label={t('Dismiss Errors')}
                     size="zero"
-                    title={t('Dismiss Errors')}
-                    borderless
+                    tooltipProps={{title: t('Dismiss Errors')}}
+                    priority="transparent"
                     onClick={() =>
                       openConfirmModal({
                         header: t('Dismiss'),
@@ -170,17 +169,17 @@ export function MonitorProcessingErrors({
 const ErrorsList = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ProjectGroupsList = styled(ErrorsList)`
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
 `;
 
 const ErrorGroup = styled('div')`
   display: Flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const DismissButton = styled(Button)`

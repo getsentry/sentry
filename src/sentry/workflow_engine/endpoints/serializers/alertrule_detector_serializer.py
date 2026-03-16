@@ -14,7 +14,7 @@ class AlertRuleDetectorSerializerResponse(TypedDict):
 @register(AlertRuleDetector)
 class AlertRuleDetectorSerializer(Serializer):
     def serialize(
-        self, obj: AlertRuleDetector, attrs: Mapping[str, Any], user, **kwargs
+        self, obj: AlertRuleDetector, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> AlertRuleDetectorSerializerResponse:
         return {
             "ruleId": str(obj.rule_id) if obj.rule_id else None,

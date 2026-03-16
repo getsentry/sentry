@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import inspect
 import logging
+import time
 from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import timezone
@@ -26,7 +27,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.github.utils import should_create_or_increment_contributor_seat
+from sentry.integrations.github.utils import should_increment_contributor_seat
 from sentry.integrations.github.webhook_types import (
     GITHUB_WEBHOOK_TYPE_HEADER_KEY,
     GithubWebhookType,
@@ -59,11 +60,13 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
+from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.seer.code_review.webhooks.handlers import (
     handle_webhook_event as code_review_handle_webhook_event,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -107,13 +110,6 @@ def get_file_language(filename: str) -> str | None:
     return language
 
 
-def is_contributor_eligible_for_seat_assignment(user_type: str | None) -> bool:
-    """
-    Determine if a contributor is eligible for seat assignment based on their user type.
-    """
-    return user_type != "Bot"
-
-
 def _handle_pr_webhook_for_autofix_processor(
     *,
     github_event: GithubWebhookType,
@@ -150,7 +146,7 @@ class GitHubWebhook(SCMWebhook, ABC):
     # When subclassing, add your webhook event processor here.
     WEBHOOK_EVENT_PROCESSORS: tuple[WebhookProcessor, ...] = ()
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if not inspect.isabstract(cls) and not hasattr(cls, "EVENT_TYPE"):
             raise TypeError(f"{cls.__name__} must define EVENT_TYPE class attribute")
@@ -200,6 +196,7 @@ class GitHubWebhook(SCMWebhook, ABC):
 
     def __call__(self, event: Mapping[str, Any], **kwargs: Any) -> None:
         github_event = kwargs["github_event"]
+        github_delivery_id = kwargs.get("github_delivery_id")
         external_id = get_github_external_id(event=event, host=kwargs.get("host"))
 
         result = integration_service.organization_contexts(
@@ -276,6 +273,7 @@ class GitHubWebhook(SCMWebhook, ABC):
                     event=event,
                     organization=orgs[repo.organization_id],
                     repo=repo,
+                    github_delivery_id=github_delivery_id,
                 )
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
@@ -821,7 +819,6 @@ class PullRequestEventWebhook(GitHubWebhook):
         title = pull_request["title"]
         body = pull_request["body"]
         user = pull_request["user"]
-        user_type = user.get("type")
 
         """
         The value of the merge_commit_sha attribute changes depending on the
@@ -890,7 +887,6 @@ class PullRequestEventWebhook(GitHubWebhook):
             )
 
             if created:
-
                 try:
                     pr_repo_private = pull_request["head"]["repo"]["private"]
                 except (KeyError, AttributeError, TypeError):
@@ -904,65 +900,49 @@ class PullRequestEventWebhook(GitHubWebhook):
                     },
                 )
 
-                logger.info(
-                    "github.webhook.organization_contributor.eligibility_check",
-                    extra={
-                        "organization_id": organization.id,
-                        "repository_id": repo.id,
-                        "pr_number": number,
-                        "user_login": user["login"],
-                        "user_type": user_type,
-                        "is_eligible": is_contributor_eligible_for_seat_assignment(user_type),
+                contributor, _ = OrganizationContributors.objects.get_or_create(
+                    organization_id=organization.id,
+                    integration_id=integration.id,
+                    external_identifier=user["id"],
+                    defaults={
+                        "alias": user["login"],
                     },
                 )
 
-                if is_contributor_eligible_for_seat_assignment(user_type):
-                    # Track AI contributor if eligible
-                    contributor, _ = OrganizationContributors.objects.get_or_create(
-                        organization_id=organization.id,
-                        integration_id=integration.id,
-                        external_identifier=user["id"],
-                        defaults={
-                            "alias": user["login"],
-                        },
+                if should_increment_contributor_seat(organization, repo, contributor):
+                    metrics.incr(
+                        "github.webhook.organization_contributor.should_create",
+                        sample_rate=1.0,
                     )
 
-                    if should_create_or_increment_contributor_seat(organization, repo, contributor):
-                        metrics.incr(
-                            "github.webhook.organization_contributor.should_create",
-                            sample_rate=1.0,
-                        )
+                    locked_contributor = None
+                    with transaction.atomic(router.db_for_write(OrganizationContributors)):
+                        try:
+                            locked_contributor = (
+                                OrganizationContributors.objects.select_for_update().get(
+                                    organization_id=organization.id,
+                                    integration_id=integration.id,
+                                    external_identifier=user["id"],
+                                )
+                            )
+                            locked_contributor.num_actions += 1
+                            locked_contributor.save(update_fields=["num_actions", "date_updated"])
+                        except OrganizationContributors.DoesNotExist:
+                            logger.warning(
+                                "github.webhook.organization_contributor.not_found",
+                                extra={
+                                    "organization_id": organization.id,
+                                    "integration_id": integration.id,
+                                    "external_identifier": user["id"],
+                                },
+                            )
 
-                        locked_contributor = None
-                        with transaction.atomic(router.db_for_write(OrganizationContributors)):
-                            try:
-                                locked_contributor = (
-                                    OrganizationContributors.objects.select_for_update().get(
-                                        organization_id=organization.id,
-                                        integration_id=integration.id,
-                                        external_identifier=user["id"],
-                                    )
-                                )
-                                locked_contributor.num_actions += 1
-                                locked_contributor.save(
-                                    update_fields=["num_actions", "date_updated"]
-                                )
-                            except OrganizationContributors.DoesNotExist:
-                                logger.warning(
-                                    "github.webhook.organization_contributor.not_found",
-                                    extra={
-                                        "organization_id": organization.id,
-                                        "integration_id": integration.id,
-                                        "external_identifier": user["id"],
-                                    },
-                                )
-
-                        if (
-                            locked_contributor
-                            and locked_contributor.num_actions
-                            >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
-                        ):
-                            assign_seat_to_organization_contributor.delay(locked_contributor.id)
+                    if (
+                        locked_contributor
+                        and locked_contributor.num_actions
+                        >= ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+                    ):
+                        assign_seat_to_organization_contributor.delay(locked_contributor.id)
 
         except IntegrityError:
             pass
@@ -1119,10 +1099,40 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         ) as transaction:
             transaction.set_tag("github_event", github_event.value)
 
+            github_delivery_id = request.META.get("HTTP_X_GITHUB_DELIVERY")
+            if github_delivery_id is not None:
+                github_delivery_id = str(github_delivery_id)
+                sentry_sdk.set_extra("github_delivery_id", github_delivery_id)
+
             with IntegrationWebhookEvent(
                 interaction_type=event_handler.event_type,
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=event_handler.provider,
             ).capture():
-                event_handler(event, github_event=github_event)
+                event_handler(
+                    event,
+                    github_event=github_event,
+                    github_delivery_id=github_delivery_id,
+                )
+
+        # Publish the request to the unified SCM (source control management) subscription's
+        # platform. This is a replacement for the handlers defined above. Handlers should be
+        # defined as consumers of the SCM subscriptions Kafka topic.
+        #
+        # NOTE: Publication of the event assumes the event has been properly authorized (as it has
+        #       been above).
+        # NOTE: We are in the correct region silo at this stage. The IntegrationControlMiddleware
+        #       middleware has handled routing.
+        produce_event_to_scm_stream(
+            {
+                "event_type_hint": request.headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY),
+                "event": request.body.decode("utf-8"),
+                "extra": {},
+                "received_at": int(time.time()),
+                "sentry_meta": None,
+                "type": IntegrationProviderSlug.GITHUB.value,
+            },
+            silo="region" if SiloMode.get_current_mode() == SiloMode.CELL else "control",
+        )
+
         return HttpResponse(status=204)

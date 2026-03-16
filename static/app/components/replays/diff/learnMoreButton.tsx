@@ -1,16 +1,14 @@
 import type {ComponentProps, ReactNode} from 'react';
-import {ClassNames} from '@emotion/react';
+import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 function Resource({
   title,
@@ -25,7 +23,7 @@ function Resource({
   return (
     <StyledLinkButton
       icon={<IconOpen />}
-      borderless
+      priority="transparent"
       external
       href={link}
       analyticsEventKey="learn-more-resource.clicked"
@@ -61,9 +59,10 @@ function Buttons() {
   );
 }
 
-export default function LearnMoreButton(
+export function LearnMoreButton(
   hoverCardProps: Partial<ComponentProps<typeof Hovercard>>
 ) {
+  const theme = useTheme();
   return (
     <ClassNames>
       {({css}) => (
@@ -72,7 +71,7 @@ export default function LearnMoreButton(
             {...hoverCardProps}
             body={<Buttons />}
             bodyClassName={css`
-              padding: ${space(1)};
+              padding: ${theme.space.md};
             `}
           >
             <Button
@@ -94,7 +93,7 @@ const ButtonContent = styled('div')`
   flex-direction: column;
   text-align: left;
   white-space: pre-line;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const ButtonTitle = styled('div')`
@@ -108,6 +107,6 @@ const ButtonSubtitle = styled('div')`
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   height: auto;
 `;

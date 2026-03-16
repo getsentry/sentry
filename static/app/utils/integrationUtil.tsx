@@ -1,6 +1,7 @@
 import * as qs from 'query-string';
 
-import type {Result} from 'sentry/components/core/select/async';
+import type {Result} from '@sentry/scraps/select';
+
 import {
   IconAsana,
   IconBitbucket,
@@ -15,7 +16,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {
   AppOrProviderOrPlugin,
@@ -77,7 +78,7 @@ export const getSentryAppInstallStatus = (install: SentryAppInstallation | undef
   if (install && install.status !== 'pending_deletion') {
     return capitalize(install.status) as IntegrationInstallationStatus;
   }
-  if (install && install.status === 'pending_deletion') {
+  if (install?.status === 'pending_deletion') {
     return 'Pending Deletion';
   }
   return 'Not Installed';
@@ -230,8 +231,9 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
     case 'github_enterprise':
       return 'GitHub Enterprise';
     case 'jira':
-    case 'jira_server':
       return 'Jira';
+    case 'jira_server':
+      return 'Jira Server';
     case 'perforce':
       return 'Perforce';
     case 'vsts':

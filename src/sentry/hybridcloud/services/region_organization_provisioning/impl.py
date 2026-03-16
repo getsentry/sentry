@@ -4,7 +4,7 @@ from sentry_sdk import capture_exception
 
 from sentry import roles
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
@@ -21,8 +21,8 @@ from sentry.services.organization import OrganizationProvisioningOptions
 
 def create_post_provision_outbox(
     provisioning_options: OrganizationProvisioningOptions, org_id: int
-) -> RegionOutbox:
-    return RegionOutbox(
+) -> CellOutbox:
+    return CellOutbox(
         shard_scope=OutboxScope.ORGANIZATION_SCOPE,
         shard_identifier=org_id,
         category=OutboxCategory.POST_ORGANIZATION_PROVISION,
@@ -48,9 +48,9 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         user_id: int | None = None,
         email: str | None = None,
     ) -> Organization:
-        assert (user_id is None and email) or (
-            user_id and email is None
-        ), "Must set either user_id or email"
+        assert (user_id is None and email) or (user_id and email is None), (
+            "Must set either user_id or email"
+        )
         truncated_name = organization_name[:ORGANIZATION_NAME_MAX_LENGTH]
         org = Organization.objects.create(
             id=organization_id, name=truncated_name, slug=slug, is_test=is_test
@@ -166,9 +166,24 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
 
         return True
 
+    def create_organization_in_cell(
+        self,
+        *,
+        cell_name: str,
+        organization_id: int,
+        provision_payload: OrganizationProvisioningOptions,
+    ) -> bool:
+        return self.create_organization_in_region(
+            region_name=cell_name,
+            organization_id=organization_id,
+            provision_payload=provision_payload,
+        )
+
     def update_organization_slug_from_reservation(
         self,
-        region_name: str,
+        *,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
         org_slug_temporary_alias_res: RpcOrganizationSlugReservation,
     ) -> bool:
         # Skip any non-primary organization slug updates

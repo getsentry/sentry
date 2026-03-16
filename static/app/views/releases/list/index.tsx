@@ -7,24 +7,25 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {LoadingError} from 'sentry/components/loadingError';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {TagCollection} from 'sentry/types/group';
 import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
@@ -35,20 +36,19 @@ import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import ReleaseArchivedNotice from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
-import MobileBuilds from 'sentry/views/releases/list/mobileBuilds';
-import ReleaseHealthCTA from 'sentry/views/releases/list/releaseHealthCTA';
-import ReleaseListInner from 'sentry/views/releases/list/releaseListInner';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {ReleaseArchivedNotice} from 'sentry/views/releases/detail/overview/releaseArchivedNotice';
+import {MobileBuilds} from 'sentry/views/releases/list/mobileBuilds';
+import {ReleaseHealthCTA} from 'sentry/views/releases/list/releaseHealthCTA';
+import {ReleaseListInner} from 'sentry/views/releases/list/releaseListInner';
 import {isMobileRelease} from 'sentry/views/releases/utils';
 
 import ReleasesDisplayOptions, {ReleasesDisplayOption} from './releasesDisplayOptions';
-import ReleasesSortOptions from './releasesSortOptions';
+import {ReleasesSortOptions} from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
 import {validateSummaryStatsPeriod} from './utils';
 
@@ -217,8 +217,7 @@ export default function ReleasesList() {
       return projects[0];
     }
 
-    const selectedProjectId =
-      selection.projects && selection.projects.length === 1 && selection.projects[0];
+    const selectedProjectId = selection.projects?.length === 1 && selection.projects[0];
     return projects?.find(p => p.id === `${selectedProjectId}`);
   }, [selection.projects, projects]);
 
@@ -226,25 +225,35 @@ export default function ReleasesList() {
   const selectedProjectIds = useMemo(() => {
     const selectedIds = selection.projects.filter(id => id !== ALL_ACCESS_PROJECTS);
 
-    // If no specific projects selected (All Projects), use all accessible project IDs
+    // If no specific projects selected, pass [-1] to represent "all projects"
+    // This avoids expanding to hundreds of project IDs which causes URL length issues
     return selectedIds.length === 0
-      ? projects.map(p => p.id)
+      ? [`${ALL_ACCESS_PROJECTS}`]
       : selectedIds.map(id => `${id}`);
-  }, [selection.projects, projects]);
+  }, [selection.projects]);
 
   const shouldShowMobileBuildsTab = useMemo(() => {
     if (!organization.features?.includes('preprod-frontend-routes')) {
       return false;
     }
 
+    // When "All Projects" is selected (represented by [-1]), check all accessible projects
+    // When specific projects are selected, check only those projects
+    const isAllProjects =
+      selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`;
+    const projectIdsToCheck = isAllProjects
+      ? projects.map(p => p.id)
+      : selectedProjectIds;
+
     // Check if at least one project has a mobile platform
-    const hasAnyStrictlyMobileProject = selectedProjectIds
+    const hasAnyStrictlyMobileProject = projectIdsToCheck
       .map(id => ProjectsStore.getById(id))
       .filter(Boolean)
       .some(project => project?.platform && isMobileRelease(project.platform, false));
 
     return hasAnyStrictlyMobileProject;
-  }, [organization.features, selectedProjectIds]);
+  }, [organization.features, selectedProjectIds, projects]);
 
   const selectedTab = useMemo(() => {
     if (!shouldShowMobileBuildsTab) {
@@ -359,20 +368,29 @@ export default function ReleasesList() {
   );
 
   const hasAnyMobileProject = useMemo(() => {
-    return selectedProjectIds
+    // When "All Projects" is selected (represented by [-1]), check all accessible projects
+    // When specific projects are selected, check only those projects
+    const isAllProjects =
+      selectedProjectIds.length === 1 &&
+      selectedProjectIds[0] === `${ALL_ACCESS_PROJECTS}`;
+    const projectIdsToCheck = isAllProjects
+      ? projects.map(p => p.id)
+      : selectedProjectIds;
+
+    return projectIdsToCheck
       .map(id => ProjectsStore.getById(id))
       .filter(Boolean)
       .some(project => project?.platform && isMobileRelease(project.platform));
-  }, [selectedProjectIds]);
+  }, [selectedProjectIds, projects]);
 
   const showReleaseAdoptionStages =
     hasAnyMobileProject && selection.environments.length === 1;
   const shouldShowQuickstart = Boolean(
     selectedProject &&
-      // Has not set up releases
-      !selectedProject?.features.includes('releases') &&
-      // Has no releases
-      !releases?.length
+    // Has not set up releases
+    !selectedProject?.features.includes('releases') &&
+    // Has no releases
+    !releases?.length
   );
   const releasesPageLinks = getReleasesResponseHeader?.('Link');
 
@@ -454,7 +472,7 @@ export default function ReleasesList() {
                   >
                     <Flex align="center" gap="sm">
                       {t('Mobile Builds')}
-                      <FeatureBadge type="beta" />
+                      <FeatureBadge type="new" />
                     </Flex>
                   </TabList.Item>
                 </TabList>
@@ -522,18 +540,22 @@ export default function ReleasesList() {
                       )}
                       position="top-start"
                     >
-                      <ReleaseListInner
-                        activeDisplay={activeDisplay}
-                        loading={isReleasesPending}
-                        organization={organization}
-                        releases={releases}
-                        releasesPageLinks={releasesPageLinks}
-                        reloading={isReleasesRefetching}
-                        selectedProject={selectedProject}
-                        selection={selection}
-                        shouldShowQuickstart={shouldShowQuickstart}
-                        showReleaseAdoptionStages={showReleaseAdoptionStages}
-                      />
+                      {props => (
+                        <div {...props}>
+                          <ReleaseListInner
+                            activeDisplay={activeDisplay}
+                            loading={isReleasesPending}
+                            organization={organization}
+                            releases={releases}
+                            releasesPageLinks={releasesPageLinks}
+                            reloading={isReleasesRefetching}
+                            selectedProject={selectedProject}
+                            selection={selection}
+                            shouldShowQuickstart={shouldShowQuickstart}
+                            showReleaseAdoptionStages={showReleaseAdoptionStages}
+                          />
+                        </div>
+                      )}
                     </DemoTourElement>
                   )}
                 </Fragment>

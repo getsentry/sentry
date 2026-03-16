@@ -1,4 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -7,7 +8,7 @@ interface Props {
   projectSlug?: string;
 }
 
-export default function UnsupportedAlert({featureName, projectSlug}: Props) {
+export function UnsupportedAlert({featureName, projectSlug}: Props) {
   return (
     <Alert.Container>
       <Alert data-test-id="unsupported-alert" variant="info" icon={<IconInfo />}>

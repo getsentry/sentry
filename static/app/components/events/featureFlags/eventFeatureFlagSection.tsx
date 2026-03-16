@@ -2,31 +2,28 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import AnalyticsArea from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CardContainer,
   EventFeatureFlagDrawer,
 } from 'sentry/components/events/featureFlags/eventFeatureFlagDrawer';
-import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
-import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
-import FlagActionDropdown from 'sentry/components/events/featureFlags/flagActionDropdown';
+import {FeatureFlagSettingsButton} from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
+import {FeatureFlagSort} from 'sentry/components/events/featureFlags/featureFlagSort';
+import {FlagActionDropdown} from 'sentry/components/events/featureFlags/flagActionDropdown';
 import {
   FlagControlOptions,
   ORDER_BY_OPTIONS,
   OrderBy,
-  SORT_BY_OPTIONS,
-  SortBy,
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import useDrawer from 'sentry/components/globalDrawer';
-import {useGroupSuspectFlagScores} from 'sentry/components/issues/suspect/useGroupSuspectFlagScores';
-import useLegacyEventSuspectFlags from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
-import useSuspectFlagScoreThreshold from 'sentry/components/issues/suspect/useSuspectFlagScoreThreshold';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -36,12 +33,11 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {
   return (
@@ -59,7 +55,6 @@ type EventFeatureFlagSectionProps = {
 
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
   const organization = useOrganization();
-  const environments = useEnvironmentsFromUrl();
   const theme = useTheme();
   const isXsScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
 
@@ -77,10 +72,6 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     />
   );
 
-  // If we're showing the suspect section at all
-  const enableSuspectFlags = organization.features.includes('feature-flag-suspect-flags');
-
-  const [sortBy, setSortBy] = useState<SortBy>(SortBy.EVAL_ORDER);
   const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
@@ -125,33 +116,19 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     [organization, queryParams]
   );
 
-  const {suspectFlags: legacySuspectFlags} = useLegacyEventSuspectFlags({
-    enabled: !enableSuspectFlags, // Fallback to the legacy strategy
+  const {suspectFlags} = useLegacyEventSuspectFlags({
+    enabled: true,
     organization,
     firstSeen: group.firstSeen,
     rawFlagData,
     event,
   });
 
-  const [suspectThreshold] = useSuspectFlagScoreThreshold();
-  const {data: suspectScores} = useGroupSuspectFlagScores({
-    groupId: group.id,
-    environment: environments.length ? environments : undefined,
-    enabled: enableSuspectFlags,
-  });
+  const suspectFlagNames = useMemo(() => {
+    return new Set(suspectFlags.map(f => f.flag));
+  }, [suspectFlags]);
 
-  const suspectFlagNames: Set<string> = useMemo(() => {
-    if (enableSuspectFlags) {
-      return new Set(
-        suspectScores?.data
-          .filter(score => score.score >= suspectThreshold)
-          .map(score => score.flag)
-      );
-    }
-    return new Set(legacySuspectFlags.map(f => f.flag));
-  }, [enableSuspectFlags, legacySuspectFlags, suspectScores?.data, suspectThreshold]);
-
-  const eventFlags: Array<Required<FeatureFlag>> = useMemo(() => {
+  const eventFlags = useMemo(() => {
     // At runtime there's no type guarantees on the event flags. So we have to
     // explicitly validate against SDK developer error or user-provided contexts.
     const rawFlags = event.contexts?.flags?.values ?? [];
@@ -202,7 +179,6 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
             event={event}
             project={project}
             hydratedFlags={hydratedFlags}
-            initialSortBy={sortBy}
             initialOrderBy={orderBy}
             focusControl={focusControl}
           />
@@ -222,7 +198,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
         }
       );
     },
-    [openDrawer, event, group, project, hydratedFlags, organization, sortBy, orderBy]
+    [openDrawer, event, group, project, hydratedFlags, organization, orderBy]
   );
 
   useEffect(() => {
@@ -246,7 +222,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   }
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       {feedbackButton}
       <FeatureFlagSettingsButton orgSlug={organization.slug} />
       {hasFlags && (
@@ -255,11 +231,10 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
             aria-label={t('Open Feature Flag Search')}
             icon={<IconSearch size="xs" />}
             size="xs"
-            title={t('Open Search')}
+            tooltipProps={{title: t('Open Search')}}
             onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
           />
           <FeatureFlagSort
-            sortByOptions={SORT_BY_OPTIONS}
             orderByOptions={ORDER_BY_OPTIONS}
             orderBy={orderBy}
             setOrderBy={value => {
@@ -269,18 +244,10 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
                 sortMethod: value as string,
               });
             }}
-            setSortBy={value => {
-              setSortBy(value);
-              trackAnalytics('flags.sort_flags', {
-                organization,
-                sortMethod: value as string,
-              });
-            }}
-            sortBy={sortBy}
           />
         </Fragment>
       )}
-    </ButtonBar>
+    </Grid>
   );
 
   const NUM_PREVIEW_FLAGS = 20;

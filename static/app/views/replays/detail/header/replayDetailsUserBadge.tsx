@@ -1,29 +1,28 @@
 import invariant from 'invariant';
 
-import {Flex} from '@sentry/scraps/layout';
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import {DateTime} from 'sentry/components/dateTime';
 import Placeholder from 'sentry/components/placeholder';
-import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
+import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
-export default function ReplayDetailsUserBadge({readerResult}: Props) {
+export function ReplayDetailsUserBadge({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
 
   const badge = replayRecord ? (
@@ -94,6 +93,7 @@ function ReplayBadge({replay}: {replay: ReplayRecord}) {
         }),
         query: {
           query: searchQuery,
+          project: replay.project_id,
         },
       }
     : null;

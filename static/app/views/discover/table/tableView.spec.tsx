@@ -11,8 +11,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TagStore from 'sentry/stores/tagStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TagStore} from 'sentry/stores/tagStore';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -517,7 +517,7 @@ describe('TableView > CellActions', () => {
     const firstRow = screen.getAllByRole('row')[1]!;
     const emptyValueCell = within(firstRow).getAllByRole('cell')[3]!;
 
-    expect(within(emptyValueCell).getByText('1k')).toHaveAttribute('title', '1,000');
+    expect(within(emptyValueCell).getByText('1K')).toHaveAttribute('title', '1,000');
   });
 
   it('renders size columns correctly', () => {

@@ -2,7 +2,7 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {
   parseStatsPeriod,
   type StatsPeriodType,
-} from 'sentry/components/organizations/pageFilters/parse';
+} from 'sentry/components/pageFilters/parse';
 import type {DateString} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {unreachable} from 'sentry/utils/unreachable';

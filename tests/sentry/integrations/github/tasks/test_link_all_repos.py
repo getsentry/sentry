@@ -70,8 +70,8 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
-            repos = Repository.objects.all()
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.all().order_by("name")
         assert len(repos) == 2
 
         for repo in repos:
@@ -81,14 +81,18 @@ class LinkAllReposTestCase(IntegrationTestCase):
         assert repos[0].name == "getsentry/sentry"
         assert repos[1].name == "getsentry/snuba"
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+        assert len(mock_record.mock_calls) == 4
+        start1, start2, end2, end1 = mock_record.mock_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED
+        assert end2.args[0] == EventLifecycleOutcome.SUCCESS
+        assert end1.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_link_all_repos_api_response_keyerror(
         self, mock_record: MagicMock, _: MagicMock
     ) -> None:
-
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -113,7 +117,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.all()
         assert len(repos) == 1
 
@@ -122,7 +126,12 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         assert repos[0].name == "getsentry/snuba"
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+        assert len(mock_record.mock_calls) == 4
+        start1, start2, end2, end1 = mock_record.mock_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED
+        assert end2.args[0] == EventLifecycleOutcome.SUCCESS
+        assert end1.args[0] == EventLifecycleOutcome.HALTED
         assert_halt_metric(
             mock_record, LinkAllReposHaltReason.REPOSITORY_NOT_CREATED.value
         )  # should be halt because it didn't complete successfully
@@ -132,7 +141,6 @@ class LinkAllReposTestCase(IntegrationTestCase):
     def test_link_all_repos_api_response_keyerror_single_repo(
         self, mock_record: MagicMock, _: MagicMock
     ) -> None:
-
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -153,11 +161,16 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repos = Repository.objects.all()
         assert len(repos) == 0
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+        assert len(mock_record.mock_calls) == 4
+        start1, start2, end2, end1 = mock_record.mock_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED
+        assert end2.args[0] == EventLifecycleOutcome.SUCCESS
+        assert end1.args[0] == EventLifecycleOutcome.HALTED
         assert_halt_metric(mock_record, LinkAllReposHaltReason.REPOSITORY_NOT_CREATED.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -187,7 +200,6 @@ class LinkAllReposTestCase(IntegrationTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
     def test_link_all_repos_api_error(self, mock_record: MagicMock, _: MagicMock) -> None:
-
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -201,14 +213,18 @@ class LinkAllReposTestCase(IntegrationTestCase):
                 organization_id=self.organization.id,
             )
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+        assert len(mock_record.mock_calls) == 4
+        start1, start2, end2, end1 = mock_record.mock_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED
+        assert end2.args[0] == EventLifecycleOutcome.FAILURE
+        assert end1.args[0] == EventLifecycleOutcome.FAILURE
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
     def test_link_all_repos_api_error_rate_limited(
         self, mock_record: MagicMock, _: MagicMock
     ) -> None:
-
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",
@@ -225,7 +241,12 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+        assert len(mock_record.mock_calls) == 4
+        start1, start2, end2, end1 = mock_record.mock_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED
+        assert end2.args[0] == EventLifecycleOutcome.FAILURE
+        assert end1.args[0] == EventLifecycleOutcome.HALTED
         assert_halt_metric(mock_record, LinkAllReposHaltReason.RATE_LIMITED.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -244,7 +265,12 @@ class LinkAllReposTestCase(IntegrationTestCase):
             organization_id=self.organization.id,
         )
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+        assert len(mock_record.mock_calls) == 4
+        start1, start2, end2, end1 = mock_record.mock_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED
+        assert end2.args[0] == EventLifecycleOutcome.SUCCESS
+        assert end1.args[0] == EventLifecycleOutcome.HALTED
         assert_halt_metric(mock_record, LinkAllReposHaltReason.REPOSITORY_NOT_CREATED.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -266,4 +292,9 @@ class LinkAllReposTestCase(IntegrationTestCase):
                 organization_id=self.organization.id,
             )
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+        assert len(mock_record.mock_calls) == 4
+        start1, start2, end2, end1 = mock_record.mock_calls
+        assert start1.args[0] == EventLifecycleOutcome.STARTED
+        assert start2.args[0] == EventLifecycleOutcome.STARTED
+        assert end2.args[0] == EventLifecycleOutcome.SUCCESS
+        assert end1.args[0] == EventLifecycleOutcome.FAILURE

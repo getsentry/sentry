@@ -1,5 +1,6 @@
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
   useMutation,
@@ -8,8 +9,8 @@ import {
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SamplingProjectRate {
   id: number;
@@ -17,7 +18,9 @@ interface SamplingProjectRate {
 }
 
 function getEndpoint(organization: Organization) {
-  return `/organizations/${organization.slug}/sampling/project-rates/`;
+  return getApiUrl('/organizations/$organizationIdOrSlug/sampling/project-rates/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 }
 
 function getQueryKey(organization: Organization): ApiQueryKey {

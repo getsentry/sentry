@@ -2,11 +2,10 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
-import {Button} from '@sentry/scraps/button/button';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Link} from '@sentry/scraps/link/link';
-import {Heading} from '@sentry/scraps/text/heading';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -16,14 +15,14 @@ import type {
   ProjectSeerPreferences,
   SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
 
 import {AutofixRepositoriesItem} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesItem';
@@ -56,7 +55,7 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
   null,
 ];
 
-export default function AutofixRepositories({canWrite, preference, project}: Props) {
+export function AutofixRepositories({canWrite, preference, project}: Props) {
   const organization = useOrganization();
 
   const {data: repositories, isFetching: isFetchingRepositories} =
@@ -106,13 +105,13 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
 
             // Create new entry with defaults for newly added repos
             const orgRepo = repositories?.find(r => r.externalId === repoId);
-            const [owner] = (orgRepo?.name ?? '').split('/');
+            const [owner, name] = (orgRepo?.name || '/').split('/');
             return {
               organization_id: organization.id,
               external_id: repoId,
-              name: orgRepo?.name ?? '',
+              name: name ?? orgRepo?.name ?? '',
               owner: owner ?? '',
-              provider: orgRepo?.provider.id ?? '',
+              provider: orgRepo?.provider?.name?.toLowerCase() ?? '',
               integration_id: orgRepo?.integrationId,
               branch_name: '',
               instructions: '',
@@ -203,5 +202,6 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
 }
 
 const StyledPanelTable = styled(PanelTable)`
+  margin-bottom: 0;
   grid-template-columns: 1fr repeat(2, max-content);
 `;

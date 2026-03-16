@@ -4,30 +4,26 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
-import slugify from 'sentry/utils/slugify';
+import {slugify} from 'sentry/utils/slugify';
 
 type Payload = {
   slug: string;
 };
 
 type Props = {
-  organization: Organization;
-  formProps?: Partial<typeof Form>;
-  onSubmit?: (
+  onSubmit: (
     data: Payload,
     onSuccess: (team: Team) => void,
     onError: (team: Team) => void
   ) => void;
-  onSuccess?: (data: Payload) => void;
+  organization: Organization;
 };
 
-function CreateTeamForm({organization, formProps, ...props}: Props) {
+export function CreateTeamForm({organization, onSubmit}: Props) {
   return (
     <Fragment>
       <p>
-        {t(
-          'Members of a team have access to specific areas, such as a new release or a new application feature.'
-        )}
+        {t('Teams group members for issue assignment, ownership, and notifications.')}
       </p>
 
       <Form
@@ -35,21 +31,18 @@ function CreateTeamForm({organization, formProps, ...props}: Props) {
         apiEndpoint={`/organizations/${organization.slug}/teams/`}
         apiMethod="POST"
         onSubmit={(data, onSuccess, onError) =>
-          props.onSubmit?.(data as Payload, onSuccess, onError)
+          onSubmit(data as Payload, onSuccess, onError)
         }
-        onSubmitSuccess={data => props.onSuccess?.(data)}
         requireChanges
-        data-test-id="create-team-form"
-        {...formProps}
       >
         <TextField
           stacked
           required
           name="slug"
-          label={t('Team Name')}
+          label={t('Team Slug')}
           transformInput={slugify}
-          placeholder={t('e.g. operations, web-frontend, desktop')}
-          help={t('May contain lowercase letters, numbers, dashes and underscores.')}
+          placeholder={t('e.g. operations, web-frontend, mobile-ios')}
+          help={t('Use lowercase letters, numbers, dashes, and underscores.')}
           flexibleControlStateSize
           inline={false}
           autoFocus
@@ -58,5 +51,3 @@ function CreateTeamForm({organization, formProps, ...props}: Props) {
     </Fragment>
   );
 }
-
-export default CreateTeamForm;

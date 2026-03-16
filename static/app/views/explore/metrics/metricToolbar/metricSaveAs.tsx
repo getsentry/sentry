@@ -1,7 +1,8 @@
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useSaveAsMetricItems} from 'sentry/views/explore/metrics/useSaveAsMetricItems';
 
 export function MetricSaveAs() {

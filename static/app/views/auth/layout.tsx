@@ -2,10 +2,10 @@ import {useEffect} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import Panel from 'sentry/components/panels/panel';
+import {Link} from '@sentry/scraps/link';
+
+import {Panel} from 'sentry/components/panels/panel';
 import {IconSentry} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 
 const BODY_CLASSES = ['narrow'];
@@ -64,7 +64,7 @@ const AuthSidebar = styled('div')`
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   margin: -1px;
   margin-right: 0;

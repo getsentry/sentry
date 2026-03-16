@@ -6,7 +6,7 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
-import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -27,6 +27,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {ChartSelectionQueryParam} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -50,7 +51,6 @@ import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMod
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
@@ -60,6 +60,7 @@ export interface GetExploreUrlArgs {
   organization: Organization;
   aggregateField?: Array<GroupBy | BaseVisualize>;
   caseInsensitive?: CaseInsensitive;
+  chartSelection?: ChartSelectionQueryParam;
   field?: string[];
   groupBy?: string[];
   id?: number;
@@ -80,6 +81,7 @@ export function getExploreUrl({
   interval,
   mode,
   aggregateField,
+  chartSelection,
   visualize,
   query,
   groupBy,
@@ -94,11 +96,12 @@ export function getExploreUrl({
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
-    project: projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: projects?.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
     mode,
     query,
@@ -113,6 +116,7 @@ export function getExploreUrl({
     title,
     referrer,
     caseInsensitive: caseInsensitive ? '1' : undefined,
+    chartSelection: chartSelection ? JSON.stringify(chartSelection) : undefined,
   };
 
   return (
@@ -139,9 +143,9 @@ function getExploreUrlFromSavedQueryUrl({
           q.aggregateField
             ?.filter<RawGroupBy>(isGroupBy)
             ?.map(groupBy => groupBy.groupBy) ?? q.groupby;
-        const visualize: RawVisualize | undefined =
+        const visualize =
           q.aggregateField?.find<RawVisualize>(isRawVisualize) ?? q.visualize?.[0];
-        const chartType: ChartType | undefined = isChartType(visualize?.chartType)
+        const chartType = isChartType(visualize?.chartType)
           ? visualize.chartType
           : undefined;
 
@@ -214,11 +218,12 @@ export function getExploreMultiQueryUrl({
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
   const queryParams = {
-    project: projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: projects.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
-    start,
-    end,
+    start: normalizeDateTimeString(start),
+    end: normalizeDateTimeString(end),
     interval,
     queries: queries.map(
       ({chartType, fields, groupBys, query, sortBys, yAxes, caseInsensitive}) =>
@@ -418,10 +423,7 @@ export function viewSamplesTarget({
 }
 
 export function getDefaultExploreRoute(organization: Organization) {
-  if (
-    organization.features.includes('performance-trace-explorer') ||
-    organization.features.includes('visibility-explore-view')
-  ) {
+  if (organization.features.includes('visibility-explore-view')) {
     return 'traces';
   }
 
@@ -476,6 +478,7 @@ export function findSuggestedColumns(
   newSearch: MutableSearch,
   oldSearch: MutableSearch,
   attributes: {
+    booleanAttributes: TagCollection;
     numberAttributes: TagCollection;
     stringAttributes: TagCollection;
   }
@@ -483,7 +486,7 @@ export function findSuggestedColumns(
   const oldFilters = oldSearch.filters;
   const newFilters = newSearch.filters;
 
-  const keys: Set<string> = new Set();
+  const keys = new Set<string>();
 
   for (const [key, value] of Object.entries(newFilters)) {
     if (key === 'has' || key === '!has') {
@@ -497,9 +500,12 @@ export function findSuggestedColumns(
     const isNumberAttribute = key.startsWith('!')
       ? key.slice(1) in attributes.numberAttributes
       : key in attributes.numberAttributes;
+    const isBooleanAttribute = key.startsWith('!')
+      ? key.slice(1) in attributes.booleanAttributes
+      : key in attributes.booleanAttributes;
 
     // guard against unknown keys and aggregate keys
-    if (!isStringAttribute && !isNumberAttribute) {
+    if (!isStringAttribute && !isNumberAttribute && !isBooleanAttribute) {
       continue;
     }
 
@@ -544,6 +550,7 @@ function isSimpleFilter(
   key: string,
   value: string[],
   attributes: {
+    booleanAttributes: TagCollection;
     numberAttributes: TagCollection;
     stringAttributes: TagCollection;
   }
@@ -558,6 +565,12 @@ function isSimpleFilter(
   // almost always match on a range of values
   if (key in attributes.numberAttributes) {
     return false;
+  }
+
+  // boolean attributes are always considered trivial because they almost match on a
+  // single value, so there's no value in adding a column
+  if (key in attributes.booleanAttributes) {
+    return true;
   }
 
   if (value.length === 1) {
@@ -695,6 +708,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
   [TraceItemDataset.TRACEMETRICS]: getMetricsUrlFromSavedQueryUrl,
   [TraceItemDataset.PREPROD]: undefined,
   [TraceItemDataset.REPLAYS]: getReplayUrlFromSavedQueryUrl,
+  [TraceItemDataset.PROCESSING_ERRORS]: undefined,
 };
 
 /**

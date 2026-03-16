@@ -44,7 +44,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcRegionUser, organization_service
-from sentry.types.region import find_all_region_names, find_regions_for_user
+from sentry.types.region import find_all_cell_names, find_cells_for_user
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user_avatar import UserAvatar
@@ -54,8 +54,10 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
 audit_logger = logging.getLogger("sentry.audit.user")
+logger = logging.getLogger(__name__)
 
 MAX_USERNAME_LENGTH = 128
+MAX_EMAIL_LENGTH = 200
 RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
 RANDOM_PASSWORD_LENGTH = 32
 
@@ -162,9 +164,7 @@ class User(Model, AbstractBaseUser):
     is_password_expired = models.BooleanField(
         _("password expired"),
         default=False,
-        help_text=_(
-            "If set to true then the user needs to change the " "password on next sign in."
-        ),
+        help_text=_("If set to true then the user needs to change the password on next sign in."),
     )
     last_password_change = models.DateTimeField(
         _("date of last password change"),
@@ -229,13 +229,35 @@ class User(Model, AbstractBaseUser):
             return super().update(*args, **kwds)
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
-            if not self.username:
-                self.username = self.email
-            result = super().save(*args, **kwargs)
-            for outbox in self.outboxes_for_update():
-                outbox.save()
-            return result
+        is_test_user = kwargs.pop("is_test_user", False)
+        is_relocated_user = kwargs.pop("is_relocated_user", False)
+        try:
+            with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+                if not self.username:
+                    self.username = self.email
+                # for testing purposes, we want to be able to create new users with existing emails
+                # if we're relocating a user, then we would have handled email_unique in the relocation logic
+                if not is_test_user:
+                    if self.pk is None and not is_relocated_user:
+                        # new users should set email_unique
+                        self.email_unique = self.email
+                    else:
+                        # existing users with shared email addresses + relocated users should be able to save without fail
+                        self.email_unique = (
+                            self.email
+                            if User.objects.filter(email=self.email).count() == 1
+                            else None
+                        )
+                result = super().save(*args, **kwargs)
+                for outbox in self.outboxes_for_update():
+                    outbox.save()
+                return result
+        except IntegrityError:
+            logger.info(
+                "Attempted to save user with non-unique primary email address",
+                extra={"email": self.email},
+            )
+            raise
 
     def has_2fa(self) -> bool:
         return Authenticator.objects.filter(
@@ -349,12 +371,12 @@ class User(Model, AbstractBaseUser):
         # of anything with a HybridCloudForeignKey, even if the user is no longer
         # a member of any organizations in that region.
         if is_user_delete:
-            user_regions = set(find_all_region_names())
+            user_regions = set(find_all_cell_names())
         else:
-            user_regions = find_regions_for_user(identifier)
+            user_regions = find_cells_for_user(identifier)
 
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
-            region_names=user_regions,
+            cell_names=user_regions,
             object_identifier=identifier,
             shard_identifier=identifier,
         )
@@ -505,7 +527,7 @@ class User(Model, AbstractBaseUser):
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
     ) -> tuple[int, ImportKind] | None:
-        # Internal function that factors our some common logic.
+        # Internal function that factors out some common logic.
         def do_write() -> tuple[int, ImportKind]:
             from sentry.users.api.endpoints.user_details import (
                 BaseUserSerializer,
@@ -525,7 +547,7 @@ class User(Model, AbstractBaseUser):
             serializer_user = serializer_cls(instance=self, data=model_to_dict(self), partial=True)
             serializer_user.is_valid(raise_exception=True)
 
-            self.save(force_insert=True)
+            self.save(force_insert=True, is_relocated_user=True)
 
             if scope != ImportScope.Global:
                 DatabaseLostPasswordHashService().get_or_create(user_id=self.id)
@@ -577,20 +599,20 @@ class User(Model, AbstractBaseUser):
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
-        from sentry.hybridcloud.rpc.caching import region_caching_service
+        from sentry.hybridcloud.rpc.caching import cell_caching_service
         from sentry.users.services.user.service import get_many_by_id, get_user
 
-        region_caching_service.clear_key(key=get_user.key_from(identifier), region_name=region_name)
-        region_caching_service.clear_key(
+        cell_caching_service.clear_key(key=get_user.key_from(identifier), region_name=region_name)
+        cell_caching_service.clear_key(
             key=get_many_by_id.key_from(identifier), region_name=region_name
         )
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.hybridcloud.rpc.caching import region_caching_service
+        from sentry.hybridcloud.rpc.caching import cell_caching_service
         from sentry.users.services.user.service import get_many_by_id, get_user
 
-        region_caching_service.clear_key(key=get_user.key_from(self.id), region_name=region_name)
-        region_caching_service.clear_key(
+        cell_caching_service.clear_key(key=get_user.key_from(self.id), region_name=region_name)
+        cell_caching_service.clear_key(
             key=get_many_by_id.key_from(self.id), region_name=region_name
         )
         organization_service.update_region_user(
@@ -599,7 +621,7 @@ class User(Model, AbstractBaseUser):
                 is_active=self.is_active,
                 email=self.email,
             ),
-            region_name=region_name,
+            cell_name=region_name,
         )
 
 

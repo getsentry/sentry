@@ -1,6 +1,10 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
@@ -11,17 +15,14 @@ import {
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
-import ResolveActions from 'sentry/components/actions/resolve';
+import {ResolveActions} from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';
 import {
   IconCheckmark,
@@ -31,9 +32,8 @@ import {
   IconUpload,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
-import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import {space} from 'sentry/styles/space';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
@@ -49,17 +49,17 @@ import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import ShareIssueModal from 'sentry/views/issueDetails/actions/shareModal';
-import SubscribeAction from 'sentry/views/issueDetails/actions/subscribeAction';
+import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
-import useProjectReleaseVersionIsSemver from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
+import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {
   useEnvironmentsFromUrl,
   useHasStreamlinedUI,
@@ -84,6 +84,7 @@ interface GroupActionsProps {
 }
 
 export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+  const theme = useTheme();
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -107,8 +108,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     ? isVersionInfoSemver(eventReleaseVersion)
     : projHasSemverRelease;
 
-  const hasSemverReleaseFeature =
-    organization.features?.includes('resolve-in-semver-release') && hasSemverRelease;
+  const hasSemverReleaseFeature = hasSemverRelease;
 
   const isResolved = group.status === 'resolved';
   const isAutoResolved =
@@ -341,7 +341,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             <Footer>
               <Button onClick={closeModal}>{t('Cancel')}</Button>
               <Button
-                style={{marginLeft: space(1)}}
+                style={{marginLeft: theme.space.md}}
                 priority="primary"
                 onClick={onDiscard}
                 disabled={!hasFeature}
@@ -397,10 +397,10 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     onUpdate,
   });
   return (
-    <ActionWrapper>
+    <Flex align="center" gap="xs">
       {hasStreamlinedUI &&
         (isResolved || isIgnored ? (
-          <ResolvedActionWapper>
+          <Flex align="center" gap="md">
             <ResolvedWrapper>
               <IconCheckmark size="md" />
               <Flex direction="column">
@@ -428,7 +428,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             </ResolvedWrapper>
 
             <Divider />
-            {resolveCap.enabled && (
+            {resolveCap.enabled && isResolved && (
               <Button
                 size="sm"
                 disabled={disabled || isAutoResolved}
@@ -440,10 +440,25 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                   })
                 }
               >
-                {isResolved ? t('Unresolve') : t('Unarchive')}
+                {t('Unresolve')}
               </Button>
             )}
-          </ResolvedActionWapper>
+            {isIgnored && (
+              <Button
+                size="sm"
+                disabled={disabled || isAutoResolved}
+                onClick={() =>
+                  onUpdate({
+                    status: GroupStatus.UNRESOLVED,
+                    statusDetails: {},
+                    substatus: GroupSubstatus.ONGOING,
+                  })
+                }
+              >
+                {t('Unarchive')}
+              </Button>
+            )}
+          </Flex>
         ) : (
           <Fragment>
             {resolveCap.enabled && (
@@ -499,7 +514,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
             onClick={openShareModal}
             icon={<IconUpload />}
             aria-label={t('Share')}
-            title={t('Share Issue')}
+            tooltipProps={{title: t('Share Issue')}}
             disabled={disabled}
             analyticsEventKey="issue_details.share_action_clicked"
             analyticsEventName="Issue Details: Share Action Clicked"
@@ -628,13 +643,13 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           {isResolved || isIgnored ? (
             <Button
               priority="primary"
-              title={
-                isAutoResolved
+              tooltipProps={{
+                title: isAutoResolved
                   ? t(
                       'This event is resolved due to the Auto Resolve configuration for this project'
                     )
-                  : t('Change status to unresolved')
-              }
+                  : t('Change status to unresolved'),
+              }}
               size="sm"
               disabled={disabled || isAutoResolved || !resolveCap.enabled}
               onClick={() =>
@@ -679,29 +694,17 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           )}
         </Fragment>
       )}
-    </ActionWrapper>
+    </Flex>
   );
 }
 
-const ActionWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
 const ResolvedWrapper = styled('div')`
   display: flex;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   align-items: center;
   color: ${p => p.theme.colors.green500};
   font-weight: bold;
   font-size: ${p => p.theme.font.size.lg};
-`;
-
-const ResolvedActionWapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const ReasonBanner = styled('div')`

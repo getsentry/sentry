@@ -3,16 +3,18 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'query-string';
 
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {
   openAddToDashboardModal,
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -20,22 +22,29 @@ import {
   MEPState,
   useMEPSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {safeURL} from 'sentry/utils/url/safeURL';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DashboardWidgetSource, WidgetType} from 'sentry/views/dashboards/types';
 import {
+  applyDashboardFilters,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   hasDatasetSelector,
   isUsingPerformanceScore,
+  isWidgetEditable,
   performanceScoreTooltip,
+  usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 
@@ -183,7 +192,8 @@ export function getMenuOptions(
   location: Location,
   onDelete?: () => void,
   onDuplicate?: () => void,
-  onEdit?: () => void
+  onEdit?: () => void,
+  timeseriesResults?: Series[]
 ) {
   const menuOptions: MenuItemProps[] = [];
 
@@ -256,10 +266,73 @@ export function getMenuOptions(
         dashboardFilters,
         selection,
         organization,
-        Mode.SAMPLES,
+        widget.queries.some(q => q.aggregates.length > 0) ? Mode.AGGREGATE : Mode.SAMPLES,
         getReferrer(widget.displayType)
       ),
     });
+  }
+
+  if (
+    widget.widgetType === WidgetType.SPANS &&
+    usesTimeSeriesData(widget.displayType) &&
+    timeseriesResults?.length
+  ) {
+    const newAlertLabel = organization.features.includes('workflow-engine-ui')
+      ? t('Create a Monitor for')
+      : t('Create an Alert for');
+
+    const alertMenuOptions = timeseriesResults
+      .map((series, index) => {
+        const transformed = transformWidgetSeriesToTimeSeries(series, widget);
+
+        if (
+          !transformed ||
+          transformed.timeSeries.meta.isOther ||
+          isEquation(transformed.timeSeries.yAxis)
+        ) {
+          return null;
+        }
+
+        const {timeSeries, label, seriesName, widgetQuery} = transformed;
+
+        const baseQuery =
+          applyDashboardFilters(
+            widgetQuery?.conditions,
+            dashboardFilters,
+            widget.widgetType
+          ) ?? '';
+
+        // Add group-by values as filters to the alert query
+        const search = new MutableSearch(baseQuery);
+        for (const group of timeSeries.groupBy ?? []) {
+          if (group.value !== null && !Array.isArray(group.value)) {
+            search.addFilterValue(group.key, group.value);
+          }
+        }
+
+        return {
+          key: `create-alert-${seriesName}-${index}`,
+          label,
+          to: getAlertsUrl({
+            query: search.formatString(),
+            aggregate: timeSeries.yAxis,
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            pageFilters: selection,
+            organization,
+            referrer: getReferrer(widget.displayType),
+          }),
+        } satisfies MenuItemProps;
+      })
+      .filter(Boolean) as MenuItemProps[];
+
+    if (alertMenuOptions.length > 0) {
+      menuOptions.push({
+        key: 'create-alert',
+        label: newAlertLabel,
+        isSubmenu: true,
+        children: alertMenuOptions,
+      });
+    }
   }
 
   if (widget.widgetType === WidgetType.TRACEMETRICS) {
@@ -331,7 +404,10 @@ export function getMenuOptions(
       key: 'edit-widget',
       label: t('Edit Widget'),
       onAction: () => onEdit?.(),
-      disabled: !hasEditAccess,
+      disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
+      tooltip: isWidgetEditable(widget.displayType)
+        ? undefined
+        : t('Static widgets from the widget library cannot be edited.'),
     });
 
     menuOptions.push({

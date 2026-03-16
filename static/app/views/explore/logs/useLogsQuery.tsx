@@ -2,8 +2,10 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {logger} from '@sentry/react';
 
 import {type ApiResult} from 'sentry/api';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -17,8 +19,7 @@ import {
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useLogsAutoRefresh,
   useLogsAutoRefreshEnabled,
@@ -151,7 +152,9 @@ function useLogsQueryKey({
     frozenTraceIds || frozenReplayInfo.replayId ? 'trace-logs' : 'events';
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${endpointSuffix}/`,
+    getApiUrl(`/organizations/$organizationIdOrSlug/${endpointSuffix}/`, {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     params,
   ];
 
@@ -393,7 +396,11 @@ function isFlexTimePageParam(pageParam: LogPageParam): pageParam is FlexTimePage
   return defined(pageParam) && 'cursor' in pageParam;
 }
 
-type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions, 'infinite'];
+type QueryKey = [
+  url: ReturnType<typeof getApiUrl>,
+  endpointOptions: QueryKeyEndpointOptions,
+  'infinite',
+];
 
 export function useInfiniteLogsQuery({
   disabled,
@@ -635,6 +642,7 @@ export function useInfiniteLogsQuery({
     return filteredData;
   }, [data, virtualStreamedTimestamp]);
 
+  const pageCount = data?.pages?.length;
   const _meta = useMemo<EventsMetaType>(() => {
     return (
       data?.pages.reduce(
@@ -648,7 +656,8 @@ export function useInfiniteLogsQuery({
         {fields: {}, units: {}}
       ) ?? {fields: {}, units: {}}
     );
-  }, [data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageCount]);
 
   const _fetchPreviousPage = useCallback(() => {
     if (autoRefresh || hasPreviousPage) {

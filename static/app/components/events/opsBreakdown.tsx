@@ -4,15 +4,11 @@ import isFinite from 'lodash/isFinite';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import type {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
-import type {
-  RawSpanType,
-  TraceContextType,
-} from 'sentry/components/events/interfaces/spans/types';
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AggregateEventTransaction,
   EntrySpans,
@@ -63,7 +59,7 @@ export function generateStats(
     return [];
   }
 
-  const traceContext: TraceContextType | undefined = transactionEvent?.contexts?.trace;
+  const traceContext = transactionEvent?.contexts?.trace;
 
   if (!traceContext) {
     return [];
@@ -75,7 +71,7 @@ export function generateStats(
     }
   );
 
-  let spans: RawSpanType[] = spanEntry?.data ?? [];
+  let spans = spanEntry?.data ?? [];
 
   const rootSpan = {
     op: traceContext.op,
@@ -256,7 +252,7 @@ function OpsBreakdown({
 
     const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
     const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-    const opsColor: string = pickBarColor(operationName, theme);
+    const opsColor = pickBarColor(operationName, theme);
 
     return (
       <OpsLine key={operationName}>
@@ -296,21 +292,21 @@ function OpsBreakdown({
 
 const StyledBreakdown = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
 `;
 
 const StyledBreakdownNoHeader = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  margin: ${space(2)} ${space(3)};
+  margin: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
 `;
 
 const OpsLine = styled('div')`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 
   * + * {
-    margin-left: ${space(0.5)};
+    margin-left: ${p => p.theme.space.xs};
   }
 `;
 
@@ -320,7 +316,7 @@ export const OpsDot = styled('div')`
   width: 8px;
   min-width: 8px;
   height: 8px;
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
   border-radius: 100%;
 `;
 

@@ -20,7 +20,7 @@ MAX_RETRIES = 5
         delay=60 * 5,
         on=(DatabaseError, IntegrityError),
     ),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def delete_file_region(path, checksum, **kwargs):
     from sentry.models.files import FileBlob
@@ -61,7 +61,7 @@ def delete_file(file_blob_model, path, checksum, **kwargs):
         times=MAX_RETRIES,
         delay=60 * 5,
     ),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def delete_unreferenced_blobs_region(blob_ids):
@@ -89,7 +89,6 @@ def delete_unreferenced_blobs_control(blob_ids):
 
 
 def delete_unreferenced_blobs(blob_model, blob_index_model, blob_ids):
-
     for blob_id in blob_ids:
         # If a blob is referenced, we do not want to delete it
         if blob_index_model.objects.filter(blob_id=blob_id).exists():

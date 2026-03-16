@@ -2,19 +2,18 @@ import {Fragment, useCallback, useMemo, useRef, useState, type ChangeEvent} from
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Link} from 'sentry/components/core/link';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_REPOS_LIMIT} from 'sentry/views/settings/projectSeer/constants';
 
 import {SelectableRepoItem} from './selectableRepoItem';
@@ -217,12 +216,12 @@ const ModalReposContainer = styled('div')`
 `;
 
 const SearchContainer = styled('div')<{hasAlert: boolean}>`
-  margin-top: ${p => (p.hasAlert ? space(1.5) : 0)};
-  margin-bottom: ${space(1.5)};
+  margin-top: ${p => (p.hasAlert ? p.theme.space.lg : 0)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const EmptyMessage = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
   font-size: ${p => p.theme.font.size.md};

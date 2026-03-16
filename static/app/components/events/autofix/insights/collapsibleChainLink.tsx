@@ -1,17 +1,15 @@
 import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {TextArea} from '@sentry/scraps/textarea';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TextArea} from 'sentry/components/core/textarea';
 import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {FlippedReturnIcon} from './autofixInsightCard';
 
@@ -95,12 +93,12 @@ export function CollapsibleChainLink({
                       }
                     }}
                   />
-                  <ButtonBar merged gap="0">
+                  <ButtonBar>
                     <Button
                       type="button"
                       size="sm"
                       onClick={handleCancel}
-                      title={t('Cancel')}
+                      tooltipProps={{title: t('Cancel')}}
                     >
                       <IconClose size="sm" />
                     </Button>
@@ -108,7 +106,7 @@ export function CollapsibleChainLink({
                       type="submit"
                       priority="primary"
                       size="sm"
-                      title={t('Redo work from here')}
+                      tooltipProps={{title: t('Redo work from here')}}
                       aria-label={t('Redo work from here')}
                     >
                       {'\u23CE'}
@@ -120,9 +118,9 @@ export function CollapsibleChainLink({
           ) : (
             <AddButton
               size="zero"
-              borderless
+              priority="transparent"
               onClick={() => setIsAdding(true)}
-              title={t('Give feedback and rethink the answer')}
+              tooltipProps={{title: t('Give feedback and rethink the answer')}}
               aria-label={t('Give feedback and rethink the answer')}
               analyticsEventName="Autofix: Step Rethink Open"
               analyticsEventKey="autofix.step.rethink_open"
@@ -150,7 +148,7 @@ const VerticalLineContainer = styled('div')<{
   width: 100%;
   display: flex;
   padding: 0;
-  min-height: ${p => (p.isEmpty ? space(4) : 'auto')};
+  min-height: ${p => (p.isEmpty ? p.theme.space['3xl'] : 'auto')};
 `;
 
 const RethinkButtonContainer = styled('div')`
@@ -166,7 +164,7 @@ const RethinkButtonContainer = styled('div')`
 `;
 
 const AddEditContainer = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   width: 100%;
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
@@ -186,5 +184,5 @@ const RethinkLabel = styled('span')`
   align-items: center;
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;

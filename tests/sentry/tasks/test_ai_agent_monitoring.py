@@ -650,9 +650,9 @@ class FetchAIModelCostsTest(TestCase):
 
         for model_id, expected_normalized in test_cases:
             actual_normalized = _normalize_model_id(model_id)
-            assert (
-                actual_normalized == expected_normalized
-            ), f"Expected {expected_normalized} for {model_id}, got {actual_normalized}"
+            assert actual_normalized == expected_normalized, (
+                f"Expected {expected_normalized} for {model_id}, got {actual_normalized}"
+            )
 
     def test_create_prefix_glob_model_name(self) -> None:
         """Test prefix glob generation for model names"""
@@ -668,6 +668,6 @@ class FetchAIModelCostsTest(TestCase):
 
         for model_id, expected_glob in test_cases:
             actual_glob = _create_prefix_glob_model_name(model_id)
-            assert (
-                actual_glob == expected_glob
-            ), f"Expected {expected_glob} for {model_id}, got {actual_glob}"
+            assert actual_glob == expected_glob, (
+                f"Expected {expected_glob} for {model_id}, got {actual_glob}"
+            )

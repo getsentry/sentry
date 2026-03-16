@@ -12,7 +12,6 @@ def sort_by_severity(problems: Iterable[Problem]) -> list[Problem]:
 
 
 class Problem:
-
     # Used for issues that may render the system inoperable or have effects on
     # data integrity (e.g. issues in the processing pipeline.)
     SEVERITY_CRITICAL: Final = "critical"

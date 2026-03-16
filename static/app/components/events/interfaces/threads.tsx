@@ -1,10 +1,10 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {CommitRow} from 'sentry/components/commitRow';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {
   StacktraceContext,
@@ -18,10 +18,10 @@ import {
 } from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
-import Pill from 'sentry/components/pill';
-import Pills from 'sentry/components/pills';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Pill} from 'sentry/components/pill';
+import {Pills} from 'sentry/components/pills';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   IconChevron,
   IconClock,
@@ -31,7 +31,6 @@ import {
   IconTimer,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EntryThreads, Event, ExceptionType, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -45,11 +44,11 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
-import ThreadSelector from './threads/threadSelector';
-import findBestThread from './threads/threadSelector/findBestThread';
-import getThreadException from './threads/threadSelector/getThreadException';
-import getThreadStacktrace from './threads/threadSelector/getThreadStacktrace';
-import NoStackTraceMessage from './noStackTraceMessage';
+import {ThreadSelector} from './threads/threadSelector';
+import {findBestThread} from './threads/threadSelector/findBestThread';
+import {getThreadException} from './threads/threadSelector/getThreadException';
+import {getThreadStacktrace} from './threads/threadSelector/getThreadStacktrace';
+import {NoStackTraceMessage} from './noStackTraceMessage';
 import {inferPlatform, isStacktraceNewestFirst} from './utils';
 
 type Props = {
@@ -265,10 +264,9 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
                 <Flex justify="start" align="center" wrap="wrap" flexGrow={1} gap="md">
-                  <ButtonBar merged gap="0">
+                  <ButtonBar>
                     <Button
-                      title={t('Previous Thread')}
-                      tooltipProps={{delay: 1000}}
+                      tooltipProps={{title: t('Previous Thread'), delay: 1000}}
                       icon={<IconChevron direction="left" />}
                       aria-label={t('Previous Thread')}
                       size="xs"
@@ -277,8 +275,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                       }}
                     />
                     <Button
-                      title={t('Next Thread')}
-                      tooltipProps={{delay: 1000}}
+                      tooltipProps={{title: t('Next Thread'), delay: 1000}}
                       icon={<IconChevron direction="right" />}
                       aria-label={t('Next Thread')}
                       size="xs"
@@ -436,7 +433,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
 const Grid = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const TheadStateContainer = styled('div')`
@@ -455,10 +452,10 @@ const LockReason = styled(TextOverflow)`
 const ThreadTraceWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  padding: ${space(1)} ${space(4)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
   @media (max-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 `;
 
@@ -466,5 +463,5 @@ const ThreadHeading = styled('h3')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

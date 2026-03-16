@@ -2,16 +2,16 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Input} from '@sentry/scraps/input';
+import {Select} from '@sentry/scraps/select';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Input} from 'sentry/components/core/input';
-import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import ContinueButton from 'sentry/views/relocation/components/continueButton';
-import StepHeading from 'sentry/views/relocation/components/stepHeading';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
+import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
+import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
 
 import type {StepProps} from './types';
 
@@ -30,7 +30,11 @@ function prettyRegionName(name: string): string {
   return name;
 }
 
-function GetStarted({relocationState, onUpdateRelocationState, onComplete}: StepProps) {
+export function GetStarted({
+  relocationState,
+  onUpdateRelocationState,
+  onComplete,
+}: StepProps) {
   const api = useApi();
   const {orgSlugs, regionUrl, promoCode} = relocationState;
   const [showPromoCode, setShowPromoCode] = useState(!!promoCode);
@@ -141,12 +145,10 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
   );
 }
 
-export default GetStarted;
-
 const Wrapper = styled('div')`
   margin-left: auto;
   margin-right: auto;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
   background-color: ${p => p.theme.tokens.background.primary};
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
@@ -167,14 +169,14 @@ const Label = styled('label')`
   display: block;
   text-transform: uppercase;
   color: ${p => p.theme.colors.gray800};
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const RequiredLabel = styled('label')`
   display: block;
   text-transform: uppercase;
   color: ${p => p.theme.colors.gray800};
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   &:after {
     content: '•';
     width: 6px;
@@ -189,15 +191,15 @@ const RegionSelect = styled(Select)`
 `;
 
 const PromoCodeInput = styled(Input)`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const TogglePromoCode = styled('a')`
   display: block;
   cursor: pointer;
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const DatacenterTextBlock = styled('p')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;

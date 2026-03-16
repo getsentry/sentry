@@ -56,11 +56,15 @@ class LinkCronDetectorsToAllWorkflowsTest(TestMigrations):
 
         # Create non-cron detectors (should not be affected)
         self.regular_detector1 = self.create_detector(
-            project=self.project1, name="regular-detector-1", type="error"  # Not a cron detector
+            project=self.project1,
+            name="regular-detector-1",
+            type="error",  # Not a cron detector
         )
 
         self.regular_detector2 = self.create_detector(
-            project=self.project2, name="regular-detector-2", type="error"  # Not a cron detector
+            project=self.project2,
+            name="regular-detector-2",
+            type="error",  # Not a cron detector
         )
 
         # Create some existing DetectorWorkflow entries to ensure we don't duplicate
@@ -101,9 +105,9 @@ class LinkCronDetectorsToAllWorkflowsTest(TestMigrations):
         )
         project1b_detector_workflows_first = project1b_detector_workflows.first()
         assert project1b_detector_workflows_first
-        assert (
-            project1b_detector_workflows_first.workflow_id == self.project1b_workflow1.id
-        ), "Project1b cron detector should be linked to project1b workflow only"
+        assert project1b_detector_workflows_first.workflow_id == self.project1b_workflow1.id, (
+            "Project1b cron detector should be linked to project1b workflow only"
+        )
 
         # Verify project2 cron detector is linked to project2 workflow only
         project2_detector_workflows = DetectorWorkflow.objects.filter(detector=self.cron_detector4)
@@ -113,9 +117,9 @@ class LinkCronDetectorsToAllWorkflowsTest(TestMigrations):
         )
         project2_detector_workflows_first = project2_detector_workflows.first()
         assert project2_detector_workflows_first
-        assert (
-            project2_detector_workflows_first.workflow_id == self.project2_workflow1.id
-        ), "Project2 cron detector should be linked to project2 workflow"
+        assert project2_detector_workflows_first.workflow_id == self.project2_workflow1.id, (
+            "Project2 cron detector should be linked to project2 workflow"
+        )
 
         # Verify cron detectors are NOT linked to workflows from other projects in same org
         # cron_detector1 and cron_detector2 should NOT be linked to project1b_workflow1
@@ -150,9 +154,9 @@ class LinkCronDetectorsToAllWorkflowsTest(TestMigrations):
         detector1_workflow1_links = DetectorWorkflow.objects.filter(
             detector=self.cron_detector1, workflow=self.project1_workflow1
         )
-        assert (
-            detector1_workflow1_links.count() == 1
-        ), "Should not create duplicate DetectorWorkflow entries"
+        assert detector1_workflow1_links.count() == 1, (
+            "Should not create duplicate DetectorWorkflow entries"
+        )
 
         # Verify total counts
         total_cron_detector_workflows = DetectorWorkflow.objects.filter(

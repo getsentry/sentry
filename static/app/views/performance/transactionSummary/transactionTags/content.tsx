@@ -2,21 +2,20 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Radio} from '@sentry/scraps/radio';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Radio} from 'sentry/components/core/radio';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -48,7 +47,7 @@ type Props = {
 
 type TagOption = string;
 
-function TagsPageContent() {
+export function TagsPageContent() {
   const props = useTransactionSummaryContext();
   const {eventView, organization, projects} = props;
   const location = useLocation();
@@ -312,13 +311,13 @@ function TagsSideBar(props: {
 
 const RadioLabel = styled('label')`
   cursor: pointer;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const SidebarTagValue = styled('span')`
@@ -326,7 +325,7 @@ const SidebarTagValue = styled('span')`
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 // TODO(k-fish): Adjust thirds layout to allow for this instead.
@@ -339,7 +338,7 @@ const ReversedLayoutBody = styled('div')`
     display: grid;
     grid-template-columns: auto 66%;
     align-content: start;
-    gap: ${space(3)};
+    gap: ${p => p.theme.space['2xl']};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
@@ -370,12 +369,10 @@ const StyledSearchBarWrapper = styled('div')`
 
 const FilterActions = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 1fr auto;
   }
 `;
-
-export default TagsPageContent;

@@ -7,7 +7,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PlanTier} from 'getsentry/types';
 
-import useUpgradeNowParams from './useUpgradeNowParams';
+import {useUpgradeNowParams} from './useUpgradeNowParams';
 
 const teamPlan = PlanDetailsLookupFixture('am2_team');
 const mockAM2BillingConfig = BillingConfigFixture(PlanTier.AM2);
@@ -58,6 +58,7 @@ describe('useUpgradeNowParams', () => {
           reservedSeerAutofix: 0,
           reservedSeerScanner: 0,
           reservedSeerUsers: 0,
+          reservedSizeAnalyses: 100,
         },
       })
     );

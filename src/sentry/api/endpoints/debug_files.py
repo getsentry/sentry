@@ -18,7 +18,7 @@ from symbolic.exceptions import SymbolicError
 from sentry import ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -105,7 +105,7 @@ def _has_delete_permission(access: Access, project: Project) -> bool:
     return access.has_project_scope(project, "project:write")
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
@@ -189,7 +189,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
         return Response({"releases": releases})
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
@@ -225,9 +225,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
             response["Content-Length"] = debug_file.file.size
-            response["Content-Disposition"] = 'attachment; filename="{}{}"'.format(
-                posixpath.basename(debug_file.debug_id),
-                debug_file.file_extension,
+            response["Content-Disposition"] = (
+                f'attachment; filename="{posixpath.basename(debug_file.debug_id)}{debug_file.file_extension}"'
             )
             return response
         except OSError:
@@ -292,7 +291,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
             queryset = debug_id_qs.select_related("file").union(
                 ProjectDebugFile.objects.filter(Q(code_id__exact=code_id) & q)
                 # Only return any code id matches if there are *no* debug id matches.
-                .filter(~Exists(debug_id_qs)).select_related("file")
+                .filter(~Exists(debug_id_qs))
+                .select_related("file")
             )
         elif debug_id:
             q &= Q(debug_id__exact=debug_id)
@@ -346,10 +346,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
         :qparam string id: The id of the DIF to delete.
         :auth: required
         """
-        if request.GET.get("id") and _has_delete_permission(request.access, project):
+        debug_file_id = request.GET.get("id")
+        if debug_file_id and _has_delete_permission(request.access, project):
             with atomic_transaction(using=router.db_for_write(File)):
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)
+                    ProjectDebugFile.objects.filter(id=debug_file_id, project_id=project.id)
                     .select_related("file")
                     .first()
                 )
@@ -386,7 +387,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         return upload_from_request(request, project=project)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
@@ -400,7 +401,7 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
         return Response({"missing": missing})
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
@@ -543,7 +544,7 @@ def batch_assemble(project, files):
     return file_response
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
@@ -591,7 +592,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
         return Response(file_response, status=200)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {

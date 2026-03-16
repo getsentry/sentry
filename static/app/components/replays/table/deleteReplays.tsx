@@ -2,16 +2,17 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Duration from 'sentry/components/duration/duration';
+import {Duration} from 'sentry/components/duration/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {useReplayBulkDeleteAuditLogQueryKey} from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
@@ -19,17 +20,18 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {useQueryClient, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
-import useDeleteReplays, {
+import {
+  useDeleteReplays,
   type ReplayBulkDeletePayload,
 } from 'sentry/utils/replays/hooks/useDeleteReplays';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
-import useProjects from 'sentry/utils/useProjects';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
@@ -40,9 +42,10 @@ interface Props {
   selectedIds: 'all' | string[];
 }
 
-export default function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
+export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
   const queryClient = useQueryClient();
   const analyticsArea = useAnalyticsArea();
+  const organization = useOrganization();
   const {project: selectedProjectIds} = useLocationQuery({
     fields: {
       project: decodeList,
@@ -70,7 +73,7 @@ export default function DeleteReplays({selectedIds, replays, queryOptions}: Prop
   });
   const deletePayload = queryOptionsToPayload(selectedIds, queryOptions ?? {});
 
-  const settingsPath = `/settings/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
+  const settingsPath = `/settings/${organization.slug}/projects/${project?.slug}/replays/?replaySettingsTab=bulk-delete`;
 
   const queryKey = useReplayBulkDeleteAuditLogQueryKey({
     projectSlug: project?.slug ?? '',
@@ -244,7 +247,8 @@ function ReplayPreviewTable({
 }
 
 function Title({children, project}: {children: React.ReactNode; project: Project}) {
-  const settingsPath = `/settings/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`;
+  const organization = useOrganization();
+  const settingsPath = `/settings/${organization.slug}/projects/${project.slug}/replays/?replaySettingsTab=bulk-delete`;
   return (
     <Fragment>
       <p>
@@ -287,7 +291,7 @@ const SubText = styled('div')`
   text-overflow: ellipsis;
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   align-items: flex-start;
 `;
 

@@ -2,13 +2,14 @@ import type {ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -17,10 +18,9 @@ import {getAbsoluteSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type SavedEntityTableProps = {
   children: ReactNode;
@@ -116,7 +116,7 @@ SavedEntityTable.Cell = styled(SimpleTable.RowCell, {
   ${p =>
     p.hasButton &&
     css`
-      padding: 0 ${space(0.5)};
+      padding: 0 ${p.theme.space.xs};
     `}
 `;
 
@@ -130,7 +130,7 @@ SavedEntityTable.CellStar = function CellStar({
   return (
     <Button
       aria-label={isStarred ? t('Unstar') : t('Star')}
-      borderless
+      priority="transparent"
       icon={<IconStar isSolid={isStarred} variant={isStarred ? 'warning' : 'muted'} />}
       size="sm"
       onClick={onClick}
@@ -141,6 +141,7 @@ SavedEntityTable.CellStar = function CellStar({
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   text-decoration: underline;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   text-decoration-color: ${p => p.theme.tokens.border.primary};
   display: block;
   width: 100%;
@@ -207,7 +208,7 @@ SavedEntityTable.CellActions = function CellActions({items}: {items: MenuItemPro
           {...triggerProps}
           aria-label={t('More options')}
           size="sm"
-          borderless
+          priority="transparent"
           icon={<IconEllipsis />}
           data-test-id="menu-trigger"
         />

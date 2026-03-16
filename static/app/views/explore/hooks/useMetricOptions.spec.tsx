@@ -4,8 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 
@@ -31,7 +31,7 @@ describe('useMetricOptions', () => {
       PageFiltersStore.init();
       PageFiltersStore.onInitializeUrlState({
         projects: [project].map(p => parseInt(p.id, 10)),
-        environments: [],
+        environments: ['production'],
         datetime: {
           period: '3d',
           start: null,
@@ -157,5 +157,35 @@ describe('useMetricOptions', () => {
     });
 
     expect(mockRequest).not.toHaveBeenCalled();
+  });
+
+  it('filters metrics by environment', async () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: []},
+    });
+
+    const {result} = renderHookWithProviders(useMetricOptions, {
+      ...context,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/',
+          query: {project: project.id, environment: ['production']},
+        },
+      },
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockRequest).toHaveBeenCalledTimes(1);
+    expect(mockRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          environment: ['production'],
+        }),
+      })
+    );
   });
 });

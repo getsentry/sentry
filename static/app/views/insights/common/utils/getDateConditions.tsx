@@ -1,4 +1,4 @@
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import {getDateFilters} from 'sentry/views/insights/common/utils/getDateFilters';
 

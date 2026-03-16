@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
@@ -243,10 +244,10 @@ export const onboarding: OnboardingConfig = {
   ],
   nextSteps: () => [
     {
-      id: 'cocoapods-carthage',
-      name: t('CocoaPods/Carthage'),
+      id: 'alternate-installation',
+      name: t('Alternate Installation'),
       description: t(
-        'Learn about integrating Sentry into your project using CocoaPods or Carthage.'
+        'Learn about alternate ways to install the Sentry SDK, such as xcframeworks or Carthage.'
       ),
       link: 'https://docs.sentry.io/platforms/apple/install/',
     },

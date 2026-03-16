@@ -8,9 +8,10 @@ import type {
 import {t} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 interface Props {
   organization: Organization;
@@ -52,7 +53,7 @@ function useLogInviteModalOpened({
   }, [organization, sessionId, source]);
 }
 
-export default function useInviteModal({organization, initialData, source}: Props) {
+export function useInviteModal({organization, initialData, source}: Props) {
   const api = useApi();
   const willInvite = canInvite(organization);
 
@@ -63,7 +64,11 @@ export default function useInviteModal({organization, initialData, source}: Prop
   useLogInviteModalOpened({organization, sessionId: sessionId.current, source});
 
   const memberResult = useApiQuery<Member>(
-    [`/organizations/${organization.slug}/members/me/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
+        path: {organizationIdOrSlug: organization.slug, memberId: 'me'},
+      }),
+    ],
     {
       staleTime: 0,
     }

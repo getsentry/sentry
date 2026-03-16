@@ -13,12 +13,14 @@ from django.http.request import HttpRequest
 from rest_framework.request import Request
 
 from sentry import features, roles
+from sentry.api.exceptions import DataSecrecyError
 from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import get_superuser_scopes, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import ObjectStatus
+from sentry.data_secrecy.logic import should_allow_superuser_access
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -914,6 +916,10 @@ def from_request_org_and_scopes(
             scopes=scopes,
         )
 
+    if getattr(request, "actual_user", None) is not None:
+        if not should_allow_superuser_access(rpc_user_org_context):
+            raise DataSecrecyError()
+
     if getattr(request.user, "is_sentry_app", False):
         return _from_rpc_sentry_app(rpc_user_org_context)
 
@@ -1008,6 +1014,10 @@ def from_request(
             is_superuser=is_active_superuser(request),
             is_staff=is_staff,
         )
+
+    if getattr(request, "actual_user", None) is not None:
+        if not should_allow_superuser_access(organization):
+            raise DataSecrecyError()
 
     if request.user.is_authenticated and request.user.is_sentry_app:
         return _from_sentry_app(request.user, organization=organization)

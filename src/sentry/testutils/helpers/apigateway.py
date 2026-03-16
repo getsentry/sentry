@@ -12,10 +12,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 import sentry.api.urls as api_urls
-from sentry.api.base import Endpoint, control_silo_endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint, control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.testutils.cases import APITestCase
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 from sentry.utils import json
 
 
@@ -27,7 +27,7 @@ class ControlEndpoint(ControlSiloOrganizationEndpoint):
         return Response({"proxy": False})
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class RegionEndpoint(OrganizationEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (AllowAny,)
 
@@ -38,7 +38,7 @@ class RegionEndpoint(OrganizationEndpoint):
         return HttpResponseRedirect("https://zombo.com")
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class NoOrgRegionEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (AllowAny,)
 
@@ -139,7 +139,7 @@ class ApiGatewayTestCase(APITestCase):
     # Subclasses will generally need to be decorated with
     #     @*_silo_test(regions=[ApiGatewayTestCase.REGION])
 
-    REGION = Region(
+    REGION = Cell(
         name="us",
         snowflake_id=1,
         address="http://us.internal.sentry.io",

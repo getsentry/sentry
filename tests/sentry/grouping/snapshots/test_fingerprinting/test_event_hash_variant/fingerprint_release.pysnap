@@ -23,13 +23,13 @@ variants:
     hint: ignored because custom server fingerprint takes precedence
     key: app_exception_message
     type: component
-  custom_fingerprint:
+  custom_server_fingerprint:
     client_values:
     - my-route
     - '{{ default }}'
     contributes: true
     hint: null
-    key: custom_fingerprint
+    key: custom_server_fingerprint
     matched_rule: release:"foo.bar@*" -> "foo.bar-release"
     type: custom_fingerprint
     values:

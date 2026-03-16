@@ -9,7 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
-export default function OSBrowserDropdownFilter({
+export function OSBrowserDropdownFilter({
   type,
   name,
   version,
@@ -99,7 +99,6 @@ export default function OSBrowserDropdownFilter({
           data-visible-on-hover
           icon={<IconEllipsis size="xs" />}
           size="zero"
-          translucentBorder
         />
       )}
     />

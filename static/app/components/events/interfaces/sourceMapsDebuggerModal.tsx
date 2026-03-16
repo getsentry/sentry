@@ -6,18 +6,19 @@ import styled from '@emotion/styled';
 import BadStackTraceExample from 'sentry-images/issue_details/bad-stack-trace-example.png';
 import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-example.png';
 
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
-import ProgressRing from 'sentry/components/progressRing';
+import {ProgressRing} from 'sentry/components/progressRing';
 import {
   IconCheckmark,
   IconCircle,
@@ -28,15 +29,15 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
   not_found: {
@@ -1284,6 +1285,7 @@ function DebugIdMismatchMessage({
   debugId: string | null;
   projectSlug?: string;
 }) {
+  const organization = useOrganization();
   // At this point debugId is always defined. The types need to be fixed
   if (!debugId) {
     return (
@@ -1301,7 +1303,7 @@ function DebugIdMismatchMessage({
       debugId: projectSlug ? (
         <LinkButton
           to={{
-            pathname: `/settings/projects/${projectSlug}/source-maps/`,
+            pathname: `/settings/${organization.slug}/projects/${projectSlug}/source-maps/`,
             query: {
               query: debugId,
             },
@@ -1978,12 +1980,12 @@ function SourceMapStepNotRequiredNote() {
 }
 
 const StyledTabPanels = styled(TabPanels)<{hideAllTabs: boolean}>`
-  ${p => !p.hideAllTabs && `padding-top: ${space(2)};`}
+  ${p => !p.hideAllTabs && `padding-top: ${p.theme.space.xl};`}
 `;
 
 const CheckList = styled('ul')`
   margin: 0;
-  padding: 0 ${space(1.5)};
+  padding: 0 ${p => p.theme.space.lg};
   list-style-type: none;
 `;
 
@@ -2003,27 +2005,27 @@ const ListItemContainer = styled('li')`
 `;
 
 const Line = styled('div')`
-  margin: ${space(0.5)} 0;
+  margin: ${p => p.theme.space.xs} 0;
   flex-grow: 1;
-  width: ${space(0.25)};
+  width: ${p => p.theme.space['2xs']};
   background-color: ${p => p.theme.colors.gray200};
-  border-radius: ${space(0.25)};
+  border-radius: ${p => p.theme.space['2xs']};
 `;
 
 const ListItemContentContainer = styled('div')`
   flex-grow: 1;
-  margin-left: ${space(1.5)};
-  padding-bottom: ${space(2)};
+  margin-left: ${p => p.theme.space.lg};
+  padding-bottom: ${p => p.theme.space.xl};
   max-width: 100%;
 `;
 
 const CompletionNoteContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(0.5)};
-  padding: 0 ${space(2)} 0 0;
+  gap: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xs};
+  padding: 0 ${p => p.theme.space.xl} 0 0;
 `;
 
 const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'question'}>`
@@ -2039,21 +2041,21 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
 
 const CheckListInstruction = styled(Alert)`
   width: 100%;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   overflow-x: auto;
 
   h6 {
     font-size: 1rem;
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   p {
-    margin-bottom: ${space(1.5)};
+    margin-bottom: ${p => p.theme.space.lg};
   }
 `;
 
 const MonoBlock = styled('code')`
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   color: ${p => p.theme.colors.gray500};
   background: ${p => p.theme.colors.gray100};
   border: 1px solid ${p => p.theme.tokens.border.primary};
@@ -2064,36 +2066,36 @@ const MonoBlock = styled('code')`
 `;
 
 const StyledProgressRing = styled(ProgressRing)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const WizardInstructionParagraph = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const InstructionCodeSnippet = styled(CodeBlock)`
-  margin: ${space(1)} 0 ${space(2)};
+  margin: ${p => p.theme.space.md} 0 ${p => p.theme.space.xl};
 `;
 
 const InstructionList = styled('ul')`
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 
   li {
-    margin-bottom: ${space(0.5)};
+    margin-bottom: ${p => p.theme.space.xs};
   }
 `;
 
 const ScrapingSymbolificationErrorMessage = styled('p')`
   color: ${p => p.theme.tokens.content.secondary};
   border-left: 2px solid ${p => p.theme.colors.gray200};
-  padding-left: ${space(1)};
-  margin-top: -${space(1)};
+  padding-left: ${p => p.theme.space.md};
+  margin-top: -${p => p.theme.space.md};
 `;
 
 const DebuggerSectionContainer = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   h5 {
     margin-bottom: 0;
     font-size: ${p => p.theme.font.size.xl};
@@ -2107,5 +2109,5 @@ const DebuggerSectionContainer = styled('div')`
       margin-top: 0;
     }
   }
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;

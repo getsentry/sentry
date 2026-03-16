@@ -1,14 +1,15 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import EditableText from 'sentry/components/editableText';
+import {Flex} from '@sentry/scraps/layout';
+
+import {EditableText} from 'sentry/components/editableText';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import FormField from 'sentry/components/forms/formField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
@@ -83,10 +84,12 @@ function ProjectField() {
         {key: 'all', label: t('All Projects')},
       ]}
       name="projectId"
+      label={t('Project')}
       placeholder={t('Project')}
       aria-label={t('Select Project')}
       disabled={fetching}
       size="sm"
+      required
       validate={() => {
         if (!canEditDetector) {
           return [
@@ -125,6 +128,7 @@ function EnvironmentField({
       flexibleControlStateSize
       stacked
       name="environment"
+      label={t('Environment')}
       placeholder={t('Environment')}
       aria-label={t('Select Environment')}
       size="sm"

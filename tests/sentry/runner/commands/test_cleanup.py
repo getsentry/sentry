@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+from io import BytesIO
 from unittest.mock import patch
 
+import click
+import pytest
+
 from sentry.constants import ObjectStatus
+from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.runner.commands.cleanup import (
+    _cleanup,
     prepare_deletes_by_project,
     run_bulk_deletes_by_project,
     task_execution,
@@ -13,6 +19,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
 
 
 class SynchronousTaskQueue:
@@ -119,7 +126,7 @@ class PrepareDeletesByProjectTest(TestCase):
         project1 = self.create_project()
         project2 = self.create_project()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             query, to_delete = prepare_deletes_by_project(is_filtered=lambda model: False)
 
         assert query is not None
@@ -147,7 +154,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         )
 
         with (
-            assume_test_silo_mode(SiloMode.REGION),
+            assume_test_silo_mode(SiloMode.CELL),
             patch("sentry.runner.commands.cleanup.DELETES_BY_PROJECT_CHUNK_SIZE", 2),
         ):
             task_queue = SynchronousTaskQueue()
@@ -193,7 +200,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         self.create_group(project=project1)
 
         with (
-            assume_test_silo_mode(SiloMode.REGION),
+            assume_test_silo_mode(SiloMode.CELL),
             patch("sentry.runner.commands.cleanup.DELETES_BY_PROJECT_CHUNK_SIZE", 10),
         ):
             task_queue = SynchronousTaskQueue()
@@ -221,3 +228,82 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         # Should have seen both projects
         assert project1.id in project_ids_seen
         assert project2.id in project_ids_seen
+
+
+class UptimeResponseCaptureCleanupTest(TestCase):
+    def test_cleanup_deletes_file(self) -> None:
+        """Test that UptimeResponseCapture cleanup also deletes the associated File."""
+        subscription = UptimeSubscription.objects.create(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            url="https://example.com",
+            interval_seconds=60,
+            timeout_ms=5000,
+        )
+
+        file = File.objects.create(name="test-response", type="uptime.response")
+        file.putfile(BytesIO(b"test response content"))
+
+        capture = UptimeResponseCapture.objects.create(
+            uptime_subscription=subscription,
+            file_id=file.id,
+            scheduled_check_time_ms=1234567890,
+        )
+        capture_id = capture.id
+        file_id = file.id
+
+        assert UptimeResponseCapture.objects.filter(id=capture_id).exists()
+        assert File.objects.filter(id=file_id).exists()
+
+        task_execution("sentry.uptime.models.UptimeResponseCapture", (capture_id,), None)
+
+        assert not UptimeResponseCapture.objects.filter(id=capture_id).exists()
+        assert not File.objects.filter(id=file_id).exists()
+
+
+class PartitionValidationTest(TestCase):
+    """Tests for --partition-bucket and --partition-total flag validation in the cleanup command."""
+
+    def _run_cleanup_with_partition(
+        self,
+        partition_bucket: int | None = None,
+        partition_total: int | None = None,
+    ) -> None:
+        _cleanup(
+            model=(),
+            days=30,
+            concurrency=1,
+            silent=True,
+            router=None,
+            partition_bucket=partition_bucket,
+            partition_total=partition_total,
+            partition_key="id",
+        )
+
+    def test_partition_bucket_without_total(self) -> None:
+        with pytest.raises(
+            click.ClickException,
+            match="--partition-bucket and --partition-total must be used together",
+        ):
+            self._run_cleanup_with_partition(partition_bucket=0)
+
+    def test_partition_total_without_bucket(self) -> None:
+        with pytest.raises(
+            click.ClickException,
+            match="--partition-bucket and --partition-total must be used together",
+        ):
+            self._run_cleanup_with_partition(partition_total=4)
+
+    def test_partition_bucket_exceeds_total(self) -> None:
+        with pytest.raises(
+            click.ClickException,
+            match="--partition-bucket: 4 must be less than --partition-total 4",
+        ):
+            self._run_cleanup_with_partition(partition_bucket=4, partition_total=4)
+
+    def test_partition_negative_bucket(self) -> None:
+        with pytest.raises(click.ClickException, match="--partition-bucket: must be non-negative"):
+            self._run_cleanup_with_partition(partition_bucket=-1, partition_total=4)
+
+    def test_partition_zero_total(self) -> None:
+        with pytest.raises(click.ClickException, match="--partition-total: must be greater than 0"):
+            self._run_cleanup_with_partition(partition_bucket=0, partition_total=0)

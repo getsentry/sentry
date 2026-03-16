@@ -2,33 +2,35 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
 import Confirm from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {IdentityIcon} from 'sentry/views/settings/components/identityIcon';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const EMPTY_ARRAY: any = [];
-const IDENTITIES_ENDPOINT = '/users/me/user-identities/';
+const IDENTITIES_ENDPOINT = getApiUrl('/users/$userId/user-identities/', {
+  path: {userId: 'me'},
+});
 
 function itemOrder(a: UserIdentityConfig, b: UserIdentityConfig) {
   function categoryRank(c: UserIdentityConfig) {
@@ -110,15 +112,16 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
           <Button
             size="sm"
             disabled
-            title={
-              identity.status === UserIdentityStatus.NEEDED_FOR_GLOBAL_AUTH
-                ? t(
-                    'You need this identity to sign into your account. If you want to disconnect it, set a password first.'
-                  )
-                : identity.status === UserIdentityStatus.NEEDED_FOR_ORG_AUTH
-                  ? t('You need this identity to access your organization.')
-                  : null
-            }
+            tooltipProps={{
+              title:
+                identity.status === UserIdentityStatus.NEEDED_FOR_GLOBAL_AUTH
+                  ? t(
+                      'You need this identity to sign into your account. If you want to disconnect it, set a password first.'
+                    )
+                  : identity.status === UserIdentityStatus.NEEDED_FOR_ORG_AUTH
+                    ? t('You need this identity to access your organization.')
+                    : null,
+            }}
           >
             {t('Disconnect')}
           </Button>
@@ -242,7 +245,7 @@ const IdentityText = styled('div')<{isSingleLine?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: ${p => (p.isSingleLine ? 'center' : 'space-between')};
-  margin-left: ${space(1.5)};
+  margin-left: ${p => p.theme.space.lg};
 `;
 const IdentityName = styled('div')`
   font-weight: ${p => p.theme.font.weight.sans.medium};

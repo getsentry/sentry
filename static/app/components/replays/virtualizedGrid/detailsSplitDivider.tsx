@@ -1,20 +1,20 @@
 import type {MouseEvent, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import Stacked from 'sentry/components/container/stacked';
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
+import {Stacked} from 'sentry/components/container/stacked';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
+import {SplitDivider} from 'sentry/views/replays/detail/layout/splitDivider';
 
 interface Props extends Omit<ReturnType<typeof useResizableDrawer>, 'size' | 'setSize'> {
   onClose: () => void;
   children?: ReactNode;
 }
 
-export default function DetailsSplitDivider({
+export function DetailsSplitDivider({
   children,
   isHeld,
   onClose,
@@ -33,7 +33,7 @@ export default function DetailsSplitDivider({
       <CloseButtonWrapper>
         <Button
           aria-label={t('Hide details')}
-          borderless
+          priority="transparent"
           icon={<IconClose size="sm" variant="muted" />}
           onClick={(e: MouseEvent) => {
             e.preventDefault();
@@ -56,7 +56,7 @@ const CloseButtonWrapper = styled('div')`
   position: absolute;
   right: 0;
   height: 100%;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   z-index: ${p => p.theme.zIndex.initial};
   display: flex;
   align-items: center;

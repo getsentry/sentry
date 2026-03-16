@@ -83,7 +83,6 @@ class BaseEventTest(APITestCase):
         slack_user=None,
         original_message=None,
     ):
-
         if slack_user is None:
             slack_user = {"id": self.external_id, "domain": "example"}
 

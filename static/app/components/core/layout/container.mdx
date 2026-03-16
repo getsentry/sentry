@@ -2,18 +2,19 @@
 title: Container
 description: A foundational layout component that provides responsive CSS properties through props, serving as the building block for other layout components.
 category: layout
-source: 'sentry/components/core/layout/container'
+source: '@sentry/scraps/layout'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/container.tsx
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3040-309&p=f&t=fldvMEFX98yRuTH5-0
 ---
 
-import {Container, Flex} from 'sentry/components/core/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/layout/container';
+export const documentation = import('!!type-loader!@sentry/scraps/layout/container');
 
-export {documentation};
+import {SIZES} from './__stories__/consts';
 
 The `Container` component is a foundational layout component that extends HTML elements with responsive CSS properties through props. It serves as the building block for other layout components like `Flex` and `Grid` to provides a consistent API for spacing, sizing, positioning, and styling.
 
@@ -55,7 +56,7 @@ The `padding` prop uses the theme's spacing system with shorthand support:
 
 <Storybook.Demo>
   <Flex gap="md">
-    {['xs', 'sm', 'md', 'lg', 'xl', '2xl'].map(size => (
+    {SIZES.map(size => (
       <Container
         key={size}
         background="primary"

@@ -4,10 +4,10 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
-import SpansWidgetQueries from './spansWidgetQueries';
+import {SpansWidgetQueries} from './spansWidgetQueries';
 
 describe('spansWidgetQueries', () => {
   const {organization} = initializeOrg();
@@ -31,6 +31,7 @@ describe('spansWidgetQueries', () => {
           [3, [{count: 3}]],
         ],
         meta: {
+          dataScanned: 'partial',
           accuracy: {
             confidence: [
               {timestamp: 1, value: 'low'},
@@ -44,12 +45,16 @@ describe('spansWidgetQueries', () => {
 
     render(
       <SpansWidgetQueries widget={widget} dashboardFilters={{}}>
-        {({confidence}) => <div>{confidence}</div>}
+        {({confidence, dataScanned}) => (
+          <div>
+            {confidence}:{dataScanned}
+          </div>
+        )}
       </SpansWidgetQueries>,
       {organization}
     );
 
-    expect(await screen.findByText('low')).toBeInTheDocument();
+    expect(await screen.findByText('low:partial')).toBeInTheDocument();
   });
 
   it('calculates the confidence for a multi series', async () => {

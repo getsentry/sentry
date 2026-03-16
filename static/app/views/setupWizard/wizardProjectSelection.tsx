@@ -2,23 +2,22 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {createablePlatforms} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import RequestError from 'sentry/utils/requestError/requestError';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -187,7 +186,7 @@ export function WizardProjectSelection({
 
   // Set the selected team to the first team if there is only one
   useEffect(() => {
-    if (selectableTeams && selectableTeams.length === 1) {
+    if (selectableTeams?.length === 1) {
       setNewProjectTeam(selectableTeams[0]!.slug);
     }
   }, [selectableTeams]);
@@ -291,7 +290,7 @@ export function WizardProjectSelection({
       <label>{t('Platform')}</label>
       <StyledCompactSelect
         value={newProjectPlatform as string}
-        searchable
+        search
         options={platformOptions}
         trigger={triggerProps => (
           <OverlayTrigger.Button
@@ -334,7 +333,7 @@ export function WizardProjectSelection({
           <StyledCompactSelect
             autoFocus
             value={selectedOrgId as string}
-            searchable
+            search
             options={orgOptions}
             trigger={triggerProps => (
               <OverlayTrigger.Button
@@ -372,11 +371,10 @@ export function WizardProjectSelection({
             <StyledCompactSelect
               // Remount the component when the org changes to reset the component state
               key={selectedOrgId}
-              onSearch={setSearch}
+              search={{onChange: setSearch}}
               onClose={() => setSearch('')}
               disabled={!selectedOrgId}
               value={selectedProjectId as string}
-              searchable
               options={sortedProjectOptions}
               trigger={triggerProps => (
                 <OverlayTrigger.Button
@@ -403,18 +401,15 @@ export function WizardProjectSelection({
               menuFooter={
                 isCreationEnabled
                   ? ({closeOverlay}) => (
-                      <Flex justify="end">
-                        <Button
-                          size="xs"
-                          onClick={() => {
-                            setSelectedProjectId(CREATE_PROJECT_VALUE);
-                            closeOverlay();
-                          }}
-                          icon={<IconAdd />}
-                        >
-                          {t('Create Project')}
-                        </Button>
-                      </Flex>
+                      <MenuComponents.CTAButton
+                        onClick={() => {
+                          setSelectedProjectId(CREATE_PROJECT_VALUE);
+                          closeOverlay();
+                        }}
+                        icon={<IconAdd />}
+                      >
+                        {t('Create Project')}
+                      </MenuComponents.CTAButton>
                     )
                   : undefined
               }
@@ -477,7 +472,7 @@ export function WizardProjectSelection({
 }
 
 const Heading = styled('h5')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 function FieldWrapper(props: React.ComponentProps<typeof Stack>) {
@@ -487,7 +482,7 @@ function FieldWrapper(props: React.ComponentProps<typeof Stack>) {
 const Columns = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   @media (max-width: ${p => p.theme.breakpoints.xs}) {
     grid-template-columns: 1fr;
@@ -514,5 +509,5 @@ const SelectPlaceholder = styled('span')`
 `;
 
 const SubmitButton = styled(Button)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;

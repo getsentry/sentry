@@ -1,29 +1,30 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelFooter from 'sentry/components/panels/panelFooter';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import RequestLog from './requestLog';
+import {RequestLog} from './requestLog';
 
 type Interactions = {
   componentInteractions: Record<string, Array<[number, number]>>;
@@ -38,6 +39,7 @@ type Stats = {
 };
 
 function SentryApplicationDashboard() {
+  const theme = useTheme();
   const organization = useOrganization();
   const {appSlug} = useParams<{appSlug: string}>();
 
@@ -49,7 +51,14 @@ function SentryApplicationDashboard() {
     data: app,
     isPending: isAppPending,
     isError: isAppError,
-  } = useApiQuery<SentryApp>([`/sentry-apps/${appSlug}/`], {staleTime: 0});
+  } = useApiQuery<SentryApp>(
+    [
+      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+        path: {sentryAppIdOrSlug: appSlug},
+      }),
+    ],
+    {staleTime: 0}
+  );
 
   const {
     data: interactions,
@@ -57,7 +66,9 @@ function SentryApplicationDashboard() {
     isError: isInteractionsError,
   } = useApiQuery<Interactions>(
     [
-      `/sentry-apps/${appSlug}/interaction/`,
+      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/interaction/`, {
+        path: {sentryAppIdOrSlug: appSlug},
+      }),
       {query: {since: now - ninety_days_ago, until: now}},
     ],
     {staleTime: 0}
@@ -69,7 +80,9 @@ function SentryApplicationDashboard() {
     isError: isStatsError,
   } = useApiQuery<Stats>(
     [
-      `/sentry-apps/${appSlug}/stats/`,
+      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/stats/`, {
+        path: {sentryAppIdOrSlug: appSlug},
+      }),
       {query: {since: now - ninety_days_ago, until: now}},
     ],
     {staleTime: 0}
@@ -144,7 +157,7 @@ function SentryApplicationDashboard() {
             }}
             yAxis={{type: 'value', minInterval: 1, max: 'dataMax'}}
             xAxis={{type: 'time'}}
-            grid={{left: space(4), right: space(4)}}
+            grid={{left: theme.space['3xl'], right: theme.space['3xl']}}
           />
         </ChartWrapper>
       </Panel>
@@ -233,6 +246,7 @@ type InteractionsChartProps = {
   data: Record<string, Array<[number, number]>>;
 };
 function InteractionsChart({data}: InteractionsChartProps) {
+  const theme = useTheme();
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(
     (key: string) => {
       const seriesData = data[key]!.map(point => ({
@@ -251,7 +265,7 @@ function InteractionsChart({data}: InteractionsChartProps) {
       <LineChart
         isGroupedByDate
         series={elementInteractionsSeries}
-        grid={{left: space(4), right: space(4)}}
+        grid={{left: theme.space['3xl'], right: theme.space['3xl']}}
         legend={{
           show: true,
           orient: 'horizontal',
@@ -263,19 +277,19 @@ function InteractionsChart({data}: InteractionsChartProps) {
 }
 
 const StatsSection = styled('div')`
-  margin-right: ${space(4)};
+  margin-right: ${p => p.theme.space['3xl']};
 `;
 const StatsHeader = styled('h6')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-size: 12px;
   text-transform: uppercase;
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const StyledFooter = styled('div')`
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;
 
 const ChartWrapper = styled('div')`
-  padding-top: ${space(3)};
+  padding-top: ${p => p.theme.space['2xl']};
 `;

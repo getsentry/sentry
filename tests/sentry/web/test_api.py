@@ -6,7 +6,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry import options
-from sentry.api.utils import generate_region_url
+from sentry.api.utils import generate_locality_url
 from sentry.auth import superuser
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_deletion
@@ -16,55 +16,8 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_regions
 from sentry.utils import json
-
-
-class CrossDomainXmlTest(TestCase):
-    @cached_property
-    def path(self) -> str:
-        return reverse("sentry-api-crossdomain-xml", kwargs={"project_id": self.project.id})
-
-    @mock.patch("sentry.web.api.get_origins")
-    def test_output_with_global(self, get_origins: mock.MagicMock) -> None:
-        get_origins.return_value = "*"
-        resp = self.client.get(self.path)
-        get_origins.assert_called_once_with(self.project)
-        assert resp.status_code == 200, resp.content
-        self.assertEqual(resp["Content-Type"], "application/xml")
-        self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert b'<allow-access-from domain="*" secure="false" />' in resp.content
-
-    @mock.patch("sentry.web.api.get_origins")
-    def test_output_with_allowed_origins(self, get_origins: mock.MagicMock) -> None:
-        get_origins.return_value = ["disqus.com", "www.disqus.com"]
-        resp = self.client.get(self.path)
-        get_origins.assert_called_once_with(self.project)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp["Content-Type"], "application/xml")
-        self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert b'<allow-access-from domain="disqus.com" secure="false" />' in resp.content
-        assert b'<allow-access-from domain="www.disqus.com" secure="false" />' in resp.content
-
-    @mock.patch("sentry.web.api.get_origins")
-    def test_output_with_no_origins(self, get_origins: mock.MagicMock) -> None:
-        get_origins.return_value = []
-        resp = self.client.get(self.path)
-        get_origins.assert_called_once_with(self.project)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp["Content-Type"], "application/xml")
-        self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert b"<allow-access-from" not in resp.content
-
-    def test_output_allows_x_sentry_auth(self) -> None:
-        resp = self.client.get(self.path)
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp["Content-Type"], "application/xml")
-        self.assertTemplateUsed(resp, "sentry/crossdomain.xml")
-        assert (
-            b'<allow-http-request-headers-from domain="*" headers="*" secure="false" />'
-            in resp.content
-        )
 
 
 class RobotsTxtTest(TestCase):
@@ -133,7 +86,7 @@ Disallow: /
         assert response["Content-Type"] == "text/plain"
 
 
-@region_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)
+@cell_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)
 class ClientConfigViewTest(TestCase):
     @cached_property
     def path(self) -> str:
@@ -318,7 +271,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == other_org.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{other_org.slug}.testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
                 "superuserUrl": f"http://{self.organization.slug}.testserver",
             }
@@ -399,7 +352,7 @@ class ClientConfigViewTest(TestCase):
         assert data["lastOrganization"] == self.organization.slug
         assert data["links"] == {
             "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": generate_region_url(),
+            "regionUrl": generate_locality_url(),
             "sentryUrl": "http://testserver",
         }
 
@@ -424,7 +377,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{self.organization.slug}.testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -449,7 +402,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "http://testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -464,7 +417,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"http://{self.organization.slug}.testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -489,7 +442,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "invalid",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -504,7 +457,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": "http://testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -519,7 +472,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["links"] == {
                 "organizationUrl": f"ftp://{self.organization.slug}.testserver",
-                "regionUrl": generate_region_url(),
+                "regionUrl": generate_locality_url(),
                 "sentryUrl": "http://testserver",
             }
 
@@ -682,7 +635,7 @@ class ClientConfigViewTest(TestCase):
 
             expected_region_url = (
                 "http://foobar.us.testserver"
-                if SiloMode.get_current_mode() == SiloMode.REGION
+                if SiloMode.get_current_mode() == SiloMode.CELL
                 else options.get("system.url-prefix")
             )
             assert data["isAuthenticated"] is True

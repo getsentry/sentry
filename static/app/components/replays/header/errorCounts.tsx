@@ -2,23 +2,23 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import countBy from 'lodash/countBy';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Badge} from 'sentry/components/core/badge';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Badge} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type Props = {
   replayErrors: RawReplayError[];
 };
 
-export default function ErrorCounts({replayErrors}: Props) {
+export function ErrorCounts({replayErrors}: Props) {
   const {pathname, query} = useLocation();
 
   const getLink = useCallback(
@@ -150,7 +150,7 @@ const ColumnTooltipContent = styled(CountTooltipContent)`
 const StyledLink = styled(Link)`
   display: flex;
   flex-direction: row;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   & * {
     cursor: pointer !important;
@@ -171,6 +171,6 @@ const StackedProjectBadges = styled('div')`
   }
 
   & > :not(:first-child) {
-    margin-left: -${space(0.5)};
+    margin-left: -${p => p.theme.space.xs};
   }
 `;

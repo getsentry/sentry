@@ -3,13 +3,12 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import type {Transition} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
-import {Button} from 'sentry/components/core/button';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {
   DEFAULT_WIDTH_PERCENT,
@@ -155,8 +154,9 @@ export function DrawerHeader({
 }
 
 const HeaderBar = styled('div')`
-  margin: 0 ${space(2)};
-  margin-left: ${space(1)};
+  margin: 0 ${p => p.theme.space.xl};
+  margin-left: ${p => p.theme.space.md};
+  align-self: stretch;
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
@@ -168,16 +168,17 @@ const Header = styled('header')<{hideBar?: boolean; hideCloseButton?: boolean}>`
   justify-content: flex-start;
   display: flex;
   flex-shrink: 0;
-  gap: ${p => (p.hideBar ? space(1) : 0)};
-  padding: ${space(1.5)};
+  gap: ${p => (p.hideBar ? p.theme.space.md : 0)};
+  padding: ${p => p.theme.space.lg};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
-  padding-left: ${p => (p.hideCloseButton ? '24px' : space(2))};
-  padding-top: ${p => (p.hideCloseButton ? space(1.5) : space(0.75))};
-  padding-bottom: ${p => (p.hideCloseButton ? space(1.5) : space(0.75))};
+  padding-left: ${p => (p.hideCloseButton ? '24px' : p.theme.space.xl)};
+  padding-top: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
+  padding-bottom: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
 `;
 
 export const DrawerBody = styled('aside')`
-  padding: ${space(2)} 24px;
+  padding: ${p => p.theme.space.xl} 24px;
   font-size: ${p => p.theme.font.size.md};
 `;
 
@@ -186,6 +187,11 @@ const DrawerContainer = styled('div')`
   inset: 0;
   z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    overflow-x: auto;
+    pointer-events: auto;
+  }
 `;
 
 const DrawerSlidePanel = styled(SlideOverPanel)`
@@ -204,6 +210,17 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
     var(--drawer-width),
     var(--drawer-max-width)
   ) !important;
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border: none;
+    box-shadow: none;
+    /* Without this, the base SlideOverPanel's overscroll-behavior: contain blocks horizontal scroll chaining. */
+    overscroll-behavior-x: auto;
+  }
 
   &[data-resizing] {
     /* Hide scrollbars during resize */

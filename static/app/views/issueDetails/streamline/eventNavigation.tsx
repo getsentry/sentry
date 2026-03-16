@@ -1,19 +1,21 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import Feature from 'sentry/components/acl/feature';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import Count from 'sentry/components/count';
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
+import {Count} from 'sentry/components/count';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,9 +23,9 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData} from 'sentry/utils/queryClient';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
 import {
@@ -31,6 +33,10 @@ import {
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {
+  issueAndEventToMarkdown,
+  useActiveThreadId,
+} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/streamline/issueDetailsEventNavigation';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -108,6 +114,32 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   };
 
   const isListView = LIST_VIEW_TABS.has(currentTab);
+
+  const activeThreadId = useActiveThreadId();
+
+  // Get data for markdown copy functionality
+  const {data: groupSummaryData} = useGroupSummaryData(group);
+  const {data: autofixData} = useAutofixData({groupId: group.id});
+
+  const handleCopyMarkdown = useCallback(() => {
+    const markdownText = issueAndEventToMarkdown(
+      group,
+      event,
+      groupSummaryData,
+      autofixData,
+      activeThreadId
+    );
+
+    trackAnalytics('issue_details.copy_issue_details_as_markdown', {
+      organization,
+      groupId: group.id,
+      eventId: event?.id,
+      hasAutofix: Boolean(autofixData),
+      hasSummary: Boolean(groupSummaryData),
+    });
+
+    return markdownText;
+  }, [activeThreadId, event, group, groupSummaryData, autofixData, organization]);
 
   return (
     <EventNavigationWrapper role="navigation" ref={navigationRef}>
@@ -198,7 +230,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               <NavigationDropdownButton
                 {...triggerProps}
                 isOpen={isOpen}
-                borderless
+                priority="transparent"
                 size="sm"
                 disabled={hideDropdownButton}
                 aria-label={t('Select issue content')}
@@ -216,110 +248,124 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}
         id={IssueDetailsTour.NAVIGATION}
-        title={t('Compare different examples')}
+        title={t('Compare events')}
         description={t(
-          'You can quickly navigate between different examples in this issue to find their similarities (and differences).'
+          'Review the events associated with an issue. Compare the first, latest, or recommended event to see what changed.'
         )}
       >
-        <NavigationWrapper>
-          {currentTab === Tab.DETAILS && (
-            <Fragment>
-              <IssueDetailsEventNavigation
-                event={event}
-                group={group}
-                isSmallNav={isSmallNav}
-              />
-              {issueTypeConfig.pages.events.enabled && (
-                <Feature features="discover-basic" organization={organization}>
+        {tourProps => (
+          <div {...tourProps}>
+            <NavigationWrapper>
+              {currentTab === Tab.DETAILS && (
+                <Fragment>
+                  <IssueDetailsEventNavigation
+                    event={event}
+                    group={group}
+                    isSmallNav={isSmallNav}
+                  />
+                  {issueTypeConfig.pages.events.enabled && (
+                    <Feature features="discover-basic" organization={organization}>
+                      <LinkButton
+                        to={{
+                          pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                          query: location.query,
+                        }}
+                        size="xs"
+                        analyticsEventKey="issue_details.all_events_clicked"
+                        analyticsEventName="Issue Details: All Events Clicked"
+                      >
+                        {isSmallNav
+                          ? t('More %s', issueTypeConfig.customCopy.eventUnits)
+                          : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                      </LinkButton>
+                    </Feature>
+                  )}
+                  <CopyAsDropdown
+                    size="xs"
+                    items={CopyAsDropdown.makeDefaultCopyAsOptions({
+                      text: undefined,
+                      json: undefined,
+                      markdown: handleCopyMarkdown,
+                    })}
+                  />
+                  {issueTypeConfig.pages.openPeriods.enabled && (
+                    <LinkButton
+                      to={{
+                        pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
+                        query: location.query,
+                      }}
+                      size="xs"
+                      analyticsEventKey="issue_details.all_open_periods_clicked"
+                      analyticsEventName="Issue Details: All Open Periods Clicked"
+                    >
+                      {isSmallNav ? t('More Open Periods') : t('View More Open Periods')}
+                    </LinkButton>
+                  )}
+                  {issueTypeConfig.pages.checkIns.enabled && (
+                    <LinkButton
+                      to={{
+                        pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
+                        query: location.query,
+                      }}
+                      size="xs"
+                      analyticsEventKey="issue_details.all_checks_ins_clicked"
+                      analyticsEventName="Issue Details: All Checks-Ins Clicked"
+                    >
+                      {isSmallNav ? t('More Check-Ins') : t('View More Check-Ins')}
+                    </LinkButton>
+                  )}
+                  {issueTypeConfig.pages.uptimeChecks.enabled && (
+                    <LinkButton
+                      to={{
+                        pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
+                        query: location.query,
+                      }}
+                      size="xs"
+                      analyticsEventKey="issue_details.all_uptime_checks_clicked"
+                      analyticsEventName="Issue Details: All Uptime Checks Clicked"
+                    >
+                      {isSmallNav
+                        ? t('More Uptime Checks')
+                        : t('View More Uptime Checks')}
+                    </LinkButton>
+                  )}
+                </Fragment>
+              )}
+              {isListView && (
+                <Grid flow="column" align="center" gap="md">
+                  {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
+                    <LinkButton
+                      to={{
+                        pathname: discoverUrl.pathname,
+                        query: {
+                          ...discoverUrl.query,
+                          sort: location.query.sort ?? '-timestamp',
+                        },
+                      }}
+                      aria-label={t('Open in Discover')}
+                      size="xs"
+                      icon={<IconTelescope />}
+                      analyticsEventKey="issue_details.discover_clicked"
+                      analyticsEventName="Issue Details: Discover Clicked"
+                    >
+                      {t('Open in Discover')}
+                    </LinkButton>
+                  )}
                   <LinkButton
                     to={{
-                      pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
-                      query: location.query,
+                      pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                      query: {...location.query, cursor: undefined},
                     }}
+                    aria-label={t('Return to event details')}
                     size="xs"
-                    analyticsEventKey="issue_details.all_events_clicked"
-                    analyticsEventName="Issue Details: All Events Clicked"
                   >
-                    {isSmallNav
-                      ? t('More %s', issueTypeConfig.customCopy.eventUnits)
-                      : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                    {t('Close')}
                   </LinkButton>
-                </Feature>
+                </Grid>
               )}
-              {issueTypeConfig.pages.openPeriods.enabled && (
-                <LinkButton
-                  to={{
-                    pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
-                    query: location.query,
-                  }}
-                  size="xs"
-                  analyticsEventKey="issue_details.all_open_periods_clicked"
-                  analyticsEventName="Issue Details: All Open Periods Clicked"
-                >
-                  {isSmallNav ? t('More Open Periods') : t('View More Open Periods')}
-                </LinkButton>
-              )}
-              {issueTypeConfig.pages.checkIns.enabled && (
-                <LinkButton
-                  to={{
-                    pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
-                    query: location.query,
-                  }}
-                  size="xs"
-                  analyticsEventKey="issue_details.all_checks_ins_clicked"
-                  analyticsEventName="Issue Details: All Checks-Ins Clicked"
-                >
-                  {isSmallNav ? t('More Check-Ins') : t('View More Check-Ins')}
-                </LinkButton>
-              )}
-              {issueTypeConfig.pages.uptimeChecks.enabled && (
-                <LinkButton
-                  to={{
-                    pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
-                    query: location.query,
-                  }}
-                  size="xs"
-                  analyticsEventKey="issue_details.all_uptime_checks_clicked"
-                  analyticsEventName="Issue Details: All Uptime Checks Clicked"
-                >
-                  {isSmallNav ? t('More Uptime Checks') : t('View More Uptime Checks')}
-                </LinkButton>
-              )}
-            </Fragment>
-          )}
-          {isListView && (
-            <ButtonBar>
-              {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
-                <LinkButton
-                  to={{
-                    pathname: discoverUrl.pathname,
-                    query: {
-                      ...discoverUrl.query,
-                      sort: location.query.sort ?? '-timestamp',
-                    },
-                  }}
-                  aria-label={t('Open in Discover')}
-                  size="xs"
-                  icon={<IconTelescope />}
-                  analyticsEventKey="issue_details.discover_clicked"
-                  analyticsEventName="Issue Details: Discover Clicked"
-                >
-                  {t('Open in Discover')}
-                </LinkButton>
-              )}
-              <LinkButton
-                to={{
-                  pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
-                  query: {...location.query, cursor: undefined},
-                }}
-                aria-label={t('Return to event details')}
-                size="xs"
-              >
-                {t('Close')}
-              </LinkButton>
-            </ButtonBar>
-          )}
-        </NavigationWrapper>
+            </NavigationWrapper>
+          </div>
+        )}
       </TourElement>
     </EventNavigationWrapper>
   );
@@ -328,14 +374,14 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
 const NavigationDropdownButton = styled(DropdownButton)`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding-right: ${space(0.5)};
+  padding-right: ${p => p.theme.space.xs};
 `;
 
 const NavigationLabel = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding-right: ${space(0.25)};
-  padding-left: ${space(1.5)};
+  padding-right: ${p => p.theme.space['2xs']};
+  padding-left: ${p => p.theme.space.lg};
 `;
 
 const LargeInThisIssueText = styled('div')`
@@ -361,11 +407,11 @@ const EventNavigationWrapper = styled('div')`
 
 const NavigationWrapper = styled('div')`
   display: flex;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   justify-content: space-between;
 
   @media (min-width: ${p => p.theme.breakpoints.xs}) {
-    gap: ${space(0.5)};
+    gap: ${p => p.theme.space.xs};
   }
 `;
 
@@ -373,7 +419,7 @@ const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   font-variant-numeric: tabular-nums;
   font-weight: ${p =>
     p.isCurrentTab ? p.theme.font.weight.sans.medium : p.theme.font.weight.sans.regular};

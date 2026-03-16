@@ -3,22 +3,22 @@ import {useQuery} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchDataQuery,
   fetchMutation,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const POLLING_INTERVAL_MS = 2000;
 
 type SyncReposResponse = {
   isSyncing: boolean;
 };
-
-type QueryKey = [url: string];
 
 export function useSyncRepos({searchValue}: {searchValue?: string}) {
   /**
@@ -31,7 +31,10 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
   const {integratedOrgId} = usePreventContext();
   const queryClient = useQueryClient();
 
-  const syncReposUrl = `/organizations/${orgSlug}/prevent/owner/${integratedOrgId}/repositories/sync/`;
+  const syncReposUrl = getApiUrl(
+    '/organizations/$organizationIdOrSlug/prevent/owner/$owner/repositories/sync/',
+    {path: {organizationIdOrSlug: orgSlug, owner: integratedOrgId!}}
+  );
 
   const isSyncingInCache = Boolean(queryClient.getQueryData([syncReposUrl]));
 
@@ -53,7 +56,7 @@ export function useSyncRepos({searchValue}: {searchValue?: string}) {
   const isSyncing = mutationData.isPending || isSyncingInCache;
 
   // useQuery periodically pings the endpoint to check if the sync is complete and updates the cache
-  useQuery<boolean, Error, boolean, QueryKey>({
+  useQuery<boolean, Error, boolean, ApiQueryKey>({
     queryKey: [syncReposUrl],
     queryFn: async context => {
       const result = await fetchDataQuery<SyncReposResponse>(context);

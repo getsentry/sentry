@@ -18,11 +18,7 @@ from sentry.models.organizationslugreservation import (
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
-from sentry.types.region import get_local_region
-
-
-class OrganizationSlugCollisionException(Exception):
-    pass
+from sentry.types.region import get_local_cell
 
 
 class OrganizationProvisioningException(Exception):
@@ -37,11 +33,11 @@ class OrganizationProvisioningService:
                 "A region name must be provided when provisioning an organization from the Control Silo"
             )
         elif silo_mode != SiloMode.CONTROL:
-            local_region = get_local_region()
+            local_region = get_local_cell()
 
-            assert (
-                not region_name or region_name == local_region.name
-            ), "Cannot provision an organization in another region"
+            assert not region_name or region_name == local_region.name, (
+                "Cannot provision an organization in another region"
+            )
 
             region_name = local_region.name
 
@@ -295,7 +291,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
                     organization_id=org_slug_reservation.organization_id,
                     reservation_type=OrganizationSlugReservationType.PRIMARY,
                     user_id=org_slug_reservation.user_id,
-                    region_name=region_name,
+                    cell_name=region_name,
                 ).save(unsafe_write=True)
 
 

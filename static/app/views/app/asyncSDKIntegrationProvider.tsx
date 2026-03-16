@@ -24,6 +24,6 @@ export function AsyncSDKIntegrationContextProvider({
   return <Context value={{setState, state}}>{children}</Context>;
 }
 
-export default function useAsyncSDKIntegrationStore(): Context {
+export function useAsyncSDKIntegrationStore(): Context {
   return useContext(Context);
 }

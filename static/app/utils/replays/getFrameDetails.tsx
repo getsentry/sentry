@@ -1,10 +1,11 @@
 import {Fragment, type ReactNode} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
-import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {CrumbErrorTitle} from 'sentry/components/replays/breadcrumbs/errorTitle';
+import {SelectorList} from 'sentry/components/replays/breadcrumbs/selectorList';
 import {
   IconCursorArrow,
   IconFire,
@@ -61,7 +62,7 @@ import {
 } from 'sentry/utils/replays/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {GraphicsVariant} from 'sentry/utils/theme';
-import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
+import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 
 interface Details {

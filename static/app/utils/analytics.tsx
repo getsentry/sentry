@@ -1,7 +1,7 @@
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 import {
   alertsEventMap,
@@ -42,6 +42,8 @@ import type {AgentMonitoringEventParameters} from './analytics/agentMonitoringAn
 import {agentMonitoringEventMap} from './analytics/agentMonitoringAnalyticsEvents';
 import type {BreadcrumbsAnalyticsEventParameters} from './analytics/breadcrumbsAnalyticsEvents';
 import {breadcrumbsAnalyticsEventMap} from './analytics/breadcrumbsAnalyticsEvents';
+import type {ConversationsEventParameters} from './analytics/conversationsAnalyticsEvents';
+import {conversationsEventMap} from './analytics/conversationsAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
 import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
@@ -64,7 +66,7 @@ import type {IssueEventParameters} from './analytics/issueAnalyticsEvents';
 import {issueEventMap} from './analytics/issueAnalyticsEvents';
 import type {LaravelInsightsEventParameters} from './analytics/laravelInsightsAnalyticsEvents';
 import {laravelInsightsEventMap} from './analytics/laravelInsightsAnalyticsEvents';
-import makeAnalyticsFunction from './analytics/makeAnalyticsFunction';
+import {makeAnalyticsFunction} from './analytics/makeAnalyticsFunction';
 import type {McpMonitoringEventParameters} from './analytics/mcpMonitoringAnalyticsEvents';
 import {mcpMonitoringEventMap} from './analytics/mcpMonitoringAnalyticsEvents';
 import type {MonitorsEventParameters} from './analytics/monitorsAnalyticsEvents';
@@ -101,9 +103,11 @@ import type {TeamInsightsEventParameters} from './analytics/workflowAnalyticsEve
 import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
-  extends GrowthEventParameters,
+  extends
+    GrowthEventParameters,
     AgentMonitoringEventParameters,
     AlertsEventParameters,
+    ConversationsEventParameters,
     BreadcrumbsAnalyticsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
@@ -144,6 +148,7 @@ interface EventParameters
 const allEventMap: Record<string, string | null> = {
   ...agentMonitoringEventMap,
   ...alertsEventMap,
+  ...conversationsEventMap,
   ...breadcrumbsAnalyticsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,

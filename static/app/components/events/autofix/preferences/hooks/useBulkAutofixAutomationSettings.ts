@@ -1,15 +1,17 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
-import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
+import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   useMutation,
   useQueryClient,
   type UseMutationOptions,
 } from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type AutofixAutomationTuning =
   | 'off'
@@ -47,29 +49,19 @@ export type AutofixAutomationSettings = {
   reposCount: number;
 };
 
-/**
- * Fetch all autofix related settings for all projects.
- *
- * This returns a list of objects with the following properties:
- * - projectId: the project ID
- * - autofixAutomationTuning: the tuning setting for automated autofix
- * - automatedRunStoppingPoint: the stopping point for automated runs
- * - reposCount: the number of repositories configured for the project
- */
-export function useGetBulkAutofixAutomationSettings() {
-  const organization = useOrganization();
-
-  return useFetchSequentialPages<AutofixAutomationSettings[]>({
-    enabled: true,
-    perPage: 100,
-    getQueryKey: useCallback(
-      ({cursor, per_page}: {cursor: string; per_page: number}) => [
-        `/organizations/${organization.slug}/autofix/automation-settings/`,
-        {query: {cursor, per_page}},
-      ],
-      [organization.slug]
-    ),
-  });
+export function bulkAutofixAutomationSettingsInfiniteOptions({
+  organization,
+}: {
+  organization: Organization;
+}) {
+  return apiOptions.asInfinite<AutofixAutomationSettings[]>()(
+    '/organizations/$organizationIdOrSlug/autofix/automation-settings/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {per_page: 100},
+      staleTime: 0,
+    }
+  );
 }
 
 type AutofixAutomationUpdate =
@@ -121,14 +113,23 @@ export function useUpdateBulkAutofixAutomationSettings(
     mutationFn: (data: AutofixAutomationUpdate) => {
       return fetchMutation({
         method: 'POST',
-        url: `/organizations/${organization.slug}/autofix/automation-settings/`,
+        url: getApiUrl(
+          `/organizations/$organizationIdOrSlug/autofix/automation-settings/`,
+          {
+            path: {organizationIdOrSlug: organization.slug},
+          }
+        ),
         data,
       });
     },
     ...options,
     onSettled: (...args) => {
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organization.slug}/autofix/automation-settings/`],
+        queryKey: [
+          getApiUrl(`/organizations/$organizationIdOrSlug/autofix/automation-settings/`, {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+        ],
       });
       const [, , data] = args;
       data.projectIds.forEach(projectId => {
@@ -138,11 +139,28 @@ export function useUpdateBulkAutofixAutomationSettings(
         }
         // Invalidate the query for ProjectOptions to Settings>Project>Seer details page
         queryClient.invalidateQueries({
-          queryKey: [`/projects/${organization.slug}/${project.slug}/`],
+          queryKey: [
+            getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/`, {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: project.slug,
+              },
+            }),
+          ],
         });
         // Invalidate the query for SeerPreferences to Settings>Project>Seer details page
         queryClient.invalidateQueries({
-          queryKey: [`/projects/${organization.slug}/${project.slug}/seer/preferences/`],
+          queryKey: [
+            getApiUrl(
+              `/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/`,
+              {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }
+            ),
+          ],
         });
       });
 

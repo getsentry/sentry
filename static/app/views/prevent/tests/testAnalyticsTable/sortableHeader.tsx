@@ -2,11 +2,11 @@ import {Fragment, useCallback, type ReactNode} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
+
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SORTABLE_FIELDS} from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
@@ -35,7 +35,7 @@ function WrapToggle() {
 
   return (
     <Fragment>
-      | <WrapText>{wrapValue ? 'Wrap' : 'No Wrap'}</WrapText>
+      | {wrapValue ? 'Wrap' : 'No Wrap'}
       <span>
         <Switch checked={wrapValue} size="sm" onChange={toggle} />{' '}
       </span>
@@ -43,7 +43,7 @@ function WrapToggle() {
   );
 }
 
-function SortableHeader({
+export function SortableHeader({
   fieldName,
   label,
   sort,
@@ -104,7 +104,7 @@ function SortableHeader({
 const HeaderCell = styled('div')<{alignment: string}>`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   width: 100%;
   justify-content: ${p => (p.alignment === 'left' ? 'flex-start' : 'flex-end')};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -122,12 +122,6 @@ const StyledLink = styled(Link)`
   }
 `;
 
-const WrapText = styled('span')`
-  margin-left: ${space(0.5)};
-`;
-
 const NonSortableHeader = styled('span')`
   color: inherit;
 `;
-
-export default SortableHeader;

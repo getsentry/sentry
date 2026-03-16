@@ -1,13 +1,13 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Select} from 'sentry/components/core/select';
+import {Alert} from '@sentry/scraps/alert';
+import {Select} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
 import {
   ActionGroup,
   ActionType,
-  SentryAppIdentifier,
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
@@ -17,7 +17,7 @@ import {
   useActionNodeContext,
 } from 'sentry/views/automations/components/actionNodes';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
+import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {getIncompatibleActionWarning} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
@@ -45,22 +45,16 @@ function getActionHandler(
       if (handler.type !== ActionType.SENTRY_APP) {
         return false;
       }
-      const {sentryAppIdentifier, targetIdentifier} = action.config;
+      const {targetIdentifier} = action.config;
       const sentryApp = handler.sentryApp;
 
-      const isMatchingAppId =
-        sentryAppIdentifier === SentryAppIdentifier.SENTRY_APP_ID &&
-        targetIdentifier === sentryApp?.id;
-      const isMatchingInstallationUuid =
-        sentryAppIdentifier === SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID &&
-        targetIdentifier === sentryApp?.installationUuid;
-      return isMatchingAppId || isMatchingInstallationUuid;
+      return targetIdentifier === sentryApp?.id;
     });
   }
   return availableActions.find(handler => handler.type === action.type);
 }
 
-export default function ActionNodeList({
+export function ActionNodeList({
   conditionGroupId,
   placeholder,
   actions,

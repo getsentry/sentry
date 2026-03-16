@@ -47,7 +47,7 @@ describe('TableWidgetVisualization', () => {
       expect(await screen.findByText('http.request_method')).toBeInTheDocument();
       expect(await screen.findByText('count(span.duration)')).toBeInTheDocument();
       expect(await screen.findByText('PATCH')).toBeInTheDocument();
-      expect(await screen.findByText('14k')).toBeInTheDocument();
+      expect(await screen.findByText('14K')).toBeInTheDocument();
     });
 
     it('Applies custom order and column name if provided', () => {

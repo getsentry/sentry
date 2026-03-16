@@ -1,5 +1,6 @@
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   StepType,
   type BasePlatformOptions,
@@ -270,7 +271,7 @@ export const profilingFullStack = <
         {
           type: 'text',
           text: tct('For more information see the [link:node profiling documentation].', {
-            link: <ExternalLink href={`${nodeProfilingLink}`} />,
+            link: <ExternalLink href={nodeProfilingLink} />,
           }),
         },
       ],

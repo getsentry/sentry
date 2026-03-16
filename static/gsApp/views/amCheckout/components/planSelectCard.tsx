@@ -1,10 +1,10 @@
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode, type Plan} from 'getsentry/types';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
-import CheckoutOption from 'getsentry/views/amCheckout/components/checkoutOption';
+import {CheckoutOption} from 'getsentry/views/amCheckout/components/checkoutOption';
 import type {CheckoutFormData, PlanContent} from 'getsentry/views/amCheckout/types';
 import {getShortInterval} from 'getsentry/views/amCheckout/utils';
 
@@ -23,7 +23,7 @@ interface PlanSelectCardProps {
   badge?: React.ReactNode;
 }
 
-function PlanSelectCard({
+export function PlanSelectCard({
   plan,
   isSelected,
   onUpdate,
@@ -86,5 +86,3 @@ function PlanSelectCard({
     />
   );
 }
-
-export default PlanSelectCard;

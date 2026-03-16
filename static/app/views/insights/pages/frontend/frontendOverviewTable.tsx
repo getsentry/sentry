@@ -5,7 +5,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import useQueryBasedColumnResize from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -17,7 +17,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SPAN_HEADER_TOOLTIPS} from 'sentry/views/insights/common/components/headerTooltips/headerTooltips';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
@@ -188,39 +188,43 @@ export function FrontendOverviewTable({displayPerfScore, response, sort}: Props)
       Select a transaction to see more details.`
         )}
       >
-        <GridEditable
-          aria-label={t('Domains')}
-          isLoading={isLoading}
-          error={response.error}
-          data={data}
-          columnOrder={filteredColumns}
-          columnSortBy={[
-            {
-              key: sort.field,
-              order: sort.kind,
-            },
-          ]}
-          grid={{
-            prependColumnWidths: ['max-content'],
-            renderPrependColumns,
-            renderHeadCell: column =>
-              renderHeadCell({
-                column,
-                sort,
-                location,
-              }),
-            renderBodyCell: (column, row) =>
-              renderBodyCell(column, row, meta, location, organization, theme),
-            onResizeColumn: handleResizeColumn,
-          }}
-        />
-        <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+        {tourProps => (
+          <div {...tourProps}>
+            <GridEditable
+              aria-label={t('Domains')}
+              isLoading={isLoading}
+              error={response.error}
+              data={data}
+              columnOrder={filteredColumns}
+              columnSortBy={[
+                {
+                  key: sort.field,
+                  order: sort.kind,
+                },
+              ]}
+              grid={{
+                prependColumnWidths: ['max-content'],
+                renderPrependColumns,
+                renderHeadCell: column =>
+                  renderHeadCell({
+                    column,
+                    sort,
+                    location,
+                  }),
+                renderBodyCell: (column, row) =>
+                  renderBodyCell(column, row, meta, location, organization, theme),
+                onResizeColumn: handleResizeColumn,
+              }}
+            />
+            <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+          </div>
+        )}
       </DemoTourElement>
     </VisuallyCompleteWithData>
   );
 }
 
-function renderPrependColumns(isHeader: boolean, row?: Row | undefined) {
+function renderPrependColumns(isHeader: boolean, row?: Row) {
   if (isHeader) {
     return [<IconStar key="star" variant="warning" isSolid />];
   }

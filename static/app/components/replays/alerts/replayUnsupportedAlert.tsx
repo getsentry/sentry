@@ -1,5 +1,6 @@
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
@@ -7,7 +8,7 @@ interface Props {
   projectSlug: string;
 }
 
-export default function ReplayUnsupportedAlert({projectSlug}: Props) {
+export function ReplayUnsupportedAlert({projectSlug}: Props) {
   const docsLink = (
     <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/#supported-sdks" />
   );

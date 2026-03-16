@@ -1,50 +1,33 @@
-import {Badge} from 'sentry/components/core/badge';
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Badge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import useMailboxCounts from 'sentry/components/feedback/list/useMailboxCounts';
+import {useMailboxCounts} from 'sentry/components/feedback/list/useMailboxCounts';
 import type {Mailbox} from 'sentry/components/feedback/useMailbox';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   onChange: (next: Mailbox) => void;
   value: Mailbox;
 }
 
-export default function MailboxPicker({onChange, value}: Props) {
+export function MailboxPicker({onChange, value}: Props) {
   const organization = useOrganization();
   const {data} = useMailboxCounts({organization});
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
-  const {areAiFeaturesAllowed, setupAcknowledgement} = useOrganizationSeerSetup();
+  const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const hasSpamFeature = organization.features.includes('user-feedback-spam-ingest');
-  const skipConsentFlow = organization.features.includes('gen-ai-consent-flow-removal');
 
   const getSpamTooltip = () => {
     if (!hasSpamFeature || isSelfHosted) {
       return undefined;
-    }
-
-    if (!skipConsentFlow && !setupAcknowledgement.orgHasAcknowledged) {
-      return tct(
-        'Generative AI Features and Seer access are required for auto spam detection. Check that [linkGenAI:Generative AI Features] are toggled on, then view the [linkSeer:Seer settings page] for more information.',
-        {
-          linkSeer: <Link to={`/settings/${organization.slug}/seer/`} />,
-          linkGenAI: (
-            <Link
-              to={{
-                pathname: `/settings/${organization.slug}/`,
-                hash: 'hideAiFeatures',
-              }}
-            />
-          ),
-        }
-      );
     }
 
     if (!areAiFeaturesAllowed) {

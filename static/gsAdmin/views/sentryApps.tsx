@@ -1,10 +1,9 @@
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
-
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
@@ -37,7 +36,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-export default function SentryApps() {
+export function SentryApps() {
   return (
     <div>
       <PageHeader title="Integration Platform Apps" />

@@ -6,8 +6,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
@@ -221,7 +221,6 @@ describe('logsTableRow', () => {
           sharedHoverTimeoutRef={
             {current: null} as React.MutableRefObject<NodeJS.Timeout | null>
           }
-          canDeferRenderElements
         />
       </ProviderWrapper>,
       {organization, initialRouterConfig}
@@ -258,7 +257,6 @@ describe('logsTableRow', () => {
               current: null,
             } as React.MutableRefObject<NodeJS.Timeout | null>
           }
-          canDeferRenderElements={false}
         />
       </ProviderWrapper>,
       {organization, initialRouterConfig}
@@ -361,7 +359,6 @@ describe('logsTableRow', () => {
               current: null,
             } as React.MutableRefObject<NodeJS.Timeout | null>
           }
-          canDeferRenderElements={false}
         />
       </ProviderWrapper>,
       {organization, initialRouterConfig: initialRouterConfigWithCodeFilePath}
@@ -370,6 +367,7 @@ describe('logsTableRow', () => {
     // Expand the row to show the attributes
     const logTableRow = await screen.findByTestId('log-table-row');
     expect(logTableRow).toBeInTheDocument();
+    await userEvent.hover(logTableRow);
 
     // At this point, useStacktraceLink should not have been called with enabled: true
     expect(stacktraceLinkMock).not.toHaveBeenCalledWith(
@@ -442,7 +440,6 @@ describe('logsTableRow', () => {
               current: null,
             } as React.MutableRefObject<NodeJS.Timeout | null>
           }
-          canDeferRenderElements={false}
         />
       </ProviderWrapper>,
       {organization, initialRouterConfig}
@@ -544,7 +541,6 @@ describe('logsTableRow', () => {
               current: null,
             } as React.MutableRefObject<NodeJS.Timeout | null>
           }
-          canDeferRenderElements={false}
         />
       </ProviderWrapper>,
       {organization, initialRouterConfig: initialRouterConfigWithScrubbedFields}

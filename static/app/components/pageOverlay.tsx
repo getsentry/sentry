@@ -3,10 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Prose} from 'sentry/components/core/text/prose';
-import Panel from 'sentry/components/panels/panel';
-import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
+import {Prose} from '@sentry/scraps/text';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 /**
  * The default wrapper for the detail text.
@@ -39,13 +39,13 @@ const Header = styled((props: React.ComponentProps<typeof motion.h2>) => (
   display: flex;
   align-items: center;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Body = styled((props: React.ComponentProps<typeof motion.div>) => (
   <motion.div variants={subItemAnimation} transition={testableTransition()} {...props} />
 ))`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 type ContentOpts = {
@@ -122,7 +122,7 @@ const defaultPositioning = ({mainRect, anchorRect}: PositioningStrategyOpts) => 
  * wrapper to a safe space in the background to aid in alignment of the wrapper
  * to a safe space in the background.
  */
-function PageOverlay({
+export function PageOverlay({
   positioningStrategy = defaultPositioning,
   text,
   animateDelay,
@@ -258,13 +258,11 @@ const MaskedContent = styled('div')`
 
 const PageOverlayProse = styled(Prose)`
   ${Panel} & {
-    padding-left: ${space(2)};
-    padding-right: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
+    padding-right: ${p => p.theme.space.xl};
 
     &:first-child {
-      padding-top: ${space(2)};
+      padding-top: ${p => p.theme.space.xl};
     }
   }
 `;
-
-export default PageOverlay;

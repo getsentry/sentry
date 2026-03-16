@@ -1,22 +1,21 @@
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {CodeBlock} from '@sentry/scraps/code';
 import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {Alert} from 'sentry/components/core/alert';
-import {CodeBlock} from 'sentry/components/core/code';
-import {ExternalLink} from 'sentry/components/core/link';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {
   MIN_REPLAY_NETWORK_BODIES_SDK,
   MIN_REPLAY_NETWORK_BODIES_SDK_KNOWN_BUG,
 } from 'sentry/utils/replays/sdkVersions';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 
@@ -215,7 +214,7 @@ function SetupInstructions({
 }
 
 const StyledTextCopyInput = styled(TextCopyInput)`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const NoMarginAlert = styled(Alert)`
@@ -225,9 +224,9 @@ const NoMarginAlert = styled(Alert)`
 const StyledInstructions = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
 
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   &:first-child {
     margin-top: 0;
     border-top: none;
@@ -235,11 +234,11 @@ const StyledInstructions = styled('div')`
 
   h1 {
     font-size: inherit;
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   p {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
   p:last-child {
     margin-bottom: 0;
@@ -247,5 +246,5 @@ const StyledInstructions = styled('div')`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin: ${space(1)};
+  margin: ${p => p.theme.space.md};
 `;

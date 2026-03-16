@@ -3,12 +3,12 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
@@ -57,8 +57,9 @@ export function ToolbarGroupByDropdown({
   loading,
   onClose,
 }: ToolbarGroupByDropdownProps) {
-  const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
+  const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: column.id,
+    transition: null,
   });
 
   function handleColumnChange(option: SelectOption<SelectKey>) {
@@ -76,13 +77,13 @@ export function ToolbarGroupByDropdown({
     <ToolbarRow
       key={column.id}
       ref={setNodeRef}
-      style={{transform: CSS.Transform.toString(transform), transition}}
+      style={{transform: CSS.Transform.toString(transform)}}
       {...attributes}
     >
       {canDelete ? (
         <Button
           aria-label={t('Drag to reorder')}
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconGrabbable size="sm" />}
           {...listeners}
@@ -93,24 +94,31 @@ export function ToolbarGroupByDropdown({
         options={options}
         value={column.column ?? ''}
         onChange={handleColumnChange}
-        searchable
+        search={{onChange: onSearch}}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps} style={{width: '100%'}}>
             {label}
           </OverlayTrigger.Button>
         )}
         menuTitle="Group By"
-        onSearch={onSearch}
         onClose={onClose}
         loading={loading}
       />
       {canDelete ? (
         <Button
           aria-label={t('Remove Column')}
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconDelete size="sm" />}
           onClick={() => onColumnDelete()}
+        />
+      ) : column.column ? (
+        <Button
+          aria-label={t('Clear Group By')}
+          priority="transparent"
+          size="zero"
+          icon={<IconDelete size="sm" />}
+          onClick={() => onColumnChange('')}
         />
       ) : null}
     </ToolbarRow>
@@ -125,7 +133,6 @@ interface ToolbarVisualizeAddProps {
 export function ToolbarGroupByAddGroupBy({add, disabled}: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      borderless
       size="zero"
       icon={<IconAdd />}
       onClick={add}

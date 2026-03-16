@@ -2,15 +2,16 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsStringEnum, useQueryState} from 'nuqs';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Radio} from 'sentry/components/core/radio';
-import {Text} from 'sentry/components/core/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Radio} from '@sentry/scraps/radio';
+import {Text} from '@sentry/scraps/text';
+
 import Hook from 'sentry/components/hook';
 import {t, tct} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   makeAutomationBasePathname,
   makeAutomationCreatePathname,
@@ -45,13 +46,17 @@ export function DetectorTypeForm() {
 
 type SelectableDetectorType = Extract<
   DetectorType,
-  'metric_issue' | 'monitor_check_in_failure' | 'uptime_domain_failure'
+  | 'metric_issue'
+  | 'monitor_check_in_failure'
+  | 'uptime_domain_failure'
+  | 'preprod_size_analysis'
 >;
 
 const ALLOWED_DETECTOR_TYPES = [
   'metric_issue',
   'monitor_check_in_failure',
   'uptime_domain_failure',
+  'preprod_size_analysis',
 ] as const satisfies SelectableDetectorType[];
 
 const detectorTypeParser = parseAsStringEnum(ALLOWED_DETECTOR_TYPES)
@@ -69,9 +74,11 @@ interface DetectorTypeOption {
   visualization: React.ReactNode;
   disabled?: boolean;
   infoBanner?: React.ReactNode;
+  show?: boolean;
 }
 
 function MonitorTypeField() {
+  const organization = useOrganization();
   const [selectedDetectorType, setDetectorType] = useDetectorTypeQueryState();
 
   const useMetricDetectorLimit =
@@ -116,38 +123,49 @@ function MonitorTypeField() {
         }
       ),
     },
+    {
+      id: 'preprod_size_analysis',
+      name: getDetectorTypeLabel('preprod_size_analysis'),
+      description: t('Monitor mobile app build sizes and detect regressions.'),
+      visualization: null,
+      show: !!organization?.features?.includes('preprod-size-monitors-frontend'),
+    },
   ];
 
   return (
     <Stack gap="md" role="radiogroup" aria-label={t('Monitor type')}>
-      {options.map(({id, name, description, visualization, infoBanner, disabled}) => {
-        const checked = selectedDetectorType === id;
-        return (
-          <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
-            <OptionBody>
-              <Flex direction="column" gap="sm">
-                <Radio
-                  name="detectorType"
-                  checked={checked}
-                  onChange={() => handleChange(id)}
-                  aria-label={name}
-                  disabled={disabled}
-                />
-                <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
-                  {name}
-                </Text>
-                {description && (
-                  <Text size="md" variant="muted">
-                    {description}
+      {options
+        .filter(({show}) => show === undefined || show)
+        .map(({id, name, description, visualization, infoBanner, disabled}) => {
+          const checked = selectedDetectorType === id;
+          return (
+            <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
+              <OptionBody>
+                <Flex direction="column" gap="sm">
+                  <Radio
+                    name="detectorType"
+                    checked={checked}
+                    onChange={() => handleChange(id)}
+                    aria-label={name}
+                    disabled={disabled}
+                  />
+                  <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
+                    {name}
                   </Text>
-                )}
-              </Flex>
-              {visualization && <Visualization>{visualization}</Visualization>}
-            </OptionBody>
-            {infoBanner && (checked || disabled) && <OptionInfo>{infoBanner}</OptionInfo>}
-          </OptionLabel>
-        );
-      })}
+                  {description && (
+                    <Text size="md" variant="muted">
+                      {description}
+                    </Text>
+                  )}
+                </Flex>
+                {visualization && <Visualization>{visualization}</Visualization>}
+              </OptionBody>
+              {infoBanner && (checked || disabled) && (
+                <OptionInfo>{infoBanner}</OptionInfo>
+              )}
+            </OptionLabel>
+          );
+        })}
     </Stack>
   );
 }
@@ -182,7 +200,7 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
 
   &[aria-checked='true'] {
     border-color: ${p => p.theme.tokens.border.accent.vibrant};
-    outline: solid 1px ${p => p.theme.tokens.border.accent.vibrant};
+    outline: solid 1px ${p => p.theme.tokens.focus.default};
   }
 
   ${OptionBody} {

@@ -2,11 +2,11 @@ import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
-import {Input} from 'sentry/components/core/input';
-import {Radio} from 'sentry/components/core/radio';
 import type {Question} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 
 interface AskUserQuestionBlockProps {
@@ -24,7 +24,7 @@ interface AskUserQuestionBlockProps {
   onMouseLeave?: () => void;
 }
 
-function AskUserQuestionBlock({
+export function AskUserQuestionBlock({
   currentQuestion,
   customText,
   isFocused,
@@ -138,8 +138,6 @@ function AskUserQuestionBlock({
     </Block>
   );
 }
-
-export default AskUserQuestionBlock;
 
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;

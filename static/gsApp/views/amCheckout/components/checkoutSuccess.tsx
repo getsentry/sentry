@@ -8,13 +8,14 @@ import moment from 'moment-timezone';
 import Barcode from 'sentry-images/checkout/barcode.png';
 import SentryLogo from 'sentry-images/checkout/sentry-receipt-logo.png';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {GIGABYTE} from 'getsentry/constants';
 import type {
@@ -497,7 +498,7 @@ function Receipt({
   );
 }
 
-function CheckoutSuccess({
+export function CheckoutSuccess({
   invoice,
   basePlan,
   nextQueryParams,
@@ -639,8 +640,6 @@ function CheckoutSuccess({
     </Flex>
   );
 }
-
-export default CheckoutSuccess;
 
 const Title = styled(Heading)`
   @media (max-width: ${p => p.theme.breakpoints.md}) {

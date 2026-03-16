@@ -4,10 +4,9 @@ import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
   useTourReducer,
@@ -19,14 +18,13 @@ import {
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-import useOrganization from 'sentry/utils/useOrganization';
-import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
   /**
@@ -47,10 +45,6 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    * The ordered list of Step IDs
    */
   orderedStepIds: TourState<T>['orderedStepIds'];
-  /**
-   * Whether to omit the blurring window.
-   */
-  omitBlur?: boolean;
   /**
    * Called when the tour is ended by the user, either by dismissing the tour or by completing the last step.
    */
@@ -78,7 +72,6 @@ export function TourContextProvider<T extends TourEnumType>({
   isCompleted,
   tourKey,
   TourContext,
-  omitBlur,
   orderedStepIds,
   onEndTour,
   onStartTour,
@@ -139,18 +132,44 @@ export function TourContextProvider<T extends TourEnumType>({
 
   return (
     <TourContext value={tourContextValue}>
-      {isTourActive && !omitBlur && <BlurWindow data-test-id="tour-blur-window" />}
+      {isTourActive && <BlurWindow data-test-id="tour-blur-window" />}
       {children}
     </TourContext>
   );
 }
 
-export interface TourElementProps<T extends TourEnumType>
-  extends Omit<HTMLAttributes<HTMLElement>, 'id' | 'title'> {
+export interface TourRenderProps {
   /**
-   * The content being focused during the tour.
+   * Ref to attach to the element for positioning.
+   * Uses `any` to allow flexibility in spreading onto different element types.
    */
-  children: React.ReactNode;
+  ref: React.Ref<any>;
+  /**
+   * ARIA attribute indicating if the tour is active
+   */
+  'aria-expanded'?: boolean | undefined;
+  /**
+   * CSS class for tour highlight styling
+   */
+  className?: string;
+}
+
+export interface TourElementProps<T extends TourEnumType> extends Omit<
+  HTMLAttributes<HTMLElement>,
+  'id' | 'children' | 'title'
+> {
+  /**
+   * Render function that receives tour props to apply to the element.
+   * This allows the tour to work with any element without wrapping it in a div.
+   *
+   * Example:
+   * ```tsx
+   * <TourElement id="step1" title="Title" description="Description">
+   *   {(props) => <button {...props}>Click me</button>}
+   * </TourElement>
+   * ```
+   */
+  children: (props: TourRenderProps) => React.ReactNode;
   /**
    * The description of the tour step.
    * If null, a tooltip will not be displayed. This is useful if there are multiple
@@ -192,8 +211,13 @@ export function TourElement<T extends TourEnumType>({
 }: TourElementProps<T>) {
   const tourContextValue = useContext(tourContext);
   if (!tourContextValue) {
-    return children;
+    // Tour is not active, render children with no-op props
+    return children({
+      'aria-expanded': false,
+      ref: () => {},
+    });
   }
+
   return (
     <TourElementContent {...props} tourContextValue={tourContextValue}>
       {children}
@@ -201,8 +225,10 @@ export function TourElement<T extends TourEnumType>({
   );
 }
 
-interface TourElementContentProps<T extends TourEnumType>
-  extends Omit<TourElementProps<T>, 'tourContext'> {
+interface TourElementContentProps<T extends TourEnumType> extends Omit<
+  TourElementProps<T>,
+  'tourContext'
+> {
   tourContextValue: TourContextType<T>;
 }
 
@@ -248,7 +274,7 @@ export function TourElementContent<T extends TourEnumType>({
 
   const defaultActions = useMemo(
     () => (
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         {hasPreviousStep && (
           <TextTourAction size="xs" onClick={previousStep}>
             {t('Previous')}
@@ -274,7 +300,7 @@ export function TourElementContent<T extends TourEnumType>({
             {t('Finish tour')}
           </TourAction>
         )}
-      </ButtonBar>
+      </Grid>
     ),
     [
       hasPreviousStep,
@@ -319,8 +345,14 @@ export function TourElementContent<T extends TourEnumType>({
   );
 }
 
-interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title' | 'id'> {
-  children: React.ReactNode;
+interface TourGuideProps extends Omit<
+  HTMLAttributes<HTMLElement>,
+  'title' | 'id' | 'children'
+> {
+  /**
+   * Render function that receives tour props to apply to the element.
+   */
+  children: (props: TourRenderProps) => React.ReactNode;
   description: React.ReactNode;
   isOpen: UseOverlayProps['isOpen'];
   /**
@@ -337,11 +369,6 @@ interface TourGuideProps extends Omit<HTMLAttributes<HTMLElement>, 'title' | 'id
   stepCount?: number;
   stepTotal?: number;
   title?: React.ReactNode;
-  wrapperComponent?: React.ComponentType<{
-    'aria-expanded': React.AriaAttributes['aria-expanded'];
-    children: React.ReactNode;
-    ref: React.RefAttributes<HTMLElement>['ref'];
-  }>;
 }
 
 export function TourGuide({
@@ -354,7 +381,6 @@ export function TourGuide({
   position,
   handleDismiss,
   stepCount,
-  wrapperComponent,
   stepTotal,
   offset,
   margin,
@@ -373,8 +399,6 @@ export function TourGuide({
     offset,
   });
 
-  const Wrapper = wrapperComponent ?? TourTriggerWrapper;
-
   // Update the overlay positioning when the content changes
   useEffectAfterFirstRender(() => {
     if (isOpen && update && defined(title) && defined(description)) {
@@ -384,14 +408,18 @@ export function TourGuide({
 
   return (
     <Fragment>
-      <Wrapper
-        className={className}
-        ref={triggerProps.ref}
-        aria-expanded={triggerProps['aria-expanded']}
-        margin={`${margin}px`}
-      >
-        {children}
-      </Wrapper>
+      <ClassNames>
+        {({css, cx}) => {
+          const tourStyles = getTourElementStyles(theme, !!isOpen, margin);
+          const tourClassName = tourStyles ? css(tourStyles) : undefined;
+
+          return children({
+            'aria-expanded': Boolean(triggerProps['aria-expanded']),
+            ref: triggerProps.ref,
+            className: cx(className, tourClassName),
+          });
+        }}
+      </ClassNames>
       {isOpen && defined(title) && defined(description)
         ? createPortal(
             <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
@@ -420,7 +448,6 @@ export function TourGuide({
                             {isDismissVisible && (
                               <Button
                                 priority="transparent"
-                                borderless
                                 onClick={handleDismiss}
                                 icon={<IconClose />}
                                 aria-label={t('Close')}
@@ -458,7 +485,7 @@ const TourBody = styled('div')`
   display: flex;
   flex-direction: column;
   background: ${p => p.theme.tokens.background.primary};
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.primary};
   border-radius: ${p => p.theme.radius.md};
   width: 360px;
@@ -503,7 +530,7 @@ export function TourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} priority="primary" size="sm" />;
 }
 export function TextTourAction(props: React.ComponentProps<typeof Button>) {
-  return <Button {...props} priority="transparent" size="sm" borderless />;
+  return <Button {...props} priority="transparent" size="sm" />;
 }
 
 const BlurWindow = styled('div')`
@@ -515,20 +542,33 @@ const BlurWindow = styled('div')`
   backdrop-filter: blur(3px);
 `;
 
-const TourTriggerWrapper = styled('div')<{margin?: CSSProperties['margin']}>`
-  &[aria-expanded='true'] {
+/**
+ * Generates CSS class for tour element highlighting.
+ * This is applied via the render prop pattern to avoid wrapping elements in divs.
+ */
+function getTourElementStyles(
+  theme: ReturnType<typeof useTheme>,
+  isOpen: boolean,
+  margin?: CSSProperties['margin']
+) {
+  if (!isOpen) {
+    return undefined;
+  }
+
+  return `
     position: relative;
-    z-index: ${p => p.theme.zIndex.tour.element};
+    z-index: ${theme.zIndex.tour.element};
     user-select: none;
     pointer-events: none;
+
     &:after {
       content: '';
       position: absolute;
-      z-index: ${p => p.theme.zIndex.tour.element + 1};
+      z-index: ${theme.zIndex.tour.element + 1};
       inset: 0;
-      border-radius: ${p => p.theme.radius.md};
-      box-shadow: inset 0 0 0 3px ${p => p.theme.tokens.border.accent.vibrant};
-      ${p => defined(p.margin) && `margin: ${p.margin};`}
+      border-radius: ${theme.radius.md};
+      box-shadow: inset 0 0 0 3px ${theme.tokens.border.accent.vibrant};
+      ${defined(margin) ? `margin: ${margin};` : ''}
     }
-  }
-`;
+  `;
+}

@@ -1,22 +1,26 @@
 import {useMemo} from 'react';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {classifyTagKey, prettifyTagKey} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import type {TraceItemAttributeConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 
 interface Props {
+  config: TraceItemAttributeConfig;
   fields: readonly string[];
   groupBys: readonly string[];
   mode: Mode;
   yAxes: string[];
 }
 
-export function useSortByFields({fields, yAxes, groupBys, mode}: Props) {
-  const {tags: numberTags} = useTraceItemTags('number');
-  const {tags: stringTags} = useTraceItemTags('string');
+export function useSortByFields({config, fields, yAxes, groupBys, mode}: Props) {
+  const {attributes: numberTags} = useTraceItemAttributes(config, 'number');
+  const {attributes: stringTags} = useTraceItemAttributes(config, 'string');
+  const {attributes: booleanTags} = useTraceItemAttributes(config, 'boolean');
 
   const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
     const uniqueOptions: string[] = [];
@@ -40,7 +44,7 @@ export function useSortByFields({fields, yAxes, groupBys, mode}: Props) {
     }
 
     const options = uniqueOptions.filter(Boolean).map(field => {
-      const tag = stringTags[field] ?? numberTags[field] ?? null;
+      const tag = stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
       if (tag) {
         return {
           label: tag.name,
@@ -81,7 +85,7 @@ export function useSortByFields({fields, yAxes, groupBys, mode}: Props) {
     });
 
     return options;
-  }, [fields, groupBys, mode, numberTags, stringTags, yAxes]);
+  }, [booleanTags, fields, groupBys, mode, numberTags, stringTags, yAxes]);
 
   return fieldOptions;
 }

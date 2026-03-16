@@ -18,7 +18,7 @@ from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.region import find_cells_for_orgs
 
 logger = logging.getLogger("sentry.authprovider")
 
@@ -51,7 +51,7 @@ class AuthProvider(ReplicatedControlModel):
 
         serialized = serialize_auth_provider(self)
         region_replica_service.upsert_replicated_auth_provider(
-            auth_provider=serialized, region_name=region_name
+            auth_provider=serialized, cell_name=region_name
         )
 
     @classmethod
@@ -65,7 +65,7 @@ class AuthProvider(ReplicatedControlModel):
         from sentry.hybridcloud.services.replica.service import region_replica_service
 
         region_replica_service.delete_replicated_auth_provider(
-            auth_provider_id=identifier, region_name=region_name
+            auth_provider_id=identifier, cell_name=region_name
         )
 
     class flags(TypedClassBitField):
@@ -160,9 +160,9 @@ class AuthProvider(ReplicatedControlModel):
                 shard_identifier=self.organization_id,
                 category=OutboxCategory.RESET_IDP_FLAGS,
                 object_identifier=self.organization_id,
-                region_name=region_name,
+                cell_name=region_name,
             )
-            for region_name in find_regions_for_orgs([self.organization_id])
+            for region_name in find_cells_for_orgs([self.organization_id])
         ]
 
     def disable_scim(self):
@@ -183,9 +183,9 @@ class AuthProvider(ReplicatedControlModel):
                     organization_id=self.organization_id, provider=f"{self.provider}_scim"
                 )
                 sentry_app = install.sentry_app_installation.sentry_app
-                assert (
-                    sentry_app.is_internal
-                ), "scim sentry apps should always be internal, thus deleting them without triggering InstallationNotifier is correct."
+                assert sentry_app.is_internal, (
+                    "scim sentry apps should always be internal, thus deleting them without triggering InstallationNotifier is correct."
+                )
                 sentry_app.update(status=SentryAppStatus.DELETION_IN_PROGRESS)
                 ScheduledDeletion.schedule(sentry_app, days=0)
             except SentryAppInstallationForProvider.DoesNotExist:
@@ -208,9 +208,9 @@ class AuthProvider(ReplicatedControlModel):
                 shard_identifier=self.organization_id,
                 category=OutboxCategory.MARK_INVALID_SSO,
                 object_identifier=user_id,
-                region_name=region_name,
+                cell_name=region_name,
             )
-            for region_name in find_regions_for_orgs([self.organization_id])
+            for region_name in find_cells_for_orgs([self.organization_id])
         ]
 
     @classmethod
@@ -222,6 +222,72 @@ class AuthProvider(ReplicatedControlModel):
 
         sanitizer.set_json(json, SanitizableField(model_name, "config"), {})
         sanitizer.set_string(json, SanitizableField(model_name, "provider"))
+
+
+class ScimTokenDisplay:
+    """
+    Represents a SCIM token for display purposes.
+
+    If the token was created more than TOKEN_VISIBILITY_WINDOW_SECONDS ago,
+    is_visible will be False and only the last 4 characters should be shown.
+    """
+
+    TOKEN_VISIBILITY_WINDOW_SECONDS = 300  # 5 minutes
+
+    def __init__(
+        self,
+        token: str | None,
+        token_last_characters: str | None,
+        is_visible: bool,
+    ):
+        self.token = token
+        self.token_last_characters = token_last_characters
+        self.is_visible = is_visible
+
+
+def get_scim_token_for_display(
+    scim_enabled: bool, organization_id: int, provider: str
+) -> ScimTokenDisplay | None:
+    """
+    Get SCIM token info for display in the UI with proper masking.
+
+    Tokens are only fully visible for 5 minutes after creation.
+    After that, only the last 4 characters are shown.
+
+    All models involved (SentryAppInstallationToken, ApiToken,
+    SentryAppInstallationForProvider) are control silo models,
+    so we can query directly without RPC.
+    """
+    from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
+
+    if not scim_enabled:
+        return None
+
+    tokens = list(
+        SentryAppInstallationToken.objects.select_related("api_token").filter(
+            sentry_app_installation__sentryappinstallationforprovider__organization_id=organization_id,
+            sentry_app_installation__sentryappinstallationforprovider__provider=f"{provider}_scim",
+        )
+    )
+    if not tokens:
+        return None
+
+    if len(tokens) > 1:
+        logger.warning(
+            "Multiple SCIM tokens found for organization",
+            extra={"organization_id": organization_id, "token_count": len(tokens)},
+        )
+
+    api_token = tokens[0].api_token
+    is_visible = (
+        timezone.now() - api_token.date_added
+    ).total_seconds() < ScimTokenDisplay.TOKEN_VISIBILITY_WINDOW_SECONDS
+
+    return ScimTokenDisplay(
+        token=api_token.token if is_visible else None,
+        token_last_characters=api_token.token[-4:],
+        is_visible=is_visible,
+    )
 
 
 def get_scim_token(scim_enabled: bool, organization_id: int, provider: str) -> str | None:

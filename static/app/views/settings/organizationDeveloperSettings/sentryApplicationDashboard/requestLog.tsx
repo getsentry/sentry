@@ -3,28 +3,29 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {Button, StyledButton} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   SentryApp,
   SentryAppSchemaIssueLink,
   SentryAppWebhookRequest,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
@@ -120,10 +121,15 @@ function makeRequestLogQueryKey(
   slug: string,
   query: Record<string, string>
 ): ApiQueryKey {
-  return [`/sentry-apps/${slug}/webhook-requests/`, {query}];
+  return [
+    getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/webhook-requests/`, {
+      path: {sentryAppIdOrSlug: slug},
+    }),
+    {query},
+  ];
 }
 
-export default function RequestLog({app}: RequestLogProps) {
+export function RequestLog({app}: RequestLogProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [eventType, setEventType] = useState(ALL_EVENTS);
@@ -206,10 +212,10 @@ export default function RequestLog({app}: RequestLogProps) {
           />
 
           <StyledErrorsOnlyButton onClick={handleChangeErrorsOnly}>
-            <ErrorsOnlyCheckbox>
+            <Flex align="center" gap="md">
               <Checkbox checked={errorsOnly} onChange={() => {}} />
               {t('Errors Only')}
-            </ErrorsOnlyCheckbox>
+            </Flex>
           </StyledErrorsOnlyButton>
         </RequestLogFilters>
       </div>
@@ -273,7 +279,7 @@ export default function RequestLog({app}: RequestLogProps) {
 const TableLayout = styled('div')<{hasOrganization: boolean}>`
   display: grid;
   grid-template-columns: 1fr 0.5fr ${p => (p.hasOrganization ? '1fr' : '')} 1fr 1fr;
-  grid-column-gap: ${space(1.5)};
+  grid-column-gap: ${p => p.theme.space.lg};
   width: 100%;
   align-items: center;
 `;
@@ -302,17 +308,12 @@ const PaginationButtons = styled('div')`
 const RequestLogFilters = styled('div')`
   display: flex;
   align-items: center;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 
-  > :first-child ${StyledButton} {
+  > :first-child button,
+  > :first-child a {
     border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   }
-`;
-
-const ErrorsOnlyCheckbox = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
 `;
 
 const StyledErrorsOnlyButton = styled(Button)`
@@ -327,9 +328,9 @@ const StyledIconOpen = styled(IconOpen)`
 `;
 
 const Tags = styled('div')`
-  margin: -${space(0.5)};
+  margin: -${p => p.theme.space.xs};
 `;
 
 const StyledTag = styled(Tag)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 `;

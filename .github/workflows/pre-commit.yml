@@ -53,27 +53,11 @@ jobs:
             all:
               - added|modified: '**/*'
 
-      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
-        id: setup-node
-        with:
-          node-version-file: '.node-version'
-
-      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
-
-      - name: node_modules cache
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        id: nodemodulescache
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.node-version') }}
-
-      - name: Install Javascript Dependencies
-        if: steps.nodemodulescache.outputs.cache-hit != 'true'
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-node-pnpm
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.8.2'
+          version: '0.9.28'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
@@ -99,7 +83,7 @@ jobs:
 
       - name: Apply any pre-commit fixed files
         # note: this runs "always" or else it's skipped when pre-commit fails
-        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && always()
+        if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && !github.event.pull_request.draft && always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}

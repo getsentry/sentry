@@ -4,10 +4,9 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -16,6 +15,7 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
 from sentry.snuba.models import QuerySubscription
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class SubscriptionNotFound(Exception):
 
 
 @extend_schema(tags=["Workflows"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -39,11 +39,12 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         self, detector_id: str, organization: Organization
     ) -> QuerySubscription:
         """Look up QuerySubscription from a detector ID."""
+        validated_detector_id = to_valid_int_id("detector_id", detector_id, raise_404=True)
         try:
             detector = Detector.objects.with_type_filters().get(
-                id=int(detector_id), project__organization=organization
+                id=validated_detector_id, project__organization=organization
             )
-        except (Detector.DoesNotExist, ValueError):
+        except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
         data_source = detector.data_sources.first()
@@ -59,8 +60,11 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         self, alert_rule_id: str, organization: Organization
     ) -> QuerySubscription:
         """Look up QuerySubscription from a legacy alert rule ID."""
+        validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
         try:
-            alert_rule = AlertRule.objects.get(id=int(alert_rule_id), organization=organization)
+            alert_rule = AlertRule.objects.get(
+                id=validated_alert_rule_id, organization=organization
+            )
             logger.info(
                 "anomaly_data.legacy_alert_found",
                 extra={
@@ -69,7 +73,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
                     "organization_id": organization.id,
                 },
             )
-        except (AlertRule.DoesNotExist, ValueError):
+        except AlertRule.DoesNotExist:
             logger.warning(
                 "anomaly_data.legacy_alert_not_found",
                 extra={"alert_rule_id": alert_rule_id, "organization_id": organization.id},
@@ -107,11 +111,6 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
 
         Pass `legacy_alert=true` query param to treat detector_id as a legacy alert rule ID.
         """
-        if not features.has(
-            "organizations:anomaly-detection-threshold-data", organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
-
         start = request.GET.get("start")
         end = request.GET.get("end")
 

@@ -1,14 +1,16 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {t} from 'sentry/locale';
-import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {ReleasesSortOption} from 'sentry/constants/releases';
+import {t} from 'sentry/locale';
+import {ReleasesSelectControl} from 'sentry/views/dashboards/releasesSelectControl';
+
+export function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
   return (
     <Tooltip
       title={t('Changes to these filters can only be made at the dashboard level')}
@@ -22,13 +24,12 @@ function WidgetBuilderFilterBar({releases}: {releases: string[]}) {
           isDisabled
           id="releases-select-control"
           selectedReleases={releases}
+          sortBy={ReleasesSortOption.DATE}
         />
       </StyledPageFilterBar>
     </Tooltip>
   );
 }
-
-export default WidgetBuilderFilterBar;
 
 // Override the styles of the trigger button of the releases selection
 // control. This is because filter buttons are

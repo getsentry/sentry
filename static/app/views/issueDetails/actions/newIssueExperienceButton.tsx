@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import issueDetailsPreview from 'sentry-images/issue_details/issue-details-preview.png';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
@@ -16,8 +17,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
@@ -76,9 +77,9 @@ function useIssueDetailsPromoModal() {
               src: issueDetailsPreview,
               alt: t('Preview of the issue details experience'),
             }}
-            header={t('Welcome to Issue Details')}
+            header={t('Welcome to issue details')}
             description={t(
-              "New around here? Tour the issue experience - we promise you'll be less confused."
+              "This is where you'll come every time something breaks. It shows what happened, why it happened, and what to do next.\n\nNew here? Take a tour - we promise you'll be less confused."
             )}
             onDismissTour={() => {
               handleEndTour();
@@ -123,6 +124,7 @@ function useIssueDetailsPromoModal() {
 
 export function NewIssueExperienceButton() {
   const organization = useOrganization();
+  const user = useUser();
   const isSuperUser = isActiveSuperuser();
   const {
     startTour,
@@ -151,9 +153,6 @@ export function NewIssueExperienceButton() {
   }, [isTourCompleted, organization]);
 
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const hasNewUIOnly = Boolean(organization.streamlineOnly);
-  const user = useUser();
-  const userStreamlinePreference = user?.options?.prefersIssueDetailsStreamlinedUI;
 
   const openForm = useFeedbackForm();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
@@ -163,18 +162,21 @@ export function NewIssueExperienceButton() {
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
       organization,
-      enforced_streamline_ui:
-        organization.features.includes('issue-details-streamline-enforce') &&
-        userStreamlinePreference === null,
+      enforced_streamline_ui: user?.options?.prefersIssueDetailsStreamlinedUI === null,
     });
-  }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
+  }, [
+    mutateUserOptions,
+    organization,
+    hasStreamlinedUI,
+    user?.options?.prefersIssueDetailsStreamlinedUI,
+  ]);
 
   if (!hasStreamlinedUI) {
     return (
       <TryNewButton
         icon={<IconLab />}
         size="sm"
-        title={t('Switch to the new issue experience')}
+        tooltipProps={{title: t('Switch to the new issue experience')}}
         aria-label={t('Switch to the new issue experience')}
         onClick={() => {
           handleToggle();
@@ -210,15 +212,6 @@ export function NewIssueExperienceButton() {
       },
     },
     {
-      key: 'switch-to-old-ui',
-      label: t('Switch to the old issue experience'),
-      // Do not show the toggle out of the new UI if any of these are true:
-      //  - The user is on the old UI
-      //  - The org has the new UI only option
-      hidden: !hasStreamlinedUI || hasNewUIOnly,
-      onAction: handleToggle,
-    },
-    {
       key: 'reset-tour-modal',
       label: t('Reset tour modal (Superuser only)'),
       hidden: !isSuperUser || !isTourCompleted,
@@ -250,20 +243,24 @@ export function NewIssueExperienceButton() {
       }
       isOpen={isReminderVisible}
     >
-      <DropdownMenu
-        trigger={triggerProps => (
-          <StyledDropdownButton
-            {...triggerProps}
-            size={hasStreamlinedUI ? 'xs' : 'sm'}
-            aria-label={t('Manage issue experience')}
-          >
-            {/* Passing icon as child to avoid extra icon margin */}
-            <IconLab isSolid={hasStreamlinedUI} />
-          </StyledDropdownButton>
-        )}
-        items={items}
-        position="bottom-end"
-      />
+      {tourProps => (
+        <div {...tourProps}>
+          <DropdownMenu
+            trigger={triggerProps => (
+              <StyledDropdownButton
+                {...triggerProps}
+                size={hasStreamlinedUI ? 'xs' : 'sm'}
+                aria-label={t('Manage issue experience')}
+              >
+                {/* Passing icon as child to avoid extra icon margin */}
+                <IconLab isSolid={hasStreamlinedUI} />
+              </StyledDropdownButton>
+            )}
+            items={items}
+            position="bottom-end"
+          />
+        </div>
+      )}
     </TourGuide>
   );
 }

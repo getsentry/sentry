@@ -3,15 +3,13 @@ import styled from '@emotion/styled';
 
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export default function FeatureFlagCTAContent({
   handleSetupButtonClick,
@@ -63,7 +61,7 @@ export default function FeatureFlagCTAContent({
 
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
@@ -71,8 +69,8 @@ const BannerIllustration = styled('img')`
   object-fit: contain;
   max-width: 30%;
   min-width: 150px;
-  padding-inline: ${space(2)};
-  padding-top: ${space(2)};
+  padding-inline: ${p => p.theme.space.xl};
+  padding-top: ${p => p.theme.space.xl};
   align-self: flex-end;
 `;
 
@@ -90,7 +88,7 @@ export const BannerWrapper = styled('div')`
   flex-direction: row;
   align-items: flex-end;
   justify-content: space-between;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   container-name: bannerWrapper;
   container-type: inline-size;

@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import Panel from 'sentry/components/panels/panel';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 
-import FooterWithButtons from './components/footerWithButtons';
-import HeaderWithHelp from './components/headerWithHelp';
+import {FooterWithButtons} from './components/footerWithButtons';
+import {HeaderWithHelp} from './components/headerWithHelp';
 
 type ErrorDetail = {error: string; name: string};
 
@@ -17,10 +18,7 @@ type Props = {
   successCount: number;
 };
 
-export default function AwsLambdaFailureDetails({
-  lambdaFunctionFailures,
-  successCount,
-}: Props) {
+export function AwsLambdaFailureDetails({lambdaFunctionFailures, successCount}: Props) {
   const baseDocsUrl =
     'https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/';
   return (

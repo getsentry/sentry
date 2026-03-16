@@ -16,7 +16,6 @@ logger = logging.getLogger("sentry.snuba.trace_metrics")
 
 
 class TraceMetrics(rpc_dataset_common.RPCBase):
-
     DEFINITIONS = TRACE_METRICS_DEFINITIONS
 
     @classmethod
@@ -40,7 +39,6 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
         equations: list[str] | None = None,
         search_resolver: SearchResolver | None = None,
         page_token: PageToken | None = None,
-        debug: bool = False,
         additional_queries: AdditionalQueries | None = None,
     ) -> EAPResponse:
         """timestamp_precise is always displayed in the UI in lieu of timestamp but since the TraceItem table isn't a DateTime64
@@ -70,5 +68,5 @@ class TraceMetrics(rpc_dataset_common.RPCBase):
                 page_token=page_token,
                 additional_queries=additional_queries,
             ),
-            debug=debug,
+            debug=params.debug,
         )

@@ -1,22 +1,22 @@
 import {useLayoutEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import NotFound from 'sentry/components/errors/notFound';
+import {Link} from '@sentry/scraps/link';
+
+import {NotFound} from 'sentry/components/errors/notFound';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
-import Footer from 'sentry/components/footer';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Footer} from 'sentry/components/footer';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import SharedGroupHeader from './sharedGroupHeader';
+import {SharedGroupHeader} from './sharedGroupHeader';
 
 function SharedGroupDetails() {
   const {shareId, orgId} = useParams<{orgId: string | undefined; shareId: string}>();
@@ -110,7 +110,7 @@ function SharedGroupDetails() {
 }
 
 const Container = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 export default SharedGroupDetails;

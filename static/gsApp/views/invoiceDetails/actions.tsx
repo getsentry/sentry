@@ -1,6 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
@@ -8,14 +10,10 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {openInvoicePaymentModal} from 'getsentry/actionCreators/modal';
@@ -28,7 +26,7 @@ type Props = {
   reloadInvoice: () => void;
 };
 
-function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
+export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
   const api = useApi();
   const location = useLocation();
 
@@ -118,13 +116,11 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
   );
 }
 
-export default InvoiceDetailsActions;
-
 const EmailForm = styled('form')`
   display: grid;
   grid-auto-flow: column;
   align-items: start;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   /* override selector in PanelBody > form */
   && {

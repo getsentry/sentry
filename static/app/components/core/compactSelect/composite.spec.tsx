@@ -2,9 +2,8 @@ import {useState} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {OverlayTrigger} from 'sentry/components/core/overlayTrigger';
-
-import {CompositeSelect} from './composite';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 describe('CompositeSelect', () => {
   it('renders', async () => {
@@ -248,8 +247,7 @@ describe('CompositeSelect', () => {
   it('can search', async () => {
     render(
       <CompositeSelect
-        searchable
-        searchPlaceholder="Search placeholder…"
+        search={{placeholder: 'Search placeholder…'}}
         trigger={props => (
           <OverlayTrigger.Button {...props}>Open menu</OverlayTrigger.Button>
         )}

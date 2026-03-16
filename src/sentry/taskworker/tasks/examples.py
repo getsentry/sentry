@@ -19,14 +19,16 @@ def say_hello(name: str, *args: list[Any], **kwargs: dict[str, Any]) -> None:
 
 
 @exampletasks.register(
-    name="examples.retry_deadletter", retry=Retry(times=2, times_exceeded=LastAction.Deadletter)
+    name="examples.retry_deadletter",
+    retry=Retry(times=2, times_exceeded=LastAction.Deadletter),
 )
 def retry_deadletter() -> None:
     raise RetryTaskError
 
 
 @exampletasks.register(
-    name="examples.retry_state", retry=Retry(times=2, times_exceeded=LastAction.Deadletter)
+    name="examples.retry_state",
+    retry=Retry(times=2, times_exceeded=LastAction.Deadletter),
 )
 def retry_state() -> None:
     try:

@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import SeerAutomation from 'getsentry/views/seerAutomation/seerAutomation';
 
@@ -13,10 +13,6 @@ describe('SeerAutomation', () => {
       url: '/organizations/org-slug/seer/setup-check/',
       method: 'GET',
       body: {
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         billing: {
           hasAutofixQuota: true,
           hasScannerQuota: true,
@@ -48,7 +44,10 @@ describe('SeerAutomation', () => {
     const orgPutRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
-      body: {defaultAutofixAutomationTuning: 'high'},
+      body: OrganizationFixture({
+        defaultSeerScannerAutomation: true,
+        defaultAutofixAutomationTuning: 'super_low',
+      }),
     });
 
     // Project details used to populate the project list
@@ -58,6 +57,16 @@ describe('SeerAutomation', () => {
       body: {
         ...project,
         autofixAutomationTuning: 'off',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/onboarding-check/`,
+      method: 'GET',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: true,
+        isCodeReviewEnabled: true,
+        isSeerConfigured: true,
       },
     });
 
@@ -111,7 +120,20 @@ describe('SeerAutomation', () => {
     const orgPutRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
-      body: {defaultSeerScannerAutomation: true},
+      body: OrganizationFixture({
+        defaultSeerScannerAutomation: true,
+      }),
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/seer/onboarding-check/`,
+      method: 'GET',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: true,
+        isCodeReviewEnabled: true,
+        isSeerConfigured: true,
+      },
     });
 
     // Project details used to populate the project list

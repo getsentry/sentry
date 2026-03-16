@@ -1,10 +1,11 @@
 import {useCallback} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -12,7 +13,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
-import parseApiError from 'sentry/utils/parseApiError';
+import {parseApiError} from 'sentry/utils/parseApiError';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
@@ -24,8 +25,8 @@ import {openMissingDsymModal} from 'sentry/views/preprod/components/missingDsymM
 import {AppSizeCategories} from 'sentry/views/preprod/components/visualizations/appSizeCategories';
 import {AppSizeLegend} from 'sentry/views/preprod/components/visualizations/appSizeLegend';
 import {AppSizeTreemap} from 'sentry/views/preprod/components/visualizations/appSizeTreemap';
-import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 import {
   BuildDetailsSizeAnalysisState,
   isSizeInfoPending,
@@ -89,12 +90,17 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     fieldName: 'search',
   });
 
+  const [highlightInsights, setHighlightInsights] = useQueryState(
+    'highlightInsights',
+    parseAsBoolean.withDefault(true)
+  );
+
   const [selectedCategoriesParam, setSelectedCategoriesParam] =
     useQueryParamState<string>({
       fieldName: 'categories',
     });
 
-  const selectedCategories: Set<TreemapType> = selectedCategoriesParam
+  const selectedCategories = selectedCategoriesParam
     ? new Set(
         selectedCategoriesParam
           .split(',')
@@ -103,7 +109,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
           )
           .map(c => c as TreemapType)
       )
-    : new Set();
+    : new Set<TreemapType>();
 
   const handleToggleCategory = (category: TreemapType) => {
     const next = new Set(selectedCategories);
@@ -119,6 +125,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
   const isLoadingRequests = isAppSizeLoading || isBuildDetailsPending;
   const isSizeStarted = sizeInfo !== undefined && sizeInfo !== null;
   const isSizeFailed = sizeInfo?.state === BuildDetailsSizeAnalysisState.FAILED;
+  const isSizeNotRan = sizeInfo?.state === BuildDetailsSizeAnalysisState.NOT_RAN;
   const showNoSizeRequested = !isLoadingRequests && !isSizeStarted;
 
   if (isLoadingRequests) {
@@ -201,6 +208,19 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     );
   }
 
+  if (isSizeNotRan) {
+    return (
+      <Flex width="100%" justify="center" align="center" minHeight="60vh">
+        <BuildError
+          title={t('Size analysis not started')}
+          message={
+            sizeInfo.error_message || t('Size analysis was not started for this build.')
+          }
+        />
+      </Flex>
+    );
+  }
+
   if (isAppSizeError) {
     const errorMessage = appSizeError ? parseApiError(appSizeError) : 'Unknown API Error';
     return (
@@ -279,6 +299,15 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     }
   };
 
+  // Determine if insights highlighting is available:
+  // 1. The treemap must have flagged_insights support (new schema)
+  // 2. There must be at least one insight in the insights object
+  const hasFlaggedInsightsSupport = 'flagged_insights' in appSizeData.treemap.root;
+  const hasAnyInsights = appSizeData.insights
+    ? Object.keys(appSizeData.insights).length > 0
+    : false;
+  const insightsAvailable = hasFlaggedInsightsSupport && hasAnyInsights;
+
   // Filter data based on search query and categories
   const filteredRoot = filterTreemapElement(
     appSizeData.treemap.root,
@@ -309,6 +338,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
                 : undefined
             }
             onSearchChange={value => setSearchQuery(value || undefined)}
+            highlightInsights={highlightInsights}
+            onHighlightInsightsChange={setHighlightInsights}
+            insightsAvailable={insightsAvailable}
           />
         ) : (
           <Alert variant="info">No files found matching "{searchQuery}"</Alert>
@@ -329,6 +361,9 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
             : undefined
         }
         onSearchChange={value => setSearchQuery(value || undefined)}
+        highlightInsights={highlightInsights}
+        onHighlightInsightsChange={setHighlightInsights}
+        insightsAvailable={insightsAvailable}
       />
     ) : (
       <Alert variant="info">No files found matching "{searchQuery}"</Alert>
@@ -372,7 +407,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
                   <Button
                     onClick={() => setSearchQuery(undefined)}
                     aria-label="Clear search"
-                    borderless
+                    priority="transparent"
                     size="zero"
                   >
                     <IconClose size="sm" />

@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
 
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
-import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+
+import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
@@ -16,7 +17,7 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import * as Storybook from 'sentry/stories';
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {
   FieldKey,
   FieldKind,
@@ -392,7 +393,7 @@ export default Storybook.story('SearchQueryBuilder', story => {
       },
     };
 
-    const getAggregateFieldDefinition: FieldDefinitionGetter = (key: string) => {
+    const getAggregateFieldDefinition: FieldDefinitionGetter = key => {
       switch (key) {
         case 'apdex':
           return {
@@ -931,6 +932,50 @@ function SearchQueryBuilderExample(queryBuilderProps: SearchQueryBuilderProps) {
         </CodeBlock>
         <p>The following is the above code in action:</p>
         <SearchQueryBuilderExample />
+      </Fragment>
+    );
+  });
+
+  story('Async filter keys', () => {
+    const asyncGetTagKeys = (searchQuery: string): Promise<Tag[]> => {
+      const allKeys: Tag[] = [
+        {key: 'dynamic_key_1', name: 'dynamic_key_1', kind: FieldKind.TAG},
+        {key: 'dynamic_key_2', name: 'dynamic_key_2', kind: FieldKind.TAG},
+        {key: 'dynamic_key_3', name: 'dynamic_key_3', kind: FieldKind.TAG},
+      ];
+
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve(
+            searchQuery
+              ? allKeys.filter(k => k.key.includes(searchQuery.toLowerCase()))
+              : allKeys
+          );
+        }, 300);
+      });
+    };
+
+    return (
+      <Fragment>
+        <p>
+          When filter keys are not fully known upfront, use <code>getTagKeys</code> to
+          fetch them asynchronously. This is useful when the set of available keys depends
+          on user input or needs to be loaded from an API.
+        </p>
+        <p>
+          The function receives the current search input and should return an array of{' '}
+          <code>Tag</code> objects. The returned keys are automatically merged with any
+          static <code>filterKeys</code> and deduplicated. Requests are debounced
+          internally.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeys={FILTER_KEYS}
+          filterKeySections={FILTER_KEY_SECTIONS}
+          getTagValues={getTagValues}
+          getTagKeys={asyncGetTagKeys}
+          searchSource="storybook"
+        />
       </Fragment>
     );
   });

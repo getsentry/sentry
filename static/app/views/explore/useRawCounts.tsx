@@ -1,8 +1,10 @@
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 type QueryResultItem<K extends string> = Record<K, number | null>;
@@ -23,19 +25,33 @@ export interface RawCounts {
 
 interface UseRawCountsOptions {
   dataset: DiscoverDatasets;
+  /**
+   * Optional custom aggregate function. If not provided, a default aggregate
+   * will be determined based on the dataset.
+   * Used for metrics which require dynamic aggregates like `count(value,<name>,<type>,<unit>)`.
+   */
+  aggregate?: string;
+  enabled?: boolean;
+  selection?: PageFilters;
 }
 
-export function useRawCounts({dataset}: UseRawCountsOptions): RawCounts {
+export function useRawCounts({
+  dataset,
+  aggregate,
+  enabled,
+  selection,
+}: UseRawCountsOptions): RawCounts {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const {selection: pageFilterSelection} = usePageFilters();
+  const effectiveSelection = selection ?? pageFilterSelection;
 
-  const count = getAggregateForDataset(dataset);
+  const count = aggregate ?? getAggregateForDataset(dataset);
 
   const baseQueryParams = {
     dataset,
-    project: selection.projects,
-    environment: selection.environments,
-    ...normalizeDateTimeParams(selection.datetime),
+    project: effectiveSelection.projects,
+    environment: effectiveSelection.environments,
+    ...normalizeDateTimeParams(effectiveSelection.datetime),
     field: [count],
     disableAggregateExtrapolation: '1',
   };
@@ -43,7 +59,9 @@ export function useRawCounts({dataset}: UseRawCountsOptions): RawCounts {
   const baseReferrer = getBaseReferrer(dataset);
 
   const normalScanQueryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/events/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {
       query: {
         ...baseQueryParams,
@@ -54,12 +72,14 @@ export function useRawCounts({dataset}: UseRawCountsOptions): RawCounts {
   ];
 
   const normalScanResult = useApiQuery<QueryResult<typeof count>>(normalScanQueryKey, {
-    enabled: true,
+    enabled: enabled ?? true,
     staleTime: 0,
   });
 
   const highestAccuracyScanQueryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/events/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     {
       query: {
         ...baseQueryParams,
@@ -72,7 +92,7 @@ export function useRawCounts({dataset}: UseRawCountsOptions): RawCounts {
   const highestAccuracyScanResult = useApiQuery<QueryResult<typeof count>>(
     highestAccuracyScanQueryKey,
     {
-      enabled: true,
+      enabled: enabled ?? true,
       staleTime: 0,
     }
   );
@@ -99,6 +119,8 @@ function getBaseReferrer(dataset: DiscoverDatasets) {
       return 'api.explore.spans.raw-count' as const;
     case DiscoverDatasets.OURLOGS:
       return 'api.explore.logs.raw-count' as const;
+    case DiscoverDatasets.TRACEMETRICS:
+      return 'api.explore.metrics.raw-count' as const;
     default:
       throw new Error(`Unsupported dataset: ${dataset}`);
   }

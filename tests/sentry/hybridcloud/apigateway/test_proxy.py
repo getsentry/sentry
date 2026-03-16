@@ -50,7 +50,6 @@ class ProxyTestCase(ApiGatewayTestCase):
 
     @responses.activate
     def test_query_params(self) -> None:
-
         query_param_dict = dict(foo="bar", numlist=["1", "2", "3"])
         query_param_str = urlencode(query_param_dict, doseq=True)
         request = RequestFactory().get(f"http://sentry.io/echo?{query_param_str}")
@@ -217,9 +216,9 @@ class ProxyTestCase(ApiGatewayTestCase):
     @responses.activate
     def test_apply_apigateway_proxy_header(self) -> None:
         def request_callback(request: requests.PreparedRequest) -> tuple[int, dict[str, str], str]:
-            assert request.headers.get(
-                PROXY_APIGATEWAY_HEADER
-            ), "Proxied requests should have a header added"
+            assert request.headers.get(PROXY_APIGATEWAY_HEADER), (
+                "Proxied requests should have a header added"
+            )
             return 200, {"proxied": "yes"}, json.dumps({"success": True})
 
         responses.add_callback(

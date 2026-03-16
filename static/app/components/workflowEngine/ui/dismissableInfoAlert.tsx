@@ -1,7 +1,8 @@
 import {useState} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons';
 
 export function DismissableInfoAlert({children}: {children: React.ReactNode}) {
@@ -13,7 +14,7 @@ export function DismissableInfoAlert({children}: {children: React.ReactNode}) {
         <Button
           aria-label="Dismiss banner"
           icon={<IconClose variant="accent" />}
-          borderless
+          priority="transparent"
           onClick={() => setDismissed(true)}
           size="zero"
         />

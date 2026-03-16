@@ -12,10 +12,8 @@ import {useTextField} from '@react-aria/textfield';
 import {mergeRefs} from '@react-aria/utils';
 import type {KeyboardEvent} from '@react-types/shared';
 
+import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
-
-import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 
 interface InputBoxProps {
   inputLabel: string;

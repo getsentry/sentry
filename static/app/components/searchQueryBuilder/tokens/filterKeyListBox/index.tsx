@@ -6,14 +6,12 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
-import {Button} from 'sentry/components/core/button';
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import type {
-  SelectKey,
-  SelectOptionOrSectionWithKey,
-} from 'sentry/components/core/compactSelect/types';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {Button} from '@sentry/scraps/button';
+import {ListBox} from '@sentry/scraps/compactSelect';
+import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -30,7 +28,7 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   recentFilters: Array<TokenResult<Token.FILTER>>;
@@ -39,18 +37,17 @@ interface FilterKeyListBoxProps<T> extends CustomComboboxMenuProps<T> {
   setSelectedSection: (section: string) => void;
 }
 
-interface FilterKeyMenuContentProps<T>
-  extends Pick<
-    FilterKeyListBoxProps<T>,
-    | 'hiddenOptions'
-    | 'listBoxProps'
-    | 'listBoxRef'
-    | 'recentFilters'
-    | 'state'
-    | 'selectedSection'
-    | 'setSelectedSection'
-    | 'sections'
-  > {
+interface FilterKeyMenuContentProps<T> extends Pick<
+  FilterKeyListBoxProps<T>,
+  | 'hiddenOptions'
+  | 'listBoxProps'
+  | 'listBoxRef'
+  | 'recentFilters'
+  | 'state'
+  | 'selectedSection'
+  | 'setSelectedSection'
+  | 'sections'
+> {
   fullWidth: boolean;
 }
 
@@ -66,7 +63,7 @@ function ListBoxSectionButton({
   return (
     <SectionButton
       size="zero"
-      borderless
+      priority="transparent"
       aria-selected={selected}
       onClick={onClick}
       tabIndex={-1}
@@ -516,6 +513,7 @@ const RecentFilterPill = styled('li')`
   font-size: ${p => p.theme.font.size.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
   background-color: ${p => p.theme.tokens.background.primary};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;
@@ -556,7 +554,7 @@ const SectionButton = styled(Button)`
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.accent.muted};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
     color: ${p => p.theme.tokens.content.accent};
     font-weight: ${p => p.theme.font.weight.sans.medium};
   }

@@ -1,6 +1,7 @@
 import moment from 'moment-timezone';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+
 import {IconBusiness} from 'sentry/icons';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconFlag} from 'sentry/icons/iconFlag';
@@ -15,7 +16,11 @@ interface ProductTrialTagProps {
   variant?: TagProps['variant'];
 }
 
-function ProductTrialTag({trial, variant, showTrialEnded = false}: ProductTrialTagProps) {
+export function ProductTrialTag({
+  trial,
+  variant,
+  showTrialEnded = false,
+}: ProductTrialTagProps) {
   const now = moment();
 
   if (moment(trial.endDate).add(1, 'days').isBefore(now)) {
@@ -46,5 +51,3 @@ function ProductTrialTag({trial, variant, showTrialEnded = false}: ProductTrialT
     </Tag>
   );
 }
-
-export default ProductTrialTag;

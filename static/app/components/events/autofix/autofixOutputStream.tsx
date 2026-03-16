@@ -3,10 +3,11 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
+import {TextArea} from '@sentry/scraps/textarea';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {TextArea} from 'sentry/components/core/textarea';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixProgressBar} from 'sentry/components/events/autofix/autofixProgressBar';
 import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
 import {useUpdateInsightCard} from 'sentry/components/events/autofix/hooks/useUpdateInsightCard';
@@ -17,12 +18,11 @@ import {useTypingAnimation} from 'sentry/components/events/autofix/useTypingAnim
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function StreamContentText({stream}: {stream: string}) {
   const [displayedText, setDisplayedText] = useState('');
@@ -135,8 +135,7 @@ function ActiveLogDisplay({
   const erroredStepIndex = erroredStep?.index ?? 0;
   let retainInsightCardIndex: number | null = null;
   if (
-    erroredStep &&
-    erroredStep.type === AutofixStepType.DEFAULT &&
+    erroredStep?.type === AutofixStepType.DEFAULT &&
     Array.isArray((erroredStep as any).insights)
   ) {
     const insights = (erroredStep as any).insights;
@@ -159,9 +158,9 @@ function ActiveLogDisplay({
         <ActiveLog>{errorMessage}</ActiveLog>
         <Button
           size="xs"
-          borderless
+          priority="transparent"
           aria-label={t('Retry step')}
-          title={t('Retry step')}
+          tooltipProps={{title: t('Retry step')}}
           onClick={() =>
             refreshStep({
               message: '',
@@ -328,7 +327,7 @@ export function AutofixOutputStream({
               />
               <StyledButton
                 type="submit"
-                borderless
+                priority="transparent"
                 aria-label={t('Submit Comment')}
                 size="zero"
               >
@@ -346,8 +345,8 @@ const Wrapper = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  margin-bottom: ${space(1)};
-  gap: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
 `;
 
 const ScaleContainer = styled(motion.div)`
@@ -386,7 +385,7 @@ const Container = styled(motion.div)<{required: boolean}>`
         ${p =>
             p.required
               ? p.theme.colors.pink500
-              : p.theme.tokens.interactive.link.accent.active}
+              : p.theme.tokens.background.accent.vibrant}
           12.5%,
         transparent
       ),
@@ -401,7 +400,7 @@ const Container = styled(motion.div)<{required: boolean}>`
 
 const StreamContent = styled('div')`
   margin: 0;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   white-space: pre-wrap;
   word-break: break-word;
   color: ${p => p.theme.tokens.content.secondary};
@@ -415,21 +414,21 @@ const ActiveLogWrapper = styled('div')`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   background: ${p => p.theme.tokens.background.secondary};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   overflow: visible;
 `;
 
 const ActiveLog = styled('div')`
   flex-grow: 1;
   word-break: break-word;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const VerticalLine = styled('div')`
   width: 0;
-  height: ${space(4)};
+  height: ${p => p.theme.space['3xl']};
   border-left: 1px dashed ${p => p.theme.tokens.border.primary};
   margin-left: 33px;
   margin-bottom: -1px;
@@ -437,14 +436,14 @@ const VerticalLine = styled('div')`
 
 const InputWrapper = styled('form')`
   display: flex;
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   position: relative;
 `;
 
 const StyledInput = styled(TextArea)`
   flex-grow: 1;
   border-color: ${p => p.theme.tokens.border.secondary};
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
   resize: none;
 
   &:hover {
@@ -454,7 +453,7 @@ const StyledInput = styled(TextArea)`
 
 const StyledButton = styled(Button)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
   top: 50%;
   transform: translateY(-50%);
   height: 24px;

@@ -14,7 +14,6 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
-
     def test_delete_checkin_directly(self) -> None:
         """
         Test that deleting a MonitorCheckIn directly (not via Monitor deletion)

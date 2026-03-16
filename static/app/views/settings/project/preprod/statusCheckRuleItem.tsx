@@ -1,19 +1,25 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {
   parseSearch,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import {StatusCheckRuleForm} from './statusCheckRuleForm';
 import type {StatusCheckFilter, StatusCheckRule} from './types';
-import {bytesToMB, getDisplayUnit, getMeasurementLabel, getMetricLabel} from './types';
+import {
+  bytesToMB,
+  getArtifactTypeLabel,
+  getDisplayUnit,
+  getMeasurementLabel,
+  getMetricLabel,
+} from './types';
 
 interface Props {
   isExpanded: boolean;
@@ -65,7 +71,7 @@ export function StatusCheckRuleItem({
   const displayUnit = getDisplayUnit(rule.measurement);
   const displayValue = displayUnit === '%' ? rule.value : bytesToMB(rule.value);
   const valueWithUnit = `${displayValue} ${displayUnit}`;
-  const title = `${getMetricLabel(rule.metric)} • ${getMeasurementLabel(rule.measurement)} • ${valueWithUnit}`;
+  const title = `${getMetricLabel(rule.metric)} • ${getMeasurementLabel(rule.measurement)} • ${getArtifactTypeLabel(rule.artifactType)} • ${valueWithUnit}`;
 
   return (
     <ItemContainer>
@@ -105,7 +111,7 @@ const ItemHeader = styled('button')`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: ${space(2)} ${space(2)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   background: none;
   border: none;
   cursor: pointer;
@@ -121,7 +127,7 @@ const ItemHeader = styled('button')`
 `;
 
 const ItemContent = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  padding: 0 ${p => p.theme.space.xl} ${p => p.theme.space.xl} ${p => p.theme.space.xl};
 `;
 
 const BoldText = styled('span')`

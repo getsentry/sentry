@@ -51,7 +51,7 @@ function BaseScoreBar({
   );
 }
 
-const ScoreBar = styled(BaseScoreBar)`
+export const ScoreBar = styled(BaseScoreBar)`
   display: flex;
 
   ${p =>
@@ -83,5 +83,3 @@ const Bar = styled('div')<BarProps>`
   width: ${p => (p.vertical ? p.size : p.thickness)}px;
   height: ${p => (p.vertical ? p.thickness : p.size)}px;
 `;
-
-export default ScoreBar;

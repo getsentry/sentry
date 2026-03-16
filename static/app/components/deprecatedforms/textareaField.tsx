@@ -1,6 +1,7 @@
-import {TextArea} from 'sentry/components/core/textarea';
+import {TextArea} from '@sentry/scraps/textarea';
+
 import InputField from 'sentry/components/deprecatedforms/inputField';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 
 type State = InputField['state'] & {
   value?: string;

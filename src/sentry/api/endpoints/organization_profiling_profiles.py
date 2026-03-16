@@ -3,14 +3,13 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Column, Condition, Limit, Op, Query
+from snuba_sdk import Column, Condition, Limit, Op, Query, Storage
 from snuba_sdk import Request as SnqlRequest
-from snuba_sdk import Storage
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -62,7 +61,7 @@ class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
         return attrs
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):
@@ -100,7 +99,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:continuous-profiling", organization, actor=request.user):
@@ -131,7 +130,7 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationProfilingHasChunksEndpoint(OrganizationProfilingBaseEndpoint):
     def get(self, request: Request, organization: Organization) -> HttpResponse:
         if not features.has("organizations:profiling", organization, actor=request.user):

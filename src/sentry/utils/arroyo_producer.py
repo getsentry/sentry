@@ -3,7 +3,6 @@ from __future__ import annotations
 import atexit
 from collections import deque
 from collections.abc import Callable
-from typing import Deque
 
 from arroyo.backends.abstract import ProducerFuture
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_producer_configuration
@@ -30,7 +29,7 @@ class SingletonProducer:
     ) -> None:
         self._producer: KafkaProducer | None = None
         self._factory = kafka_producer_factory
-        self._futures: Deque[_ProducerFuture] = deque()
+        self._futures: deque[_ProducerFuture] = deque()
         self.max_futures = max_futures
 
     def produce(

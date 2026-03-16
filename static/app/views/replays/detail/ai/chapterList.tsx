@@ -2,27 +2,26 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Link} from 'sentry/components/core/link';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeRanges} from 'sentry/views/replays/detail/ai/utils';
-import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {BreadcrumbRow} from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
+import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 
 interface Props {
   timeRanges: TimeRanges;
@@ -231,7 +230,6 @@ function ChapterRow({
             allowShowSnippet={false}
             startTimestampMs={replay?.getStartTimestampMs() ?? 0}
             key={`breadcrumb-${j}`}
-            style={{}}
           />
         ))}
       </div>
@@ -243,8 +241,8 @@ const ChapterIconWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: ${space(0.5)};
-  margin-right: ${space(1)};
+  padding: ${p => p.theme.space.xs};
+  margin-right: ${p => p.theme.space.md};
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: 50%;
   z-index: 2; /* needs to be above "ChapterWrapper summary::after" */
@@ -269,6 +267,7 @@ const ChapterWrapper = styled('details')`
     width: 1px;
     top: 1px;
     bottom: -9px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.secondary};
   }
 
@@ -288,13 +287,11 @@ const ChapterWrapper = styled('details')`
   /* the border-top is used to eliminate some of the top gap */
 
   &:hover {
-    border-top: 1px solid
-      ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+    border-top: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 
   &:active {
-    border-top: 1px solid
-      ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
 
   [data-is-feedback='true'] {
@@ -311,7 +308,7 @@ const ChapterWrapper = styled('details')`
 `;
 
 const ChapterBreadcrumbRow = styled(BreadcrumbRow)`
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
 
   &::before {
     display: none;
@@ -333,7 +330,7 @@ const Chapter = styled('summary')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.font.size.lg};
-  padding: 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space.sm};
   color: ${p => p.theme.tokens.content.primary};
 
   &:hover {
@@ -376,12 +373,12 @@ const Chapter = styled('summary')`
 const ChapterTitle = styled('div')`
   display: grid;
   grid-template-columns: auto auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-areas: 'title timestamp';
   flex: 1;
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 
   .activeChapter & {
     font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -397,7 +394,7 @@ const ChapterTitle = styled('div')`
 
 const ReplayTimestamp = styled('span')`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.regular};

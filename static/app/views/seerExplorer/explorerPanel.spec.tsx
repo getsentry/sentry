@@ -4,14 +4,14 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {
   ExplorerPanelProvider,
   useExplorerPanel,
 } from 'sentry/views/seerExplorer/useExplorerPanel';
 
 import * as useSeerExplorerModule from './hooks/useSeerExplorer';
-import ExplorerPanel from './explorerPanel';
+import {ExplorerPanel} from './explorerPanel';
 
 // Mock createPortal to render content directly
 jest.mock('react-dom', () => ({
@@ -87,6 +87,7 @@ describe('ExplorerPanel', () => {
   const organization = OrganizationFixture({
     features: ['seer-explorer'],
     hideAiFeatures: false,
+    openMembership: true,
   });
 
   beforeEach(() => {
@@ -124,7 +125,7 @@ describe('ExplorerPanel', () => {
   });
 
   describe('Feature Flag and Organization Checks', () => {
-    it('renders when feature flag is enabled', () => {
+    it('renders when feature flag and open membership are enabled', () => {
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
 
       expect(
@@ -135,6 +136,8 @@ describe('ExplorerPanel', () => {
     it('does not render when feature flag is disabled', () => {
       const disabledOrg = OrganizationFixture({
         features: [],
+        hideAiFeatures: false,
+        openMembership: true,
       });
 
       const {container} = renderWithPanelContext(<ExplorerPanel />, true, {
@@ -148,6 +151,21 @@ describe('ExplorerPanel', () => {
       const disabledOrg = OrganizationFixture({
         features: ['seer-explorer'],
         hideAiFeatures: true,
+        openMembership: true,
+      });
+
+      const {container} = renderWithPanelContext(<ExplorerPanel />, true, {
+        organization: disabledOrg,
+      });
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('does not render when open membership is disabled', () => {
+      const disabledOrg = OrganizationFixture({
+        features: ['seer-explorer'],
+        hideAiFeatures: false,
+        openMembership: false,
       });
 
       const {container} = renderWithPanelContext(<ExplorerPanel />, true, {
@@ -195,6 +213,8 @@ describe('ExplorerPanel', () => {
           switchToRun: jest.fn(),
           respondToUserInput: jest.fn(),
           createPR: jest.fn(),
+          overrideCtxEngEnable: true,
+          setOverrideCtxEngEnable: jest.fn(),
         });
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
@@ -257,6 +277,8 @@ describe('ExplorerPanel', () => {
         respondToUserInput: jest.fn(),
         switchToRun: jest.fn(),
         createPR: jest.fn(),
+        overrideCtxEngEnable: true,
+        setOverrideCtxEngEnable: jest.fn(),
       });
 
       renderWithPanelContext(<ExplorerPanel />, true, {organization});
@@ -500,6 +522,102 @@ describe('ExplorerPanel', () => {
       expect(textarea).toHaveAttribute(
         'placeholder',
         'Type your message or / command and press Enter ↵'
+      );
+    });
+  });
+
+  describe('Context Engine Toggle', () => {
+    const orgWithFlag = OrganizationFixture({
+      features: ['seer-explorer', 'seer-explorer-context-engine-fe-override-ui-flag'],
+      hideAiFeatures: false,
+      openMembership: true,
+    });
+
+    it('does not render the toggle when the feature flag is disabled', () => {
+      renderWithPanelContext(<ExplorerPanel />, true, {organization});
+
+      expect(
+        screen.queryByRole('checkbox', {name: 'Toggle context engine'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('renders the toggle when the feature flag is enabled', () => {
+      renderWithPanelContext(<ExplorerPanel />, true, {organization: orgWithFlag});
+
+      expect(
+        screen.getByRole('checkbox', {name: 'Toggle context engine'})
+      ).toBeInTheDocument();
+    });
+
+    it('sends override_ce_enable: true by default', async () => {
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithFlag.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 'new-run', message: {}},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithFlag.slug}/seer/explorer-chat/new-run/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: 'new-run',
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        },
+      });
+
+      renderWithPanelContext(<ExplorerPanel />, true, {organization: orgWithFlag});
+
+      const textarea = screen.getByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'Test message');
+      await userEvent.keyboard('{Enter}');
+
+      expect(postMock).toHaveBeenCalledWith(
+        `/organizations/${orgWithFlag.slug}/seer/explorer-chat/`,
+        expect.objectContaining({
+          data: expect.objectContaining({override_ce_enable: true}),
+        })
+      );
+    });
+
+    it('sends override_ce_enable: false after toggling off', async () => {
+      const postMock = MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithFlag.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        body: {run_id: 'new-run', message: {}},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithFlag.slug}/seer/explorer-chat/new-run/`,
+        method: 'GET',
+        body: {
+          session: {
+            blocks: [],
+            run_id: 'new-run',
+            status: 'completed',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        },
+      });
+
+      renderWithPanelContext(<ExplorerPanel />, true, {organization: orgWithFlag});
+
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: 'Toggle context engine'})
+      );
+
+      const textarea = screen.getByTestId('seer-explorer-input');
+      await userEvent.type(textarea, 'Test message');
+      await userEvent.keyboard('{Enter}');
+
+      expect(postMock).toHaveBeenCalledWith(
+        `/organizations/${orgWithFlag.slug}/seer/explorer-chat/`,
+        expect.objectContaining({
+          data: expect.objectContaining({override_ce_enable: false}),
+        })
       );
     });
   });

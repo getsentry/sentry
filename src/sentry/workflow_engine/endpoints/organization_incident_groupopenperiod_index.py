@@ -1,9 +1,10 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationDetectorPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -17,6 +18,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.incident_groupopenperiod_serializer import (
     IncidentGroupOpenPeriodSerializer,
 )
@@ -26,7 +28,7 @@ from sentry.workflow_engine.endpoints.validators.incident_groupopenperiod import
 from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -47,7 +49,7 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns an incident and group open period relationship.
         Can optionally filter by incident_id, incident_identifier, group_id, or open_period_id.

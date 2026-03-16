@@ -1,11 +1,11 @@
 import {useTheme} from '@emotion/react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {BarChart} from 'sentry/components/charts/barChart';
-import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,
@@ -31,7 +31,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {Referrer} from 'sentry/views/insights/mobile/appStarts/referrers';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/insights/mobile/screenload/constants';
 import {transformDeviceClassEvents} from 'sentry/views/insights/mobile/screenload/utils';
 import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
@@ -45,7 +45,7 @@ interface DeviceClassBreakdownBarChartProps {
   chartHeight?: number;
 }
 
-function DeviceClassBreakdownBarChart({
+export function DeviceClassBreakdownBarChart({
   chartHeight,
   additionalFilters,
 }: DeviceClassBreakdownBarChartProps) {
@@ -163,7 +163,7 @@ function DeviceClassBreakdownBarChart({
       grid={{
         left: '0',
         right: '0',
-        top: space(2),
+        top: theme.space.xl,
         bottom: '0',
         containLabel: true,
       }}
@@ -214,7 +214,7 @@ function DeviceClassBreakdownBarChart({
             <Button
               size="xs"
               aria-label={t('Open Full-Screen View')}
-              borderless
+              priority="transparent"
               icon={<IconExpand />}
               onClick={() => {
                 openInsightChartModal({
@@ -229,5 +229,3 @@ function DeviceClassBreakdownBarChart({
     </ChartContainer>
   );
 }
-
-export default DeviceClassBreakdownBarChart;

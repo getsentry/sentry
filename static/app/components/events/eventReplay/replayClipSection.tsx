@@ -2,21 +2,21 @@ import {Fragment, lazy} from 'react';
 import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
-import LazyLoad from 'sentry/components/lazyLoad';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupContext';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -134,5 +134,5 @@ const ReplaySectionMinHeight = styled(InterimSection)`
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT}px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

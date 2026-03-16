@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -13,7 +13,10 @@ interface RepositorySwitcherProps {
   activeRepository?: Repository;
 }
 
-function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcherProps) {
+export function RepositorySwitcher({
+  repositories,
+  activeRepository,
+}: RepositorySwitcherProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -43,8 +46,6 @@ function RepositorySwitcher({repositories, activeRepository}: RepositorySwitcher
     />
   );
 }
-
-export default RepositorySwitcher;
 
 const RepoLabel = styled('div')`
   display: block;

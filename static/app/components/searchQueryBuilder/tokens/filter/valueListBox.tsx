@@ -3,9 +3,10 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import type {SelectOptionOrSectionWithKey} from 'sentry/components/core/compactSelect/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ListBox} from '@sentry/scraps/compactSelect';
+import type {SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';

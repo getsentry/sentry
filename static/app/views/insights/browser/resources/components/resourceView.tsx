@@ -1,17 +1,16 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
-import ResourceTable from 'sentry/views/insights/browser/resources/components/tables/resourceTable';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {RenderBlockingSelector} from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
+import {ResourceTable} from 'sentry/views/insights/browser/resources/components/tables/resourceTable';
 import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
@@ -39,7 +38,7 @@ type Option = {
   value: string;
 };
 
-function ResourceView() {
+export function ResourceView() {
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
 
@@ -113,14 +112,12 @@ function ResourceTypeSelector({value}: {value?: string}) {
 }
 
 const SpanTimeChartsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const DropdownContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
   flex-wrap: wrap;
 `;
-
-export default ResourceView;

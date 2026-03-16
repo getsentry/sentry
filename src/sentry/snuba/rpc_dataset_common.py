@@ -99,6 +99,7 @@ class TableRequest:
 
     rpc_request: TraceItemTableRequest
     columns: list[ResolvedColumn]
+    sort_column_aliases: set[str] = field(default_factory=set)
 
 
 def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]):
@@ -284,6 +285,9 @@ class RPCBase:
             orderby_aliases[get_function_alias(alias_column.public_alias)] = alias_column
         # Orderby is only applicable to TraceItemTableRequest
         resolved_orderby = []
+        # Track sort columns added for virtual context ordering so we can
+        # include them in columns/group_by and strip them from results.
+        sort_column_aliases: set[str] = set()
         orderby_columns = query.orderby if query.orderby is not None else []
         for orderby_column in orderby_columns:
             stripped_orderby = orderby_column.lstrip("-")
@@ -294,9 +298,26 @@ class RPCBase:
                 raise InvalidSearchQuery("orderby must also be in the selected columns or groupby")
             else:
                 resolved_column = resolver.resolve_column(stripped_orderby)[0]
+
+            # Virtual context columns transform values (e.g. "1" -> "low") which
+            # can produce an undesirable alphabetical sort order. When a sort_column
+            # is specified, order by the raw source column instead.
+            orderby_resolved = resolved_column
+            context_def = resolver.definitions.contexts.get(stripped_orderby)
+            if context_def is not None and context_def.sort_column is not None:
+                sort_alias = f"__sort_{stripped_orderby}"
+                sort_col = ResolvedAttribute(
+                    public_alias=sort_alias,
+                    internal_name=context_def.sort_column,
+                    search_type="string",
+                )
+                orderby_resolved = sort_col
+                all_columns.append(sort_col)
+                sort_column_aliases.add(sort_alias)
+
             resolved_orderby.append(
                 TraceItemTableRequest.OrderBy(
-                    column=cls.categorize_column(resolved_column),
+                    column=cls.categorize_column(orderby_resolved),
                     descending=orderby_column.startswith("-"),
                 )
             )
@@ -314,6 +335,15 @@ class RPCBase:
             for col in columns:
                 if isinstance(col.proto_definition, AttributeKey):
                     group_by.append(col.proto_definition)
+            # Sort columns added for virtual context ordering must also be
+            # in GROUP BY for ClickHouse to allow the ORDER BY reference.
+            group_by_names = {key.name for key in group_by}
+            for alias in sort_column_aliases:
+                for col in all_columns:
+                    if isinstance(col, ResolvedAttribute) and col.public_alias == alias:
+                        if col.internal_name not in group_by_names:
+                            group_by.append(col.proto_definition)
+                            group_by_names.add(col.internal_name)
         else:
             group_by = []
 
@@ -335,6 +365,7 @@ class RPCBase:
                 trace_filters=cross_trace_queries,
             ),
             all_columns,
+            sort_column_aliases=sort_column_aliases,
         )
 
     @classmethod
@@ -342,7 +373,7 @@ class RPCBase:
     def _run_table_query(
         cls,
         query: TableQuery,
-        debug: bool = False,
+        debug: str | bool = False,
     ) -> EAPResponse:
         """Run the query"""
         table_request = cls.get_table_rpc_request(query)
@@ -406,7 +437,7 @@ class RPCBase:
         cls,
         rpc_response: TraceItemTableResponse,
         table_request: TableRequest,
-        debug: bool = False,
+        debug: str | bool = False,
     ) -> EAPResponse:
         """Process the results"""
         final_data: SnubaData = []
@@ -417,10 +448,16 @@ class RPCBase:
 
         for column_value in rpc_response.column_values:
             attribute = column_value.attribute_name
+            # Skip internal sort columns used for virtual context ordering
+            if attribute in table_request.sort_column_aliases:
+                continue
             if attribute not in columns_by_name:
                 logger.warning(
                     "A column was returned by the rpc but not a known column",
-                    extra={"attribute": attribute},
+                    extra={
+                        "attribute": attribute,
+                        "debug": debug,
+                    },
                 )
                 continue
             resolved_column = columns_by_name[attribute]
@@ -553,9 +590,11 @@ class RPCBase:
             raise InvalidSearchQuery("start, end and interval are required")
 
     @classmethod
-    def _run_timeseries_rpc(cls, debug: bool, rpc_request: TimeSeriesRequest) -> TimeSeriesResponse:
+    def _run_timeseries_rpc(
+        cls, debug: str | bool, rpc_request: TimeSeriesRequest
+    ) -> TimeSeriesResponse:
         try:
-            return snuba_rpc.timeseries_rpc([rpc_request])[0]
+            return snuba_rpc.timeseries_rpc([rpc_request], debug=debug)[0]
         except Exception as e:
             # add the rpc to the error so we can include it in the response
             if debug:
@@ -786,9 +825,12 @@ class RPCBase:
             other_row_conditions = []
             for key in groupby_columns:
                 if key == "project.id":
-                    value = resolver.params.project_slug_map[
-                        event.get("project") or event["project.slug"]
-                    ]
+                    if "project.id" in event:
+                        value = event["project.id"]
+                    else:
+                        value = resolver.params.project_slug_map[
+                            event.get("project") or event["project.slug"]
+                        ]
                 else:
                     value = event[key]
                 resolved_term, context = resolver.resolve_term(
@@ -854,7 +896,8 @@ class RPCBase:
         table_search_resolver = cls.get_resolver(table_query_params, config)
 
         # Make a table query first to get what we need to filter by
-        _, non_equation_axes = arithmetic.categorize_columns(y_axes)
+        equation_axes, non_equation_axes = arithmetic.categorize_columns(y_axes)
+        all_equations = (equations or []) + equation_axes
         top_events = cls._run_table_query(
             TableQuery(
                 query_string=query_string,
@@ -865,9 +908,10 @@ class RPCBase:
                 referrer=f"{referrer}.find-topn",
                 sampling_mode=sampling_mode,
                 resolver=table_search_resolver,
-                equations=equations,
+                equations=all_equations,
                 additional_queries=additional_queries,
-            )
+            ),
+            debug=params.debug,
         )
         # There aren't any top events, just return an empty dict and save a query
         if len(top_events["data"]) == 0:
@@ -894,6 +938,7 @@ class RPCBase:
             referrer=f"{referrer}.topn",
             sampling_mode=sampling_mode,
             extra_conditions=top_conditions,
+            additional_queries=additional_queries,
         )
         requests = [rpc_request]
         if include_other:
@@ -906,12 +951,13 @@ class RPCBase:
                 referrer=f"{referrer}.query-other",
                 sampling_mode=sampling_mode,
                 extra_conditions=other_conditions,
+                additional_queries=additional_queries,
             )
             requests.append(other_request)
 
         """Run the query"""
         try:
-            timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests)
+            timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests, debug=params.debug)
             rpc_response = timeseries_rpc_response[0]
             if len(timeseries_rpc_response) > 1:
                 other_response = timeseries_rpc_response[1]

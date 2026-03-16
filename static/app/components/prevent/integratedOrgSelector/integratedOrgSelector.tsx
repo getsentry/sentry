@@ -1,25 +1,24 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Access from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex, Grid} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {integratedOrgIdToName} from 'sentry/components/prevent/utils';
-import {IconAdd, IconBuilding, IconInfo} from 'sentry/icons';
+import {IconAdd, IconBuilding} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGetActiveIntegratedOrgs} from 'sentry/views/prevent/tests/queries/useGetActiveIntegratedOrgs';
-import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 import type {IntegrationInformation} from 'sentry/views/settings/organizationIntegrations/integrationDetailedView';
 
@@ -35,7 +34,11 @@ function OrgFooterMessage() {
   const {data: integrationInfo, isPending: isIntegrationInfoPending} =
     useApiQuery<IntegrationInformation>(
       [
-        `/organizations/${organization.slug}/config/integrations/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+          },
+        }),
         {
           query: {
             provider_key: 'github',
@@ -57,19 +60,16 @@ function OrgFooterMessage() {
     <Flex gap="sm" direction="column" align="start">
       <Grid columns="max-content 1fr" gap="sm">
         {props => (
-          <Text variant="muted" size="sm" {...props}>
-            <IconInfo size="sm" />
-            <div>
-              {tct(
-                'Installing the [githubAppLink:GitHub Application] will require admin approval.',
-                {
-                  githubAppLink: (
-                    <ExternalLink openInNewTab href="https://github.com/apps/sentry" />
-                  ),
-                }
-              )}
-            </div>
-          </Text>
+          <MenuComponents.Alert variant="info" {...props}>
+            {tct(
+              'Installing the [githubAppLink:GitHub Application] will require admin approval.',
+              {
+                githubAppLink: (
+                  <ExternalLink openInNewTab href="https://github.com/apps/sentry" />
+                ),
+              }
+            )}
+          </MenuComponents.Alert>
         )}
       </Grid>
       {isIntegrationInfoPending ? (
@@ -101,14 +101,13 @@ function OrgFooterMessage() {
           </Access>
         </IntegrationContext>
       ) : (
-        <LinkButton
+        <MenuComponents.CTALinkButton
           href="https://github.com/apps/sentry/installations/select_target"
-          size="xs"
           icon={<IconAdd />}
           external
         >
           {t('GitHub Organization')}
-        </LinkButton>
+        </MenuComponents.CTALinkButton>
       )}
     </Flex>
   );
@@ -163,23 +162,18 @@ export function IntegratedOrgSelector() {
             data-test-id="page-filter-integrated-org-selector"
             {...triggerProps}
           >
-            <TriggerLabelWrap>
+            <Container as="span" minWidth="0" maxWidth="200px" position="relative">
               <TriggerLabel>{integratedOrgName ?? DEFAULT_ORG_LABEL}</TriggerLabel>
-            </TriggerLabelWrap>
+            </Container>
           </OverlayTrigger.Button>
         );
       }}
       menuWidth="280px"
+      // eslint-disable-next-line @sentry/scraps/restrict-jsx-slot-children
       menuFooter={<OrgFooterMessage />}
     />
   );
 }
-
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-  max-width: 200px;
-`;
 
 const TriggerLabel = styled('span')`
   display: block;

@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
@@ -18,7 +19,7 @@ interface ContextDataSectionProps {
   project?: Project;
 }
 
-export default function ContextDataSection({
+export function ContextDataSection({
   event,
   group,
   project,

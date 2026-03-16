@@ -10,9 +10,8 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDateNavigation';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
-import {space} from 'sentry/styles/space';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -46,7 +45,7 @@ export function OverviewTimeline({uptimeDetectors}: Props) {
             dateNavigation={dateNavigation}
             direction="back"
             size="xs"
-            borderless
+            priority="transparent"
           />
         </Flex>
         <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
@@ -55,7 +54,7 @@ export function OverviewTimeline({uptimeDetectors}: Props) {
             dateNavigation={dateNavigation}
             direction="forward"
             size="xs"
-            borderless
+            priority="transparent"
           />
         </HeaderControlsRight>
       </Header>
@@ -93,6 +92,7 @@ const Header = styled(Sticky)`
   background: ${p => p.theme.tokens.background.primary};
   border-top-left-radius: ${p => p.theme.radius.md};
   border-top-right-radius: ${p => p.theme.radius.md};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   &[data-stuck] {
@@ -115,6 +115,7 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   grid-row: 1;
   grid-column: 2/-1;
@@ -137,5 +138,5 @@ const UptimeAlertRow = styled('ul')`
 const HeaderControlsRight = styled('div')`
   grid-row: 1;
   grid-column: -1;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;

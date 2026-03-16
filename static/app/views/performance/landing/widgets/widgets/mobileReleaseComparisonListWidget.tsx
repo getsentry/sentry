@@ -3,16 +3,17 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {LinkButton} from '@sentry/scraps/button';
+
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import PerformanceDuration from 'sentry/components/performanceDuration';
-import Truncate from 'sentry/components/truncate';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
+import {Truncate} from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
@@ -21,10 +22,9 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
@@ -99,7 +99,7 @@ function transformEventsChartRequest<T extends WidgetDataConstraint>(
   return childData;
 }
 
-function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
+export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const api = useApi();
   const theme = useTheme();
   const pageFilter = usePageFilters();
@@ -410,10 +410,8 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   );
 }
 
-export default MobileReleaseComparisonListWidget;
-
 const StyledDurationWrapper = styled('div')`
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
 `;
 
 const LoadingWrapper = styled('div')<{height?: number}>`

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import {type MotionNodeAnimationOptions} from 'framer-motion';
 
-import {inlineCodeStyles} from 'sentry/components/core/code/inlineCode';
+import {inlineCodeStyles} from '@sentry/scraps/code';
+
 import type {
   ImpactAssessmentArtifact,
   RootCauseArtifact,
@@ -11,7 +12,7 @@ import type {
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 /**
  * Animation props for artifact cards and status cards.

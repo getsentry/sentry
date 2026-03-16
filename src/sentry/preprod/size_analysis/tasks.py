@@ -8,7 +8,6 @@ from django.db import router, transaction
 from django.utils import timezone
 
 from sentry import features
-from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.files.file import File
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -16,6 +15,12 @@ from sentry.preprod.models import (
     PreprodArtifactSizeMetrics,
 )
 from sentry.preprod.size_analysis.compare import compare_size_analysis
+from sentry.preprod.size_analysis.grouptype import (
+    PreprodSizeAnalysisGroupType,
+    SizeAnalysisDataPacket,
+    SizeAnalysisMetadata,
+    SizeAnalysisValue,
+)
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
@@ -24,8 +29,8 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
 from sentry.utils import metrics
 from sentry.utils.json import dumps_htmlsafe
-
-from .issues import diff_to_occurrence
+from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.processors.detector import process_detectors
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +38,8 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
     namespace=preprod_tasks,
-    processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    processing_deadline_duration=120,
+    silo_mode=SiloMode.CELL,
 )
 def compare_preprod_artifact_size_analysis(
     project_id: int,
@@ -105,7 +110,6 @@ def compare_preprod_artifact_size_analysis(
 
         validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
         if validation_result.can_compare:
-
             base_metrics_map = build_size_metrics_map(base_size_metrics)
             head_metrics_map = build_size_metrics_map(head_size_metrics)
 
@@ -249,8 +253,8 @@ def compare_preprod_artifact_size_analysis(
 @instrumented_task(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
     namespace=preprod_tasks,
-    processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    processing_deadline_duration=120,
+    silo_mode=SiloMode.CELL,
 )
 def manual_size_analysis_comparison(
     project_id: int,
@@ -332,7 +336,6 @@ def manual_size_analysis_comparison(
 
     validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
     if validation_result.can_compare:
-
         base_metrics_map = build_size_metrics_map(base_size_metrics)
         head_metrics_map = build_size_metrics_map(head_size_metrics)
 
@@ -534,6 +537,10 @@ def maybe_emit_issues(
         logger.exception("Error emitting issues")
 
 
+def _get_platform(artifact: PreprodArtifact) -> str:
+    return artifact.platform or "unknown"
+
+
 def _maybe_emit_issues(
     comparison_results: ComparisonResults,
     head_metric: PreprodArtifactSizeMetrics,
@@ -553,37 +560,59 @@ def _maybe_emit_issues(
         )
         return
 
-    # TODO(EME-80): Make threshold configurable:
-    arbitrary_threshold = 100 * 1024
+    detectors = list(
+        Detector.objects.filter(
+            project_id=project_id,
+            type=PreprodSizeAnalysisGroupType.slug,
+            enabled=True,
+        )
+    )
+    if not detectors:
+        logger.info(
+            "preprod.size_analysis.no_detectors",
+            extra={"project_id": project_id},
+        )
+        return
+
     diff = comparison_results.size_metric_diff_item
-    download_delta = diff.head_download_size - diff.base_download_size
-    install_delta = diff.head_install_size - diff.base_install_size
+    head_artifact = head_metric.preprod_artifact
+    base_artifact = base_metric.preprod_artifact
 
-    issue_count = 0
+    metadata: SizeAnalysisMetadata = {
+        "platform": _get_platform(head_artifact),
+        "head_metric_id": head_metric.id,
+        "base_metric_id": base_metric.id,
+        "head_artifact_id": head_artifact.id,
+        "base_artifact_id": base_artifact.id,
+        "head_artifact": head_artifact,
+        "base_artifact": base_artifact,
+    }
 
-    if download_delta >= arbitrary_threshold:
-        occurrence, event_data = diff_to_occurrence("download", diff, head_metric, base_metric)
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.OCCURRENCE,
-            occurrence=occurrence,
-            event_data=event_data,
-        )
-        issue_count += 1
+    size_data: SizeAnalysisValue = {
+        "head_install_size_bytes": diff.head_install_size,
+        "head_download_size_bytes": diff.head_download_size,
+        "base_install_size_bytes": diff.base_install_size,
+        "base_download_size_bytes": diff.base_download_size,
+        "metadata": metadata,
+    }
 
-    if install_delta >= arbitrary_threshold:
-        occurrence, event_data = diff_to_occurrence("install", diff, head_metric, base_metric)
-        produce_occurrence_to_kafka(
-            payload_type=PayloadType.OCCURRENCE,
-            occurrence=occurrence,
-            event_data=event_data,
-        )
-        issue_count += 1
+    data_packet: SizeAnalysisDataPacket = DataPacket(
+        source_id=f"preprod-size-analysis:{project_id}",
+        packet=size_data,
+    )
 
     logger.info(
-        "preprod.size_analysis.compare.issues",
+        "preprod.size_analysis.process_detectors.starting",
         extra={
             "project_id": project_id,
-            "organization_id": organization_id,
-            "issue_count": issue_count,
+            "detector_count": len(detectors),
+        },
+    )
+    results = process_detectors(data_packet, detectors)
+    logger.info(
+        "preprod.size_analysis.process_detectors.completed",
+        extra={
+            "project_id": project_id,
+            "detector_count": len(results),
         },
     )

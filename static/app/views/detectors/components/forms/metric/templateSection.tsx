@@ -1,12 +1,12 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading} from '@sentry/scraps/text';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
@@ -26,6 +26,7 @@ const DATASET_LABELS: Record<DetectorDataset, string> = {
   [DetectorDataset.LOGS]: t('Logs'),
   [DetectorDataset.RELEASES]: t('Releases'),
   [DetectorDataset.TRANSACTIONS]: t('Transactions'),
+  [DetectorDataset.METRICS]: t('Metrics'),
 };
 
 /**
@@ -84,9 +85,14 @@ export function TemplateSection() {
 
     // Find first matching template
     const matchingTemplate = Object.entries(templateMetaByKey).find(([, meta]) => {
-      // Match dataset
       if (meta.detectorDataset !== currentDataset) {
         return false;
+      }
+
+      // Metrics has a single template; the specific metric/operation is chosen
+      // via the dedicated metric picker, so match on dataset alone.
+      if (currentDataset === DetectorDataset.METRICS) {
+        return true;
       }
 
       // Match aggregate - convert template's API aggregate to UI format for comparison

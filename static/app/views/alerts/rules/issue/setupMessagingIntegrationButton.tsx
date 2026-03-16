@@ -1,18 +1,18 @@
-import styled from '@emotion/styled';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {MessagingIntegrationModal} from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
 export enum MessagingIntegrationAnalyticsView {
   ALERT_RULE_CREATION = 'alert_rule_creation_messaging_integration_onboarding',
@@ -41,13 +41,21 @@ function SetupMessagingIntegrationButton({
   };
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
-    [`/organizations/${organization.slug}/integrations/?integrationType=messaging`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {integrationType: 'messaging'}},
+    ],
     {staleTime: Infinity}
   );
 
   const integrationProvidersQuery = useApiQueries<{providers: IntegrationProvider[]}>(
     providerKeys.map((providerKey: string) => [
-      `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {provider_key: providerKey}},
     ]),
     {staleTime: Infinity}
   );
@@ -82,18 +90,20 @@ function SetupMessagingIntegrationButton({
           <Button
             size="sm"
             icon={
-              <IconWrapper>
+              <Flex gap="md">
                 {providerKeys.map((value: string) => {
                   return <PluginIcon key={value} pluginId={value} size={16} />;
                 })}
-              </IconWrapper>
+              </Flex>
             }
             disabled={disabled}
-            title={
-              disabled
+            tooltipProps={{
+              title: disabled
                 ? disabledReason
-                : t('Send alerts to your messaging service. Install the integration now.')
-            }
+                : t(
+                    'Send alerts to your messaging service. Install the integration now.'
+                  ),
+            }}
             onClick={() => {
               openModal(
                 deps => (
@@ -125,10 +135,5 @@ function SetupMessagingIntegrationButton({
     </IntegrationFeatures>
   );
 }
-
-const IconWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
 
 export default SetupMessagingIntegrationButton;

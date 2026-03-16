@@ -1,16 +1,15 @@
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {GroupsFixture} from 'sentry-fixture/groups';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 import {ProjectAlertRuleConfigurationFixture} from 'sentry-fixture/projectAlertRuleConfiguration';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
@@ -51,8 +50,9 @@ describe('ProjectAlertsCreate', () => {
       body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
+      url: `/projects/org-slug/project-slug/`,
       body: {},
+      match: [MockApiClient.matchQuery({expand: 'hasAlertIntegration'})],
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/project-slug/ownership/`,
@@ -68,14 +68,16 @@ describe('ProjectAlertsCreate', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      url: `/organizations/org-slug/integrations/`,
       body: [],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
     const providerKeys = ['slack', 'discord', 'msteams'];
     providerKeys.forEach(providerKey => {
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/config/integrations/?provider_key=${providerKey}`,
+        url: `/organizations/org-slug/config/integrations/`,
         body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
+        match: [MockApiClient.matchQuery({provider_key: providerKey})],
       });
     });
   });
@@ -87,7 +89,10 @@ describe('ProjectAlertsCreate', () => {
 
   const createWrapper = (
     props = {},
-    locationOverride: {query?: Record<string, string>} = {}
+    {
+      pathname = '/organizations/org-slug/issues/alerts/new/issue/',
+      query,
+    }: {pathname?: string; query?: Record<string, string>} = {}
   ) => {
     const {organization, project} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
@@ -96,9 +101,10 @@ describe('ProjectAlertsCreate', () => {
       outletContext: {project, members: []},
       initialRouterConfig: {
         location: {
-          pathname: `/organizations/org-slug/issues/alerts/rules/${project.slug}/new/`,
-          query: {createFromWizard: 'true', ...locationOverride.query},
+          pathname,
+          query: {createFromWizard: 'true', ...query},
         },
+        route: '/organizations/:orgId/issues/alerts/new/:alertType/',
       },
     });
 
@@ -110,8 +116,10 @@ describe('ProjectAlertsCreate', () => {
   };
 
   it('adds default parameters if wizard was skipped', async () => {
-    const location = {query: {}};
-    const {router} = createWrapper(undefined, location);
+    const {router} = createWrapper(undefined, {
+      pathname: '/organizations/org-slug/issues/alerts/new/metric/',
+      query: {},
+    });
     await waitFor(() => {
       expect(router.location).toEqual(
         expect.objectContaining({
@@ -647,19 +655,6 @@ describe('ProjectAlertsCreate', () => {
 
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });
-  });
-
-  it('shows archived to escalating instead of ignored to unresolved', async () => {
-    createWrapper({
-      organization: OrganizationFixture(),
-    });
-    await selectEvent.select(screen.getByText('Add optional trigger...'), [
-      'The issue changes state from archived to escalating',
-    ]);
-
-    expect(
-      screen.getByText('The issue changes state from archived to escalating')
-    ).toBeInTheDocument();
   });
 
   it('displays noisy alert checkbox for no conditions + filters', async () => {

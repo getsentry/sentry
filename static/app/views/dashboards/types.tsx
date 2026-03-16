@@ -4,10 +4,22 @@ import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SavedQueryDatasets, type DatasetSource} from 'sentry/utils/discover/types';
+import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import type {TimeSeriesMeta} from 'sentry/views/dashboards/widgets/common/types';
 
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholds';
+
+export enum DashboardFilter {
+  ONLY_FAVORITES = 'onlyFavorites',
+  EXCLUDE_FAVORITES = 'excludeFavorites',
+  OWNED = 'owned',
+  SHARED = 'shared',
+  EXCLUDE_PREBUILT = 'excludePrebuilt',
+  ONLY_PREBUILT = 'onlyPrebuilt',
+}
+
+export type LegendType = 'default' | 'breakdown';
 
 // Max widgets per dashboard we are currently willing
 // to allow to limit the load on snuba from the
@@ -16,6 +28,10 @@ import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/t
 export const MAX_WIDGETS = 30;
 
 export const DEFAULT_TABLE_LIMIT = 5;
+export const MAX_TABLE_LIMIT = 10;
+
+export const DEFAULT_CATEGORICAL_BAR_LIMIT = 20;
+export const MAX_CATEGORICAL_BAR_LIMIT = 25;
 
 export const DEFAULT_WIDGET_NAME = t('Custom Widget');
 
@@ -26,8 +42,13 @@ export enum DisplayType {
   TABLE = 'table',
   BIG_NUMBER = 'big_number',
   DETAILS = 'details',
+  SERVER_TREE = 'server_tree',
+  RAGE_AND_DEAD_CLICKS = 'rage_and_dead_clicks',
   TOP_N = 'top_n',
   WHEEL = 'wheel',
+  CATEGORICAL_BAR = 'categorical_bar',
+  AGENTS_TRACES_TABLE = 'agents_traces_table',
+  TEXT = 'text',
 }
 
 export enum WidgetType {
@@ -80,6 +101,9 @@ export type LinkedDashboard = {
   // The destination dashboard id, set this to '-1' for prebuilt dashboards that link to other prebuilt dashboards
   dashboardId: string;
   field: string;
+  // List of additional datasets to apply new dashboard filters to.
+  // Typically we only apply filters to the same dataset as the widget, but this allows us to apply to other datasets when needed.
+  additionalGlobalFilterDatasetTargets?: WidgetType[];
   // Used for static dashboards that are not saved to the database
   staticDashboardId?: PrebuiltDashboardId;
 };
@@ -132,6 +156,7 @@ export type Widget = {
   interval: string;
   queries: WidgetQuery[];
   title: string;
+  axisRange?: AxisRange;
   changedReason?: WidgetChangedReason[];
   dashboardId?: string;
   datasetSource?: DatasetSource;
@@ -139,6 +164,7 @@ export type Widget = {
   exploreUrls?: null | string[];
   id?: string;
   layout?: WidgetLayout | null;
+  legendType?: LegendType;
   // Used to define 'topEvents' when fetching time-series data for a widget
   limit?: number;
   // Used for table widget column widths, currently is not saved

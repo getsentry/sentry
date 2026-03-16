@@ -2,17 +2,15 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout';
 import {useInfiniteRepositoryBranches} from 'sentry/components/prevent/branchSelector/useInfiniteRepositoryBranches';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 const ALL_BRANCHES = 'All Branches';
 
@@ -89,28 +87,6 @@ export function BranchSelector() {
     };
   }, [handleOnSearch]);
 
-  const branchResetButton = useCallback(
-    ({closeOverlay}: any) => {
-      if (!branch || branch === ALL_BRANCHES) {
-        return null;
-      }
-
-      return (
-        <ResetButton
-          onClick={() => {
-            handleChange({value: ALL_BRANCHES});
-            closeOverlay();
-          }}
-          size="zero"
-          borderless
-        >
-          {t('Reset to all branches')}
-        </ResetButton>
-      );
-    },
-    [branch, handleChange]
-  );
-
   function getEmptyMessage() {
     if (isFetching) {
       return t('Getting branches...');
@@ -130,16 +106,29 @@ export function BranchSelector() {
 
   return (
     <CompactSelect
-      searchable
-      onSearch={handleOnSearch}
-      disableSearchFilter
-      searchPlaceholder={t('search by branch name')}
+      search={{
+        placeholder: t('search by branch name'),
+        filter: false,
+        onChange: handleOnSearch,
+      }}
       menuTitle={t('Filter to branch')}
       options={options}
       value={branch ?? ALL_BRANCHES}
       onChange={handleChange}
       onOpenChange={_ => setSearchValue(undefined)}
-      menuHeaderTrailingItems={branchResetButton}
+      menuHeaderTrailingItems={() => {
+        if (!branch || branch === ALL_BRANCHES) {
+          return null;
+        }
+
+        return (
+          <MenuComponents.ResetButton
+            onClick={() => {
+              handleChange({value: ALL_BRANCHES});
+            }}
+          />
+        );
+      }}
       disabled={disabled}
       emptyMessage={getEmptyMessage()}
       closeOnSelect
@@ -149,14 +138,14 @@ export function BranchSelector() {
             data-test-id="page-filter-branch-selector"
             {...triggerProps}
           >
-            <TriggerLabelWrap>
+            <Container as="span" minWidth="0" maxWidth="200px" position="relative">
               <Flex align="center" gap="sm">
-                <IconContainer>
+                <Container flex="1 0 14px" height="14px">
                   <IconBranch />
-                </IconContainer>
+                </Container>
                 <TriggerLabel>{branch || ALL_BRANCHES}</TriggerLabel>
               </Flex>
-            </TriggerLabelWrap>
+            </Container>
           </OverlayTrigger.Button>
         );
       }}
@@ -164,12 +153,6 @@ export function BranchSelector() {
     />
   );
 }
-
-const TriggerLabelWrap = styled('span')`
-  position: relative;
-  min-width: 0;
-  max-width: 200px;
-`;
 
 const TriggerLabel = styled('span')`
   display: block;
@@ -186,17 +169,4 @@ const OptionLabel = styled('span')`
   div {
     margin: 0;
   }
-`;
-
-const IconContainer = styled('div')`
-  flex: 1 0 14px;
-  height: 14px;
-`;
-
-const ResetButton = styled(Button)`
-  font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  padding: 0 ${space(0.5)};
-  margin: -${space(0.5)} -${space(0.5)};
 `;

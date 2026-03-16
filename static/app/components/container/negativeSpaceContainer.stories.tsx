@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import bgPattern from 'sentry-images/spot/mobile-hero.jpg';
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('NegativeSpaceContainer', story => {

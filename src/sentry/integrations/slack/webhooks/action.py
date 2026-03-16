@@ -20,7 +20,7 @@ from sentry import analytics
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
@@ -48,6 +48,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -55,11 +56,13 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
-from sentry.seer.entrypoints.integrations.slack import SlackEntrypoint
 from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.slack.entrypoint import SlackEntrypoint
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.models import User
 from sentry.users.services.user import RpcUser
+from sentry.utils import metrics
+from sentry.utils.locking import UnableToAcquireLock
 
 _logger = logging.getLogger(__name__)
 
@@ -177,7 +180,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     return data.get("original_message", {}).get("type") == "message"
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class SlackActionEndpoint(Endpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
@@ -571,16 +574,43 @@ class SlackActionEndpoint(Endpoint):
     ) -> None:
         entrypoint = SlackEntrypoint(
             slack_request=slack_request,
+            action=action,
             group=group,
             organization_id=group.project.organization_id,
         )
-        stopping_point = entrypoint.set_autofix_stopping_point(action=action)
-        operator = SeerOperator(entrypoint=entrypoint)
-        operator.trigger_autofix(
-            group=group,
-            user=user,
+        stopping_point = entrypoint.autofix_stopping_point
+        is_continuation = entrypoint.autofix_run_id is not None
+        logging_ctx = {
+            "group_id": group.id,
+            "organization_id": group.project.organization_id,
+            "stopping_point": str(stopping_point),
+            "is_continuation": is_continuation,
+            "user_id": user.id,
+        }
+        _logger.info("seer.slack.trigger_autofix.start", extra=logging_ctx)
+        lock_key = SlackEntrypoint.get_autofix_lock_key(
+            group_id=group.id,
             stopping_point=stopping_point,
-            run_id=entrypoint.get_autofix_run_id(),
+        )
+        lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
+        try:
+            with lock.acquire():
+                SeerOperator(entrypoint=entrypoint).trigger_autofix(
+                    group=group,
+                    user=user,
+                    stopping_point=stopping_point,
+                    run_id=entrypoint.autofix_run_id,
+                )
+        except UnableToAcquireLock:
+            # Might be a double click, or Seer is taking it's time confirming the run start.
+            # The entrypoint will handle removing the button once it starts the run anyway.
+            _logger.info("seer.slack.trigger_autofix.lock_contention", extra=logging_ctx)
+            return
+
+        _logger.info("seer.slack.trigger_autofix.complete", extra=logging_ctx)
+        metrics.incr(
+            "seer.slack.trigger_autofix",
+            tags={"stopping_point": str(stopping_point), "is_continuation": str(is_continuation)},
         )
 
     @classmethod

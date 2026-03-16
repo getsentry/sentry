@@ -7,9 +7,9 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import GroupStore from 'sentry/stores/groupStore';
-import MemberListStore from 'sentry/stores/memberListStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import GroupList from './groupList';
@@ -56,9 +56,9 @@ describe('GroupList', () => {
     expect(screen.getByText(group.shortId)).toBeInTheDocument();
     expect(screen.getByText(group.culprit)).toBeInTheDocument();
     // Event count
-    expect(screen.getByText('327k')).toBeInTheDocument();
+    expect(screen.getByText('327K')).toBeInTheDocument();
     // Users
-    expect(screen.getByText('35k')).toBeInTheDocument();
+    expect(screen.getByText('35K')).toBeInTheDocument();
   });
 
   it('renders empty state when no groups are returned', async () => {

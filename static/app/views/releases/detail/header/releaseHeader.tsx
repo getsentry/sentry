@@ -3,27 +3,27 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {ExternalLink} from '@sentry/scraps/link';
+import {TabList} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Badge} from 'sentry/components/core/badge';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {ExternalLink} from 'sentry/components/core/link';
-import {TabList} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Version from 'sentry/components/version';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {URL_PARAM} from 'sentry/components/pageFilters/constants';
+import {Version} from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {isMobileRelease} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-import ReleaseActions from './releaseActions';
+import {ReleaseActions} from './releaseActions';
 
 type Props = {
   location: Location;
@@ -34,7 +34,7 @@ type Props = {
   releaseMeta: ReleaseMeta;
 };
 
-function ReleaseHeader({
+export function ReleaseHeader({
   location,
   organization,
   release,
@@ -83,7 +83,7 @@ function ReleaseHeader({
       count:
         numberOfMobileBuilds === 0 ? (
           <BadgeWrapper>
-            <FeatureBadge type="beta" />
+            <FeatureBadge type="new" />
           </BadgeWrapper>
         ) : (
           <React.Fragment>
@@ -91,7 +91,7 @@ function ReleaseHeader({
               {formatAbbreviatedNumber(numberOfMobileBuilds)}
             </NavTabsBadge>
             <BadgeWrapper>
-              <FeatureBadge type="beta" />
+              <FeatureBadge type="new" />
             </BadgeWrapper>
           </React.Fragment>
         ),
@@ -146,10 +146,10 @@ function ReleaseHeader({
           <Version version={version} anchor={false} truncate />
           <IconWrapper>
             <CopyToClipboardButton
-              borderless
+              priority="transparent"
               size="zero"
               text={version}
-              title={version}
+              tooltipProps={{title: version}}
               aria-label={t('Copy release version to clipboard')}
             />
           </IconWrapper>
@@ -210,5 +210,3 @@ const NavTabsBadge = styled(Badge)`
 const BadgeWrapper = styled('div')`
   margin-left: 0;
 `;
-
-export default ReleaseHeader;

@@ -1,27 +1,27 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
-import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {HighlightsSettingsForm} from 'sentry/components/events/highlights/highlightsSettingsForm';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagWithTopValues} from 'sentry/types/group';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -29,11 +29,11 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -52,7 +52,11 @@ export default function ProjectTags() {
     isPending,
     isError,
   } = useApiQuery<TagWithTopValues[]>(
-    [`/projects/${organization.slug}/${project.slug}/tags/`],
+    [
+      getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/`, {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      }),
+    ],
     {staleTime: 0}
   );
 
@@ -64,7 +68,14 @@ export default function ProjectTags() {
     onSuccess: (_, {key}) => {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,
-        [`/projects/${organization.slug}/${project.slug}/tags/`],
+        [
+          getApiUrl(`/projects/$organizationIdOrSlug/$projectIdOrSlug/tags/`, {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          }),
+        ],
         oldTags => oldTags?.filter(tag => tag.key !== key)
       );
     },
@@ -126,13 +137,13 @@ export default function ProjectTags() {
                         >
                           <Button
                             size="xs"
-                            title={
-                              enabled
+                            tooltipProps={{
+                              title: enabled
                                 ? t('Remove tag')
                                 : hasAccess
                                   ? t('This tag cannot be deleted.')
-                                  : t('You do not have permission to remove tags.')
-                            }
+                                  : t('You do not have permission to remove tags.'),
+                            }}
                             aria-label={t('Remove tag')}
                             icon={<IconDelete />}
                             data-test-id="delete"
@@ -158,5 +169,5 @@ const TagPanelItem = styled(PanelItem)`
 
 const TagName = styled('div')`
   flex: 1;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;

@@ -29,6 +29,7 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
             "recoveryThreshold": detector.config["recovery_threshold"],
             "downtimeThreshold": detector.config["downtime_threshold"],
             "assertion": None,
+            "responseCaptureEnabled": True,
         }
 
     def test_default_name(self) -> None:
@@ -58,6 +59,7 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
             "recoveryThreshold": detector.config["recovery_threshold"],
             "downtimeThreshold": detector.config["downtime_threshold"],
             "assertion": None,
+            "responseCaptureEnabled": True,
         }
 
     def test_owner(self) -> None:
@@ -89,6 +91,7 @@ class UptimeDetectorSerializerTest(UptimeTestCase):
             "recoveryThreshold": detector.config["recovery_threshold"],
             "downtimeThreshold": detector.config["downtime_threshold"],
             "assertion": None,
+            "responseCaptureEnabled": True,
         }
 
     def test_trace_sampling(self) -> None:

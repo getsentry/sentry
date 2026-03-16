@@ -1,13 +1,13 @@
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Alert} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import AlertContainer from 'sentry/views/settings/organizationIntegrations/integrationAlertContainer';
 
-import UpsellButton from 'getsentry/components/upsellButton';
+import {UpsellButton} from 'getsentry/components/upsellButton';
 
 type Props = {
   integrations: Integration[];
@@ -15,7 +15,7 @@ type Props = {
   wrapWithContainer?: boolean;
 };
 
-function FirstPartyIntegrationAlertHook({
+export function FirstPartyIntegrationAlertHook({
   integrations,
   wrapWithContainer,
   hideCTA,
@@ -77,4 +77,3 @@ function FirstPartyIntegrationAlertHook({
     wrappedAlert
   );
 }
-export default FirstPartyIntegrationAlertHook;

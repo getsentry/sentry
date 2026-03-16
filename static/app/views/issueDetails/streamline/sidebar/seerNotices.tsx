@@ -8,18 +8,18 @@ import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 import onboardingCompass from 'sentry-images/spot/onboarding-compass.svg';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack, type FlexProps, type StackProps} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
+import {StarFixabilityViewButton} from 'sentry/components/events/autofix/seerCreateViewButton';
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {
+  organizationIntegrationsCodingAgents,
   useAutofixRepos,
-  useCodingAgentIntegrations,
 } from 'sentry/components/events/autofix/useAutofix';
 import {
   GuidedSteps,
@@ -28,15 +28,15 @@ import {
 import {IconChevron, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {useQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
-import {useStarredIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useStarredIssueViews';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
+import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 
 interface SeerNoticesProps {
   groupId: string;
@@ -99,7 +99,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   } = useProjectSeerPreferences(project);
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
-  const {data: codingAgentIntegrations} = useCodingAgentIntegrations();
+  const {data: codingAgentIntegrations} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
   const {starredViews: views} = useStarredIssueViews();
 
   const detailedProject = useDetailedProject({
@@ -187,7 +189,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
       automated_run_stopping_point: 'root_cause',
       automation_handoff: {
         handoff_point: 'root_cause',
-        target: 'cursor_background_agent',
+        target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
         integration_id: parseInt(cursorIntegration.id, 10),
       },
     });
@@ -212,7 +214,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
   const anyStepIncomplete = incompleteStepIndices.length > 0;
 
   return (
-    <NoticesContainer>
+    <Stack align="stretch">
       {/* Collapsed summary */}
       {!isLoadingPreferences && anyStepIncomplete && stepsCollapsed && (
         <CollapsedSummaryCard onClick={() => setStepsCollapsed(false)}>
@@ -482,7 +484,9 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                                 'Set up the [integrationLink:Cursor Integration] to enable automatic handoff. [docsLink:Read the docs] to learn more.',
                                 {
                                   integrationLink: (
-                                    <Link to="/settings/integrations/cursor/" />
+                                    <Link
+                                      to={`/settings/${organization.slug}/integrations/cursor/`}
+                                    />
                                   ),
                                   docsLink: (
                                     <ExternalLink href="https://docs.sentry.io/organization/integrations/cursor/" />
@@ -517,7 +521,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
                       </Button>
                     ) : (
                       <LinkButton
-                        href="/settings/integrations/cursor/"
+                        href={`/settings/${organization.slug}/integrations/cursor/`}
                         size="sm"
                         priority="primary"
                       >
@@ -578,7 +582,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
               )}
         </StyledAlert>
       )}
-    </NoticesContainer>
+    </Stack>
   );
 }
 
@@ -587,20 +591,16 @@ const StyledGuidedSteps = styled(GuidedSteps)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const NoticesContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-`;
-
-const CardDescription = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(1)};
-`;
+function CardDescription(props: StackProps) {
+  return (
+    <Stack gap="md" {...props}>
+      {props.children}
+    </Stack>
+  );
+}
 
 const CardIllustration = styled('img')`
   width: 100%;
@@ -620,54 +620,54 @@ const CursorPluginIcon = styled('div')`
   transform: translateY(3px);
 `;
 
-const StepContentRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: ${space(3)};
-`;
+function StepContentRow(props: FlexProps) {
+  return (
+    <Flex justify="between" align="center" gap="2xl" width="100%" {...props}>
+      {props.children}
+    </Flex>
+  );
+}
 
-const StepTextCol = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-  flex: 0 0 75%;
-  min-width: 0;
-`;
+function StepTextCol(props: StackProps) {
+  return (
+    <Stack flex="0 0 75%" gap="xl" minWidth="0" {...props}>
+      {props.children}
+    </Stack>
+  );
+}
 
-const StepImageCol = styled('div')`
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  flex-grow: 1;
-`;
+function StepImageCol(props: FlexProps) {
+  return (
+    <Flex align="end" justify="end" flexGrow={1} {...props}>
+      {props.children}
+    </Flex>
+  );
+}
 
 const StepsHeader = styled('h3')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   margin-left: 1px;
 `;
 
 const StepsDivider = styled('hr')`
   border: none;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: ${space(3)} 0;
+  margin: ${p => p.theme.space['2xl']} 0;
 `;
 
 const CollapsedSummaryCard = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   background: ${p => p.theme.colors.pink500}10;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: 6px;
-  padding: ${space(1)};
-  margin-bottom: ${space(2)};
+  padding: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xl};
   cursor: pointer;
   font-size: ${p => p.theme.font.size.md};
   font-weight: 500;

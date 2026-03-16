@@ -11,6 +11,7 @@ from snuba_sdk import Request as SnubaRequest
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
+from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.fetch_issues import utils
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -263,10 +264,12 @@ def _fetch_issues_from_repo_projects(
 @utils.handle_fetch_issues_exceptions
 def fetch_issues(
     organization_id: int,
-    provider: str,
+    provider: SeerSCMProvider,
     external_id: str,
     filename: str,
     function_name: str,
+    owner: str,
+    name: str,
     max_num_issues_per_file: int = MAX_NUM_ISSUES_PER_FILE_DEFAULT,
     run_id: int | None = None,
 ) -> utils.SeerResponse | utils.SeerResponseError:
@@ -274,7 +277,12 @@ def fetch_issues(
     Fetch issues containing an event w/ a stacktrace frame that matches the `filename` and `function_name`.
     """
     repo_projects = utils.get_repo_and_projects(
-        organization_id, provider, external_id, run_id=run_id
+        organization_id,
+        provider,
+        external_id,
+        owner=owner,
+        name=name,
+        run_id=run_id,
     )
     groups = _fetch_issues_from_repo_projects(
         repo_projects,

@@ -1,11 +1,11 @@
 import moment from 'moment-timezone';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import {IconMail} from 'sentry/icons';
 
 import ResultGrid from 'admin/components/resultGrid';
@@ -23,7 +23,7 @@ const getRow = (row: any) => [
         priority="link"
         href={`mailto:${row.email}`}
         icon={<IconMail size="xs" />}
-        title="Send email"
+        tooltipProps={{title: 'Send email'}}
         aria-label="Send email"
       />
       {row.user ? (
@@ -48,7 +48,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function CustomerMembers({orgId}: Props) {
+export function CustomerMembers({orgId}: Props) {
   return (
     <ResultGrid
       inPanel
@@ -77,5 +77,3 @@ function CustomerMembers({orgId}: Props) {
     />
   );
 }
-
-export default CustomerMembers;

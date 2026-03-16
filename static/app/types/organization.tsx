@@ -12,10 +12,8 @@ import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
 import type {Project} from './project';
 import type {Relay} from './relay';
+import type {CodeReviewTrigger} from './seer';
 import type {User} from './user';
-
-// Matches `PrReviewTrigger` in Seer
-type CodeReviewTriggers = 'on_ready_for_review' | 'on_new_commit';
 
 /**
  * Organization summaries are sent when you request a list of all organizations
@@ -53,7 +51,6 @@ export interface Organization extends OrganizationSummary {
   access: Scope[];
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
-  allowBackgroundAgentDelegation: boolean;
   allowJoinRequests: boolean;
   allowMemberInvite: boolean;
   allowMemberProjectCreation: boolean;
@@ -67,7 +64,7 @@ export interface Organization extends OrganizationSummary {
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
-  defaultCodeReviewTriggers: CodeReviewTriggers[];
+  defaultCodeReviewTriggers: CodeReviewTrigger[];
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
@@ -112,6 +109,7 @@ export interface Organization extends OrganizationSummary {
     | null;
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
+  enablePrReviewTestGeneration?: boolean;
   enableSeerCoding?: boolean;
   enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];
@@ -121,6 +119,7 @@ export interface Organization extends OrganizationSummary {
       spansExtractionDate: number;
     };
   };
+  ingestThroughTrustedRelaysOnly?: 'enabled' | 'disabled';
   orgRole?: string;
   planSampleRate?: number | null;
 }

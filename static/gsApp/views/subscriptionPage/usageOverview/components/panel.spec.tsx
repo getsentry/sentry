@@ -14,9 +14,9 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import {DataCategory} from 'sentry/types/core';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, OnDemandBudgetMode, type Subscription} from 'getsentry/types';
-import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
+import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 
 describe('ProductBreakdownPanel', () => {
   const organization = OrganizationFixture();
@@ -319,8 +319,9 @@ describe('ProductBreakdownPanel', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       body: {},
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     render(
       <ProductBreakdownPanel
@@ -480,7 +481,7 @@ describe('ProductBreakdownPanel', () => {
 
   it('renders for Seer add-on', async () => {
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [
         {
@@ -516,6 +517,7 @@ describe('ProductBreakdownPanel', () => {
           status: 'ASSIGNED',
         },
       ],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     subscription.categories.seerUsers = MetricHistoryFixture({
       category: DataCategory.SEER_USER,
@@ -537,7 +539,7 @@ describe('ProductBreakdownPanel', () => {
       />
     );
     await screen.findByRole('heading', {name: 'Seer'});
-    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(await screen.findByText('Included volume')).toBeInTheDocument();
     expect(screen.queryByText('Business plan')).not.toBeInTheDocument();
     expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
     expect(screen.getByText('Gifted')).toBeInTheDocument();
@@ -558,7 +560,7 @@ describe('ProductBreakdownPanel', () => {
       organization,
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [
         {
@@ -594,6 +596,7 @@ describe('ProductBreakdownPanel', () => {
           status: 'ASSIGNED',
         },
       ],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     enterpriseSubscription.categories.seerUsers = MetricHistoryFixture({
       category: DataCategory.SEER_USER,
@@ -616,7 +619,7 @@ describe('ProductBreakdownPanel', () => {
       />
     );
     await screen.findByRole('heading', {name: 'Seer'});
-    expect(screen.getByText('Included volume')).toBeInTheDocument();
+    expect(await screen.findByText('Included volume')).toBeInTheDocument();
     expect(screen.getByText('Enterprise (Business) plan')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.queryByText('Additional reserved')).not.toBeInTheDocument();
@@ -633,9 +636,10 @@ describe('ProductBreakdownPanel', () => {
 
   it('renders for add-on with missing metric history', async () => {
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=seerUsers`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     subscription.addOns!.seer = {
       ...subscription.addOns!.seer!,

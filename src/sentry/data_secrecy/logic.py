@@ -13,7 +13,6 @@ from sentry.organizations.services.organization import RpcOrganization, RpcUserO
 def should_allow_superuser_access(
     organization_context: Organization | RpcUserOrganizationContext,
 ) -> bool:
-
     # If self hosted installation, allow superuser access
     if settings.SENTRY_SELF_HOSTED:
         return True

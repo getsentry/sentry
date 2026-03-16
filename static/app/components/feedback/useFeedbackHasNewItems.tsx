@@ -9,14 +9,17 @@ interface Props {
 
 const POLLING_INTERVAL_MS = 10_000;
 
-export default function useFeedbackHasNewItems({listPrefetchQueryKey}: Props) {
+export function useFeedbackHasNewItems({listPrefetchQueryKey}: Props) {
   const [foundData, setFoundData] = useState(false);
 
-  const {data} = useApiQuery<unknown[]>(listPrefetchQueryKey ?? [''], {
-    refetchInterval: POLLING_INTERVAL_MS,
-    staleTime: 0,
-    enabled: Boolean(listPrefetchQueryKey) && !foundData,
-  });
+  const {data} = useApiQuery<unknown[]>(
+    listPrefetchQueryKey ?? ([''] as unknown as ApiQueryKey),
+    {
+      refetchInterval: POLLING_INTERVAL_MS,
+      staleTime: 0,
+      enabled: Boolean(listPrefetchQueryKey) && !foundData,
+    }
+  );
 
   useEffect(() => {
     // Once we found something, no need to keep polling.

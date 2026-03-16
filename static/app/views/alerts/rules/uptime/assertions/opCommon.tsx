@@ -3,21 +3,24 @@ import {useDraggable} from '@dnd-kit/core';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Comparison, Op} from 'sentry/views/alerts/rules/uptime/types';
+import {AssertionFormError} from 'sentry/views/alerts/rules/uptime/formErrors';
+import {
+  UptimeComparisonType,
+  type UptimeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 interface AnimatedOpProps
-  extends MotionProps,
-    Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
+  extends MotionProps, Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
   children: React.ReactNode;
   isDragging: boolean;
-  op: Op;
+  op: UptimeOp;
   ref: React.Ref<HTMLDivElement>;
 }
 
@@ -54,7 +57,8 @@ interface OpContainerProps {
   children: React.ReactNode;
   label: React.ReactNode;
   onRemove: () => void;
-  op: Op;
+  op: UptimeOp;
+  erroredOp?: UptimeOp;
   inputId?: string;
   tooltip?: React.ReactNode;
 }
@@ -65,6 +69,7 @@ export function OpContainer({
   onRemove,
   inputId,
   op,
+  erroredOp,
 }: OpContainerProps) {
   const {attributes, setNodeRef, setActivatorNodeRef, listeners, isDragging} =
     useDraggable({
@@ -82,7 +87,7 @@ export function OpContainer({
             </Text>
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               icon={<IconGrabbable size="xs" />}
               aria-label={t('Reorder assertion')}
               ref={setActivatorNodeRef}
@@ -94,13 +99,16 @@ export function OpContainer({
           </Flex>
           <Grid columns="1fr max-content" align="center" gap="sm">
             {children}
-            <Button
-              size="sm"
-              borderless
-              icon={<IconDelete />}
-              aria-label={t('Remove assertion')}
-              onClick={onRemove}
-            />
+            <Flex align="center" gap="sm">
+              <Button
+                size="sm"
+                priority="transparent"
+                icon={<IconDelete />}
+                aria-label={t('Remove assertion')}
+                onClick={onRemove}
+              />
+              <AssertionFormError op={op} erroredOp={erroredOp} />
+            </Flex>
           </Grid>
         </AnimatedOp>
       )}
@@ -109,42 +117,49 @@ export function OpContainer({
 }
 
 export const COMPARISON_OPTIONS: Array<
-  SelectOption<Comparison['cmp']> & {symbol: string}
+  SelectOption<UptimeComparisonType> & {symbol: string}
 > = [
   {
-    value: 'equals',
+    value: UptimeComparisonType.EQUALS,
     label: t('equal'),
     symbol: '=',
     trailingItems: <Text monospace>=</Text>,
   },
   {
-    value: 'not_equal',
+    value: UptimeComparisonType.NOT_EQUAL,
     label: t('not equal'),
     symbol: '\u2260',
     trailingItems: <Text monospace>{'\u2260'}</Text>,
   },
   {
-    value: 'less_than',
+    value: UptimeComparisonType.LESS_THAN,
     label: t('less than'),
     symbol: '<',
     trailingItems: <Text monospace>{'<'}</Text>,
   },
   {
-    value: 'greater_than',
+    value: UptimeComparisonType.GREATER_THAN,
     label: t('greater than'),
     symbol: '>',
     trailingItems: <Text monospace>{'>'}</Text>,
   },
   {
-    value: 'always',
+    value: UptimeComparisonType.ALWAYS,
     label: t('present'),
     symbol: '\u22A4',
     trailingItems: <Text monospace>{'\u22A4'}</Text>,
   },
   {
-    value: 'never',
+    value: UptimeComparisonType.NEVER,
     label: t('not present'),
     symbol: '\u2205',
     trailingItems: <Text monospace>{'\u2205'}</Text>,
   },
+];
+
+export const STRING_OPERAND_OPTIONS: Array<
+  SelectOption<'literal' | 'glob'> & {symbol: string}
+> = [
+  {value: 'literal', label: t('Literal'), symbol: '""'},
+  {value: 'glob', label: t('Glob Pattern'), symbol: '\u2217'},
 ];

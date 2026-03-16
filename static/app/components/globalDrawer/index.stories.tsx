@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
-import useDrawer from 'sentry/components/globalDrawer';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import * as Storybook from 'sentry/stories';
 
@@ -38,7 +39,7 @@ export default Storybook.story('GlobalDrawer', story => {
     return (
       <Fragment>
         <CodeBlock language="jsx">
-          {`import useDrawer from 'sentry/components/globalDrawer';
+          {`import { useDrawer } from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 
 function MyPage() {
@@ -209,7 +210,7 @@ function MyDrawer({title}: {title: string}) {
 
       <CodeBlock language="jsx">
         {`import {useEffect} from 'react';
-import useDrawer from 'sentry/components/globalDrawer';
+import { useDrawer } from 'sentry/components/globalDrawer';
 import {useLocation} from 'sentry/utils/useLocation';
 
 function OverviewPage() {

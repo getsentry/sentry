@@ -193,8 +193,10 @@ export type IssueAlertRuleConditionTemplate = IssueAlertRuleActionTemplate;
 /**
  * These are the action or condition data that the user is editing or has saved.
  */
-export interface IssueAlertRuleAction
-  extends Omit<IssueAlertRuleActionTemplate, 'formFields' | 'enabled' | 'label'> {
+export interface IssueAlertRuleAction extends Omit<
+  IssueAlertRuleActionTemplate,
+  'formFields' | 'enabled' | 'label'
+> {
   // These are the same values as the keys in `formFields` for a template
   [key: string]: any;
   dynamic_form_fields?: IssueConfigField[];

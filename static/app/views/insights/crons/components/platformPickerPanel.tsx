@@ -3,13 +3,12 @@ import {PlatformIcon} from 'platformicons';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 import {platformGuides, type SupportedPlatform} from './upsertPlatformGuides';
 
@@ -57,27 +56,27 @@ export function PlatformPickerPanel({onSelect}: Props) {
 }
 
 const OnboardingTitle = styled('h3')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const SectionTitle = styled('h5')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   text-transform: uppercase;
-  margin-bottom: ${space(1)};
-  margin-top: ${space(4)};
+  margin-bottom: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space['3xl']};
 `;
 
 const PlatformButton = styled(Button)`
   width: 80px;
   height: 80px;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;
 
 const PlatformOption = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
 `;

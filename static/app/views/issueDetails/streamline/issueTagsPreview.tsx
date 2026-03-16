@@ -5,13 +5,15 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import Placeholder from 'sentry/components/placeholder';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   backend,
   featureFlagDrawerPlatforms,
@@ -24,8 +26,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -221,7 +223,7 @@ function DistributionsDrawerButton({
   );
 }
 
-export default function IssueTagsPreview({
+export function IssueTagsPreview({
   groupId,
   environments,
   project,
@@ -304,9 +306,9 @@ export default function IssueTagsPreview({
 
   if (isPending || isHighlightPending) {
     return (
-      <IssueTagPreviewSection>
+      <Stack justify="center" padding="md lg" gap="xs">
         <Placeholder width="340px" height="90px" />
-      </IssueTagPreviewSection>
+      </Stack>
     );
   }
 
@@ -315,7 +317,7 @@ export default function IssueTagsPreview({
   }
 
   return (
-    <IssueTagPreviewSection>
+    <Stack justify="center" padding="md lg" gap="xs">
       <TagsPreview>
         {tagsToPreview.map(tag => (
           <TagPreviewProgressBar key={tag.key} tag={tag} groupId={groupId} />
@@ -325,17 +327,9 @@ export default function IssueTagsPreview({
         tags={tagsToPreview}
         includeFeatureFlags={includeFeatureFlags}
       />
-    </IssueTagPreviewSection>
+    </Stack>
   );
 }
-
-const IssueTagPreviewSection = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: ${p => p.theme.space.xs};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-`;
 
 const TagsPreview = styled('div')`
   width: 340px;
@@ -357,6 +351,7 @@ const TagBarPlaceholder = styled('div')`
   height: 8px;
   width: 100%;
   border-radius: 3px;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
   background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;

@@ -7,7 +7,7 @@ import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {
   DashboardFilterKeys,
   DisplayType,

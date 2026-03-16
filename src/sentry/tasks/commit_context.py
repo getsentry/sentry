@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
     namespace=issues_tasks,
     processing_deadline_duration=TASK_DURATION_S,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_commit_context(
     event_id: str,
@@ -182,7 +182,7 @@ def process_commit_context(
             metrics.incr(
                 "sentry.tasks.process_commit_context.success",
                 tags={
-                    "detail": f'successfully {"created" if created else "updated"}',
+                    "detail": f"successfully {'created' if created else 'updated'}",
                 },
             )
             try:

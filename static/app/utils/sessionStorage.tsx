@@ -1,5 +1,5 @@
-import createLocalStorage from './createStorage';
+import {createStorage} from './createStorage';
 
-const Storage = createLocalStorage(() => window.sessionStorage);
+const Storage = createStorage(() => window.sessionStorage);
 
 export default Storage;

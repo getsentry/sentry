@@ -2,10 +2,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 export type DropdownButtonProps = DistributedOmit<
   ButtonProps,
@@ -67,12 +67,13 @@ const ChevronWrap = styled('div')`
   display: flex;
   align-items: center;
   margin-left: auto;
-  padding-left: ${space(0.5)};
+  padding-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
 `;
 
-interface StyledButtonProps
-  extends Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled'>> {
+interface StyledButtonProps extends Required<
+  Pick<DropdownButtonProps, 'isOpen' | 'disabled'>
+> {
   hasPrefix?: boolean;
 }
 
@@ -98,7 +99,7 @@ const LabelText = styled('span')`
   }
 
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding-right: ${space(0.75)};
+  padding-right: ${p => p.theme.space.sm};
 `;
 
 export default DropdownButton;

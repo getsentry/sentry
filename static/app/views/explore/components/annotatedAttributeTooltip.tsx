@@ -1,7 +1,9 @@
 import React from 'react';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Project} from 'sentry/types/project';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
@@ -19,7 +21,14 @@ export function AnnotatedAttributeTooltip({
   // That property is not normally available in the store.
   // Taken from FilteredAnnotatedTextValue.tsx
   const {data: projectDetails} = useApiQuery<Project>(
-    [`/projects/${extra.organization.slug}/${extra.project?.slug}/`],
+    [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+        path: {
+          organizationIdOrSlug: extra.organization.slug,
+          projectIdOrSlug: extra.project?.slug!,
+        },
+      }),
+    ],
     {
       staleTime: Infinity,
       retry: false,

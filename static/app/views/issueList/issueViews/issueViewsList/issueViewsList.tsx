@@ -1,32 +1,30 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIssueViewQueryParams} from 'sentry/views/issueList/issueViews/getIssueViewQueryParams';
-import AllViewsWelcomeBanner from 'sentry/views/issueList/issueViews/issueViewsList/allViewsWelcomeBanner';
 import {IssueViewsTable} from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsTable';
 import {
   DEFAULT_ENVIRONMENTS,
@@ -366,7 +364,7 @@ export default function IssueViewsList() {
             <Layout.Title>{t('All Views')}</Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <ButtonBar>
+            <Grid flow="column" align="center" gap="md">
               <FeedbackButton
                 size="sm"
                 feedbackOptions={{
@@ -415,7 +413,7 @@ export default function IssueViewsList() {
                   </Button>
                 )}
               </Feature>
-            </ButtonBar>
+            </Grid>
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
@@ -437,7 +435,6 @@ export default function IssueViewsList() {
               />
               <SortDropdown />
             </FilterSortBar>
-            <AllViewsWelcomeBanner />
             <TableHeading>{t('Created by Me')}</TableHeading>
             <IssueViewSection
               createdBy={GroupSearchViewCreatedBy.ME}
@@ -472,10 +469,10 @@ const Banner = styled('div')`
   position: relative;
   display: flex;
   flex-direction: column;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   margin-bottom: 0;
   padding: 12px;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
@@ -517,7 +514,7 @@ const FilterSortBar = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: 1fr auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const TableHeading = styled('h2')`
@@ -525,8 +522,8 @@ const TableHeading = styled('h2')`
   justify-content: space-between;
   align-items: center;
   font-size: ${p => p.theme.font.size.xl};
-  margin-top: ${space(3)};
-  margin-bottom: ${space(1.5)};
+  margin-top: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const MainTableLayout = styled(Layout.Main)`

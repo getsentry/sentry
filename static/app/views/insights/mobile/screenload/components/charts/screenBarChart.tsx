@@ -1,9 +1,10 @@
 import {useTheme} from '@emotion/react';
 
+import {Button} from '@sentry/scraps/button';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
-import {Button} from 'sentry/components/core/button';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -167,7 +168,7 @@ export function ScreensBarChart({
             <Button
               size="xs"
               aria-label={t('Open Full-Screen View')}
-              borderless
+              priority="transparent"
               icon={<IconExpand />}
               onClick={() => {
                 openInsightChartModal({

@@ -1,9 +1,10 @@
 import {useCallback, useMemo, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
@@ -14,7 +15,7 @@ import VolumeSliders from 'getsentry/views/amCheckout/components/volumeSliders';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {formatPrice, getBucket, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
-function ReserveAdditionalVolume({
+export function ReserveAdditionalVolume({
   organization,
   subscription,
   activePlan,
@@ -98,7 +99,6 @@ function ReserveAdditionalVolume({
           <Button
             size="sm"
             priority="link"
-            borderless
             icon={showSliders ? <IconSubtract /> : <IconAdd />}
             aria-label={
               showSliders
@@ -152,5 +152,3 @@ function ReserveAdditionalVolume({
     </Stack>
   );
 }
-
-export default ReserveAdditionalVolume;

@@ -1,4 +1,5 @@
-import {TabList} from 'sentry/components/core/tabs';
+import {TabList} from '@sentry/scraps/tabs';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types/organization';
@@ -15,7 +16,7 @@ import type {FieldKey, SpanOpBreakdown} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,

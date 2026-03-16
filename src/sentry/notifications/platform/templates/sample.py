@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.platform.types import (
     BoldTextBlock,
     CodeBlock,
@@ -15,6 +14,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedAction,
     NotificationRenderedImage,
     NotificationRenderedTemplate,
+    NotificationSource,
     NotificationTemplate,
     ParagraphBlock,
     PlainTextBlock,
@@ -23,7 +23,7 @@ from sentry.notifications.platform.types import (
 
 @dataclass(frozen=True)
 class ErrorAlertData(NotificationData):
-    source = NotificationTemplateSource.ERROR_ALERT
+    source = NotificationSource.ERROR_ALERT
     error_type: str
     error_message: str
     project_name: str
@@ -117,7 +117,7 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
 
 @dataclass(frozen=True)
 class DeploymentData(NotificationData):
-    source = NotificationTemplateSource.DEPLOYMENT
+    source = NotificationSource.DEPLOYMENT
     project_name: str
     version: str
     environment: str
@@ -187,7 +187,7 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
 
 @dataclass(frozen=True)
 class SlowLoadMetricAlertData(NotificationData):
-    source = NotificationTemplateSource.SLOW_LOAD_METRIC_ALERT
+    source = NotificationSource.SLOW_LOAD_METRIC_ALERT
     alert_type: str
     severity: str
     project_name: str
@@ -246,7 +246,7 @@ class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetri
 
 @dataclass(frozen=True)
 class PerformanceAlertData(NotificationData):
-    source = NotificationTemplateSource.PERFORMANCE_MONITORING
+    source = NotificationSource.PERFORMANCE_MONITORING
     metric_name: str
     threshold: str
     current_value: str
@@ -313,7 +313,7 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
 
 @dataclass(frozen=True)
 class TeamUpdateData(NotificationData):
-    source = NotificationTemplateSource.TEAM_COMMUNICATION
+    source = NotificationSource.TEAM_COMMUNICATION
     team_name: str
     update_type: str
     message: str

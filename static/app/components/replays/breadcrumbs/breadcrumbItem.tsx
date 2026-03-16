@@ -11,14 +11,13 @@ import {BreadcrumbIssueLink} from 'sentry/components/replays/breadcrumbs/breadcr
 import {BreadcrumbStructuredData} from 'sentry/components/replays/breadcrumbs/breadcrumbStructuredData';
 import {BreadcrumbWebVital} from 'sentry/components/replays/breadcrumbs/breadcrumbWebVital';
 import {Timeline} from 'sentry/components/timeline';
-import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
+import {useExtractDomNodes} from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame} from 'sentry/utils/replays/types';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
@@ -36,12 +35,13 @@ interface Props {
   className?: string;
   expandPaths?: string[];
   extraction?: Extraction;
+  index?: number;
   ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
   updateDimensions?: () => void;
 }
 
-export default function BreadcrumbItem({
+export function BreadcrumbItem({
   className,
   frame,
   expandPaths,
@@ -56,6 +56,7 @@ export default function BreadcrumbItem({
   onShowSnippet,
   updateDimensions,
   allowShowSnippet,
+  index,
 }: Props) {
   const theme = useTheme();
   const {colorGraphicsToken, description, title, icon} = getFrameDetails(frame);
@@ -90,6 +91,7 @@ export default function BreadcrumbItem({
   return (
     <StyledTimelineItem
       ref={ref}
+      data-index={index}
       icon={icon}
       title={title}
       colorConfig={{title: colorHex, icon: colorHex, iconBorder: colorHex}}
@@ -152,7 +154,7 @@ export default function BreadcrumbItem({
 const StyledTimelineItem = styled(Timeline.Item)`
   width: 100%;
   position: relative;
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   margin: 0;
   &:hover {
     background: ${p => p.theme.colors.surface200};
@@ -169,6 +171,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
     width: 1px;
     top: -2px;
     bottom: -9px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
     z-index: 0;
   }

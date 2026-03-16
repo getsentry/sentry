@@ -1,8 +1,7 @@
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
-
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -10,7 +9,7 @@ type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
 };
 
-function CustomerPlatforms({orgId, ...props}: Props) {
+export function CustomerPlatforms({orgId, ...props}: Props) {
   return (
     <ResultGrid
       path={`/_admin/customers/${orgId}/`}
@@ -41,5 +40,3 @@ function CustomerPlatforms({orgId, ...props}: Props) {
     />
   );
 }
-
-export default CustomerPlatforms;

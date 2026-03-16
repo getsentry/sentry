@@ -10,7 +10,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, control_silo_model, region_silo_model
+from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, control_silo_model
 from sentry.deletions import RELOCATED_MODELS
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.services.user import RpcUser
@@ -61,9 +61,9 @@ class BaseScheduledDeletion(Model):
         model = type(instance)
         silo_mode = SiloMode.get_current_mode()
         model_silo = getattr(model._meta, "silo_limit", None)
-        assert (
-            model_silo
-        ), "model._meta.silo_limit undefined. This model cannot be used with deletions"
+        assert model_silo, (
+            "model._meta.silo_limit undefined. This model cannot be used with deletions"
+        )
         if silo_mode not in model_silo.modes and silo_mode != SiloMode.MONOLITH:
             # Pre-empt the fact that our silo protections wouldn't fire for mismatched model <-> silo deletion objects.
             raise SiloLimit.AvailabilityError(
@@ -150,7 +150,7 @@ class ScheduledDeletion(BaseScheduledDeletion):
         db_table = "sentry_scheduleddeletion"
 
 
-@region_silo_model
+@cell_silo_model
 class RegionScheduledDeletion(BaseScheduledDeletion):
     """
     This model schedules deletions to be processed in region and monolith silo modes.  As new region silo test coverage

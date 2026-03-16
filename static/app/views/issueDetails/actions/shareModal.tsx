@@ -1,27 +1,27 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
+import {Switch} from '@sentry/scraps/switch';
+
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AutoSelectText from 'sentry/components/autoSelectText';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Switch} from 'sentry/components/core/switch';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {AutoSelectText} from 'sentry/components/autoSelectText';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
+import {GroupStore} from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -129,7 +129,7 @@ export default function ShareIssueModal({
         <h4>{t('Share Issue')}</h4>
       </Header>
       <Body>
-        <ModalContent>
+        <Stack gap="md">
           <UrlContainer>
             <TextContainer>
               <StyledAutoSelectText ref={urlRef}>{issueUrl}</StyledAutoSelectText>
@@ -144,7 +144,7 @@ export default function ShareIssueModal({
               {t('Include Event ID in link')}
             </CheckboxContainer>
           )}
-          <StyledButtonBar gap="xs">
+          <StyledButtonBar>
             <Button
               size="sm"
               onClick={handleCopyMarkdownLink}
@@ -212,9 +212,11 @@ export default function ShareIssueModal({
                       <StyledAutoSelectText ref={urlRef}>{shareUrl}</StyledAutoSelectText>
                     </TextContainer>
                     <ReshareButton
-                      title={t('Generate new URL. Invalidates previous URL')}
+                      tooltipProps={{
+                        title: t('Generate new URL. Invalidates previous URL'),
+                      }}
                       aria-label={t('Generate new URL')}
-                      borderless
+                      priority="transparent"
                       size="sm"
                       icon={<IconRefresh />}
                       onClick={() => handlePublicShare(null, true)}
@@ -245,29 +247,23 @@ export default function ShareIssueModal({
               )}
             </Fragment>
           )}
-        </ModalContent>
+        </Stack>
       </Body>
     </Fragment>
   );
 }
-
-const ModalContent = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: column;
-`;
 
 const UrlContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${space(0.5)};
+  border-radius: ${p => p.theme.space.xs};
   width: 100%;
 `;
 
 const StyledAutoSelectText = styled(AutoSelectText)`
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   display: block;
   width: 100%;
   white-space: nowrap;
@@ -286,12 +282,14 @@ const TextContainer = styled('div')`
 
 const CheckboxContainer = styled('label')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="xs" {...props} />
+))`
   justify-content: flex-end;
 `;
 
@@ -299,11 +297,11 @@ const SwitchWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content max-content;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('div')`
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
   white-space: nowrap;
 `;
 

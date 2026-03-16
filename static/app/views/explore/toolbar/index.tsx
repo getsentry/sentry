@@ -1,6 +1,5 @@
-import styled from '@emotion/styled';
+import {Container} from '@sentry/scraps/layout';
 
-import {defined} from 'sentry/utils';
 import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
@@ -27,7 +26,10 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
   const setGroupBys = useSetQueryParamsGroupBys();
 
   return (
-    <Container data-test-id="explore-span-toolbar" width={width}>
+    <Container
+      data-test-id="explore-span-toolbar"
+      minWidth={typeof width === 'undefined' ? undefined : `${width}px`}
+    >
       <ToolbarVisualize
         visualizes={visualizes}
         setVisualizes={setVisualizes}
@@ -39,7 +41,3 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
     </Container>
   );
 }
-
-const Container = styled('div')<{width?: number}>`
-  ${p => defined(p.width) && `min-width: ${p.width}px;`}
-`;

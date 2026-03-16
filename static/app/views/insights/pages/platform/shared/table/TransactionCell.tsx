@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -75,7 +75,7 @@ const CellWrapper = styled('div')`
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   min-width: 0px;
 `;
 

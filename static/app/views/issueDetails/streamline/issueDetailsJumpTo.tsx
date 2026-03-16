@@ -2,10 +2,11 @@ import {useMemo} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   SectionKey,
@@ -85,7 +86,7 @@ export function IssueDetailsJumpTo() {
   return (
     <JumpTo>
       <JumpToLabel aria-hidden>{t('Jump to:')}</JumpToLabel>
-      <ScrollCarousel gap={0.25} aria-label={t('Jump to section links')}>
+      <ScrollCarousel gap="2xs" aria-label={t('Jump to section links')}>
         {eventSectionConfigs.map(config => (
           <JumpToLink key={config.key} config={config} />
         ))}
@@ -120,7 +121,7 @@ function JumpToLink({config}: {config: SectionConfig}) {
             ?.scrollIntoView({block: 'start', behavior: 'smooth'});
         });
       }}
-      borderless
+      priority="transparent"
       size="xs"
       css={css`
         color: ${theme.tokens.content.secondary};

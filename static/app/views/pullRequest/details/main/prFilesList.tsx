@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading} from 'sentry/components/core/text/heading';
-import {Text} from 'sentry/components/core/text/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {IconChevron} from 'sentry/icons';
 import type {PullRequestDetailsSuccessResponse} from 'sentry/views/pullRequest/types/pullRequestDetailsTypes';
 
@@ -62,7 +62,7 @@ interface PRFilesListProps {
   files: PRFileData[];
 }
 
-function PRFilesList({files}: PRFilesListProps) {
+export function PRFilesList({files}: PRFilesListProps) {
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
 
   // Use filename as key instead of index for more stable state
@@ -281,5 +281,3 @@ const DiffContent = styled('td')`
     font-size: inherit;
   }
 `;
-
-export default PRFilesList;

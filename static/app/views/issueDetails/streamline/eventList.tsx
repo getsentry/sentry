@@ -1,14 +1,15 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Grid} from '@sentry/scraps/layout';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {IssueType, type Group} from 'sentry/types/group';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {
@@ -21,7 +22,7 @@ import {
 } from 'sentry/views/issueDetails/streamline/eventListTable';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface EventListProps {
   group: Group;
@@ -110,13 +111,14 @@ export function EventList({group}: EventListProps) {
                   pageCount={pageEventsCount}
                   totalCount={totalEventsCount}
                   tableUnits={t('events')}
+                  paginatorType="cursor"
                 />
               </HeaderItem>
               <HeaderItem>
-                <ButtonBar gap="2xs">
+                <Grid flow="column" align="center" gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     to={{
@@ -130,7 +132,7 @@ export function EventList({group}: EventListProps) {
                   />
                   <PaginationButton
                     aria-label={t('Next Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     to={{
@@ -142,7 +144,7 @@ export function EventList({group}: EventListProps) {
                     }}
                     disabled={isPending || nextDisabled}
                   />
-                </ButtonBar>
+                </Grid>
               </HeaderItem>
             </Header>
           );

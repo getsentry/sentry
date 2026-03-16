@@ -1,7 +1,8 @@
 import {useState} from 'react';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';

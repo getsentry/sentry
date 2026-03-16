@@ -1,21 +1,18 @@
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
-import {Container} from '@sentry/scraps/layout';
+import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Text} from 'sentry/components/core/text';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -26,7 +23,7 @@ interface Props {
   rowIndex: number;
 }
 
-export default function ReplayListItem({replay, onClick}: Props) {
+export function ReplayListItem({replay, onClick}: Props) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: replay.project_id ?? undefined});
 
@@ -118,7 +115,7 @@ const SubText = styled('div')`
   text-overflow: ellipsis;
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   align-items: flex-start;
 `;
 

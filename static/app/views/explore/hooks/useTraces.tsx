@@ -1,16 +1,17 @@
 import {keepPreviousData as keepPreviousDataFn} from '@tanstack/react-query';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {parseError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {UseApiQueryOptions, UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const BREAKDOWN_SLICES = 40;
 
@@ -58,8 +59,10 @@ interface TraceResults {
   meta: any;
 }
 
-interface UseTracesOptions
-  extends Pick<UseApiQueryOptions<TraceResults>, 'refetchInterval'> {
+interface UseTracesOptions extends Pick<
+  UseApiQueryOptions<TraceResults>,
+  'refetchInterval'
+> {
   caseInsensitive?: CaseInsensitive;
   cursor?: string;
   datetime?: PageFilters['datetime'];
@@ -94,7 +97,9 @@ export function useTraces({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const path = `/organizations/${organization.slug}/traces/`;
+  const path = getApiUrl('/organizations/$organizationIdOrSlug/traces/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
 
   const endpointOptions = {
     query: {

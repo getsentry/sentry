@@ -6,17 +6,16 @@ import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import Banner from 'sentry/components/banner';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Input} from 'sentry/components/core/input';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -24,7 +23,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -33,10 +31,10 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOverlay from 'sentry/utils/useOverlay';
-import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOverlay} from 'sentry/utils/useOverlay';
+import {withApi} from 'sentry/utils/withApi';
+import {withProjects} from 'sentry/utils/withProjects';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
@@ -721,14 +719,16 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 }
 
-const ResponsiveButtonBar = styled(ButtonBar)`
+const ResponsiveButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-top: 0;
   }
 `;
 
 const StyledOverlay = styled(Overlay)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const SaveAsButton = styled(Button)`
@@ -740,7 +740,7 @@ const IconUpdate = styled('div')`
   width: 10px;
   height: 10px;
 
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space.sm};
   border-radius: 5px;
   background-color: ${p => p.theme.colors.yellow400};
 `;

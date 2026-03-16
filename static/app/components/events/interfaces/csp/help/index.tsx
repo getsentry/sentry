@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {IconOpen} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import effectiveDirectives from './effectiveDirectives';
+import {IconOpen} from 'sentry/icons';
+
+import {effectiveDirectives} from './effectiveDirectives';
 
 type EffectiveDirective = keyof typeof effectiveDirectives;
 
@@ -65,7 +65,7 @@ const StyledP = styled('p')`
   text-align: right;
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

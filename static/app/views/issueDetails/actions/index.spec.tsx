@@ -14,8 +14,8 @@ import {
 
 import GlobalModal from 'sentry/components/globalModal';
 import {mockTour} from 'sentry/components/tours/testUtils';
-import ConfigStore from 'sentry/stores/configStore';
-import ModalStore from 'sentry/stores/modalStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {GroupActions} from 'sentry/views/issueDetails/actions';

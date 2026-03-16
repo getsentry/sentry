@@ -3,21 +3,17 @@ import styled from '@emotion/styled';
 
 import seerConfigMainBg from 'sentry-images/spot/seer-config-main-bg.svg';
 
-import {LinkButton} from '@sentry/scraps/button/linkButton';
-import {Container} from '@sentry/scraps/layout/container';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Grid} from '@sentry/scraps/layout/grid';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 
-export default function SeerWizardSetupBanner() {
+export function SeerWizardSetupBanner() {
   const organization = useOrganization();
   const theme = useInvertedTheme();
 
@@ -27,7 +23,10 @@ export default function SeerWizardSetupBanner() {
     return null;
   }
 
-  if (data?.isSeerConfigured) {
+  if (
+    data?.isSeerConfigured ||
+    (data?.needsConfigReminder && !data?.isCodeReviewEnabled)
+  ) {
     return null;
   }
 
@@ -45,7 +44,7 @@ export default function SeerWizardSetupBanner() {
 
               <Flex paddingTop="lg">
                 <LinkButton
-                  to={`/organizations/${organization.slug}/settings/seer/onboarding/`}
+                  to={`/settings/${organization.slug}/seer/onboarding/`}
                   priority="primary"
                   icon={<IconSeer />}
                 >

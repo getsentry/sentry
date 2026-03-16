@@ -11,10 +11,10 @@ import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/even
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import type {UseQueryOptions} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export interface DiscoverQueryExtras {
+interface DiscoverQueryExtras {
   useOnDemandMetrics?: boolean;
 }
 
@@ -279,7 +279,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
       tableData,
       pageLinks,
     };
-    const children: ReactProps<T>['children'] = this.props.children; // Explicitly setting type due to issues with generics and React's children
+    const children = this.props.children; // Explicitly setting type due to issues with generics and React's children
     return children?.(childrenProps);
   }
 }

@@ -87,6 +87,17 @@ pre-commit run --files src/sentry/path/to/file.py
 pre-commit run --all-files
 ```
 
+#### Before completing a task
+
+Before you consider a coding task complete, run pre-commit on any files you created or modified. Use the actual paths (e.g. `src/sentry/foo/bar.py`, `tests/sentry/foo/test_bar.py`, `static/app/components/foo.tsx`):
+
+```bash
+# From repo root; for automation use the venv
+cd /path/to/sentry && .venv/bin/pre-commit run --files <file1> [file2 ...]
+```
+
+If pre-commit fails, fix the reported issues and run it again until it passes. Do not push with `--no-verify` to skip hooks—fix the issues and try again instead. Only then treat the task as done.
+
 #### Testing
 
 ```bash
@@ -157,11 +168,9 @@ CI=true pnpm test <file_path>
 CI=true pnpm test components/avatar.spec.tsx
 ```
 
-> For detailed development patterns, see nested AGENTS.md files:
->
-> - **Backend patterns**: `src/AGENTS.md`
-> - **Backend testing patterns**: `tests/AGENTS.md`
-> - **Frontend patterns**: `static/AGENTS.md`
+### Git worktrees
+
+Each worktree has its own `.venv`. When you create a new worktree with `git worktree add`, a post-checkout hook runs `devenv sync` in the new worktree to setup the dev environment. Otherwise run `devenv sync` once in the new worktree, then `direnv allow` to validate and activate the dev environment.
 
 ### Context-Aware Loading
 
@@ -182,3 +191,46 @@ For backend testing patterns and best practices, see `tests/AGENTS.md`.
 ## Frontend
 
 For frontend development patterns, design system guidelines, and React testing best practices, see `static/AGENTS.md`.
+
+## Feature Flags (FlagPole)
+
+New features should be gated behind a feature flag.
+
+1. **Register** the flag in `src/sentry/features/temporary.py`:
+
+   ```python
+   manager.add("organizations:my-feature", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+   ```
+
+   Use `api_expose=True` if the frontend needs to check the flag. Use `ProjectFeature` and a `projects:` prefix for project-scoped flags.
+
+2. **Python check**:
+
+   ```python
+   if features.has("organizations:my-feature", organization, actor=user):
+   ```
+
+3. **Frontend check** (requires `api_expose=True`):
+
+   ```typescript
+   organization.features.includes('my-feature');
+   ```
+
+4. **Tests**:
+
+   ```python
+   with self.feature("organizations:my-feature"):
+       ...
+   ```
+
+5. **Rollout**: FlagPole YAML config lives in the `sentry-options-automator` repo, not here.
+
+See https://develop.sentry.dev/feature-flags/ for full docs.
+
+## Pull Requests
+
+Frontend (`static/`) and backend (`src/`, `tests/`) are **not atomically deployed**. A CI check enforces this.
+
+- If your changes touch both frontend and backend, split them into **separate PRs**.
+- Land the backend PR first when the frontend depends on new API changes.
+- Pure test additions alongside `src/` changes are fine in one PR.

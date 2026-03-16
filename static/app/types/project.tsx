@@ -81,7 +81,10 @@ export type Project = {
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  preprodDistributionEnabledByCustomer?: boolean;
   preprodDistributionEnabledQuery?: string | null;
+  preprodDistributionPrCommentsEnabledByCustomer?: boolean;
+  preprodSizeEnabledByCustomer?: boolean;
   preprodSizeEnabledQuery?: string | null;
   preprodSizeStatusChecksEnabled?: boolean;
   preprodSizeStatusChecksRules?: unknown[];
@@ -125,6 +128,8 @@ export type ProjectKey = {
   };
   dynamicSdkLoaderOptions: {
     hasDebug: boolean;
+    hasFeedback: boolean;
+    hasLogsAndMetrics: boolean;
     hasPerformance: boolean;
     hasReplay: boolean;
   };

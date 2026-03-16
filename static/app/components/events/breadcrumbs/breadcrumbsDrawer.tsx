@@ -2,13 +2,13 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
+import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {CopyBreadcrumbsDropdown} from 'sentry/components/events/breadcrumbs/copyBreadcrumbs';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -34,17 +34,16 @@ import {
   BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import useFocusControl from 'sentry/components/events/useFocusControl';
+import {useFocusControl} from 'sentry/components/events/useFocusControl';
 import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const enum BreadcrumbControlOptions {
   SEARCH = 'search',
@@ -101,7 +100,7 @@ export function BreadcrumbsDrawer({
   );
 
   const actions = (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <InputGroup>
         <SearchInput
           size="xs"
@@ -138,7 +137,7 @@ export function BreadcrumbsDrawer({
         maxMenuHeight={400}
         trigger={props => (
           <OverlayTrigger.Button
-            borderless
+            priority="transparent"
             showChevron={false}
             icon={<IconFilter />}
             aria-label={t('Filter All Breadcrumbs')}
@@ -154,7 +153,7 @@ export function BreadcrumbsDrawer({
         size="xs"
         trigger={props => (
           <OverlayTrigger.IconButton
-            borderless
+            priority="transparent"
             icon={<IconSort />}
             aria-label={t('Sort All Breadcrumbs')}
             title={t('Sort')}
@@ -177,7 +176,7 @@ export function BreadcrumbsDrawer({
         size="xs"
         trigger={props => (
           <OverlayTrigger.IconButton
-            borderless
+            priority="transparent"
             icon={
               timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
                 <IconClock size="xs" />
@@ -201,8 +200,8 @@ export function BreadcrumbsDrawer({
         value={timeDisplay}
         options={Object.values(BREADCRUMB_TIME_DISPLAY_OPTIONS)}
       />
-      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} borderless />
-    </ButtonBar>
+      <CopyBreadcrumbsDropdown breadcrumbs={displayCrumbs} />
+    </Grid>
   );
 
   return (
@@ -269,5 +268,5 @@ const EmptyMessage = styled('div')`
   justify-content: center;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
-  padding: ${space(3)} ${space(1)};
+  padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.md};
 `;

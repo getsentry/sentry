@@ -3,25 +3,25 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Link, type LinkProps} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Link, type LinkProps} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
 import ActorBadge from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {IconClock, IconStats, IconTimer, IconUser} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
@@ -158,7 +158,7 @@ function DetailsLink(props: LinkProps) {
 }
 
 function Name(props: {children: React.ReactNode}) {
-  return <Heading {...props} as="h3" size="lg" />;
+  return <Heading {...props} as="h3" size="lg" wordBreak="break-word" />;
 }
 
 function Details(props: {children: React.ReactNode}) {
@@ -223,7 +223,7 @@ const TimelineRow = styled('li')<TimelineRowProps>`
 const TimelineContainer = styled('div')`
   display: flex;
   align-items: center;
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
   grid-column: 2/-1;
   opacity: var(--disabled-opacity);
 `;

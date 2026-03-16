@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 
 interface SectionToggleButtonProps {
@@ -8,7 +9,7 @@ interface SectionToggleButtonProps {
   onExpandChange: (state: boolean) => void;
 }
 
-function SectionToggleButton({
+export function SectionToggleButton({
   isExpanded,
   onExpandChange,
   ...props
@@ -28,5 +29,3 @@ const ToggleButton = styled(Button)`
   }
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
-
-export default SectionToggleButton;

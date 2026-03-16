@@ -1,16 +1,16 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Flex} from 'sentry/components/core/layout';
 import {IconClock, IconLightning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 
 import {type ProductTrial} from 'getsentry/types';
 
-function ProductTrialRibbon({
+export function ProductTrialRibbon({
   activeProductTrial,
   potentialProductTrial,
 }: {
@@ -53,8 +53,6 @@ function ProductTrialRibbon({
     </RibbonContainer>
   );
 }
-
-export default ProductTrialRibbon;
 
 const RibbonContainer = styled('td')<{isActiveProductTrial: boolean}>`
   display: flex;

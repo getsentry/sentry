@@ -11,14 +11,14 @@ import {
   isRepeatedFrame,
   stackTracePlatformIcon,
 } from 'sentry/components/events/interfaces/utils';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import {OmittedFrames} from './omittedFrames';
-import StacktracePlatformIcon from './platformIcon';
+import {StacktracePlatformIcon} from './platformIcon';
 
 type DefaultProps = {
   expandFirstFrame: boolean;
@@ -117,7 +117,7 @@ function Content({
 
   const lastFrameIndex = getLastFrameIndex(frames);
   const frameCountMap = getInitialFrameCounts();
-  const hiddenFrameIndices: number[] = getHiddenFrameIndices({
+  const hiddenFrameIndices = getHiddenFrameIndices({
     data,
     toggleFrameMap,
     frameCountMap,

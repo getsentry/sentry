@@ -2,26 +2,25 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons/iconReleases';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ReleasesSort,
   SORT_BY_OPTIONS,
@@ -110,7 +109,7 @@ function SingleReleaseSelector({
         <OverlayTrigger.Button
           {...triggerProps}
           icon={<IconReleases />}
-          title={selectorValue}
+          tooltipProps={{title: selectorValue}}
           prefix={triggerLabelPrefix}
           aria-label={t('Filter Release')}
         >
@@ -119,7 +118,11 @@ function SingleReleaseSelector({
       )}
       menuTitle={t('Filter Release')}
       loading={isLoading}
-      searchable
+      search={{
+        onChange: debounce(val => {
+          setSearchTerm(val);
+        }, DEFAULT_DEBOUNCE_DURATION),
+      }}
       value={selectorValue || ''}
       options={[
         {
@@ -142,9 +145,6 @@ function SingleReleaseSelector({
             selectorValue && selectorValue !== '' ? options.slice(2) : options.slice(1),
         },
       ]}
-      onSearch={debounce(val => {
-        setSearchTerm(val);
-      }, DEFAULT_DEBOUNCE_DURATION)}
       onChange={onChange}
       onClose={() => {
         setSearchTerm(undefined);
@@ -312,7 +312,7 @@ const StyledPageSelector = styled(PageFilterBar)`
     &:last-child {
       min-width: auto;
       > button[aria-haspopup] {
-        padding-right: ${space(1.5)};
+        padding-right: ${p => p.theme.space.lg};
       }
     }
   }

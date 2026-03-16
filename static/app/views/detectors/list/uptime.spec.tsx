@@ -12,7 +12,7 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import UptimeDetectorsList from 'sentry/views/detectors/list/uptime';
 
 describe('UptimeDetectorsList', () => {

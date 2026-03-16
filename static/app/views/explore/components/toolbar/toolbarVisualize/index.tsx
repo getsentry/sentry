@@ -1,10 +1,11 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
@@ -34,21 +35,19 @@ export function ToolbarVisualizeHeader() {
 
 interface ToolbarVisualizeDropdownProps {
   aggregateOptions: Array<SelectOption<SelectKey>>;
-  canDelete: boolean;
   fieldOptions: Array<SelectOption<SelectKey>>;
   onChangeAggregate: (option: SelectOption<SelectKey>) => void;
   onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
-  onDelete: () => void;
   parsedFunction: ParsedFunction | null;
   label?: ReactNode;
   loading?: boolean;
   onClose?: () => void;
+  onDelete?: () => void;
   onSearch?: (search: string) => void;
 }
 
 export function ToolbarVisualizeDropdown({
   aggregateOptions,
-  canDelete,
   fieldOptions,
   onChangeAggregate,
   onChangeArgument,
@@ -68,7 +67,7 @@ export function ToolbarVisualizeDropdown({
     <ToolbarRow>
       {label}
       <AggregateCompactSelect
-        searchable
+        search
         options={aggregateOptions}
         value={parsedFunction?.name ?? ''}
         onChange={onChangeAggregate}
@@ -77,12 +76,11 @@ export function ToolbarVisualizeDropdown({
         return (
           <FieldCompactSelect
             key={param.name}
-            searchable
+            search={{onChange: onSearch}}
             options={fieldOptions}
             value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
             onChange={option => onChangeArgument(index, option)}
             disabled={fieldOptions.length === 1}
-            onSearch={onSearch}
             onClose={onClose}
             loading={loading}
           />
@@ -90,19 +88,18 @@ export function ToolbarVisualizeDropdown({
       })}
       {aggregateDefinition?.parameters?.length === 0 && ( // for parameterless functions, we want to still show show greyed out spans
         <FieldCompactSelect
-          searchable
+          search={{onChange: onSearch}}
           options={fieldOptions}
           value={parsedFunction?.arguments[0] ?? ''}
           onChange={option => onChangeArgument(0, option)}
           disabled
-          onSearch={onSearch}
           onClose={onClose}
           loading={loading}
         />
       )}
-      {canDelete ? (
+      {onDelete ? (
         <Button
-          borderless
+          priority="transparent"
           icon={<IconDelete />}
           size="zero"
           onClick={onDelete}
@@ -126,7 +123,6 @@ export function ToolbarVisualizeAddChart({
 }: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      borderless
       size="zero"
       icon={<IconAdd />}
       onClick={add}
@@ -142,7 +138,6 @@ export function ToolbarVisualizeAddChart({
 export function ToolbarVisualizeAddEquation({add, disabled}: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      borderless
       size="zero"
       icon={<IconAdd />}
       onClick={add}

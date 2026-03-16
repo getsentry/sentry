@@ -10,7 +10,7 @@ import {
   measurementType,
 } from 'sentry/utils/discover/fields';
 
-import grammar from './grammar.pegjs';
+import {parse} from './grammar.pegjs';
 import {getKeyName} from './utils';
 
 type TextFn = () => string;
@@ -76,6 +76,8 @@ export enum TermOperator {
   LESS_THAN = '<',
   EQUAL = '=',
   NOT_EQUAL = '!=',
+  // NOTE: These wildcard operators are internal implementation details and
+  // should not be included in product docs. Users should use `*` instead.
   CONTAINS = '\uf00dContains\uf00d',
   DOES_NOT_CONTAIN = '\uf00dDoesNotContain\uf00d',
   STARTS_WITH = '\uf00dStartsWith\uf00d',
@@ -1516,7 +1518,7 @@ function tryParseSearch<T extends {config: SearchConfig}>(
   config: T
 ): ParseResult | null {
   try {
-    return grammar.parse(query, config);
+    return parse(query, config);
   } catch (e: any) {
     Sentry.logger.error('Search syntax parse error', {
       message: e.message?.slice(-100),

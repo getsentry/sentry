@@ -738,7 +738,6 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
     def command_handlers(
         self,
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[AdaptiveCard]]]:
-
         yield commands.HELP, self.help_handler
         yield commands.LINK_IDENTITY, self.link_user_handler
         yield commands.UNLINK_IDENTITY, self.unlink_user_handler

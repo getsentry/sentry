@@ -1,15 +1,16 @@
 import {useCallback} from 'react';
 import {Observer} from 'mobx-react-lite';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useDeleteAutomationMutation,
   useUpdateAutomation,
@@ -58,7 +59,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
 
   return (
     <div>
-      <ButtonBar>
+      <Grid flow="column" align="center" gap="md">
         <Button
           priority="default"
           size="sm"
@@ -77,7 +78,7 @@ export function EditAutomationActions({automation, form}: EditAutomationActionsP
             </Button>
           )}
         </Observer>
-      </ButtonBar>
+      </Grid>
     </div>
   );
 }

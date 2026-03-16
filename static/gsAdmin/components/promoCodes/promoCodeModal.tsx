@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ApiForm from 'sentry/components/forms/apiForm';
+import {ApiForm} from 'sentry/components/forms/apiForm';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import DateTimeField from 'sentry/components/forms/fields/dateTimeField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -21,7 +21,13 @@ type Props = ModalRenderProps & {
   promoCode?: PromoCode;
 };
 
-function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Props) {
+export function AddPromoCodeModal({
+  Body,
+  Header,
+  promoCode,
+  onSubmit,
+  closeModal,
+}: Props) {
   const navigate = useNavigate();
   const [isDateToggleEnabled, setIsDateToggleEnabled] = useState(false);
   const [isTrialPromo, setIsTrialPromo] = useState(false);
@@ -154,5 +160,3 @@ function AddPromoCodeModal({Body, Header, promoCode, onSubmit, closeModal}: Prop
     </Fragment>
   );
 }
-
-export default AddPromoCodeModal;

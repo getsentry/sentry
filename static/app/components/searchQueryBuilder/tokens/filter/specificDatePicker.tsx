@@ -3,25 +3,24 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {DatePicker} from 'sentry/components/calendar';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
-import {Input} from 'sentry/components/core/input';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';
 
-interface SearchBarDatePickerProps
-  extends CustomComboboxMenuProps<SelectOptionWithKey<string>> {
+interface SearchBarDatePickerProps extends CustomComboboxMenuProps<
+  SelectOptionWithKey<string>
+> {
   handleSelectDateTime: (value: string) => void;
   isOpen: boolean;
   dateString?: string;
@@ -62,7 +61,7 @@ function createDateStringFromSelection({
   return dateWithTimeString + moment().format('Z');
 }
 
-function SpecificDatePicker({
+export function SpecificDatePicker({
   popoverRef,
   dateString,
   handleSelectDateTime,
@@ -180,7 +179,7 @@ function SpecificDatePicker({
               </Flex>
             </ControlsWrapper>
             <ButtonsFooter>
-              <ButtonBar>
+              <Grid flow="column" align="center" gap="md">
                 <Button
                   size="xs"
                   icon={<IconArrow direction="left" />}
@@ -198,7 +197,7 @@ function SpecificDatePicker({
                 >
                   {t('Save')}
                 </Button>
-              </ButtonBar>
+              </Grid>
             </ButtonsFooter>
           </Fragment>
         ) : null}
@@ -274,7 +273,7 @@ const StyledInput = styled(Input)`
 `;
 
 const ControlsWrapper = styled('div')`
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
@@ -287,7 +286,7 @@ const UtcPickerLabel = styled('label')`
   margin: 0;
   font-weight: ${p => p.theme.font.weight.sans.regular};
   user-select: none;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   cursor: pointer;
 
   &:has(:disabled) {
@@ -300,7 +299,7 @@ const CheckboxLabel = styled('label')`
   display: inline-flex;
   align-items: center;
   margin: 0;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.primary};
   cursor: pointer;
@@ -310,5 +309,3 @@ const ButtonsFooter = styled(ControlsWrapper)`
   display: flex;
   justify-content: flex-end;
 `;
-
-export default SpecificDatePicker;

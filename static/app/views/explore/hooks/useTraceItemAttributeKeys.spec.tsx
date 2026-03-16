@@ -4,7 +4,7 @@ import {mockTraceItemAttributeKeysApi} from 'sentry-fixture/traceItemAttributeKe
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import type {Tag} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';

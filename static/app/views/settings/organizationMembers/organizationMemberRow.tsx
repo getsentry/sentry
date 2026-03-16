@@ -1,21 +1,20 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import Confirm from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 type Props = {
@@ -41,7 +40,7 @@ const DisabledMemberTooltip = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-export default class OrganizationMemberRow extends PureComponent<Props, State> {
+export class OrganizationMemberRow extends PureComponent<Props, State> {
   state: State = {
     busy: false,
   };
@@ -205,8 +204,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
               <Button
                 disabled
                 size="sm"
-                title={
-                  isIdpProvisioned
+                tooltipProps={{
+                  title: isIdpProvisioned
                     ? t(
                         "This user is managed through your organization's identity provider."
                       )
@@ -215,8 +214,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                       : // only show this message if member can remove invites but invite was not sent by them
                         pending && canInvite && !isInviteFromCurrentUser
                         ? t('You cannot modify this invite.')
-                        : t('You do not have access to remove members')
-                }
+                        : t('You do not have access to remove members'),
+                }}
                 icon={<IconSubtract />}
               >
                 {t('Remove')}
@@ -241,8 +240,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 size="sm"
                 icon={<IconClose />}
                 disabled
-                title={
-                  isIdpProvisioned
+                tooltipProps={{
+                  title: isIdpProvisioned
                     ? t(
                         "Your account is managed through your organization's identity provider."
                       )
@@ -250,8 +249,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                       ? t('You cannot make changes as a partner-provisioned user.')
                       : t(
                           'You cannot leave this organization as you are the only organization owner.'
-                        )
-                }
+                        ),
+                }}
               >
                 {t('Leave')}
               </Button>
@@ -269,14 +268,14 @@ const StyledPanelItem = styled(PanelItem)`
       100px,
       1fr
     );
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
 `;
 // Force action button at the end to align to right
 const Section = styled('div')`
   display: inline-grid;
   grid-template-columns: max-content auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 
@@ -302,7 +301,7 @@ const Email = styled('div')`
 const InvitedRole = styled(Section)``;
 const LoadingContainer = styled('div')`
   margin-top: 0;
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
 `;
 
 const AuthStatus = styled(Section)``;

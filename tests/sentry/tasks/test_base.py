@@ -16,7 +16,7 @@ from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 @instrumented_task(
     name="test.tasks.test_base.region_task",
     namespace=test_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def region_task(param) -> str:
     return f"Region task {param}"
@@ -85,7 +85,7 @@ def task_with_alias(param) -> str:
     namespace=test_tasks,
     alias="tests.tasks.test_base.region_alias_task",
     retry=Retry(times=3, on=(Exception,)),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def region_task_with_alias(param) -> str:
     return f"Region task with alias {param}"
@@ -111,7 +111,7 @@ def task_with_alias_and_alias_namespace(param) -> str:
     return f"Task with alias and alias namespace {param}"
 
 
-@override_settings(SILO_MODE=SiloMode.REGION)
+@override_settings(SILO_MODE=SiloMode.CELL)
 def test_task_silo_limit_call_region() -> None:
     result = region_task("hi")
     assert "Region task hi" == result
@@ -195,7 +195,6 @@ def test_retry_timeout_enabled_taskbroker(capture_exception) -> None:
 @patch("sentry.taskworker.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_timeout_disabled_taskbroker(capture_exception, current_task) -> None:
-
     @retry(timeouts=False)
     def timeout_no_retry_task():
         raise ProcessingDeadlineExceeded()
@@ -295,7 +294,7 @@ def test_instrumented_task_with_alias_different_namespaces() -> None:
     )
 
 
-@override_settings(SILO_MODE=SiloMode.REGION)
+@override_settings(SILO_MODE=SiloMode.CELL)
 def test_instrumented_task_with_alias_silo_limit_call_region() -> None:
     assert test_tasks.contains("tests.tasks.test_base.region_primary_task")
     assert region_task_with_alias("test") == "Region task with alias test"

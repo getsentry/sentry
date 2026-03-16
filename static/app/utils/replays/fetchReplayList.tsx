@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -28,7 +28,7 @@ type Props = {
   queryReferrer?: ReplayListQueryReferrer;
 };
 
-async function fetchReplayList({
+export async function fetchReplayList({
   api,
   organization,
   location,
@@ -92,5 +92,3 @@ async function fetchReplayList({
     };
   }
 }
-
-export default fetchReplayList;

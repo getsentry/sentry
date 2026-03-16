@@ -801,7 +801,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
         ]
       },
       "contributes": true,
-      "description": "exception stacktrace — in-app frames and custom fingerprint",
+      "description": "exception stacktrace — in-app frames and custom server fingerprint",
       "hash": "19163f3ca34f5995c69d85351ce3d697",
       "hint": null,
       "key": "app_exception_stacktrace_hybrid_fingerprint",
@@ -1609,7 +1609,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
         ]
       },
       "contributes": true,
-      "description": "exception stacktrace — all frames and custom fingerprint",
+      "description": "exception stacktrace — all frames and custom server fingerprint",
       "hash": "847950eb44d280e6758d136c763d6ddc",
       "hint": null,
       "key": "system_exception_stacktrace_hybrid_fingerprint",

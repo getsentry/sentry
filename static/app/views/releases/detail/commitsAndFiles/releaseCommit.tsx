@@ -2,18 +2,18 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import CommitLink from 'sentry/components/commitLink';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TextOverflow from 'sentry/components/textOverflow';
+import {CommitLink} from 'sentry/components/commitLink';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -63,7 +63,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
       <CommitContent>
         <Message>{formatCommitMessage(commit.message)}</Message>
         <MetaWrapper>
-          <UserAvatar size={16} user={commit.author} />
+          {commit.author ? <UserAvatar size={16} user={commit.author} /> : null}
           <Meta>
             <Tooltip
               title={tct(
@@ -120,7 +120,7 @@ const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const BoldEmail = styled('strong')`
@@ -130,7 +130,7 @@ const BoldEmail = styled('strong')`
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  border-bottom: 1px dotted ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px dotted currentColor;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
@@ -160,7 +160,7 @@ const Meta = styled(TextOverflow)`
 
 const CommitContent = styled('div')`
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   display: block;
   width: 100%;
   white-space: nowrap;
@@ -171,7 +171,7 @@ const CommitContent = styled('div')`
 const MetaWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1.2;
@@ -180,7 +180,7 @@ const MetaWrapper = styled('div')`
 const AuthorWrapper = styled('span')`
   display: inline-flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.secondary};
 
   & svg {

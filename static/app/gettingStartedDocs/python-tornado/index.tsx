@@ -22,9 +22,7 @@ const docs: Docs = {
   feedbackOnboardingJsLoader,
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
-  logsOnboarding: logs({
-    packageName: 'sentry-sdk[tornado]',
-  }),
+  logsOnboarding: logs(),
   metricsOnboarding: metrics(),
 };
 

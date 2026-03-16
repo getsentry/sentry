@@ -1,6 +1,9 @@
 import {useCallback, useEffect, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -9,20 +12,18 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'sentry/actionCreators/sentryAppInstallations';
-import CircleIndicator from 'sentry/components/circleIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {Button} from 'sentry/components/core/button';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IntegrationFeature,
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getSentryAppInstallStatus,
@@ -37,20 +38,25 @@ import {
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
+import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import {SplitInstallationIdModal} from 'sentry/views/settings/organizationIntegrations/SplitInstallationIdModal';
 
 function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
-  return [`/organizations/${orgSlug}/sentry-app-installations/`];
+  return [
+    getApiUrl(`/organizations/$organizationIdOrSlug/sentry-app-installations/`, {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+  ];
 }
 
 export default function SentryAppDetailedView() {
+  const theme = useTheme();
   const tabs: IntegrationTab[] = ['overview'];
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -62,19 +68,33 @@ export default function SentryAppDetailedView() {
     data: sentryApp,
     isPending: isSentryAppPending,
     isError: isSentryAppError,
-  } = useApiQuery<SentryApp>([`/sentry-apps/${integrationSlug}/`], {
-    staleTime: Infinity,
-    retry: false,
-  });
+  } = useApiQuery<SentryApp>(
+    [
+      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/`, {
+        path: {sentryAppIdOrSlug: integrationSlug},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+    }
+  );
 
   const {
     data: featureData = [],
     isPending: isFeatureDataPending,
     isError: isFeatureDataError,
-  } = useApiQuery<IntegrationFeature[]>([`/sentry-apps/${integrationSlug}/features/`], {
-    staleTime: Infinity,
-    retry: false,
-  });
+  } = useApiQuery<IntegrationFeature[]>(
+    [
+      getApiUrl(`/sentry-apps/$sentryAppIdOrSlug/features/`, {
+        path: {sentryAppIdOrSlug: integrationSlug},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+      retry: false,
+    }
+  );
 
   const {
     data: appInstalls = [],
@@ -330,7 +350,7 @@ export default function SentryAppDetailedView() {
             priority="danger"
           >
             <StyledButton size="sm" data-test-id="sentry-app-uninstall">
-              <IconSubtract style={{marginRight: space(0.75)}} />
+              <IconSubtract style={{marginRight: theme.space.sm}} />
               {t('Uninstall')}
             </StyledButton>
           </Confirm>
@@ -348,7 +368,7 @@ export default function SentryAppDetailedView() {
             onClick={() => handleInstall()}
             priority="primary"
             size="sm"
-            style={{marginLeft: space(1)}}
+            style={{marginLeft: theme.space.md}}
           >
             {t('Accept & Install')}
           </InstallButton>
@@ -370,6 +390,7 @@ export default function SentryAppDetailedView() {
       integrationType,
       install,
       recordUninstallClicked,
+      theme.space,
     ]
   );
 
@@ -422,11 +443,11 @@ const Text = styled('p')`
 `;
 
 const PermissionWrapper = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
@@ -436,7 +457,7 @@ const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
 `;
 
 const InstallButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const StyledButton = styled(Button)`

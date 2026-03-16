@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import Panel from 'sentry/components/panels/panel';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
+import {Panel} from 'sentry/components/panels/panel';
 import {
   GridBodyCell,
   GridHead,
@@ -13,7 +14,6 @@ import {
 } from 'sentry/components/tables/gridEditable/styles';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
 import type parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -41,6 +41,10 @@ interface EventListTableProps {
      * Number of results displayed on the current page
      */
     pageCount?: number;
+    /**
+     * Which type of pagination implementation is used by the API.
+     */
+    paginatorType?: 'offset' | 'cursor';
     /**
      * Whether the previous page link is disabled
      */
@@ -71,6 +75,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
     previousDisabled,
     tableUnits = 'events',
     enabled: isPaginationEnabled = true,
+    paginatorType = 'cursor',
   } = pagination ?? {};
 
   const hasHeader = title !== undefined || isPaginationEnabled;
@@ -87,13 +92,14 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                   pageCount={pageCount}
                   totalCount={totalCount}
                   tableUnits={tableUnits}
+                  paginatorType={paginatorType}
                 />
               </HeaderItem>
               <HeaderItem>
-                <ButtonBar gap="2xs">
+                <Grid flow="column" align="center" gap="2xs">
                   <PaginationButton
                     aria-label={t('Previous Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="left" />}
                     to={{
@@ -107,7 +113,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                   />
                   <PaginationButton
                     aria-label={t('Next Page')}
-                    borderless
+                    priority="transparent"
                     size="xs"
                     icon={<IconChevron direction="right" />}
                     to={{
@@ -119,7 +125,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
                     }}
                     disabled={nextDisabled}
                   />
-                </ButtonBar>
+                </Grid>
               </HeaderItem>
             </Fragment>
           ) : null}
@@ -133,9 +139,10 @@ export function EventListTable({children, pagination, title}: EventListTableProp
 export const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   align-items: center;
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md}
+    ${p => p.theme.space.lg};
   background: ${p => p.theme.tokens.background.primary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   position: sticky;
@@ -175,7 +182,7 @@ const StreamlineGridEditable = styled('div')`
 
   ${GridHeadCell} {
     height: 36px;
-    padding: 0 ${space(1.5)};
+    padding: 0 ${p => p.theme.space.lg};
     white-space: nowrap;
     text-overflow: ellipsis;
     text-transform: none;
@@ -195,13 +202,13 @@ const StreamlineGridEditable = styled('div')`
       border: 0;
     }
     &:first-child {
-      padding-left: ${space(1.5)};
+      padding-left: ${p => p.theme.space.lg};
     }
   }
 
   ${GridBodyCell} {
     min-height: unset;
-    padding: ${space(1)} ${space(1.5)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
     font-size: ${p => p.theme.font.size.md};
     overflow: hidden;
     text-overflow: ellipsis;
@@ -210,13 +217,14 @@ const StreamlineGridEditable = styled('div')`
 
   ${GridRow} {
     td:nth-child(2) {
-      padding-left: ${space(1.5)};
+      padding-left: ${p => p.theme.space.lg};
     }
 
     td:not(:nth-child(2)) {
       a {
         color: ${p => p.theme.tokens.content.primary};
         text-decoration: underline;
+        /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
         text-decoration-color: ${p => p.theme.tokens.border.primary};
       }
     }
@@ -230,31 +238,43 @@ export const PaginationButton = styled(LinkButton)`
 
 export function PaginationText({
   pageCount = 0,
+  paginatorType,
   totalCount,
   tableUnits,
 }: {
   pageCount: Required<EventListTableProps>['pagination']['pageCount'];
+  paginatorType: NonNullable<EventListTableProps['pagination']>['paginatorType'];
   tableUnits: Required<EventListTableProps>['pagination']['tableUnits'];
   totalCount: Required<EventListTableProps>['pagination']['totalCount'];
 }) {
   const location = useLocation();
   const currentCursor = parseCursor(location.query?.cursor);
-  const start = Math.max(currentCursor?.offset ?? 1, 1);
 
   if (pageCount === 0) {
     return null;
   }
 
+  const isOffsetPagination = paginatorType === 'offset';
+
+  const start =
+    isOffsetPagination && currentCursor
+      ? currentCursor.offset * currentCursor.value + 1
+      : Math.max((currentCursor?.offset ?? 0) + 1, 1);
+  const end =
+    isOffsetPagination && currentCursor
+      ? currentCursor.offset * currentCursor.value + pageCount
+      : (currentCursor?.offset ?? 0) + pageCount;
+
   return defined(totalCount)
     ? tct('Showing [start]-[end] of [count] matching [tableUnits]', {
         start: start.toLocaleString(),
-        end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
+        end: end.toLocaleString(),
         count: totalCount.toLocaleString(),
         tableUnits,
       })
     : tct('Showing [start]-[end] matching [tableUnits]', {
         start: start.toLocaleString(),
-        end: ((currentCursor?.offset ?? 0) + pageCount).toLocaleString(),
+        end: end.toLocaleString(),
         tableUnits,
       });
 }

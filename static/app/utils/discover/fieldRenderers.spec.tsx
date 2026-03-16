@@ -6,7 +6,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
@@ -157,6 +157,49 @@ describe('getFieldRenderer', () => {
     );
   });
 
+  it('can render dashboard links to additional datasets', () => {
+    const widget = WidgetFixture({
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          linkedDashboards: [
+            {
+              dashboardId: '123',
+              field: 'transaction',
+              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
+            },
+          ],
+          aggregates: [],
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+        },
+      ],
+    });
+    const dashboardFilters: DashboardFilters = {};
+
+    const renderer = getFieldRenderer(
+      'transaction',
+      {transaction: 'string'},
+      undefined,
+      widget,
+      dashboardFilters
+    );
+
+    render(
+      renderer(data, {
+        location,
+        organization,
+        theme,
+      }) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/dashboard/123/?globalFilter=%7B%22dataset%22%3A%22spans%22%2C%22tag%22%3A%7B%22key%22%3A%22transaction%22%2C%22name%22%3A%22transaction%22%2C%22kind%22%3A%22tag%22%7D%2C%22value%22%3A%22transaction%3A%5Bapi.do_things%5D%22%2C%22isTemporary%22%3Atrue%7D&globalFilter=%7B%22dataset%22%3A%22issue%22%2C%22tag%22%3A%7B%22key%22%3A%22transaction%22%2C%22name%22%3A%22transaction%22%2C%22kind%22%3A%22tag%22%7D%2C%22value%22%3A%22transaction%3A%5Bapi.do_things%5D%22%2C%22isTemporary%22%3Atrue%7D'
+    );
+  });
   describe('rate', () => {
     it('can render null rate', () => {
       const renderer = getFieldRenderer(

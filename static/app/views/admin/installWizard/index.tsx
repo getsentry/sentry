@@ -3,14 +3,15 @@ import styled from '@emotion/styled';
 
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Flex} from 'sentry/components/core/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+
 import Form from 'sentry/components/forms/form';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {Field} from 'sentry/views/admin/options';
 import {getForm, getOptionDefault, getOptionField} from 'sentry/views/admin/options';
@@ -32,9 +33,12 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
     data: options,
     isPending,
     isError,
-  } = useApiQuery<InstallWizardOptions>(['/internal/options/?query=is:required'], {
-    staleTime: 0,
-  });
+  } = useApiQuery<InstallWizardOptions>(
+    [getApiUrl('/internal/options/'), {query: {query: 'is:required'}}],
+    {
+      staleTime: 0,
+    }
+  );
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -167,7 +171,7 @@ const Pattern = styled('div')`
 
 const Heading = styled('h1')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-content: space-between;
   grid-auto-flow: column;
   line-height: 36px;
@@ -184,6 +188,6 @@ const SetupWizard = styled('div')`
   box-shadow: ${p => p.theme.dropShadowHeavy};
   padding: 40px 40px 20px;
   max-width: 1000px;
-  margin: ${space(3)};
+  margin: ${p => p.theme.space['2xl']};
   z-index: ${p => p.theme.zIndex.initial};
 `;

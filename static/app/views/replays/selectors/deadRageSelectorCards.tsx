@@ -2,16 +2,16 @@ import type {ReactNode} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import Accordion from 'sentry/components/container/accordion';
-import {Flex, type FlexProps} from 'sentry/components/core/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
+import {Accordion} from 'sentry/components/container/accordion';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import TextOverflow from 'sentry/components/textOverflow';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
+import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   HeaderContainer,
@@ -19,8 +19,8 @@ import {
   Subtitle,
   WidgetContainer,
 } from 'sentry/views/profiling/landing/styles';
-import ExampleReplaysList from 'sentry/views/replays/selectors/exampleReplaysList';
-import ProjectInfo from 'sentry/views/replays/selectors/projectInfo';
+import {ExampleReplaysList} from 'sentry/views/replays/selectors/exampleReplaysList';
+import {ProjectInfo} from 'sentry/views/replays/selectors/projectInfo';
 import {SelectorLink} from 'sentry/views/replays/selectors/selectorLink';
 import {transformSelectorQuery} from 'sentry/views/replays/selectors/utils';
 
@@ -199,7 +199,7 @@ const SplitCardContainer = styled('div')`
   grid-template-columns: 1fr 1fr;
   grid-template-rows: max-content;
   grid-auto-flow: column;
-  gap: 0 ${space(2)};
+  gap: 0 ${p => p.theme.space.xl};
   align-items: stretch;
 `;
 
@@ -207,7 +207,7 @@ const ClickCount = styled(TextOverflow)`
   color: ${p => p.theme.colors.gray500};
   display: grid;
   grid-template-columns: auto auto;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: center;
 `;
 
@@ -222,7 +222,7 @@ const StyledAccordionHeader = styled('div')`
   display: grid;
   grid-template-columns: 1fr max-content;
   flex: 1;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space['2xs']};
   align-items: center;
 `;
 
@@ -234,7 +234,7 @@ const StyledWidgetHeader = styled(HeaderTitleLegend)`
 
 const StyledWidgetContainer = styled(WidgetContainer)`
   margin-bottom: 0;
-  padding-top: ${space(1.5)};
+  padding-top: ${p => p.theme.space.lg};
 `;
 
 export const RightAlignedCell = styled('div')`
@@ -242,21 +242,21 @@ export const RightAlignedCell = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: ${space(1)};
-  padding-left: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space.md};
 `;
 
 const EmptySubtitle = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   line-height: 1.6em;
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.md};
 `;
 
 const LoadingContainer = styled((props: FlexProps) => (
   <Flex gap="2xs" flex="1 1 auto" direction="column" justify="start" {...props} />
 ))`
-  padding: ${space(1)} ${space(0.5)} 3px ${space(0.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xs} 3px ${p => p.theme.space.xs};
 `;
 
 const StyledPlaceholder = styled(Placeholder)`
@@ -266,7 +266,7 @@ const StyledPlaceholder = styled(Placeholder)`
 const EmptyHeader = styled(Flex)`
   justify-content: center;
   align-items: center;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

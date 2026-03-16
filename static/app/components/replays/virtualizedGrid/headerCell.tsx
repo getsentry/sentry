@@ -1,9 +1,9 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconArrow, IconInfo} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 type BaseRecord = Record<string, unknown>;
 export interface SortConfig<RecordType extends BaseRecord> {
@@ -74,10 +74,11 @@ const HeaderButton = styled('button')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(0.5)} ${space(1)} ${space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.xs}
+    ${p => p.theme.space.lg};
 
   svg {
-    margin-left: ${space(0.25)};
+    margin-left: ${p => p.theme.space['2xs']};
   }
 `;
 

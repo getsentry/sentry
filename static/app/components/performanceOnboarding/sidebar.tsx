@@ -3,37 +3,41 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import useDrawer from 'sentry/components/globalDrawer';
-import IdBadge from 'sentry/components/idBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {IdBadge} from 'sentry/components/idBadge';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {shouldShowPerformanceTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
+import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {withoutPerformanceSupport} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import OnboardingDrawerStore, {
   OnboardingDrawerKey,
 } from 'sentry/stores/onboardingDrawerStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
-import EventWaiter from 'sentry/utils/eventWaiter';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {filterProjects} from './utils';
 
@@ -93,7 +97,7 @@ function SidebarContent() {
   const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
     filterProjects(projects);
 
-  const priorityProjectIds: Set<string> | null = useMemo(() => {
+  const priorityProjectIds = useMemo(() => {
     const decodedProjectIds = decodeProjectIds(location.query.project);
     return decodedProjectIds === null ? null : new Set(decodedProjectIds);
   }, [location.query.project]);
@@ -227,15 +231,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const [received, setReceived] = useState<boolean>(false);
-
-  const previousProject = usePrevious(currentProject);
-
-  useEffect(() => {
-    if (previousProject.id !== currentProject.id) {
-      setReceived(false);
-    }
-  }, [previousProject.id, currentProject.id]);
+  const copyEnabled = useCopySetupInstructionsEnabled();
+  const firstIssue = useEventWaiter({
+    eventType: 'transaction',
+    organization,
+    project: currentProject,
+  });
+  const received = !!firstIssue;
 
   const currentPlatform = currentProject.platform
     ? platforms.find(p => p.id === currentProject.platform)
@@ -332,27 +334,32 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   ];
 
   return (
-    <Fragment>
+    <TabSelectionScope>
       {performanceDocs.introduction && (
         <Introduction>{performanceDocs.introduction(docParams)}</Introduction>
       )}
       <Steps>
-        {steps.map(step => {
-          return <Step key={step.title ?? step.type} {...step} />;
+        {steps.map((step, index) => {
+          return (
+            <Step
+              key={step.title ?? step.type}
+              stepIndex={index}
+              {...step}
+              trailingItems={
+                index === 0 && copyEnabled ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="performance_sidebar_onboarding"
+                  />
+                ) : undefined
+              }
+            />
+          );
         })}
       </Steps>
-      <EventWaiter
-        api={api}
-        organization={organization}
-        project={currentProject}
-        eventType="transaction"
-        onIssueReceived={() => {
-          setReceived(true);
-        }}
-      >
-        {() => (received ? <EventReceivedIndicator /> : <EventWaitingIndicator />)}
-      </EventWaiter>
-    </Fragment>
+      {received ? <EventReceivedIndicator /> : <EventWaitingIndicator />}
+    </TabSelectionScope>
   );
 }
 
@@ -360,14 +367,14 @@ const Steps = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 `;
 
 const Introduction = styled('div')`
   display: flex;
   flex-direction: column;
-  margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const TopRightBackgroundImage = styled('img')`
@@ -382,8 +389,9 @@ const TaskList = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-columns: 100%;
-  gap: ${space(1)};
-  margin: 50px ${space(4)} ${space(4)} ${space(4)};
+  gap: ${p => p.theme.space.md};
+  margin: 50px ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']}
+    ${p => p.theme.space['3xl']};
 `;
 
 const Heading = styled('div')`
@@ -393,7 +401,7 @@ const Heading = styled('div')`
   text-transform: uppercase;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -404,7 +412,7 @@ const StyledIdBadge = styled(IdBadge)`
 
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (

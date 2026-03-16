@@ -1,17 +1,17 @@
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
-import type useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
+import {FiltersGrid} from 'sentry/views/replays/detail/filtersGrid';
+import type {useNetworkFilters} from 'sentry/views/replays/detail/network/useNetworkFilters';
 
 type Props = {
   networkFrames: undefined | unknown[];
 } & ReturnType<typeof useNetworkFilters>;
 
-function NetworkFilters({
+export function NetworkFilters({
   getMethodTypes,
   getResourceTypes,
   getStatusTypes,
@@ -63,5 +63,3 @@ function NetworkFilters({
     </FiltersGrid>
   );
 }
-
-export default NetworkFilters;

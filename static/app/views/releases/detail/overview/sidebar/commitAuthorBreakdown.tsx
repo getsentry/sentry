@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import Collapsible from 'sentry/components/collapsible';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+
+import {Collapsible} from 'sentry/components/collapsible';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 import {percent} from 'sentry/utils';
@@ -26,7 +26,7 @@ type Props = {
   version: string;
 };
 
-function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
+export function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
   const commitsEndpoint = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/commits/',
     {
@@ -98,7 +98,7 @@ function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
         >
           {sortedAuthorsByNumberOfCommits.map(({commitCount, author}, index) => (
             <AuthorLine key={author?.email ?? index}>
-              <UserAvatar user={author} size={20} hasTooltip />
+              {author ? <UserAvatar user={author} size={20} hasTooltip /> : null}
               <AuthorName>{userDisplayName(author || {}, false)}</AuthorName>
               <Commits>{tn('%s commit', '%s commits', commitCount)}</Commits>
               <Percent>{getDisplayPercent(commitCount)}</Percent>
@@ -114,7 +114,7 @@ const AuthorLine = styled('div')`
   display: inline-grid;
   grid-template-columns: 30px 2fr 1fr 40px;
   width: 100%;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.md};
 `;
 
@@ -136,5 +136,3 @@ const Percent = styled('div')`
   min-width: 40px;
   text-align: right;
 `;
-
-export default CommitAuthorBreakdown;

@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {
   ConversationDrawerUrlParams,
   useConversationDrawerQueryState,
@@ -31,20 +31,26 @@ export function useUrlConversationDrawer() {
       renderer: Parameters<typeof baseOpenDrawer>[0],
       options?: Parameters<typeof baseOpenDrawer>[1] & {
         conversationId?: string;
-        spanId?: string;
+        endTimestamp?: number;
+        focusedTool?: string;
+        startTimestamp?: number;
       }
     ) => {
       const {
-        conversationId: optionsConversationId,
-        spanId: optionsSpanId,
+        conversationId,
+        startTimestamp,
+        endTimestamp,
+        focusedTool,
         onClose,
         ariaLabel,
         ...rest
       } = options || {};
 
       setConversationDrawerQueryState({
-        conversationId: optionsConversationId,
-        spanId: optionsSpanId,
+        conversationId,
+        startTimestamp,
+        endTimestamp,
+        focusedTool: focusedTool ?? null,
       });
 
       return baseOpenDrawer(renderer, {

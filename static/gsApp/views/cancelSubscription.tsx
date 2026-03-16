@@ -1,38 +1,36 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {ExternalLink} from 'sentry/components/core/link';
 import RadioGroupField from 'sentry/components/forms/fields/radioField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import Form from 'sentry/components/forms/form';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-import withSubscription from 'getsentry/components/withSubscription';
 import {ANNUAL} from 'getsentry/constants';
-import subscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
-import {checkForPromptBasedPromotion} from 'getsentry/utils/promotionUtils';
-import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 type CancelReason = [string, React.ReactNode];
 type CancelCheckbox = [string, React.ReactNode];
@@ -103,7 +101,11 @@ function CancelSubscriptionForm() {
   const navigate = useNavigate();
   const api = useApi();
   const {data: subscription, isPending} = useApiQuery<Subscription>(
-    [`/customers/${organization.slug}/`],
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     {staleTime: 0}
   );
   const [state, setState] = useState<State>({
@@ -115,7 +117,7 @@ function CancelSubscriptionForm() {
   });
 
   const handleSubmitSuccess = (resp: any) => {
-    subscriptionStore.loadData(organization.slug);
+    SubscriptionStore.loadData(organization.slug);
     const msg = resp?.responseJSON?.details || t('Successfully cancelled subscription');
 
     addSuccessMessage(msg);
@@ -289,40 +291,11 @@ function CancelSubscriptionForm() {
 const ButtonList = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
-  margin-top: ${space(1)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.md};
 `;
 
-interface CancelSubscriptionWrapperProps {
-  subscription: Subscription;
-}
-
-function CancelSubscriptionWrapper({subscription}: CancelSubscriptionWrapperProps) {
-  const api = useApi();
-  const organization = useOrganization();
-  const navigate = useNavigate();
-  const {refetch, data: promotionData} = usePromotionTriggerCheck(organization);
-  const switchToBillingOverview = useCallback(() => {
-    navigate(
-      normalizeUrl({
-        pathname: `/settings/${organization.slug}/billing/overview/`,
-      })
-    );
-  }, [navigate, organization.slug]);
-  useEffect(() => {
-    // when we mount, we know someone is thinking about canceling their subscription
-    if (promotionData) {
-      checkForPromptBasedPromotion({
-        organization,
-        onRefetch: refetch,
-        promptFeature: 'cancel_subscription',
-        subscription,
-        promotionData,
-        onAcceptConditions: switchToBillingOverview,
-      });
-    }
-  }, [api, organization, refetch, subscription, promotionData, switchToBillingOverview]);
-
+function CancelSubscriptionPage() {
   const title = t('Cancel Subscription');
   return (
     <SubscriptionPageContainer background="secondary" data-test-id="cancel-subscription">
@@ -356,10 +329,8 @@ const RadioGroupContainer = styled(RadioGroupField)`
 const ExtraContainer = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
-  padding: ${space(1)} 0;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.md} 0;
 `;
 
-export default withSubscription(CancelSubscriptionWrapper, {
-  noLoader: true,
-});
+export default CancelSubscriptionPage;

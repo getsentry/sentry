@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {DisplayType} from './types';
-import WidgetWrapper from './widgetWrapper';
+import {WidgetWrapper} from './widgetWrapper';
 
 export const ADD_WIDGET_BUTTON_DRAG_ID = 'add-widget-button';
 
@@ -77,7 +77,7 @@ function AddWidget({onAddWidget}: Props) {
               size: 'md',
               showChevron: false,
               icon: <IconAdd size="lg" variant="muted" />,
-              borderless: true,
+              priority: 'transparent',
             }}
           />
         </InnerWrapper>

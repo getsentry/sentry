@@ -150,7 +150,9 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
     def test_invalid_occurrence_payload(self) -> None:
         message = get_test_message(self.project.id, type=300)
-        with (mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics,):
+        with (
+            mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics,
+        ):
             with self.feature("organizations:profile-file-io-main-thread-ingest"):
                 _process_message(message)
             metrics.incr.assert_called_once_with(

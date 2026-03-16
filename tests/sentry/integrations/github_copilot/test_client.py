@@ -1,7 +1,11 @@
+from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
+from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
-from sentry.integrations.github_copilot.models import GithubCopilotTaskStatusResponse
+from sentry.integrations.github_copilot.models import GithubCopilotTask
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
+from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import TestCase
 
 
@@ -14,7 +18,7 @@ class GithubCopilotAgentClientTest(TestCase):
     def test_encode_agent_id(self) -> None:
         """Test that encode_agent_id correctly formats the agent ID"""
         agent_id = GithubCopilotAgentClient.encode_agent_id(
-            owner="getsentry", repo="sentry", job_id="task-123"
+            owner="getsentry", repo="sentry", task_id="task-123"
         )
         assert agent_id == "getsentry:sentry:task-123"
 
@@ -49,7 +53,7 @@ class GithubCopilotAgentClientTest(TestCase):
             "id": "task-123",
             "status": "completed",
             "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T01:00:00Z",
+            "last_updated_at": "2024-01-01T01:00:00Z",
             "artifacts": [
                 {
                     "provider": "github",
@@ -65,11 +69,12 @@ class GithubCopilotAgentClientTest(TestCase):
             owner="getsentry", repo="sentry", task_id="task-123"
         )
 
-        assert isinstance(result, GithubCopilotTaskStatusResponse)
+        assert isinstance(result, GithubCopilotTask)
         assert result.id == "task-123"
         assert result.status == "completed"
         assert result.artifacts is not None
         assert len(result.artifacts) == 1
+        assert result.artifacts[0].data is not None
         assert result.artifacts[0].data.type == "pull"
         assert result.artifacts[0].data.global_id == "PR_abc123"
 
@@ -97,6 +102,66 @@ class GithubCopilotAgentClientTest(TestCase):
         assert result.id == "task-123"
         assert result.status == "running"
         assert result.artifacts is None
+
+    def _make_launch_request(self, prompt: str = "Fix the bug") -> CodingAgentLaunchRequest:
+        return CodingAgentLaunchRequest(
+            prompt=prompt,
+            repository=SeerRepoDefinition(
+                provider="github",
+                owner="getsentry",
+                name="sentry",
+                external_id="123",
+            ),
+            branch_name="main",
+        )
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_created_at(self, mock_post: Mock) -> None:
+        """Test launch correctly parses created_at from the response"""
+        mock_response = Mock()
+        mock_response.json = {
+            "task": {
+                "id": "task-123",
+                "status": "in_progress",
+                "created_at": "2024-06-01T12:00:00Z",
+            }
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+
+        assert result.id == "getsentry:sentry:task-123"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert result.provider == CodingAgentProviderType.GITHUB_COPILOT_AGENT
+        assert result.started_at == datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_missing_created_at(self, mock_post: Mock) -> None:
+        """Test launch falls back to now() when created_at is missing"""
+        mock_response = Mock()
+        mock_response.json = {
+            "task": {
+                "id": "task-456",
+                "status": "in_progress",
+            }
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        before = datetime.now(UTC)
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+        after = datetime.now(UTC)
+
+        assert result.id == "getsentry:sentry:task-456"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert before <= result.started_at <= after
 
     @patch.object(GithubCopilotAgentClient, "post")
     def test_get_pr_from_graphql_success(self, mock_post: Mock) -> None:
@@ -148,3 +213,36 @@ class GithubCopilotAgentClientTest(TestCase):
         result = self.copilot_client.get_pr_from_graphql(global_id="PR_invalid")
 
         assert result is None
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_truncates_long_prompt(self, mock_post: Mock) -> None:
+        """Prompts exceeding 25,000 chars are truncated"""
+        prompt = "a" * 30000
+        request = self._make_launch_request(prompt)
+
+        mock_response = Mock()
+        mock_response.json = {"task": {"id": "t-1", "created_at": "2026-01-01T00:00:00Z"}}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        self.copilot_client.launch(webhook_url="https://example.com/hook", request=request)
+
+        call_data = mock_post.call_args[1]["data"]
+        sent_prompt = call_data["problem_statement"]
+        assert len(sent_prompt) == 25000
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_does_not_truncate_short_prompt(self, mock_post: Mock) -> None:
+        """Short prompts are sent as-is without truncation"""
+        prompt = "Fix this bug please."
+        request = self._make_launch_request(prompt)
+
+        mock_response = Mock()
+        mock_response.json = {"task": {"id": "t-1", "created_at": "2026-01-01T00:00:00Z"}}
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        self.copilot_client.launch(webhook_url="https://example.com/hook", request=request)
+
+        call_data = mock_post.call_args[1]["data"]
+        assert call_data["problem_statement"] == prompt

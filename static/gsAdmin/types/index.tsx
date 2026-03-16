@@ -1,6 +1,6 @@
 import type * as Sentry from '@sentry/react';
 
-import type ConfigStore from 'sentry/stores/configStore';
+import type {ConfigStore} from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 
 declare global {
@@ -78,4 +78,67 @@ export type Relocation = {
   uuid: string;
   wantOrgSlugs: string[];
   wantUsernames: string[];
+};
+
+export type ContractDate = {
+  day?: number;
+  month?: number;
+  year?: number;
+};
+
+type ContractPricingTier = {
+  end?: string;
+  ratePerUnitCpe?: string;
+  start?: string;
+};
+
+export type ContractTieredPricingRate = {
+  tiers?: ContractPricingTier[];
+};
+
+export type ContractSKUConfig = {
+  basePriceCents?: string;
+  paygBudgetCents?: string;
+  paygRate?: ContractTieredPricingRate;
+  reservedRate?: ContractTieredPricingRate;
+  reservedVolume?: string;
+  sku?: string;
+};
+
+export type ContractSharedSKUBudget = {
+  paygBudgetCents?: string;
+  reservedBudgetCents?: string;
+  skus?: string[];
+};
+
+export type ContractMetadata = {
+  id?: string;
+  organizationId?: string;
+};
+
+type ContractAddress = {
+  countryCode?: string;
+};
+
+export type ContractBillingConfig = {
+  address?: ContractAddress;
+  billingType?: string;
+  channel?: string;
+  contractEndDate?: ContractDate;
+  contractStartDate?: ContractDate;
+};
+
+export type ContractPricingConfig = {
+  basePriceCents?: string;
+  billingPeriodEndDate?: ContractDate;
+  billingPeriodStartDate?: ContractDate;
+  maxSpendCents?: string;
+  sharedSkuBudgets?: ContractSharedSKUBudget[];
+  skuConfigs?: ContractSKUConfig[];
+};
+
+export type Contract = {
+  billingConfig?: ContractBillingConfig;
+  metadata?: ContractMetadata;
+  pricingConfig?: ContractPricingConfig;
 };

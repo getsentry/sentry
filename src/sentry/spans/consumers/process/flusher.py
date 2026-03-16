@@ -4,6 +4,7 @@ import multiprocessing.context
 import threading
 import time
 from collections.abc import Callable, Mapping
+from concurrent.futures import Future
 from functools import partial
 
 import orjson
@@ -17,15 +18,21 @@ from django.conf import settings
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
+from sentry.constants import DataCategory
+from sentry.models.project import Project
 from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.spans.buffer import SpansBuffer
 from sentry.utils import metrics
 from sentry.utils.arroyo import run_with_initialized_sentry
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
+from sentry.utils.outcomes import Outcome, track_outcome
 
 MAX_PROCESS_RESTARTS = 10
 
 logger = logging.getLogger(__name__)
+
+
+type ProduceToPipe = Callable[[int, KafkaPayload, int], None]
 
 
 class MultiProducer:
@@ -130,7 +137,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         buffer: SpansBuffer,
         next_step: ProcessingStrategy[FilteredPayload | int],
         max_processes: int | None = None,
-        produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
+        produce_to_pipe: ProduceToPipe | None = None,
     ):
         self.next_step = next_step
         self.max_processes = max_processes or len(buffer.assigned_shards)
@@ -179,6 +186,14 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             if self.process_healthy_since[process_index].value != 0:
                 break
 
+            process = self.processes[process_index]
+            if not process.is_alive():
+                shards = self.process_to_shards_map[process_index]
+                exitcode = getattr(process, "exitcode", None)
+                raise RuntimeError(
+                    f"process {process_index} (shards {shards}) exited during startup (exitcode={exitcode})"
+                )
+
             if time.time() - start_time > max_unhealthy_seconds:
                 shards = self.process_to_shards_map[process_index]
                 raise RuntimeError(
@@ -193,6 +208,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             self._create_process_for_shards(process_index, shards)
 
     def _create_process_for_shards(self, process_index: int, shards: list[int]):
+        use_stuck_detector = options.get("spans.buffer.flusher.use-stuck-detector")
         self.process_healthy_since[process_index].value = 0
 
         logger.info("Creating flusher process %s for shards %s", process_index, shards)
@@ -209,6 +225,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                 # synchronization primitives like multiprocessing.Value can
                 # only be done by the Process
                 shard_buffer,
+                use_stuck_detector=use_stuck_detector,
             )
             make_process = self.mp_context.Process
         else:
@@ -249,13 +266,9 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         current_drift,
         backpressure_since,
         healthy_since,
-        produce_to_pipe: Callable[[KafkaPayload], None] | None,
+        produce_to_pipe: ProduceToPipe | None,
     ) -> None:
         logger.info("Flusher process main started for shards %s", shards)
-
-        # TODO: remove once span buffer is live in all regions
-        scope = sentry_sdk.get_isolation_scope()
-        scope.level = "warning"
 
         shard_tag = ",".join(map(str, shards))
         sentry_sdk.set_tag("sentry_spans_buffer_component", "flusher")
@@ -267,15 +280,26 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             producer_futures = []
 
             if produce_to_pipe is not None:
-                produce = produce_to_pipe
+
+                def produce(project_id: int, payload: KafkaPayload, dropped: int) -> None:
+                    future: Future[None] = Future[None]()
+                    try:
+                        produce_to_pipe(project_id, payload, dropped)
+                        future.set_result(None)
+                    except Exception as e:
+                        future.set_exception(e)
+                    producer_futures.append((project_id, future, dropped))
+
                 producer_manager = None
             else:
                 logger.info("Flusher creating Kafka producer for shards %s", shard_tag)
                 producer_manager = MultiProducer(Topic.BUFFERED_SEGMENTS)
                 logger.info("Flusher Kafka producer created for shards %s", shard_tag)
 
-                def produce(payload: KafkaPayload) -> None:
-                    producer_futures.append(producer_manager.produce(payload))
+                def produce(project_id: int, payload: KafkaPayload, dropped: int) -> None:
+                    producer_futures.append(
+                        (project_id, producer_manager.produce(payload), dropped)
+                    )
 
             first_iteration = True
             while not stopped.value:
@@ -316,11 +340,31 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                             len(kafka_payload.value),
                             tags={"shard": shard_tag},
                         )
-                        produce(kafka_payload)
+                        produce(flushed_segment.project_id, kafka_payload, len(spans))
 
                 with metrics.timer("spans.buffer.flusher.wait_produce", tags={"shards": shard_tag}):
-                    for future in producer_futures:
-                        future.result()
+                    for project_id, future, dropped in producer_futures:
+                        try:
+                            future.result()
+                        except Exception:
+                            logger.exception("Error producing segment to Kafka")
+                            try:
+                                project = Project.objects.get_from_cache(id=project_id)
+                            except Project.DoesNotExist:
+                                logger.warning(
+                                    "Project does not exist for segment with dropped spans",
+                                    extra={"project_id": project_id},
+                                )
+                            else:
+                                track_outcome(
+                                    org_id=project.organization_id,
+                                    project_id=project_id,
+                                    key_id=None,
+                                    outcome=Outcome.INVALID,
+                                    reason="segment_too_large",
+                                    category=DataCategory.SPAN_INDEXED,
+                                    quantity=dropped,
+                                )
 
                 producer_futures.clear()
 
@@ -333,6 +377,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         except Exception:
             sentry_sdk.capture_exception()
             raise
+        finally:
+            from django.db import connections
+
+            connections.close_all()
 
     def poll(self) -> None:
         self.next_step.poll()
@@ -398,12 +446,14 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # Minimizing our Redis memory usage also makes COGS easier to reason
         # about.
         backpressure_secs = options.get("spans.buffer.flusher.backpressure-seconds")
-        for backpressure_since in self.process_backpressure_since.values():
+        for process_index, backpressure_since in self.process_backpressure_since.items():
             if (
                 backpressure_since.value > 0
                 and int(time.time()) - backpressure_since.value > backpressure_secs
             ):
-                metrics.incr("spans.buffer.flusher.backpressure")
+                shards = self.process_to_shards_map[process_index]
+                shard_tag = ",".join(map(str, shards))
+                metrics.incr("spans.buffer.flusher.backpressure", tags={"shard": shard_tag})
                 raise MessageRejected()
 
         # We set the drift. The backpressure based on redis memory comes after.
@@ -411,7 +461,11 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # negative value, effectively pausing flushing as well.
         if isinstance(message.payload, int):
             self.current_drift.value = drift = message.payload - int(time.time())
-            metrics.timing("spans.buffer.flusher.drift", drift)
+            metrics.timing(
+                "spans.buffer.flusher.drift",
+                drift,
+                tags={"slice_id": str(self.slice_id if self.slice_id is not None else "")},
+            )
 
         # We also pause insertion into Redis if Redis is too full. In this case
         # we cannot allow the flusher to progress either, as it would write
@@ -427,7 +481,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             if available > 0 and used / available > max_memory_percentage:
                 if not self.redis_was_full:
                     logger.fatal("Pausing consumer due to Redis being full")
-                metrics.incr("spans.buffer.flusher.hard_backpressure")
+                metrics.incr(
+                    "spans.buffer.flusher.hard_backpressure",
+                    tags={"slice_id": str(self.slice_id if self.slice_id is not None else "")},
+                )
                 self.redis_was_full = True
                 # Pause consumer if Redis memory is full. Because the drift is
                 # set before we emit backpressure, the flusher effectively

@@ -1,27 +1,26 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import TextField from 'sentry/components/forms/fields/textField';
-import List from 'sentry/components/list';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {List} from 'sentry/components/list';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type DerivedCodeMapping = {
   filename: string;
@@ -42,7 +41,7 @@ interface StacktraceLinkModalProps extends ModalRenderProps {
   platform?: string;
 }
 
-function StacktraceLinkModal({
+export function StacktraceLinkModal({
   closeModal,
   onSubmit,
   organization,
@@ -62,7 +61,9 @@ function StacktraceLinkModal({
 
   const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[] | null>(
     [
-      `/organizations/${organization.slug}/derive-code-mappings/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/derive-code-mappings/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           projectId: project.id,
@@ -153,7 +154,15 @@ function StacktraceLinkModal({
       provider: sourceCodeProviders[0]?.provider.name ?? 'unknown',
       organization,
     });
-    const parsingEndpoint = `/projects/${organization.slug}/${project.slug}/repo-path-parsing/`;
+    const parsingEndpoint = getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/repo-path-parsing/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+        },
+      }
+    );
     try {
       const configData = await api.requestPromise(parsingEndpoint, {
         method: 'POST',
@@ -166,7 +175,12 @@ function StacktraceLinkModal({
         },
       });
 
-      const configEndpoint = `/organizations/${organization.slug}/code-mappings/`;
+      const configEndpoint = getApiUrl(
+        '/organizations/$organizationIdOrSlug/code-mappings/',
+        {
+          path: {organizationIdOrSlug: organization.slug},
+        }
+      );
       await api.requestPromise(configEndpoint, {
         method: 'POST',
         data: {
@@ -272,7 +286,7 @@ function StacktraceLinkModal({
                         <div key={i} style={{display: 'flex', alignItems: 'center'}}>
                           <SuggestionOverflow>{suggestion}</SuggestionOverflow>
                           <CopyToClipboardButton
-                            borderless
+                            priority="transparent"
                             text={suggestion}
                             size="xs"
                             aria-label={t('Copy suggestion to clipboard')}
@@ -298,24 +312,24 @@ function StacktraceLinkModal({
         </Stack>
       </Body>
       <Footer>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" onClick={handleSubmit}>
             {t('Save')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );
 }
 
 const StyledList = styled(List)`
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   & > li {
     display: flex;
     padding-left: 0;
-    gap: ${space(1)};
+    gap: ${p => p.theme.space.md};
   }
 
   & > li:before {
@@ -327,7 +341,8 @@ const StyledList = styled(List)`
 const Suggestions = styled('div')`
   background-color: ${p => p.theme.colors.surface200};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md} ${p => p.theme.space.md}
+    ${p => p.theme.space.xl};
 `;
 
 const SuggestionOverflow = styled('div')`
@@ -351,5 +366,3 @@ const StyledTextField = styled(TextField)`
     margin-left: 0px;
   }
 `;
-
-export default StacktraceLinkModal;

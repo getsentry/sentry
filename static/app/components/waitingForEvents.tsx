@@ -3,10 +3,10 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -59,7 +59,9 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
           project={project}
           source="issues_list"
           disabled={!project}
-          title={project ? undefined : t('Select a project to create a sample event')}
+          tooltipProps={{
+            title: project ? undefined : t('Select a project to create a sample event'),
+          }}
         >
           {t('Create a sample event')}
         </CreateSampleEventButton>
@@ -103,13 +105,13 @@ const Wrapper = styled('div')`
   justify-content: center;
   font-size: ${p => p.theme.font.size.lg};
   border-radius: 0 0 3px 3px;
-  padding: 40px ${space(3)};
+  padding: 40px ${p => p.theme.space['2xl']};
   min-height: 260px;
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column;
     align-items: center;
-    padding: ${space(3)};
+    padding: ${p => p.theme.space['2xl']};
     text-align: center;
   }
 `;

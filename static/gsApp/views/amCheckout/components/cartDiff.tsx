@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import color from 'color';
 import isEqual from 'lodash/isEqual';
 
-import {Button} from 'sentry/components/core/button';
-import {Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -281,7 +282,7 @@ function OnDemandDiff({
   );
 }
 
-function CartDiff({
+export function CartDiff({
   activePlan,
   formData,
   subscription,
@@ -572,7 +573,7 @@ function CartDiff({
         <Button
           aria-label={`${isOpen ? 'Hide' : 'Show'} changes`}
           onClick={() => onToggle(!isOpen)}
-          borderless
+          priority="transparent"
           size="zero"
           icon={<IconChevron direction={isOpen ? 'up' : 'down'} />}
         />
@@ -614,8 +615,6 @@ function CartDiff({
     </Stack>
   );
 }
-
-export default CartDiff;
 
 const Change = styled('div')`
   display: flex;

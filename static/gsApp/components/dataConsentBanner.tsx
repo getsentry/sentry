@@ -4,18 +4,18 @@ import styled from '@emotion/styled';
 import dataConsentImage from 'sentry-images/spot/add-integration-provider.svg';
 import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
+import {Button} from '@sentry/scraps/button';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/core/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import getOrganizationAge from 'sentry/utils/getOrganizationAge';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {getOrganizationAge} from 'sentry/utils/getOrganizationAge';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {openDataConsentModal} from 'getsentry/actionCreators/modal';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 
 const titles = {
@@ -84,7 +84,7 @@ function DataConsentBanner({
         analyticsEventName="Data Consent Banner: Dismissed"
         analyticsParams={{source}}
         size="zero"
-        borderless
+        priority="transparent"
         icon={<IconClose size="xs" />}
         aria-label={t('Dismiss')}
         onClick={() => dismissPrompt()}
@@ -106,8 +106,8 @@ const DataConsentBannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(2)};
-  margin-bottom: ${space(2)};
+  padding: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
   grid-column: 1 / -1;
   background: linear-gradient(
     90deg,
@@ -119,7 +119,7 @@ const DataConsentBannerWrapper = styled('div')`
 
 const DataConsentBannerTitle = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-weight: 600;
 `;
 
@@ -180,8 +180,8 @@ const LeftStars = styled('img')`
 
 const DismissButton = styled(Button)`
   position: absolute;
-  top: ${space(1)};
-  right: ${space(1)};
+  top: ${p => p.theme.space.md};
+  right: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
   z-index: 1;
 `;

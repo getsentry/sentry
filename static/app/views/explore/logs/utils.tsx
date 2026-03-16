@@ -20,7 +20,7 @@ import {
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   LOGS_AGGREGATE_FN_KEY,
@@ -185,9 +185,14 @@ export function adjustAliases(attribute: TraceItemResponseAttribute) {
 export function getTableHeaderLabel(
   field: OurLogFieldKey,
   stringAttributes?: TagCollection,
-  numberAttributes?: TagCollection
+  numberAttributes?: TagCollection,
+  booleanAttributes?: TagCollection
 ) {
-  const attribute = stringAttributes?.[field] ?? numberAttributes?.[field] ?? null;
+  const attribute =
+    stringAttributes?.[field] ??
+    numberAttributes?.[field] ??
+    booleanAttributes?.[field] ??
+    null;
 
   return (
     LogAttributesHumanLabel[field] ?? attribute?.name ?? prettifyAttributeName(field)
@@ -372,7 +377,8 @@ export function getLogsUrl({
   const {start, end, period: statsPeriod, utc} = selection?.datetime ?? {};
   const {environments, projects} = selection ?? {};
   const queryParams = {
-    project: projects,
+    // Pass empty string when projects is empty to preserve "My Projects" selection in URL
+    project: projects?.length === 0 ? '' : projects,
     environment: environments,
     statsPeriod,
     start,

@@ -1,12 +1,12 @@
 import {useCallback} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   TraceItemDataset,
   UseTraceItemAttributeBaseProps,
@@ -21,7 +21,7 @@ type TraceItemAttributeKeyOptions = Pick<
   ReturnType<typeof normalizeDateTimeParams>,
   'end' | 'start' | 'statsPeriod' | 'utc'
 > & {
-  attributeType: 'string' | 'number';
+  attributeType: 'string' | 'number' | 'boolean';
   itemType: TraceItemDataset;
   project?: string[];
   query?: string;
@@ -38,7 +38,7 @@ export function makeTraceItemAttributeKeysQueryOptions({
 }: {
   datetime: PageFilters['datetime'];
   traceItemType: TraceItemDataset;
-  type: 'string' | 'number';
+  type: 'string' | 'number' | 'boolean';
   projectIds?: Array<string | number>;
   query?: string;
   search?: string;
@@ -100,7 +100,7 @@ export function useGetTraceItemAttributeKeys({
   return getTraceItemAttributeKeys;
 }
 
-export function getTraceItemTagCollection(
+function getTraceItemTagCollection(
   result: Tag[],
   type: UseGetTraceItemAttributeKeysProps['type']
 ): TagCollection {
@@ -115,15 +115,22 @@ export function getTraceItemTagCollection(
     // SnQL forbids `-` but is allowed in RPC. So add it back later
     if (
       !/^[a-zA-Z0-9_.:-]+$/.test(attribute.key) &&
-      !/^tags\[[a-zA-Z0-9_.:-]+,number\]$/.test(attribute.key)
+      !/^tags\[[a-zA-Z0-9_.:-]+,(number|boolean)\]$/.test(attribute.key)
     ) {
       continue;
+    }
+
+    let kind = FieldKind.TAG;
+    if (type === 'number') {
+      kind = FieldKind.MEASUREMENT;
+    } else if (type === 'boolean') {
+      kind = FieldKind.BOOLEAN;
     }
 
     attributes[attribute.key] = {
       key: attribute.key,
       name: attribute.name,
-      kind: type === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG,
+      kind,
       secondaryAliases: attribute?.secondaryAliases ?? [],
     };
   }

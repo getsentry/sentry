@@ -1,10 +1,11 @@
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -109,7 +110,7 @@ export function Toolbar({
         <Button
           size="xs"
           aria-label={t('Open Full-Screen View')}
-          borderless
+          priority="transparent"
           icon={<IconExpand />}
           onClick={onOpenFullScreen}
         />

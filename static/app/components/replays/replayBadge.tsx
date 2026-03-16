@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
 import invariant from 'invariant';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Grid} from 'sentry/components/core/layout';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Text} from 'sentry/components/core/text';
+import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import TimeSince from 'sentry/components/timeSince';
@@ -14,7 +13,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import * as events from 'sentry/utils/events';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -22,7 +21,7 @@ interface Props {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 }
 
-export default function ReplayBadge({replay}: Props) {
+export function ReplayBadge({replay}: Props) {
   const project = useProjectFromId({project_id: replay.project_id ?? undefined});
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
@@ -94,7 +93,9 @@ export default function ReplayBadge({replay}: Props) {
           <Text size="sm" variant="muted">
             {events.getShortEventId(replay.id)}
           </Text>
-          <Flex gap="xs" align="center">
+          {/* z-index lifts the timestamp above the row's ::before click target
+             (from SimpleTable.rowLinkStyle) so the TimeSince tooltip can trigger */}
+          <Flex gap="xs" align="center" position="relative" style={{zIndex: 1}}>
             <IconCalendar variant="muted" size="xs" />
             <Text size="sm" variant="muted">
               {timestampType === 'absolute' ? (

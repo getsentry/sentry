@@ -10,6 +10,7 @@ class JsSdkLoaderRendered(analytics.Event):
     has_replay: bool
     has_debug: bool
     has_feedback: bool
+    has_logs_and_metrics: bool
     sdk_version: str | None
     tmpl: str
 

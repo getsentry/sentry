@@ -1,17 +1,18 @@
 import {Component} from 'react';
 import debounce from 'lodash/debounce';
 
+import type {GeneralSelectValue} from '@sentry/scraps/select';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import type {GeneralSelectValue} from 'sentry/components/core/select';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import type {Field, FieldValue, OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
-import withApi from 'sentry/utils/withApi';
+import {replaceAtArrayIndex} from 'sentry/utils/array/replaceAtArrayIndex';
+import {withApi} from 'sentry/utils/withApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not
 const hasValue = (value: any) => !!value || value === 0;
@@ -284,7 +285,7 @@ class SentryAppExternalForm extends Component<Props, State> {
     let requiredFields = config.required_fields || [];
     let optionalFields = config.optional_fields || [];
 
-    const fieldList: FieldFromSchema[] = requiredFields.concat(optionalFields);
+    const fieldList = requiredFields.concat(optionalFields);
 
     // could have multiple impacted fields
     const impactedFields = fieldList.filter(({depends_on}) => {

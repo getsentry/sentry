@@ -6,18 +6,21 @@ import color from 'color';
 import type {LineSeriesOption, TooltipComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Feature from 'sentry/components/acl/feature';
 import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert';
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {
   transformComparisonTimeseriesData,
   transformTimeseriesData,
 } from 'sentry/components/charts/eventsRequest';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {
   ChartControls,
   HeaderTitleLegend,
@@ -26,30 +29,27 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
-import CircleIndicator from 'sentry/components/circleIndicator';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
+import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
@@ -153,7 +153,7 @@ function getRuleChangeSeries(
   ];
 }
 
-export default function MetricChart({
+export function MetricChart({
   rule,
   project,
   timePeriod,
@@ -329,7 +329,7 @@ export default function MetricChart({
                 <LinkButton
                   size="sm"
                   disabled={disableEapButton}
-                  title={disabledTooltip}
+                  tooltipProps={{title: disabledTooltip}}
                   {...props}
                 >
                   {buttonText}
@@ -727,11 +727,11 @@ function getMetricChartTooltipFormatter({
 }
 
 const ChartPanel = styled(Panel)`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const ChartHeader = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const StyledChartControls = styled(ChartControls)`
@@ -742,13 +742,13 @@ const StyledChartControls = styled(ChartControls)`
 
 const StyledInlineContainer = styled(InlineContainer)`
   grid-auto-flow: column;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
 `;
 
 const StyledCircleIndicator = styled(CircleIndicator)`
   background: ${p => p.theme.tokens.graphics.neutral.vibrant};
-  height: ${space(1)};
-  margin-right: ${space(0.5)};
+  height: ${p => p.theme.space.md};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const ChartFilters = styled('div')`
@@ -761,7 +761,7 @@ const ChartFilters = styled('div')`
 `;
 
 const Filters = styled('span')`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const QueryFilters = styled('span')`
@@ -776,17 +776,17 @@ const QueryFilters = styled('span')`
 const StyledSectionValue = styled(SectionValue)`
   display: grid;
   grid-template-columns: repeat(4, auto);
-  gap: ${space(1.5)};
-  margin: 0 0 0 ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
+  margin: 0 0 0 ${p => p.theme.space.lg};
 `;
 
 const ValueItem = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   font-variant-numeric: tabular-nums;
-  text-underline-offset: ${space(4)};
+  text-underline-offset: ${p => p.theme.space['3xl']};
 `;
 
 /* Override padding to make chart appear centered */
@@ -797,9 +797,9 @@ const StyledPanelBody = styled(PanelBody)`
 const TriggerChartPlaceholder = styled(Placeholder)`
   height: 200px;
   text-align: center;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;
 
 const StyledTooltip = styled(Tooltip)`
-  text-underline-offset: ${space(0.5)} !important;
+  text-underline-offset: ${p => p.theme.space.xs} !important;
 `;

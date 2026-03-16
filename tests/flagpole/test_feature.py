@@ -5,7 +5,13 @@ import orjson
 import pytest
 import yaml
 
-from flagpole import ContextBuilder, EvaluationContext, Feature, InvalidFeatureFlagConfiguration
+from flagpole import (
+    ContextBuilder,
+    EvaluationContext,
+    Feature,
+    InvalidFeatureFlagConfiguration,
+    OwnerInfo,
+)
 from flagpole.conditions import ConditionOperatorKind
 
 
@@ -26,7 +32,7 @@ class TestParseFeatureConfig:
             """
             {
                 "created_at": "2023-10-12T00:00:00.000Z",
-                "owner": "test-owner",
+                "owner": {"team": "test-owner", "email": "test-owner@sentry.io"},
                 "segments": []
             }
             """,
@@ -34,7 +40,7 @@ class TestParseFeatureConfig:
 
         assert feature.name == "foobar"
         assert feature.created_at == "2023-10-12T00:00:00.000Z"
-        assert feature.owner == "test-owner"
+        assert feature.owner == OwnerInfo(team="test-owner", email="test-owner@sentry.io")
         assert feature.segments == []
 
         assert not feature.match(EvaluationContext(dict()))
@@ -44,7 +50,7 @@ class TestParseFeatureConfig:
             "foo",
             """
             {
-                "owner": "test-user",
+                "owner": {"team": "test-user", "email": "test-user@sentry.io"},
                 "created_at": "2023-10-12T00:00:00.000Z",
                 "segments": [{
                     "name": "always_pass_segment",
@@ -60,6 +66,7 @@ class TestParseFeatureConfig:
         )
 
         context_builder = self.get_is_true_context_builder(is_true_value=True)
+        assert feature.owner == OwnerInfo(team="test-user", email="test-user@sentry.io")
         assert feature.segments[0].rollout == 100
         assert feature.match(context_builder.build(SimpleTestContextData()))
 
@@ -69,7 +76,7 @@ class TestParseFeatureConfig:
             """
             {
                 "created_at": "2023-10-12T00:00:00.000Z",
-                "owner": "test-owner",
+                "owner": {"team": "test-owner"},
                 "segments": [
                     {
                         "name": "exclude",
@@ -109,7 +116,7 @@ class TestParseFeatureConfig:
             """
             {
                 "created_at": "2023-10-12T00:00:00.000Z",
-                "owner": "test-owner",
+                "owner": {"team": "test-owner"},
                 "segments": [
                     {
                         "name": "multiple conditions",
@@ -143,7 +150,7 @@ class TestParseFeatureConfig:
             """
             {
                 "created_at": "2023-10-12T00:00:00.000Z",
-                "owner": "test-owner",
+                "owner": {"team": "test-owner"},
                 "segments": [{
                     "name": "segment1",
                     "rollout": 100,
@@ -157,6 +164,7 @@ class TestParseFeatureConfig:
             """,
         )
         assert feature.name == "foobar"
+        assert feature.owner == OwnerInfo(team="test-owner", email=None)
         assert len(feature.segments) == 1
         assert feature.segments[0].name == "segment1"
         assert feature.segments[0].rollout == 100
@@ -178,7 +186,7 @@ class TestParseFeatureConfig:
     def test_validate_invalid_schema(self) -> None:
         config = """
         {
-            "owner": "sentry",
+            "owner": {"team": "sentry"},
             "created_at": "2024-05-14",
             "segments": [
                 {
@@ -196,7 +204,7 @@ class TestParseFeatureConfig:
 
         config = """
         {
-            "owner": "sentry",
+            "owner": {"team": "sentry"},
             "created_at": "2024-05-14",
             "segments": [
                 {
@@ -221,7 +229,7 @@ class TestParseFeatureConfig:
     def test_validate_valid(self) -> None:
         config = """
         {
-            "owner": "sentry",
+            "owner": {"team": "sentry"},
             "created_at": "2024-05-14",
             "segments": [
                 {
@@ -248,7 +256,7 @@ class TestParseFeatureConfig:
     def test_invalid_operator_condition(self) -> None:
         config = """
         {
-            "owner": "sentry",
+            "owner": {"team": "sentry"},
             "segments": [
                 {
                     "name": "derp",
@@ -268,7 +276,7 @@ class TestParseFeatureConfig:
             "foo",
             """
             {
-                "owner": "test-user",
+                "owner": {"team": "test-user"},
                 "created_at": "2023-10-12T00:00:00.000Z",
                 "segments": [{
                     "name": "always_pass_segment",
@@ -292,7 +300,7 @@ class TestParseFeatureConfig:
             "foo",
             """
             {
-                "owner": "test-user",
+                "owner": {"team": "test-user"},
                 "enabled": false,
                 "created_at": "2023-12-12T00:00:00.000Z",
                 "segments": [{
@@ -317,7 +325,7 @@ class TestParseFeatureConfig:
             "foo",
             """
             {
-                "owner": "test-user",
+                "owner": {"team": "test-user"},
                 "created_at": "2023-12-12T00:00:00.000Z",
                 "segments": [{
                     "name": "always_pass_segment",

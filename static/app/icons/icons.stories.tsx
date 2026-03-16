@@ -4,20 +4,20 @@ import lowerFirst from 'lodash/lowerFirst';
 import {parseAsString, useQueryState} from 'nuqs';
 import {PlatformIcon, platforms} from 'platformicons';
 
+import {Tag} from '@sentry/scraps/badge';
 import {InlineCode} from '@sentry/scraps/code';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex, Grid, Stack} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {Sticky} from 'sentry/components/sticky';
 import * as Icons from 'sentry/icons';
 import {type SVGIconProps} from 'sentry/icons/svgIcon';
 import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useKeyPress from 'sentry/utils/useKeyPress';
+import {fzf} from 'sentry/utils/search/fzf';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 import {
   IdentityIcon,
@@ -223,38 +223,6 @@ const SECTIONS: TSection[] = [
           'all',
         ],
         name: 'AllProjects',
-        defaultProps: {},
-      },
-
-      {
-        id: 'building',
-        groups: ['product'],
-        keywords: [
-          'business',
-          'office',
-          'company',
-          'corporate',
-          'organization',
-          'integration',
-          'github',
-          'external',
-          'integratedOrganization',
-        ],
-        name: 'Building',
-        defaultProps: {},
-      },
-      {
-        id: 'branch',
-        groups: ['product'],
-        keywords: ['git', 'version control', 'branch', 'development', 'code'],
-        name: 'Branch',
-        defaultProps: {},
-      },
-      {
-        id: 'repository',
-        groups: ['product'],
-        keywords: ['git', 'repo', 'code', 'version control', 'project'],
-        name: 'Repository',
         defaultProps: {},
       },
     ],
@@ -652,6 +620,13 @@ const SECTIONS: TSection[] = [
         groups: ['status'],
         keywords: ['angry', 'rage', 'face', 'mad', 'upset', 'emotion'],
         name: 'Angry',
+        defaultProps: {},
+      },
+      {
+        id: 'bug',
+        groups: ['status'],
+        keywords: ['bug', 'error', 'issue', 'problem', 'defect'],
+        name: 'Bug',
         defaultProps: {},
       },
       {
@@ -1392,41 +1367,7 @@ const SECTIONS: TSection[] = [
         name: 'Print',
         defaultProps: {},
       },
-      {
-        id: 'code',
-        groups: ['device'],
-        keywords: ['snippet', 'javascript', 'json', 'curly', 'source', 'programming'],
-        name: 'Code',
-        defaultProps: {},
-      },
-      {
-        id: 'json',
-        groups: ['device'],
-        keywords: ['snippet', 'code', 'javascript', 'source', 'data', 'format'],
-        name: 'Json',
-        defaultProps: {},
-      },
-      {
-        id: 'markdown',
-        groups: ['device'],
-        keywords: ['code', 'text', 'format', 'documentation'],
-        name: 'Markdown',
-        defaultProps: {},
-      },
-      {
-        id: 'terminal',
-        groups: ['device', 'device'],
-        keywords: ['code', 'bash', 'command', 'shell', 'console'],
-        name: 'Terminal',
-        defaultProps: {},
-      },
-      {
-        id: 'commit',
-        groups: ['device'],
-        keywords: ['git', 'github', 'version', 'save', 'repository'],
-        name: 'Commit',
-        defaultProps: {},
-      },
+
       {
         id: 'mobile',
         groups: ['device'],
@@ -1492,9 +1433,102 @@ const SECTIONS: TSection[] = [
       },
     ],
   },
+  {
+    id: 'code',
+    label: 'Code',
+    icons: [
+      {
+        id: 'branch',
+        groups: ['product'],
+        keywords: ['git', 'version control', 'branch', 'development', 'code'],
+        name: 'Branch',
+        defaultProps: {},
+      },
+      {
+        id: 'building',
+        groups: ['product'],
+        keywords: [
+          'business',
+          'office',
+          'company',
+          'corporate',
+          'organization',
+          'integration',
+          'github',
+          'external',
+          'integratedOrganization',
+        ],
+        name: 'Building',
+        defaultProps: {},
+      },
+      {
+        id: 'code',
+        groups: ['code'],
+        keywords: ['snippet', 'javascript', 'source', 'programming'],
+        name: 'Code',
+        defaultProps: {},
+      },
+      {
+        id: 'commit',
+        groups: ['code'],
+        keywords: ['git', 'github', 'version', 'save', 'repository'],
+        name: 'Commit',
+        defaultProps: {},
+      },
+      {
+        id: 'json',
+        groups: ['code'],
+        keywords: ['snippet', 'code', 'curly', 'javascript', 'source', 'data', 'format'],
+        name: 'Json',
+        defaultProps: {},
+      },
+      {
+        id: 'markdown',
+        groups: ['code'],
+        keywords: ['code', 'text', 'format', 'documentation'],
+        name: 'Markdown',
+        defaultProps: {},
+      },
+      {
+        id: 'merge',
+        groups: ['code'],
+        keywords: ['git', 'repo', 'code', 'version control', 'project'],
+        name: 'Merge',
+        defaultProps: {},
+      },
+      {
+        id: 'pullRequest',
+        groups: ['code'],
+        keywords: ['git', 'repo', 'code', 'version control', 'project'],
+        name: 'PullRequest',
+        defaultProps: {},
+      },
+      {
+        id: 'pullRequestClosed',
+        groups: ['code'],
+        keywords: ['git', 'repo', 'code', 'version control', 'project'],
+        name: 'PullRequestClosed',
+        defaultProps: {},
+      },
+      {
+        id: 'repository',
+        groups: ['code'],
+        keywords: ['git', 'repo', 'code', 'version control', 'project'],
+        name: 'Repository',
+        defaultProps: {},
+      },
+      {
+        id: 'terminal',
+        groups: ['code'],
+        keywords: ['code', 'bash', 'command', 'shell', 'console'],
+        name: 'Terminal',
+        defaultProps: {},
+      },
+    ],
+  },
 ];
 
-export default function IconsStories() {
+export function IconsStories() {
   const [searchTerm, setSearchTerm] = useQueryState(
     'search',
     parseAsString.withDefault('')

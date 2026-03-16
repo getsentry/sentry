@@ -1,6 +1,6 @@
 import trimStart from 'lodash/trimStart';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
@@ -28,6 +28,7 @@ import type {
 } from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {getNumEquations} from 'sentry/views/dashboards/utils';
+import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
@@ -115,6 +116,10 @@ export type WidgetQueryParams = {
    * Skip adding parentheses around widget conditions when applying dashboard filters.
    */
   skipDashboardFilterParens?: boolean;
+  /**
+   * Optional user-selected interval override for timeseries queries.
+   */
+  widgetInterval?: string;
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
@@ -161,6 +166,15 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     pageFilters: PageFilters
   ) => TableData;
+  /**
+   * Default Y-axis range for this dataset. Defaults to 'auto' if not set.
+   */
+  axisRange?: AxisRange;
+  /**
+   * Default field to use as the X-axis category for categorical bar charts.
+   * This should be a non-aggregate field name (e.g., 'transaction', 'browser').
+   */
+  defaultCategoryField?: string;
   /**
    * Default field to add to the widget query when adding a new field for series display type.
    */
@@ -229,7 +243,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getFieldHeaderMap?: (widgetQuery?: WidgetQuery) => Record<string, string>;
   /**
-   * Field options to display in the Group by selector.
+   * Field options to display in the Group by selector and the X axis selector
    */
   getGroupByFieldOptions?: (
     organization: Organization,
@@ -238,21 +252,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     api?: Client,
     queries?: WidgetQuery[]
   ) => Record<string, SelectValue<FieldValue>>;
-  /**
-   * Generate the request promises for fetching
-   * series data.
-   */
-  getSeriesRequest?: (
-    api: Client,
-    widget: Widget,
-    queryIndex: number,
-    organization: Organization,
-    pageFilters: PageFilters,
-    onDemandControlContext?: OnDemandControlContext,
-    referrer?: string,
-    mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
-  ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Get the result type of the series. ie duration, size, percentage, etc
    */
@@ -267,23 +266,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     data: SeriesResponse,
     widgetQuery: WidgetQuery
   ) => Record<string, DataUnit>;
-  /**
-   * Generate the request promises for fetching
-   * tabular data.
-   */
-  getTableRequest?: (
-    api: Client,
-    widget: Widget,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    onDemandControlContext?: OnDemandControlContext,
-    limit?: number,
-    cursor?: string,
-    referrer?: string,
-    mepSetting?: MEPState | null,
-    samplingMode?: SamplingMode
-  ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table
    * displays on the 'Sort by' step of the Widget Builder.
@@ -327,15 +309,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   useSearchBarDataProvider?: (props: SearchBarDataProviderProps) => SearchBarData;
 
   /**
-   * Hook-based approach for fetching series data
+   * Hook-based approach for fetching series data.
    * Returns transformed data, raw responses for callbacks, and refetch function.
-   * This replaces getSeriesRequest when available.
    */
   useSeriesQuery?: (params: WidgetQueryParams) => HookWidgetQueryResult;
   /**
-   * Hook-based approach for fetching table data
+   * Hook-based approach for fetching table data.
    * Returns transformed data, raw responses for callbacks, and refetch function.
-   * This replaces getTableRequest when available.
    */
   useTableQuery?: (params: WidgetQueryParams) => HookWidgetQueryResult;
 }
@@ -360,16 +340,16 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
                 ? typeof MobileAppSizeConfig
                 : typeof ErrorsAndTransactionsConfig;
 
-export function getDatasetConfig(
-  widgetType?: WidgetType
-):
+export function getDatasetConfig(widgetType?: WidgetType):
   | typeof IssuesConfig
   | typeof ReleasesConfig
   | typeof ErrorsAndTransactionsConfig
+  /* eslint-disable @typescript-eslint/no-duplicate-type-constituents */
   | typeof ErrorsConfig
   | typeof TransactionsConfig
   | typeof LogsConfig
   | typeof SpansConfig
+  /* eslint-enable @typescript-eslint/no-duplicate-type-constituents */
   | typeof TraceMetricsConfig
   | typeof MobileAppSizeConfig {
   switch (widgetType) {

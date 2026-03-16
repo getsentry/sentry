@@ -1,22 +1,20 @@
 import React from 'react';
-import {Link} from 'react-router-dom';
 
-import {FeatureBadge} from '@sentry/scraps/badge/featureBadge';
-import {Button} from '@sentry/scraps/button';
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import ConfirmDelete from 'sentry/components/confirmDelete';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import IdBadge from 'sentry/components/idBadge';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {
   IconDelete,
   IconDownload,
@@ -26,13 +24,18 @@ import {
   IconTelescope,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  isSizeInfoCompleted,
+  isSizeInfoRetryable,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {makeReleasesUrl} from 'sentry/views/preprod/utils/releasesUrl';
 
@@ -41,14 +44,15 @@ import {useBuildDetailsActions} from './useBuildDetailsActions';
 interface BuildDetailsHeaderContentProps {
   artifactId: string;
   buildDetailsQuery: UseApiQueryResult<BuildDetailsApiResponse, RequestError>;
-  projectId: string;
+  projectSlug: string;
   projectType: string | null;
 }
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const isSentryEmployee = useIsSentryEmployee();
-  const {buildDetailsQuery, projectId, artifactId, projectType} = props;
+  const {buildDetailsQuery, projectSlug, artifactId, projectType} = props;
   const {
     isDeletingArtifact,
     isRerunningStatusChecks,
@@ -57,7 +61,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     handleDownloadAction,
     handleRerunStatusChecksAction,
   } = useBuildDetailsActions({
-    projectId,
+    projectId: projectSlug,
     artifactId,
   });
 
@@ -85,11 +89,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     );
   }
 
-  const project = ProjectsStore.getById(projectId);
+  const project = ProjectsStore.getBySlug(projectSlug);
 
   const breadcrumbs: Crumb[] = [
     {
-      to: makeReleasesUrl(organization.slug, projectId, {tab: 'mobile-builds'}),
+      to: makeReleasesUrl(organization.slug, projectSlug, {tab: 'mobile-builds'}),
       label: 'Releases',
     },
   ];
@@ -99,7 +103,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
 
   if (version) {
     breadcrumbs.push({
-      to: makeReleasesUrl(organization.slug, projectId, {
+      to: makeReleasesUrl(organization.slug, projectSlug, {
         query: version,
         tab: 'mobile-builds',
       }),
@@ -119,14 +123,27 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     }
   }
 
+  const areActionsEnabled = isSizeInfoCompleted(buildDetailsData?.size_info);
+  const canRerunStatusChecks =
+    areActionsEnabled || isSizeInfoRetryable(buildDetailsData?.size_info);
+
   const handleCompareClick = () => {
+    if (!areActionsEnabled) {
+      return;
+    }
     trackAnalytics('preprod.builds.details.compare_build_clicked', {
       organization,
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
       project_type: projectType,
-      project_slug: projectId,
+      project_slug: project?.slug,
     });
+    navigate(
+      getCompareBuildPath({
+        organizationSlug: organization.slug,
+        headArtifactId: buildDetailsData.id,
+      })
+    );
   };
 
   const handleConfirmDelete = () => {
@@ -135,7 +152,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       organization,
       platform: buildDetailsData.app_info?.platform ?? null,
       build_id: buildDetailsData.id,
-      project_slug: projectId,
+      project_slug: project?.slug,
       project_type: projectType,
     });
   };
@@ -145,7 +162,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
       <Layout.HeaderContent>
         <Flex align="center" gap="sm">
           <Breadcrumbs crumbs={breadcrumbs} />
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
         </Flex>
         <Layout.Title>
           <Flex align="center" gap="sm" minHeight="1lh">
@@ -165,25 +182,29 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               },
             }}
           />
-          <Link
-            to={getCompareBuildPath({
-              organizationSlug: organization.slug,
-              projectId,
-              headArtifactId: buildDetailsData.id,
-            })}
+          <Button
+            size="sm"
+            priority="default"
+            icon={<IconTelescope />}
             onClick={handleCompareClick}
+            disabled={!areActionsEnabled}
+            tooltipProps={{
+              title: areActionsEnabled
+                ? undefined
+                : t('Size analysis must be completed to compare builds'),
+            }}
           >
-            <Button size="sm" priority="default" icon={<IconTelescope />}>
-              {t('Compare Build')}
-            </Button>
-          </Link>
-          <Feature features="organizations:preprod-issues">
-            <LinkButton
-              size="sm"
-              icon={<IconSettings />}
-              aria-label={t('Settings')}
-              to={`/settings/${organization.slug}/projects/${projectId}/mobile-builds/`}
-            />
+            {t('Compare Build')}
+          </Button>
+          <Feature features="organizations:preprod-frontend-routes">
+            {project && (
+              <LinkButton
+                size="sm"
+                icon={<IconSettings />}
+                aria-label={t('Settings')}
+                to={`/settings/${organization.slug}/projects/${project.slug}/mobile-builds/`}
+              />
+            )}
           </Feature>
           <ConfirmDelete
             message={t(
@@ -204,6 +225,10 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
                   ),
                   onAction: handleRerunStatusChecksAction,
                   textValue: t('Rerun Status Checks'),
+                  disabled: !canRerunStatusChecks,
+                  tooltip: canRerunStatusChecks
+                    ? undefined
+                    : t('Size analysis must be completed to rerun status checks'),
                 },
                 {
                   key: 'delete',

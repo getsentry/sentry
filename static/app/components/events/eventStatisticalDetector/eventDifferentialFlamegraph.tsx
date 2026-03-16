@@ -3,20 +3,19 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Link} from 'sentry/components/core/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
 import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -38,8 +37,7 @@ import type {DifferentialFlamegraphQueryResult} from 'sentry/utils/profiling/hoo
 import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
 
 interface EventDifferentialFlamegraphProps {
@@ -292,9 +290,7 @@ function paginationReducer(
 
 interface DifferentialFlamegraphChangedFunctionsProps {
   flamegraph: DifferentialFlamegraphModel;
-  functions:
-    | DifferentialFlamegraphModel['increasedFrames']
-    | DifferentialFlamegraphModel['newFrames'];
+  functions: FlamegraphFrame[];
   loading: boolean;
   makeFunctionLink: (frame: FlamegraphFrame) => LocationDescriptor;
   subtitle: string;
@@ -421,10 +417,10 @@ const DifferentialFlamegraphFunctionsWrapper = styled('div')`
   flex: 1;
   width: 50%;
   &:first-child {
-    padding-right: ${space(0.5)};
+    padding-right: ${p => p.theme.space.xs};
   }
   &:nth-child(2) {
-    padding-left: ${space(0.5)};
+    padding-left: ${p => p.theme.space.xs};
   }
 `;
 
@@ -434,7 +430,7 @@ const DifferentialFlamegraphFunctionColorIndicator = styled('div')`
   border-radius: 2px;
   display: inline-block;
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
   background-color: ${p => p.theme.colors.green400};
 `;
 
@@ -483,8 +479,8 @@ const DifferentialFlamegraphChangedFunctionContainer = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  gap: ${space(1)};
-  padding: ${space(0.5)} 0;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xs} 0;
 
   > *:first-child {
     min-width: 0;
@@ -514,7 +510,7 @@ const DifferentialFlamegraphExplanationBarContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   border-radius: 0 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md};
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.tokens.content.secondary};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
@@ -568,7 +564,7 @@ function DifferentialFlamegraphChangedFunctionsTitle(props: {
           {props.subtitle}
         </DifferentialFlamegraphChangedFunctionsSubtitleText>
       </DifferentialFlamegraphChangedFunctionsTitleText>
-      <ButtonBar merged gap="0">
+      <ButtonBar>
         <DifferentialFlamegraphPaginationButton
           size="xs"
           disabled={!props.onPreviousPageClick}
@@ -600,8 +596,8 @@ const DifferentialFlamegraphChangedFunctionsSubtitleText = styled('div')`
 `;
 
 const DifferentialFlamegraphPaginationButton = styled(Button)`
-  padding-left: ${space(0.75)};
-  padding-right: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
+  padding-right: ${p => p.theme.space.sm};
 `;
 
 const ErrorMessageContainer = styled('div')`
@@ -614,7 +610,7 @@ const ErrorMessageContainer = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.secondary};
   text-align: center;
-  padding: ${space(2)} ${space(4)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
 `;
 
 const StyledPanel = styled(Panel)`

@@ -1,12 +1,13 @@
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SeerOnboardingCheckResponse {
   hasSupportedScmIntegration: boolean;
   isAutofixEnabled: boolean;
   isCodeReviewEnabled: boolean;
   isSeerConfigured: boolean;
+  needsConfigReminder: boolean;
 }
 
 export function useSeerOnboardingCheck({

@@ -1,10 +1,7 @@
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {space} from 'sentry/styles/space';
+import type {ButtonProps, LinkButtonProps} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 
 interface FooterWithButtonsProps {
   buttonText: string;
@@ -15,7 +12,7 @@ interface FooterWithButtonsProps {
   onClick?: ButtonProps['onClick'] | LinkButtonProps['onClick'];
 }
 
-export default function FooterWithButtons({
+export function FooterWithButtons({
   buttonText,
   disabled,
   formFields,
@@ -61,5 +58,5 @@ const Footer = styled('form')`
   z-index: 100;
   background-color: ${p => p.theme.tokens.background.secondary};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;

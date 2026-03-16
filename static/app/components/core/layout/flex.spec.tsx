@@ -7,8 +7,8 @@ import {
   Flex,
   type FlexProps,
   type FlexPropsWithRenderFunction,
-} from 'sentry/components/core/layout';
-import type {Responsive} from 'sentry/components/core/layout/styles';
+} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
 
 describe('Flex', () => {
   it('renders children', () => {

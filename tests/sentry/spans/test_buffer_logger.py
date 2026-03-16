@@ -3,147 +3,257 @@ from __future__ import annotations
 from unittest import mock
 from unittest.mock import call
 
-from sentry.spans.buffer_logger import BufferLogger, compare_metrics, emit_observability_metrics
+from sentry.spans.buffer_logger import (
+    BufferLogger,
+    FlusherLogEntry,
+    FlusherLogger,
+    emit_observability_metrics,
+)
 from sentry.testutils.helpers.options import override_options
 
 
-class TestBufferLogger:
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_accumulates_batches_and_tracks_cumulative_latency(mock_time):
+    """
+    Test that batches are accumulated with cumulative latency tracking,
+    and that trimming occurs when exceeding MAX_ENTRIES (1000).
+    """
+    with override_options({"spans.buffer.evalsha-cumulative-logger-enabled": True}):
+        mock_time.time.return_value = 1000.0
 
-    @mock.patch("sentry.spans.buffer_logger.logger")
-    @mock.patch("sentry.spans.buffer_logger.time")
-    def test_logs_only_above_threshold_with_repeating_traces(self, mock_time, mock_logger):
-        with override_options({"spans.buffer.evalsha-latency-threshold": 100}):
-            mock_time.time.side_effect = [
-                1000.0,
-                1000.0,
-                1000.0,
-                1000.0,
-                1006.0,
-            ]
-
-            buffer_logger = BufferLogger()
-
-            # Log below threshold - should not be recorded, no time calls
-            buffer_logger.log("project1:trace1", latency_ms=50)
-            assert len(buffer_logger._data) == 0
-
-            # Log above threshold - should be recorded (calls time.time() twice)
-            buffer_logger.log("project1:trace1", latency_ms=150)
-            assert buffer_logger._data["project1:trace1"] == (1, 150)
-
-            buffer_logger.log("project1:trace1", latency_ms=200)
-            assert buffer_logger._data["project1:trace1"] == (2, 200)
-
-            buffer_logger.log("project2:trace2", latency_ms=120)
-            assert buffer_logger._data["project2:trace2"] == (1, 120)
-
-            buffer_logger.log("project1:trace1", latency_ms=180)
-
-            # Verify logging was called
-            assert mock_logger.info.call_count == 1
-
-            # Verify exact log content
-            call_args = mock_logger.info.call_args
-            assert call_args[0][0] == "spans.buffer.slow_evalsha_operations"
-            extra = call_args[1]["extra"]
-
-            # Check that logged entries include the correct format
-            entries = extra["top_slow_operations"]
-            assert "project1:trace1:3:200" in entries  # count=3, max_latency=200
-            assert "project2:trace2:1:120" in entries  # count=1, max_latency=120
-            assert extra["num_tracked_keys"] == 2  # only 2 unique keys tracked
-
-            # Verify data was cleared after logging
-            assert len(buffer_logger._data) == 0
-            assert buffer_logger._last_log_time is None
-
-    @mock.patch("sentry.spans.buffer_logger.logger")
-    @mock.patch("sentry.spans.buffer_logger.time")
-    def test_clears_old_traces_after_logging_period(self, mock_time, mock_logger):
-        with override_options({"spans.buffer.evalsha-latency-threshold": 100}):
-            mock_time.time.side_effect = [
-                1000.0,
-                1000.0,
-                6000.0,
-                1013.0,
-            ]
-
-            buffer_logger = BufferLogger()
-
-            buffer_logger.log("old_project1:trace1", latency_ms=151)
-            assert len(buffer_logger._data) == 1
-            assert mock_logger.info.call_count == 0
-
-            buffer_logger.log("old_project1:trace1", latency_ms=170)
-            assert len(buffer_logger._data) == 0
-
-            # First logging should have occurred
-            assert mock_logger.info.call_count == 1
-            first_call = mock_logger.info.call_args
-            first_entries = first_call[1]["extra"]["top_slow_operations"]
-            assert "old_project1:trace1:2:170" in first_entries
-
-    @mock.patch("sentry.spans.buffer_logger.logger")
-    @mock.patch("sentry.spans.buffer_logger.time")
-    def test_logs_only_top_50_when_more_than_1000_traces(self, mock_time, mock_logger):
-        """
-        Test that when MAX_ENTRIES (1000) is reached, no more traces are recorded.
-        Also verifies that entries with > LOGGING_ENTRIES (50) are sorted by count.
-        """
-        with override_options({"spans.buffer.evalsha-latency-threshold": 100}):
-            time_calls = (
-                [1000.0, 1000.0]  # First log: set + check
-                + [1000.0] * 1200  # Logs 2-1000: check only
-                + [1006.0]  # 1000th entry triggers logging
-            )
-            mock_time.time.side_effect = time_calls
-
-            buffer_logger = BufferLogger()
-
-            for i in range(10):
-                buffer_logger.log("high_project:trace", latency_ms=150)
-
-            for i in range(1100):
-                buffer_logger.log(f"high_project{i}:trace{i}", latency_ms=150)
-
-            assert len(buffer_logger._data) == 1000
-
-            mock_time.time.side_effect = [10000.0]
-
-            buffer_logger.log("trigger:trace", latency_ms=150)
-
-            # Verify logging occurred
-            assert mock_logger.info.call_count == 1
-
-            # Verify exact log content
-            call_args = mock_logger.info.call_args
-            assert call_args[0][0] == "spans.buffer.slow_evalsha_operations"
-            extra = call_args[1]["extra"]
-
-            # Top 50 entries are logged (implementation logs all, not just top 50)
-            entries_list = extra["top_slow_operations"]
-            assert len(entries_list) == 50
-
-            # Verify entries are sorted by count (descending) since > LOGGING_ENTRIES
-            # Check that first entries have highest counts
-            assert entries_list[0] == "high_project:trace:10:150"
-
-            # Verify total tracked keys
-            assert extra["num_tracked_keys"] == 1000
-
-    @mock.patch("sentry.spans.buffer_logger.logger")
-    def test_no_logging_when_no_data(self, mock_logger):
-        """Test that nothing is logged when _data is empty."""
         buffer_logger = BufferLogger()
 
-        # Internal state check - no data
-        assert len(buffer_logger._data) == 0
+        # Process first batch - all entries should be tracked
+        buffer_logger.log(
+            [
+                ("project1:trace1", 50),
+                ("project1:trace1", 150),
+                ("project1:trace1", 200),
+                ("project2:trace2", 120),
+            ]
+        )
 
-        # Even if we somehow trigger the logging path, it should not log
-        # This is testing the internal behavior, but we can't easily trigger
-        # the logging path without going through log() method
-        # So we just verify initial state
+        # Verify cumulative latency is tracked (50 + 150 + 200 = 400)
+        project1 = buffer_logger._metrics_per_trace["project1:trace1"]
+        project2 = buffer_logger._metrics_per_trace["project2:trace2"]
+        assert project1.operation_count == 3
+        assert project1.cumulative_latency_ms == 400
+        assert project2.operation_count == 1
+        assert project2.cumulative_latency_ms == 120
+
+        buffer_logger.log([("project1:trace1", 180), ("project2:trace2", 80)])
+
+        project1 = buffer_logger._metrics_per_trace["project1:trace1"]
+        project2 = buffer_logger._metrics_per_trace["project2:trace2"]
+        assert project1.operation_count == 4  # 400 + 180
+        assert project1.cumulative_latency_ms == 580
+        assert project2.operation_count == 2  # 120 + 80
+        assert project2.cumulative_latency_ms == 200
+
+        # Test trimming: add 1100 entries to exceed MAX_ENTRIES
+        entries_to_add = []
+        for i in range(1100):
+            # Create entries with different latencies
+            # Lower i values get higher latencies to test trimming
+            latency = 1000 - i if i < 500 else 100
+            entries_to_add.append((f"project{i}:trace{i}", latency))
+
+        buffer_logger.log(entries_to_add)
+
+        # Verify trimming occurred - should be exactly 1000 entries
+        assert len(buffer_logger._metrics_per_trace) == 50
+
+        assert "project0:trace0" in buffer_logger._metrics_per_trace
+        assert "project10:trace10" in buffer_logger._metrics_per_trace
+
+        # Verify low-latency entries from the end were removed
+        assert "project1099:trace1099" not in buffer_logger._metrics_per_trace
+
+
+@mock.patch("sentry.spans.buffer_logger.logger")
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_logs_only_top_50_when_more_than_1000_traces(mock_time, mock_logger):
+    """
+    Test periodic logging (every 1 minute) of top 50 entries by cumulative latency,
+    and verify dictionary is cleared after logging.
+    """
+    with override_options({"spans.buffer.evalsha-cumulative-logger-enabled": True}):
+        mock_time.time.side_effect = [
+            1000.0,  # Set _last_log_time on first log
+            1000.0,
+            1000.0,
+            1061.0,
+        ]
+
+        buffer_logger = BufferLogger()
+
+        buffer_logger.log([("high_project:trace", 150)] * 10)
+
+        entries = [(f"project{i}:trace{i}", 100) for i in range(1000)]
+        buffer_logger.log(entries)
+
+        assert len(buffer_logger._metrics_per_trace) == 50
+
+        buffer_logger.log([("trigger:trace", 50)])
+
+        assert mock_logger.info.call_count == 1
+
+        call_args = mock_logger.info.call_args
+        assert call_args[0][0] == "spans.buffer.slow_evalsha_operations"
+        extra = call_args[1]["extra"]
+
+        entries_list = extra["top_slow_operations"]
+        assert len(entries_list) == 50
+
+        assert entries_list[0] == "high_project:trace:10:1500"
+
+        assert extra["num_tracked_keys"] == 50
+
+        assert len(buffer_logger._metrics_per_trace) == 0
+        assert buffer_logger._last_log_time is None
+
+
+@mock.patch("sentry.spans.buffer_logger.logger")
+def test_no_logging_when_no_data(mock_logger):
+    """Test that nothing is logged when tracked metrics are empty."""
+    buffer_logger = BufferLogger()
+
+    # Internal state check - no data
+    assert len(buffer_logger._metrics_per_trace) == 0
+
+    # Even if we somehow trigger the logging path, it should not log
+    # This is testing the internal behavior, but we can't easily trigger
+    # the logging path without going through log() method
+    # So we just verify initial state
+    assert mock_logger.info.call_count == 0
+
+
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_flusher_logger_accumulates_segments_and_spans(mock_time):
+    """
+    Test that FlusherLogger accumulates segment count, span count, and bytes
+    across multiple calls for the same trace, and tracks cumulative flush latency.
+    """
+    with override_options({"spans.buffer.flusher-cumulative-logger-enabled": True}):
+        mock_time.time.return_value = 1000.0
+
+        flusher_logger = FlusherLogger()
+
+        flusher_logger.log(
+            [
+                FlusherLogEntry("project1:trace1", 10, 500),
+                FlusherLogEntry("project1:trace1", 20, 800),
+                FlusherLogEntry("project2:trace2", 5, 200),
+            ],
+            load_ids_latency_ms=5,
+            load_data_latency_ms=10,
+            decompress_latency_ms=3,
+        )
+
+        project1 = flusher_logger._metrics_per_trace["project1:trace1"]
+        project2 = flusher_logger._metrics_per_trace["project2:trace2"]
+        assert project1.segment_count == 2
+        assert project1.span_count == 30
+        assert project1.bytes_flushed == 1300
+        assert project2.segment_count == 1
+        assert project2.span_count == 5
+        assert project2.bytes_flushed == 200
+        assert flusher_logger._cumulative_load_ids_latency_ms == 5
+        assert flusher_logger._cumulative_load_data_latency_ms == 10
+        assert flusher_logger._cumulative_decompress_latency_ms == 3
+
+        flusher_logger.log(
+            [FlusherLogEntry("project1:trace1", 15, 600)],
+            load_ids_latency_ms=3,
+            load_data_latency_ms=7,
+            decompress_latency_ms=2,
+        )
+
+        project1 = flusher_logger._metrics_per_trace["project1:trace1"]
+        assert project1.segment_count == 3
+        assert project1.span_count == 45
+        assert project1.bytes_flushed == 1900
+        assert flusher_logger._cumulative_load_ids_latency_ms == 8
+        assert flusher_logger._cumulative_load_data_latency_ms == 17
+        assert flusher_logger._cumulative_decompress_latency_ms == 5
+
+
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_flusher_logger_prunes_to_top_50_by_bytes(mock_time):
+    """
+    Test that FlusherLogger prunes to top 50 entries by cumulative bytes
+    when exceeding MAX_ENTRIES.
+    """
+    with override_options({"spans.buffer.flusher-cumulative-logger-enabled": True}):
+        mock_time.time.return_value = 1000.0
+
+        flusher_logger = FlusherLogger()
+
+        entries = [FlusherLogEntry(f"project{i}:trace{i}", 10, 1000 - i) for i in range(500)]
+        flusher_logger.log(
+            entries, load_ids_latency_ms=20, load_data_latency_ms=30, decompress_latency_ms=10
+        )
+
+        assert len(flusher_logger._metrics_per_trace) == 50
+        assert "project0:trace0" in flusher_logger._metrics_per_trace
+        assert "project49:trace49" in flusher_logger._metrics_per_trace
+        assert "project50:trace50" not in flusher_logger._metrics_per_trace
+        assert "project499:trace499" not in flusher_logger._metrics_per_trace
+
+
+@mock.patch("sentry.spans.buffer_logger.logger")
+@mock.patch("sentry.spans.buffer_logger.time")
+def test_flusher_logger_logs_and_resets_after_interval(mock_time, mock_logger):
+    """
+    Test that FlusherLogger logs entries after the 60s interval and resets state,
+    including cumulative flush latency as a top-level field.
+    """
+    with override_options({"spans.buffer.flusher-cumulative-logger-enabled": True}):
+        mock_time.time.side_effect = [
+            1000.0,
+            1000.0,
+            1061.0,
+        ]
+
+        flusher_logger = FlusherLogger()
+
+        flusher_logger.log(
+            [
+                FlusherLogEntry("project1:trace1", 10, 500),
+                FlusherLogEntry("project2:trace2", 5, 200),
+            ],
+            load_ids_latency_ms=20,
+            load_data_latency_ms=30,
+            decompress_latency_ms=8,
+        )
+
         assert mock_logger.info.call_count == 0
+
+        flusher_logger.log(
+            [FlusherLogEntry("project1:trace1", 8, 400)],
+            load_ids_latency_ms=10,
+            load_data_latency_ms=20,
+            decompress_latency_ms=5,
+        )
+
+        assert mock_logger.info.call_count == 1
+        call_args = mock_logger.info.call_args
+        assert call_args[0][0] == "spans.buffer.top_flush_operations_by_bytes"
+
+        extra = call_args[1]["extra"]
+        entries_list = extra["top_flush_operations"]
+        assert len(entries_list) == 2
+        assert entries_list[0] == "project1:trace1:2:18:900"
+        assert entries_list[1] == "project2:trace2:1:5:200"
+        assert extra["cumulative_load_ids_latency_ms"] == 30
+        assert extra["cumulative_load_data_latency_ms"] == 50
+        assert extra["cumulative_decompress_latency_ms"] == 13
+
+        assert len(flusher_logger._metrics_per_trace) == 0
+        assert flusher_logger._cumulative_load_ids_latency_ms == 0
+        assert flusher_logger._cumulative_load_data_latency_ms == 0
+        assert flusher_logger._cumulative_decompress_latency_ms == 0
+        assert flusher_logger._last_log_time is None
 
 
 class TestEmitObservabilityMetrics:
@@ -153,9 +263,9 @@ class TestEmitObservabilityMetrics:
                 [
                     [b"redirect_step_latency_ms", 1],
                     [b"sunionstore_args_step_latency_ms", 1],
-                    [b"zunionstore_step_latency_ms", 2],
+                    [b"sunionstore_step_latency_ms", 2],
                     [b"arg_cleanup_step_latency_ms", 3],
-                    [b"zpopmin_step_latency_ms", 5],
+                    [b"spop_step_latency_ms", 5],
                     [b"ingested_count_step_latency_ms", 8],
                     [b"total_step_latency_ms", 13],
                 ],
@@ -172,14 +282,14 @@ class TestEmitObservabilityMetrics:
                     [b"redirect_depth", 5],
                     [b"parent_span_set_before_size", 813],
                     [b"parent_span_set_after_size", 2134],
-                    [b"zpopcalls", 55],
+                    [b"spopcalls", 55],
                 ],
                 [
                     [b"redirect_table_size", 1123],
                     [b"redirect_depth", 5],
                     [b"parent_span_set_before_size", 813],
                     [b"parent_span_set_after_size", 2134],
-                    [b"zpopcalls", 55],
+                    [b"spopcalls", 55],
                 ],
             ],
             "longest_evalsha_data": (
@@ -187,9 +297,9 @@ class TestEmitObservabilityMetrics:
                 [
                     [b"redirect_step_latency_ms", 1],
                     [b"sunionstore_args_step_latency_ms", 1],
-                    [b"zunionstore_step_latency_ms", 2],
+                    [b"sunionstore_step_latency_ms", 2],
                     [b"arg_cleanup_step_latency_ms", 3],
-                    [b"zpopmin_step_latency_ms", 5],
+                    [b"spop_step_latency_ms", 5],
                     [b"ingested_count_step_latency_ms", 8],
                     [b"total_step_latency_ms", 13],
                 ],
@@ -198,196 +308,197 @@ class TestEmitObservabilityMetrics:
                     [b"redirect_depth", 5],
                     [b"parent_span_set_before_size", 813],
                     [b"parent_span_set_after_size", 2134],
-                    [b"zpopcalls", 55],
+                    [b"spopcalls", 55],
                 ],
             ),
         }
 
     @mock.patch("sentry.spans.buffer_logger.metrics.timing")
     @mock.patch("sentry.spans.buffer_logger.metrics.gauge")
-    def test_emit_observability_metrics(self, mock_gauge, mock_timing):
+    @mock.patch("sentry.spans.buffer_logger.metrics.incr")
+    def test_emit_observability_metrics(self, mock_incr, mock_gauge, mock_timing):
         emit_observability_metrics(
             latency_metrics=self.data()["latency_metrics"],
             gauge_metrics=self.data()["gauge_metrics"],
             longest_evalsha_data=self.data()["longest_evalsha_data"],
         )
 
-        # Expected timing calls: 7 timing metrics * 3 (min, max, avg) + 8 for longest evalsha
+        LE = "spans.buffer.process_spans.longest_evalsha.step_latency_ms"
+
+        def t(stage):
+            return {"stage": stage}
+
         mock_timing.assert_has_calls(
             [
-                # Aggregated latency metrics (min, max, avg for each metric)
-                call("spans.buffer.process_spans.avg_redirect_step_latency_ms", 1.0),
-                call("spans.buffer.process_spans.min_redirect_step_latency_ms", 1),
-                call("spans.buffer.process_spans.max_redirect_step_latency_ms", 1),
-                call("spans.buffer.process_spans.avg_sunionstore_args_step_latency_ms", 1.0),
-                call("spans.buffer.process_spans.min_sunionstore_args_step_latency_ms", 1),
-                call("spans.buffer.process_spans.max_sunionstore_args_step_latency_ms", 1),
-                call("spans.buffer.process_spans.avg_zunionstore_step_latency_ms", 2.0),
-                call("spans.buffer.process_spans.min_zunionstore_step_latency_ms", 2),
-                call("spans.buffer.process_spans.max_zunionstore_step_latency_ms", 2),
-                call("spans.buffer.process_spans.avg_arg_cleanup_step_latency_ms", 3.0),
-                call("spans.buffer.process_spans.min_arg_cleanup_step_latency_ms", 3),
-                call("spans.buffer.process_spans.max_arg_cleanup_step_latency_ms", 3),
-                call("spans.buffer.process_spans.avg_zpopmin_step_latency_ms", 5.0),
-                call("spans.buffer.process_spans.min_zpopmin_step_latency_ms", 5),
-                call("spans.buffer.process_spans.max_zpopmin_step_latency_ms", 5),
-                call("spans.buffer.process_spans.avg_ingested_count_step_latency_ms", 5.0),
-                call("spans.buffer.process_spans.min_ingested_count_step_latency_ms", 2),
-                call("spans.buffer.process_spans.max_ingested_count_step_latency_ms", 8),
-                call("spans.buffer.process_spans.avg_total_step_latency_ms", 8.0),
-                call("spans.buffer.process_spans.min_total_step_latency_ms", 3),
-                call("spans.buffer.process_spans.max_total_step_latency_ms", 13),
-                # Longest evalsha metrics
+                # Aggregated latency metrics (avg, min, max for each stage)
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.redirect_step_latency_ms",
-                    1,
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    1.0,
+                    tags=t("redirect_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.sunionstore_args_step_latency_ms",
+                    "spans.buffer.process_spans.min_step_latency_ms",
                     1,
+                    tags=t("redirect_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.zunionstore_step_latency_ms",
+                    "spans.buffer.process_spans.max_step_latency_ms",
+                    1,
+                    tags=t("redirect_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    1.0,
+                    tags=t("sunionstore_args_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
+                    1,
+                    tags=t("sunionstore_args_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.max_step_latency_ms",
+                    1,
+                    tags=t("sunionstore_args_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    2.0,
+                    tags=t("sunionstore_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
                     2,
+                    tags=t("sunionstore_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.arg_cleanup_step_latency_ms",
+                    "spans.buffer.process_spans.max_step_latency_ms",
+                    2,
+                    tags=t("sunionstore_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    3.0,
+                    tags=t("arg_cleanup_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
                     3,
+                    tags=t("arg_cleanup_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.zpopmin_step_latency_ms",
+                    "spans.buffer.process_spans.max_step_latency_ms",
+                    3,
+                    tags=t("arg_cleanup_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    5.0,
+                    tags=t("spop_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
                     5,
+                    tags=t("spop_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.ingested_count_step_latency_ms",
+                    "spans.buffer.process_spans.max_step_latency_ms",
+                    5,
+                    tags=t("spop_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    5.0,
+                    tags=t("ingested_count_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
+                    2,
+                    tags=t("ingested_count_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.max_step_latency_ms",
                     8,
+                    tags=t("ingested_count_step_latency_ms"),
                 ),
                 call(
-                    "spans.buffer.process_spans.longest_evalsha.latency.total_step_latency_ms",
+                    "spans.buffer.process_spans.avg_step_latency_ms",
+                    8.0,
+                    tags=t("total_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.min_step_latency_ms",
+                    3,
+                    tags=t("total_step_latency_ms"),
+                ),
+                call(
+                    "spans.buffer.process_spans.max_step_latency_ms",
                     13,
+                    tags=t("total_step_latency_ms"),
                 ),
+                # Longest evalsha metrics
+                call(LE, 1, tags=t("redirect_step_latency_ms")),
+                call(LE, 1, tags=t("sunionstore_args_step_latency_ms")),
+                call(LE, 2, tags=t("sunionstore_step_latency_ms")),
+                call(LE, 3, tags=t("arg_cleanup_step_latency_ms")),
+                call(LE, 5, tags=t("spop_step_latency_ms")),
+                call(LE, 8, tags=t("ingested_count_step_latency_ms")),
+                call(LE, 13, tags=t("total_step_latency_ms")),
             ]
         )
 
-        # Expected gauge calls: 5 gauge metrics * 3 (min, max, avg) + 5 for longest evalsha
+        LG = "spans.buffer.process_spans.longest_evalsha.gauge_metric"
+
         mock_gauge.assert_has_calls(
             [
-                # Aggregated gauge metrics (min, max, avg for each metric)
-                call("spans.buffer.avg_redirect_table_size", 1123.0),
-                call("spans.buffer.min_redirect_table_size", 1123.0),
-                call("spans.buffer.max_redirect_table_size", 1123.0),
-                call("spans.buffer.avg_redirect_depth", 5.0),
-                call("spans.buffer.min_redirect_depth", 5.0),
-                call("spans.buffer.max_redirect_depth", 5.0),
-                call("spans.buffer.avg_parent_span_set_before_size", 813.0),
-                call("spans.buffer.min_parent_span_set_before_size", 813.0),
-                call("spans.buffer.max_parent_span_set_before_size", 813.0),
-                call("spans.buffer.avg_parent_span_set_after_size", 2134.0),
-                call("spans.buffer.min_parent_span_set_after_size", 2134.0),
-                call("spans.buffer.max_parent_span_set_after_size", 2134.0),
-                call("spans.buffer.avg_zpopcalls", 55.0),
-                call("spans.buffer.min_zpopcalls", 55.0),
-                call("spans.buffer.max_zpopcalls", 55.0),
+                # Aggregated gauge metrics (avg, min, max for each stage)
+                call("spans.buffer.avg_gauge_metric", 1123.0, tags=t("redirect_table_size")),
+                call("spans.buffer.min_gauge_metric", 1123.0, tags=t("redirect_table_size")),
+                call("spans.buffer.max_gauge_metric", 1123.0, tags=t("redirect_table_size")),
+                call("spans.buffer.avg_gauge_metric", 5.0, tags=t("redirect_depth")),
+                call("spans.buffer.min_gauge_metric", 5.0, tags=t("redirect_depth")),
+                call("spans.buffer.max_gauge_metric", 5.0, tags=t("redirect_depth")),
+                call("spans.buffer.avg_gauge_metric", 813.0, tags=t("parent_span_set_before_size")),
+                call("spans.buffer.min_gauge_metric", 813.0, tags=t("parent_span_set_before_size")),
+                call("spans.buffer.max_gauge_metric", 813.0, tags=t("parent_span_set_before_size")),
+                call("spans.buffer.avg_gauge_metric", 2134.0, tags=t("parent_span_set_after_size")),
+                call("spans.buffer.min_gauge_metric", 2134.0, tags=t("parent_span_set_after_size")),
+                call("spans.buffer.max_gauge_metric", 2134.0, tags=t("parent_span_set_after_size")),
+                call("spans.buffer.avg_gauge_metric", 55.0, tags=t("spopcalls")),
+                call("spans.buffer.min_gauge_metric", 55.0, tags=t("spopcalls")),
+                call("spans.buffer.max_gauge_metric", 55.0, tags=t("spopcalls")),
                 # Longest evalsha gauge metrics
-                call("spans.buffer.process_spans.longest_evalsha.redirect_table_size", 1123.0),
-                call("spans.buffer.process_spans.longest_evalsha.redirect_depth", 5.0),
-                call(
-                    "spans.buffer.process_spans.longest_evalsha.parent_span_set_before_size", 813.0
-                ),
-                call(
-                    "spans.buffer.process_spans.longest_evalsha.parent_span_set_after_size", 2134.0
-                ),
-                call("spans.buffer.process_spans.longest_evalsha.zpopcalls", 55.0),
+                call(LG, 1123.0, tags=t("redirect_table_size")),
+                call(LG, 5.0, tags=t("redirect_depth")),
+                call(LG, 813.0, tags=t("parent_span_set_before_size")),
+                call(LG, 2134.0, tags=t("parent_span_set_after_size")),
+                call(LG, 55.0, tags=t("spopcalls")),
             ]
         )
 
-
-class TestCompareMetrics:
-    @mock.patch("sentry.spans.buffer_logger.metrics.gauge")
-    def test_compare_metrics(self, mock_gauge):
-        """Test comparing all metrics_table metrics between ZSET and SET."""
-        zset_gauge_metrics = [
+        # Size Bucket metrics (temporary)
+        mock_incr.assert_has_calls(
             [
-                [b"redirect_table_size", 100],
-                [b"redirect_depth", 5],
-                [b"parent_span_set_before_size", 40],
-                [b"parent_span_set_after_size", 60],
-                [b"zpopcalls", 10],
-            ],
-        ]
-        set_gauge_metrics = [
-            [
-                [b"set_redirect_table_size", 100],
-                [b"set_redirect_depth", 5],
-                [b"set_parent_span_set_before_size", 50],
-                [b"set_parent_span_set_after_size", 60],
-                [b"set_spopcalls", 8],
-            ],
-        ]
-
-        compare_metrics(zset_gauge_metrics, set_gauge_metrics)  # type: ignore[arg-type]
-
-        mock_gauge.assert_has_calls(
-            [
-                call("spans.buffer.set_vs_zset.min_redirect_table_size", 0),
-                call("spans.buffer.set_vs_zset.max_redirect_table_size", 0),
-                call("spans.buffer.set_vs_zset.avg_redirect_table_size", 0.0),
-                call("spans.buffer.set_vs_zset.min_redirect_depth", 0),
-                call("spans.buffer.set_vs_zset.max_redirect_depth", 0),
-                call("spans.buffer.set_vs_zset.avg_redirect_depth", 0.0),
-                call("spans.buffer.set_vs_zset.min_parent_span_set_before_size", 10),
-                call("spans.buffer.set_vs_zset.max_parent_span_set_before_size", 10),
-                call("spans.buffer.set_vs_zset.avg_parent_span_set_before_size", 10.0),
-                call("spans.buffer.set_vs_zset.min_parent_span_set_after_size", 0),
-                call("spans.buffer.set_vs_zset.max_parent_span_set_after_size", 0),
-                call("spans.buffer.set_vs_zset.avg_parent_span_set_after_size", 0.0),
-                call("spans.buffer.set_vs_zset.min_zpopcalls", -2),
-                call("spans.buffer.set_vs_zset.max_zpopcalls", -2),
-                call("spans.buffer.set_vs_zset.avg_zpopcalls", -2.0),
-            ],
-            any_order=True,
+                call(
+                    "spans.buffer.parent_span_set_after_size_bucket", 2, tags={"size": "2000-5000"}
+                ),
+            ]
         )
 
-    @mock.patch("sentry.spans.buffer_logger.metrics.gauge")
-    def test_compare_metrics_mapping(self, mock_gauge):
-        """Test that special case metrics are compared correctly via mapping."""
-        zset_latency_metrics = [
-            [
-                [b"zunionstore_step_latency_ms", 10],
-                [b"zpopmin_step_latency_ms", 10],
-                [b"total_step_latency_ms", 20],
+    @mock.patch("sentry.spans.buffer_logger.metrics.incr")
+    def test_emit_observability_metrics_oversized_count_metric(self, mock_incr):
+        emit_observability_metrics(
+            latency_metrics=[[]],
+            gauge_metrics=[
+                [
+                    (b"parent_span_set_already_oversized", 1.0),
+                    (b"redirect_depth", 1.0),
+                ],
             ],
-            [
-                [b"zunionstore_step_latency_ms", 5],
-                [b"zpopmin_step_latency_ms", 5],
-                [b"total_step_latency_ms", 10],
-            ],
-        ]
-        set_latency_metrics = [
-            [
-                [b"set_sunionstore_step_latency_ms", 8],
-                [b"set_spop_step_latency_ms", 8],
-                [b"set_total_step_latency_ms", 16],
-            ],
-            [
-                [b"set_sunionstore_step_latency_ms", 5],
-                [b"set_spop_step_latency_ms", 5],
-                [b"set_total_step_latency_ms", 10],
-            ],
-        ]
+            longest_evalsha_data=(0, [], []),
+        )
 
-        compare_metrics(zset_latency_metrics, set_latency_metrics)  # type: ignore[arg-type]
-
-        mock_gauge.assert_has_calls(
-            [
-                call("spans.buffer.set_vs_zset.min_zunionstore_step_latency_ms", -2),
-                call("spans.buffer.set_vs_zset.max_zunionstore_step_latency_ms", 0),
-                call("spans.buffer.set_vs_zset.avg_zunionstore_step_latency_ms", -1.0),
-                call("spans.buffer.set_vs_zset.min_zpopmin_step_latency_ms", -2),
-                call("spans.buffer.set_vs_zset.max_zpopmin_step_latency_ms", 0),
-                call("spans.buffer.set_vs_zset.avg_zpopmin_step_latency_ms", -1.0),
-                call("spans.buffer.set_vs_zset.min_total_step_latency_ms", -4),
-                call("spans.buffer.set_vs_zset.max_total_step_latency_ms", 0),
-                call("spans.buffer.set_vs_zset.avg_total_step_latency_ms", -2.0),
-            ]
+        mock_incr.assert_called_once_with(
+            "spans.buffer.process_spans.parent_span_set_already_oversized.count",
+            amount=1,
         )

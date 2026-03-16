@@ -46,6 +46,8 @@ from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     ColumnDefinitions,
     FormulaDefinition,
+    ResolvedArgument,
+    ResolvedArguments,
     ResolvedAttribute,
     ResolvedColumn,
     ResolvedEquation,
@@ -133,7 +135,9 @@ class SearchResolver:
         )
 
     @sentry_sdk.trace
-    def resolve_query(self, querystring: str | None) -> tuple[
+    def resolve_query(
+        self, querystring: str | None
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -197,7 +201,9 @@ class SearchResolver:
             )
         )
 
-    def __resolve_query(self, querystring: str | None) -> tuple[
+    def __resolve_query(
+        self, querystring: str | None
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -230,7 +236,9 @@ class SearchResolver:
         else:
             return self._resolve_terms(parsed_terms)
 
-    def _resolve_boolean_conditions(self, terms: event_filter.ParsedTerms) -> tuple[
+    def _resolve_boolean_conditions(
+        self, terms: event_filter.ParsedTerms
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -324,7 +332,9 @@ class SearchResolver:
 
         return where, having, contexts
 
-    def _resolve_terms(self, terms: event_filter.ParsedTerms) -> tuple[
+    def _resolve_terms(
+        self, terms: event_filter.ParsedTerms
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -855,7 +865,9 @@ class SearchResolver:
         return final_contexts
 
     @sentry_sdk.trace
-    def resolve_columns(self, selected_columns: list[str], has_aggregates: bool = False) -> tuple[
+    def resolve_columns(
+        self, selected_columns: list[str], has_aggregates: bool = False
+    ) -> tuple[
         list[ResolvedAttribute | ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
@@ -1001,7 +1013,9 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
     @sentry_sdk.trace
-    def resolve_functions(self, columns: list[str]) -> tuple[
+    def resolve_functions(
+        self, columns: list[str]
+    ) -> tuple[
         list[ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
@@ -1039,7 +1053,7 @@ class SearchResolver:
         if function_definition.private and function_name not in self.config.fields_acl.functions:
             raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
 
-        parsed_args: list[ResolvedAttribute | Any] = []
+        parsed_args: list[ResolvedAttribute | str | int | float] = []
 
         # Parse the arguments
         arguments = fields.parse_arguments(function_name, columns)
@@ -1081,11 +1095,10 @@ class SearchResolver:
                     if argument_definition.argument_types is None:
                         parsed_args.append(argument)  # assume it's a string
                         continue
-                    # TODO: we assume that the argument is only one type for now, and we only support string/integer
-                    for type in argument_definition.argument_types:
-                        if type == "integer":
+                    for arg_type in argument_definition.argument_types:
+                        if arg_type == "integer":
                             parsed_args.append(int(argument))
-                        if type == "number":
+                        elif arg_type == "number":
                             parsed_args.append(float(argument))
                         else:
                             parsed_args.append(argument)
@@ -1109,12 +1122,13 @@ class SearchResolver:
                         f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
                     )
 
-        resolved_arguments = []
+        resolved_arguments: ResolvedArguments = []
         for parsed_arg in parsed_args:
+            resolved_argument: ResolvedArgument
             if not isinstance(parsed_arg, ResolvedAttribute):
                 resolved_argument = parsed_arg
                 search_type = function_definition.default_search_type
-            elif isinstance(parsed_arg.proto_definition, AttributeKey):
+            else:
                 resolved_argument = parsed_arg.proto_definition
             resolved_arguments.append(resolved_argument)
 
@@ -1141,7 +1155,9 @@ class SearchResolver:
         self._resolved_function_cache[alias] = (resolved_function, resolved_context)
         return self._resolved_function_cache[alias]
 
-    def resolve_equations(self, equations: list[str]) -> tuple[
+    def resolve_equations(
+        self, equations: list[str]
+    ) -> tuple[
         list[ResolvedColumn],
         list[VirtualColumnDefinition],
     ]:
@@ -1153,7 +1169,9 @@ class SearchResolver:
             contexts.extend(context)
         return formulas, contexts
 
-    def resolve_equation(self, equation: str) -> tuple[
+    def resolve_equation(
+        self, equation: str
+    ) -> tuple[
         ResolvedColumn,
         list[VirtualColumnDefinition],
     ]:
@@ -1177,8 +1195,12 @@ class SearchResolver:
                 ),
                 [],
             )
-        lhs, lhs_contexts = self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
-        rhs, rhs_contexts = self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+        lhs, lhs_contexts = (
+            self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
+        )
+        rhs, rhs_contexts = (
+            self._resolve_operation(operation.rhs) if operation.rhs is not None else (None, [])
+        )
         has_aggregates = False
         for function in functions:
             resolved_function, _ = self.resolve_function(function)
@@ -1200,7 +1222,9 @@ class SearchResolver:
             lhs_contexts + rhs_contexts,
         )
 
-    def _resolve_operation(self, operation: arithmetic.OperandType) -> tuple[
+    def _resolve_operation(
+        self, operation: arithmetic.OperandType
+    ) -> tuple[
         Column,
         list[VirtualColumnDefinition],
     ]:
@@ -1210,10 +1234,10 @@ class SearchResolver:
         """
         if isinstance(operation, arithmetic.Operation):
             lhs, lhs_contexts = (
-                self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
+                self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
             )
             rhs, rhs_contexts = (
-                self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+                self._resolve_operation(operation.rhs) if operation.rhs is not None else (None, [])
             )
             vcc = []
             if lhs_contexts:

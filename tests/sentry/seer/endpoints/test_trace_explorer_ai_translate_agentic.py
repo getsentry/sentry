@@ -52,6 +52,10 @@ class SearchAgentTranslateEndpointTest(APITestCase):
             "Find slow transactions",
             strategy="Traces",
             model_name=None,
+            viewer_context={
+                "organization_id": self.organization.id,
+                "user_id": self.user.id,
+            },
         )
 
     def test_translate_missing_parameters(self) -> None:

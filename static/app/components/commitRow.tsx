@@ -2,27 +2,26 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import CommitLink from 'sentry/components/commitLink';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {CommitLink} from 'sentry/components/commitLink';
 import {Hovercard} from 'sentry/components/hovercard';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TextOverflow from 'sentry/components/textOverflow';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -93,7 +92,11 @@ function CommitRow({
         <Message>{formatCommitMessage(commit.message)}</Message>
       )}
       <MetaWrapper>
-        {customAvatar ? customAvatar : <UserAvatar size={16} user={commit.author} />}
+        {customAvatar ? (
+          customAvatar
+        ) : commit.author ? (
+          <UserAvatar size={16} user={commit.author} />
+        ) : null}
         <Meta hasStreamlinedUI>
           <Tooltip
             title={tct(
@@ -193,16 +196,14 @@ function CommitRow({
               </EmailWarning>
             }
           >
-            <UserAvatar size={36} user={commit.author} />
+            {commit.author ? <UserAvatar size={36} user={commit.author} /> : null}
             <EmailWarningIcon data-test-id="email-warning">
               <IconWarning size="xs" />
             </EmailWarningIcon>
           </Hovercard>
         </AvatarWrapper>
       ) : (
-        <div>
-          <UserAvatar size={36} user={commit.author} />
-        </div>
+        <div>{commit.author ? <UserAvatar size={36} user={commit.author} /> : null}</div>
       )}
 
       <CommitMessage>
@@ -249,7 +250,7 @@ function CommitRow({
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const AvatarWrapper = styled('div')`
@@ -269,7 +270,7 @@ const BoldEmail = styled('strong')`
 
 const StyledLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
-  border-bottom: 1px dotted ${p => p.theme.tokens.content.primary};
+  border-bottom: 1px dotted currentColor;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
@@ -282,7 +283,7 @@ const EmailWarningIcon = styled('span')`
   right: -7px;
   line-height: 12px;
   border-radius: 50%;
-  border: 1px solid ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.colors.yellow200};
   padding: 1px 2px 3px 2px;
 `;
@@ -291,7 +292,7 @@ const CommitMessage = styled('div')`
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 `;
 
 const Message = styled(TextOverflow)`
@@ -319,10 +320,10 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
 const MetaWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
-  padding-top: ${space(0.25)};
+  padding-top: ${p => p.theme.space['2xs']};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
@@ -338,7 +339,7 @@ const StyledExternalLink = styled(ExternalLink)`
 const AuthorWrapper = styled('span')`
   display: inline-flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.secondary};
 
   & svg {

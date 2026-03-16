@@ -3,20 +3,21 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import ProgressBar from 'sentry/components/progressBar';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {ProgressBar} from 'sentry/components/progressBar';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   OnDemandBudgetMode,
   type OnDemandBudgets,
@@ -31,9 +32,9 @@ import {
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/spendLimits/utils';
-import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
-function PaygCard({
+export function PaygCard({
   subscription,
   organization,
 }: {
@@ -206,11 +207,11 @@ function PaygCard({
                   <Button
                     size="xs"
                     disabled={!hasPaymentSource}
-                    title={
-                      hasPaymentSource
+                    tooltipProps={{
+                      title: hasPaymentSource
                         ? undefined
-                        : t('You must add a payment method to edit the limit')
-                    }
+                        : t('You must add a payment method to edit the limit'),
+                    }}
                     onClick={() => {
                       handleEditPayg(false);
                     }}
@@ -254,8 +255,6 @@ function UsageBar({totalBudget, totalSpend}: {totalBudget: number; totalSpend: n
 
   return <ProgressBar value={percentUsed} variant="small" />;
 }
-
-export default PaygCard;
 
 const Currency = styled('div')`
   &::before {

@@ -3,15 +3,22 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
-from sentry.db.models.fields.node import NodeData
+from sentry.grouping.fingerprinting.types import FingerprintInfo
+from sentry.grouping.utils import get_canonical_message_from_event, normalize_message_for_grouping
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
+from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames
 from sentry.utils.safe import get_path
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+
+if TYPE_CHECKING:
+    from sentry.grouping.context import GroupingContext
+    from sentry.services.eventstore.models import Event
+
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -201,52 +208,70 @@ def get_fingerprint_type(
     )
 
 
+def get_custom_fingerprint_description(
+    fingerprint_info: FingerprintInfo, pretty: bool = False
+) -> str:
+    """
+    Get a string describing the type of custom fingerprint as either built-in, from the client, or
+    from the server.
+
+    If `pretty` is true, format the result as separate words (useful for titles, etc.). Otherwise,
+    use underscores so it can be used programmatically, for things like dict keys.
+    """
+    matched_server_rule = fingerprint_info.get("matched_rule")
+
+    if matched_server_rule:
+        fingerprint_type = "built-in" if matched_server_rule.get("is_builtin") else "custom server"
+    else:
+        fingerprint_type = "custom client"
+
+    description = f"{fingerprint_type} fingerprint"
+
+    return description if pretty else description.replace("-", "_").replace(" ", "_")
+
+
 def resolve_fingerprint_variable(
     variable_key: str,
-    event_data: NodeData | Mapping[str, Any],
+    event: Event,
     use_legacy_unknown_variable_handling: bool,
 ) -> str | None:
     if variable_key == "transaction":
-        return event_data.get("transaction") or "<no-transaction>"
+        return event.data.get("transaction") or "<no-transaction>"
 
     elif variable_key == "message":
-        message = (
-            get_path(event_data, "logentry", "formatted")
-            or get_path(event_data, "logentry", "message")
-            or get_path(event_data, "exception", "values", -1, "value")
-        )
+        message = get_canonical_message_from_event(event)
         return message or "<no-message>"
 
     elif variable_key in ("type", "error.type"):
-        exception_type = get_path(event_data, "exception", "values", -1, "type")
+        exception_type = get_path(event.data, "exception", "values", -1, "type")
         return exception_type or "<no-type>"
 
     elif variable_key in ("value", "error.value"):
-        value = get_path(event_data, "exception", "values", -1, "value")
+        value = get_path(event.data, "exception", "values", -1, "value")
         return value or "<no-value>"
 
     elif variable_key in ("function", "stack.function"):
-        frame = get_crash_frame_from_event_data(event_data)
+        frame = get_crash_frame_from_event_data(event.data)
         func = frame.get("function") if frame else None
         return func or "<no-function>"
 
     elif variable_key in ("path", "stack.abs_path"):
-        frame = get_crash_frame_from_event_data(event_data)
+        frame = get_crash_frame_from_event_data(event.data)
         abs_path = frame.get("abs_path") or frame.get("filename") if frame else None
         return abs_path or "<no-abs-path>"
 
     elif variable_key == "stack.filename":
-        frame = get_crash_frame_from_event_data(event_data)
+        frame = get_crash_frame_from_event_data(event.data)
         filename = frame.get("filename") or frame.get("abs_path") if frame else None
         return filename or "<no-filename>"
 
     elif variable_key in ("module", "stack.module"):
-        frame = get_crash_frame_from_event_data(event_data)
+        frame = get_crash_frame_from_event_data(event.data)
         module = frame.get("module") if frame else None
         return module or "<no-module>"
 
     elif variable_key in ("package", "stack.package"):
-        frame = get_crash_frame_from_event_data(event_data)
+        frame = get_crash_frame_from_event_data(event.data)
         pkg = frame.get("package") if frame else None
         if pkg:
             # If the package is formatted as either a POSIX or Windows path, grab the last segment
@@ -254,15 +279,15 @@ def resolve_fingerprint_variable(
         return pkg or "<no-package>"
 
     elif variable_key == "level":
-        return event_data.get("level") or "<no-level>"
+        return event.data.get("level") or "<no-level>"
 
     elif variable_key == "logger":
-        return event_data.get("logger") or "<no-logger>"
+        return event.data.get("logger") or "<no-logger>"
 
     elif variable_key.startswith("tags."):
         # Turn "tags.some_tag" into just "some_tag"
         requested_tag = variable_key[5:]
-        for tag_name, tag_value in event_data.get("tags") or ():
+        for tag_name, tag_value in event.data.get("tags") or ():
             if tag_name == requested_tag and tag_value is not None:
                 return tag_value
         return "<no-value-for-tag-%s>" % requested_tag
@@ -278,7 +303,10 @@ def resolve_fingerprint_variable(
 
 
 def resolve_fingerprint_values(
-    fingerprint: list[str], event_data: NodeData, use_legacy_unknown_variable_handling: bool = False
+    fingerprint: list[str],
+    event: Event,
+    context: GroupingContext,
+    use_legacy_unknown_variable_handling: bool = False,
 ) -> list[str]:
     def _resolve_single_entry(entry: str) -> str:
         variable_key = parse_fingerprint_entry_as_variable(entry)
@@ -288,31 +316,41 @@ def resolve_fingerprint_values(
             return entry
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
-        # can remove `use_legacy_unknown_variable_handling` and just return the value given by
-        # `resolve_fingerprint_variable`
+        # can remove `use_legacy_unknown_variable_handling`
         resolved_value = resolve_fingerprint_variable(
-            variable_key, event_data, use_legacy_unknown_variable_handling
+            variable_key, event, use_legacy_unknown_variable_handling
         )
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
         # can remove this
         if resolved_value is None:  # variable wasn't recognized
             return entry
+
+        if variable_key == "message" and resolved_value != "<no-message>":
+            return normalize_message_for_grouping(
+                resolved_value, context, reason="fingerprint", trim_message=False
+            )
+
         return resolved_value
 
     return [_resolve_single_entry(entry) for entry in fingerprint]
 
 
 def expand_title_template(
-    template: str, event_data: Mapping[str, Any], use_legacy_unknown_variable_handling: bool = False
+    template: str, event: Event, use_legacy_unknown_variable_handling: bool = False
 ) -> str:
     def _handle_match(match: re.Match[str]) -> str:
         variable_key = match.group(1)
+        if variable_key == "message":
+            metrics.incr("grouping.message_used", tags={"reason": "custom_title"})
+
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
         # can remove `use_legacy_unknown_variable_handling` and just return the value given by
         # `resolve_fingerprint_variable`
         resolved_value = resolve_fingerprint_variable(
-            variable_key, event_data, use_legacy_unknown_variable_handling
+            variable_key,
+            event,
+            use_legacy_unknown_variable_handling,
         )
 
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we

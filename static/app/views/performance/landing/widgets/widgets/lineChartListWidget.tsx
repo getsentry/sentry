@@ -3,14 +3,15 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
-import TextOverflow from 'sentry/components/textOverflow';
-import Truncate from 'sentry/components/truncate';
+import {Count} from 'sentry/components/count';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {Truncate} from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -22,9 +23,9 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
@@ -37,7 +38,7 @@ import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
-import DurationChart from 'sentry/views/performance/charts/chart';
+import {Chart as DurationChart} from 'sentry/views/performance/charts/chart';
 import {excludeTransaction} from 'sentry/views/performance/landing/utils';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
@@ -680,7 +681,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
         case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
-          const description = listItem[SpanFields.NORMALIZED_DESCRIPTION] as string;
+          const description = (listItem[SpanFields.NORMALIZED_DESCRIPTION] ??
+            '') as string;
           const group = listItem[SpanFields.SPAN_GROUP] as string;
           const projectID = listItem['project.id'] as number;
           const timeSpentPercentage = listItem[fieldString] as number;

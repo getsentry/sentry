@@ -1,4 +1,4 @@
-function TablePreview() {
+export function TablePreview() {
   return (
     <svg
       height="155px"
@@ -76,5 +76,3 @@ function TablePreview() {
     </svg>
   );
 }
-
-export default TablePreview;

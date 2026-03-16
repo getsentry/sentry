@@ -1,24 +1,22 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import Pagination from 'sentry/components/pagination';
 import type {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
-interface PlatformInsightsTableProps<DataRow extends Record<string, any>>
-  extends Omit<
-    React.ComponentProps<typeof GridEditable<DataRow>>,
-    'columnOrder' | 'columnSortBy'
-  > {
+interface PlatformInsightsTableProps<DataRow extends Record<string, any>> extends Omit<
+  React.ComponentProps<typeof GridEditable<DataRow>>,
+  'columnOrder' | 'columnSortBy'
+> {
   initialColumnOrder:
     | Array<GridColumnOrder<keyof DataRow>>
     | (() => Array<GridColumnOrder<keyof DataRow>>);
@@ -73,7 +71,7 @@ export function PlatformInsightsTable<DataRow extends Record<string, any>>({
 
 const GridEditableContainer = styled('div')`
   position: relative;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const LoadingOverlay = styled('div')`

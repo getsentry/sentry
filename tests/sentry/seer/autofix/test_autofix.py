@@ -18,6 +18,7 @@ from sentry.seer.autofix.autofix import (
     get_all_tags_overview,
     trigger_autofix,
 )
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
@@ -813,7 +814,6 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
 @requires_snuba
 @pytest.mark.django_db
 @with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         super().setUp()
@@ -834,7 +834,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_profile,
         mock_get_tags,
         mock_record_seer_run,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a specified event_id."""
         # Setup test data
@@ -860,6 +859,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             group=group,
             event_id=event.event_id,
             user=test_user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             instruction="Test instruction",
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
         )
@@ -901,7 +901,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_serialized_event,
         mock_get_latest_event,
         mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests error handling when no event can be found for the group."""
         mock_get_recommended_event.return_value = None
@@ -912,7 +911,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         group = self.create_group()
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
 
         assert response.status_code == 400
         assert (
@@ -936,7 +940,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_profile,
         mock_get_tags,
         mock_record_seer_run,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests triggering autofix with a web vitals issue."""
         # Setup test data
@@ -970,7 +973,12 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         user = Mock(spec=AnonymousUser)
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
         assert response.status_code == 202
         mock_record_seer_run.assert_called_once()
 
@@ -978,47 +986,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 @requires_snuba
 @pytest.mark.django_db
 @with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=False)
-class TestTriggerAutofixWithoutOrgAcknowledgement(APITestCase, SnubaTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-
-        self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
-
-    @patch("sentry.models.Group.get_recommended_event_for_environments")
-    @patch("sentry.models.Group.get_latest_event")
-    @patch("sentry.seer.autofix.autofix._get_serialized_event")
-    def test_trigger_autofix_without_org_acknowledgement(
-        self,
-        mock_get_serialized_event,
-        mock_get_latest_event,
-        mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
-    ):
-        """Tests error handling when no event can be found for the group."""
-        mock_get_recommended_event.return_value = None
-        mock_get_latest_event.return_value = None
-        # We should never reach _get_serialized_event since we have no event
-        mock_get_serialized_event.return_value = (None, None)
-
-        group = self.create_group()
-        user = Mock(spec=AnonymousUser)
-
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
-
-        assert response.status_code == 403
-        assert (
-            "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
-            in response.data["detail"]
-        )
-        # Verify _get_serialized_event was not called since we have no event
-        mock_get_serialized_event.assert_not_called()
-
-
-@requires_snuba
-@pytest.mark.django_db
-@with_feature("organizations:gen-ai-features")
-@patch("sentry.seer.autofix.autofix.get_seer_org_acknowledgement", return_value=True)
 class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1034,7 +1001,6 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         mock_get_serialized_event,
         mock_get_latest_event,
         mock_get_recommended_event,
-        mock_get_seer_org_acknowledgement,
     ):
         """Tests that autofix is blocked when organization has hideAiFeatures set to True"""
         mock_get_recommended_event.return_value = None
@@ -1045,7 +1011,12 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
         group = self.create_group()
         user = self.create_user()
 
-        response = trigger_autofix(group=group, user=user, instruction="Test instruction")
+        response = trigger_autofix(
+            group=group,
+            user=user,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            instruction="Test instruction",
+        )
 
         assert response.status_code == 403
         assert "AI features are disabled for this organization" in response.data["detail"]
@@ -1055,13 +1026,14 @@ class TestTriggerAutofixWithHideAiFeatures(APITestCase, SnubaTestCase):
 
 class TestCallAutofix(TestCase):
     @patch("sentry.seer.autofix.autofix._get_github_username_for_user")
-    @patch("sentry.seer.autofix.autofix.requests.post")
-    @patch("sentry.seer.autofix.autofix.sign_with_seer_secret")
-    def test_call_autofix(self, mock_sign, mock_post, mock_get_username) -> None:
+    @patch("sentry.seer.autofix.autofix.make_autofix_start_request")
+    def test_call_autofix(self, mock_request, mock_get_username) -> None:
         """Tests the _call_autofix function makes the correct API call."""
         # Setup mocks
-        mock_sign.return_value = {"Authorization": "Bearer test"}
-        mock_post.return_value.json.return_value = {"run_id": "test-run-id"}
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": "test-run-id"}
+        mock_request.return_value = mock_response
         mock_get_username.return_value = None  # No GitHub username
 
         # Mock objects
@@ -1097,6 +1069,7 @@ class TestCallAutofix(TestCase):
             trace_tree=trace_tree,
             logs=logs,
             tags_overview=tags_overview,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             instruction=instruction,
             timeout_secs=TIMEOUT_SECONDS,
             pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
@@ -1106,12 +1079,10 @@ class TestCallAutofix(TestCase):
         assert run_id == "test-run-id"
 
         # Verify the API call
-        mock_post.assert_called_once()
-        url = mock_post.call_args[0][0]
-        assert "/v1/automation/autofix/start" in url
+        mock_request.assert_called_once()
 
-        # Verify the request body
-        body = orjson.loads(mock_post.call_args[1]["data"])
+        # Verify the request body (first positional argument)
+        body = orjson.loads(mock_request.call_args[0][0])
         assert body["organization_id"] == 456
         assert body["project_id"] == 789
         assert body["repos"] == repos
@@ -1134,11 +1105,6 @@ class TestCallAutofix(TestCase):
             == "https://github.com/getsentry/sentry/pull/123"
         )
         assert body["options"]["disable_coding_step"] is False
-
-        # Verify headers
-        headers = mock_post.call_args[1]["headers"]
-        assert headers["content-type"] == "application/json;charset=utf-8"
-        assert headers["Authorization"] == "Bearer test"
 
 
 class TestGetGithubUsernameForUser(TestCase):
@@ -1503,43 +1469,49 @@ class UpdateAutofixTest(TestCase):
         self.run_id = 123
         self.payload: AutofixSelectRootCausePayload = {"type": "select_root_cause", "cause_id": 1}
 
-    @patch("sentry.seer.autofix.autofix.requests.post")
-    def test_update_autofix_http_error(self, mock_post):
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_http_error(self, mock_request):
         from sentry.seer.autofix.autofix import update_autofix
 
         mock_response = Mock()
-        mock_response.raise_for_status.side_effect = Exception("bad request, fix something")
-        mock_post.return_value = mock_response
+        mock_response.status = 500
+        mock_request.return_value = mock_response
 
-        response = update_autofix(run_id=self.run_id, payload=self.payload)
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
 
         assert response.status_code == 500
         assert response.data["detail"] == "Failed to update autofix run"
 
-    @patch("sentry.seer.autofix.autofix.requests.post")
-    def test_update_autofix_json_decode_error(self, mock_post):
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_json_decode_error(self, mock_request):
         from sentry.seer.autofix.autofix import update_autofix
 
         mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
+        mock_response.status = 200
         mock_response.json.side_effect = Exception("Invalid JSON")
-        mock_post.return_value = mock_response
+        mock_request.return_value = mock_response
 
-        response = update_autofix(run_id=self.run_id, payload=self.payload)
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
 
         assert response.status_code == 500
         assert response.data["detail"] == "Seer returned an invalid response"
 
-    @patch("sentry.seer.autofix.autofix.requests.post")
-    def test_update_autofix_success(self, mock_post):
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_success(self, mock_request):
         from sentry.seer.autofix.autofix import update_autofix
 
         mock_response = Mock()
-        mock_response.raise_for_status.return_value = None
+        mock_response.status = 200
         mock_response.json.return_value = {"run_id": self.run_id, "status": "updated"}
-        mock_post.return_value = mock_response
+        mock_request.return_value = mock_response
 
-        response = update_autofix(run_id=self.run_id, payload=self.payload)
+        response = update_autofix(
+            organization_id=self.organization.id, run_id=self.run_id, payload=self.payload
+        )
 
         assert response.status_code == 200
         assert response.data == mock_response.json.return_value

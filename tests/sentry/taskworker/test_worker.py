@@ -700,7 +700,6 @@ def test_child_process_terminate_task(mock_capture: mock.Mock) -> None:
 @pytest.mark.django_db
 @mock.patch("sentry.taskworker.workerchild.capture_checkin")
 def test_child_process_decompression(mock_capture_checkin: mock.MagicMock) -> None:
-
     todo: queue.Queue[InflightTaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
     shutdown = Event()

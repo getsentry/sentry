@@ -1,18 +1,17 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function GitRepoLink({repo}: {repo: {name: string; owner: string; ok?: boolean}}) {
   return (
@@ -125,7 +124,7 @@ export function AutofixSetupWriteAccessModal({
       </Body>
       {!canCreatePullRequests && (
         <Footer>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button onClick={closeModal}>{t('Later')}</Button>
             <LinkButton
               href="https://github.com/apps/seer-by-sentry/installations/new"
@@ -134,7 +133,7 @@ export function AutofixSetupWriteAccessModal({
             >
               {t('Install the Seer GitHub App')}
             </LinkButton>
-          </ButtonBar>
+          </Grid>
         </Footer>
       )}
     </div>
@@ -152,13 +151,13 @@ const DoneWrapper = styled('div')`
 `;
 
 const DoneIcon = styled(IconCheckmark)`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
 `;
 
 const RepoLinkUl = styled('ul')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   padding: 0;
 `;
 
@@ -166,9 +165,9 @@ const RepoItem = styled('li')<{isOk?: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${space(2)};
-  padding: ${space(1)};
-  margin-bottom: ${space(0.5)};
+  gap: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.xs};
   background-color: ${p => (p.isOk ? p.theme.colors.green100 : 'transparent')};
   border-radius: ${p => p.theme.radius.md};
 `;

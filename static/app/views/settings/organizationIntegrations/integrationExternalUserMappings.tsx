@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {
   ExternalActorMapping,
@@ -12,25 +12,33 @@ import type {
   Integration,
 } from 'sentry/types/integrations';
 import type {Member} from 'sentry/types/organization';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import IntegrationExternalMappingForm from './integrationExternalMappingForm';
-import IntegrationExternalMappings from './integrationExternalMappings';
+import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
+import {IntegrationExternalMappings} from './integrationExternalMappings';
 
 type Props = {
   integration: Integration;
 };
 
-function IntegrationExternalUserMappings(props: Props) {
+export function IntegrationExternalUserMappings(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
 
-  const DATA_ENDPOINT = `/organizations/${organization.slug}/members/`;
-  const BASE_FORM_ENDPOINT = `/organizations/${organization.slug}/external-users/`;
+  const DATA_ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
+  const BASE_FORM_ENDPOINT = getApiUrl(
+    '/organizations/$organizationIdOrSlug/external-users/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+    }
+  );
   // We paginate on this query, since we're filtering by hasExternalTeams:true
   const {
     data: members = [],
@@ -104,7 +112,7 @@ function IntegrationExternalUserMappings(props: Props) {
     return membersList
       .filter(member => member.user)
       .map(({user, email, name}) => {
-        const label = email === name ? `${email}` : `${name} - ${email}`;
+        const label = email === name ? email : `${name} - ${email}`;
         return {id: user?.id!, name: label};
       });
   };
@@ -152,5 +160,3 @@ function IntegrationExternalUserMappings(props: Props) {
     </Fragment>
   );
 }
-
-export default IntegrationExternalUserMappings;

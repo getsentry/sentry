@@ -3,18 +3,17 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import {HighlightsIconSummary as TransactionEventHighlights} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconGlobe} from 'sentry/icons';
 import {IconReleases} from 'sentry/icons/iconReleases';
 import {IconWindow} from 'sentry/icons/iconWindow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -262,7 +261,7 @@ function AttributesHighlights({
   ];
 
   return (
-    <ScrollCarousel gap={2} aria-label={t('Attributes Highlights')}>
+    <ScrollCarousel gap="xl" aria-label={t('Attributes Highlights')}>
       {highlights.map(highlight => {
         const summary = highlight.getSummary();
 
@@ -283,7 +282,7 @@ function AttributesHighlights({
 
 const HighlightsDescription = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   font-size: ${p => p.theme.font.size.md};
 `;
 
@@ -313,7 +312,7 @@ type HighlightsProps = {
   rootEventResults: TraceRootEventQueryResults;
 };
 
-function Highlights({rootEventResults, organization, project}: HighlightsProps) {
+export function Highlights({rootEventResults, organization, project}: HighlightsProps) {
   if (!rootEventResults.data) {
     return null;
   }
@@ -342,5 +341,3 @@ const TransactionEventHighlightsWrapper = styled('span')`
     padding: 0;
   }
 `;
-
-export default Highlights;

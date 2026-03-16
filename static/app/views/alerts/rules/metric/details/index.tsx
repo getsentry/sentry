@@ -4,24 +4,25 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
 import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
@@ -34,10 +35,10 @@ import {
   fetchIncidentsForRule,
 } from 'sentry/views/alerts/utils/apiCalls';
 
-import MetricDetailsBody from './body';
+import {MetricDetailsBody} from './body';
 import type {TimePeriodType} from './constants';
 import {ALERT_RULE_STATUS, TIME_OPTIONS, TIME_WINDOWS} from './constants';
-import DetailsHeader from './header';
+import {DetailsHeader} from './header';
 import {buildMetricGraphDateRange} from './utils';
 
 interface Props {
@@ -100,6 +101,7 @@ class MetricAlertDetails extends Component<Props, State> {
       organization,
       rule_id: parseInt(ruleId, 10),
       alert: (location.query.alert as string) ?? '',
+      notification_uuid: (location.query.notification_uuid as string) ?? '',
       has_chartcuterie: organization.features
         .includes('metric-alert-chartcuterie')
         .toString(),

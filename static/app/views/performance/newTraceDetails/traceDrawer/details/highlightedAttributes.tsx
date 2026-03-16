@@ -4,9 +4,9 @@ import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t, tn} from 'sentry/locale';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -20,19 +20,17 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {SpanFields} from 'sentry/views/insights/types';
+import {tryParseJson} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type HighlightedAttribute = {
   name: string;
   value: React.ReactNode;
 };
 
-function tryParseJson(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return value;
-  }
-}
+type CaptureRule = {
+  messages: string[];
+  shouldCapture: boolean;
+};
 
 /**
  * Gets AI tool definitions, checking attributes in priority order.
@@ -157,20 +155,42 @@ function getAISpanAttributes({
     });
   }
 
-  // Check for missing cost calculation and emit Sentry error
-  if (
-    model &&
-    (inputTokens || outputTokens) &&
-    (!totalCosts || Number(totalCosts) === 0)
-  ) {
+  const captureRules: CaptureRule[] = [
+    {
+      shouldCapture: Boolean(
+        model &&
+        (inputTokens || outputTokens) &&
+        (!totalCosts || Number(totalCosts) === 0)
+      ),
+      messages: [`Gen AI cost data missing for model: ${model?.toString()}`],
+    },
+    {
+      shouldCapture: Boolean(model && totalCosts && Number(totalCosts) < 0),
+      messages: [`Gen AI span with negative cost: ${model?.toString()}`],
+    },
+  ];
+  const shouldCapture = captureRules.some(rule => rule.shouldCapture);
+
+  if (shouldCapture && model) {
+    const integration = attributes['gen_ai.system'];
+    const platform = attributes.platform ?? attributes['sdk.name'];
+    const version = attributes['sdk.version'];
+    const orgId =
+      attributes['org.id'] ?? attributes['organization.id'] ?? attributes.organization_id;
+    const hasCost = totalCosts && Number(totalCosts) !== 0;
     const contextData: CaptureContext = {
       level: 'warning',
       tags: {
         feature: 'agent-monitoring',
         span_type: 'gen_ai',
         has_model: 'true',
-        has_cost: 'false',
+        has_cost: hasCost ? 'true' : 'false',
         model: model.toString(),
+        integration: integration?.toString() ?? 'unknown',
+        platform: platform?.toString() ?? 'unknown',
+        version: version?.toString() ?? 'unknown',
+        org_id: orgId?.toString() ?? 'unknown',
+        ai_cost_warning: 'true', // we use this for assigning ownership
       },
       extra: {
         total_costs: totalCosts,
@@ -178,14 +198,12 @@ function getAISpanAttributes({
       },
     };
 
-    // General issue for tracking overall missing cost calculations
-    Sentry.captureMessage('Gen AI span missing cost calculation', contextData);
-
-    // Model-specific issue for tracking cost calculation failures per model
-    Sentry.captureMessage(
-      `Gen AI cost data missing for model: ${model.toString()}`,
-      contextData
-    );
+    captureRules
+      .filter(rule => rule.shouldCapture)
+      .flatMap(rule => rule.messages)
+      .forEach(message => {
+        Sentry.captureMessage(message, contextData);
+      });
   }
 
   const toolName = attributes['gen_ai.tool.name'];
@@ -300,7 +318,7 @@ function HighlightedTools({
     Referrer.TRACE_DRAWER_TOOL_USAGE
   );
 
-  const usedTools: Map<string, number> = new Map();
+  const usedTools = new Map<string, number>();
   toolSpansQuery.data?.forEach(span => {
     const toolName = span[SpanFields.GEN_AI_TOOL_NAME];
     usedTools.set(toolName, (usedTools.get(toolName) ?? 0) + 1);

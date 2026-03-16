@@ -1,9 +1,13 @@
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Redirect from 'sentry/components/redirect';
+import type {Query} from 'history';
+import * as qs from 'query-string';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Redirect} from 'sentry/components/redirect';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   makeAutomationDetailsPathname,
@@ -32,6 +36,23 @@ interface IncidentGroupOpenPeriod {
   incidentId: string | null;
   incidentIdentifier: string;
   openPeriodId: string;
+}
+
+function getIssueDetailsPath({
+  orgSlug,
+  groupId,
+  openPeriodId,
+  query,
+}: {
+  groupId: string;
+  openPeriodId: string | undefined;
+  orgSlug: string;
+  query: Query;
+}) {
+  const search = qs.stringify({...query, openPeriod: openPeriodId});
+  const pathname = normalizeUrl(`/organizations/${orgSlug}/issues/${groupId}/`);
+
+  return search ? `${pathname}?${search}` : pathname;
 }
 
 /**
@@ -151,6 +172,34 @@ export const withAutomationEditRedirect = <P extends Record<string, any>>(
     makeAutomationEditPathname(orgSlug, workflowId)
   );
 
+export const withMetricIssueRedirect = <P extends Record<string, any>>(
+  Component: React.ComponentType<P>
+) => {
+  return function MetricIssueRedirectWrapper(props: P) {
+    const organization = useOrganization();
+    const location = useLocation();
+    const alertId = location.query.alert as string | undefined;
+    const notificationUuid = location.query.notification_uuid;
+
+    const hasWorkflowEngineMetricIssueUI = organization.features.includes(
+      'workflow-engine-metric-issue-ui'
+    );
+    const hasMetricIssues = hasWorkflowEngineMetricIssueUI;
+    const shouldRedirectToIssue = notificationUuid && alertId && hasMetricIssues;
+
+    // If the org has metric issues, we want notification links to redirect to the metric issue details page
+    if (shouldRedirectToIssue) {
+      return (
+        <RedirectToIssue alertId={alertId}>
+          <Component {...(props as any)} />
+        </RedirectToIssue>
+      );
+    }
+
+    return <Component {...(props as any)} />;
+  };
+};
+
 export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
   Component: React.ComponentType<P>
 ) => {
@@ -165,78 +214,30 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
     const hasRedirectOptOut = organization.features.includes(
       'workflow-engine-redirect-opt-out'
     );
-    const shouldRedirect =
-      (!hasRedirectOptOut ||
-        // When clicking from a notification, we never want to opt out of the redirect
-        !!notificationUuid) &&
-      hasWorkflowEngineUI;
-
-    // Check for incident open period if alertId is present
-    const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} =
-      useApiQuery<IncidentGroupOpenPeriod>(
-        [
-          getApiUrl('/organizations/$organizationIdOrSlug/incident-groupopenperiod/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-          {query: {incident_identifier: alertId}},
-        ],
-        {
-          staleTime: 0,
-          enabled: shouldRedirect && !!alertId,
-          retry: false,
-        }
-      );
-
-    // Check for detector if no alertId
-    const {data: alertRuleDetector, isPending: isDetectorPending} =
-      useApiQuery<AlertRuleDetector>(
-        [
-          getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-detector/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-          {query: {alert_rule_id: ruleId}},
-        ],
-        {
-          staleTime: 0,
-          enabled: shouldRedirect && !!ruleId && !detectorId && !alertId,
-          retry: false,
-        }
-      );
+    // When clicking from a notification, we never want to opt out of the redirect
+    const optOutOfRedirects = hasRedirectOptOut && !notificationUuid;
+    const shouldRedirect = hasWorkflowEngineUI && !optOutOfRedirects;
 
     if (shouldRedirect) {
-      // If alertId is provided, redirect to metric issue
       if (alertId) {
-        if (isOpenPeriodPending) {
-          return <LoadingIndicator />;
-        }
-        if (incidentGroupOpenPeriod) {
-          return (
-            <Redirect
-              to={`/organizations/${organization.slug}/issues/${incidentGroupOpenPeriod.groupId}/`}
-            />
-          );
-        }
+        return (
+          <RedirectToIssue alertId={alertId}>
+            <Component {...(props as any)} />
+          </RedirectToIssue>
+        );
       }
 
-      // If detectorId is provided, redirect to monitor details
       if (detectorId) {
         return (
           <Redirect to={makeMonitorDetailsPathname(organization.slug, detectorId)} />
         );
       }
 
-      // If alertRuleId is provided, fetch detector and redirect
-      if (isDetectorPending) {
-        return <LoadingIndicator />;
-      }
-      if (alertRuleDetector) {
+      if (ruleId) {
         return (
-          <Redirect
-            to={makeMonitorDetailsPathname(
-              organization.slug,
-              alertRuleDetector.detectorId
-            )}
-          />
+          <RedirectToDetector ruleId={ruleId}>
+            <Component {...(props as any)} />
+          </RedirectToDetector>
         );
       }
     }
@@ -244,6 +245,86 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
     return <Component {...(props as any)} />;
   };
 };
+
+function RedirectToIssue({
+  alertId,
+  children,
+}: {
+  alertId: string;
+  children: React.ReactNode;
+}) {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  const {data: incidentGroupOpenPeriod, isPending: isOpenPeriodPending} =
+    useApiQuery<IncidentGroupOpenPeriod>(
+      [
+        getApiUrl('/organizations/$organizationIdOrSlug/incident-groupopenperiod/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {query: {incident_identifier: alertId}},
+      ],
+      {
+        staleTime: 0,
+        enabled: !!alertId,
+        retry: false,
+      }
+    );
+
+  if (isOpenPeriodPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (incidentGroupOpenPeriod) {
+    return (
+      <Redirect
+        to={getIssueDetailsPath({
+          orgSlug: organization.slug,
+          groupId: incidentGroupOpenPeriod.groupId,
+          openPeriodId: incidentGroupOpenPeriod.openPeriodId,
+          query: location.query,
+        })}
+      />
+    );
+  }
+
+  return children;
+}
+
+function RedirectToDetector({
+  ruleId,
+  children,
+}: {
+  children: React.ReactNode;
+  ruleId: string;
+}) {
+  const organization = useOrganization();
+  const {data: alertRuleDetector, isPending: isDetectorPending} =
+    useApiQuery<AlertRuleDetector>(
+      [
+        getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-detector/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {query: {alert_rule_id: ruleId}},
+      ],
+      {
+        staleTime: 0,
+        retry: false,
+      }
+    );
+
+  if (isDetectorPending) {
+    return <LoadingIndicator />;
+  }
+  if (alertRuleDetector) {
+    return (
+      <Redirect
+        to={makeMonitorDetailsPathname(organization.slug, alertRuleDetector.detectorId)}
+      />
+    );
+  }
+  return children;
+}
 
 export const withDetectorEditRedirect = <P extends Record<string, any>>(
   Component: React.ComponentType<P>
@@ -294,6 +375,7 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
 ) {
   return function OpenPeriodRedirectWrapper(props: P) {
     const organization = useOrganization();
+    const location = useLocation();
     const {alertId} = useParams();
 
     const hasRedirectOptOut = organization.features.includes(
@@ -324,7 +406,12 @@ export function withOpenPeriodRedirect<P extends Record<string, any>>(
       if (incidentGroupOpenPeriod) {
         return (
           <Redirect
-            to={`/organizations/${organization.slug}/issues/${incidentGroupOpenPeriod.groupId}/`}
+            to={getIssueDetailsPath({
+              orgSlug: organization.slug,
+              groupId: incidentGroupOpenPeriod.groupId,
+              openPeriodId: incidentGroupOpenPeriod.openPeriodId,
+              query: location.query,
+            })}
           />
         );
       }

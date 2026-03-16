@@ -3,11 +3,10 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/searchBar';
-import {space} from 'sentry/styles/space';
-import useApi from 'sentry/utils/useApi';
-import useKeyPress from 'sentry/utils/useKeyPress';
+import {useApi} from 'sentry/utils/useApi';
+import {useKeyPress} from 'sentry/utils/useKeyPress';
 
 type Props = {
   onSelectResult: (value: string) => void;
@@ -20,7 +19,7 @@ type Props = {
   queryParam?: string;
 };
 
-function DebounceSearch({
+export function DebounceSearch({
   createSuggestionPath,
   onSearch,
   onSelectResult,
@@ -49,7 +48,7 @@ function DebounceSearch({
   const api = useApi();
 
   const debouncedSearch = useRef(
-    debounce(async (searchHost, value) => {
+    debounce(async (searchHost, searchPath, value) => {
       // Avoid slow-fetch race conditions
       api.clear();
       setError('');
@@ -61,7 +60,7 @@ function DebounceSearch({
             query: [queryParam, value].filter(v => v).join(':'),
             per_page: 10,
           };
-          const results = await api.requestPromise(path, {
+          const results = await api.requestPromise(searchPath, {
             method: 'GET',
             host: searchHost,
             data: queryParams,
@@ -81,9 +80,9 @@ function DebounceSearch({
       value ? setLoading(true) : setLoading(false);
       value ? setShowResults(true) : setShowResults(false);
       setQuery(value);
-      debouncedSearch(host, value);
+      debouncedSearch(host, path, value);
     },
-    [host, debouncedSearch]
+    [host, path, debouncedSearch]
   );
 
   useEffect(() => {
@@ -120,7 +119,7 @@ function DebounceSearch({
     setLoading(false);
     setQueryResults([]);
     setShowResults(false);
-  }, [escapePress, debouncedSearch, api, host]);
+  }, [escapePress, debouncedSearch, api, host, path]);
 
   const renderSuggestion = (item: any, idx: number) => {
     return (
@@ -164,13 +163,13 @@ const Card = styled('div')<{highlight?: boolean}>`
       ? p.theme.tokens.interactive.link.accent.active
       : p.theme.tokens.content.primary};
   box-shadow: ${p => p.theme.dropShadowMedium};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 const Error = styled('div')`
   color: red;
 `;
 const SearchResults = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 const SuggestionCard = styled(Card)`
   &:hover {
@@ -179,5 +178,3 @@ const SuggestionCard = styled(Card)`
     cursor: pointer;
   }
 `;
-
-export default DebounceSearch;

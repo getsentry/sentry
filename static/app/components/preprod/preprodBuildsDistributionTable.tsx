@@ -2,7 +2,8 @@ import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Text} from 'sentry/components/core/text';
+import {Text} from '@sentry/scraps/text';
+
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
@@ -36,7 +37,6 @@ export function PreprodBuildsDistributionTable({
     const linkUrl =
       getInstallBuildPath({
         organizationSlug,
-        projectId: build.project_id.toString(),
         baseArtifactId: build.id,
       }) ?? '';
     const isInstallable = build.distribution_info?.is_installable ?? false;

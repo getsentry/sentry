@@ -11,19 +11,19 @@ import {
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import ConfigStore from 'sentry/stores/configStore';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   getFormattedDuration,
   WEB_VITALS_METERS_CONFIG,
@@ -270,7 +270,7 @@ export function Trace({
     [manager, onNodeExpand, onNodeZoomIn, traceDispatch]
   );
 
-  const projectLookup: Record<string, PlatformKey | undefined> = useMemo(() => {
+  const projectLookup = useMemo(() => {
     return projects.reduce<Record<Project['slug'], Project['platform']>>(
       (acc, project) => {
         acc[project.slug] = project.platform;
@@ -699,6 +699,7 @@ function VerticalTimestampIndicators({
 const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.neutral.muted};
   position: absolute;
   left: 0;
@@ -804,6 +805,7 @@ const TraceStylingWrapper = styled('div')`
       position: absolute;
       width: 1px;
       height: 100%;
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.primary};
       left: 50%;
     }
@@ -829,6 +831,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorContainerMiddleLine {
     position: absolute;
     top: 18px;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
@@ -932,7 +935,7 @@ const TraceStylingWrapper = styled('div')`
       background: repeating-linear-gradient(
           to bottom,
           transparent 0 4px,
-          ${p => p.theme.tokens.content.primary} 4px 8px
+          ${p => p.theme.tokens.dataviz.semantic.neutral} 4px 8px
         )
         80%/2px 100% no-repeat;
 
@@ -940,7 +943,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.colors.red400} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.neutral} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -949,7 +952,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.tokens.content.secondary} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.neutral} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -958,7 +961,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.colors.yellow400} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.meh} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -967,7 +970,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.colors.green400} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.good} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -992,7 +995,7 @@ const TraceStylingWrapper = styled('div')`
 
     &.Errored {
       .TraceIndicatorLabelContainer {
-        border: 1px solid ${p => p.theme.tokens.content.danger};
+        border: 1px solid ${p => p.theme.tokens.border.danger.vibrant};
         color: ${p => p.theme.tokens.content.danger};
       }
 
@@ -1000,7 +1003,7 @@ const TraceStylingWrapper = styled('div')`
         background: repeating-linear-gradient(
             to bottom,
             transparent 0 4px,
-            ${p => p.theme.tokens.content.danger} 4px 8px
+            ${p => p.theme.tokens.dataviz.semantic.bad} 4px 8px
           )
           80%/2px 100% no-repeat;
       }
@@ -1038,7 +1041,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
-      &.occurence {
+      &.occurrence {
         --pattern-odd: ${p => p.theme.tokens.content.accent};
         --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
@@ -1080,7 +1083,7 @@ const TraceStylingWrapper = styled('div')`
         --pattern-odd: ${p => p.theme.colors.yellow500};
         --pattern-even: ${p => p.theme.colors.yellow400};
       }
-      &.occurence {
+      &.occurrence {
         --pattern-odd: ${p => p.theme.tokens.content.accent};
         --pattern-even: ${p => p.theme.tokens.graphics.accent.vibrant};
       }
@@ -1137,7 +1140,7 @@ const TraceStylingWrapper = styled('div')`
     }
     &.error,
     &.fatal,
-    &.occurence {
+    &.occurrence {
       color: ${p => p.theme.tokens.content.danger};
       --autogrouped: ${p => p.theme.tokens.content.danger};
       --row-children-button-border-color: ${p => p.theme.tokens.content.danger};
@@ -1188,8 +1191,8 @@ const TraceStylingWrapper = styled('div')`
       &.fatal {
         background-color: var(--error);
       }
-      &.occurence {
-        background-color: var(--occurence);
+      &.occurrence {
+        background-color: var(--occurrence);
       }
       &.default {
         background-color: var(--default);
@@ -1213,7 +1216,7 @@ const TraceStylingWrapper = styled('div')`
 
       &.info,
       &.warning,
-      &.occurence,
+      &.occurrence,
       &.default,
       &.unknown {
         svg {
@@ -1271,10 +1274,10 @@ const TraceStylingWrapper = styled('div')`
     }
 
     &.Highlight {
-      box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.accent.vibrant} !important;
+      box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default} !important;
 
       .TraceLeftColumn {
-        box-shadow: inset 0px 0 0px 1px ${p => p.theme.tokens.border.accent.vibrant} !important;
+        box-shadow: inset 0px 0 0px 1px ${p => p.theme.tokens.focus.default} !important;
       }
     }
 
@@ -1375,7 +1378,7 @@ const TraceStylingWrapper = styled('div')`
       align-items: center;
       will-change: transform;
       transform-origin: left center;
-      padding-right: ${space(2)};
+      padding-right: ${p => p.theme.space.xl};
 
       img {
         width: 16px;
@@ -1581,6 +1584,7 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.neutral.muted};
       border-radius: 50%;
       height: 6px;

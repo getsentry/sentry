@@ -6,11 +6,12 @@ import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
-import {MenuListItem} from 'sentry/components/core/menuListItem';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
+import {MenuListItem} from '@sentry/scraps/menuListItem';
+
 import {IconChevron} from 'sentry/icons';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './list';
 

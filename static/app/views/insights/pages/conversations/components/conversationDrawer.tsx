@@ -1,25 +1,29 @@
-import {memo, useCallback, useEffect, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import {TabList, TabPanels, Tabs} from 'sentry/components/core/tabs';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {ConversationDrawerOpenSource} from 'sentry/utils/analytics/conversationsAnalyticsEvents';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {ConversationSummary} from 'sentry/views/insights/pages/conversations/components/conversationSummary';
 import {MessagesPanel} from 'sentry/views/insights/pages/conversations/components/messagesPanel';
 import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {useFocusedToolSpan} from 'sentry/views/insights/pages/conversations/hooks/useFocusedToolSpan';
 import {useUrlConversationDrawer} from 'sentry/views/insights/pages/conversations/hooks/useUrlConversationDrawer';
+import {extractMessagesFromNodes} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -44,33 +48,80 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
   const [conversationDrawerQueryState, setConversationDrawerQueryState] =
     useConversationDrawerQueryState();
   const selectedNodeKey = conversationDrawerQueryState.spanId;
+  const focusedTool = conversationDrawerQueryState.focusedTool;
+
+  useFocusedToolSpan({
+    nodes,
+    focusedTool,
+    isLoading,
+    onSpanFound: useCallback(
+      (spanId: string) => {
+        setConversationDrawerQueryState({
+          spanId,
+          focusedTool: null,
+        });
+      },
+      [setConversationDrawerQueryState]
+    ),
+  });
 
   const handleSelectNode = useCallback(
     (node: AITraceSpanNode) => {
       setConversationDrawerQueryState({
         spanId: node.id,
+        focusedTool: null,
       });
-      trackAnalytics('agent-monitoring.conversation-drawer.span-select', {
+      trackAnalytics('conversations.drawer.span-select', {
         organization,
       });
     },
     [setConversationDrawerQueryState, organization]
   );
 
-  const selectedNode =
-    (selectedNodeKey && nodes.find(node => node.id === selectedNodeKey)) ||
-    getDefaultSelectedNode(nodes);
+  const defaultNodeId = useMemo(() => {
+    const messages = extractMessagesFromNodes(nodes);
+    const firstAssistant = messages.find(m => m.role === 'assistant');
+    return firstAssistant?.nodeId ?? getDefaultSelectedNode(nodes)?.id;
+  }, [nodes]);
+
+  const selectedNode = useMemo(() => {
+    return (
+      nodes.find(node => node.id === selectedNodeKey) ??
+      nodes.find(node => node.id === defaultNodeId)
+    );
+  }, [nodes, selectedNodeKey, defaultNodeId]);
+
+  useEffect(() => {
+    if (isLoading || !defaultNodeId || focusedTool) {
+      return;
+    }
+
+    const isCurrentSpanValid =
+      selectedNodeKey && nodes.some(node => node.id === selectedNodeKey);
+
+    if (!isCurrentSpanValid) {
+      setConversationDrawerQueryState({
+        spanId: defaultNodeId,
+      });
+    }
+  }, [
+    isLoading,
+    defaultNodeId,
+    selectedNodeKey,
+    nodes,
+    setConversationDrawerQueryState,
+    focusedTool,
+  ]);
 
   return (
-    <Stack height="100%">
-      <StyledDrawerHeader>
-        <Flex align="center" flex="1" gap="md">
-          {t('Conversation')}
-          <Text variant="muted" size="sm" monospace>
-            {conversation.conversationId.slice(0, 8)}
-          </Text>
-        </Flex>
-      </StyledDrawerHeader>
+    <Flex direction="column" height="100%">
+      <DrawerHeader>
+        <ConversationSummary
+          nodes={nodes}
+          conversationId={conversation.conversationId}
+          isLoading={isLoading}
+        />
+      </DrawerHeader>
       <StyledDrawerBody>
         <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
           <ConversationView
@@ -83,7 +134,7 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
           />
         </TraceStateProvider>
       </StyledDrawerBody>
-    </Stack>
+    </Flex>
   );
 });
 
@@ -94,9 +145,18 @@ export function useConversationViewDrawer({
   const {openDrawer, isDrawerOpen, drawerUrlState} = useUrlConversationDrawer();
 
   const openConversationViewDrawer = useCallback(
-    (conversation: UseConversationsOptions) => {
-      trackAnalytics('agent-monitoring.conversation-drawer.open', {
+    ({
+      conversation,
+      source,
+      focusedTool,
+    }: {
+      conversation: UseConversationsOptions;
+      source: ConversationDrawerOpenSource;
+      focusedTool?: string;
+    }) => {
+      trackAnalytics('conversations.drawer.open', {
         organization,
+        source,
       });
 
       return openDrawer(() => <ConversationDrawerContent conversation={conversation} />, {
@@ -104,8 +164,14 @@ export function useConversationViewDrawer({
         onClose,
         shouldCloseOnInteractOutside: () => true,
         drawerWidth: `${DRAWER_WIDTH}px`,
+        drawerCss: css`
+          min-width: ${DRAWER_WIDTH}px;
+        `,
         resizable: true,
         conversationId: conversation.conversationId,
+        startTimestamp: conversation.startTimestamp,
+        endTimestamp: conversation.endTimestamp,
+        focusedTool,
         drawerKey: 'conversation-view-drawer',
       });
     },
@@ -113,9 +179,17 @@ export function useConversationViewDrawer({
   );
 
   useEffect(() => {
-    const {conversationId} = drawerUrlState;
+    const {conversationId, startTimestamp, endTimestamp, focusedTool} = drawerUrlState;
     if (conversationId && !isDrawerOpen) {
-      openConversationViewDrawer({conversationId});
+      openConversationViewDrawer({
+        conversation: {
+          conversationId,
+          startTimestamp: startTimestamp ?? undefined,
+          endTimestamp: endTimestamp ?? undefined,
+        },
+        focusedTool: focusedTool ?? undefined,
+        source: 'direct_link',
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount
   }, []);
@@ -144,6 +218,20 @@ function ConversationView({
   const organization = useOrganization();
   const [activeTab, setActiveTab] = useState<ConversationTab>('messages');
 
+  const handleTabChange = useCallback(
+    (newTab: ConversationTab) => {
+      if (activeTab !== newTab) {
+        trackAnalytics('conversations.drawer.tab-switch', {
+          organization,
+          fromTab: activeTab,
+          toTab: newTab,
+        });
+      }
+      setActiveTab(newTab);
+    },
+    [organization, activeTab]
+  );
+
   if (isLoading) {
     return (
       <Flex justify="center" align="center" flex="1" height="100%">
@@ -165,9 +253,9 @@ function ConversationView({
       <LeftPanel>
         <StyledTabs
           value={activeTab}
-          onChange={key => setActiveTab(key as ConversationTab)}
+          onChange={key => handleTabChange(key as ConversationTab)}
         >
-          <Container padding="xs lg">
+          <Container paddingTop="lg" borderBottom="primary">
             <TabList>
               <TabList.Item key="messages">{t('Messages')}</TabList.Item>
               <TabList.Item key="trace">{t('AI Spans')}</TabList.Item>
@@ -183,7 +271,7 @@ function ConversationView({
                 />
               </TabPanels.Item>
               <TabPanels.Item key="trace">
-                <Container padding="md lg">
+                <Container padding="md lg md lg">
                   <AISpanList
                     nodes={nodes}
                     selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
@@ -206,6 +294,7 @@ function ConversationView({
           replay: null,
           traceId: nodeTraceMap.get(selectedNode.id) ?? '',
           hideNodeActions: true,
+          initiallyCollapseAiIO: true,
         })}
       </DetailsPanel>
     </Flex>
@@ -221,7 +310,7 @@ const StyledDrawerBody = styled(DrawerBody)`
 `;
 
 const LeftPanel = styled('div')`
-  width: ${LEFT_PANEL_WIDTH}px;
+  flex: 1;
   min-width: ${LEFT_PANEL_WIDTH}px;
   min-height: 0;
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
@@ -236,6 +325,7 @@ const StyledTabs = styled(Tabs)`
 
 const FullWidthTabPanels = styled(TabPanels)`
   width: 100%;
+  padding: 0;
 
   > [role='tabpanel'] {
     width: 100%;
@@ -243,15 +333,10 @@ const FullWidthTabPanels = styled(TabPanels)`
 `;
 
 const DetailsPanel = styled('div')`
+  width: ${DETAILS_PANEL_WIDTH}px;
   min-width: ${DETAILS_PANEL_WIDTH}px;
-  flex: 1;
   min-height: 0;
   background-color: ${p => p.theme.tokens.background.primary};
   overflow-y: auto;
   overflow-x: hidden;
-`;
-
-const StyledDrawerHeader = styled(DrawerHeader)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  display: flex;
 `;

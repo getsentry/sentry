@@ -442,7 +442,7 @@ def validate_regions(settings: Any) -> None:
     if not settings.SENTRY_REGION_CONFIG:
         return
 
-    load_from_config(settings.SENTRY_REGION_CONFIG).validate_all()
+    load_from_config(settings.SENTRY_REGION_CONFIG, settings.SENTRY_LOCALITIES).validate_all()
 
 
 def monkeypatch_django_migrations() -> None:
@@ -496,10 +496,20 @@ def bind_cache_to_option_store() -> None:
     # loaded at this point, so we can plug in the cache backend before
     # continuing to initialize the remainder of the application.
     from django.core.cache import cache as default_cache
+    from django.core.cache import caches
+    from django.utils.connection import ConnectionProxy
 
     from sentry.options import default_store
 
-    default_store.set_cache_impl(default_cache)
+    # Prefer the 'options' cache profile if defined.
+    # Use a ConnectionProxy as caches['options'] performs
+    # poorly in threaded contexts.
+    # We type ignore because django's types are lies and default_cache
+    # is ConnectionProxy.
+    backend = default_cache
+    if "options" in settings.CACHES:
+        backend = ConnectionProxy(caches, "options")  # type: ignore[assignment]
+    default_store.set_cache_impl(backend)
 
 
 def apply_legacy_settings(settings: Any) -> None:
@@ -662,13 +672,13 @@ See: https://github.com/getsentry/snuba#sentry--snuba"""
 
 
 def validate_outbox_config() -> None:
-    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
+    from sentry.hybridcloud.models.outbox import CellOutboxBase, ControlOutboxBase
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
         ControlOutboxBase.from_outbox_name(outbox_name)
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["REGION"]:
-        RegionOutboxBase.from_outbox_name(outbox_name)
+        CellOutboxBase.from_outbox_name(outbox_name)
 
 
 def import_grouptype() -> None:

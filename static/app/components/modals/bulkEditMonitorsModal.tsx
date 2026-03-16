@@ -2,25 +2,23 @@ import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {BulkEditOperation} from 'sentry/actionCreators/monitors';
 import {bulkEditMonitors} from 'sentry/actionCreators/monitors';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Text} from 'sentry/components/core/text';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   MonitorSortOption,
   MonitorSortOrder,
@@ -137,10 +135,11 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
                   size="sm"
                   onClick={() => handleBulkEdit(operation)}
                   disabled={isUpdating || selectedMonitors.length === 0}
-                  title={
-                    selectedMonitors.length === 0 &&
-                    tct('Please select monitors to [actionText]', {actionText})
-                  }
+                  tooltipProps={{
+                    title:
+                      selectedMonitors.length === 0 &&
+                      tct('Please select monitors to [actionText]', {actionText}),
+                  }}
                   aria-label={actionText}
                   {...analyticsProps}
                 >
@@ -155,7 +154,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
               )
             )}
           </ActionButtons>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <SearchBar
               size="sm"
               placeholder={t('Search Monitors')}
@@ -170,7 +169,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
               onChangeSort={({value: sort}) => setSortSelection({...sortSelection, sort})}
               {...sortSelection}
             />
-          </ButtonBar>
+          </Grid>
         </Flex>
         <StyledPanelTable
           headers={headers}
@@ -225,7 +224,9 @@ export const modalCss = css`
   max-width: 900px;
 `;
 
-const ActionButtons = styled(ButtonBar)`
+const ActionButtons = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   margin-right: auto;
 `;
 
@@ -236,7 +237,7 @@ const StyledPanelTable = styled(PanelTable)`
 
 const RowPlaceholder = styled('div')`
   grid-column: 1 / -1;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -246,6 +247,6 @@ const RowPlaceholder = styled('div')`
 const MonitorSlug = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;

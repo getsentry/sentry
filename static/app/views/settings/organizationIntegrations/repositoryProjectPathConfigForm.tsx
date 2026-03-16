@@ -1,12 +1,14 @@
-import {useEffect, useRef, useState} from 'react';
-import pick from 'lodash/pick';
+import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import type {GeneralSelectValue} from 'sentry/components/core/select';
-import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import type {Field} from 'sentry/components/forms/types';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {
   Integration,
@@ -17,168 +19,259 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {sentryNameToOption} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 
-type Props = {
+type Props = ModalRenderProps & {
   integration: Integration;
-  onCancel: FormProps['onCancel'];
-  onSubmitSuccess: FormProps['onSubmitSuccess'];
   organization: Organization;
   projects: Project[];
   repos: Repository[];
   existingConfig?: RepositoryProjectPathConfig;
 };
 
-function RepositoryProjectPathConfigForm({
-  existingConfig,
-  integration,
-  onCancel,
-  onSubmitSuccess,
-  organization,
-  projects,
-  repos,
-}: Props) {
-  const formRef = useRef(new FormModel());
-  const repoChoices = repos.map(({name, id}) => ({value: id, label: name}));
-  const [selectedRepo, setSelectedRepo] = useState<GeneralSelectValue | null>(null);
-
-  /**
-   * Using the integration repo search, automatically switch to the default branch for the repo,
-   * once one is selected in the form.
-   */
-  const {data: integrationReposData} = useApiQuery<{repos: IntegrationRepository[]}>(
-    [
-      `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-      {query: {search: selectedRepo?.label}},
-    ],
+const integrationReposOptions = (
+  orgSlug: string,
+  integrationId: string,
+  search: string
+) =>
+  apiOptions.as<{repos: IntegrationRepository[]}>()(
+    '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
     {
-      enabled: !!selectedRepo?.label,
+      path: {organizationIdOrSlug: orgSlug, integrationId},
+      query: {search},
       staleTime: 1000 * 60 * 5,
     }
   );
 
-  // Stream-based VCS (like Perforce) use streams/codelines instead of branches
-  // and don't require a default branch to be specified
+export function RepositoryProjectPathConfigModal({
+  Body,
+  Footer,
+  Header,
+  closeModal,
+  existingConfig,
+  integration,
+  organization,
+  projects,
+  repos,
+}: Props) {
+  const queryClient = useQueryClient();
+
   const isStreamBased = integration.provider.key === 'perforce';
 
-  // Effect to handle the case when integration repos data becomes available
-  useEffect(() => {
-    if (integrationReposData?.repos && selectedRepo) {
-      const {defaultBranch} =
-        integrationReposData.repos.find(r => r.identifier === selectedRepo.label) ?? {};
-      const isCurrentRepo =
-        formRef.current.getValue('repositoryId') === selectedRepo.value;
-      if (defaultBranch && isCurrentRepo) {
-        formRef.current.setValue('defaultBranch', defaultBranch);
-      }
-    }
-  }, [integrationReposData, selectedRepo]);
+  const schema = z.object({
+    projectId: z.string().min(1, t('Project is required')),
+    repositoryId: z.string().min(1, t('Repository is required')),
+    defaultBranch: isStreamBased
+      ? z.string()
+      : z.string().min(1, t('Branch is required')),
+    stackRoot: z.string(),
+    sourceRoot: z.string(),
+    integrationId: z.string(),
+  });
 
-  const formFields: Field[] = [
-    {
-      name: 'projectId',
-      type: 'sentry_project_selector',
-      required: true,
-      label: t('Project'),
-      projects,
-    },
-    {
-      name: 'repositoryId',
-      type: 'select_async',
-      required: true,
-      label: t('Repo'),
-      placeholder: t('Choose repo'),
-      url: `/organizations/${organization.slug}/repos/`,
-      defaultOptions: repoChoices,
-      onResults: results => results.map(sentryNameToOption),
-      onChangeOption: setSelectedRepo,
-    },
-    {
-      name: 'defaultBranch',
-      type: 'string',
-      required: !isStreamBased,
-      label: isStreamBased ? t('Stream') : t('Branch'),
-      placeholder: isStreamBased
-        ? t('Type your stream (optional, e.g., main)')
-        : t('Type your branch'),
-      showHelpInTooltip: true,
-      help: isStreamBased
-        ? t(
-            'Optional: Specify a stream/codeline (e.g., "main"). If not specified, the depot root will be used. Streams are part of the depot path in Perforce.'
-          )
-        : t(
-            'If an event does not have a release tied to a commit, we will use this branch when linking to your source code.'
-          ),
-    },
-    {
-      name: 'stackRoot',
-      type: 'string',
-      required: false,
-      label: t('Stack Trace Root'),
-      placeholder: t('Type root path of your stack traces'),
-      showHelpInTooltip: true,
-      help: t(
-        'Any stack trace starting with this path will be mapped with this rule. An empty string will match all paths.'
-      ),
-    },
-    {
-      name: 'sourceRoot',
-      type: 'string',
-      required: false,
-      label: t('Source Code Root'),
-      placeholder: t('Type root path of your source code, e.g. `src/`.'),
-      showHelpInTooltip: true,
-      help: t(
-        'When a rule matches, the stack trace root is replaced with this path to get the path in your repository. Leaving this empty means replacing the stack trace root with an empty string.'
-      ),
-    },
-  ];
+  const projectOptions = projects.map(project => ({
+    value: project.id,
+    label: project.slug,
+    leadingItems: (
+      <IdBadge
+        project={project}
+        avatarSize={20}
+        avatarProps={{consistentWidth: true}}
+        hideName
+      />
+    ),
+  }));
+  const repoOptions = repos.map(({name, id}) => ({value: id, label: name}));
 
-  function handlePreSubmit() {
-    trackAnalytics('integrations.stacktrace_submit_config', {
-      setup_type: 'manual',
-      view: 'integration_configuration_detail',
-      provider: integration.provider.key,
-      organization,
-    });
-  }
+  const endpoint = existingConfig
+    ? getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/$configId/`, {
+        path: {organizationIdOrSlug: organization.slug, configId: existingConfig.id},
+      })
+    : getApiUrl(`/organizations/$organizationIdOrSlug/code-mappings/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      });
 
-  const initialData = {
-    defaultBranch: isStreamBased ? '' : 'main',
-    stackRoot: '',
-    sourceRoot: '',
-    repositoryId: existingConfig?.repoId,
-    integrationId: integration.id,
-    ...pick(existingConfig, ['projectId', 'defaultBranch', 'stackRoot', 'sourceRoot']),
-  };
+  const mutation = useMutation({
+    mutationFn: (data: Partial<RepositoryProjectPathConfig>) =>
+      fetchMutation({
+        method: existingConfig ? 'PUT' : 'POST',
+        url: endpoint,
+        data,
+      }),
+    onError: e => {
+      Sentry.captureException(e);
+      addErrorMessage(t('Failed to configure code path mapping'));
+    },
+    onSuccess: () => {
+      trackAnalytics('integrations.stacktrace_complete_setup', {
+        setup_type: 'manual',
+        view: 'integration_configuration_detail',
+        provider: integration.provider.key,
+        organization,
+      });
+      closeModal();
+    },
+  });
 
-  // endpoint changes if we are making a new row or updating an existing one
-  const baseEndpoint = `/organizations/${organization.slug}/code-mappings/`;
-  const endpoint = existingConfig ? `${baseEndpoint}${existingConfig.id}/` : baseEndpoint;
-  const apiMethod = existingConfig ? 'PUT' : 'POST';
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      projectId: existingConfig?.projectId ?? '',
+      repositoryId: existingConfig?.repoId ?? '',
+      defaultBranch: existingConfig?.defaultBranch ?? (isStreamBased ? '' : 'main'),
+      stackRoot: existingConfig?.stackRoot ?? '',
+      sourceRoot: existingConfig?.sourceRoot ?? '',
+      integrationId: integration.id,
+    },
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      trackAnalytics('integrations.stacktrace_submit_config', {
+        setup_type: 'manual',
+        view: 'integration_configuration_detail',
+        provider: integration.provider.key,
+        organization,
+      });
+      return mutation.mutateAsync(value).catch(() => {});
+    },
+  });
 
   return (
-    <Form
-      onSubmitSuccess={onSubmitSuccess}
-      onPreSubmit={handlePreSubmit}
-      initialData={initialData}
-      apiEndpoint={endpoint}
-      apiMethod={apiMethod}
-      model={formRef.current}
-      onCancel={onCancel}
-    >
-      {formFields.map(field => (
-        <FieldFromConfig
-          key={field.name}
-          field={field}
-          inline={false}
-          stacked
-          flexibleControlStateSize
-        />
-      ))}
-    </Form>
+    <form.AppForm form={form}>
+      <Header closeButton>
+        <h4>{t('Configure code path mapping')}</h4>
+      </Header>
+      <Body>
+        <Stack gap="xl">
+          <form.AppField name="projectId">
+            {field => (
+              <field.Layout.Stack label={t('Project')} required>
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('Choose Sentry project')}
+                  options={projectOptions}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+
+          <form.AppField
+            name="repositoryId"
+            listeners={{
+              onChange: async ({value}) => {
+                const repoLabel = repoOptions.find(opt => opt.value === value)?.label;
+                if (!repoLabel) {
+                  return;
+                }
+
+                // If the default branch field has been blurred (i.e., the user has interacted with it),
+                // do not auto-update its value when the repo changes, to avoid overwriting user input.
+                if (form.getFieldMeta('defaultBranch')?.isBlurred) {
+                  return;
+                }
+
+                try {
+                  const data = await queryClient.fetchQuery(
+                    integrationReposOptions(organization.slug, integration.id, repoLabel)
+                  );
+                  const defaultBranch = data.json.repos.find(
+                    r => r.identifier === repoLabel
+                  )?.defaultBranch;
+                  if (defaultBranch) {
+                    form.setFieldValue('defaultBranch', defaultBranch);
+                  }
+                } catch {
+                  // If the fetch fails, keep the current default branch value
+                }
+              },
+            }}
+          >
+            {field => (
+              <field.Layout.Stack label={t('Repo')} required>
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('Choose repo')}
+                  options={repoOptions}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+
+          <form.AppField name="defaultBranch">
+            {field => (
+              <field.Layout.Stack
+                label={isStreamBased ? t('Stream') : t('Branch')}
+                hintText={
+                  isStreamBased
+                    ? t(
+                        'Optional: Specify a stream/codeline (e.g., "main"). If not specified, the depot root will be used. Streams are part of the depot path in Perforce.'
+                      )
+                    : t(
+                        'If an event does not have a release tied to a commit, we will use this branch when linking to your source code.'
+                      )
+                }
+                variant="compact"
+                required={!isStreamBased}
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={
+                    isStreamBased
+                      ? t('Type your stream (optional, e.g., main)')
+                      : t('Type your branch')
+                  }
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+
+          <form.AppField name="stackRoot">
+            {field => (
+              <field.Layout.Stack
+                label={t('Stack Trace Root')}
+                hintText={t(
+                  'Any stack trace starting with this path will be mapped with this rule. An empty string will match all paths.'
+                )}
+                variant="compact"
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('Type root path of your stack traces')}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+
+          <form.AppField name="sourceRoot">
+            {field => (
+              <field.Layout.Stack
+                label={t('Source Code Root')}
+                hintText={t(
+                  'When a rule matches, the stack trace root is replaced with this path to get the path in your repository. Leaving this empty means replacing the stack trace root with an empty string.'
+                )}
+                variant="compact"
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('Type root path of your source code, e.g. `src/`.')}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
+      </Body>
+      <Footer>
+        <Flex justify="end" gap="md">
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
-
-export default RepositoryProjectPathConfigForm;

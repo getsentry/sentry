@@ -1,15 +1,25 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   ProductSolution,
@@ -17,24 +27,23 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import type {DatePageFilterProps} from 'sentry/components/organizations/datePageFilter';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
@@ -85,14 +94,11 @@ function LogDrainsLink({project}: {project: Project}) {
               }
             )
           : tct(
-              'You can use [link:Log Drains] to send logs from platforms like [vercelLink:Vercel] and [herokuLink:Heroku], or via the [otlpLink:OpenTelemetry Collector].',
+              'You can use [link:Log Drains] to send logs from platforms like [vercelLink:Vercel], or via the [otlpLink:OpenTelemetry Collector].',
               {
                 link: <ExternalLink href="https://docs.sentry.io/product/drains/" />,
                 vercelLink: (
                   <ExternalLink href="https://docs.sentry.io/product/drains/integration/vercel/" />
-                ),
-                herokuLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/drains/integration/heroku/" />
                 ),
                 otlpLink: (
                   <ExternalLink href="https://docs.sentry.io/product/drains/integration/opentelemetry-collector/" />
@@ -115,41 +121,47 @@ function OnboardingPanel({
     <Panel>
       <PanelBody>
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
-          <div>
-            <HeaderWrapper>
-              <HeaderText>
-                <Title>{t('Your Source for Log-ical Data')}</Title>
-                <SubTitle>
-                  {t(
-                    "It's about time we offered something a bit more robust than breadcrumbs. With logs, you'll be able to have a lot more control and context over all your data."
-                  )}
-                </SubTitle>
-                <BulletList>
-                  <li>{t('Access logs in real time and query them by any attribute')}</li>
-                  <li>
-                    {t('Correlate your logs with errors and traces for full context')}
-                  </li>
-                  <li>{t('Build alerts and dashboard widgets based on log queries')}</li>
-                </BulletList>
-              </HeaderText>
-              <Image src={connectDotsImg} />
-            </HeaderWrapper>
-            <Divider />
-            <Body>
-              <Setup>
-                {children}
-                <LogDrainsLink project={project} />
-              </Setup>
-              <Preview>
-                <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
-                <Arcade
-                  src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
-                  loading="lazy"
-                  allowFullScreen
-                />
-              </Preview>
-            </Body>
-          </div>
+          <TabSelectionScope>
+            <div>
+              <HeaderWrapper>
+                <HeaderText>
+                  <Title>{t('Your Source for Log-ical Data')}</Title>
+                  <SubTitle>
+                    {t(
+                      "It's about time we offered something a bit more robust than breadcrumbs. With logs, you'll be able to have a lot more control and context over all your data."
+                    )}
+                  </SubTitle>
+                  <BulletList>
+                    <li>
+                      {t('Access logs in real time and query them by any attribute')}
+                    </li>
+                    <li>
+                      {t('Correlate your logs with errors and traces for full context')}
+                    </li>
+                    <li>
+                      {t('Build alerts and dashboard widgets based on log queries')}
+                    </li>
+                  </BulletList>
+                </HeaderText>
+                <Image src={connectDotsImg} />
+              </HeaderWrapper>
+              <Divider />
+              <Body>
+                <Setup>
+                  {children}
+                  <LogDrainsLink project={project} />
+                </Setup>
+                <Preview>
+                  <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
+                  <Arcade
+                    src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
+                    loading="lazy"
+                    allowFullScreen
+                  />
+                </Preview>
+              </Body>
+            </div>
+          </TabSelectionScope>
         </AuthTokenGeneratorProvider>
       </PanelBody>
     </Panel>
@@ -163,10 +175,12 @@ const STEP_TITLES: Record<StepType, string> = {
 };
 
 function Onboarding({organization, project}: OnboardingProps) {
+  const theme = useTheme();
   const api = useApi();
   const location = useLocation();
   const navigate = useNavigate();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const copyEnabled = useCopySetupInstructionsEnabled();
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
     : undefined;
@@ -319,8 +333,26 @@ function Onboarding({organization, project}: OnboardingProps) {
         {steps.map((step, index) => {
           const title = step.title ?? STEP_TITLES[step.type];
           return (
-            <GuidedSteps.Step key={title} stepKey={title} title={title}>
-              <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+            <GuidedSteps.Step
+              key={title}
+              stepKey={title}
+              title={title}
+              trailingItems={
+                index === 0 && copyEnabled ? (
+                  <OnboardingCopyMarkdownButton
+                    borderless
+                    steps={steps}
+                    source="logs_onboarding"
+                  />
+                ) : undefined
+              }
+            >
+              <StepIndexProvider index={index}>
+                <ContentBlocksRenderer
+                  spacing={theme.space.md}
+                  contentBlocks={step.content}
+                />
+              </StepIndexProvider>
               {index === steps.length - 1 ? (
                 <GuidedSteps.ButtonWrapper>
                   <GuidedSteps.BackButton size="md" />
@@ -340,11 +372,11 @@ function Onboarding({organization, project}: OnboardingProps) {
 }
 
 const SubTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const LogDrainsLinkWrapper = styled('div')`
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('div')`
@@ -355,19 +387,19 @@ const Title = styled('div')`
 const BulletList = styled('ul')`
   list-style-type: disc;
   padding-left: 20px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   li {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const HeaderText = styled('div')`
@@ -379,7 +411,7 @@ const HeaderText = styled('div')`
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 
   &:after {
     content: '';
@@ -392,7 +424,7 @@ const Setup = styled('div')`
 `;
 
 const Preview = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`
@@ -420,6 +452,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
@@ -429,13 +462,13 @@ const Divider = styled('hr')`
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
   height: 522px;
   border: 0;
 `;
 
 const OnboardingContainer = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 type LogsTabOnboardingProps = {

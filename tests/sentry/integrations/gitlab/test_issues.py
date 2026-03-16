@@ -133,7 +133,7 @@ class GitlabIssuesTest(GitLabTestCase):
                 ),
                 "type": "textarea",
                 "required": False,
-                "help": ("Leave blank if you don't want to " "add a comment to the GitLab issue."),
+                "help": ("Leave blank if you don't want to add a comment to the GitLab issue."),
             },
         ]
 

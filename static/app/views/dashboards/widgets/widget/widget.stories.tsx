@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import documentation from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 import styled from '@emotion/styled';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {CodeBlock} from 'sentry/components/core/code';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+
 import * as Storybook from 'sentry/stories';
 import {sampleDurationTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/fixtures/sampleDurationTimeSeries';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -12,9 +12,10 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 
 import {Widget} from './widget';
 
-export default Storybook.story('Widget', (story, APIReference) => {
-  APIReference(documentation.props?.Widget);
+export const documentation =
+  import('!!type-loader!sentry/views/dashboards/widgets/widget/widget');
 
+export default Storybook.story('Widget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>

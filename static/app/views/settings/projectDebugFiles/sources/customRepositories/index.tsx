@@ -1,26 +1,27 @@
 import {useCallback, useEffect} from 'react';
 import type {Location} from 'history';
 
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import Repository from './repository';
+import {Repository} from './repository';
 import {dropDownItems, expandKeys, getRequestMessages} from './utils';
 
 type Props = {
@@ -31,7 +32,7 @@ type Props = {
   project: Project;
 };
 
-export default function CustomRepositories({
+export function CustomRepositories({
   api,
   organization,
   customRepositories: repositories,

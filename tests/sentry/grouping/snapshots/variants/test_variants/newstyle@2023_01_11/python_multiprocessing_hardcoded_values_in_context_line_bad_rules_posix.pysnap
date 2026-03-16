@@ -9,7 +9,7 @@ app:
     app*
       exception*
         stacktrace*
-          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:post_process_group +app v+app))
             module*
               "__main__"
             filename (ignored because module takes precedence)
@@ -18,7 +18,7 @@ app:
               "<module>"
             context_line*
               "from multiprocessing.spawn import spawn_main; spawn_main(tracker_fd=11, pipe_handle=32)"
-          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:post_process_group +app v+app))
             module*
               "multiprocessing.spawn"
             filename (ignored because module takes precedence)
@@ -27,7 +27,7 @@ app:
               "spawn_main"
             context_line*
               "exitcode = _main(fd, parent_sentinel)"
-          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:post_process_group +app v+app))
             module*
               "multiprocessing.spawn"
             filename (ignored because module takes precedence)
@@ -36,7 +36,7 @@ app:
               "_main"
             context_line*
               "return self._bootstrap(parent_sentinel)"
-          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:post_process_group +app v+app))
             module*
               "multiprocessing.process"
             filename (ignored because module takes precedence)
@@ -45,7 +45,7 @@ app:
               "_bootstrap"
             context_line*
               "self.run()"
-          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:post_process_group +app v+app))
             module*
               "multiprocessing.process"
             filename (ignored because module takes precedence)
@@ -54,7 +54,7 @@ app:
               "run"
             context_line*
               "self._target(*self._args, **self._kwargs)"
-          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:post_process_group +app v+app))
             module*
               "sentry.taskworker.workerchild"
             filename (ignored because module takes precedence)
@@ -63,7 +63,7 @@ app:
               "child_process"
             context_line*
               "run_worker("
-          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:post_process_group +app v+app))
             module*
               "sentry.taskworker.workerchild"
             filename (ignored because module takes precedence)
@@ -72,7 +72,7 @@ app:
               "run_worker"
             context_line*
               "_execute_activation(task_func, inflight.activation)"
-          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:post_process_group +app v+app))
             module*
               "sentry.taskworker.workerchild"
             filename (ignored because module takes precedence)
@@ -81,7 +81,7 @@ app:
               "_execute_activation"
             context_line*
               "task_func(*args, **kwargs)"
-          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:post_process_group +app v+app))
             module*
               "sentry.taskworker.task"
             filename (ignored because module takes precedence)
@@ -90,7 +90,7 @@ app:
               "__call__"
             context_line*
               "return self._func(*args, **kwargs)"
-          frame* (marked in-app by custom stack trace rule (function:post_process_group +app v+app))
+          frame* (marked in-app by custom stacktrace rule (function:post_process_group +app v+app))
             module*
               "sentry.tasks.post_process"
             filename (ignored because module takes precedence)
@@ -162,7 +162,7 @@ app:
               "handle"
             context_line*
               "self.emit(record)"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)
@@ -171,7 +171,7 @@ app:
               "connect"
             context_line*
               "sock = self._connect()"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)
@@ -180,7 +180,7 @@ app:
               "_connect"
             context_line*
               "raise err"
-          frame (marked out of app by built-in stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:**/site-packages/** -app))
             module*
               "redis.connection"
             filename (ignored because module takes precedence)

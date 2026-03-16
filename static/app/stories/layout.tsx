@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Flex, Stack, type FlexProps, type StackProps} from '@sentry/scraps/layout';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 
 interface SideBySideProps extends Omit<FlexProps<any>, 'direction'> {
   vertical?: boolean;

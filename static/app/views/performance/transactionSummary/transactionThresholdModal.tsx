@@ -1,27 +1,26 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import cloneDeep from 'lodash/cloneDeep';
-import set from 'lodash/set';
+
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
-import {Link} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
-import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
+import {withApi} from 'sentry/utils/withApi';
+import {withProjects} from 'sentry/utils/withProjects';
 
+import {useEventViewProject} from './useEventViewProject';
 import {transactionSummaryRouteWithQuery} from './utils';
 
 export enum TransactionThresholdMetric {
@@ -46,35 +45,32 @@ type Props = {
   project?: string;
 } & ModalRenderProps;
 
-type State = {
-  error: string | null;
-  metric: TransactionThresholdMetric | undefined;
-  threshold: number | undefined;
-};
+function TransactionThresholdModal({
+  api,
+  Body,
+  eventView,
+  Footer,
+  Header,
+  organization,
+  closeModal,
+  onApply,
+  project: projectId,
+  projects,
+  transactionName,
+  transactionThreshold,
+  transactionThresholdMetric,
+}: Props) {
+  const [threshold, setThreshold] = useState<number | string | undefined>(
+    transactionThreshold
+  );
+  const [metric, setMetric] = useState<TransactionThresholdMetric | undefined>(
+    transactionThresholdMetric
+  );
+  const project = useEventViewProject(projects, eventView, projectId);
 
-class TransactionThresholdModal extends Component<Props, State> {
-  state: State = {
-    threshold: this.props.transactionThreshold,
-    metric: this.props.transactionThresholdMetric,
-    error: null,
-  };
-
-  getProject() {
-    const {projects, eventView, project} = this.props;
-
-    if (defined(project)) {
-      return projects.find(proj => proj.id === project);
-    }
-    const projectId = String(eventView.project[0]);
-    return projects.find(proj => proj.id === projectId);
-  }
-
-  handleApply = (event: React.FormEvent) => {
+  const handleApply = (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {api, closeModal, organization, transactionName, onApply} = this.props;
-
-    const project = this.getProject();
     if (!defined(project)) {
       return;
     }
@@ -90,20 +86,17 @@ class TransactionThresholdModal extends Component<Props, State> {
         },
         data: {
           transaction: transactionName,
-          threshold: this.state.threshold,
-          metric: this.state.metric,
+          threshold,
+          metric,
         },
       })
       .then(() => {
         closeModal();
         if (onApply) {
-          onApply(this.state.threshold, this.state.metric);
+          onApply(threshold, metric);
         }
       })
       .catch(err => {
-        this.setState({
-          error: err,
-        });
         let errorMessage =
           err.responseJSON?.threshold ?? err.responseJSON?.non_field_errors ?? null;
         if (Array.isArray(errorMessage)) {
@@ -113,21 +106,9 @@ class TransactionThresholdModal extends Component<Props, State> {
       });
   };
 
-  handleFieldChange = (field: string) => (value: string) => {
-    this.setState(prevState => {
-      const newState = cloneDeep(prevState);
-      set(newState, field, value);
-
-      return {...newState, errors: undefined};
-    });
-  };
-
-  handleReset = (event: React.FormEvent) => {
+  const handleReset = (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {api, closeModal, organization, transactionName, onApply} = this.props;
-
-    const project = this.getProject();
     if (!defined(project)) {
       return;
     }
@@ -147,7 +128,7 @@ class TransactionThresholdModal extends Component<Props, State> {
       })
       .then(() => {
         const projectThresholdUrl = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
-        this.props.api
+        return api
           .requestPromise(projectThresholdUrl, {
             method: 'GET',
             includeAllArgs: true,
@@ -156,28 +137,21 @@ class TransactionThresholdModal extends Component<Props, State> {
             },
           })
           .then(([data]) => {
-            this.setState({
-              threshold: data.threshold,
-              metric: data.metric,
-            });
+            setThreshold(data.threshold);
+            setMetric(data.metric);
             closeModal();
             if (onApply) {
-              onApply(this.state.threshold, this.state.metric);
+              onApply(data.threshold, data.metric);
             }
-          })
-          .catch(err => {
-            const errorMessage = err.responseJSON?.threshold ?? null;
-            addErrorMessage(errorMessage);
           });
       })
       .catch(err => {
-        this.setState({
-          error: err,
-        });
+        const errorMessage = err.responseJSON?.threshold ?? null;
+        addErrorMessage(errorMessage);
       });
   };
 
-  renderModalFields() {
+  function renderModalFields() {
     return (
       <Fragment>
         <FieldGroup
@@ -197,9 +171,9 @@ class TransactionThresholdModal extends Component<Props, State> {
             options={METRIC_CHOICES.slice()}
             name="responseMetric"
             label={t('Calculation Method')}
-            value={this.state.metric}
-            onChange={(option: {label: string; value: string}) => {
-              this.handleFieldChange('metric')(option.value);
+            value={metric}
+            onChange={(option: {value: TransactionThresholdMetric}) => {
+              setMetric(option.value);
             }}
           />
         </FieldGroup>
@@ -220,9 +194,9 @@ class TransactionThresholdModal extends Component<Props, State> {
             name="threshold"
             pattern="[0-9]*(\.[0-9]*)?"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              this.handleFieldChange('threshold')(event.target.value);
+              setThreshold(event.target.value);
             }}
-            value={this.state.threshold}
+            value={threshold}
             step={100}
             min={100}
           />
@@ -231,67 +205,57 @@ class TransactionThresholdModal extends Component<Props, State> {
     );
   }
 
-  render() {
-    const {Header, Body, Footer, organization, transactionName, eventView} = this.props;
+  const summaryView = eventView.clone();
+  summaryView.query = summaryView.getQueryWithAdditionalConditions();
+  const target = transactionSummaryRouteWithQuery({
+    organization,
+    transaction: transactionName,
+    query: summaryView.generateQueryStringObject(),
+    projectID: project?.id,
+  });
 
-    const project = this.getProject();
-
-    const summaryView = eventView.clone();
-    summaryView.query = summaryView.getQueryWithAdditionalConditions();
-    const target = transactionSummaryRouteWithQuery({
-      organization,
-      transaction: transactionName,
-      query: summaryView.generateQueryStringObject(),
-      projectID: project?.id,
-    });
-
-    return (
-      <Fragment>
-        <Header closeButton>
-          <h4>{t('Transaction Settings')}</h4>
-        </Header>
-        <Body>
-          <Instruction>
-            {tct(
-              'The changes below will only be applied to [transaction]. To set it at a more global level, go to [projectSettings: Project Settings].',
-              {
-                transaction: <Link to={target}>{transactionName}</Link>,
-                projectSettings: (
-                  <Link
-                    to={`/settings/${organization.slug}/projects/${project?.slug}/performance/`}
-                  />
-                ),
-              }
-            )}
-          </Instruction>
-          {this.renderModalFields()}
-        </Body>
-        <Footer>
-          <ButtonBar>
-            <Button
-              priority="default"
-              onClick={this.handleReset}
-              data-test-id="reset-all"
-            >
-              {t('Reset All')}
-            </Button>
-            <Button
-              aria-label={t('Apply')}
-              priority="primary"
-              onClick={this.handleApply}
-              data-test-id="apply-threshold"
-            >
-              {t('Apply')}
-            </Button>
-          </ButtonBar>
-        </Footer>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <Header closeButton>
+        <h4>{t('Transaction Settings')}</h4>
+      </Header>
+      <Body>
+        <Instruction>
+          {tct(
+            'The changes below will only be applied to [transaction]. To set it at a more global level, go to [projectSettings: Project Settings].',
+            {
+              transaction: <Link to={target}>{transactionName}</Link>,
+              projectSettings: (
+                <Link
+                  to={`/settings/${organization.slug}/projects/${project?.slug}/performance/`}
+                />
+              ),
+            }
+          )}
+        </Instruction>
+        {renderModalFields()}
+      </Body>
+      <Footer>
+        <Grid flow="column" align="center" gap="md">
+          <Button priority="default" onClick={handleReset} data-test-id="reset-all">
+            {t('Reset All')}
+          </Button>
+          <Button
+            aria-label={t('Apply')}
+            priority="primary"
+            onClick={handleApply}
+            data-test-id="apply-threshold"
+          >
+            {t('Apply')}
+          </Button>
+        </Grid>
+      </Footer>
+    </Fragment>
+  );
 }
 
 const Instruction = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
 `;
 
 export const modalCss = css`

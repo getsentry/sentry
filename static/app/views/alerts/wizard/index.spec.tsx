@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import AlertWizard from 'sentry/views/alerts/wizard/index';
 
 describe('AlertWizard', () => {
@@ -191,5 +191,48 @@ describe('AlertWizard', () => {
     expect(
       screen.getByText(/Throughput is the total number of transactions/)
     ).toBeInTheDocument();
+  });
+
+  it('hides custom metrics alerts when feature flag is disabled', () => {
+    const organization = OrganizationFixture({
+      features: [
+        'incidents',
+        'performance-view',
+        'crash-rate-alerts',
+        'visibility-explore-view',
+      ],
+      access: ['org:write', 'alerts:write'],
+    });
+
+    render(<AlertWizard />, {
+      organization,
+      outletContext: {project, members: []},
+      initialRouterConfig,
+    });
+
+    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+  });
+
+  it('shows custom metrics alerts according to feature flag', () => {
+    const organization = OrganizationFixture({
+      features: [
+        'incidents',
+        'performance-view',
+        'visibility-explore-view',
+        'tracemetrics-enabled',
+        'tracemetrics-alerts',
+      ],
+      access: ['org:write', 'alerts:write'],
+    });
+
+    render(<AlertWizard />, {
+      organization,
+      outletContext: {project, members: []},
+      initialRouterConfig,
+    });
+
+    // "Metrics" category heading and "Custom Metrics" option are both visible
+    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
   });
 });

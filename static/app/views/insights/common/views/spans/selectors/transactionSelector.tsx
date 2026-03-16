@@ -1,15 +1,15 @@
 import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePagesQuery';
 import {BrowserStarfishFields} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
@@ -71,13 +71,14 @@ export function TransactionSelector({
       options={options}
       emptyMessage={t('No results')}
       loading={isPending}
-      searchable
-      menuTitle={t('Page')}
-      onSearch={newValue => {
-        if (!wasSearchSpaceExhausted) {
-          debouncedSetSearch(newValue);
-        }
+      search={{
+        onChange: newValue => {
+          if (!wasSearchSpaceExhausted) {
+            debouncedSetSearch(newValue);
+          }
+        },
       }}
+      menuTitle={t('Page')}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} prefix={t('Page')} />
       )}

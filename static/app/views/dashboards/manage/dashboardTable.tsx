@@ -3,8 +3,11 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   updateDashboardFavorite,
@@ -14,9 +17,6 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -26,15 +26,14 @@ import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import type {
@@ -88,7 +87,7 @@ function FavoriteButton({
     <Button
       aria-label={t('Favorite Button')}
       size="zero"
-      borderless
+      priority="transparent"
       icon={
         <IconStar
           variant={favorited ? 'warning' : 'muted'}
@@ -146,10 +145,9 @@ function DashboardTable({
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
+  const {query: _searchQuery, ...queryWithoutSearch} = location.query;
   const queryLocation = {
-    ...(location.query && Object.keys(location.query).length > 0
-      ? {query: location.query}
-      : {}),
+    ...(Object.keys(queryWithoutSearch).length > 0 ? {query: queryWithoutSearch} : {}),
   };
 
   function renderHeadCell(column: GridColumnOrder<string>) {
@@ -303,12 +301,13 @@ function DashboardTable({
                     (defined(dataRow.prebuiltId) &&
                       !organization.features.includes('dashboards-prebuilt-controls'))
                   }
-                  title={
-                    defined(dataRow.prebuiltId) &&
-                    !organization.features.includes('dashboards-prebuilt-controls')
-                      ? t('Prebuilt dashboards cannot be duplicated')
-                      : limitMessage
-                  }
+                  tooltipProps={{
+                    title:
+                      defined(dataRow.prebuiltId) &&
+                      !organization.features.includes('dashboards-prebuilt-controls')
+                        ? t('Prebuilt dashboards cannot be duplicated')
+                        : limitMessage,
+                  }}
                 />
               )}
             </DashboardCreateLimitWrapper>
@@ -329,11 +328,11 @@ function DashboardTable({
               disabled={
                 (dashboards && dashboards.length <= 1) || defined(dataRow.prebuiltId)
               }
-              title={
-                defined(dataRow.prebuiltId)
+              tooltipProps={{
+                title: defined(dataRow.prebuiltId)
                   ? t('Prebuilt dashboards cannot be deleted')
-                  : undefined
-              }
+                  : undefined,
+              }}
             />
           </Flex>
         </Flex>
@@ -390,7 +389,7 @@ export default withApi(DashboardTable);
 
 const DateSelected = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
   display: block;
   width: 100%;
@@ -401,7 +400,7 @@ const DateSelected = styled('div')`
 
 const DateStatus = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
 `;
 
 const StyledButton = styled(Button)`

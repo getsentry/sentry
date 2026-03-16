@@ -13,7 +13,6 @@ from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.issue_detection.event_generators import create_event, create_span
 
 
@@ -24,12 +23,13 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         self._settings = get_detection_settings()
 
     def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
-        detector = LargeHTTPPayloadDetector(self._settings, event)
+        detector = LargeHTTPPayloadDetector(
+            self._settings[LargeHTTPPayloadDetector.settings_key], event
+        )
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
     def test_detects_large_http_payload_issue(self) -> None:
-
         spans = [
             create_span(
                 "http.client",
@@ -82,8 +82,10 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         event = create_event(spans)
         event["project_id"] = project.id
 
-        settings = get_detection_settings(project.id)
-        detector = LargeHTTPPayloadDetector(settings, event, self.organization)
+        settings = get_detection_settings(project)
+        detector = LargeHTTPPayloadDetector(
+            settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
+        )
 
         assert detector.is_creation_allowed_for_project(project)
 
@@ -93,8 +95,10 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             value={"large_http_payload_detection_enabled": False},
         )
 
-        settings = get_detection_settings(project.id)
-        detector = LargeHTTPPayloadDetector(settings, event, self.organization)
+        settings = get_detection_settings(project)
+        detector = LargeHTTPPayloadDetector(
+            settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
+        )
 
         assert not detector.is_creation_allowed_for_project(project)
 
@@ -251,7 +255,6 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         assert self.find_problems(event) == []
 
     def test_handles_string_payload_size_threshold(self) -> None:
-
         spans = [
             create_span(
                 "http.client",
@@ -304,7 +307,6 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         event = create_event(spans)
         assert len(self.find_problems(event)) == 0
 
-    @with_feature("organizations:large-http-payload-detector-improvements")
     def test_does_not_trigger_detection_for_filtered_paths(self) -> None:
         project = self.create_project()
         ProjectOption.objects.set_value(
@@ -312,7 +314,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             key="sentry:performance_issue_settings",
             value={"large_http_payload_filtered_paths": "/api/0/organizations/download/"},
         )
-        settings = get_detection_settings(project.id, organization=self.organization)
+        settings = get_detection_settings(project)
         spans = [
             create_span(
                 "http.client",
@@ -328,11 +330,12 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
 
-        detector = LargeHTTPPayloadDetector(settings, event, self.organization)
+        detector = LargeHTTPPayloadDetector(
+            settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
+        )
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 0
 
-    @with_feature("organizations:large-http-payload-detector-improvements")
     def test_does_not_trigger_detection_for_filtered_paths_without_trailing_slash(self) -> None:
         project = self.create_project()
         ProjectOption.objects.set_value(
@@ -340,7 +343,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
             key="sentry:performance_issue_settings",
             value={"large_http_payload_filtered_paths": "/api/0/organizations/user"},
         )
-        settings = get_detection_settings(project.id, organization=self.organization)
+        settings = get_detection_settings(project)
         spans = [
             create_span(
                 "http.client",
@@ -356,7 +359,9 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
 
-        detector = LargeHTTPPayloadDetector(settings, event, self.organization)
+        detector = LargeHTTPPayloadDetector(
+            settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
+        )
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 1
 
@@ -375,6 +380,8 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         ]
         event = create_event(spans)
 
-        detector = LargeHTTPPayloadDetector(settings, event, self.organization)
+        detector = LargeHTTPPayloadDetector(
+            settings[LargeHTTPPayloadDetector.settings_key], event, self.organization
+        )
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 0

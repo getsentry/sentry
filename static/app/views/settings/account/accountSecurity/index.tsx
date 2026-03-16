@@ -1,32 +1,32 @@
 import styled from '@emotion/styled';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
-import CircleIndicator from 'sentry/components/circleIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useAccountSecurityContext} from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
-import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
-import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
-import PasswordForm from 'sentry/views/settings/account/passwordForm';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
+import {TwoFactorRequired} from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
+import {PasswordForm} from 'sentry/views/settings/account/passwordForm';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 /**
  * Lists 2fa devices + password change form
@@ -91,7 +91,7 @@ export default function AccountSecurity() {
           <TabsContainer>
             <Tabs value={activeTab}>
               <TabList>
-                <TabList.Item key="settings" to={`${routePrefix}`}>
+                <TabList.Item key="settings" to={routePrefix}>
                   {t('Settings')}
                 </TabList.Item>
                 <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
@@ -170,7 +170,7 @@ export default function AccountSecurity() {
                     </AuthenticatorTitle>
                     <AuthenticatorDescription>{description}</AuthenticatorDescription>
                   </AuthenticatorDetails>
-                  <ButtonBar>
+                  <Grid flow="column" align="center" gap="md">
                     {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
                       <LinkButton
                         to={`/settings/account/security/mfa/${id}/enroll/`}
@@ -204,18 +204,18 @@ export default function AccountSecurity() {
                           size="sm"
                           aria-label={t('Delete')}
                           icon={<IconDelete />}
-                          title={
-                            deleteDisabled
+                          tooltipProps={{
+                            title: deleteDisabled
                               ? t(
                                   `Two-factor authentication is required for organization(s): %s.`,
                                   formatOrgSlugs()
                                 )
-                              : undefined
-                          }
+                              : undefined,
+                          }}
                         />
                       </RemoveConfirm>
                     )}
-                  </ButtonBar>
+                  </Grid>
                 </AuthenticatorPanelItem>
               );
             })}

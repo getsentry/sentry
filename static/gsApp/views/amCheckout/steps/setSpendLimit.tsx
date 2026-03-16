@@ -1,13 +1,14 @@
 import {useCallback} from 'react';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 
 import type {OnDemandBudgets} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
-import ReserveAdditionalVolume from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
+import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
+import {ReserveAdditionalVolume} from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import SpendLimitSettings from 'getsentry/views/spendLimits/spendLimitSettings';
 import {
@@ -15,7 +16,7 @@ import {
   parseOnDemandBudgetsFromSubscription,
 } from 'getsentry/views/spendLimits/utils';
 
-function SetSpendLimit({
+export function SetSpendLimit({
   activePlan,
   formData,
   stepNumber,
@@ -75,5 +76,3 @@ function SetSpendLimit({
     </Flex>
   );
 }
-
-export default SetSpendLimit;

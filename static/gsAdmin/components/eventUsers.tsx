@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
 
 import AdminConfirmationModal from 'admin/components/adminConfirmationModal';
 import ResultGrid from 'admin/components/resultGrid';
@@ -11,7 +11,7 @@ type Props = {
   projectId: string;
 };
 
-function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
+export function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
   const getRow = (row: any) => {
     if (row.identifier === null) {
       return [];
@@ -79,5 +79,3 @@ function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
     />
   );
 }
-
-export default EventUsers;

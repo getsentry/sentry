@@ -1,9 +1,9 @@
 import {css} from '@emotion/react';
 
 /**
- * @deprecated Use `Text` from `sentry/components/core/text` instead.
+ * @deprecated Use `Text` from `@sentry/scraps/text` instead.
  */
-const textStyles = () => css`
+export const textStyles = () => css`
   /* stylelint-disable no-descending-specificity */
   h1,
   h2,
@@ -31,8 +31,3 @@ const textStyles = () => css`
   }
   /* stylelint-enable */
 `;
-
-/**
- * @deprecated Use Prose from `sentry/components/core/text/prose` instead.
- */
-export default textStyles;

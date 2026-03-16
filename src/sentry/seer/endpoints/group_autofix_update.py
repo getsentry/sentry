@@ -3,28 +3,28 @@ from __future__ import annotations
 import logging
 
 import orjson
-import requests
-from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
-from sentry.seer.seer_setup import get_seer_org_acknowledgement
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import (
+    make_signed_seer_api_request,
+    seer_autofix_default_connection_pool,
+)
 
 logger = logging.getLogger(__name__)
 
-from rest_framework.request import Request
 
-
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -46,14 +46,6 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
                 data={"error": "You must be authenticated to use this endpoint"},
             )
 
-        if not get_seer_org_acknowledgement(group.organization):
-            return Response(
-                status=403,
-                data={
-                    "error": "Seer has not been enabled for this organization. Please open an issue at sentry.io/issues and set up Seer."
-                },
-            )
-
         path = "/v1/automation/autofix/update"
 
         body = orjson.dumps(
@@ -65,19 +57,18 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
                         "display_name": user.get_display_name(),
                     }
                 ),
+                "organization_id": group.organization.id,
             }
         )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            seer_autofix_default_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
 
         group.update(seer_autofix_last_triggered=timezone.now())
 

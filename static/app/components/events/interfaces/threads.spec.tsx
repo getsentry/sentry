@@ -11,11 +11,11 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {stackTraceDisplayOptionLabels} from 'sentry/components/events/traceEventDataSection';
-import ConfigStore from 'sentry/stores/configStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
-import localStorage from 'sentry/utils/localStorage';
+import localStorageWrapper from 'sentry/utils/localStorage';
 
 describe('Threads', () => {
   const organization = OrganizationFixture();
@@ -41,7 +41,7 @@ describe('Threads', () => {
     ProjectsStore.loadInitialData([project]);
     ConfigStore.set('user', UserFixture());
 
-    localStorage.setItem(
+    localStorageWrapper.setItem(
       `issue-details-stracktrace-display-${organization.slug}-${project.slug}`,
       JSON.stringify([])
     );
@@ -244,7 +244,8 @@ describe('Threads', () => {
         // Actions
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
-        expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Display as'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Copy as'})).toBeInTheDocument();
 
         // Stack Trace
         expect(
@@ -313,7 +314,7 @@ describe('Threads', () => {
       it('check display options', async () => {
         render(<Threads {...props} />, {organization});
 
-        await userEvent.click(screen.getByRole('button', {name: 'Options'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Display as'}));
 
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
@@ -919,7 +920,8 @@ describe('Threads', () => {
         // Actions
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
-        expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Display as'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Copy as'})).toBeInTheDocument();
 
         expect(screen.getByText('Threads')).toBeInTheDocument();
         expect(screen.getByText('Thread State')).toBeInTheDocument();
@@ -954,7 +956,8 @@ describe('Threads', () => {
         // Actions
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
-        expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Display as'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Copy as'})).toBeInTheDocument();
 
         // Stack Trace
         expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();
@@ -1141,7 +1144,7 @@ describe('Threads', () => {
       it('check display options', async () => {
         render(<Threads {...props} />, {organization});
 
-        await userEvent.click(screen.getByRole('button', {name: 'Options'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Display as'}));
 
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
@@ -1314,7 +1317,7 @@ describe('Threads', () => {
         });
         render(<Threads {...props} event={eventWithMinifiedOption} />, {organization});
 
-        await userEvent.click(screen.getByRole('button', {name: 'Options'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Display as'}));
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
         // Click on raw stack trace option

@@ -1,19 +1,16 @@
-import isPropValid from '@emotion/is-prop-valid';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Tooltip} from 'sentry/components/core/tooltip';
-// eslint-disable-next-line boundaries/element-types
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
   DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
-import type {
-  DO_NOT_USE_ButtonProps as ButtonProps,
-  DO_NOT_USE_CommonButtonProps as CommonButtonProps,
-} from './types';
+import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {ButtonProps};
@@ -22,7 +19,6 @@ export function Button({
   size = 'md',
   disabled,
   type = 'button',
-  title,
   tooltipProps,
   busy,
   ...props
@@ -35,7 +31,12 @@ export function Button({
   });
 
   return (
-    <Tooltip skipWrapper {...tooltipProps} title={title} disabled={!title}>
+    <Tooltip
+      skipWrapper
+      {...tooltipProps}
+      title={tooltipProps?.title}
+      disabled={!tooltipProps?.title}
+    >
       <StyledButton
         aria-label={accessibleLabel}
         aria-disabled={disabled}
@@ -48,57 +49,66 @@ export function Button({
         onClick={handleClick}
         role="button"
       >
-        {props.priority !== 'link' && (
-          <InteractionStateLayer
-            higherOpacity={
-              props.priority && ['primary', 'danger'].includes(props.priority)
-            }
-          />
-        )}
-        <ButtonLabel size={size} borderless={props.borderless}>
+        <Flex
+          as="span"
+          align="center"
+          justify="center"
+          minWidth="0"
+          height="100%"
+          whiteSpace="nowrap"
+          visibility={busy ? 'hidden' : undefined}
+        >
           {props.icon && (
-            <Icon size={size} hasChildren={hasChildren}>
+            <Flex
+              as="span"
+              align="center"
+              flexShrink={0}
+              marginRight={
+                hasChildren ? (size === 'xs' || size === 'zero' ? 'sm' : 'md') : undefined
+              }
+            >
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
                 {props.icon}
               </IconDefaultsProvider>
-            </Icon>
+            </Flex>
           )}
           {props.children}
-        </ButtonLabel>
+          {busy && (
+            <Flex
+              align="center"
+              justify="center"
+              position="absolute"
+              visibility="visible"
+              inset={0}
+            >
+              {({className}) => <BusySpinner className={className} aria-hidden />}
+            </Flex>
+          )}
+        </Flex>
       </StyledButton>
     </Tooltip>
   );
 }
 
-export const StyledButton = styled('button')<ButtonProps>`
+const StyledButton = styled('button')<ButtonProps>`
   ${p => getButtonStyles(p as any)}
 `;
 
-const ButtonLabel = styled('span', {
-  shouldForwardProp: prop =>
-    typeof prop === 'string' &&
-    isPropValid(prop) &&
-    !['size', 'borderless'].includes(prop),
-})<Pick<CommonButtonProps, 'size' | 'borderless'>>`
-  height: 100%;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
+const spin = keyframes`
+  to {
+    transform: rotate(360deg);
+  }
 `;
 
-const Icon = styled('span')<{
-  hasChildren?: boolean;
-  size?: CommonButtonProps['size'];
-}>`
-  display: flex;
-  align-items: center;
-  margin-right: ${p =>
-    p.hasChildren
-      ? p.size === 'xs' || p.size === 'zero'
-        ? p.theme.space.sm
-        : p.theme.space.md
-      : '0'};
-  flex-shrink: 0;
+const BusySpinner = styled('span')`
+  &::after {
+    content: '';
+    display: block;
+    width: 1em;
+    height: 1em;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    animation: ${spin} 0.6s linear infinite;
+  }
 `;

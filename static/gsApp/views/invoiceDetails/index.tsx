@@ -1,27 +1,28 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {InvoiceStatus} from 'getsentry/types';
 import type {BillingDetails, Invoice} from 'getsentry/types';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
-import InvoiceDetailsActions from './actions';
+import {InvoiceDetailsActions} from './actions';
 
 function InvoiceDetails() {
   const {invoiceGuid} = useParams<{invoiceGuid: string}>();
@@ -32,18 +33,32 @@ function InvoiceDetails() {
     isPending: isBillingDetailsLoading,
     isError: isBillingDetailsError,
     refetch: billingDetailsRefetch,
-  } = useApiQuery<BillingDetails>([`/customers/${organization.slug}/billing-details/`], {
-    staleTime: 0,
-    placeholderData: keepPreviousData,
-  });
+  } = useApiQuery<BillingDetails>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/billing-details/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+      placeholderData: keepPreviousData,
+    }
+  );
   const {
     data: invoice,
     isPending: isInvoiceLoading,
     isError: isInvoiceError,
     refetch: invoiceRefetch,
-  } = useApiQuery<Invoice>([`/customers/${organization.slug}/invoices/${invoiceGuid}/`], {
-    staleTime: Infinity,
-  });
+  } = useApiQuery<Invoice>(
+    [
+      getApiUrl(`/customers/$organizationIdOrSlug/invoices/$invoiceId/`, {
+        path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
 
   if (isBillingDetailsError || isInvoiceError) {
     return (
@@ -136,7 +151,7 @@ type AttributeProps = {
 };
 
 function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
-  let paymentStatus: InvoiceStatus = InvoiceStatus.CLOSED;
+  let paymentStatus = InvoiceStatus.CLOSED;
 
   if (invoice.isPaid) {
     paymentStatus = InvoiceStatus.PAID;
@@ -267,15 +282,15 @@ export default InvoiceDetails;
 const SenderName = styled('h3')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const SenderContainer = styled('div')`
   display: grid;
   grid-template-columns: auto auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
 
   /* Use a vertical layout on smaller viewports */
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -287,7 +302,7 @@ const SenderContainer = styled('div')`
 const AttributeGroup = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   /* Use a vertical layout on smaller viewports */
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -301,12 +316,12 @@ const Attributes = styled('dl')`
 
   dt {
     font-weight: bold;
-    margin: 0 0 ${space(0.25)} ${space(1)};
+    margin: 0 0 ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   }
   dd {
     background: ${p => p.theme.tokens.background.secondary};
-    padding: ${space(1)};
-    margin-bottom: ${space(2)};
+    padding: ${p => p.theme.space.md};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;
 
@@ -322,7 +337,7 @@ const InvoiceItems = styled('table')`
   tr th,
   tr td {
     border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding: ${space(2)} ${space(1)};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   }
   thead tr:first-child th,
   thead tr:first-child td {
@@ -337,7 +352,7 @@ const InvoiceItems = styled('table')`
 
   td small {
     display: block;
-    margin-top: ${space(0.5)};
+    margin-top: ${p => p.theme.space.xs};
   }
 `;
 
@@ -349,7 +364,7 @@ const RefundRow = styled('tr')`
 `;
 
 const FinePrint = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.colors.gray400};
 `;

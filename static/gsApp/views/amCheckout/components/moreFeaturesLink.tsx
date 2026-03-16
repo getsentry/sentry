@@ -1,17 +1,17 @@
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconCheckmark} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   color?: string;
   legacySize?: SVGIconProps['legacySize'];
 };
 
-function MoreFeaturesLink({color, legacySize}: Props) {
+export function MoreFeaturesLink({color, legacySize}: Props) {
   return (
     <MoreLink href="https://sentry.io/pricing" color={color}>
       <IconCheckmark legacySize={legacySize} />
@@ -24,7 +24,7 @@ function MoreFeaturesLink({color, legacySize}: Props) {
 const MoreLink = styled(ExternalLink)<{color?: string}>`
   display: grid;
   grid-template-columns: max-content auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   align-content: center;
   color: ${p => p.color ?? p.theme.tokens.content.secondary};
@@ -35,5 +35,3 @@ const MoreLink = styled(ExternalLink)<{color?: string}>`
     color: ${p => p.color ?? p.theme.tokens.content.primary};
   }
 `;
-
-export default MoreFeaturesLink;

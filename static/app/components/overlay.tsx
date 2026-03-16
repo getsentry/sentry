@@ -8,14 +8,13 @@ import type {OverlayArrowProps} from 'sentry/components/overlayArrow';
 import {OverlayArrow} from 'sentry/components/overlayArrow';
 import {NODE_ENV} from 'sentry/constants';
 import {defined} from 'sentry/utils';
-import PanelProvider from 'sentry/utils/panelProvider';
-import testableTransition from 'sentry/utils/testableTransition';
+import {PanelProvider} from 'sentry/utils/panelProvider';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 type OriginPoint = Partial<{x: number; y: number}>;
 
 interface OverlayProps
-  extends HTMLMotionProps<'div'>,
-    React.RefAttributes<HTMLDivElement> {
+  extends HTMLMotionProps<'div'>, React.RefAttributes<HTMLDivElement> {
   /**
    * Whether the overlay should animate in/out. If true, we'll also need
    * the `placement` and `originPoint` props.
@@ -141,6 +140,7 @@ const OverlayInner = styled(motion.div)<{
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 2px 0 ${p => p.theme.tokens.border.primary};
   font-size: ${p => p.theme.font.size.md};
 

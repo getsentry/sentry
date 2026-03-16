@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -28,6 +28,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.endpoints.project_seer_preferences import BranchOverrideSerializer
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.utils import filter_repo_by_provider
 
 
 def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
@@ -140,7 +141,7 @@ class SeerAutofixSettingsPostSerializer(SeerAutofixSettingsSerializer):
         return data
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
     """Bulk endpoint for managing project level autofix automation settings."""
 
@@ -248,6 +249,25 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 if proj_id in projects_by_id
             }
 
+        for repos_data in filtered_repo_mappings.values():
+            for repo_data in repos_data:
+                provider = repo_data.get("provider")
+                external_id = repo_data.get("external_id")
+                repo_org_id = repo_data.get("organization_id")
+                owner = repo_data.get("owner")
+                name = repo_data.get("name")
+
+                if repo_org_id is not None and repo_org_id != organization.id:
+                    return Response({"detail": "Invalid repository"}, status=400)
+
+                repo_data["organization_id"] = organization.id
+
+                repo_exists = filter_repo_by_provider(
+                    organization.id, provider, external_id, owner, name
+                ).exists()
+                if not repo_exists:
+                    return Response({"detail": "Invalid repository"}, status=400)
+
         preferences_to_set: list[dict[str, Any]] = []
 
         if automated_run_stopping_point or filtered_repo_mappings:
@@ -277,7 +297,12 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
 
                 if has_repo_update:
                     repos_data = filtered_repo_mappings[proj_id]
-                    new_repos = [SeerRepoDefinition(**repo_data).dict() for repo_data in repos_data]
+                    new_repos = [
+                        SeerRepoDefinition(
+                            **{**repo_data, "organization_id": organization.id}
+                        ).dict()
+                        for repo_data in repos_data
+                    ]
                     if append_repositories:
                         existing_repos = existing_pref.get("repositories") or []
                         pref_update["repositories"] = merge_repositories(existing_repos, new_repos)

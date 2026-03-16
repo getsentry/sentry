@@ -1,14 +1,15 @@
 import {Fragment, useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {Client} from 'sentry/api';
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import AlertStore from 'sentry/stores/alertStore';
-import {space} from 'sentry/styles/space';
+import {AlertStore} from 'sentry/stores/alertStore';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const POLICY_URL =
   'https://www.notion.so/sentry/Sentry-Rules-for-Handling-Customer-Data-9612532c37e14eeb943a6a584abbac99';
@@ -38,12 +39,13 @@ function handleExitSuperuser(api: Client) {
 }
 
 function ExitSuperuserButton() {
+  const theme = useTheme();
   const api = useApi({persistInFlight: true});
   return (
     <Button
       style={{
-        top: space(0.5),
-        bottom: space(0.75),
+        top: theme.space.xs,
+        bottom: theme.space.sm,
       }}
       size="sm"
       priority="primary"
@@ -108,12 +110,12 @@ const StyledBadge = styled(Badge)`
 `;
 
 const TooltipContent = styled('div')`
-  padding: ${space(0.5)} ${space(0.25)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space['2xs']};
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   text-align: left;
 `;
 

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconCircledNumber} from 'sentry/components/iconCircledNumber';
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {t} from 'sentry/locale';

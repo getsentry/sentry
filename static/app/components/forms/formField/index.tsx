@@ -9,21 +9,22 @@ import {
 } from 'react';
 import {Observer} from 'mobx-react-lite';
 
-import type {AlertProps} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import type {AlertProps} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
-import FormContext from 'sentry/components/forms/formContext';
-import type FormModel from 'sentry/components/forms/model';
+import {FormContext} from 'sentry/components/forms/formContext';
+import type {FormModel} from 'sentry/components/forms/model';
 import {MockModel} from 'sentry/components/forms/model';
 import FormState from 'sentry/components/forms/state';
 import type {FieldValue} from 'sentry/components/forms/types';
-import PanelAlert from 'sentry/components/panels/panelAlert';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import FormFieldControlState from './controlState';
+import {FormFieldControlState} from './controlState';
 
 /**
  * Some fields don't need to implement their own onChange handlers, in
@@ -172,7 +173,8 @@ interface BaseProps {
 }
 
 export interface FormFieldProps
-  extends BaseProps,
+  extends
+    BaseProps,
     ObservableProps,
     Omit<FieldGroupProps, keyof ResolvedObservableProps | 'children'> {}
 

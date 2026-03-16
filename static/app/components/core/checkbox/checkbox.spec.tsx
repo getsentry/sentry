@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Checkbox} from 'sentry/components/core/checkbox';
+import {Checkbox} from '@sentry/scraps/checkbox';
 
 function ControlledCheckbox() {
   const [checked, setChecked] = useState(false);

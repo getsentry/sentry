@@ -4,23 +4,23 @@ import {AddressElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {FormModel} from 'sentry/components/forms/model';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import StripeWrapper from 'getsentry/components/stripeWrapper';
+import {StripeWrapper} from 'getsentry/components/stripeWrapper';
 import type {BillingDetails} from 'getsentry/types';
 import {countryCodes} from 'getsentry/utils/ISO3166codes';
 import type {TaxFieldInfo} from 'getsentry/utils/salesTax';
@@ -247,7 +247,7 @@ function CustomBillingDetailsFormField({
  * Billing details form to be rendered inside a panel. This is
  * used in checkout, legal & compliance, and subscription settings.
  */
-function BillingDetailsForm({
+export function BillingDetailsForm({
   initialData,
   onPreSubmit,
   onSubmitError,
@@ -379,8 +379,6 @@ function BillingDetailsForm({
     </StripeWrapper>
   );
 }
-
-export default BillingDetailsForm;
 
 const StyledTextField = styled(TextField)`
   padding: 0;

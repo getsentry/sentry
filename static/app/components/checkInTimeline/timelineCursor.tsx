@@ -4,8 +4,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Overlay} from 'sentry/components/overlay';
 import {Sticky} from 'sentry/components/sticky';
-import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 const TOOLTIP_OFFSET = 10;
 
@@ -162,7 +161,7 @@ function useTimelineCursor<E extends HTMLElement>({
 
 const Cursor = styled(motion.div)`
   pointer-events: none;
-  background: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  background: ${p => p.theme.tokens.background.transparent.neutral.muted};
   width: 2px;
   height: 100%;
   position: absolute;
@@ -179,7 +178,7 @@ const CursorLabel = styled(Overlay)<{
 }>`
   font-variant-numeric: tabular-nums;
   width: max-content;
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
   line-height: 1.2;

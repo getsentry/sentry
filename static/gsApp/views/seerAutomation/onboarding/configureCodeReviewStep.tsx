@@ -1,5 +1,6 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import configureCodeReviewImg from 'sentry-images/spot/seer-config-check.svg';
 
@@ -13,11 +14,11 @@ import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
@@ -68,6 +69,9 @@ export function ConfigureCodeReviewStep() {
               resolve();
             },
             onError: () => {
+              Sentry.captureException(
+                new Error('Seer Onboarding: Unable to enable code review')
+              );
               reject(new Error(t('Failed to enable AI Code Review')));
             },
           }

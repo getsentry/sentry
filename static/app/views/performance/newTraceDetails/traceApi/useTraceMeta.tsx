@@ -3,15 +3,15 @@ import {useQuery} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
@@ -19,8 +19,7 @@ import type {EAPTraceMeta, TraceMeta} from './types';
 
 type TraceMetaQueryParams =
   | {
-      // demo has the format ${projectSlug}:${eventId}
-      // used to query a demo transaction event from the backend.
+      include_uptime: string;
       statsPeriod: string;
     }
   | {
@@ -35,15 +34,13 @@ function getMetaQueryParams(
 ): TraceMetaQueryParams {
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
 
-  if (row.timestamp) {
-    return {
-      include_uptime: normalizedParams.includeUptime,
-      timestamp: row.timestamp,
-    };
-  }
-
   return {
-    statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
+    include_uptime: '1',
+    ...(row.timestamp
+      ? {timestamp: row.timestamp}
+      : {
+          statsPeriod: (statsPeriod || filters?.datetime?.period) ?? DEFAULT_STATS_PERIOD,
+        }),
   };
 }
 
@@ -54,7 +51,7 @@ async function fetchSingleTraceMetaNew(
   replayTrace: ReplayTrace,
   queryParams: any
 ) {
-  const url: string =
+  const url =
     type === 'eap'
       ? `/organizations/${organization.slug}/trace-meta/${replayTrace.traceSlug}/`
       : `/organizations/${organization.slug}/events-trace-meta/${replayTrace.traceSlug}/`;

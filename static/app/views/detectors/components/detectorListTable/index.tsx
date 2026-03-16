@@ -10,18 +10,18 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQueryState} from 'nuqs';
 
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import {
   GridLineLabels,
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -201,7 +201,7 @@ function DetectorListTable({
               <VisualizationExpandButton>
                 <Button
                   size="xs"
-                  borderless
+                  priority="transparent"
                   icon={
                     <IconChevron
                       isDouble
@@ -213,11 +213,11 @@ function DetectorListTable({
                       ? t('Collapse visualization')
                       : t('Expand visualization')
                   }
-                  title={
-                    isVisualizationExpanded
+                  tooltipProps={{
+                    title: isVisualizationExpanded
                       ? t('Collapse visualization')
-                      : t('Expand visualization')
-                  }
+                      : t('Expand visualization'),
+                  }}
                   onClick={() => setIsVisualizationExpanded(v => !v)}
                 />
               </VisualizationExpandButton>
@@ -452,7 +452,7 @@ const DetectorListSimpleTable = styled(SimpleTable)<{
   isVisualizationExpanded: boolean;
 }>`
   grid-template-columns: 1fr;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   [data-column-name='type'],
   [data-column-name='last-issue'],
@@ -508,7 +508,7 @@ const VisualizationHeaderContainer = styled(Container)`
 const VisualizationExpandButton = styled('div')`
   grid-row: 1;
   grid-column: -1;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   display: none;
   z-index: 4;
 

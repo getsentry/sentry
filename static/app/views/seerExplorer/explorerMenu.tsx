@@ -4,10 +4,20 @@ import moment from 'moment-timezone';
 
 import TimeSince from 'sentry/components/timeSince';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
+
+interface SlashCommandHandlers {
+  onConversations: () => void;
+  onFeedback: (() => void) | undefined;
+  onLangfuse: () => void;
+  onMaxSize: () => void;
+  onMedSize: () => void;
+  onNew: () => void;
+}
 
 interface ExplorerMenuProps {
   clearInput: () => void;
@@ -16,13 +26,7 @@ interface ExplorerMenuProps {
   onChangeSession: (runId: number) => void;
   panelSize: 'max' | 'med';
   panelVisible: boolean;
-  slashCommandHandlers: {
-    onFeedback: (() => void) | undefined;
-    onLangfuse: () => void;
-    onMaxSize: () => void;
-    onMedSize: () => void;
-    onNew: () => void;
-  };
+  slashCommandHandlers: SlashCommandHandlers;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
   menuAnchorRef?: React.RefObject<HTMLElement | null>;
@@ -266,10 +270,10 @@ export function useExplorerMenu({
         left: `${relativeLeft}px`,
       });
     } else if (menuMode === 'pr-widget') {
-      // Position below anchor, centered
+      // Position above anchor (since button is at bottom of panel)
       setMenuPosition({
-        top: `${relativeTop + rect.height + spacing}px`,
-        left: `${relativeLeft - rect.width - spacing}px`,
+        bottom: `${panelRect.height - relativeTop + spacing}px`,
+        right: `${panelRect.width - relativeLeft - rect.width}px`,
       });
     } else {
       setMenuPosition({
@@ -346,13 +350,8 @@ function useSlashCommands({
   onNew,
   onFeedback,
   onLangfuse,
-}: {
-  onFeedback: (() => void) | undefined;
-  onLangfuse: () => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
-  onNew: () => void;
-}): MenuItemProps[] {
+  onConversations,
+}: SlashCommandHandlers): MenuItemProps[] {
   const isSentryEmployee = useIsSentryEmployee();
 
   return useMemo(
@@ -399,10 +398,24 @@ function useSlashCommands({
               description: 'Open Langfuse to view session details',
               handler: onLangfuse,
             },
+            {
+              title: '/conversations',
+              key: '/conversations',
+              description: 'Open Sentry AI trace (conversations view)',
+              handler: onConversations,
+            },
           ]
         : []),
     ],
-    [onNew, onMaxSize, onMedSize, onFeedback, onLangfuse, isSentryEmployee]
+    [
+      onNew,
+      onMaxSize,
+      onMedSize,
+      onFeedback,
+      onLangfuse,
+      onConversations,
+      isSentryEmployee,
+    ]
   );
 }
 
@@ -414,7 +427,7 @@ function useSessions({
   enabled?: boolean;
 }) {
   const organization = useOrganization({allowNull: true});
-  const hasFeature = organization?.features.includes('seer-explorer');
+  const hasFeature = organization ? isSeerExplorerEnabled(organization) : false;
 
   const {data, isPending, isError, refetch} = useExplorerSessions({
     limit: 20,

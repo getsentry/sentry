@@ -3,23 +3,21 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
+import {LeadHint} from 'sentry/components/events/interfaces/frame/leadHint';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
-import StrictClick from 'sentry/components/strictClick';
+import {StrictClick} from 'sentry/components/strictClick';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
   SentryAppComponent,
@@ -28,8 +26,8 @@ import type {
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
 import Context from './context';
@@ -114,7 +112,7 @@ function DeprecatedLine({
   const [isHovering, setIsHovering] = useState(false);
   const [isExpanded, setIsExpanded] = useState(initialExpanded ?? false);
   const platform = getPlatform(data.platform, propPlatform ?? 'other');
-  const leadsToApp: boolean = !data.inApp && (nextFrame?.inApp || !nextFrame);
+  const leadsToApp = !data.inApp && (nextFrame?.inApp || !nextFrame);
 
   const isExpandable = useMemo((): boolean => {
     return !!(
@@ -224,9 +222,9 @@ function DeprecatedLine({
               </div>
             </LeftLineTitle>
           </DefaultLineTitleWrapper>
-          <Flex align="center" gap="md">
+          <FrameActions>
             <RepeatsIndicator timesRepeated={timesRepeated} />
-            {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
+            {anrCulprit ? (
               <Tag variant="warning" onClick={scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
               </Tag>
@@ -259,7 +257,7 @@ function DeprecatedLine({
                   is_frame_expanded: isShowFramesToggleExpanded,
                 }}
                 size="zero"
-                borderless
+                priority="transparent"
                 onClick={e => {
                   onShowFramesToggle?.(e);
                 }}
@@ -274,9 +272,11 @@ function DeprecatedLine({
                 <SourceMapDebuggerModalButton
                   size="zero"
                   priority="default"
-                  title={t(
-                    'Click to learn how to show the original source code for this stack frame.'
-                  )}
+                  tooltipProps={{
+                    title: t(
+                      'Click to learn how to show the original source code for this stack frame.'
+                    ),
+                  }}
                   onClick={e => {
                     e.stopPropagation();
 
@@ -324,14 +324,14 @@ function DeprecatedLine({
                 size="zero"
                 aria-label={t('Toggle Context')}
                 onClick={toggleContext}
-                borderless
+                priority="transparent"
               >
                 <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
               </ToggleContextButton>
             ) : (
               <div style={{width: 26, height: 20}} />
             )}
-          </Flex>
+          </FrameActions>
         </DefaultLine>
       </StrictClick>
       <Context
@@ -382,6 +382,8 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
+  flex: 1;
   color: ${p => (p.isInAppFrame ? '' : p.theme.tokens.content.secondary)};
   font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
 `;
@@ -389,10 +391,19 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
 const LeftLineTitle = styled('div')`
   display: flex;
   align-items: center;
+  min-width: 0;
 `;
 
 const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
+`;
+
+const FrameActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  flex-shrink: 0;
+  margin-left: auto;
 `;
 
 const DefaultLine = styled('div')<{
@@ -405,22 +416,38 @@ const DefaultLine = styled('div')<{
   justify-content: space-between;
   align-items: center;
   background: ${p =>
-    p.isSubFrame
-      ? `${p.theme.colors.surface200}`
-      : `${p.theme.tokens.background.tertiary}`};
+    p.isSubFrame ? p.theme.colors.surface200 : p.theme.tokens.background.tertiary};
   min-height: 40px;
   word-break: break-word;
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   font-size: ${p => p.theme.font.size.sm};
   line-height: 16px;
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   code {
     font-family: ${p => p.theme.font.family.sans};
   }
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    &:has([data-has-setup]) {
+      flex-wrap: wrap;
+      row-gap: ${p => p.theme.space.xs};
+
+      > ${DefaultLineTitleWrapper} {
+        flex-basis: 100%;
+      }
+
+      > ${FrameActions} {
+        flex-basis: 100%;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        row-gap: ${p => p.theme.space.xs};
+      }
+    }
+  }
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
 `;
 
 const ToggleContextButton = styled(Button)`
@@ -432,7 +459,7 @@ const ToggleButton = styled(Button)`
   font-size: ${p => p.theme.font.size.sm};
   font-style: italic;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
 
   &:hover {
     color: ${p => p.theme.tokens.content.secondary};
@@ -440,11 +467,11 @@ const ToggleButton = styled(Button)`
 `;
 
 const SourceMapDebuggerButtonText = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
 `;
 
 const SourceMapDebuggerModalButton = styled(Button)`
   height: 20px;
-  padding: 0 ${space(0.75)};
+  padding: 0 ${p => p.theme.space.sm};
   font-size: ${p => p.theme.font.size.sm};
 `;

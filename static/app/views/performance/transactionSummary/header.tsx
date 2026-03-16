@@ -2,16 +2,17 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Grid} from '@sentry/scraps/layout';
+import {TabList} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import Feature from 'sentry/components/acl/feature';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {TabList} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import IdBadge from 'sentry/components/idBadge';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
+import {ReplayCountBadge} from 'sentry/components/replays/replayCountBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -19,9 +20,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
-import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCountForTransactions';
+import {useReplayCountForTransactions} from 'sentry/utils/replayCount/useReplayCountForTransactions';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
@@ -32,7 +33,7 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
@@ -58,7 +59,7 @@ type Props = {
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
-function TransactionHeader({
+export function TransactionHeader({
   eventView,
   organization,
   projects,
@@ -125,6 +126,8 @@ function TransactionHeader({
     [getNewRoute, organization, location, projects, currentTab, navigate]
   );
 
+  const isEAP = useTransactionSummaryEAP();
+
   function handleCreateAlertSuccess() {
     trackAnalytics('performance_views.summary.create_alert_clicked', {
       organization,
@@ -157,7 +160,9 @@ function TransactionHeader({
     >
       <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
       <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-      <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+      <TabList.Item key={Tab.TAGS} hidden={isEAP}>
+        {t('Tags')}
+      </TabList.Item>
       <TabList.Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
@@ -167,8 +172,6 @@ function TransactionHeader({
       </TabList.Item>
     </TabList>
   );
-
-  const shouldUseOTelFriendlyUI = useTransactionSummaryEAP();
 
   if (isInDomainView) {
     const headerProps = {
@@ -201,7 +204,6 @@ function TransactionHeader({
           project: projectId,
         },
         view,
-        shouldUseOTelFriendlyUI,
       }),
       headerActions: (
         <Fragment>
@@ -277,7 +279,7 @@ function TransactionHeader({
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Feature organization={organization} features="incidents">
             {({hasFeature}) =>
               hasFeature &&
@@ -313,7 +315,7 @@ function TransactionHeader({
             />
           </GuideAnchor>
           <FeedbackButton />
-        </ButtonBar>
+        </Grid>
       </Layout.HeaderActions>
       <TabList
         outerWrapStyles={{
@@ -322,7 +324,9 @@ function TransactionHeader({
       >
         <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
         <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
-        <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
+        <TabList.Item key={Tab.TAGS} hidden={isEAP}>
+          {t('Tags')}
+        </TabList.Item>
         <TabList.Item
           key={Tab.REPLAYS}
           textValue={t('Replays')}
@@ -350,5 +354,3 @@ const TransactionName = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
-
-export default TransactionHeader;

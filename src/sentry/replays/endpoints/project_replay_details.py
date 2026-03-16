@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
@@ -28,7 +28,7 @@ class ReplayDetailsPermission(ProjectPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
     owner = ApiOwner.REPLAY
@@ -92,8 +92,10 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
 
         # We don't check Seer features because an org may have previously had them on, then turned them off.
         has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
+        organization_id = project.organization.id
 
         delete_replay.delay(
+            organization_id=organization_id,
             project_id=project.id,
             replay_id=replay_id,
             has_seer_data=has_seer_data,

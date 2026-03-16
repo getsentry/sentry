@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Max, Q, prefetch_related_objects
@@ -95,6 +95,16 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     createdBy: dict
     description: str
     detectionType: str
+
+
+class DetailedAlertRuleSerializerResponse(AlertRuleSerializerResponse, total=False):
+    """
+    Response type for DetailedAlertRuleSerializer, which includes additional
+    snooze-related fields beyond the base AlertRuleSerializerResponse.
+    """
+
+    snoozeForEveryone: bool | None
+    snoozeCreatedBy: str | None
 
 
 @register(AlertRule)
@@ -232,9 +242,9 @@ class AlertRuleSerializer(Serializer):
                 type=AlertRuleActivityType.SNAPSHOT.value,
             )
             for activity in snapshot_activities:
-                result[alert_rules[activity.alert_rule_id]][
-                    "originalAlertRuleId"
-                ] = activity.previous_alert_rule_id
+                result[alert_rules[activity.alert_rule_id]]["originalAlertRuleId"] = (
+                    activity.previous_alert_rule_id
+                )
 
         if "latestIncident" in self.expand:
             incident_map = {}
@@ -364,8 +374,8 @@ class DetailedAlertRuleSerializer(AlertRuleSerializer):
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs,
-    ) -> AlertRuleSerializerResponse:
-        data = super().serialize(obj, attrs, user)
+    ) -> DetailedAlertRuleSerializerResponse:
+        data = cast(DetailedAlertRuleSerializerResponse, super().serialize(obj, attrs, user))
         data["eventTypes"] = sorted(attrs.get("event_types", []))
         data["snooze"] = False
         return data
@@ -458,8 +468,7 @@ class CombinedRuleSerializer(Serializer):
                 results[item] = serialized_uptime_detector_map_by_id[item_id]
             elif (
                 # XXX(epurkhiser): Monitors use their GUID as their IDs
-                isinstance(item, Monitor)
-                and str(item.guid) in serialized_cron_monitor_map_by_guid
+                isinstance(item, Monitor) and str(item.guid) in serialized_cron_monitor_map_by_guid
             ):
                 # This is a cron monitor
                 results[item] = serialized_cron_monitor_map_by_guid[str(item.guid)]
@@ -493,6 +502,8 @@ class CombinedRuleSerializer(Serializer):
             report_used_legacy_models()
             updated_attrs["type"] = "alert_rule"
         elif isinstance(obj, Rule):
+            # Mark that we're using legacy Rule models
+            report_used_legacy_models()
             updated_attrs["type"] = "rule"
         elif isinstance(obj, Detector) and obj.type == GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE:
             updated_attrs["type"] = "uptime"

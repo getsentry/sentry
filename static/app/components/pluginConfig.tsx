@@ -1,28 +1,27 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Flex} from 'sentry/components/core/layout';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import plugins from 'sentry/plugins';
+import {plugins} from 'sentry/plugins';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface PluginConfigProps {
   plugin: Plugin;
@@ -31,7 +30,7 @@ interface PluginConfigProps {
   onDisablePlugin?: (data: Plugin) => void;
 }
 
-export default function PluginConfig({
+export function PluginConfig({
   plugin,
   project,
   enabled,
@@ -97,7 +96,7 @@ export default function PluginConfig({
         </Flex>
 
         {plugin.canDisable && isEnabled && (
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             {plugin.isTestable && (
               <Button onClick={handleTestPlugin} size="xs">
                 {t('Test Plugin')}
@@ -106,7 +105,7 @@ export default function PluginConfig({
             <Button size="xs" onClick={handleDisablePlugin} disabled={!hasWriteAccess}>
               {t('Disable')}
             </Button>
-          </ButtonBar>
+          </Grid>
         )}
       </PanelHeader>
 
@@ -139,10 +138,10 @@ export default function PluginConfig({
 }
 
 const StyledPluginIcon = styled(PluginIcon)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   padding-bottom: 0;
 `;

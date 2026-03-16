@@ -3,6 +3,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
@@ -10,10 +16,6 @@ import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   STATIC_FIELD_TAGS,
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
@@ -25,15 +27,14 @@ import {
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import FormField from 'sentry/components/forms/formField';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import ListItem from 'sentry/components/list/listItem';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -50,11 +51,11 @@ import {
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {getHasTag} from 'sentry/utils/tag';
-import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
-import withTags from 'sentry/utils/withTags';
+import {withApi} from 'sentry/utils/withApi';
+import {withProjects} from 'sentry/utils/withProjects';
+import {withTags} from 'sentry/utils/withTags';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
-import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
+import {WizardField} from 'sentry/views/alerts/rules/metric/wizardField';
 import {getProjectOptions, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {
   convertDatasetEventTypesToSource,
@@ -69,10 +70,7 @@ import {
 import {getTraceItemTypeForDatasetAndEventType} from 'sentry/views/alerts/wizard/utils';
 import {SESSIONS_FILTER_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {
-  TraceItemAttributeProvider,
-  useTraceItemAttributes,
-} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   deprecateTransactionAlerts,
@@ -122,6 +120,7 @@ type Props = {
   isOnDemandLimitReached?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
+  onMetricLoadingChange?: (isLoading: boolean) => void;
 };
 
 type State = {
@@ -213,7 +212,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   };
 
   formElemBaseStyle = {
-    padding: `${space(0.5)}`,
+    padding: '4px',
     border: 'none',
   };
 
@@ -286,7 +285,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       }),
       container: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
-        margin: `${space(0.5)}`,
+        margin: '4px',
       }),
     };
   }
@@ -523,6 +522,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 ? this.transactionAlertDisabledMessage
                 : undefined
             }
+            onMetricLoadingChange={this.props.onMetricLoadingChange}
           />
           <Tooltip
             title={this.transactionAlertDisabledMessage}
@@ -647,203 +647,193 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </Fragment>
         ) : (
           <Fragment>
-            <TraceItemAttributeProvider
-              projects={[project]}
-              traceItemType={traceItemType ?? TraceItemDataset.SPANS}
-              enabled={
-                organization.features.includes('visibility-explore-view') &&
-                isEapAlertType(alertType)
-              }
-            >
-              {isExtrapolatedChartData && (
-                <OnDemandMetricAlert
-                  message={t(
-                    'The chart data above is an estimate based on the stored transactions that match the filters specified.'
+            {isExtrapolatedChartData && (
+              <OnDemandMetricAlert
+                message={t(
+                  'The chart data above is an estimate based on the stored transactions that match the filters specified.'
+                )}
+              />
+            )}
+            {confidenceEnabled && isLowConfidenceChartData && (
+              <Alert.Container>
+                <Alert variant="warning">
+                  {t(
+                    'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
                   )}
-                />
-              )}
-              {confidenceEnabled && isLowConfidenceChartData && (
-                <Alert.Container>
-                  <Alert variant="warning">
-                    {t(
-                      'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
-                    )}
-                  </Alert>
-                </Alert.Container>
-              )}
-              {!isErrorMigration && this.renderInterval()}
-              <StyledListItem>{t('Filter events')}</StyledListItem>
-              <Tooltip
-                title={this.transactionAlertDisabledMessage}
-                disabled={!this.disableTransactionAlertType}
-                isHoverable
-              >
-                <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
-                  {this.renderProjectSelector()}
-                  <SelectField
-                    name="environment"
-                    placeholder={t('All Environments')}
-                    style={{
-                      ...this.formElemBaseStyle,
-                      minWidth: 230,
-                      flex: 1,
-                    }}
-                    styles={{
-                      singleValue: (base: any) => ({
-                        ...base,
-                      }),
-                      option: (base: any) => ({
-                        ...base,
-                      }),
-                    }}
-                    options={environmentOptions}
-                    isDisabled={
-                      disabled ||
-                      this.state.environments === null ||
-                      isErrorMigration ||
-                      this.disableTransactionAlertType
-                    }
-                    isClearable
-                    inline={false}
-                    flexibleControlStateSize
-                  />
-                  {allowChangeEventTypes && this.renderEventTypeFilter()}
-                </FormRow>
-              </Tooltip>
-              <FormRow noMargin>
-                <FormField
-                  name="query"
-                  inline={false}
+                </Alert>
+              </Alert.Container>
+            )}
+            {!isErrorMigration && this.renderInterval()}
+            <StyledListItem>{t('Filter events')}</StyledListItem>
+            <Tooltip
+              title={this.transactionAlertDisabledMessage}
+              disabled={!this.disableTransactionAlertType}
+              isHoverable
+            >
+              <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
+                {this.renderProjectSelector()}
+                <SelectField
+                  name="environment"
+                  placeholder={t('All Environments')}
                   style={{
                     ...this.formElemBaseStyle,
-                    flex: '6 0 500px',
+                    minWidth: 230,
+                    flex: 1,
                   }}
+                  styles={{
+                    singleValue: (base: any) => ({
+                      ...base,
+                    }),
+                    option: (base: any) => ({
+                      ...base,
+                    }),
+                  }}
+                  options={environmentOptions}
+                  isDisabled={
+                    disabled ||
+                    this.state.environments === null ||
+                    isErrorMigration ||
+                    this.disableTransactionAlertType
+                  }
+                  isClearable
+                  inline={false}
                   flexibleControlStateSize
-                >
-                  {({onChange, onBlur, initialData, value}: any) => {
-                    return isEapAlertType(alertType) ? (
-                      <EAPSearchQueryBuilderWithContext
-                        initialQuery={value ?? ''}
-                        onSearch={(query, {parsedQuery}) => {
-                          onFilterSearch(query, parsedQuery);
+                />
+                {allowChangeEventTypes && this.renderEventTypeFilter()}
+              </FormRow>
+            </Tooltip>
+            <FormRow noMargin>
+              <FormField
+                name="query"
+                inline={false}
+                style={{
+                  ...this.formElemBaseStyle,
+                  flex: '6 0 500px',
+                }}
+                flexibleControlStateSize
+              >
+                {({onChange, onBlur, initialData, value}: any) => {
+                  return isEapAlertType(alertType) ? (
+                    <EAPSearchQueryBuilderWithContext
+                      initialQuery={value ?? ''}
+                      onSearch={(query, {parsedQuery}) => {
+                        onFilterSearch(query, parsedQuery);
+                        onChange(query, {});
+                      }}
+                      enabled={organization.features.includes('visibility-explore-view')}
+                      project={project}
+                      traceItemType={traceItemType ?? TraceItemDataset.SPANS}
+                    />
+                  ) : (
+                    <Flex align="center" gap="md">
+                      <SearchQueryBuilder
+                        initialQuery={initialData?.query ?? ''}
+                        getTagValues={this.getEventFieldValues}
+                        placeholder={this.searchPlaceholder}
+                        searchSource="alert_builder"
+                        filterKeys={filterKeys}
+                        disabled={
+                          disabled || isErrorMigration || this.disableTransactionAlertType
+                        }
+                        onChange={onChange}
+                        invalidMessages={{
+                          ...defaultConfig.invalidMessages,
+                          [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                            'The wildcard operator is not supported here.'
+                          ),
+                          [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+                            'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
+                          ),
+                        }}
+                        onSearch={query => {
+                          onFilterSearch(query, true);
                           onChange(query, {});
                         }}
-                        project={project}
-                        traceItemType={traceItemType ?? TraceItemDataset.SPANS}
+                        onBlur={(query, {parsedQuery}) => {
+                          onFilterSearch(query, parsedQuery);
+                          onBlur(query);
+                        }}
+                        // We only need strict validation for Transaction queries, everything else is fine
+                        disallowUnsupportedFilters={
+                          organization.features.includes('alert-allow-indexed') ||
+                          (hasOnDemandMetricAlertFeature(organization) &&
+                            isOnDemandQueryString(value))
+                            ? false
+                            : dataset === Dataset.GENERIC_METRICS
+                        }
                       />
-                    ) : (
-                      <SearchContainer>
-                        <SearchQueryBuilder
-                          initialQuery={initialData?.query ?? ''}
-                          getTagValues={this.getEventFieldValues}
-                          placeholder={this.searchPlaceholder}
-                          searchSource="alert_builder"
-                          filterKeys={filterKeys}
-                          disabled={
-                            disabled ||
-                            isErrorMigration ||
-                            this.disableTransactionAlertType
-                          }
-                          onChange={onChange}
-                          invalidMessages={{
-                            ...defaultConfig.invalidMessages,
-                            [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
-                              'The wildcard operator is not supported here.'
-                            ),
-                            [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
-                              'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
-                            ),
-                          }}
-                          onSearch={query => {
-                            onFilterSearch(query, true);
-                            onChange(query, {});
-                          }}
-                          onBlur={(query, {parsedQuery}) => {
-                            onFilterSearch(query, parsedQuery);
-                            onBlur(query);
-                          }}
-                          // We only need strict validation for Transaction queries, everything else is fine
-                          disallowUnsupportedFilters={
-                            organization.features.includes('alert-allow-indexed') ||
-                            (hasOnDemandMetricAlertFeature(organization) &&
-                              isOnDemandQueryString(value))
-                              ? false
-                              : dataset === Dataset.GENERIC_METRICS
-                          }
-                        />
-                        {isExtrapolatedChartData &&
-                          isOnDemandQueryString(value) &&
-                          (isOnDemandLimitReached ? (
-                            <OnDemandWarningIcon
-                              variant="danger"
-                              msg={tct(
-                                'We don’t routinely collect metrics from [fields] and you’ve already reached the limit of [docLink:alerts with advanced filters] for your organization.',
-                                {
-                                  fields: (
-                                    <strong>
-                                      {getOnDemandKeys(value)
-                                        .map(key => `"${key}"`)
-                                        .join(', ')}
-                                    </strong>
-                                  ),
-                                  docLink: (
-                                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#advanced-filters-for-transactions" />
-                                  ),
-                                }
-                              )}
-                              isHoverable
-                            />
-                          ) : (
-                            <OnDemandWarningIcon
-                              variant="primary"
-                              msg={tct(
-                                'We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]',
-                                {
-                                  fields: (
-                                    <strong>
-                                      {getOnDemandKeys(value)
-                                        .map(key => `"${key}"`)
-                                        .join(', ')}
-                                    </strong>
-                                  ),
-                                  strong: <strong />,
-                                }
-                              )}
-                            />
-                          ))}
-                      </SearchContainer>
+                      {isExtrapolatedChartData &&
+                        isOnDemandQueryString(value) &&
+                        (isOnDemandLimitReached ? (
+                          <OnDemandWarningIcon
+                            variant="danger"
+                            msg={tct(
+                              'We don’t routinely collect metrics from [fields] and you’ve already reached the limit of [docLink:alerts with advanced filters] for your organization.',
+                              {
+                                fields: (
+                                  <strong>
+                                    {getOnDemandKeys(value)
+                                      .map(key => `"${key}"`)
+                                      .join(', ')}
+                                  </strong>
+                                ),
+                                docLink: (
+                                  <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#advanced-filters-for-transactions" />
+                                ),
+                              }
+                            )}
+                            isHoverable
+                          />
+                        ) : (
+                          <OnDemandWarningIcon
+                            variant="primary"
+                            msg={tct(
+                              'We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]',
+                              {
+                                fields: (
+                                  <strong>
+                                    {getOnDemandKeys(value)
+                                      .map(key => `"${key}"`)
+                                      .join(', ')}
+                                  </strong>
+                                ),
+                                strong: <strong />,
+                              }
+                            )}
+                          />
+                        ))}
+                    </Flex>
+                  );
+                }}
+              </FormField>
+            </FormRow>
+            <FormRow noMargin>
+              <FormField
+                name="query"
+                inline={false}
+                style={{
+                  ...this.formElemBaseStyle,
+                  flex: '6 0 500px',
+                }}
+                flexibleControlStateSize
+              >
+                {(args: any) => {
+                  if (
+                    args.value?.includes('is:unresolved') &&
+                    comparisonType === AlertRuleComparisonType.DYNAMIC
+                  ) {
+                    return (
+                      <OnDemandMetricAlert
+                        message={t(
+                          "'is:unresolved' queries are not supported by Anomaly Detection alerts."
+                        )}
+                      />
                     );
-                  }}
-                </FormField>
-              </FormRow>
-              <FormRow noMargin>
-                <FormField
-                  name="query"
-                  inline={false}
-                  style={{
-                    ...this.formElemBaseStyle,
-                    flex: '6 0 500px',
-                  }}
-                  flexibleControlStateSize
-                >
-                  {(args: any) => {
-                    if (
-                      args.value?.includes('is:unresolved') &&
-                      comparisonType === AlertRuleComparisonType.DYNAMIC
-                    ) {
-                      return (
-                        <OnDemandMetricAlert
-                          message={t(
-                            "'is:unresolved' queries are not supported by Anomaly Detection alerts."
-                          )}
-                        />
-                      );
-                    }
-                    return null;
-                  }}
-                </FormField>
-              </FormRow>
-            </TraceItemAttributeProvider>
+                  }
+                  return null;
+                }}
+              </FormField>
+            </FormRow>
           </Fragment>
         )}
       </Fragment>
@@ -852,6 +842,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 }
 
 interface EAPSearchQueryBuilderWithContextProps {
+  enabled: boolean;
   initialQuery: string;
   onSearch: (query: string, isQueryValid: any) => void;
   project: Project;
@@ -859,15 +850,30 @@ interface EAPSearchQueryBuilderWithContextProps {
 }
 
 function EAPSearchQueryBuilderWithContext({
+  enabled,
   initialQuery,
   onSearch,
   project,
   traceItemType,
 }: EAPSearchQueryBuilderWithContextProps) {
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number');
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {enabled, projects: [project]},
+      'number'
+    );
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string');
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {enabled, projects: [project]},
+      'string'
+    );
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {enabled, projects: [project]},
+      'boolean'
+    );
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery,
@@ -875,10 +881,12 @@ function EAPSearchQueryBuilderWithContext({
     onSearch,
     numberAttributes,
     stringAttributes,
+    booleanAttributes,
     itemType: traceItemType,
     projects: [parseInt(project.id, 10)],
     numberSecondaryAliases,
     stringSecondaryAliases,
+    booleanSecondaryAliases,
   };
 
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
@@ -887,7 +895,7 @@ function EAPSearchQueryBuilderWithContext({
 const StyledListTitle = styled('div')`
   display: flex;
   span {
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space.md};
   }
 `;
 
@@ -902,28 +910,22 @@ const HiddenListItem = styled(ListItem)`
 `;
 
 const Spacer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const ChartPanel = styled(Panel)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const StyledPanelBody = styled(PanelBody)`
   ol,
   h4 {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
-const SearchContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.xl};
   line-height: 1.3;
 `;
@@ -933,7 +935,7 @@ const FormRow = styled('div')<{columns?: number; noMargin?: boolean}>`
   flex-direction: row;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: ${p => (p.noMargin ? 0 : space(4))};
+  margin-bottom: ${p => (p.noMargin ? 0 : p.theme.space['3xl'])};
   ${p =>
     p.columns !== undefined &&
     css`

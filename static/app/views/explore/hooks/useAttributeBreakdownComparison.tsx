@@ -1,15 +1,16 @@
 import {useMemo} from 'react';
 
-import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldKey} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 
 export type AttributeBreakdownsComparison = {
   cohort1Total: number;
@@ -31,25 +32,29 @@ export type AttributeBreakdownsComparison = {
   }>;
 };
 
-function useAttributeBreakdownComparison({
+export function useAttributeBreakdownComparison({
   aggregateFunction,
   range,
+  query,
+  dataset = DiscoverDatasets.SPANS,
+  extrapolate = '1',
+  pageFilters: pageFiltersProp,
 }: {
   aggregateFunction: string;
+  query: string;
   range: [number, number];
+  dataset?: DiscoverDatasets;
+  extrapolate?: string;
+  pageFilters?: PageFilters;
 }) {
-  const location = useLocation();
   const organization = useOrganization();
-  const dataset = useSpansDataset();
-  const {selection: pageFilters} = usePageFilters();
-  const aggregateExtrapolation = location.query.extrapolate ?? '1';
+  const {selection: contextPageFilters} = usePageFilters();
+  const pageFilters = pageFiltersProp ?? contextPageFilters;
 
   const [x1, x2] = range;
 
-  // Ensure that we pass the existing queries in the search bar to the attribute breakdowns queries
-  const currentQuery = location.query.query?.toString() ?? '';
-  const selectedRegionQuery = new MutableSearch(currentQuery);
-  const baselineRegionQuery = new MutableSearch(currentQuery);
+  const selectedRegionQuery = new MutableSearch(query);
+  const baselineRegionQuery = new MutableSearch(query);
 
   // round off the x-axis bounds to the minute
   let startTimestamp = Math.floor(x1 / 60_000) * 60_000;
@@ -77,13 +82,15 @@ function useAttributeBreakdownComparison({
       function: aggregateFunction,
       above: 1,
       sampling: SAMPLING_MODE.NORMAL,
-      aggregateExtrapolation,
+      aggregateExtrapolation: extrapolate,
     };
-  }, [query1, query2, pageFilters, dataset, aggregateFunction, aggregateExtrapolation]);
+  }, [query1, query2, pageFilters, dataset, aggregateFunction, extrapolate]);
 
   return useApiQuery<AttributeBreakdownsComparison>(
     [
-      `/organizations/${organization.slug}/trace-items/attributes/ranked/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/trace-items/attributes/ranked/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {query: queryParams},
     ],
     {
@@ -92,5 +99,3 @@ function useAttributeBreakdownComparison({
     }
   );
 }
-
-export default useAttributeBreakdownComparison;

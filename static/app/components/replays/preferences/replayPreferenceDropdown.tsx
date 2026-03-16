@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
-import {Flex} from 'sentry/components/core/layout';
 import {REPLAY_TIMESTAMP_OPTIONS} from 'sentry/components/replays/preferences/replayPreferences';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSettings} from 'sentry/icons';
@@ -13,7 +13,7 @@ import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPref
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-export default function ReplayPreferenceDropdown({
+export function ReplayPreferenceDropdown({
   speedOptions,
   hideFastForward = false,
   isLoading,
@@ -49,7 +49,7 @@ export default function ReplayPreferenceDropdown({
       trigger={triggerProps => (
         <OverlayTrigger.IconButton
           {...triggerProps}
-          title={t('Settings')}
+          tooltipProps={{title: t('Settings')}}
           aria-label={t('Settings')}
           icon={<IconSettings />}
         />
@@ -95,7 +95,7 @@ export default function ReplayPreferenceDropdown({
         value={prefs.timestampType}
         onChange={opt => setPrefs({timestampType: opt.value})}
         options={REPLAY_TIMESTAMP_OPTIONS.map(option => ({
-          label: `${toTitleCase(option)}`,
+          label: toTitleCase(option),
           value: option,
         }))}
       />

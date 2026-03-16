@@ -1,3 +1,7 @@
+import {DocIntegrationAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -5,11 +9,8 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {ExternalLink} from 'sentry/components/core/link';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {DocIntegration} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {
@@ -18,18 +19,18 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
 import type {ActionItem} from 'admin/components/detailsPage';
-import DetailsPage from 'admin/components/detailsPage';
-import DocIntegrationModal from 'admin/components/docIntegrationModal';
+import {DetailsPage} from 'admin/components/detailsPage';
+import {DocIntegrationModal} from 'admin/components/docIntegrationModal';
 
-export default function DocIntegrationDetails() {
+export function DocIntegrationDetails() {
   const {docIntegrationSlug} = useParams<{docIntegrationSlug: string}>();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();

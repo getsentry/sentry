@@ -7,8 +7,8 @@ import {
   Stack,
   type StackProps,
   type StackPropsWithRenderFunction,
-} from 'sentry/components/core/layout';
-import type {Responsive} from 'sentry/components/core/layout/styles';
+} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
 
 describe('Stack', () => {
   it('renders children', () => {

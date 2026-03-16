@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+
+import {Container, Grid} from '@sentry/scraps/layout';
 
 import {
   closeGuide,
@@ -10,11 +11,10 @@ import {
   registerAnchor,
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {Hovercard} from 'sentry/components/hovercard';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import GuideStore from 'sentry/stores/guideStore';
+import {GuideStore} from 'sentry/stores/guideStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 interface Props {
@@ -136,9 +136,8 @@ function BaseGuideAnchor({
         handleDismiss(e);
         window.location.hash = '';
       }}
-      wrapperComponent={GuideAnchorWrapper}
       actions={
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           {lastStep ? (
             <TourAction size="xs" onClick={handleFinish}>
               {currentStep.nextText || (hasManySteps ? t('Enough Already') : t('Got It'))}
@@ -148,13 +147,17 @@ function BaseGuideAnchor({
               {currentStep.nextText || t('Next')}
             </TourAction>
           )}
-        </ButtonBar>
+        </Grid>
       }
       className={containerClassName}
       position={position}
       offset={offset}
     >
-      <ScrollToGuide>{children}</ScrollToGuide>
+      {props => (
+        <Container as="span" maxWidth="100%" display="inline-block" {...props}>
+          <ScrollToGuide>{children}</ScrollToGuide>
+        </Container>
+      )}
     </TourGuide>
   );
 }
@@ -172,16 +175,9 @@ interface WrapperProps extends Props {
  * register with the GuideStore, which uses registrations from one or more
  * anchors on the page to determine which guides can be shown on the page.
  */
-function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
+export function GuideAnchor({disabled, children, ...rest}: WrapperProps) {
   if (disabled) {
     return children;
   }
   return <BaseGuideAnchor {...rest}>{children}</BaseGuideAnchor>;
 }
-
-const GuideAnchorWrapper = styled('span')`
-  display: inline-block;
-  max-width: 100%;
-`;
-
-export default GuideAnchor;

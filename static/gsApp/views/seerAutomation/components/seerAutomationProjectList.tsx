@@ -1,40 +1,40 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex, Stack} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {SEER_THRESHOLD_MAP} from 'sentry/views/settings/projectSeer';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
@@ -365,9 +365,9 @@ export function SeerAutomationProjectList() {
         </PanelHeader>
         <PanelBody>
           {filteredProjects.length === 0 && search && (
-            <div style={{padding: space(2), textAlign: 'center', color: '#888'}}>
+            <SimpleTable.Empty>
               {t('No projects found matching "%(search)s"', {search})}
-            </div>
+            </SimpleTable.Empty>
           )}
           {paginatedProjects.map(project => (
             <ClickablePanelItem key={project.id} onClick={() => handleRowClick(project)}>
@@ -390,7 +390,7 @@ export function SeerAutomationProjectList() {
       </Panel>
       {totalProjects > PROJECTS_PER_PAGE && (
         <Flex justify="end">
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
@@ -413,9 +413,8 @@ export function SeerAutomationProjectList() {
 }
 
 const SearchWrapper = styled('div')`
-  margin-bottom: ${space(2)};
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
 `;
 
@@ -427,7 +426,7 @@ const SeerValue = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   justify-content: flex-end;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
 `;
 
 const ActionDropdownMenu = styled(DropdownMenu)`

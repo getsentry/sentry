@@ -1,30 +1,32 @@
 import {useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ApiApplication} from 'sentry/types/user';
+import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import Row from 'sentry/views/settings/account/apiApplications/row';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {Row} from 'sentry/views/settings/account/apiApplications/row';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
@@ -33,7 +35,7 @@ export default function ApiApplications() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const ENDPOINT = '/api-applications/';
+  const ENDPOINT = getApiUrl('/api-applications/');
 
   const {
     data: appList = [],
@@ -182,12 +184,12 @@ function CreateApplicationModal({
         />
       </Body>
       <Footer>
-        <ButtonBar gap="sm">
+        <Grid flow="column" align="center" gap="sm">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button priority="primary" type="submit">
             {t('Create Application')}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </form>
   );

@@ -2,24 +2,32 @@ import type {ReactNode} from 'react';
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {Grid} from '@sentry/scraps/layout';
+
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
 import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
-import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {
+  useMaxPickableDays,
+  type MaxPickableDaysOptions,
+} from 'sentry/utils/useMaxPickableDays';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {
+  MAX_DAYS_FOR_CROSS_EVENTS,
+  MAX_PERIOD_FOR_CROSS_EVENTS,
+} from 'sentry/views/explore/constants';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
+  useQueryParamsCrossEvents,
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
@@ -37,14 +45,39 @@ import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
+const CROSS_EVENTS_DATE_OVERRIDE: MaxPickableDaysOptions = {
+  defaultPeriod: MAX_PERIOD_FOR_CROSS_EVENTS,
+  maxPickableDays: MAX_DAYS_FOR_CROSS_EVENTS,
+  maxUpgradableDays: MAX_DAYS_FOR_CROSS_EVENTS,
+};
+
+function useHasCrossEvents() {
+  const crossEvents = useQueryParamsCrossEvents();
+  return defined(crossEvents) && crossEvents.length > 0;
+}
+
 export function ExploreContent() {
   Sentry.setTag('explore.visited', 'yes');
 
+  return (
+    <SpansQueryParamsProvider>
+      <ExploreContentInner />
+    </SpansQueryParamsProvider>
+  );
+}
+
+function ExploreContentInner() {
   const organization = useOrganization();
+  const hasCrossEvents = useHasCrossEvents();
   const onboardingProject = useOnboardingProject();
-  const maxPickableDays = useMaxPickableDays({
+  const dataCategoryMaxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  const maxPickableDays = hasCrossEvents
+    ? CROSS_EVENTS_DATE_OVERRIDE
+    : dataCategoryMaxPickableDays;
+
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
@@ -73,9 +106,7 @@ function SpansTabWrapper({children}: SpansTabContextProps) {
   return (
     <SpansTabTourProvider>
       <SpansTabTourTrigger />
-      <SpansQueryParamsProvider>
-        <ExploreTagsProvider>{children}</ExploreTagsProvider>
-      </SpansQueryParamsProvider>
+      {children}
     </SpansTabTourProvider>
   );
 }
@@ -112,14 +143,6 @@ function SpansTabTourTrigger() {
   return null;
 }
 
-function ExploreTagsProvider({children}: SpansTabContextProps) {
-  return (
-    <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-      {children}
-    </TraceItemAttributeProvider>
-  );
-}
-
 function SpansTabHeader() {
   const id = useQueryParamsId();
   const title = useQueryParamsTitle();
@@ -153,11 +176,11 @@ function SpansTabHeader() {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <StarSavedQueryButton />
           {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
           <FeedbackButton />
-        </ButtonBar>
+        </Grid>
       </Layout.HeaderActions>
     </Layout.Header>
   );

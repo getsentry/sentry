@@ -1,9 +1,13 @@
 import {useMemo} from 'react';
 
 import type {Series} from 'sentry/types/echarts';
+import {
+  getAggregateAlias,
+  type AggregationOutputType,
+} from 'sentry/utils/discover/fields';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   Dataset,
   EventTypes,
@@ -33,7 +37,9 @@ interface UseMetricDetectorSeriesResult {
   comparisonSeries: Series[];
   error: RequestError | null;
   isLoading: boolean;
+  outputType: AggregationOutputType | undefined;
   series: Series[];
+  unit: string | null;
 }
 
 function applySharedSeriesOptions(series: Series[]): Series[] {
@@ -119,5 +125,16 @@ export function useMetricDetectorSeries({
     };
   }, [datasetConfig, data, aggregate, comparisonDelta]);
 
-  return {series, comparisonSeries, isLoading, error};
+  // Extract unit and type metadata from the API response meta field
+  if (data && 'meta' in data) {
+    const unit =
+      data.meta?.units?.[aggregate] ??
+      data.meta?.units?.[getAggregateAlias(aggregate)] ??
+      null;
+    const outputType =
+      data.meta?.fields?.[aggregate] ?? data.meta?.fields?.[getAggregateAlias(aggregate)];
+    return {series, comparisonSeries, isLoading, error, unit, outputType};
+  }
+
+  return {series, comparisonSeries, isLoading, error, unit: null, outputType: undefined};
 }

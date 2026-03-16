@@ -99,7 +99,7 @@ class GroupTagKey(TagType):
         key: str,
         values_seen: int | None = None,
         count: int | None = None,
-        top_values=None,
+        top_values: tuple[GroupTagValue, ...] | None = None,
     ):
         self.group_id = group_id
         self.key = key
@@ -166,11 +166,10 @@ class TagValueSerializerResponseOptional(TypedDict, total=False):
 class TagValueSerializerResponse(TagValueSerializerResponseOptional):
     key: str
     name: str
-    value: str
-    count: int
-    # Empty values do not have last seen timestamps.
+    value: str | None
+    # Empty values do not have counts, last seen or first seen timestamps.
+    count: int | None
     lastSeen: str | None
-    # Empty values do not have first seen timestamps.
     firstSeen: str | None
 
 

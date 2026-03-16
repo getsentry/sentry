@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
 
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -14,7 +14,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import StartTrialButton from 'getsentry/components/startTrialButton';
+import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import {
   AddOnCategory,
   BillingType,

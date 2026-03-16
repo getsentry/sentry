@@ -5,19 +5,17 @@ import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 import uniqBy from 'lodash/uniqBy';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
-import SuggestedAvatarStack from 'sentry/components/suggestedAvatarStack';
+import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
-import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {ParsedOwnershipRule} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -66,7 +64,7 @@ export function OwnershipRulesTable({
     const actors = combinedRules
       .flatMap(rule => rule.owners)
       .filter(actor => actor.name)
-      .map(owner => ({...owner, id: `${owner.id}`}));
+      .map(owner => ({...owner, id: owner.id}));
     return (
       uniqBy(actors, actor => `${actor.type}:${actor.id}`)
         // Sort by type, then by name
@@ -170,7 +168,7 @@ export function OwnershipRulesTable({
         {chunkedRules[page]?.map((rule, index) => {
           let name: string | undefined = 'unknown';
           // ID might not be a string, so we need to convert it
-          const owners = rule.owners.map(owner => ({...owner, id: `${owner.id}`}));
+          const owners = rule.owners.map(owner => ({...owner, id: owner.id}));
           if (owners[0]?.type === 'team') {
             const team = TeamStore.getById(owners[0].id);
             if (team?.slug) {
@@ -204,7 +202,7 @@ export function OwnershipRulesTable({
         })}
       </StyledPanelTable>
       <Flex justify="end">
-        <ButtonBar merged gap="0">
+        <ButtonBar>
           <Button
             icon={<IconChevron direction="left" size="sm" />}
             onClick={() => {
@@ -236,8 +234,8 @@ const StyledSearchBar = styled(SearchBar)`
 const RulesTableWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -249,7 +247,7 @@ const StyledPanelTable = styled(PanelTable)`
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${space(1.5)} ${space(2)};
+        padding: ${p.theme.space.lg} ${p.theme.space.xl};
       }
     `}
 `;
@@ -257,7 +255,7 @@ const StyledPanelTable = styled(PanelTable)`
 const RowRule = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;

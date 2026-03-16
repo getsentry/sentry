@@ -169,6 +169,7 @@ def create_or_update_grouphash_metadata_if_needed(
             new_data["date_added"] = None
 
         grouphash_metadata.update(**new_data)
+        grouphash._metadata = grouphash_metadata
 
     # Update data in existing metadata record if needed
     else:
@@ -404,7 +405,9 @@ def _get_stacktrace_hashing_metadata(
         "stacktrace_location": (
             "exception"
             if "exception" in contributing_variant.description
-            else "thread" if "thread" in contributing_variant.description else "top-level"
+            else "thread"
+            if "thread" in contributing_variant.description
+            else "top-level"
         ),
         "num_stacktraces": (
             len(contributing_component.values)

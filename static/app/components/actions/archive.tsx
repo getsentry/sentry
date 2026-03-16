@@ -1,14 +1,13 @@
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {ExternalLink} from 'sentry/components/core/link';
-import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
-import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
+import {CustomIgnoreCountModal} from 'sentry/components/customIgnoreCountModal';
+import {CustomIgnoreDurationModal} from 'sentry/components/customIgnoreDurationModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron} from 'sentry/icons';
@@ -16,7 +15,7 @@ import {t, tct, tn} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 
 const ONE_HOUR = 60;
 
@@ -277,7 +276,7 @@ function ArchiveActions({
       <Button
         priority="primary"
         size="xs"
-        title={t('Change status to unresolved')}
+        tooltipProps={{title: t('Change status to unresolved')}}
         onClick={() =>
           onUpdate({
             status: GroupStatus.UNRESOLVED,
@@ -299,30 +298,34 @@ function ArchiveActions({
   });
 
   return (
-    <ButtonBar merged gap="0">
-      <ArchiveButton
+    <ButtonBar>
+      <Button
         size={size}
         className={className}
-        tooltipProps={{delay: 1000, disabled, isHoverable: true}}
-        title={tct(
-          'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
-          {
-            docs: (
-              <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive" />
-            ),
-          }
-        )}
+        tooltipProps={{
+          delay: 1000,
+          disabled,
+          isHoverable: true,
+          title: tct(
+            'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
+            {
+              docs: (
+                <ExternalLink href="https://docs.sentry.io/product/issues/states-triage/#archive" />
+              ),
+            }
+          ),
+        }}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
       >
         {t('Archive')}
-      </ArchiveButton>
+      </Button>
       <DropdownMenu
         size="sm"
         className={className}
         minMenuWidth={270}
         trigger={(triggerProps, isOpen) => (
-          <DropdownTrigger
+          <Button
             {...triggerProps}
             aria-label={t('Archive options')}
             size={size}
@@ -348,17 +351,6 @@ function ArchiveActions({
 }
 
 export default ArchiveActions;
-
-const ArchiveButton = styled(Button)`
-  box-shadow: none;
-  border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
-`;
-
-const DropdownTrigger = styled(Button)`
-  box-shadow: none;
-  border-radius: 0 ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0;
-  border-left: none;
-`;
 
 const StyledExternalLink = styled(ExternalLink)`
   font-weight: ${p => p.theme.font.weight.sans.regular};

@@ -1,9 +1,8 @@
-import {Fragment, useRef, type CSSProperties} from 'react';
+import {useRef, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {IconGrabbable} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
@@ -63,7 +62,9 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
   const dividerElem = useRef<HTMLDivElement>(null);
   const width = `${viewDimensions.width}px`;
 
-  const {onMouseDown, onDoubleClick} = useResizableDrawer({
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const {onMouseDown, onDoubleClick, setSize} = useResizableDrawer({
     direction: 'left',
     initialSize: viewDimensions.width / 2,
     min: 0,
@@ -93,8 +94,19 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
     },
   });
 
+  const handleContainerMouseDown = (event: React.MouseEvent<HTMLElement>) => {
+    if (event.button !== 0 || !containerRef.current) {
+      return;
+    }
+    const rect = containerRef.current.getBoundingClientRect();
+    const relativeX = event.clientX - rect.left;
+    setSize(relativeX, true);
+    onDragHandleMouseDown?.(event);
+    onMouseDown(event);
+  };
+
   return (
-    <Fragment>
+    <SidesContainer ref={containerRef} onMouseDown={handleContainerMouseDown}>
       <Cover style={{width}} data-test-id="after-content">
         <Placement style={{width}}>
           <FullHeightContainer>{after}</FullHeightContainer>
@@ -108,17 +120,13 @@ function Sides({onDragHandleMouseDown, viewDimensions, before, after}: SideProps
       <DragHandle
         data-test-id="drag-handle"
         ref={dividerElem}
-        onMouseDown={event => {
-          onDragHandleMouseDown?.(event);
-          onMouseDown(event);
-        }}
         onDoubleClick={onDoubleClick}
       >
         <DragIndicator>
           <IconGrabbable size="sm" />
         </DragIndicator>
       </DragHandle>
-    </Fragment>
+    </SidesContainer>
   );
 }
 
@@ -126,11 +134,11 @@ const Header = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   line-height: 1.2;
   justify-content: space-between;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 
   & > *:first-child {
     color: ${p => p.theme.tokens.content.danger};
@@ -155,6 +163,12 @@ const Positioned = styled('div')`
   width: 100%;
 `;
 
+const SidesContainer = styled('div')`
+  position: absolute;
+  inset: 0;
+  cursor: ew-resize;
+`;
+
 const DragIndicator = styled('div')`
   position: absolute;
   top: 50%;
@@ -169,7 +183,7 @@ const DragIndicator = styled('div')`
   justify-content: center;
   user-select: none;
   z-index: 1;
-  padding: ${space(0.5)} ${space(0.25)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space['2xs']};
 `;
 
 const DragHandle = styled('div')`
@@ -186,7 +200,7 @@ const DragHandle = styled('div')`
     top: 0;
     bottom: 0;
     width: 2px;
-    background: ${p => p.theme.tokens.border.primary};
+    background: ${p => p.theme.tokens.background.secondary};
     left: 50%;
     transform: translateX(-50%);
   }
@@ -225,18 +239,18 @@ const DragHandle = styled('div')`
 
 const Cover = styled('div')`
   border: ${BORDER_WIDTH}px solid;
-  border-radius: ${space(0.5)};
+  border-radius: ${p => p.theme.space.xs};
   height: 100%;
   overflow: hidden;
   position: absolute;
   left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.tokens.content.success};
+  border-color: ${p => p.theme.tokens.border.success.moderate};
   & + & {
     border: ${BORDER_WIDTH}px solid;
-    border-radius: ${space(0.5)} 0 0 ${space(0.5)};
-    border-color: ${p => p.theme.tokens.content.danger};
+    border-radius: ${p => p.theme.space.xs} 0 0 ${p => p.theme.space.xs};
+    border-color: ${p => p.theme.tokens.border.danger.moderate};
     border-right-width: 0;
   }
 `;

@@ -2,28 +2,29 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {ExternalLink, Link} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
-import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
+import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
@@ -153,6 +154,7 @@ function EventTagsTreeRowDropdown({
       key: escapeIssueTagKey(originalTag.key),
     }
   );
+  const globalSelectionParams = extractSelectionParameters(location.query);
 
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
     organization,
@@ -177,7 +179,7 @@ function EventTagsTreeRowDropdown({
       hidden: !event.groupID || isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -186,7 +188,7 @@ function EventTagsTreeRowDropdown({
       hidden: isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/issues/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -195,7 +197,7 @@ function EventTagsTreeRowDropdown({
       hidden: !isFeedback,
       to: {
         pathname: `/organizations/${organization.slug}/feedback/`,
-        query,
+        query: {...globalSelectionParams, ...query},
       },
     },
     {
@@ -417,13 +419,13 @@ function EventTagsTreeValue({
 }
 
 const TreeRow = styled('div')<{hasErrors: boolean}>`
-  border-radius: ${space(0.5)};
-  padding-left: ${space(1)};
+  border-radius: ${p => p.theme.space.xs};
+  padding-left: ${p => p.theme.space.md};
   position: relative;
   display: grid;
   align-items: center;
   grid-column: span 2;
-  column-gap: ${space(1.5)};
+  column-gap: ${p => p.theme.space.lg};
   grid-template-columns: subgrid;
   :nth-child(odd) {
     background-color: ${p =>
@@ -463,7 +465,7 @@ const TreeBranchIcon = styled('div')<{hasErrors: boolean}>`
   grid-column: span 1;
   height: 12px;
   align-self: start;
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const TreeKeyTrunk = styled('div')<{spacerCount: number}>`
@@ -481,11 +483,11 @@ const TreeValueTrunk = styled('div')`
   align-items: center;
   min-height: 22px;
   grid-template-columns: 1fr auto;
-  grid-column-gap: ${space(0.5)};
+  grid-column-gap: ${p => p.theme.space.xs};
 `;
 
 const TreeValue = styled('div')<{hasErrors?: boolean}>`
-  padding: ${space(0.25)} 0;
+  padding: ${p => p.theme.space['2xs']} 0;
   align-self: start;
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
@@ -513,15 +515,15 @@ const TreeValueDropdown = styled(DropdownMenu)`
   .tag-button {
     height: 20px;
     min-height: 20px;
-    padding: 0 ${space(0.75)};
-    border-radius: ${space(0.5)};
+    padding: 0 ${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.space.xs};
     z-index: 0;
   }
 `;
 
 const TreeValueErrors = styled('div')`
   height: 20px;
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space.sm};
 `;
 
 const TagLinkText = styled('span')`

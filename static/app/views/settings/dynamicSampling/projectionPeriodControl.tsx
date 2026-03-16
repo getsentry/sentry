@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 interface Props {
@@ -37,5 +36,5 @@ export function ProjectionPeriodControl({period, onChange}: Props) {
 }
 
 const StyledRadioGroup = styled(RadioGroup<ProjectionSamplePeriod>)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

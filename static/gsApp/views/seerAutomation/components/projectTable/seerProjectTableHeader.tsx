@@ -1,22 +1,23 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {Alert} from '@sentry/scraps/alert';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {parseQueryKey} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   onSortClick: (key: Sort) => void;
@@ -29,21 +30,19 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Auto Fix'), key: 'fixes'},
-  {title: t('PR Creation'), key: 'pr_creation'},
+  {title: t('Autofix Handoff'), key: 'fixes'},
   {
     title: (
       <Flex gap="sm" align="center">
-        {t('Background Agent')}
-        <QuestionTooltip
+        {t('PR Creation')}
+        <InfoTip
           title={t(
-            'Background agent delegation can only be changed on the individual project settings page. Background agents have more settings that are not shown here.'
+            'This setting only applies when an Autofix Handoff is configured to run automatically.'
           )}
-          size="xs"
         />
       </Flex>
     ),
-    key: 'is_delegated',
+    key: 'pr_creation',
   },
   {title: t('Repos'), key: 'repos'},
 ];
@@ -65,17 +64,26 @@ function getMutationCallbacks(count: number) {
   };
 }
 
-export default function ProjectTableHeader({
+export function ProjectTableHeader({
   projects,
   onSortClick,
   sort,
   updateBulkAutofixAutomationSettings,
 }: Props) {
+  const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {countSelected, isAllSelected, isAnySelected, queryKey, selectAll, selectedIds} =
-    listItemCheckboxState;
-  const queryOptions = parseQueryKey(queryKey).options;
+  const {
+    countSelected,
+    isAllSelected,
+    isAnySelected,
+    queryKeyRef,
+    selectAll,
+    selectedIds,
+  } = listItemCheckboxState;
+  const queryOptions = queryKeyRef.current
+    ? parseQueryKey(queryKeyRef.current).options
+    : undefined;
   const queryString = queryOptions?.query?.query;
 
   const projectIds = useMemo(
@@ -86,12 +94,12 @@ export default function ProjectTableHeader({
   return (
     <Fragment>
       <TableHeader>
-        <SimpleTable.HeaderCell>
+        {/* <SimpleTable.HeaderCell>
           <SelectAllCheckbox
             listItemCheckboxState={listItemCheckboxState}
             projects={projects}
           />
-        </SimpleTable.HeaderCell>
+        </SimpleTable.HeaderCell> */}
         {COLUMNS.map(({title, key, sortKey}) => (
           <SimpleTable.HeaderCell
             key={key}
@@ -126,32 +134,7 @@ export default function ProjectTableHeader({
           </TableCellFirst>
           <TableCellsRemainingContent align="center" gap="md">
             <DropdownMenu
-              isDisabled={!canWrite}
-              size="xs"
-              items={[
-                {
-                  key: 'medium',
-                  label: t('On'),
-                  onAction: () =>
-                    updateBulkAutofixAutomationSettings(
-                      {projectIds, autofixAutomationTuning: 'medium'},
-                      getMutationCallbacks(projectIds.length)
-                    ),
-                },
-                {
-                  key: 'off',
-                  label: t('Off'),
-                  onAction: () =>
-                    updateBulkAutofixAutomationSettings(
-                      {projectIds, autofixAutomationTuning: 'off'},
-                      getMutationCallbacks(projectIds.length)
-                    ),
-                },
-              ]}
-              triggerLabel={t('Auto Fix')}
-            />
-            <DropdownMenu
-              isDisabled={!canWrite}
+              isDisabled={!canWrite || organization.enableSeerCoding === false}
               size="xs"
               items={[
                 {
@@ -173,7 +156,7 @@ export default function ProjectTableHeader({
                     ),
                 },
               ]}
-              triggerLabel={t('PR Creation')}
+              triggerLabel={t('Auto Create PRs')}
             />
           </TableCellsRemainingContent>
         </TableHeader>
@@ -185,10 +168,11 @@ export default function ProjectTableHeader({
             {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
             <a onClick={selectAll}>
               {queryString
-                ? tct('Select all projects that match: [queryString].', {
+                ? tct('Select all [count] projects that match: [queryString].', {
+                    count: listItemCheckboxState.hits,
                     queryString: <var>{queryString}</var>,
                   })
-                : t('Select all projects.')}
+                : t('Select all %s projects.', listItemCheckboxState.hits)}
             </a>
           </Flex>
         </FullGridAlert>
@@ -199,7 +183,8 @@ export default function ProjectTableHeader({
           <Flex justify="center" wrap="wrap">
             <span>
               {queryString
-                ? tct('Selected all projects matching: [queryString].', {
+                ? tct('Selected all [count] projects matching: [queryString].', {
+                    count: countSelected,
                     queryString: <var>{queryString}</var>,
                   })
                 : countSelected > projects.length

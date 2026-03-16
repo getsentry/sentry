@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ReplayTagsTableRow from './replayTagsTableRow';
+import {ReplayTagsTableRow} from './replayTagsTableRow';
 
 describe('ReplayTagsTableRow', () => {
   it('Should render tag key and value correctly', () => {
