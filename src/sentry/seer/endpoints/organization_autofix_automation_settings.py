@@ -353,6 +353,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
             try:
                 # Seer API responses don't include repository_id.
                 # Resolve before dual-writing so repos aren't skipped.
+                # This will not be necessary once we cut over reads from Seer API to Sentry DB.
                 for pref_dict in preferences_to_set:
                     for repo in pref_dict.get("repositories", []):
                         if repo.get("repository_id") is None:
