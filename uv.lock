@@ -154,14 +154,6 @@ wheels = [
 ]
 
 [[package]]
-name = "cfgv"
-version = "3.3.1"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/cfgv-3.3.1-py2.py3-none-any.whl", hash = "sha256:c6a0883f3917a037485059700b9e75da2464e6c27051014ad85ba6aaa5884426" },
-]
-
-[[package]]
 name = "chardet"
 version = "5.2.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -302,14 +294,6 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/devservices-1.3.1-py3-none-any.whl", hash = "sha256:111c28fcd76c5a97402a3da727e7484cc22eda4a709c4ae09bd04cfa266a4575" },
-]
-
-[[package]]
-name = "distlib"
-version = "0.3.8"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/distlib-0.3.8-py2.py3-none-any.whl", hash = "sha256:034db59a0b96f8ca18035f36290806a9a6e6bd9d1ff91e45a7f172eb17e51784" },
 ]
 
 [[package]]
@@ -993,14 +977,6 @@ wheels = [
 ]
 
 [[package]]
-name = "identify"
-version = "2.6.1"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/identify-2.6.1-py2.py3-none-any.whl", hash = "sha256:53863bcac7caf8d2ed85bd20312ea5dcfc22226800f6d6881f232d861db5a8f0" },
-]
-
-[[package]]
 name = "idna"
 version = "3.7"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1305,14 +1281,6 @@ wheels = [
 ]
 
 [[package]]
-name = "nodeenv"
-version = "1.9.1"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/nodeenv-1.9.1-py2.py3-none-any.whl", hash = "sha256:ba11c9782d29c27c70ffbdda2d7415098754709be8a7056d79a737cd901155c9" },
-]
-
-[[package]]
 name = "oauthlib"
 version = "3.1.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1561,34 +1529,11 @@ wheels = [
 ]
 
 [[package]]
-name = "platformdirs"
-version = "4.2.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/platformdirs-4.2.0-py3-none-any.whl", hash = "sha256:0614df2a2f37e1a662acbd8e2b25b92ccf8632929bc6d43467e17fe89c75e068" },
-]
-
-[[package]]
 name = "pluggy"
 version = "1.5.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/pluggy-1.5.0-py3-none-any.whl", hash = "sha256:44e1ad92c8ca002de6377e165f3e0f1be63266ab4d554740532335b9d75ea669" },
-]
-
-[[package]]
-name = "pre-commit"
-version = "4.2.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "cfgv", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "identify", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "nodeenv", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "pyyaml", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "virtualenv", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pre_commit-4.2.0-py2.py3-none-any.whl", hash = "sha256:a009ca7205f1eb497d10b845e52c838a98b6cdd2102a6c8e4540e94ee75c58bd" },
 ]
 
 [[package]]
@@ -2262,7 +2207,6 @@ dev = [
     { name = "openapi-pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pip", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pip-tools", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "pre-commit", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "prek", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pytest-cov", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2432,7 +2376,6 @@ dev = [
     { name = "openapi-pydantic", specifier = ">=0.4.0" },
     { name = "pip", specifier = ">=23.3.1" },
     { name = "pip-tools", specifier = ">=7.1.0" },
-    { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "prek", specifier = ">=0.3.6" },
     { name = "pytest", specifier = ">=8.1.2" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
@@ -3119,30 +3062,6 @@ wheels = [
 [package.optional-dependencies]
 socks = [
     { name = "pysocks", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-]
-
-[[package]]
-name = "uvloop"
-version = "0.21.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/uvloop-0.21.0-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:bfd55dfcc2a512316e65f16e503e9e450cab148ef11df4e4e679b5e8253a5281" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/uvloop-0.21.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:787ae31ad8a2856fc4e7c095341cccc7209bd657d0e71ad0dc2ea83c4a6fa8af" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/uvloop-0.21.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5ee4d4ef48036ff6e5cfffb09dd192c7a5027153948d85b8da7ff705065bacc6" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/uvloop-0.21.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f3df876acd7ec037a3d005b3ab85a7e4110422e4d9c1571d4fc89b0fc41b6816" },
-]
-
-[[package]]
-name = "virtualenv"
-version = "20.26.6"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "distlib", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "filelock", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "platformdirs", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/virtualenv-20.26.6-py3-none-any.whl", hash = "sha256:7345cc5b25405607a624d8418154577459c3e0277f5466dd79c49d5e492995f2" },
 ]
 
 [[package]]
