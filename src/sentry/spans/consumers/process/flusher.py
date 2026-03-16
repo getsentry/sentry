@@ -464,7 +464,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             metrics.timing(
                 "spans.buffer.flusher.drift",
                 drift,
-                tags={"slice_id": str(self.slice_id or "")},
+                tags={"slice_id": str(self.slice_id if self.slice_id is not None else "")},
             )
 
         # We also pause insertion into Redis if Redis is too full. In this case
@@ -483,7 +483,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     logger.fatal("Pausing consumer due to Redis being full")
                 metrics.incr(
                     "spans.buffer.flusher.hard_backpressure",
-                    tags={"slice_id": str(self.slice_id or "")},
+                    tags={"slice_id": str(self.slice_id if self.slice_id is not None else "")},
                 )
                 self.redis_was_full = True
                 # Pause consumer if Redis memory is full. Because the drift is
