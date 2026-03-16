@@ -568,7 +568,6 @@ class SpansBuffer:
         queue_keys = []
         shard_factor = max(1, len(self.assigned_shards))
         max_flush_segments = options.get("spans.buffer.max-flush-segments")
-        max_flush_segments_per_trace = options.get("spans.buffer.max-flush-segments-per-trace")
         flusher_logger_enabled = options.get("spans.buffer.flusher-cumulative-logger-enabled")
         max_segments_per_shard = math.ceil(max_flush_segments / shard_factor)
 
@@ -589,8 +588,6 @@ class SpansBuffer:
         for shard, queue_key, keys_with_scores in zip(self.assigned_shards, queue_keys, result):
             for segment_key, score in keys_with_scores:
                 segment_keys.append((shard, queue_key, segment_key, score))
-
-        segment_keys = self._apply_per_trace_limit(segment_keys, max_flush_segments_per_trace, now)
 
         data_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
