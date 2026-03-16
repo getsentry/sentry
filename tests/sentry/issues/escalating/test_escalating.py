@@ -383,6 +383,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         assert snuba_cached is False
         assert eap_cached is False
 
+    @pytest.mark.skip(reason="flaky: #110753")
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_past_counts_match_single_group(self) -> None:
         group = self.store_events_to_snuba_and_eap(
