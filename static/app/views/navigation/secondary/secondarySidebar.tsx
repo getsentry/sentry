@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import useResizable from 'sentry/utils/useResizable';
+import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
@@ -11,7 +11,7 @@ import {
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   NAVIGATION_TOUR_CONTENT,
   NavigationTour,
@@ -20,7 +20,6 @@ import {
 } from 'sentry/views/navigation/navigationTour';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/secondaryNavigationContent';
-import {useActiveNavigationGroup} from 'sentry/views/navigation/useActiveNavigationGroup';
 
 export function SecondarySidebar() {
   const {currentStepId} = useNavigationTour();
@@ -43,11 +42,7 @@ export function SecondarySidebar() {
     },
   });
 
-  const {activePrimaryNavigationGroup} = useNavigationContext();
-  const defaultActiveNavigationGroup = useActiveNavigationGroup();
-
-  const activeNavigationGroup =
-    activePrimaryNavigationGroup ?? defaultActiveNavigationGroup;
+  const {activeGroup} = useNavigation();
 
   return (
     <SecondarySidebarWrapper
@@ -65,14 +60,14 @@ export function SecondarySidebar() {
         >
           <AnimatePresence mode="popLayout" initial={false}>
             <MotionDiv
-              key={activeNavigationGroup}
+              key={activeGroup}
               initial={{x: -6, opacity: 0}}
               animate={{x: 0, opacity: 1}}
               exit={{x: 6, opacity: 0}}
               transition={{duration: 0.06}}
             >
               <SecondarySidebarInner>
-                <SecondaryNavigationContent group={activeNavigationGroup} />
+                <SecondaryNavigationContent />
               </SecondarySidebarInner>
               <ResizeHandle
                 ref={resizeHandleRef}

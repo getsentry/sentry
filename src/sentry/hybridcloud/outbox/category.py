@@ -8,8 +8,8 @@ from sentry.hybridcloud.outbox.signals import process_control_outbox, process_re
 
 if TYPE_CHECKING:
     from sentry.db.models import BaseModel
-    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
-    from sentry.hybridcloud.outbox.base import HasControlReplicationHandlers, ReplicatedRegionModel
+    from sentry.hybridcloud.models.outbox import CellOutboxBase, ControlOutboxBase
+    from sentry.hybridcloud.outbox.base import HasControlReplicationHandlers, ReplicatedCellModel
 
 _outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
 _used_categories: set[OutboxCategory] = set()
@@ -70,7 +70,7 @@ class OutboxCategory(IntEnum):
     def as_choices(cls) -> Sequence[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
 
-    def connect_region_model_updates(self, model: type[ReplicatedRegionModel]) -> None:
+    def connect_region_model_updates(self, model: type[ReplicatedCellModel]) -> None:
         def receiver(
             object_identifier: int,
             payload: Mapping[str, Any] | None,
@@ -80,7 +80,7 @@ class OutboxCategory(IntEnum):
         ) -> None:
             from sentry.receivers.outbox import maybe_process_tombstone
 
-            maybe_instance: ReplicatedRegionModel | None = maybe_process_tombstone(
+            maybe_instance: ReplicatedCellModel | None = maybe_process_tombstone(
                 cast(Any, model), object_identifier, region_name=None
             )
             if maybe_instance is None:
@@ -109,13 +109,13 @@ class OutboxCategory(IntEnum):
             if maybe_instance is None:
                 model.handle_async_deletion(
                     identifier=object_identifier,
-                    region_name=region_name,
+                    cell_name=region_name,
                     shard_identifier=shard_identifier,
                     payload=payload,
                 )
             else:
                 maybe_instance.handle_async_replication(
-                    shard_identifier=shard_identifier, region_name=region_name
+                    shard_identifier=shard_identifier, cell_name=region_name
                 )
 
         process_control_outbox.connect(receiver, weak=False, sender=self)
@@ -135,9 +135,9 @@ class OutboxCategory(IntEnum):
         payload: dict[str, Any] | None = None,
         shard_identifier: int | None = None,
         object_identifier: int | None = None,
-        outbox: type[RegionOutboxBase] | None = None,
-    ) -> RegionOutboxBase:
-        from sentry.hybridcloud.models.outbox import RegionOutbox
+        outbox: type[CellOutboxBase] | None = None,
+    ) -> CellOutboxBase:
+        from sentry.hybridcloud.models.outbox import CellOutbox
 
         scope = self.get_scope()
 
@@ -145,7 +145,7 @@ class OutboxCategory(IntEnum):
             scope, model, object_identifier=object_identifier, shard_identifier=shard_identifier
         )
 
-        Outbox = outbox or RegionOutbox
+        Outbox = outbox or CellOutbox
 
         return Outbox(
             shard_scope=scope,

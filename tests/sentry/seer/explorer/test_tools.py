@@ -10,7 +10,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
 from sentry.constants import ObjectStatus
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issue_detection.grouptype import ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -2972,7 +2972,7 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         result = execute_table_query(
             org_id=self.organization.id,
@@ -3044,11 +3044,11 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(self.logs)
+        self.store_eap_items(self.logs)
 
     @staticmethod
     def get_id_str(item: TraceItem) -> str:
-        return item.item_id[::-1].hex()
+        return item.item_id.hex()
 
     def test_get_log_attributes_for_trace_basic(self) -> None:
         result = get_log_attributes_for_trace(
@@ -3193,11 +3193,11 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_trace_metrics(self.metrics)
+        self.store_eap_items(self.metrics)
 
     @staticmethod
     def get_id_str(item: TraceItem) -> str:
-        return item.item_id[::-1].hex()
+        return item.item_id.hex()
 
     def test_get_metric_attributes_for_trace_basic(self) -> None:
         result = get_metric_attributes_for_trace(

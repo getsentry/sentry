@@ -6,14 +6,14 @@ import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
-import errorHandler from 'sentry/utils/errorHandler';
+import {errorHandler} from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
-import withDomainRedirect from 'sentry/utils/withDomainRedirect';
-import withDomainRequired from 'sentry/utils/withDomainRequired';
-import App from 'sentry/views/app';
+import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
+import {withDomainRequired} from 'sentry/utils/withDomainRequired';
+import {App} from 'sentry/views/app';
 import {AppBodyContentRoute} from 'sentry/views/app/appBodyContent';
 import AuthLayoutRoute from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
@@ -35,13 +35,13 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import OrganizationContainerRoute from 'sentry/views/organizationContainer';
-import OrganizationLayout from 'sentry/views/organizationLayout';
+import {OrganizationLayout} from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
 import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
-import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
-import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
-import RouteNotFound from 'sentry/views/routeNotFound';
-import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
+import {ProjectEventRedirect} from 'sentry/views/projectEventRedirect';
+import {redirectDeprecatedProjectRoute} from 'sentry/views/projects/redirectDeprecatedProjectRoute';
+import {RouteNotFound} from 'sentry/views/routeNotFound';
+import {SettingsWrapper} from 'sentry/views/settings/components/settingsWrapper';
 
 import {type SentryRouteObject} from './types';
 
@@ -1369,6 +1369,11 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: '/dashboards/new/from-seer/',
+      component: make(() => import('sentry/views/dashboards/createFromSeer')),
+      withOrgPath: true,
+    },
+    {
       path: '/dashboards/new/',
       component: make(() => import('sentry/views/dashboards/create')),
       withOrgPath: true,
@@ -2547,6 +2552,10 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
+    },
+    {
+      path: 'supergroups/',
+      component: make(() => import('sentry/views/issueList/pages/supergroups')),
     },
     {
       path: 'views/:viewId/',

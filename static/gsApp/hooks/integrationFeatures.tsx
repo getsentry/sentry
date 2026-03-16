@@ -10,8 +10,8 @@ import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {getIntegrationType} from 'sentry/utils/integrationUtil';
 
-import UpsellButton from 'getsentry/components/upsellButton';
-import withSubscription from 'getsentry/components/withSubscription';
+import {UpsellButton} from 'getsentry/components/upsellButton';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';

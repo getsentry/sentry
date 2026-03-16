@@ -23,8 +23,8 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     Model,
+    cell_silo_model,
     control_silo_model,
-    region_silo_model,
     sane_repr,
 )
 from sentry.db.postgres.transactions import (
@@ -412,8 +412,8 @@ class OutboxBase(Model):
         return cls.objects.count()
 
 
-# Outboxes bound from region silo -> control silo
-class RegionOutboxBase(OutboxBase):
+# Outboxes bound from cell silo -> control silo
+class CellOutboxBase(OutboxBase):
     def send_signal(self) -> None:
         process_region_outbox.send(
             sender=OutboxCategory(self.category),
@@ -432,8 +432,12 @@ class RegionOutboxBase(OutboxBase):
     __repr__ = sane_repr("payload", *coalesced_columns)
 
 
-@region_silo_model
-class RegionOutbox(RegionOutboxBase):
+# TODO(cells): remove once getsentry updated
+RegionOutboxBase = CellOutboxBase
+
+
+@cell_silo_model
+class CellOutbox(CellOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
@@ -455,6 +459,10 @@ class RegionOutbox(RegionOutboxBase):
             ),
             models.Index(fields=("shard_scope", "shard_identifier", "id")),
         )
+
+
+# TODO(cells): remove once all usage is updated
+RegionOutbox = CellOutbox
 
 
 # Outboxes bound from control silo -> region silo
@@ -518,10 +526,10 @@ class ControlOutbox(ControlOutboxBase):
 def outbox_silo_modes() -> list[SiloMode]:
     cur = SiloMode.get_current_mode()
     result: list[SiloMode] = []
-    if cur != SiloMode.REGION:
+    if cur != SiloMode.CELL:
         result.append(SiloMode.CONTROL)
     if cur != SiloMode.CONTROL:
-        result.append(SiloMode.REGION)
+        result.append(SiloMode.CELL)
     return result
 
 

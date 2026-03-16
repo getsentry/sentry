@@ -15,7 +15,7 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issue_detection.grouptype import ProfileFileIOGroupType
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
@@ -3097,7 +3097,7 @@ class OrganizationEventsStatsTopNEventsLogs(APITestCase, SnubaTestCase, OurLogTe
                 for i in range(60)
             ]
         )
-        self.store_ourlogs(self.logs)
+        self.store_eap_items(self.logs)
 
         self.enabled_features = {
             "organizations:discover-basic": True,

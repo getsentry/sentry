@@ -9,7 +9,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   height?: string;
 }
 
-const LoadingPanel = styled(({height: _height, ...props}: Props) => (
+export const LoadingPanel = styled(({height: _height, ...props}: Props) => (
   <div {...props}>
     <LoadingMask />
   </div>
@@ -22,5 +22,3 @@ const LoadingPanel = styled(({height: _height, ...props}: Props) => (
   border-color: transparent;
   margin-bottom: 0;
 `;
-
-export default LoadingPanel;

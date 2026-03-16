@@ -8,8 +8,8 @@ import {Heading} from '@sentry/scraps/text';
 import {IconChevron} from 'sentry/icons';
 import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/search/fzf';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useStoryBookFiles} from './useStoriesLoader';
 
@@ -166,7 +166,7 @@ export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   },
   forms: {
     label: 'Forms',
-    components: ['form', 'fields', 'autosavefield'],
+    components: ['form', 'fields', 'autosaveform'],
     subgroups: [
       {
         label: 'Primitives',

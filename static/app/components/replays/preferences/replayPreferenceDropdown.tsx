@@ -13,7 +13,7 @@ import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPref
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-export default function ReplayPreferenceDropdown({
+export function ReplayPreferenceDropdown({
   speedOptions,
   hideFastForward = false,
   isLoading,

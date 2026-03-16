@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 from snuba_sdk import Column, Condition, Op
 
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType
 from sentry.services.eventstore.base import Filter
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.snuba.backend import SnubaEventStorage

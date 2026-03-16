@@ -14,11 +14,11 @@ import {
 import {mockMatchMedia} from 'sentry-test/utils';
 
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Navigation} from 'sentry/views/navigation';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
-import {NavigationContextProvider} from 'sentry/views/navigation/context';
+import {NavigationContextProvider} from 'sentry/views/navigation/navigationContext';
 
 jest.mock('sentry/utils/analytics', () => ({
   ...jest.requireActual('sentry/utils/analytics'),
@@ -257,13 +257,17 @@ describe('Navigation', () => {
 
         await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
 
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toBeInTheDocument();
+        expect(
+          await screen.findByTestId('collapsed-secondary-sidebar')
+        ).toBeInTheDocument();
 
         await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
 
-        expect(
-          screen.queryByTestId('collapsed-secondary-sidebar')
-        ).not.toBeInTheDocument();
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('collapsed-secondary-sidebar')
+          ).not.toBeInTheDocument();
+        });
       });
 
       it('remembers collapsed state', async () => {

@@ -6,12 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {defined} from 'sentry/utils';
-import {
-  MIN_HEIGHT,
-  MIN_WIDTH,
-  X_GUTTER,
-  Y_GUTTER,
-} from 'sentry/views/dashboards/widgets/common/settings';
+import {MIN_HEIGHT, MIN_WIDTH} from 'sentry/views/dashboards/widgets/common/settings';
 
 import {WidgetDescription} from './widgetDescription';
 import {WidgetError} from './widgetError';
@@ -165,10 +160,11 @@ const Frame = styled('div')<{
 export const Header = styled('div')<{noPadding?: boolean}>`
   display: flex;
   align-items: center;
-  height: calc(${HEADER_HEIGHT} + ${Y_GUTTER});
+  height: calc(${HEADER_HEIGHT} + ${p => p.theme.space.lg});
   flex-shrink: 0;
   gap: ${p => p.theme.space.sm};
-  padding: ${p => (p.noPadding ? 0 : `${Y_GUTTER} ${X_GUTTER} 0 ${X_GUTTER}`)};
+  padding: ${p =>
+    p.noPadding ? 0 : `${p.theme.space.lg} ${p.theme.space.xl} 0 ${p.theme.space.xl}`};
 `;
 
 const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
@@ -177,12 +173,15 @@ const VisualizationWrapper = styled('div')<{noPadding?: boolean}>`
   flex-grow: 1;
   min-height: 0;
   position: relative;
-  padding: ${p => (p.noPadding ? 0 : `0 ${X_GUTTER} ${Y_GUTTER} ${X_GUTTER}`)};
+  padding: ${p =>
+    p.noPadding ? 0 : `0 ${p.theme.space.xl} ${p.theme.space.lg} ${p.theme.space.xl}`};
 `;
 
 export const FooterWrapper = styled('div')<{noPadding?: boolean}>`
   margin: 0;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding: ${p =>
-    p.noPadding ? 0 : `${p.theme.space.md} ${X_GUTTER} ${p.theme.space.md} ${X_GUTTER}`};
+    p.noPadding
+      ? 0
+      : `${p.theme.space.md} ${p.theme.space.xl} ${p.theme.space.md} ${p.theme.space.xl}`};
 `;

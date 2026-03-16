@@ -3,7 +3,7 @@ import {subregionCodeToName, type SubregionCode} from 'sentry/views/insights/typ
 
 const OPTIONS = Object.keys(subregionCodeToName) as SubregionCode[];
 
-export default function decode(
+export function decodeSubregions(
   value: string | string[] | undefined | null
 ): SubregionCode[] | undefined {
   const decodedValue = decodeList(value);

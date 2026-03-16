@@ -6,7 +6,7 @@ import type {
   InfiniteData,
   InfiniteQueryObserverRefetchErrorResult,
 } from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ABSOLUTE_MAX_AUTO_REFRESH_TIME_MS,
   CONSECUTIVE_PAGES_WITH_MORE_DATA,

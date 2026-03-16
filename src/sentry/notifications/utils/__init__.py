@@ -17,14 +17,14 @@ from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import integration_service
 from sentry.issue_detection.detectors.utils import get_url_from_span
-from sentry.issue_detection.performance_problem import PerformanceProblem
-from sentry.issue_detection.types import Span
-from sentry.issues.grouptype import (
+from sentry.issue_detection.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceNPlusOneAPICallsExperimentalGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
+from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issue_detection.types import Span
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.deploy import Deploy
@@ -38,7 +38,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.silo.base import region_silo_function
+from sentry.silo.base import cell_silo_function
 from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
 from sentry.utils.committers import (
@@ -205,7 +205,7 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
     return sorted(commits.values(), key=lambda x: float(x.get("score", 0)), reverse=True)
 
 
-@region_silo_function
+@cell_silo_function
 def has_integrations(organization: Organization, project: Project) -> bool:
     from sentry.plugins.base import plugins
 

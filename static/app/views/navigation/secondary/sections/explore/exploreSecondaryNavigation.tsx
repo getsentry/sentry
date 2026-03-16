@@ -7,15 +7,13 @@ import {limitedMetricsSupportPrefixes} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
-import {PRIMARY_NAVIGATION_GROUP_CONFIG} from 'sentry/views/navigation/primary/config';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 const MAX_STARRED_QUERIES_DISPLAYED = 20;
 
@@ -67,9 +65,7 @@ export function ExploreSecondaryNavigation() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>
-        {PRIMARY_NAVIGATION_GROUP_CONFIG[PrimaryNavigationGroup.EXPLORE].label}
-      </SecondaryNavigation.Header>
+      <SecondaryNavigation.Header>{t('Explore')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="explore-main">
           <Feature features={['performance-view']}>

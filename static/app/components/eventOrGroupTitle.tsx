@@ -4,7 +4,7 @@ import type {Event} from 'sentry/types/event';
 import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
 import {getTitle, isTombstone} from 'sentry/utils/events';
 
-import GroupPreviewTooltip from './groupPreviewTooltip';
+import {GroupPreviewTooltip} from './groupPreviewTooltip';
 
 interface EventOrGroupTitleProps {
   data: Event | BaseGroup | GroupTombstoneHelper;
@@ -13,7 +13,7 @@ interface EventOrGroupTitleProps {
   withStackTracePreview?: boolean;
 }
 
-function EventOrGroupTitle({
+export function EventOrGroupTitle({
   data,
   withStackTracePreview,
   className,
@@ -43,8 +43,6 @@ function EventOrGroupTitle({
     </span>
   );
 }
-
-export default EventOrGroupTitle;
 
 const Title = styled('span')`
   position: relative;

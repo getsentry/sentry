@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-export default function ReplayIndexTimestampPrefPicker() {
+export function ReplayIndexTimestampPrefPicker() {
   const [prefs, setPrefs] = useReplayPrefs();
 
   return (

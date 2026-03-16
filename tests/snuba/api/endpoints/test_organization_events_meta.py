@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issue_detection.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import (
     APITestCase,
     MetricsEnhancedPerformanceTestCase,
@@ -62,7 +62,7 @@ class OrganizationEventsMetaEndpoint(
         assert response.data["count"] == 1
 
     def test_logs_dataset(self) -> None:
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo"},

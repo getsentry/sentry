@@ -12,7 +12,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.monitors.constants import (
@@ -43,7 +43,7 @@ def _get_num_ticks(
     return padding_ticks * 2 + failure_threshold + open_period_ticks + recovery_threshold
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationMonitorScheduleSampleWindowEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
     owner = ApiOwner.CRONS

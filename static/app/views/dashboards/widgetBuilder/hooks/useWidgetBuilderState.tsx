@@ -20,6 +20,7 @@ import {
   decodeSorts,
 } from 'sentry/utils/queryString';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DEFAULT_CATEGORICAL_BAR_LIMIT,
@@ -62,6 +63,12 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 
 export const MAX_NUM_Y_AXES = 3;
 
+export const stateParamsNotInUrl: Array<keyof WidgetBuilderStateParams> = ['textContent'];
+
+const SESSION_STORAGE_CONTENT_KEY_MAP = {
+  textContent: 'dashboard:widget-builder:text-content',
+};
+
 export type WidgetBuilderStateQueryParams = {
   axisRange?: AxisRange;
   dataset?: WidgetType;
@@ -79,6 +86,15 @@ export type WidgetBuilderStateQueryParams = {
   yAxis?: string[];
 };
 
+/**
+ * Extends the URL query params shape with `textContent` for text widgets.
+ * Used as the payload type for SET_STATE actions, where text widget content
+ * must be carried in-memory without being written to the URL.
+ */
+export type WidgetBuilderStateParams = WidgetBuilderStateQueryParams & {
+  textContent?: string;
+};
+
 export const BuilderStateAction = {
   SET_TITLE: 'SET_TITLE',
   SET_DESCRIPTION: 'SET_DESCRIPTION',
@@ -93,6 +109,7 @@ export const BuilderStateAction = {
   SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
   SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
   SET_STATE: 'SET_STATE',
+  SET_TEXT_CONTENT: 'SET_TEXT_CONTENT',
   SET_THRESHOLDS: 'SET_THRESHOLDS',
   SET_TRACE_METRIC: 'SET_TRACE_METRIC',
   // Categorical bar chart specific actions
@@ -115,7 +132,7 @@ type WidgetAction =
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
   | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
   | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
-  | {payload: WidgetBuilderStateQueryParams; type: typeof BuilderStateAction.SET_STATE}
+  | {payload: WidgetBuilderStateParams; type: typeof BuilderStateAction.SET_STATE}
   | {
       payload: ThresholdsConfig | null | undefined;
       type: typeof BuilderStateAction.SET_THRESHOLDS;
@@ -139,7 +156,8 @@ type WidgetAction =
   | {
       payload: AxisRange | undefined;
       type: typeof BuilderStateAction.SET_AXIS_RANGE;
-    };
+    }
+  | {payload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT};
 type WidgetBuilderStateActionOptions = {
   updateUrl?: boolean;
 };
@@ -163,6 +181,7 @@ export interface WidgetBuilderState {
   query?: string[];
   selectedAggregate?: number;
   sort?: Sort[];
+  textContent?: string;
   thresholds?: ThresholdsConfig | null;
   title?: string;
   traceMetric?: TraceMetric;
@@ -273,7 +292,7 @@ function fixupTableSortOnRemoval(
     : [];
 }
 
-function useWidgetBuilderState(): {
+export function useWidgetBuilderState(): {
   dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
   state: WidgetBuilderState;
 } {
@@ -351,11 +370,15 @@ function useWidgetBuilderState(): {
     decoder: decodeScalar,
     deserializer: getAxisRange,
   });
+  const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
+    string | undefined
+  >(SESSION_STORAGE_CONTENT_KEY_MAP.textContent, undefined);
 
   const state = useMemo(
     () => ({
       title,
       description,
+      textContent,
       displayType,
       dataset,
       fields,
@@ -389,8 +412,9 @@ function useWidgetBuilderState(): {
     }),
     [
       title,
-      description,
       displayType,
+      textContent,
+      description,
       dataset,
       fields,
       yAxis,
@@ -398,11 +422,11 @@ function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
-      selectedAggregate,
       thresholds,
       linkedDashboards,
       traceMetric,
       axisRange,
+      selectedAggregate,
     ]
   );
 
@@ -418,6 +442,10 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE: {
           setDisplayType(action.payload, options);
+          // When leaving the text widget type, clear local text content
+          if (displayType === DisplayType.TEXT && action.payload !== DisplayType.TEXT) {
+            setTextContent(undefined);
+          }
           const [aggregates, columns] = partition(fields, field => {
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
@@ -543,6 +571,24 @@ function useWidgetBuilderState(): {
             setQuery(query?.slice(0, 1), options);
             // Categorical bars show more categories than time-series groupings
             setLimit(DEFAULT_CATEGORICAL_BAR_LIMIT, options);
+          } else if (action.payload === DisplayType.TEXT) {
+            // Text widgets don't need any data fields, just title and description.
+            // Move any existing URL description into local state and clear the URL param
+            // to prevent excessively long URLs when the user types content.
+            setTextContent(description ?? '');
+            setDescription(undefined, options);
+            setFields([], options);
+            setYAxis([], options);
+            setQuery([''], options);
+            setSort([], options);
+            setLimit(undefined, options);
+            setLegendAlias([], options);
+            setDataset(undefined, options);
+            setLinkedDashboards([], options);
+            setThresholds(undefined, options);
+            setTraceMetric(undefined, options);
+            setAxisRange(undefined, options);
+            setSelectedAggregate(undefined, options);
           } else {
             setFields(columnsWithoutAlias, options);
             const nextAggregates = [
@@ -901,8 +947,15 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_STATE:
           setDataset(action.payload.dataset, options);
-          setDescription(action.payload.description, options);
           setDisplayType(action.payload.displayType, options);
+          if (action.payload.displayType === DisplayType.TEXT) {
+            setTextContent(action.payload.textContent);
+            setDescription(undefined, options);
+          } else {
+            setDescription(action.payload.description, options);
+            setTextContent(undefined);
+          }
+
           if (action.payload.field) {
             setFields(deserializeFields(action.payload.field), options);
           }
@@ -1174,35 +1227,41 @@ function useWidgetBuilderState(): {
           }
           break;
         }
+        case BuilderStateAction.SET_TEXT_CONTENT: {
+          setTextContent(action.payload);
+          break;
+        }
         default:
           break;
       }
     },
     [
+      dataset,
       setTitle,
       setDescription,
-      setDisplayType,
-      setDataset,
-      setFields,
-      setYAxis,
       setQuery,
-      setSort,
+      displayType,
       setLimit,
       setLegendAlias,
       setSelectedAggregate,
-      setThresholds,
-      setAxisRange,
-      setLinkedDashboards,
       fields,
+      setDataset,
+      setDisplayType,
+      setSort,
+      setAxisRange,
+      setThresholds,
       yAxis,
-      displayType,
-      linkedDashboards,
-      query,
+      setLinkedDashboards,
+      setTextContent,
+      setYAxis,
+      setFields,
       sort,
-      dataset,
-      limit,
-      selectedAggregate,
+      query,
+      description,
       setTraceMetric,
+      limit,
+      linkedDashboards,
+      selectedAggregate,
     ]
   );
 
@@ -1378,5 +1437,3 @@ function checkTraceMetricSortUsed(
   const sortInYAxis = yAxis?.some(field => generateFieldAsString(field) === sortValue);
   return sortInFields || sortInYAxis;
 }
-
-export default useWidgetBuilderState;

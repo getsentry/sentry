@@ -4,7 +4,7 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
 import {SUMMARY_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const SPAN_OP_FILTER = `${SpanFields.SPAN_OP}:[queue.process,queue.publish]`;
 
@@ -224,4 +224,5 @@ export const QUEUE_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: SUMMARY_DASHBOARD_TITLE,
   filters: {},
   widgets: [...FIRST_ROW_WIDGTS, ...SECOND_ROW_WIDGETS, CONSUMER_TABLE, PRODUCER_TABLE],
+  onboarding: {type: 'module', moduleName: ModuleName.QUEUE},
 };

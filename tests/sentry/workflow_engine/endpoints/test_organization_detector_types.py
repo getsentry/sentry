@@ -3,15 +3,11 @@ from typing import Never
 from unittest.mock import patch
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouptype import (
-    GroupCategory,
-    GroupType,
-    GroupTypeRegistry,
-    PerformanceSlowDBQueryGroupType,
-)
+from sentry.issue_detection.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import GroupCategory, GroupType, GroupTypeRegistry
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.handlers.detector import (
     BaseDetectorHandler,
@@ -28,7 +24,7 @@ from sentry.workflow_engine.types import (
 )
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorTypesAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-detector-type-index"
 

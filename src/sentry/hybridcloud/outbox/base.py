@@ -14,25 +14,25 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
-from sentry.types.region import find_regions_for_orgs, find_regions_for_user
+from sentry.types.region import find_cells_for_orgs, find_cells_for_user
 from sentry.utils.env import in_test_environment
 from sentry.utils.snowflake import uses_snowflake_id
 
 if TYPE_CHECKING:
-    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
+    from sentry.hybridcloud.models.outbox import CellOutboxBase, ControlOutboxBase
 
 
 logger = logging.getLogger("sentry.outboxes")
 
 
-class RegionOutboxProducingModel(Model):
+class CellOutboxProducingModel(Model):
     """
     overrides model save, update, and delete methods such that, within an atomic transaction,
     an outbox returned from outbox_for_update is saved. Furthermore, using this mixin causes get_protected_operations
     to protect any updates/deletes/inserts of this model that do not go through the model methods (such as querysets
     or raw sql).  See `get_protected_operations` for info on working around this.
 
-    Models that subclass from this or its descendents should consider using RegionOutboxProducingManager
+    Models that subclass from this or its descendents should consider using CellOutboxProducingManager
     to support bulk operations that respect outbox creation.
     """
 
@@ -73,14 +73,14 @@ class RegionOutboxProducingModel(Model):
         with self.prepare_outboxes(outbox_before_super=True, flush=False):
             return super().delete(*args, **kwds)
 
-    def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:
+    def outbox_for_update(self, shard_identifier: int | None = None) -> CellOutboxBase:
         raise NotImplementedError
 
 
-_RM = TypeVar("_RM", bound=RegionOutboxProducingModel)
+_RM = TypeVar("_RM", bound=CellOutboxProducingModel)
 
 
-class RegionOutboxProducingManager(BaseManager[_RM]):
+class CellOutboxProducingManager(BaseManager[_RM]):
     """
     Provides bulk update and delete methods that respect outbox creation.
     """
@@ -104,7 +104,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
                 )
                 ids = [i for (i,) in cursor.fetchall()]
 
-            outboxes: list[RegionOutboxBase] = []
+            outboxes: list[CellOutboxBase] = []
             for row_id, obj in zip(ids, tuple_of_objs):
                 obj.id = row_id
                 outboxes.append(obj.outbox_for_update())
@@ -124,7 +124,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
         model: type[_RM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
-            outboxes: list[RegionOutboxBase] = []
+            outboxes: list[CellOutboxBase] = []
             for obj in tuple_of_objs:
                 outboxes.append(obj.outbox_for_update())
 
@@ -141,7 +141,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
         model: type[_RM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
-            outboxes: list[RegionOutboxBase] = []
+            outboxes: list[CellOutboxBase] = []
             for obj in tuple_of_objs:
                 outboxes.append(obj.outbox_for_update())
 
@@ -149,19 +149,19 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
             return self.filter(id__in={o.id for o in tuple_of_objs}).delete()
 
 
-class ReplicatedRegionModel(RegionOutboxProducingModel):
+class ReplicatedCellModel(CellOutboxProducingModel):
     """
-    An extension of RegionOutboxProducingModel that provides a default implementation for `outbox_for_update`
+    An extension of CellOutboxProducingModel that provides a default implementation for `outbox_for_update`
     based on the category and outbox type configured as class variables.  It also provides a default signal handler
     that invokes either of handle_async_replication or handle_async_deletion based on whether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
 
-    Models that subclass from this or its descendents should consider using RegionOutboxProducingManager
+    Models that subclass from this or its descendents should consider using CellOutboxProducingManager
     to support bulk operations that respect outbox creation.
     """
 
     category: OutboxCategory
-    outbox_type: type[RegionOutboxBase] | None = None
+    outbox_type: type[CellOutboxBase] | None = None
 
     class Meta:
         abstract = True
@@ -176,7 +176,7 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
         """
         return None
 
-    def outbox_for_update(self, shard_identifier: int | None = None) -> RegionOutboxBase:
+    def outbox_for_update(self, shard_identifier: int | None = None) -> CellOutboxBase:
         """
         Returns outboxes that result from this model's creation, update, or deletion.
         Subclasses generally should override payload_for_update to customize
@@ -215,7 +215,7 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
 
 class ControlOutboxProducingModel(Model):
     """
-    An extension of RegionOutboxProducingModel that provides a default implementation for `outbox_for_update`
+    An extension of CellOutboxProducingModel that provides a default implementation for `outbox_for_update`
     based on the category nd outbox type configured as class variables.  Furthermore, using this mixin causes get_protected_operations
     to protect any updates/deletes/inserts of this model that do not go through the model methods (such as querysets
     or raw sql).  See `get_protected_operations` for info on working around this.
@@ -382,9 +382,9 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         Subclasses should override this with logic for inferring the regions that need to be contacted for this resource.
         """
         if hasattr(self, "organization_id"):
-            return find_regions_for_orgs([self.organization_id])
+            return find_cells_for_orgs([self.organization_id])
         if hasattr(self, "user_id"):
-            return find_regions_for_user(self.user_id)
+            return find_cells_for_user(self.user_id)
         # Note that a default implementation for user_id is NOT given, because handling the case where a user
         # joins a new organization after the last outbox was processed is a special case that requires special handling.
         raise NotImplementedError
@@ -416,7 +416,7 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
@@ -429,7 +429,7 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         in this method must be entirely idempotent and safe to async / stale states that can occur.
         """
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         """
         Called one or more times as an outbox receiver processes the class update category and
         the given identifier is found in the database.  This method can be used to invoke service
@@ -450,13 +450,13 @@ class HasControlReplicationHandlers(Protocol):
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
         pass
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         pass
 
 

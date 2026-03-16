@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -9,7 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import {displayPlanName} from 'getsentry/utils/billing';
 
-import DiscoverBackground from './illustrations/discoverBackground';
+import {DiscoverBackground} from './illustrations/discoverBackground';
 import PageUpsellOverlay from './pageUpsellOverlay';
 import PlanFeature from './planFeature';
 

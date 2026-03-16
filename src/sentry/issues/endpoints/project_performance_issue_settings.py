@@ -8,17 +8,10 @@ from rest_framework.response import Response
 from sentry import audit_log, features, projectoptions
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.auth.superuser import superuser_has_permission
-from sentry.issue_detection.performance_detection import (
-    SETTINGS_PROJECT_OPTION_KEY,
-    get_merged_settings,
-    reset_performance_settings,
-    update_performance_settings,
-)
-from sentry.issues.grouptype import (
-    GroupType,
+from sentry.issue_detection.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
@@ -35,6 +28,13 @@ from sentry.issues.grouptype import (
     QueryInjectionVulnerabilityGroupType,
     WebVitalsGroup,
 )
+from sentry.issue_detection.performance_detection import (
+    SETTINGS_PROJECT_OPTION_KEY,
+    get_merged_settings,
+    reset_performance_settings,
+    update_performance_settings,
+)
+from sentry.issues.grouptype import GroupType
 from sentry.models.project import Project
 
 MAX_VALUE = 2147483647
@@ -247,7 +247,7 @@ def payload_contains_disabled_threshold_setting(
     return any(option in disabled_options for option in data)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUE_DETECTION_BACKEND
     publish_status = {

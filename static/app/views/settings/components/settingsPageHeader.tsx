@@ -101,7 +101,7 @@ const Action = styled('div')<{isNarrow?: boolean}>`
   margin-top: ${p => (p.isNarrow ? '0' : p.theme.space['3xl'])};
 `;
 
-const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
+export const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
   Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props
 >`
   font-size: 14px;
@@ -116,5 +116,3 @@ const TabsWrapper = styled('div')`
   flex: 1;
   margin: 0;
 `;
-
-export default SettingsPageHeader;

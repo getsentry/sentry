@@ -59,7 +59,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             user=user, organization=self.organization, role="owner", teams=[self.team]
         )
         AuthIdentity.objects.create(user=user, ident="foo2", auth_provider=self.auth_provider_inst)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
             setattr(om.flags, "sso:linked", True)
             om.save()
@@ -71,7 +71,7 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
             user=user, organization=self.organization, role="manager", teams=[self.team]
         )
         AuthIdentity.objects.create(user=user, ident="foo3", auth_provider=self.auth_provider_inst)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
             setattr(om.flags, "sso:linked", True)
             om.save()
@@ -132,12 +132,12 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def enroll_user_and_require_2fa(self, user, organization):
         TotpInterface().enroll(user)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
         assert organization.flags.require_2fa.is_set
 
     def assert_require_2fa_disabled(self, user, organization, logger):
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization = Organization.objects.get(id=organization.id)
             assert not organization.flags.require_2fa.is_set
 
@@ -176,7 +176,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         assert user == auth_identity.user
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
 
             assert member.flags["sso:linked"]
@@ -184,7 +184,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def create_org_and_auth_provider(self, provider_name="dummy"):
         self.user.update(is_managed=True)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization = self.create_organization(name="foo", owner=self.user)
 
         auth_provider = AuthProvider.objects.create(
@@ -194,7 +194,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         return organization, auth_provider
 
     def create_om_and_link_sso(self, organization):
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
             setattr(om.flags, "sso:linked", True)
             om.save()
@@ -282,7 +282,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         organization, auth_provider = self.create_org_and_auth_provider()
         om = self.create_om_and_link_sso(organization)
         path = reverse("sentry-organization-auth-provider-settings", args=[organization.slug])
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert AuthProviderReplica.objects.filter(organization_id=organization.id).exists()
 
         self.login_as(self.user, organization_id=organization.id)
@@ -296,7 +296,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
         assert AuditLogEntry.objects.filter(event=audit_log.get_event_id("SSO_DISABLE")).exists()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(id=om.id)
 
         # No more linked members, users are not managed either.
@@ -305,7 +305,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert not User.objects.get(id=om.user_id).is_managed
 
         # Replica record should be removed too
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not AuthProviderReplica.objects.filter(organization_id=organization.id).exists()
 
         # We should send emails about SSO changes
@@ -420,7 +420,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert not AuthProvider.objects.filter(id=auth_provider.id).exists()
         assert AuditLogEntry.objects.filter(event=audit_log.get_event_id("SSO_DISABLE")).exists()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(id=om.id)
 
         assert om.user_id is not None
@@ -454,7 +454,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert auth_provider.flags.allow_unlinked
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization = Organization.objects.get(id=organization.id)
             assert organization.default_role == "owner"
 
@@ -485,7 +485,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert auth_provider.flags.allow_unlinked
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization = Organization.objects.get(id=organization.id)
             assert organization.default_role == "member"
 
@@ -506,7 +506,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         om = self.create_om_and_link_sso(organization)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om.role = "manager"
             om.save()
 
@@ -524,7 +524,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
         # no update occurred. owner is not an option from the dropdown
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization = Organization.objects.get(id=organization.id)
             assert organization.default_role == "member"
 
@@ -536,7 +536,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert not auth_provider.flags.allow_unlinked
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization = Organization.objects.get(id=organization.id)
             assert organization.default_role == "manager"
 
@@ -566,7 +566,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert not auth_provider.flags.allow_unlinked
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization = Organization.objects.get(id=organization.id)
             assert organization.default_role == "member"
 
@@ -608,7 +608,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         u1 = self.create_user()
         u2 = self.create_user()
         u3 = self.create_user()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             not_scim_member = OrganizationMember.objects.create(
                 user_id=u1.id, organization=organization
             )
@@ -652,7 +652,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             SentryAppInstallationForProvider.objects.get(
                 organization_id=self.organization.id, provider="dummy_scim"
             )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             not_scim_member.refresh_from_db()
             scim_member.refresh_from_db()
             scim_role_restricted_user.refresh_from_db()
@@ -681,7 +681,7 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
 
     def create_org_and_auth_provider(self, provider_name="saml2_dummy"):
         self.user.update(is_managed=True)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization = self.create_organization(name="foo", owner=self.user)
 
         auth_provider = AuthProvider.objects.create(
@@ -691,7 +691,7 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
         return organization, auth_provider
 
     def create_om_and_link_sso(self, organization):
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
             setattr(om.flags, "sso:linked", True)
             om.save()
@@ -819,7 +819,7 @@ class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
 
     def create_org_and_auth_provider(self, provider_name="dummy"):
         self.user.update(is_managed=True)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization = self.create_organization(name="foo", owner=self.user)
 
         auth_provider = AuthProvider.objects.create(
@@ -829,7 +829,7 @@ class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
         return organization, auth_provider
 
     def create_om_and_link_sso(self, organization):
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(user_id=self.user.id, organization=organization)
             setattr(om.flags, "sso:linked", True)
             om.save()

@@ -2,7 +2,7 @@ import {useEffect, useState, type CSSProperties, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -10,16 +10,16 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import RepoProviderIcon from 'sentry/components/repositories/repoProviderIcon';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import type {TreeNode} from 'sentry/components/repositories/scmIntegrationTree/types';
-import {IconAdd, IconChevron, IconDelete, IconOpen} from 'sentry/icons';
+import {IconAdd, IconChevron, IconClose, IconDelete, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTimeout from 'sentry/utils/useTimeout';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTimeout} from 'sentry/utils/useTimeout';
+import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
 // ---------------------------------------------------------------------------
 // Row component
@@ -27,6 +27,7 @@ import useTimeout from 'sentry/utils/useTimeout';
 
 type Props = {
   node: TreeNode;
+  onAddIntegration: () => void;
   onToggleIntegration: (integrationId: string) => void;
   onToggleProvider: (providerKey: string) => void;
   onToggleRepo: (
@@ -34,16 +35,15 @@ type Props = {
     integration: Integration,
     isConnected: boolean
   ) => void;
-  orgSlug: string;
   style: CSSProperties;
 };
 
 export function ScmIntegrationTreeRow({
   node,
+  onAddIntegration,
   onToggleProvider,
   onToggleIntegration,
   onToggleRepo,
-  orgSlug,
   style,
 }: Props) {
   const organization = useOrganization();
@@ -80,14 +80,15 @@ export function ScmIntegrationTreeRow({
                   'You must be an organization owner, manager or admin to configure'
                 )}
               >
-                <LinkButton
+                <AddIntegrationButton
                   size="xs"
                   icon={<IconAdd />}
-                  to={`/settings/${orgSlug}/integrations/${node.provider.slug}/`}
-                  disabled={!canAccess}
-                >
-                  {t('Install Config')}
-                </LinkButton>
+                  provider={node.provider}
+                  organization={organization}
+                  onAddIntegration={onAddIntegration}
+                  disabled={!canAccess || !node.provider.canAdd}
+                  buttonText={t('Install Config')}
+                />
               </Tooltip>
             </Flex>
           </Flex>
@@ -124,14 +125,15 @@ export function ScmIntegrationTreeRow({
                     'You must be an organization owner, manager or admin to configure'
                   )}
                 >
-                  <LinkButton
+                  <AddIntegrationButton
                     size="xs"
                     icon={<IconAdd />}
-                    to={`/settings/${orgSlug}/integrations/${node.provider.slug}/`}
-                    disabled={!canAccess}
-                  >
-                    {t('Install Config')}
-                  </LinkButton>
+                    provider={node.provider}
+                    organization={organization}
+                    onAddIntegration={onAddIntegration}
+                    disabled={!canAccess || !node.provider.canAdd}
+                    buttonText={t('Install Config')}
+                  />
                 </Tooltip>
               </Flex>
             </Flex>
@@ -185,12 +187,7 @@ export function ScmIntegrationTreeRow({
 
   if (node.type === 'no-match') {
     let noMatchMessage: ReactNode;
-    if (node.search && node.repoFilter !== 'all') {
-      noMatchMessage =
-        node.repoFilter === 'connected'
-          ? tct('No added repos matching "[search]"', {search: node.search})
-          : tct('No unconnected repos matching "[search]"', {search: node.search});
-    } else if (node.search) {
+    if (node.search) {
       noMatchMessage = tct('No repos matching "[search]"', {search: node.search});
     } else {
       noMatchMessage =
@@ -200,7 +197,7 @@ export function ScmIntegrationTreeRow({
     }
     return (
       <RowContainer style={style} role="row" aria-level={3}>
-        <Flex align="center" gap="sm" height="100%" padding="0 lg 0 3xl">
+        <Flex align="center" gap="sm" height="100%" padding="0 lg 0 3xl" marginLeft="2xl">
           <Text size="md" variant="muted">
             {noMatchMessage}
           </Text>
@@ -218,14 +215,15 @@ export function ScmIntegrationTreeRow({
             position="left"
             title={t('You must be an organization owner, manager or admin to configure')}
           >
-            <LinkButton
+            <AddIntegrationButton
               size="xs"
               icon={<IconAdd />}
-              to={`/settings/${orgSlug}/integrations/${node.provider.slug}/`}
+              provider={node.provider}
+              organization={organization}
+              onAddIntegration={onAddIntegration}
               disabled={!canAccess}
-            >
-              {t('Add %s Config', node.provider.name)}
-            </LinkButton>
+              buttonText={t('Add %s Config', node.provider.name)}
+            />
           </Tooltip>
         </Flex>
       </RowContainer>
@@ -233,6 +231,29 @@ export function ScmIntegrationTreeRow({
   }
 
   // node.type === 'repo'
+  return (
+    <RepoRow
+      node={node}
+      style={style}
+      canAccess={canAccess}
+      onToggleRepo={onToggleRepo}
+    />
+  );
+}
+
+function RepoRow({
+  node,
+  style,
+  canAccess,
+  onToggleRepo,
+}: {
+  canAccess: boolean;
+  node: Extract<TreeNode, {type: 'repo'}>;
+  onToggleRepo: Props['onToggleRepo'];
+  style: CSSProperties;
+}) {
+  const [isConfirming, setIsConfirming] = useState(false);
+
   return (
     <RowContainer style={style} role="row" aria-level={3}>
       <Flex align="center" gap="sm" height="100%" paddingRight="lg">
@@ -244,7 +265,17 @@ export function ScmIntegrationTreeRow({
           marginLeft="2xl"
           paddingLeft="3xl"
         >
-          {node.integration.domainName ? (
+          {isConfirming ? (
+            <Text size="xs" variant="muted">
+              {tct(
+                'Are you sure you want to remove [repoName]?[break]All associated commit data will be removed in addition to the repository.',
+                {
+                  repoName: <Text monospace>{node.repo.name}</Text>,
+                  break: <br />,
+                }
+              )}
+            </Text>
+          ) : node.integration.domainName ? (
             <ExternalLink
               href={`https://${node.integration.domainName}/${node.repo.name}`}
             >
@@ -263,28 +294,46 @@ export function ScmIntegrationTreeRow({
           )}
         </Flex>
         {node.isConnected ? (
-          <Tooltip
-            disabled={canAccess}
-            title={t('You must be an organization owner, manager or admin to uninstall')}
-          >
-            <Confirm
-              onConfirm={() => onToggleRepo(node.repo, node.integration, true)}
-              disabled={!canAccess || node.isToggling}
-              message={t(
-                'Are you sure you want to remove %s? All associated commit data will be removed in addition to the repository.',
-                <code>{node.repo.name}</code>
+          isConfirming ? (
+            <Flex align="center" gap="sm">
+              <Button
+                size="xs"
+                priority="danger"
+                disabled={node.isToggling}
+                onClick={() => {
+                  onToggleRepo(node.repo, node.integration, true);
+                  setIsConfirming(false);
+                }}
+                aria-label={t('Confirm remove %s', node.repo.name)}
+              >
+                {t('Confirm')}
+              </Button>
+              <Button
+                size="xs"
+                icon={<IconClose size="xs" />}
+                disabled={node.isToggling}
+                onClick={() => setIsConfirming(false)}
+                aria-label={t('Cancel')}
+              />
+            </Flex>
+          ) : (
+            <Tooltip
+              disabled={canAccess}
+              title={t(
+                'You must be an organization owner, manager or admin to uninstall'
               )}
             >
               <Button
                 size="xs"
                 icon={<IconDelete />}
                 disabled={!canAccess || node.isToggling}
+                onClick={() => setIsConfirming(true)}
                 aria-label={t('Remove %s', node.repo.name)}
               >
                 {t('Remove')}
               </Button>
-            </Confirm>
-          </Tooltip>
+            </Tooltip>
+          )
         ) : (
           <Tooltip
             disabled={canAccess}

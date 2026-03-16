@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {LinkButton} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Deploy as DeployType} from 'sentry/types/release';

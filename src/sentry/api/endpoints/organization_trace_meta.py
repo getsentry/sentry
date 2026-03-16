@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableResponse
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_trace import count_performance_issues
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
@@ -98,7 +98,7 @@ def run_errors_query(trace_id: str, snuba_params: SnubaParams) -> int:
     return errors_count
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

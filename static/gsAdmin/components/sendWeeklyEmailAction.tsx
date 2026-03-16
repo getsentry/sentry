@@ -8,7 +8,7 @@ import {
 import type {Client} from 'sentry/api';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import TextField from 'sentry/components/forms/fields/textField';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 import type {
   AdminConfirmParams,

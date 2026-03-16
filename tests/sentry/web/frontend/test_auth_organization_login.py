@@ -44,13 +44,13 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/organization-login.html")
 
         assert resp.context["login_form"]
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert resp.context["organization"] == serialize_rpc_organization(self.organization)
         assert "provider_key" not in resp.context
         assert resp.context["join_request_link"]
 
     def test_cannot_get_request_join_link_with_setting_disabled(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             OrganizationOption.objects.create(
                 organization_id=self.organization.id, key="sentry:join_requests", value=False
             )
@@ -124,7 +124,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not user.is_managed
         assert user.flags.newsletter_consent_prompt
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
 
         assert getattr(member.flags, "sso:linked")
@@ -159,7 +159,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         assert user == auth_identity.user
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -195,7 +195,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
             assert user == auth_identity.user
 
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 member = OrganizationMember.objects.get(
                     organization=self.organization, user_id=user.id
                 )
@@ -325,7 +325,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # unset following new user creation
         assert not new_user.flags.newsletter_consent_prompt
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(
                 organization=self.organization, user_id=new_user.id
             )
@@ -380,7 +380,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(organization=org1, user_id=user.id)
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -423,7 +423,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
 
         assert getattr(member.flags, "sso:linked")
@@ -493,7 +493,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
 
         assert getattr(member.flags, "sso:linked")
@@ -546,7 +546,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
 
         assert getattr(member.flags, "sso:linked")
@@ -600,7 +600,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user.id != user.id
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(
                 organization=self.organization, user_id=new_user.id
             )
@@ -661,7 +661,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(
                 organization=self.organization, user_id=new_user.id
             )
@@ -801,7 +801,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         )
         user = self.create_user("bar@example.com")
         member = self.create_member(email="bar@example.com", organization=self.organization)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member.user_id = None
             member.save()
         self.login_as(user)
@@ -826,7 +826,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         assert user == auth_identity.user
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             test_member = OrganizationMember.objects.get(
                 organization=self.organization, user_id=user.id
             )
@@ -938,7 +938,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         TotpInterface().enroll(user)
 
         self.create_member(organization=self.organization, user_id=user.id)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
             member.email = "foor@example.com"
             member.user_id = None
@@ -958,7 +958,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         TotpInterface().enroll(user)
 
         self.create_member(organization=self.organization, user_id=user.id)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
             member.email = "foor@example.com"
             member.user_id = None
@@ -1039,7 +1039,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
     def test_org_not_visible(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
         resp = self.client.get(self.path, follow=True)
@@ -1101,7 +1101,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
     def test_flow_verify_without_org_membership(self, email: mock.MagicMock) -> None:
         assert not self.user.has_usable_password()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not OrganizationMember.objects.filter(
                 organization=self.organization, user_id=self.user.id
             ).exists()
@@ -1136,7 +1136,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         assert self.user == auth_identity.user
 
         # Check that OrganizationMember was created as a side effect
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert OrganizationMember.objects.filter(
                 organization=self.organization, user_id=self.user.id
             ).exists()
@@ -1180,7 +1180,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider_inst)
         assert self.user == auth_identity.user
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member = OrganizationMember.objects.get(
                 organization=self.organization, user_id=self.user.id
             )
@@ -1350,7 +1350,7 @@ class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
             ).exists()
 
             # Verify the new user has organization membership with SSO linked
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 member = OrganizationMember.objects.get(organization=sso_org, user_id=new_user.id)
             assert getattr(member.flags, "sso:linked")
             assert not getattr(member.flags, "sso:invalid")

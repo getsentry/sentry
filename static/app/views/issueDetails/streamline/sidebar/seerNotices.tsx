@@ -15,7 +15,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
-import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
+import {StarFixabilityViewButton} from 'sentry/components/events/autofix/seerCreateViewButton';
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {
   organizationIntegrationsCodingAgents,
@@ -34,7 +34,7 @@ import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 

@@ -809,7 +809,7 @@ class BadImportExportCommandTests(TestCase):
                 export, ["global", NONEXISTENT_FILE_PATH, "--no-prompt"], catch_exceptions=False
             )
         (msg,) = excinfo.value.args
-        assert msg == "Exports must be run in REGION or MONOLITH instances only"
+        assert msg == "Exports must be run in CELL or MONOLITH instances only"
 
     def test_export_invalid_public_key(self) -> None:
         with TemporaryDirectory() as tmp_dir:
@@ -870,7 +870,7 @@ class BadImportExportCommandTests(TestCase):
                 import_, ["global", GOOD_FILE_PATH, "--no-prompt"], catch_exceptions=False
             )
         (msg,) = excinfo.value.args
-        assert msg == "Imports must be run in REGION or MONOLITH instances only"
+        assert msg == "Imports must be run in CELL or MONOLITH instances only"
 
     def test_import_invalid_public_key(self) -> None:
         with TemporaryDirectory() as tmp_dir:

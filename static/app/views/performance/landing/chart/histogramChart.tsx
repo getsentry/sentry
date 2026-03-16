@@ -5,15 +5,15 @@ import type {Location} from 'history';
 
 import type {BarChartProps} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';
-import BarChartZoom from 'sentry/components/charts/barChartZoom';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {BarChartZoom} from 'sentry/components/charts/barChartZoom';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,

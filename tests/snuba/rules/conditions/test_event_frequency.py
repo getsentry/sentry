@@ -8,8 +8,9 @@ import pytest
 from django.utils import timezone
 from snuba_sdk import Op
 
+from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.constants import get_issue_tsdb_group_model
-from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule

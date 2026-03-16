@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
@@ -8,6 +8,7 @@ from uuid import uuid4
 
 import pytest
 
+from sentry.issue_detection.grouptype import ProfileFileIOGroupType
 from sentry.issues.escalating.escalating import (
     GroupsCountResponse,
     _query_groups_past_counts_eap,
@@ -19,7 +20,7 @@ from sentry.issues.escalating.escalating import (
     query_groups_past_counts,
 )
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -28,7 +29,7 @@ from sentry.testutils.cases import (
     SnubaTestCase,
     TestCase,
 )
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
@@ -345,7 +346,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
 
 class TestEAPIsEscalating(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime(2026, 2, 11, 6, 30, 0, tzinfo=timezone.utc)
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=30, second=0)
 
     def _event_timestamp(self, hours_ago: int = 0) -> float:
         return (

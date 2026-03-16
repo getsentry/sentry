@@ -1,7 +1,7 @@
 from django.db import models, router, transaction
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, control_silo_model, region_silo_model
+from sentry.db.models import Model, cell_silo_model, control_silo_model
 from sentry.db.postgres.transactions import enforce_constraints
 
 
@@ -30,8 +30,8 @@ class CacheVersionBase(Model):
         return list(cls.objects.filter(key__in=keys).values_list("version", flat=True))
 
 
-@region_silo_model
-class RegionCacheVersion(CacheVersionBase):
+@cell_silo_model
+class CellCacheVersion(CacheVersionBase):
     __relocation_scope__ = RelocationScope.Excluded
 
     class Meta:

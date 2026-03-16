@@ -54,7 +54,7 @@ def _get_partitions() -> Mapping[int, PartitionMetadata]:
 @instrumented_task(
     name="sentry.monitors.tasks.clock_pulse",
     namespace=crons_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def clock_pulse(current_datetime=None):
     """

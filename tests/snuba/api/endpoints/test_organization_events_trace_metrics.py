@@ -17,7 +17,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -42,7 +42,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -65,7 +65,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -91,7 +91,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -111,7 +111,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         ]
 
     def test_sum(self):
-        self.store_trace_metrics(
+        self.store_eap_items(
             [self.create_trace_metric("test_metric", i + 1, "counter") for i in range(6)]
         )
 
@@ -138,7 +138,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("request_count", 5.0, "counter"),
             self.create_trace_metric("request_count", 3.0, "counter"),
         ]
-        self.store_trace_metrics(counter_metrics)
+        self.store_eap_items(counter_metrics)
 
         response = self.do_request(
             {
@@ -163,7 +163,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("request_duration", 75.0, "distribution"),
             self.create_trace_metric("request_duration", 80.0, "distribution"),
         ]
-        self.store_trace_metrics(gauge_metrics)
+        self.store_eap_items(gauge_metrics)
 
         response = self.do_request(
             {
@@ -185,7 +185,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
     def test_per_minute_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
-        self.store_trace_metrics(
+        self.store_eap_items(
             [self.create_trace_metric("test_metric", 1.0, "counter") for _ in range(6)]
         )
 
@@ -210,7 +210,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
     def test_per_second_formula(self) -> None:
         # Store 6 trace metrics over a 10 minute period
-        self.store_trace_metrics(
+        self.store_eap_items(
             [self.create_trace_metric("test_metric", 1.0, "counter") for _ in range(6)]
         )
 
@@ -240,7 +240,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("request_count", 5.0, "counter"),
             self.create_trace_metric("request_count", 3.0, "counter"),
         ]
-        self.store_trace_metrics(counter_metrics)
+        self.store_eap_items(counter_metrics)
 
         response = self.do_request(
             {
@@ -263,7 +263,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("cpu_usage", 75.0, "gauge"),
             self.create_trace_metric("cpu_usage", 80.0, "gauge"),
         ]
-        self.store_trace_metrics(gauge_metrics)
+        self.store_eap_items(gauge_metrics)
 
         response = self.do_request(
             {
@@ -288,7 +288,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("cpu_usage", 75.0, "gauge"),
             self.create_trace_metric("cpu_usage", 80.0, "gauge"),
         ]
-        self.store_trace_metrics(gauge_metrics)
+        self.store_eap_items(gauge_metrics)
 
         response = self.do_request(
             {
@@ -314,7 +314,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             *[self.create_trace_metric("baz", 1, "distribution") for _ in range(3)],
             *[self.create_trace_metric("qux", 1, "distribution", "millisecond") for _ in range(4)],
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         # this query does not filter on any metrics, so scan all metrics
         response = self.do_request(
@@ -369,7 +369,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 1, "counter"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -387,7 +387,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             *[self.create_trace_metric("foo", 1, "counter") for _ in range(6)],
             self.create_trace_metric("bar", 594, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -408,7 +408,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("foo", 2, "distribution"),
             self.create_trace_metric("bar", 2, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -434,7 +434,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("bar", 4, "counter"),
             self.create_trace_metric("baz", 8, "gauge"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -513,7 +513,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         trace_metrics = [
             self.create_trace_metric("foo", 1, "counter", project=project1),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -552,7 +552,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "request_duration", 200.0, "distribution", metric_unit="second"
             ),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -587,7 +587,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "request_duration", 200.0, "distribution", metric_unit="second"
             ),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -627,7 +627,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             self.create_trace_metric("request_count", 5.0, "counter"),
             self.create_trace_metric("request_count", 3.0, "counter"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -659,7 +659,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "request_duration", 300.0, "distribution", metric_unit="millisecond"
             ),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -685,7 +685,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "request_duration", 300.0, "distribution", metric_unit="second"
             ),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -711,7 +711,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                 "request_duration", 300.0, "distribution", metric_unit="second"
             ),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {
@@ -734,7 +734,7 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
             ),
             self.create_trace_metric("request_duration", 200.0, "distribution", metric_unit="none"),
         ]
-        self.store_trace_metrics(trace_metrics)
+        self.store_eap_items(trace_metrics)
 
         response = self.do_request(
             {

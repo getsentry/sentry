@@ -8,13 +8,14 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
@@ -727,7 +728,7 @@ class ProjectRulePostData(TypedDict):
     conditions: list[ConditionsData]
     actions: list[dict[str, Any]]
     environment: NotRequired[str | None]
-    owner: NotRequired[str | None]
+    owner: NotRequired[str | int | None]
     filterMatch: NotRequired[Literal["all", "any", "none"]]
     filters: NotRequired[list[FiltersData]]
     status: NotRequired[str]
@@ -744,7 +745,6 @@ def format_request_data(
         "environment": data.get("environment"),
         "config": {"frequency": data.get("frequency")},
     }
-
     triggers: dict[str, Any] = {"logicType": "any-short", "conditions": []}
     translated_filter_list = []
     fake_dcg = DataConditionGroup()
@@ -752,14 +752,26 @@ def format_request_data(
     # we pass in a dummy DCG and then pop it off since we just need the formatted data
 
     for condition in data.get("conditions", []):
-        translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
+        try:
+            translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
+        except KeyError:
+            raise ValidationError("Ensure all required fields are filled in.")
+        except ValueError:
+            raise ValidationError("Invalid condition data")
+
         translated_conditions.pop("condition_group")
         triggers["conditions"].append(translated_conditions)
 
     workflow_payload["triggers"] = triggers
 
     for filter_data in data.get("filters", []):
-        translated_filters = asdict(translate_to_data_condition_data(filter_data, fake_dcg))
+        try:
+            translated_filters = asdict(translate_to_data_condition_data(filter_data, fake_dcg))
+        except KeyError:
+            raise ValidationError("Ensure all required fields are filled in.")
+        except ValueError:
+            raise ValidationError("Invalid filter data")
+
         translated_filters.pop("condition_group")
         translated_filter_list.append(translated_filters)
 
@@ -790,7 +802,7 @@ def format_request_data(
 
 
 @extend_schema(tags=["Alerts"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,

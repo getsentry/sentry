@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import ResultGrid from 'sentry/components/resultGrid';
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

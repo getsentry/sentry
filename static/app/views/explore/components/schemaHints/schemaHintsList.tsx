@@ -8,8 +8,8 @@ import omit from 'lodash/omit';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import useDrawer from 'sentry/components/globalDrawer';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
@@ -27,8 +27,8 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SchemaHintsDrawer} from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
 import {
   getSchemaHintsListOrder,
   onlyShowSchemaHintsKeys,

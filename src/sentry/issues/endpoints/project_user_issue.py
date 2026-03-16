@@ -9,11 +9,12 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.apidocs.parameters import GlobalParams
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.issues.grouptype import GroupType, WebVitalsGroup
+from sentry.issue_detection.grouptype import WebVitalsGroup
+from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.organization import Organization
@@ -190,7 +191,7 @@ class ProjectUserIssueResponseSerializer(serializers.Serializer):
     event_id = serializers.CharField(required=True)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectUserIssueEndpoint(ProjectEndpoint):
     permission_classes = (ProjectUserIssuePermission,)
     publish_status = {

@@ -1,16 +1,16 @@
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {percent} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getSessionsInterval} from 'sentry/utils/sessions';
-import useOrganization from 'sentry/utils/useOrganization';
-import useSessionProjectTotal from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSessionProjectTotal} from 'sentry/views/insights/sessions/queries/useSessionProjectTotal';
 import {getSessionStatusSeries} from 'sentry/views/insights/sessions/utils/sessions';
 
-export default function useCrashFreeSessions({pageFilters}: {pageFilters?: PageFilters}) {
+export function useCrashFreeSessions({pageFilters}: {pageFilters?: PageFilters}) {
   const organization = useOrganization();
   const {selection: defaultPageFilters} = usePageFilters();
 

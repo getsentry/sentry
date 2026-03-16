@@ -5,7 +5,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import InstanceLevelOAuthDetails from './instanceLevelOAuthDetails';
+import {InstanceLevelOAuthDetails} from './instanceLevelOAuthDetails';
 
 describe('instance level OAuth client details', () => {
   const mockClientDetails = {

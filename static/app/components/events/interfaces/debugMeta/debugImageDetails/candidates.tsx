@@ -8,9 +8,9 @@ import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
+import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Image} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
@@ -18,8 +18,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 
-import Status from './candidate/status';
-import Candidate from './candidate';
+import {Status} from './candidate/status';
+import {Candidate} from './candidate';
 import {INTERNAL_SOURCE} from './utils';
 
 const filterOptionCategories = {

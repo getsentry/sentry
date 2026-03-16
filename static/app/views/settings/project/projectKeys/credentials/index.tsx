@@ -5,8 +5,8 @@ import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -163,7 +163,7 @@ function CredentialsTab({
   );
 }
 
-function ProjectKeyCredentials({
+export function ProjectKeyCredentials({
   data,
   projectId,
   showDsn = true,
@@ -363,5 +363,3 @@ function ProjectKeyCredentials({
 const StyledField = styled(FieldGroup)`
   padding: ${p => p.theme.space['2xs']} 0 0 0;
 `;
-
-export default ProjectKeyCredentials;
