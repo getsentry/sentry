@@ -541,7 +541,7 @@ export function useExplorerAutofix(
    * @param runId - Optional run ID to continue an existing run
    */
   const startStep = useCallback(
-    async (step: AutofixExplorerStep, runId?: number, userFeedback?: string) => {
+    async (step: AutofixExplorerStep, runId?: number, userContext?: string) => {
       setWaitingForResponse(true);
 
       try {
@@ -551,8 +551,8 @@ export function useExplorerAutofix(
           data.run_id = runId;
         }
 
-        if (userFeedback) {
-          data.user_feedback = userFeedback;
+        if (userContext) {
+          data.user_context = userContext;
         }
 
         const response = await api.requestPromise(

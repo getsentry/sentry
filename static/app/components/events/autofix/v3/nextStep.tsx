@@ -56,8 +56,8 @@ function RootCauseNextStep({autofix, runId}: NextStepProps) {
   }, [startStep, runId]);
 
   const handleNoClick = useCallback(
-    (userFeedback: string) => {
-      startStep('root_cause', runId, userFeedback);
+    (userContext: string) => {
+      startStep('root_cause', runId, userContext);
     },
     [startStep, runId]
   );
@@ -85,8 +85,8 @@ function SolutionNextStep({autofix, runId}: NextStepProps) {
   }, [startStep, runId]);
 
   const handleNoClick = useCallback(
-    (userFeedback: string) => {
-      startStep('solution', runId, userFeedback);
+    (userContext: string) => {
+      startStep('solution', runId, userContext);
     },
     [startStep, runId]
   );
@@ -116,8 +116,8 @@ function CodeChangesNextStep({autofix, runId}: NextStepProps) {
   }, [createPR, runId]);
 
   const handleNoClick = useCallback(
-    (userFeedback: string) => {
-      startStep('code_changes', runId, userFeedback);
+    (userContext: string) => {
+      startStep('code_changes', runId, userContext);
     },
     [startStep, runId]
   );
@@ -161,7 +161,7 @@ function NextStepTemplate({
   labelRethink,
 }: NextStepTemplateProps) {
   const [clickedNo, handleClickedNo] = useState(false);
-  const [userFeedback, setUserFeedback] = useState('');
+  const [userContext, setUserContext] = useState('');
 
   if (clickedNo) {
     return (
@@ -171,12 +171,12 @@ function NextStepTemplate({
           autosize
           rows={2}
           placeholder={placeholderPrompt}
-          value={userFeedback}
-          onChange={event => setUserFeedback(event.target.value)}
+          value={userContext}
+          onChange={event => setUserContext(event.target.value)}
         />
         <Flex gap="md">
           <Button onClick={onClickYes}>{labelNevermind}</Button>
-          <Button priority="primary" onClick={() => onClickNo(userFeedback)}>
+          <Button priority="primary" onClick={() => onClickNo(userContext)}>
             {labelRethink}
           </Button>
         </Flex>
