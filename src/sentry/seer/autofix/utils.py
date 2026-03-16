@@ -531,8 +531,7 @@ def bulk_write_preferences_to_sentry_db(
             continue
         project_preferences.append((project, pref))
 
-    if project_preferences:
-        _write_preferences_to_sentry_db(project_preferences)
+    _write_preferences_to_sentry_db(project_preferences)
 
 
 def set_project_seer_preference(preference: SeerProjectPreference) -> None:
