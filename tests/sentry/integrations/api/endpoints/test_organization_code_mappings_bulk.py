@@ -237,7 +237,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
     def test_missing_default_branch_for_non_perforce(self) -> None:
         response = self.make_post({"defaultBranch": ""})
         assert response.status_code == 400
-        assert "defaultBranch is required" in response.data["detail"]
+        assert "defaultBranch" in str(response.data)
 
     # --- Side effects ---
 

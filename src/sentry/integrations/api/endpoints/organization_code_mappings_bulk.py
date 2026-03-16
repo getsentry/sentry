@@ -45,7 +45,6 @@ class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]])
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
         required=False,
-        allow_blank=True,
         error_messages={"invalid": _(BRANCH_NAME_ERROR_MESSAGE)},
     )
     mappings = MappingItemSerializer(many=True, required=True)
