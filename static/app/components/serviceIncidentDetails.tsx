@@ -47,9 +47,23 @@ export function ServiceIncidentDetails({incident}: Props) {
   const hasComponents = incident.components.length > 0;
 
   const affectedText = isResolved
-    ? tct(
-        'From [start] until [end] we experienced problems with the following services',
-        {
+    ? hasComponents
+      ? tct(
+          'From [start] until [end] we experienced problems with the following services',
+          {
+            start: (
+              <strong>
+                <DateTime date={start} />
+              </strong>
+            ),
+            end: (
+              <strong>
+                <DateTime date={incident.resolved_at} />
+              </strong>
+            ),
+          }
+        )
+      : tct('From [start] until [end] we experienced problems.', {
           start: (
             <strong>
               <DateTime date={start} />
@@ -60,8 +74,7 @@ export function ServiceIncidentDetails({incident}: Props) {
               <DateTime date={incident.resolved_at} />
             </strong>
           ),
-        }
-      )
+        })
     : hasComponents
       ? tct(
           "This incident started [timeAgo]. We're experiencing problems with the following services",
