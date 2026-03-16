@@ -42,12 +42,12 @@ S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 S014_msg = "S014 Use `unittest.mock` instead"
 
 
-# --- S015: do not hardcode this UTC calendar year as test "now" ---
-# Only year == current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
-def _s015_msg(year: int) -> str:
+# --- S015: do not hardcode current or future UTC year as test "now" ---
+# Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
+def _s015_msg() -> str:
     return (
-        f"S015 Do not hardcode datetime(..., {year}, ...) (current UTC year) at module/class "
-        "scope or in freeze_time(...); use before_now(...), now-timedelta, or another year"
+        "S015 Do not hardcode datetime with current or future UTC year at module/class "
+        "scope or in freeze_time(...); use before_now(...), now-timedelta, or an older fixed year"
     )
 
 
@@ -207,7 +207,7 @@ class SentryVisitor(ast.NodeVisitor):
             and isinstance(node.value, ast.Call)
         ):
             y = _wall_clock_year_from_datetime_call(node.value)
-            if y is not None and y == self._s015_year:
+            if y is not None and y >= self._s015_year:
                 self.errors.append((node.lineno, node.col_offset, self._s015_msg))
         self.generic_visit(node)
 
@@ -220,7 +220,7 @@ class SentryVisitor(ast.NodeVisitor):
                 and isinstance(node.args[0], ast.Call)
             ):
                 y = _wall_clock_year_from_datetime_call(node.args[0])
-                if y is not None and y == self._s015_year:
+                if y is not None and y >= self._s015_year:
                     self.errors.append((node.lineno, node.col_offset, self._s015_msg))
         if (
             # override_settings(...)
@@ -248,7 +248,7 @@ class SentryCheck:
 
     def run(self) -> Generator[tuple[int, int, str, type[Any]]]:
         cy = datetime.now(timezone.utc).year
-        visitor = SentryVisitor(self.filename, cy, _s015_msg(cy))
+        visitor = SentryVisitor(self.filename, cy, _s015_msg())
         visitor.visit(self.tree)
 
         for e in visitor.errors:
