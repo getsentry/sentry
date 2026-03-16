@@ -409,7 +409,7 @@ type MultipleProps<OptionType extends OptionTypeBase> = {
 
 type SingleProps<OptionType extends OptionTypeBase> = {
   multiple?: false;
-  onChange?: (option: OptionType) => void;
+  onChange?: (option: OptionType | null) => void;
 };
 
 type SelectProps<OptionType extends OptionTypeBase> =
@@ -418,8 +418,8 @@ type SelectProps<OptionType extends OptionTypeBase> =
 
 export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> =
   SelectProps<OptionType> &
-    AsyncProps<OptionType> &
-    CreatableProps<OptionType, boolean> &
+    Omit<AsyncProps<OptionType>, 'onChange' | 'value' | 'menuPlacement' | 'theme'> &
+    Omit<CreatableProps<OptionType, boolean>, 'onChange' | 'value' | 'menuPlacement' | 'theme'> &
     Omit<
       ReactSelectProps<OptionType, boolean>,
       'onChange' | 'value' | 'menuPlacement' | 'theme'
