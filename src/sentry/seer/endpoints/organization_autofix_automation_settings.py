@@ -27,6 +27,7 @@ from sentry.seer.autofix.utils import (
     bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
     default_seer_project_preference,
+    resolve_repository_ids,
 )
 from sentry.seer.models import SeerProjectPreference, SeerRepoDefinition
 from sentry.seer.utils import filter_repo_by_provider
@@ -354,18 +355,7 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 # Seer API responses don't include repository_id.
                 # Resolve before dual-writing so repos aren't skipped.
                 # This will not be necessary once we cut over reads from Seer API to Sentry DB.
-                for pref_dict in preferences_to_set:
-                    for repo in pref_dict.get("repositories", []):
-                        if repo.get("repository_id") is None:
-                            matched = filter_repo_by_provider(
-                                organization.id,
-                                repo.get("provider", ""),
-                                repo.get("external_id", ""),
-                                repo.get("owner", ""),
-                                repo.get("name", ""),
-                            ).first()
-                            if matched is not None:
-                                repo["repository_id"] = matched.id
+                resolve_repository_ids(organization.id, preferences_to_set)
 
                 validated_preferences = [
                     SeerProjectPreference.validate(pref) for pref in preferences_to_set

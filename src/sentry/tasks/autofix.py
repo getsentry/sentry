@@ -22,9 +22,9 @@ from sentry.seer.autofix.utils import (
     get_autofix_repos_from_project_code_mappings,
     get_autofix_state,
     get_seer_seat_based_tier_cache_key,
+    resolve_repository_ids,
 )
 from sentry.seer.models import SeerProjectPreference
-from sentry.seer.utils import filter_repo_by_provider
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.taskworker.retry import Retry
@@ -273,18 +273,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 # Seer API responses don't include repository_id.
                 # Resolve before dual-writing so repos aren't skipped.
                 # This will not be necessary once we cut over reads from Seer API to Sentry DB.
-                for pref_dict in preferences_to_set:
-                    for repo in pref_dict.get("repositories", []):
-                        if repo.get("repository_id") is None:
-                            matched = filter_repo_by_provider(
-                                organization_id,
-                                repo.get("provider", ""),
-                                repo.get("external_id", ""),
-                                repo.get("owner", ""),
-                                repo.get("name", ""),
-                            ).first()
-                            if matched is not None:
-                                repo["repository_id"] = matched.id
+                resolve_repository_ids(organization_id, preferences_to_set)
 
                 validated_preferences = [
                     SeerProjectPreference.validate(pref) for pref in preferences_to_set

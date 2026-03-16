@@ -40,6 +40,7 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepositoryBranchOverride,
 )
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
+from sentry.seer.utils import filter_repo_by_provider
 from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -507,6 +508,22 @@ def _write_preferences_to_sentry_db(
         # (cache cannot be rolled back by the transaction).
         for project, pref in project_preferences:
             _write_preference_project_options(project, pref)
+
+
+def resolve_repository_ids(organization_id: int, preferences: list[dict]) -> None:
+    """Resolve missing repository_id fields on preference dicts in-place."""
+    for pref_dict in preferences:
+        for repo in pref_dict.get("repositories", []):
+            if repo.get("repository_id") is None:
+                matched = filter_repo_by_provider(
+                    organization_id,
+                    repo.get("provider", ""),
+                    repo.get("external_id", ""),
+                    repo.get("owner", ""),
+                    repo.get("name", ""),
+                ).first()
+                if matched is not None:
+                    repo["repository_id"] = matched.id
 
 
 def write_preference_to_sentry_db(project: Project, preference: SeerProjectPreference) -> None:
