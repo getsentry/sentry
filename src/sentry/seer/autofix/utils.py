@@ -451,7 +451,9 @@ def resolve_repository_ids(organization_id: int, preferences: list[dict]) -> Non
         ] = db_repo["id"]
 
     for repo in repos_to_resolve:
-        resolved_id = resolved_ids.get((repo["external_id"], repo["provider"]))
+        resolved_id = resolved_ids.get(
+            (repo["external_id"], str(repo["provider"]).removeprefix("integrations:"))
+        )
         if resolved_id is not None:
             repo["repository_id"] = resolved_id
 
