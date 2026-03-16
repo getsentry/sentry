@@ -1,16 +1,21 @@
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
 
+import pytest
 import requests
 import responses
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test.client import RequestFactory
+from requests.exceptions import Timeout
 
+from sentry.api.exceptions import RequestTimeout
 from sentry.hybridcloud.apigateway.proxy import proxy_request
 from sentry.silo.util import (
     INVALID_OUTBOUND_HEADERS,
     PROXY_APIGATEWAY_HEADER,
     PROXY_DIRECT_LOCATION_HEADER,
 )
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.apigateway import (
     ApiGatewayTestCase,
     verify_file_body,
@@ -261,3 +266,117 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         resp = proxy_request(request, self.organization.slug, url_name)
         assert not any([header in resp for header in INVALID_OUTBOUND_HEADERS])
+
+
+CB_ENABLED = {
+    "apigateway.proxy.circuit-breaker.enabled": True,
+    "apigateway.proxy.circuit-breaker.enforce": True,
+}
+
+
+@control_silo_test(regions=[ApiGatewayTestCase.REGION])
+class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
+    def _make_breaker_mock(self, *, allow_request: bool) -> MagicMock:
+        mock_breaker = MagicMock()
+        mock_breaker.should_allow_request.return_value = allow_request
+        return mock_breaker
+
+    @responses.activate
+    @override_options(CB_ENABLED)
+    def test_open_circuit_returns_503(self) -> None:
+        with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
+            mock_breaker_class.return_value = self._make_breaker_mock(allow_request=False)
+            request = RequestFactory().get("http://sentry.io/get")
+            resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 503
+        assert json.loads(resp.content) == {
+            "error": "apigateway",
+            "detail": "Downstream service temporarily unavailable",
+        }
+
+    @responses.activate
+    @override_options(CB_ENABLED)
+    def test_circuit_breaker_keyed_per_cell(self) -> None:
+        with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
+            mock_breaker_class.return_value = self._make_breaker_mock(allow_request=False)
+            request = RequestFactory().get("http://sentry.io/get")
+            proxy_request(request, self.organization.slug, url_name)
+        key_used = mock_breaker_class.call_args[0][0]
+        assert key_used == f"apigateway.proxy.{self.REGION.name}"
+
+    @responses.activate
+    def test_circuit_breaker_disabled_by_default(self) -> None:
+        with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
+            request = RequestFactory().get("http://sentry.io/get")
+            proxy_request(request, self.organization.slug, url_name)
+        mock_breaker_class.assert_not_called()
+
+    @responses.activate
+    @override_options(
+        {
+            "apigateway.proxy.circuit-breaker.enabled": True,
+            "apigateway.proxy.circuit-breaker.enforce": False,
+        }
+    )
+    def test_open_circuit_not_enforced(self) -> None:
+        with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
+            mock_breaker_class.return_value = self._make_breaker_mock(allow_request=False)
+            request = RequestFactory().get("http://sentry.io/get")
+            resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 200
+
+    @responses.activate
+    @override_options(CB_ENABLED)
+    def test_timeout_records_error(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.REGION.address}/timeout",
+            body=Timeout(),
+        )
+        with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
+            mock_breaker = self._make_breaker_mock(allow_request=True)
+            mock_breaker_class.return_value = mock_breaker
+            request = RequestFactory().get("http://sentry.io/timeout")
+            with pytest.raises(RequestTimeout):
+                proxy_request(request, self.organization.slug, url_name)
+        mock_breaker.record_error.assert_called_once()
+
+    @responses.activate
+    @override_options(CB_ENABLED)
+    def test_5xx_response_records_error(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{self.REGION.address}/server-error",
+            status=500,
+            body=json.dumps({"detail": "internal server error"}),
+            content_type="application/json",
+        )
+        with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
+            mock_breaker = self._make_breaker_mock(allow_request=True)
+            mock_breaker_class.return_value = mock_breaker
+            request = RequestFactory().get("http://sentry.io/server-error")
+            resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 500
+        mock_breaker.record_error.assert_called_once()
+
+    @responses.activate
+    @override_options(CB_ENABLED)
+    def test_4xx_response_does_not_record_error(self) -> None:
+        with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
+            mock_breaker = self._make_breaker_mock(allow_request=True)
+            mock_breaker_class.return_value = mock_breaker
+            request = RequestFactory().get("http://sentry.io/error")
+            resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 400
+        mock_breaker.record_error.assert_not_called()
+
+    @responses.activate
+    @override_options(CB_ENABLED)
+    def test_2xx_response_does_not_record_error(self) -> None:
+        with patch("sentry.hybridcloud.apigateway.proxy.CircuitBreaker") as mock_breaker_class:
+            mock_breaker = self._make_breaker_mock(allow_request=True)
+            mock_breaker_class.return_value = mock_breaker
+            request = RequestFactory().get("http://sentry.io/get")
+            resp = proxy_request(request, self.organization.slug, url_name)
+        assert resp.status_code == 200
+        mock_breaker.record_error.assert_not_called()

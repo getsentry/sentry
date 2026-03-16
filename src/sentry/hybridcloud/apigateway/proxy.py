@@ -10,7 +10,7 @@ from urllib.parse import urljoin, urlparse
 from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from requests import Response as ExternalResponse
 from requests import request as external_request
@@ -32,6 +32,7 @@ from sentry.types.region import (
     get_cell_for_organization,
 )
 from sentry.utils import metrics
+from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.http import BodyWithLength
 
 logger = logging.getLogger(__name__)
@@ -119,8 +120,28 @@ def proxy_error_embed_request(
     return proxy_cell_request(request, cell, url_name)
 
 
-def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> StreamingHttpResponse:
+def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
+
+    circuit_breaker: CircuitBreaker | None = None
+    # TODO(mark) remove rollout options
+    if options.get("apigateway.proxy.circuit-breaker.enabled"):
+        circuit_breaker = CircuitBreaker(
+            f"apigateway.proxy.{cell.name}",
+            options.get("apigateway.proxy.circuit-breaker.config"),
+        )
+        if not circuit_breaker.should_allow_request():
+            metrics.incr(
+                "apigateway.proxy.circuit_breaker.rejected",
+                tags={"region": cell.name, "url_name": url_name},
+            )
+            if options.get("apigateway.proxy.circuit-breaker.enforce"):
+                body = {
+                    "error": "apigateway",
+                    "detail": "Downstream service temporarily unavailable",
+                }
+                return JsonResponse(body, status=503)
+
     target_url = urljoin(cell.address, request.path)
 
     content_encoding = request.headers.get("Content-Encoding")
@@ -131,7 +152,11 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> Strea
     assert request.method is not None
     query_params = request.GET
 
-    timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
+    # This option has a default of None, which is cast to 0
+    timeout = options.get("apigateway.proxy.timeout")
+    if not timeout:
+        timeout = settings.GATEWAY_PROXY_TIMEOUT
+    timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, timeout)
     metric_tags = {"region": cell.name, "url_name": url_name}
 
     # XXX: See sentry.testutils.pytest.sentry for more information
@@ -162,8 +187,13 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> Strea
                 allow_redirects=False,
             )
     except Timeout:
+        if circuit_breaker is not None:
+            circuit_breaker.record_error()
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
+
+    if resp.status_code >= 500 and circuit_breaker is not None:
+        circuit_breaker.record_error()
 
     new_headers = clean_outbound_headers(resp.headers)
     resp.headers.clear()
