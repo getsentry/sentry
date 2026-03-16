@@ -24,6 +24,7 @@ from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -49,7 +50,7 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
-from sentry.snuba.models import SnubaQueryEventType
+from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.tasks import create_subscription_in_snuba
@@ -63,7 +64,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.snuba import _snuba_pool
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action, DataSource, Detector
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
 )
@@ -290,6 +291,82 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase, TestWorkflowEngineSerializer
             resp = self.get_success_response(self.organization.slug)
 
         assert "snooze" not in resp.data[0]
+
+    def test_workflow_engine_serializer_includes_single_written_detectors(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        # Create single-written detector by reusing existing query infrastructure
+        query_subscription = QuerySubscription.objects.get(snuba_query=self.alert_rule.snuba_query)
+        data_source, _ = DataSource.objects.get_or_create(
+            type="snuba_query_subscription",
+            source_id=str(query_subscription.id),
+            defaults={"organization_id": self.organization.id},
+        )
+        single_written_detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            name="Single Written Detector",
+        )
+        data_source.detectors.add(single_written_detector)
+
+        self.login_as(self.user)
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert len(resp.data) == 2
+        detector_names = {item["name"] for item in resp.data}
+        assert self.detector.name in detector_names
+        assert "Single Written Detector" in detector_names
+
+    def test_workflow_engine_count_includes_single_written_detectors(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        # Create single-written detector
+        query_subscription = QuerySubscription.objects.get(snuba_query=self.alert_rule.snuba_query)
+        data_source, _ = DataSource.objects.get_or_create(
+            type="snuba_query_subscription",
+            source_id=str(query_subscription.id),
+            defaults={"organization_id": self.organization.id},
+        )
+        single_written_detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            name="Single Written Detector",
+        )
+        data_source.detectors.add(single_written_detector)
+
+        self.login_as(self.user)
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert resp[ALERT_RULES_COUNT_HEADER] == "2"
+
+    def test_workflow_engine_serializer_scopes_to_project(self) -> None:
+        team = self.create_team(organization=self.organization, members=[self.user])
+        ProjectTeam.objects.create(project=self.project, team=team)
+
+        # Create detector in different project
+        other_project = self.create_project(organization=self.organization)
+        self.create_detector(
+            project=other_project,
+            type=MetricIssue.slug,
+            name="Other Project Detector",
+        )
+
+        self.login_as(self.user)
+        with self.feature(
+            ["organizations:incidents", "organizations:workflow-engine-rule-serializers"]
+        ):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert len(resp.data) == 1
+        assert resp.data[0]["name"] == self.detector.name
 
 
 @freeze_time("2024-12-11 03:21:34")

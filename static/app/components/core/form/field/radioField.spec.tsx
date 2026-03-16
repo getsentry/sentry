@@ -2,7 +2,7 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
@@ -67,7 +67,7 @@ function AutoSaveTestForm({
   onError,
 }: AutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="priority"
       schema={testSchema}
       initialValue={initialValue}
@@ -82,7 +82,7 @@ function AutoSaveTestForm({
           </field.Layout.Row>
         </field.Radio.Group>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 

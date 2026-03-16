@@ -5,7 +5,7 @@ import {
   NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
   NAVIGATION_SIDEBAR_OPEN_DELAY_MS,
 } from 'sentry/views/navigation/constants';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const IGNORE_ELEMENTS = [
@@ -25,16 +25,14 @@ const IGNORE_ELEMENTS = [
  * Escape -> close
  */
 export function useCollapsedNavigation() {
-  const {setActivePrimaryNavigationGroup} = useNavigation();
+  const {setActiveGroup} = usePrimaryNavigation();
   const {view, setView, interaction, setInteraction} = useSecondaryNavigation();
 
   const isCollapsed = view !== 'expanded';
   // Keep a ref so event handlers can read the latest isCollapsed value during
   // React's commit phase (e.g. focusout fires while React is unmounting elements).
   const isCollapsedRef = useRef(isCollapsed);
-  useEffect(() => {
-    isCollapsedRef.current = isCollapsed;
-  });
+  isCollapsedRef.current = isCollapsed;
 
   const isHoveredRef = useRef(false);
 
@@ -42,8 +40,8 @@ export function useCollapsedNavigation() {
     isHoveredRef.current = false;
     setInteraction(null);
     setView('collapsed');
-    setActivePrimaryNavigationGroup(null);
-  }, [setActivePrimaryNavigationGroup, setInteraction, setView]);
+    setActiveGroup(null);
+  }, [setActiveGroup, setInteraction, setView]);
 
   const navigationParentRef = useRef<HTMLDivElement>(null);
 
@@ -158,6 +156,7 @@ export function useCollapsedNavigation() {
       navigationParentEl.removeEventListener('focusin', handleFocusIn);
       navigationParentEl.removeEventListener('focusout', handleFocusOut);
       document.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(openTimer);
       clearTimeout(closeTimer);
     };
   }, [

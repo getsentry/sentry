@@ -13,14 +13,14 @@ from sentry.preprod.size_analysis.grouptype import (
     SizeAnalysisDataPacket,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodSizeAnalysisDetectorValidatorTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -55,7 +55,7 @@ class PreprodSizeAnalysisDetectorValidatorTest(TestCase):
         detector.save()
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -376,7 +376,7 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             handler.evaluate(data_packet)
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -548,7 +548,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
             handler.evaluate(data_packet)
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodSizeAnalysisDetectorHandlerIntegrationTest(TestCase):
     def test_e2e(self):
         condition_group = self.create_data_condition_group(
@@ -584,7 +584,7 @@ class PreprodSizeAnalysisDetectorHandlerIntegrationTest(TestCase):
         assert mock_produce_occurrence_to_kafka.call_count == 1
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
     """Tests for the content of created occurrences (title, platform, tags, evidence)."""
 

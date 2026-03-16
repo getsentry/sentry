@@ -10,11 +10,13 @@ from sentry.grouping.utils import get_canonical_message_from_event, normalize_me
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
+from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames
 from sentry.utils.safe import get_path
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
@@ -301,7 +303,10 @@ def resolve_fingerprint_variable(
 
 
 def resolve_fingerprint_values(
-    fingerprint: list[str], event: Event, use_legacy_unknown_variable_handling: bool = False
+    fingerprint: list[str],
+    event: Event,
+    context: GroupingContext,
+    use_legacy_unknown_variable_handling: bool = False,
 ) -> list[str]:
     def _resolve_single_entry(entry: str) -> str:
         variable_key = parse_fingerprint_entry_as_variable(entry)
@@ -323,7 +328,7 @@ def resolve_fingerprint_values(
 
         if variable_key == "message" and resolved_value != "<no-message>":
             return normalize_message_for_grouping(
-                resolved_value, event, reason="fingerprint", trim_message=False
+                resolved_value, context, reason="fingerprint", trim_message=False
             )
 
         return resolved_value
@@ -336,6 +341,9 @@ def expand_title_template(
 ) -> str:
     def _handle_match(match: re.Match[str]) -> str:
         variable_key = match.group(1)
+        if variable_key == "message":
+            metrics.incr("grouping.message_used", tags={"reason": "custom_title"})
+
         # TODO: Once we have fully transitioned off of the `newstyle:2023-01-11` grouping config, we
         # can remove `use_legacy_unknown_variable_handling` and just return the value given by
         # `resolve_fingerprint_variable`

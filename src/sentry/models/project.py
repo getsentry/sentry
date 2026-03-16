@@ -35,7 +35,7 @@ from sentry.db.pending_deletion import (
     rename_on_pending_deletion,
     reset_pending_deletion_field_names,
 )
-from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
@@ -839,8 +839,8 @@ class Project(Model):
         return not value or value == "other" or value in GETTING_STARTED_DOCS_PLATFORMS
 
     @staticmethod
-    def outbox_for_update(project_identifier: int, organization_identifier: int) -> RegionOutbox:
-        return RegionOutbox(
+    def outbox_for_update(project_identifier: int, organization_identifier: int) -> CellOutbox:
+        return CellOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=organization_identifier,
             category=OutboxCategory.PROJECT_UPDATE,

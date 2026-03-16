@@ -20,12 +20,9 @@ import {
 } from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryButtonOverlay,
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-  usePrimaryButtonOverlay,
+  PrimaryNavigation,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 
 const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
@@ -162,36 +159,28 @@ export function PrimaryNavigationWhatsNew() {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryButtonOverlay();
-
-  const {layout} = useNavigation();
+  } = usePrimaryNavigationButtonOverlay();
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="broadcasts"
         label={t("What's New")}
+        indicator={unseenPostIds.length > 0 ? 'accent' : undefined}
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconBroadcast />,
           size: 'sm',
         }}
-      >
-        {unseenPostIds.length > 0 && (
-          <SidebarItemUnreadIndicator
-            data-test-id="whats-new-unread-indicator"
-            isMobile={layout === 'mobile'}
-          />
-        )}
-      </SidebarButton>
+      />
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <WhatsNewContent
             unseenPostIds={unseenPostIds}
             isPending={isPending}
             broadcasts={Array.isArray(broadcasts) ? broadcasts : []}
           />
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );

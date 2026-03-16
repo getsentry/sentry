@@ -39,10 +39,10 @@ Classify what the developer needs:
 
 The service's `local_mode` determines where the database-backed implementation runs:
 
-| Data lives in...                                  | `local_mode`       | Decorator on methods                | Example                            |
-| ------------------------------------------------- | ------------------ | ----------------------------------- | ---------------------------------- |
-| Region silo (projects, events, issues, org data)  | `SiloMode.CELL`    | `@regional_rpc_method(resolve=...)` | `OrganizationService`              |
-| Control silo (users, auth, billing, org mappings) | `SiloMode.CONTROL` | `@rpc_method`                       | `OrganizationMemberMappingService` |
+| Data lives in...                                  | `local_mode`       | Decorator on methods            | Example                            |
+| ------------------------------------------------- | ------------------ | ------------------------------- | ---------------------------------- |
+| Region silo (projects, events, issues, org data)  | `SiloMode.CELL`    | `@cell_rpc_method(resolve=...)` | `OrganizationService`              |
+| Control silo (users, auth, billing, org mappings) | `SiloMode.CONTROL` | `@rpc_method`                   | `OrganizationMemberMappingService` |
 
 **Decision rule**: If the Django models you need to query live in the region database, use `SiloMode.CELL`. If they live in the control database, use `SiloMode.CONTROL`.
 
@@ -100,7 +100,7 @@ If your service doesn't fit any of these, add a new entry to the `service_packag
 Load `references/resolvers.md` for resolver details.
 
 ```python
-@regional_rpc_method(resolve=ByOrganizationId())
+@cell_rpc_method(resolve=ByOrganizationId())
 @abstractmethod
 def my_method(
     self,
@@ -114,7 +114,7 @@ def my_method(
 
 Key rules:
 
-- `@regional_rpc_method` MUST come before `@abstractmethod`
+- `@cell_rpc_method` MUST come before `@abstractmethod`
 - The resolver parameter (e.g., `organization_id`) MUST be in the method signature
 - Use `return_none_if_mapping_not_found=True` when the return type is `Optional` and a missing org mapping means "not found" rather than an error
 
@@ -400,7 +400,7 @@ from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.silo import (
     all_silo_test,
     control_silo_test,
-    region_silo_test,
+    cell_silo_test,
     assume_test_silo_mode,
     assume_test_silo_mode_of,
     create_test_regions,
@@ -423,9 +423,9 @@ Before submitting your PR, verify:
 - [ ] All RPC method parameters are keyword-only (`*` separator)
 - [ ] All parameters have explicit type annotations
 - [ ] All types are serializable (primitives, RpcModel, list, Optional, dict, Enum, datetime)
-- [ ] Region service methods have `@regional_rpc_method` with appropriate resolver
+- [ ] Region service methods have `@cell_rpc_method` with appropriate resolver
 - [ ] Control service methods have `@rpc_method`
-- [ ] `@regional_rpc_method` / `@rpc_method` comes BEFORE `@abstractmethod`
+- [ ] `@cell_rpc_method` / `@rpc_method` comes BEFORE `@abstractmethod`
 - [ ] `create_delegation()` is called at module level at the bottom of service.py
 - [ ] Service package is under one of the 12 registered discovery packages
 - [ ] `impl.py` implements every abstract method with matching parameter names

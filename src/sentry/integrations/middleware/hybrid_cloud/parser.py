@@ -30,7 +30,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.silo.client import RegionSiloClient, SiloClientError
+from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.types.region import Cell, find_cells_for_orgs, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.options import sample_modulo
@@ -122,7 +122,7 @@ class BaseRequestParser(ABC):
             tags={"destination_region": region.name},
             sample_rate=1.0,
         ):
-            region_client = RegionSiloClient(region, retry=True)
+            region_client = CellSiloClient(region, retry=True)
             with MiddlewareOperationEvent(
                 operation_type=MiddlewareOperationType.GET_REGION_RESPONSE,
                 integration_name=self.provider,

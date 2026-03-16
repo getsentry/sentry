@@ -6,12 +6,9 @@ import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryButtonOverlay,
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-  usePrimaryButtonOverlay,
+  PrimaryNavigation,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 
 function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) {
@@ -19,31 +16,28 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryButtonOverlay();
-
-  const {layout} = useNavigation();
+  } = usePrimaryNavigationButtonOverlay();
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="statusupdate"
         label={t('Service status')}
+        indicator="danger"
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconFire />,
           size: 'sm',
         }}
-      >
-        <SidebarItemUnreadIndicator isMobile={layout === 'mobile'} variant="danger" />
-      </SidebarButton>
+      />
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           {incidents.map(incident => (
             <IncidentItemWrapper key={incident.id}>
               <ServiceIncidentDetails incident={incident} />
             </IncidentItemWrapper>
           ))}
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );
