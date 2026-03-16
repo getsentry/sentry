@@ -767,7 +767,6 @@ def format_request_data(
         actor = parse_and_validate_actor(str(owner), project.organization_id)
         if actor is not None:
             workflow_payload["owner"] = actor.identifier
-    
 
     for condition in data.get("conditions", []):
         try:

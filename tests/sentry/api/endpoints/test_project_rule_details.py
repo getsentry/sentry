@@ -749,9 +749,9 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             )
         assert_serializer_results_match(response.data, workflow_response.data)
         assert workflow_response.data.get("owner") == f"team:{team.id}"
-        workflow = Workflow.objects.get(id=workflow_response.data["id"])
-        assert workflow.owner_team_id == team.id
-        assert workflow.owner_user_id is None
+        self.dual_written_workflow.refresh_from_db()
+        assert self.dual_written_workflow.owner_team_id == team.id
+        assert self.dual_written_workflow.owner_user_id is None
 
         payload = {
             "name": "hello world 2",
@@ -779,9 +779,9 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             )
         assert_serializer_results_match(response.data, workflow_response.data)
         assert workflow_response.data.get("owner") == f"user:{self.user.id}"
-        workflow = Workflow.objects.get(id=workflow_response.data["id"])
-        assert workflow.owner_team_id is None
-        assert workflow.owner_user_id == self.user.id
+        self.dual_written_workflow.refresh_from_db()
+        assert self.dual_written_workflow.owner_team_id is None
+        assert self.dual_written_workflow.owner_user_id == self.user.id
 
     def test_team_owner_not_member(self) -> None:
         self.organization.flags.allow_joinleave = False
