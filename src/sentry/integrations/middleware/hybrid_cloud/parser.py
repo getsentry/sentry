@@ -164,14 +164,16 @@ class BaseRequestParser(ABC):
 
     def get_response_from_webhookpayload(
         self,
-        cells: list[Cell],
+        cells: list[Cell] | None = None,  # TODO(cells): make required once getsentry is updated
         identifier: int | str | None = None,
         integration_id: int | None = None,
+        regions: list[Cell] | None = None,  # TODO(cells): remove once getsentry is updated
     ) -> HttpResponseBase:
         """
         Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
+        cells = cells or regions or []
         if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
