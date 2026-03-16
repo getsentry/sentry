@@ -251,6 +251,8 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   const issueTypeConfig = getConfigForIssueType(group, project);
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
+  const detectorEnvironment =
+    event?.occurrence?.evidenceData?.dataSources?.[0]?.queryObj?.snubaQuery?.environment;
   const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
   const theme = useTheme();
   const style = {
@@ -261,7 +263,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
     <EnvironmentPageFilter
       disabled
       triggerProps={{
-        label: eventEnvironment ?? t('All Envs'),
+        label: detectorEnvironment ?? eventEnvironment ?? t('All Envs'),
         title: t('This issue only occurs in a single environment'),
         style,
       }}
