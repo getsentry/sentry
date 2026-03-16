@@ -20,7 +20,7 @@ import {
   decodeSorts,
 } from 'sentry/utils/queryString';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DEFAULT_CATEGORICAL_BAR_LIMIT,
@@ -65,7 +65,7 @@ export const MAX_NUM_Y_AXES = 3;
 
 export const stateParamsNotInUrl: Array<keyof WidgetBuilderStateParams> = ['textContent'];
 
-const LOCAL_STORAGE_CONTENT_KEY_MAP = {
+const SESSION_STORAGE_CONTENT_KEY_MAP = {
   textContent: 'dashboard:widget-builder:text-content',
 };
 
@@ -370,10 +370,9 @@ export function useWidgetBuilderState(): {
     decoder: decodeScalar,
     deserializer: getAxisRange,
   });
-  const [textContent, setTextContent] = useLocalStorageState<string | undefined>(
-    LOCAL_STORAGE_CONTENT_KEY_MAP.textContent,
-    undefined
-  );
+  const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
+    string | undefined
+  >(SESSION_STORAGE_CONTENT_KEY_MAP.textContent, undefined);
 
   const state = useMemo(
     () => ({
