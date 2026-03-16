@@ -825,6 +825,7 @@ function buildRoutes(): RouteObject[] {
   };
 
   const orgSettingsChildren: SentryRouteObject[] = [
+    routeHook('routes:settings'),
     {
       index: true,
       name: t('General'),
@@ -1164,52 +1165,6 @@ function buildRoutes(): RouteObject[] {
               ),
             },
           ],
-        },
-      ],
-    },
-    {
-      path: 'seer/',
-      name: t('Seer'),
-      // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-      component: make(() => import('getsentry/views/seerAutomation/index')),
-      children: [
-        {
-          path: 'trial/',
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/trial')),
-        },
-        {
-          index: true,
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
-        },
-        {
-          path: 'scm/',
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/scm')),
-        },
-        {
-          path: 'projects/',
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/projects')),
-        },
-        {
-          path: 'repos/',
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/repos')),
-        },
-        {
-          path: 'repos/:repoId/',
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
-        },
-        {
-          path: 'onboarding/',
-          name: t('Setup Wizard'),
-          component: make(
-            // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-            () => import('getsentry/views/seerAutomation/onboarding/onboarding')
-          ),
         },
       ],
     },
