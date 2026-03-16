@@ -25,7 +25,7 @@ class PluginRequestParser(BaseRequestParser):
 
     def get_response(self) -> HttpResponseBase:
         """
-        Used for identifying regions from Github and Bitbucket plugin webhooks
+        Used for identifying cells from Github and Bitbucket plugin webhooks
         """
         organization_id = self.match.kwargs.get("organization_id")
         logging_extra: dict[str, Any] = {"path": self.request.path}

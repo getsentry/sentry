@@ -21,7 +21,7 @@ class BitbucketRequestParser(BaseRequestParser):
 
     def get_bitbucket_webhook_response(self) -> HttpResponseBase:
         """
-        Used for identifying regions from Bitbucket and Bitbucket Server webhooks
+        Used for identifying cells from Bitbucket and Bitbucket Server webhooks
         """
         # The organization is provided in the path, so we can skip inferring organizations
         # from the integration credentials
