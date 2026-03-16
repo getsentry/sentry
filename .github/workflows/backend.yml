@@ -213,6 +213,7 @@ jobs:
       - name: Use default shards (no selective testing)
         id: static-shards
         if: needs.prepare-selective-tests.outputs.has-selected-tests != 'true'
+        # Keep in sync with MAX_SHARDS in .github/workflows/scripts/calculate-backend-test-shards.py
         run: |
           echo "shard-count=22" >> "$GITHUB_OUTPUT"
           echo "shard-indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]" >> "$GITHUB_OUTPUT"
@@ -329,8 +330,13 @@ jobs:
             WORKER_PORT=$((1230 + i))
             for attempt in $(seq 1 30); do
               if curl -sf "http://localhost:${WORKER_PORT}/health" > /dev/null 2>&1; then
-                echo "[snuba-gw${i}] ready on port ${WORKER_PORT}"; break; fi
-              [ "$attempt" -eq 30 ] && echo "[snuba-gw${i}] FAILED" && docker logs "snuba-gw${i}" 2>&1 | tail -20 && exit 1
+                echo "[snuba-gw${i}] ready on port ${WORKER_PORT}"; break
+              fi
+              if [ "$attempt" -eq 30 ]; then
+                echo "[snuba-gw${i}] FAILED to become healthy after 30 attempts"
+                docker logs "snuba-gw${i}" 2>&1 | tail -20 || true
+                exit 1
+              fi
               sleep 1
             done
           done
