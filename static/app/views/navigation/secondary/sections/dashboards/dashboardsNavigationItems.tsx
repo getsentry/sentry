@@ -1,13 +1,8 @@
-import {useEffect, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Reorder, useDragControls} from 'framer-motion';
 
-import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -28,39 +23,20 @@ export function DashboardsNavigationItems({
   const organization = useOrganization();
   const user = useUser();
   const location = useLocation();
-  const [savedDashboards, setSavedDashboards] =
-    useState<DashboardListItem[]>(initialDashboards);
-  const sectionRef = useRef<HTMLDivElement>(null);
-
-  // Any time the dashboards prop changes (e.g. when the user stars or unstars a dashboard),
-  // we need to reset the savedDashboards state.
-  useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-    setSavedDashboards(initialDashboards);
-  }, [initialDashboards]);
-
   const id = getIdFromLocation(location);
-
-  const controls = useDragControls();
 
   const {projects} = useProjects();
 
   const reorderStarredDashboards = useReorderStarredDashboards();
 
-  const [isDragging, setIsDragging] = useState<string | null>(null);
-
   return (
-    <Reorder.Group
-      as="div"
-      axis="y"
-      values={savedDashboards}
-      onReorder={newOrder => {
-        setSavedDashboards(newOrder);
+    <SecondaryNavigation.ReorderableList
+      items={initialDashboards}
+      onDragEnd={newDashboards => {
+        reorderStarredDashboards(newDashboards);
       }}
-      initial={false}
-      ref={sectionRef}
     >
-      {savedDashboards?.map(dashboard => {
+      {dashboard => {
         const dashboardProjects = new Set((dashboard?.projects ?? []).map(String));
         if (!defined(dashboard?.projects)) {
           Sentry.setTag('organization', organization.id);
@@ -75,114 +51,32 @@ export function DashboardsNavigationItems({
           .map(p => p.platform)
           .filter(defined);
         return (
-          <StyledReorderItem
-            grabbing={isDragging === dashboard.id}
-            as="div"
-            dragConstraints={sectionRef}
-            dragElastic={0.03}
-            dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
-            // This style is a hack to fix a framer-motion bug that causes views to
-            // jump from the bottom of the nav bar to their correct positions
-            // upon scrolling down on the page and triggering a page navigation.
-            // See: https://github.com/motiondivision/motion/issues/2006
-            style={{
-              ...(isDragging
-                ? {}
-                : {
-                    originY: '0px',
-                  }),
-            }}
-            key={dashboard.id}
-            value={dashboard}
-            onDragStart={() => {
-              setIsDragging(dashboard.id);
-            }}
-            onDragEnd={() => {
-              setIsDragging(null);
-              reorderStarredDashboards(savedDashboards);
-            }}
+          <SecondaryNavigation.ReorderableLink
+            to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
+            analyticsItemName="dashboard_starred_item"
+            isActive={id === dashboard.id.toString()}
+            icon={
+              <SecondaryNavigation.ProjectIcon
+                projectPlatforms={dashboardProjectPlatforms}
+                allProjects={
+                  dashboard.projects.length === 1 && dashboard.projects[0] === -1
+                }
+              />
+            }
           >
-            <StyledSecondaryNavigationItem
-              leadingItems={
-                <Flex justify="center" align="center" position="relative">
-                  <GrabHandleWrapper
-                    data-test-id={`grab-handle-${dashboard.id}`}
-                    data-drag-icon
-                    onPointerDown={e => {
-                      controls.start(e);
-                      e.stopPropagation();
-                      e.preventDefault();
-                    }}
-                    onClick={e => {
-                      e.stopPropagation();
-                      e.preventDefault();
-                    }}
-                  >
-                    <IconGrabbable variant="muted" />
-                  </GrabHandleWrapper>
-                  <SecondaryNavigation.ProjectIcon
-                    projectPlatforms={dashboardProjectPlatforms}
-                    allProjects={
-                      dashboard.projects.length === 1 && dashboard.projects[0] === -1
-                    }
-                  />
-                </Flex>
-              }
-              key={dashboard.id}
-              to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
-              analyticsItemName="dashboard_starred_item"
-              isActive={id === dashboard.id.toString()}
+            <Tooltip
+              title={dashboard.title}
+              position="top"
+              showOnlyOnOverflow
+              skipWrapper
             >
-              <Tooltip
-                title={dashboard.title}
-                position="top"
-                showOnlyOnOverflow
-                skipWrapper
-              >
-                <Text ellipsis variant="muted">
-                  {dashboard.title}
-                </Text>
-              </Tooltip>
-            </StyledSecondaryNavigationItem>
-          </StyledReorderItem>
+              <Text ellipsis variant="muted">
+                {dashboard.title}
+              </Text>
+            </Tooltip>
+          </SecondaryNavigation.ReorderableLink>
         );
-      })}
-    </Reorder.Group>
+      }}
+    </SecondaryNavigation.ReorderableList>
   );
 }
-
-const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Link)`
-  :not(:hover) {
-    [data-drag-icon] {
-      ${p => p.theme.visuallyHidden}
-    }
-  }
-
-  :hover {
-    [data-project-icon] {
-      ${p => p.theme.visuallyHidden}
-    }
-  }
-`;
-
-const StyledReorderItem = styled(Reorder.Item, {
-  shouldForwardProp: prop => prop !== 'grabbing',
-})<{grabbing: boolean}>`
-  position: relative;
-  background-color: ${p => (p.grabbing ? p.theme.colors.surface200 : 'transparent')};
-  border-radius: ${p => p.theme.radius.md};
-`;
-
-const GrabHandleWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  cursor: grab;
-  z-index: 3;
-
-  &:active {
-    cursor: grabbing;
-  }
-`;
