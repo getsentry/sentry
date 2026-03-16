@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime
 from datetime import timezone as tz
+from typing import ClassVar, Self
 
 from django.db import models
 from django.utils import timezone
@@ -9,6 +12,7 @@ from sentry.db.models import Model, cell_silo_model
 from sentry.db.models.base import sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
+from sentry.db.models.manager.base import BaseManager
 
 # The current version of the metadata schema. Any record encountered whose schema version is earlier
 # than this will have its data updated and its version set to this value. Stored as a string for
@@ -122,6 +126,8 @@ class GroupHashMetadata(Model):
     # training_mode=True). Separate from seer_model to preserve the original grouping decision
     # metadata.
     seer_latest_training_model = models.CharField(null=True)
+
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("grouphash",))
 
     class Meta:
         app_label = "sentry"
