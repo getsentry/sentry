@@ -106,7 +106,7 @@ function Supergroups() {
     }
   );
 
-  const supergroups = response?.data ?? [];
+  const supergroups = (response?.data ?? []).filter(sg => sg.group_ids.length > 1);
 
   const handleSupergroupClick = (supergroup: SupergroupDetail) => {
     openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
