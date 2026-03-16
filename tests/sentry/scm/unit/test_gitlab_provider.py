@@ -10951,7 +10951,7 @@ class ForwardToClientTest(NamedTuple):
             ],
             provider_return_value={
                 "data": {
-                    "id": "c4604a0d82de5427ec0cdc8780c8f810ea9bec86",
+                    "id": "c4604a0d82de5427ec0cdc8780c8f810ea9bec86:3149948866",
                     "html_url": None,
                     "path": "BLAH.md",
                     "body": "A review comment, on a file, made by the API on 2026-03-11 11:06:19.945026.",
@@ -11012,7 +11012,7 @@ class ForwardToClientTest(NamedTuple):
             provider_args={
                 "pull_request_id": "1",
                 "body": "A reply to the previous comment, made by the API on 2026-03-11 11:06:21.487947.",
-                "comment_id": "c4604a0d82de5427ec0cdc8780c8f810ea9bec86",
+                "comment_id": "c4604a0d82de5427ec0cdc8780c8f810ea9bec86:3149948866",
             },
             client_calls=[
                 ClientForwardedCall(
@@ -11071,7 +11071,7 @@ class ForwardToClientTest(NamedTuple):
             ],
             provider_return_value={
                 "data": {
-                    "id": "c4604a0d82de5427ec0cdc8780c8f810ea9bec86",
+                    "id": "c4604a0d82de5427ec0cdc8780c8f810ea9bec86:3149949479",
                     "html_url": None,
                     "path": "BLAH.md",
                     "body": "A reply to the previous comment, made by the API on 2026-03-11 11:06:21.487947.",

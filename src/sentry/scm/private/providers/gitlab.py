@@ -462,11 +462,8 @@ class GitLabProvider:
         On GitLab, one replies to a discussion. On GitHub, one replies to a comment.
 
         To allow replying to review comments in a consistent way across providers,
-        we treat GitLab's discussion ID as the comment ID:
-        The `id` field in the returned `ReviewComment` is the GitLab discussion ID,
-        which can be passed to `create_review_comment_reply`.
-
-        Caveat: this id does not uniquely identify a comment on GitLab, but rather a thread of comments.
+        we build a comment ID made of the GitLab's discussion ID and comment ID.
+        It can be passed to `create_review_comment_reply`, and uniquely identifies a note.
         """
 
         versions = self.client.get_merge_request_versions(self._repo_id, pull_request_id)
@@ -499,17 +496,18 @@ class GitLabProvider:
         comment_id: str,
     ) -> ActionResult[ReviewComment]:
         """
-        As for `create_review_comment_file`, the `id` returned is the GitLab discussion ID.
-        This makes our behavior consistent with the GitHub provider.
+        The comment_id must have the format returned by `create_review_comment_file`.
+        The newly created comment's ID will have the same format.
         """
+        discussion_id = comment_id.split(":")[0]
         raw = self.client.create_merge_request_discussion_note(
             self._repo_id,
             pull_request_id,
-            comment_id,
+            discussion_id,
             {"body": body},
         )
         return make_result(
-            map_review_comment(comment_id),
+            map_review_comment(discussion_id),
             raw,
         )
 
@@ -639,10 +637,10 @@ def map_reaction_result(raw: dict[str, Any]) -> ReactionResult:
     )
 
 
-def map_review_comment(id: str) -> Callable[[dict[str, Any]], ReviewComment]:
+def map_review_comment(discussion_id: str) -> Callable[[dict[str, Any]], ReviewComment]:
     def _map_review_comment(raw: dict[str, Any]) -> ReviewComment:
         return ReviewComment(
-            id=id,
+            id=f"{discussion_id}:{raw['id']}",
             html_url=None,
             path=raw["position"]["new_path"],
             body=raw["body"],
