@@ -77,7 +77,6 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'non-eap',
       meta: null,
     });
 
@@ -151,7 +150,6 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'non-eap',
       meta: null,
     });
 
@@ -238,7 +236,6 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'eap',
       meta: null,
     });
 
@@ -318,7 +315,6 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'eap',
       meta: null,
     });
 

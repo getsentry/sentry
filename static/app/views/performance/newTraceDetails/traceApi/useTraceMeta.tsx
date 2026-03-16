@@ -10,8 +10,8 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 import type {EAPTraceMeta, TraceMeta} from './types';
