@@ -56,7 +56,7 @@ export function SecondaryNavigationContextProvider(
   );
 
   const interaction = useRef<string | null>(null);
-  const setInteraction = useCallback((value: string | null) => {
+  const setInteraction = useCallback((value: (typeof interaction)['current']) => {
     interaction.current = value;
   }, []);
 

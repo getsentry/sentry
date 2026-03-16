@@ -211,7 +211,7 @@ def _project_key_errors_snuba(
             ),
             Condition(
                 Column("group_status", entity=group_attributes_entity),
-                Op.IN,
+                Op.EQ,
                 GroupStatus.UNRESOLVED,
             ),
             Condition(Column("level", entity=events_entity), Op.EQ, "error"),
