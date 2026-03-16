@@ -31,14 +31,13 @@ export function WidgetSyncContextProvider({
 }: WidgetSyncContextProviderProps) {
   // Stabilize the default groupName so it doesn't change on every render
   const stableGroupName = useMemo(() => groupName ?? uniqueId(), [groupName]);
-  const chartsRef = useRef<Map<Element, EChartsType>>(new Map());
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   const getOrCreateObserver = useCallback(() => {
     if (!observerRef.current) {
       observerRef.current = new IntersectionObserver(entries => {
         for (const entry of entries) {
-          const chart = chartsRef.current.get(entry.target);
+          const chart = echarts.getInstanceByDom(entry.target as HTMLElement);
           if (!chart) {
             continue;
           }
@@ -70,7 +69,6 @@ export function WidgetSyncContextProvider({
         return () => {};
       }
 
-      chartsRef.current.set(dom, chart);
       getOrCreateObserver().observe(dom);
 
       // Set the group immediately for charts that may already be visible
@@ -79,7 +77,6 @@ export function WidgetSyncContextProvider({
 
       // Return a function to unregister the chart
       return () => {
-        chartsRef.current.delete(dom);
         observerRef.current?.unobserve(dom);
         chart.group = '';
       };
