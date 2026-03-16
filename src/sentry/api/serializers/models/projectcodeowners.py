@@ -1,4 +1,6 @@
+import copy
 import logging
+from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations.api.serializers.models.repository_project_path_config import (
@@ -6,7 +8,7 @@ from sentry.integrations.api.serializers.models.repository_project_path_config i
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
-from sentry.issues.ownership.grammar import OwnershipSchema, convert_schema_to_rules_text
+from sentry.issues.ownership.grammar import convert_schema_to_rules_text
 from sentry.models.projectcodeowners import ProjectCodeOwners
 
 logger = logging.getLogger(__name__)
@@ -61,7 +63,7 @@ class ProjectCodeOwnersSerializer(Serializer):
 
         return attrs
 
-    def rename_schema_identifier_for_parsing(self, schema: OwnershipSchema) -> None:
+    def rename_schema_identifier_for_parsing(self, schema: dict[str, Any]) -> None:
         """
         Rename the attribute "identifier" to "name" in the schema response so that it can be parsed
         in the frontend
@@ -101,18 +103,22 @@ class ProjectCodeOwnersSerializer(Serializer):
             _, errors = build_codeowners_associations(obj.raw, obj.project)
             data["errors"] = errors
 
+        renamed_schema = None
         if "renameIdentifier" in self.expand and hasattr(obj, "schema") and obj.schema:
-            self.rename_schema_identifier_for_parsing(obj.schema)
+            renamed_schema = copy.deepcopy(obj.schema)
+            self.rename_schema_identifier_for_parsing(renamed_schema)
 
         if "hasTargetingContext" in self.expand:
-            schema = obj.schema
-            # Stringify owner IDs for API response (stored as int in DB).
-            # Only needed when renameIdentifier wasn't applied (it already stringifies).
-            if schema and schema.get("rules") and "renameIdentifier" not in self.expand:
-                for rule in schema["rules"]:
-                    for rule_owner in rule["owners"]:
-                        if "id" in rule_owner:
-                            rule_owner["id"] = str(rule_owner["id"])
+            if renamed_schema is not None:
+                # Already renamed and IDs stringified by rename_schema_identifier_for_parsing
+                schema = renamed_schema
+            else:
+                schema = copy.deepcopy(obj.schema)
+                if schema and schema.get("rules"):
+                    for rule in schema["rules"]:
+                        for rule_owner in rule["owners"]:
+                            if "id" in rule_owner:
+                                rule_owner["id"] = str(rule_owner["id"])
             data["schema"] = schema
             data["codeOwnersUrl"] = attrs.get("codeOwnersUrl", "unknown")
 

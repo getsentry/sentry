@@ -1,3 +1,4 @@
+import copy
 from datetime import datetime
 from typing import NotRequired, TypedDict
 
@@ -7,7 +8,7 @@ from sentry.models.projectownership import ProjectOwnership
 
 
 class OwnershipRuleOwnerResponse(TypedDict):
-    """Owner as it appears in the API response (after identifier→name rename)."""
+    """Owner as it appears in the API response (after identifier->name rename)."""
 
     type: str
     name: str
@@ -62,8 +63,7 @@ class ProjectOwnershipSerializer(Serializer):
             "autoAssignment": assignment,
             "codeownersAutoSync": obj.codeowners_auto_sync,
         }
-        schema = obj.schema
-        # Stringify owner IDs for API response (stored as int in DB)
+        schema = copy.deepcopy(obj.schema)
         if schema and schema.get("rules"):
             for rule in schema["rules"]:
                 for owner in rule["owners"]:
