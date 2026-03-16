@@ -18,27 +18,6 @@ from tests.snuba.api.endpoints.test_organization_events_timeseries_spans import 
 any_confidence = AnyConfidence()
 
 
-def _assert_timeseries_values_approx(
-    actual_values: list[dict[str, Any]],
-    start: Any,
-    interval: int,
-    expected_values: list[float],
-    abs_tolerance: float,
-) -> None:
-    """Assert actual timeseries values match expected with pytest.approx. Use for rate/float series."""
-    expected_list = build_expected_timeseries(start, interval, expected_values)
-    sorted_actual = sorted(actual_values, key=lambda r: r["timestamp"])
-    assert len(sorted_actual) == len(expected_list), (
-        f"expected {len(expected_list)} buckets, got {len(sorted_actual)}. "
-        f"First row keys (from backend): {list(sorted_actual[0].keys()) if sorted_actual else 'no values'}"
-    )
-    for i, (actual_row, expected_row) in enumerate(zip(sorted_actual, expected_list)):
-        assert actual_row["timestamp"] == expected_row["timestamp"]
-        assert actual_row["value"] == pytest.approx(expected_row["value"], abs=abs_tolerance), (
-            f"bucket {i}: got {actual_row['value']!r}, expected {expected_row['value']!r}"
-        )
-
-
 class OrganizationEventsTimeseriesOccurrencesEndpointTest(
     OrganizationEventsEndpointTestBase, OccurrenceTestCase
 ):
@@ -134,8 +113,6 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
         y_axis: str,
         value_unit: str,
         divisor: float,
-        *,
-        tolerance: float = 0.001,
     ) -> None:
         """Helper for eps/epm timeseries: request yAxis, assert rate per bucket."""
         event_counts = [2, 0, 2, 1, 0, 1]  # per 1h bucket
@@ -150,13 +127,14 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
         assert timeseries["meta"]["valueType"] == "rate"
         assert timeseries["meta"]["valueUnit"] == value_unit
         assert timeseries["meta"]["interval"] == 3_600_000
-        expected_rates = [c / divisor for c in event_counts]
-        _assert_timeseries_values_approx(
-            timeseries["values"],
+
+        assert timeseries["values"] == build_expected_timeseries(
             self.start,
             3_600_000,
-            expected_rates,
-            abs_tolerance=tolerance,
+            [pytest.approx(c / divisor, 0.001) for c in event_counts],
+            sample_count=event_counts,
+            sample_rate=[1 if val else None for val in event_counts],
+            confidence=[any_confidence if val else None for val in event_counts],
         )
 
     def test_eps_timeseries(self) -> None:
@@ -165,10 +143,8 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
             "eps()",
             "1/second",
             3600.0,
-            tolerance=0.0001,
         )
 
     def test_epm_timeseries(self) -> None:
-        """Rate aggregate epm() on /events-timeseries: events/min per bucket, meta rate/1/minute.
-        epm() counts on group_id (OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES); occurrences must have group_id set."""
+        """Rate aggregate epm() on /events-timeseries: events/min per bucket, meta rate/1/minute."""
         self._run_rate_timeseries_test("epm()", "1/minute", 60.0)
