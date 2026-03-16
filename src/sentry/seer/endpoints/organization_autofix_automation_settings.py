@@ -351,6 +351,21 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
             "organizations:seer-project-settings-dual-write", organization
         ):
             try:
+                # Seer API responses don't include repository_id.
+                # Resolve before dual-writing so repos aren't skipped.
+                for pref_dict in preferences_to_set:
+                    for repo in pref_dict.get("repositories", []):
+                        if repo.get("repository_id") is None:
+                            matched = filter_repo_by_provider(
+                                organization.id,
+                                repo.get("provider", ""),
+                                repo.get("external_id", ""),
+                                repo.get("owner", ""),
+                                repo.get("name", ""),
+                            ).first()
+                            if matched is not None:
+                                repo["repository_id"] = matched.id
+
                 validated_preferences = [
                     SeerProjectPreference.validate(pref) for pref in preferences_to_set
                 ]

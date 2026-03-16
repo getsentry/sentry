@@ -270,7 +270,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
         if features.has("organizations:seer-project-settings-dual-write", organization):
             try:
-                # Seer API responses don't include repository_id (Sentry-internal).
+                # Seer API responses don't include repository_id.
                 # Resolve before dual-writing so repos aren't skipped.
                 # This will not be necessary once we cut over reads from Seer API to Sentry DB.
                 for pref_dict in preferences_to_set:
