@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -169,8 +169,22 @@ function OverlayControls({
 }) {
   const theme = useTheme();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   const overlayColors = theme.chart.getColorPalette(10);
+
+  useEffect(() => {
+    if (!isPickerOpen) {
+      return undefined;
+    }
+    function handleMouseDown(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setIsPickerOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [isPickerOpen]);
 
   return (
     <Flex align="center" gap="sm">
@@ -181,7 +195,7 @@ function OverlayControls({
       >
         {showOverlay ? t('Hide Overlay') : t('Show Overlay')}
       </Button>
-      <ColorPickerWrapper>
+      <ColorPickerWrapper ref={pickerRef}>
         <ColorTrigger
           $color={overlayColor}
           aria-label={t('Pick overlay color')}
