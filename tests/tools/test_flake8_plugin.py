@@ -245,7 +245,7 @@ def test(monkeypatch) -> None: pass
 
 def test_S015_current_or_future_year() -> None:
     cy = datetime.now(timezone.utc).year
-    msg = _s015_msg(cy)
+    msg = _s015_msg()
     # Current year at module scope is flagged
     assert _run(
         f"from datetime import datetime, timezone\n\n"

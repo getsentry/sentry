@@ -44,7 +44,7 @@ S014_msg = "S014 Use `unittest.mock` instead"
 
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
-def _s015_msg(year: int) -> str:
+def _s015_msg() -> str:
     return (
         "S015 Do not hardcode datetime with current or future UTC year at module/class "
         "scope or in freeze_time(...); use before_now(...), now-timedelta, or an older fixed year"
@@ -248,7 +248,7 @@ class SentryCheck:
 
     def run(self) -> Generator[tuple[int, int, str, type[Any]]]:
         cy = datetime.now(timezone.utc).year
-        visitor = SentryVisitor(self.filename, cy, _s015_msg(cy))
+        visitor = SentryVisitor(self.filename, cy, _s015_msg())
         visitor.visit(self.tree)
 
         for e in visitor.errors:
