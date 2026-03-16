@@ -4,35 +4,9 @@
 
 Sentry has **flagpole** for feature flags (on/off + percentage rollout with deterministic bucketing), but no standard experimentation framework. We want a general system any team can use to define experiments (control vs treatment), assign orgs to cohorts, and measure outcomes.
 
-**Primary randomization unit**: Organization. Statistical significance will be handled separately with a data scientist.
+**Primary randomization unit**: Organization.
 
 **First use case**: Onboarding experiment to encourage SCM integration setup — measure whether it hurts conversion.
-
----
-
-## Build vs Buy
-
-We evaluated four third-party platforms (Statsig, GrowthBook, Optimizely, SwitchFeat). The key constraint is that **flagpole stays as the assignment system** — we're not replacing our feature flag infrastructure. Any third party would only handle analysis/dashboards.
-
-|                                  | Statsig                | GrowthBook                  | Optimizely                          | SwitchFeat |
-| -------------------------------- | ---------------------- | --------------------------- | ----------------------------------- | ---------- |
-| Push data via API (no warehouse) | Yes                    | Cloud only                  | Yes                                 | No         |
-| External assignment support      | First-class            | Supported                   | Supported                           | No         |
-| Self-hostable                    | No                     | Yes (needs warehouse)       | No                                  | Yes        |
-| API simplicity                   | Simple (flat JSON)     | Simple (flat JSON)          | Complex (nested, need internal IDs) | N/A        |
-| Pricing                          | Free tier + usage      | Free + $40/user/mo          | ~$36K-180K+/yr                      | Free       |
-| Stats                            | CUPED, sequential, SRM | CUPED, sequential, Bayesian | Sequential, FDR control             | None       |
-
-**SwitchFeat** is not suitable — solo-developer prototype, no experiment support, appears abandoned.
-**Optimizely** works but has more friction and cost than Statsig.
-**Statsig** is the best fit if we go third-party — first-class support for external assignment + push API.
-**GrowthBook** is OSS but analysis is SQL-based (needs warehouse connection).
-
-**Note on "existing Statsig integration":** The `StatsigProvider` in `sentry/flags/providers.py` is a customer-facing product feature (webhook audit log receiver). It's irrelevant to internal experimentation — no Statsig SDK is installed.
-
-**Recommendation: Build on flagpole.** Flagpole already handles assignment. We can pipe data to Statsig later once we have experiment data flowing — starting with a third party doesn't save us from building the exposure tracking layer. Amplitude (which we already use) handles analysis for v1.
-
----
 
 ## Design
 
@@ -88,27 +62,22 @@ This transformation happens in two places — the backend `log_experiment_exposu
 
 We revive the patterns from Sentry's old experiment framework (removed Dec 2023 in [`getsentry@8594e8d`](https://github.com/getsentry/getsentry/commit/8594e8d), frontend removed Apr 2025 in [`sentry#90359`](https://github.com/getsentry/sentry/pull/90359)). The old system used PlanOut for randomization (which broke in Python 3.10), but the exposure tracking and Amplitude integration are directly reusable.
 
-#### Frontend
+### Frontend
 
 The frontend can't log exposure from `organization.features.includes()` — that's just an array lookup with no hook point. The old system solved this with a separate `organization.experiments` dict and a `useExperiment()` hook.
 
 1. **Org serializer** evaluates all `experiment_mode` flags and populates `"experiments"`: `{"experiment-scm-onboarding": "active"}` (or `"control"`). The stub `"experiments": {}` already exists in the serializer.
-
-2. **`useExperiment(experimentName)` hook** — reads from `organization.experiments`, logs exposure via `/_experiment/log_exposure/`. Logs on mount by default (configurable via `logExperimentOnMount: false`). Uses localStorage dedup to avoid repeat calls.
-
+2. **`useExperiment(experimentName)` hook** — reads from `organization.experiments`, logs exposure via `/_experiment/log_exposure/`. Logs on mount by default (configurable via `logExperimentOnMount: false`). Dedup is handled server-side (see below).
 3. **`useFeature(flagName)` hook** (proposed) — a general-purpose hook that replaces `organization.features.includes()` for both regular flags and experiments. Returns a boolean. If the flag is also in `organization.experiments`, it automatically logs exposure. This lets teams migrate feature checks to a function call incrementally, and experiment exposure logging comes for free without needing experiment-specific code everywhere. _(Feasibility TBD with frontend team — may be too large a migration to justify for v1.)_
-
 4. **`organization.features.includes()` still works** for gating — the flag is in both `features` and `experiments`. But for experiment-gated UI, prefer `useExperiment()` or `useFeature()` to get exposure logging.
 
-#### Backend
+### Backend
 
 1. **`log_experiment_exposure(experiment_name, org, assignment)`** — fires on exposure:
    - `analytics.record("experiment.exposure", ...)` — lands in BigQuery via PubSub
    - Real-time `group_identify` to Amplitude with `$set` (partial merge, doesn't touch other properties)
-   - Deduped trigger event via `insert_id`
-
+   - **Deduped via Redis**: key `exp:exposure:{org_id}:{experiment_name}` with 24h TTL. If the key exists, skip both the analytics event and `group_identify` call. This covers all callers — org serializer, `/_experiment/log_exposure/`, and `features.has()`. The TTL means each org re-fires once per day, which keeps Amplitude fresh and handles silent failures without generating excessive events.
 2. **`/_experiment/log_exposure/` endpoint** — receives frontend exposure calls, invokes `log_experiment_exposure()`.
-
 3. **Auto-exposure on `features.has()`** — when backend code checks an experiment flag, exposure is logged automatically.
 
 **Both treatment and control orgs get the `group_identify` call.** The org serializer evaluates experiment flags on every authenticated request, so any org that loads the app gets their Amplitude group property set on first page load. This means Amplitude has full visibility into both groups with no batch dependency.
@@ -117,27 +86,25 @@ The frontend can't log exposure from `organization.features.includes()` — that
 
 ### 3. Analysis
 
-#### Amplitude (primary)
+### Amplitude (primary)
 
 Real-time `group_identify` sets experiment properties as org group properties on first page load. Analysts segment any chart by `experiment_scm_onboarding = active` vs `control` using native segmentation.
 
 **Temporal behavior:** Amplitude snapshots group properties onto events at ingestion time ([docs](https://amplitude.com/docs/data/user-properties-and-events)). Once the property is set, all subsequent events carry the label permanently. Events ingested before the property was set won't have it — this is why real-time `group_identify` on first page load matters. When the experiment ends, historical events retain the property for analysis.
 
-#### BigQuery (via exposure events)
+### BigQuery (via exposure events)
 
-Exposure events land in `events_denormalized` via the existing `analytics.record()` → PubSub pipeline. The `daily_organizations` facts table can join against the most recent exposure event per org:
+Exposure events land in `events_denormalized` via the existing `analytics.record()` → PubSub pipeline. The `daily_organizations` facts table can join against any exposure event for the org (assignment is deterministic, so all exposure events for a given org carry the same value):
 
 ```sql
 LEFT JOIN (
-  SELECT organization_id, experiment_name, assignment,
-    ROW_NUMBER() OVER (PARTITION BY organization_id, experiment_name
-                       ORDER BY timestamp DESC) as rn
+  SELECT DISTINCT organization_id, experiment_name, assignment
   FROM events_denormalized
   WHERE event_type = 'experiment.exposure'
-) exp ON exp.organization_id = o.organization_id AND exp.rn = 1
+) exp ON exp.organization_id = o.organization_id
 ```
 
-No new tables, no Celery tasks, no Postgres replication — just joining against events that are already flowing. The assignment reflects the last time the org loaded the app, which for active orgs is effectively current state.
+No new tables, no Celery tasks, no Postgres replication — just joining against events that are already flowing.
 
 **Limitation:** Both Amplitude and BigQuery reflect "last known state" rather than "current ground truth." If an experiment is deleted, the last exposure event / group property persists. For v1 this is acceptable — analysts stop querying ended experiments. A future ETL cleanup job can `$unset` stale Amplitude properties if needed.
 
@@ -193,3 +160,25 @@ def record_experiment_assignment(name: str, variant: str) -> None:
 1. **Unit tests**: `experiment_mode` parsing in flagpole, org serializer includes experiments for both treatment and control, exposure dedup logic
 2. **Integration test**: Define experiment flag with `experiment_mode: simple` → verify org serializer returns correct assignment → verify `useExperiment()` logs exposure → verify `group_identify` call fires
 3. **Manual**: Create experiment flag in options-automator, verify Amplitude group property appears for both treatment and control orgs, verify segmentation works
+
+## Build vs Buy
+
+I evaluated four third-party platforms (Statsig, GrowthBook, Optimizely, SwitchFeat). The key constraint is that flagpole stays as the assignment system. Any third party would only handle analysis/dashboards.
+
+|                                  | Statsig                | GrowthBook                  | Optimizely                          | SwitchFeat |
+| -------------------------------- | ---------------------- | --------------------------- | ----------------------------------- | ---------- |
+| Push data via API (no warehouse) | Yes                    | Cloud only                  | Yes                                 | No         |
+| External assignment support      | First-class            | Supported                   | Supported                           | No         |
+| Self-hostable                    | No                     | Yes (needs warehouse)       | No                                  | Yes        |
+| API simplicity                   | Simple (flat JSON)     | Simple (flat JSON)          | Complex (nested, need internal IDs) | N/A        |
+| Pricing                          | Free tier + usage      | Free + $40/user/mo          | ~$36K-180K+/yr                      | Free       |
+| Stats                            | CUPED, sequential, SRM | CUPED, sequential, Bayesian | Sequential, FDR control             | None       |
+
+**SwitchFeat** is not suitable — solo-developer prototype, no experiment support, appears abandoned.
+**Optimizely** works but has more friction and cost than Statsig.
+**Statsig** is the best fit if we go third-party — first-class support for external assignment + push API.
+**GrowthBook** is OSS but analysis is SQL-based (needs warehouse connection).
+
+**Note on "existing Statsig integration":** The `StatsigProvider` in `sentry/flags/providers.py` is a customer-facing product feature (webhook audit log receiver). It's irrelevant to internal experimentation — no Statsig SDK is installed.
+
+**Recommendation: Build on flagpole.** Flagpole already handles assignment. We can pipe data to Statsig later once we have experiment data flowing — starting with a third party doesn't save us from building the exposure tracking layer. Amplitude (which we already use) handles analysis for v1.
