@@ -25,7 +25,7 @@ from sentry.testutils.silo import (
     assume_test_silo_mode,
     assume_test_silo_mode_of,
     control_silo_test,
-    region_silo_test,
+    cell_silo_test,
 )
 ```
 
@@ -108,7 +108,7 @@ class Test{Feature}OutboxProcessing(TestCase):
         with outbox_context(flush=False):
             Organization(id=org.id).outbox_for_update().save()
 
-        RegionOutbox.objects.filter(
+        CellOutbox.objects.filter(
             shard_identifier=org.id,
         ).first().drain_shard()
 
@@ -135,7 +135,7 @@ class Test{Feature}OutboxProcessing(TestCase):
 
         shards = {
             (row["shard_scope"], row["shard_identifier"])
-            for row in RegionOutbox.find_scheduled_shards()
+            for row in CellOutbox.find_scheduled_shards()
         }
         assert shards == {
             (OutboxScope.ORGANIZATION_SCOPE.value, org1.id),
@@ -181,7 +181,7 @@ class Test{Feature}OutboxProcessing(TestCase):
 - **`assume_test_silo_mode_of(Model)`** is preferred for checking a specific model's state cross-silo. Auto-detects the model's silo.
 - **`assume_test_silo_mode(SiloMode.X)`** for blocks accessing multiple models or non-model resources.
 - **Factory calls** (`self.create_organization()`, etc.) must NEVER be wrapped in `assume_test_silo_mode`. Factories handle silo mode internally.
-- **`@control_silo_test`** for tests focused on `ControlOutbox` records. **`@region_silo_test`** for `RegionOutbox`.
+- **`@control_silo_test`** for tests focused on `ControlOutbox` records. **`@cell_silo_test`** for `RegionOutbox`.
 - Only use **`TransactionTestCase`** for threading/concurrency tests (e.g., `threading.Barrier`), not for standard outbox drain tests.
 - Outbox drain fixtures can clear state between tests:
   ```python

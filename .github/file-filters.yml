@@ -25,6 +25,7 @@ typecheckable_rules_changed: &typecheckable_rules_changed
   - added|modified: '.github/file-filters.yml'
   - added|deleted|modified: '**/tsconfig*.json'
   - added|deleted|modified: 'static/**/*.{ts,tsx,js,jsx,mjs}'
+  - added|deleted|modified: 'static/**/*.mdx'
 
 # Trigger to apply the 'Scope: Frontend' label to PRs
 frontend_all: &frontend_all

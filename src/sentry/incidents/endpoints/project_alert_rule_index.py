@@ -11,7 +11,6 @@ from sentry.incidents.endpoints.organization_alert_rule_index import (
     AlertRuleFetchMixin,
     create_metric_alert,
 )
-from sentry.incidents.models.alert_rule import AlertRule
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 
@@ -29,8 +28,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleFetchMixin):
         """
         Fetches metric alert rules for a project - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
         """
-        alert_rules = AlertRule.objects.fetch_for_project(project)
-        return self.fetch_metric_alert(request, project.organization, alert_rules)
+        return self.fetch_metric_alerts(request, project.organization, [project])
 
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-alert-rules")
     def post(self, request: Request, project) -> HttpResponseBase:

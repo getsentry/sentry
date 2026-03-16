@@ -105,7 +105,6 @@ from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
-from sentry.seer.models.organization_settings import SeerOrganizationSettings
 from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
@@ -478,8 +477,6 @@ class ExhaustiveFixtures(Fixtures):
         OrganizationOption.objects.create(
             organization=org, key="sentry:scrape_javascript", value=True
         )
-        SeerOrganizationSettings.objects.create(organization=org)
-
         owner_member = OrganizationMember.objects.get(organization=org, user_id=owner_id)
         OrganizationMemberReplayAccess.objects.create(organizationmember=owner_member)
 
