@@ -733,7 +733,7 @@ class SpansBuffer:
         segment_keys: list[SegmentKey],
         segment_to_queue: dict[SegmentKey, QueueKey],
         now: int,
-    ) -> dict[SegmentKey, list[bytes]]:
+    ) -> tuple[dict[SegmentKey, list[bytes]], dict[SegmentKey, int]]:
         """
         Loads the segments from Redis, given a list of segment keys. Segments
         exceeding a certain size are skipped, and an error is logged.
