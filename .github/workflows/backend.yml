@@ -205,7 +205,7 @@ jobs:
     needs: [files-changed, prepare-selective-tests]
     name: calculate test shards
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && 5 || 1 }}
+    timeout-minutes: 5
     outputs:
       shard-count: ${{ steps.static-shards.outputs.shard-count || steps.calculate-shards.outputs.shard-count }}
       shard-indices: ${{ steps.static-shards.outputs.shard-indices || steps.calculate-shards.outputs.shard-indices }}
