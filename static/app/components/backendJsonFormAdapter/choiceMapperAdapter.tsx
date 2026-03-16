@@ -16,7 +16,7 @@ import {Text} from '@sentry/scraps/text';
 import {Client} from 'sentry/api';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 import type {JsonFormAdapterFieldConfig} from './types';
