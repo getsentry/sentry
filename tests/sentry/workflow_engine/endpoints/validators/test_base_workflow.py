@@ -898,8 +898,6 @@ class TestWorkflowValidatorUpdate(TestCase):
     def test_cannot_reassign_owner_from_other_team(
         self, mock_action_validator: mock.MagicMock
     ) -> None:
-        from sentry.types.actor import Actor
-
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
