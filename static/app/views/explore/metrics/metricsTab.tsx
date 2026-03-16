@@ -90,7 +90,7 @@ function MetricsQueryBuilderSection() {
   );
 
   const setColumns = useCallback(
-    (newColumns: BaseMetricQuery[], _op: 'insert' | 'update' | 'delete' | 'reorder') => {
+    (newColumns: BaseMetricQuery[]) => {
       navigate({
         ...location,
         query: {
