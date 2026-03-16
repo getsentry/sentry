@@ -9,7 +9,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -95,7 +94,7 @@ function MetricsQueryBuilderSection() {
         ...location,
         query: {
           ...location.query,
-          metric: newColumns.map(encodeMetricQueryParams).filter(defined).filter(Boolean),
+          metric: newColumns.map(encodeMetricQueryParams).filter(Boolean),
         },
       });
     },
