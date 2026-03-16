@@ -135,7 +135,7 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
     "count_unique": count_unique_aggregate_definition(default_arg="group_id"),
     "last_seen": AggregateDefinition(
         internal_function=Function.FUNCTION_MAX,
-        default_search_type="date",
+        default_search_type="integer",
         infer_search_type_from_arguments=False,
         arguments=[
             AttributeArgumentDefinition(
