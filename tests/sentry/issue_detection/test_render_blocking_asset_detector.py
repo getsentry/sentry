@@ -7,12 +7,12 @@ import pytest
 from sentry.issue_detection.detectors.render_blocking_asset_span_detector import (
     RenderBlockingAssetSpanDetector,
 )
+from sentry.issue_detection.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.issue_detection.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
-from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import (

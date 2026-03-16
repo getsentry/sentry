@@ -6,11 +6,11 @@ from unittest import mock
 import pytest
 from django.db.models import F
 
-from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
-from sentry.issues.grouptype import (
+from sentry.issue_detection.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
+from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.issues.occurrence_consumer import _process_message
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage

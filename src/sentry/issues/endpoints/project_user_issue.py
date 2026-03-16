@@ -13,7 +13,8 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.apidocs.parameters import GlobalParams
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.issues.grouptype import GroupType, WebVitalsGroup
+from sentry.issue_detection.grouptype import WebVitalsGroup
+from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.organization import Organization

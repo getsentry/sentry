@@ -15,7 +15,7 @@ from django.utils import timezone
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issue_detection.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.group import Group, GroupStatus
