@@ -233,10 +233,10 @@ const HeaderGrid = styled('div')<{isExpandable: boolean; hasLeadHint?: boolean}>
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   text-align: left;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  background: ${p => p.theme.tokens.background.tertiary};
+  background: ${p => p.theme.tokens.background.secondary};
 
   &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
+    background: ${p => p.theme.tokens.background.tertiary};
   }
 `;
 

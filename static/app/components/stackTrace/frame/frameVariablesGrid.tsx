@@ -82,10 +82,6 @@ const VariableRow = styled('div')`
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-
-  &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
-  }
 `;
 
 const VariableKey = styled('div')`
@@ -96,12 +92,8 @@ const VariableKey = styled('div')`
 const VariablesValue = styled('div')`
   min-width: 0;
   align-self: stretch;
-  background: ${p => p.theme.tokens.background.secondary};
   padding: ${p => p.theme.space.md};
-
-  ${VariableRow}:hover & {
-    background: ${p => p.theme.tokens.background.tertiary};
-  }
+  border-left: 1px solid ${p => p.theme.tokens.border.secondary};
 
   > pre {
     margin: 0;
