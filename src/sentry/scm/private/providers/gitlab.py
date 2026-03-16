@@ -136,6 +136,18 @@ class GitLabProvider:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Comment]:
+        """
+        To achieve a behavior consistent with GitHub, we filter out:
+
+        1) GitLab's "system notes"
+        They are auto-generated comments for events like "Someone resolved all threads".
+        They don't exist on GitHub and have little use outside GitLab's UI.
+
+        2) GitLab's review comments
+        They correspond to GitHub's review comments, which are not returned by GitHub's
+        "list review comments" endpoint, used to to implement `get_pull_request_comments`.
+        """
+
         raw = self.client.get_merge_request_notes(self._repo_id, pull_request_id)
         return make_paginated_result(
             map_comment,
@@ -434,6 +446,20 @@ class GitLabProvider:
         path: str,
         side: ReviewSide,
     ) -> ActionResult[ReviewComment]:
+        """
+        GitLab's "notes" are similar to GitHub's "comments".
+        Additionally, each note belongs to a "discussion".
+
+        On GitLab, one replies to a discussion. On GitHub, one replies to a comment.
+
+        To allow replying to review comments in a consistent way across providers,
+        we treat GitLab's discussion ID as the comment ID:
+        The `id` field in the returned `ReviewComment` is the GitLab discussion ID,
+        which can be passed to `create_review_comment_reply`.
+
+        Caveat: this id does not uniquely identify a comment on GitLab, but rather a thread of comments.
+        """
+
         versions = self.client.get_merge_request_versions(self._repo_id, pull_request_id)
         raw = self.client.create_merge_request_discussion(
             self._repo_id,
@@ -451,7 +477,6 @@ class GitLabProvider:
             },
         )
         return make_result(
-            # Return the conversation ID to allow replying to it (the note also has an ID)
             map_review_comment(raw["id"]),
             raw,
             raw_item=raw["notes"][0],
@@ -464,6 +489,10 @@ class GitLabProvider:
         body: str,
         comment_id: str,
     ) -> ActionResult[ReviewComment]:
+        """
+        As for `create_review_comment_file`, the `id` returned is the GitLab discussion ID.
+        This makes our behavior consistent with the GitHub provider.
+        """
         raw = self.client.create_merge_request_discussion_note(
             self._repo_id,
             pull_request_id,
@@ -471,7 +500,6 @@ class GitLabProvider:
             {"body": body},
         )
         return make_result(
-            # To be consistent with create_review_comment_file, we return the conversation ID here, not the note ID
             map_review_comment(comment_id),
             raw,
         )
