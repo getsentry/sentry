@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 from collections.abc import Generator
+from datetime import datetime, timezone
 from typing import Any
 
 S001_fmt = (
@@ -41,12 +42,47 @@ S013_msg = "S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"
 S014_msg = "S014 Use `unittest.mock` instead"
 
 
+# --- S015: do not hardcode this UTC calendar year as test "now" ---
+# Only year == current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
+def _s015_msg(year: int) -> str:
+    return (
+        f"S015 Do not hardcode datetime(..., {year}, ...) (current UTC year) at module/class "
+        "scope or in freeze_time(...); use before_now(...), now-timedelta, or another year"
+    )
+
+
+def _is_tests_path(filename: str) -> bool:
+    return "tests/" in filename or "testutils/" in filename
+
+
+# Returns the literal year when this is a datetime(...) call shape we lint for.
+def _wall_clock_year_from_datetime_call(node: ast.Call) -> int | None:
+    if not node.args:
+        return None
+    y = node.args[0]
+    if not isinstance(y, ast.Constant) or not isinstance(y.value, int):
+        return None
+    if isinstance(node.func, ast.Name) and node.func.id == "datetime":
+        return y.value
+    if (
+        isinstance(node.func, ast.Attribute)
+        and node.func.attr == "datetime"
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "datetime"
+    ):
+        return y.value
+    return None
+
+
 class SentryVisitor(ast.NodeVisitor):
-    def __init__(self, filename: str) -> None:
+    def __init__(self, filename: str, s015_year: int, s015_msg: str) -> None:
         self.errors: list[tuple[int, int, str]] = []
         self.filename = filename
+        self._s015_year = s015_year
+        self._s015_msg = s015_msg
 
         self._except_vars: list[str | None] = []
+        self._function_depth = 0
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module and not node.level:
@@ -141,7 +177,51 @@ class SentryVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._function_depth += 1
+        try:
+            self.generic_visit(node)
+        finally:
+            self._function_depth -= 1
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._function_depth += 1
+        try:
+            self.generic_visit(node)
+        finally:
+            self._function_depth -= 1
+
+    def visit_Lambda(self, node: ast.Lambda) -> None:
+        self._function_depth += 1
+        try:
+            self.generic_visit(node)
+        finally:
+            self._function_depth -= 1
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        if (
+            _is_tests_path(self.filename)
+            and self._function_depth == 0
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and isinstance(node.value, ast.Call)
+        ):
+            y = _wall_clock_year_from_datetime_call(node.value)
+            if y is not None and y == self._s015_year:
+                self.errors.append((node.lineno, node.col_offset, self._s015_msg))
+        self.generic_visit(node)
+
     def visit_Call(self, node: ast.Call) -> None:
+        if _is_tests_path(self.filename):
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id == "freeze_time"
+                and node.args
+                and isinstance(node.args[0], ast.Call)
+            ):
+                y = _wall_clock_year_from_datetime_call(node.args[0])
+                if y is not None and y == self._s015_year:
+                    self.errors.append((node.lineno, node.col_offset, self._s015_msg))
         if (
             # override_settings(...)
             (isinstance(node.func, ast.Name) and node.func.id == "override_settings")
@@ -167,7 +247,8 @@ class SentryCheck:
         self.filename = filename
 
     def run(self) -> Generator[tuple[int, int, str, type[Any]]]:
-        visitor = SentryVisitor(self.filename)
+        cy = datetime.now(timezone.utc).year
+        visitor = SentryVisitor(self.filename, cy, _s015_msg(cy))
         visitor.visit(self.tree)
 
         for e in visitor.errors:

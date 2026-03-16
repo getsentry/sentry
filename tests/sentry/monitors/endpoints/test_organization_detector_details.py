@@ -7,11 +7,11 @@ from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
     """Test PUT/DELETE operations for monitor incident detectors."""
 

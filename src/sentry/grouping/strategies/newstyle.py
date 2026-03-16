@@ -597,7 +597,7 @@ def single_exception(
         raw = exception.value
         if raw is not None:
             normalized = normalize_message_for_grouping(
-                raw, event, reason="value_component", trim_message=True
+                raw, context, reason="value_component", trim_message=True
             )
             hint = "stripped event-specific values" if raw != normalized else None
             if normalized:

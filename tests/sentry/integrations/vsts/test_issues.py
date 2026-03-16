@@ -31,7 +31,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_PATH
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity
 from sentry.users.services.user.service import user_service
@@ -161,7 +161,7 @@ class VstsIssueBase(TestCase):
     SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
     SENTRY_CONTROL_ADDRESS="http://controlserver",
 )
-@region_silo_test(include_monolith_run=True)
+@cell_silo_test(include_monolith_run=True)
 class VstsIssueSyncTest(VstsIssueBase):
     def tearDown(self) -> None:
         responses.reset()
@@ -549,7 +549,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         )
 
 
-@region_silo_test(include_monolith_run=True)
+@cell_silo_test(include_monolith_run=True)
 class VstsIssueFormTest(VstsIssueBase):
     def setUp(self) -> None:
         super().setUp()
@@ -678,7 +678,7 @@ class VstsIssueFormTest(VstsIssueBase):
         self.assert_project_field(fields, None, [])
 
 
-@region_silo_test
+@cell_silo_test
 class VstsIssueRaiseErrorTest(VstsIssueBase):
     @responses.activate
     def test_raise_error_api_unauthorized(self) -> None:
