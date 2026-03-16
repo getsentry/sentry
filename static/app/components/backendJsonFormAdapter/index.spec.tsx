@@ -2,37 +2,27 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {type JsonFormAdapterFieldConfig} from './types';
 import {BackendJsonFormAdapter} from './';
 
-function renderField(fieldConfig: JsonFormAdapterFieldConfig, initialValue?: unknown) {
-  const org = OrganizationFixture();
-  const mutationOptions = {
-    mutationFn: jest.fn().mockResolvedValue({}),
-  };
-
-  render(
-    <BackendJsonFormAdapter
-      field={fieldConfig}
-      initialValue={initialValue}
-      mutationOptions={mutationOptions}
-    />,
-    {organization: org}
-  );
-
-  return {mutationOptions};
-}
+const org = OrganizationFixture();
+const mutationOptions = {
+  mutationFn: jest.fn().mockResolvedValue({}),
+};
 
 describe('BackendJsonFormAdapter', () => {
   it('renders boolean field as Switch', () => {
-    renderField(
-      {
-        name: 'sync_enabled',
-        type: 'boolean',
-        label: 'Enable Sync',
-        help: 'Toggle sync on or off',
-      },
-      false
+    render(
+      <BackendJsonFormAdapter
+        field={{
+          name: 'sync_enabled',
+          type: 'boolean',
+          label: 'Enable Sync',
+          help: 'Toggle sync on or off',
+        }}
+        initialValue={false}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
     );
 
     expect(screen.getByText('Enable Sync')).toBeInTheDocument();
@@ -40,14 +30,18 @@ describe('BackendJsonFormAdapter', () => {
   });
 
   it('renders text field as Input', () => {
-    renderField(
-      {
-        name: 'webhook_url',
-        type: 'string',
-        label: 'Webhook URL',
-        help: 'Enter the webhook URL',
-      },
-      'https://example.com'
+    render(
+      <BackendJsonFormAdapter
+        field={{
+          name: 'webhook_url',
+          type: 'string',
+          label: 'Webhook URL',
+          help: 'Enter the webhook URL',
+        }}
+        initialValue="https://example.com"
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
     );
 
     expect(screen.getByText('Webhook URL')).toBeInTheDocument();
@@ -56,19 +50,23 @@ describe('BackendJsonFormAdapter', () => {
   });
 
   it('renders select field with options', () => {
-    renderField(
-      {
-        name: 'priority',
-        type: 'select',
-        label: 'Priority',
-        help: 'Select a priority',
-        choices: [
-          ['high', 'High'],
-          ['medium', 'Medium'],
-          ['low', 'Low'],
-        ],
-      },
-      'medium'
+    render(
+      <BackendJsonFormAdapter
+        field={{
+          name: 'priority',
+          type: 'select',
+          label: 'Priority',
+          help: 'Select a priority',
+          choices: [
+            ['high', 'High'],
+            ['medium', 'Medium'],
+            ['low', 'Low'],
+          ],
+        }}
+        initialValue="medium"
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
     );
 
     expect(screen.getByText('Priority')).toBeInTheDocument();
@@ -76,28 +74,36 @@ describe('BackendJsonFormAdapter', () => {
   });
 
   it('renders table field with add button', () => {
-    renderField(
-      {
-        name: 'table_field',
-        type: 'table',
-        label: 'Table Field',
-        addButtonText: 'Add Item',
-      },
-      []
+    render(
+      <BackendJsonFormAdapter
+        field={{
+          name: 'table_field',
+          type: 'table',
+          label: 'Table Field',
+          addButtonText: 'Add Item',
+        }}
+        initialValue={[]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
     );
 
     expect(screen.getByRole('button', {name: /Add Item/})).toBeInTheDocument();
   });
 
   it('boolean toggle triggers POST', async () => {
-    const {mutationOptions} = renderField(
-      {
-        name: 'sync_enabled',
-        type: 'boolean',
-        label: 'Enable Sync',
-        help: 'Toggle sync on or off',
-      },
-      false
+    render(
+      <BackendJsonFormAdapter
+        field={{
+          name: 'sync_enabled',
+          type: 'boolean',
+          label: 'Enable Sync',
+          help: 'Toggle sync on or off',
+        }}
+        initialValue={false}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
     );
 
     await userEvent.click(screen.getByRole('checkbox'));
@@ -110,15 +116,19 @@ describe('BackendJsonFormAdapter', () => {
   });
 
   it('handles disabled fields', () => {
-    renderField(
-      {
-        name: 'sync_enabled',
-        type: 'boolean',
-        label: 'Enable Sync',
-        help: 'Toggle sync on or off',
-        disabled: true,
-      },
-      false
+    render(
+      <BackendJsonFormAdapter
+        field={{
+          name: 'sync_enabled',
+          type: 'boolean',
+          label: 'Enable Sync',
+          help: 'Toggle sync on or off',
+          disabled: true,
+        }}
+        initialValue={false}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
     );
 
     expect(screen.getByRole('checkbox')).toBeDisabled();

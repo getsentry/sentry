@@ -13,7 +13,7 @@ import {BackendJsonFormAdapter} from './';
 
 function makeConfig(
   overrides?: Partial<Extract<JsonFormAdapterFieldConfig, {type: 'table'}>>
-): JsonFormAdapterFieldConfig {
+): Extract<JsonFormAdapterFieldConfig, {type: 'table'}> {
   return {
     name: 'service_table',
     type: 'table',
@@ -26,27 +26,21 @@ function makeConfig(
   };
 }
 
-function renderField(fieldConfig: JsonFormAdapterFieldConfig, initialValue?: unknown) {
-  const org = OrganizationFixture();
-  const mutationOptions = {
-    mutationFn: jest.fn().mockResolvedValue({}),
-  };
-
-  render(
-    <BackendJsonFormAdapter
-      field={fieldConfig}
-      initialValue={initialValue}
-      mutationOptions={mutationOptions}
-    />,
-    {organization: org}
-  );
-
-  return {mutationOptions};
-}
+const org = OrganizationFixture();
+const mutationOptions = {
+  mutationFn: jest.fn().mockResolvedValue({}),
+};
 
 describe('TableAdapter', () => {
   it('renders empty state with only Add button visible', () => {
-    renderField(makeConfig(), []);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     expect(screen.getByRole('button', {name: /Add Service/})).toBeInTheDocument();
     // No column headers or delete buttons when empty
@@ -55,10 +49,17 @@ describe('TableAdapter', () => {
   });
 
   it('renders existing rows with column headers and input fields', () => {
-    renderField(makeConfig(), [
-      {id: '1', service: 'My Service', integration_key: 'abc123'},
-      {id: '2', service: 'Other Service', integration_key: 'def456'},
-    ]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[
+          {id: '1', service: 'My Service', integration_key: 'abc123'},
+          {id: '2', service: 'Other Service', integration_key: 'def456'},
+        ]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     // Column headers
     expect(screen.getByText('Service')).toBeInTheDocument();
@@ -77,7 +78,14 @@ describe('TableAdapter', () => {
   });
 
   it('add row does NOT immediately save', async () => {
-    const {mutationOptions} = renderField(makeConfig(), []);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     await userEvent.click(screen.getByRole('button', {name: /Add Service/}));
 
@@ -87,9 +95,14 @@ describe('TableAdapter', () => {
   });
 
   it('edit cell does NOT save on every keystroke', async () => {
-    const {mutationOptions} = renderField(makeConfig(), [
-      {id: '1', service: 'My Service', integration_key: 'abc123'},
-    ]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     const inputs = screen.getAllByRole('textbox');
     await userEvent.clear(inputs[0]!);
@@ -100,9 +113,14 @@ describe('TableAdapter', () => {
   });
 
   it('edit cell triggers mutation on blur when all fields filled', async () => {
-    const {mutationOptions} = renderField(makeConfig(), [
-      {id: '1', service: 'My Service', integration_key: 'abc123'},
-    ]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     const inputs = screen.getAllByRole('textbox');
     await userEvent.clear(inputs[0]!);
@@ -117,9 +135,14 @@ describe('TableAdapter', () => {
   });
 
   it('blur does NOT save if any non-id field is empty', async () => {
-    const {mutationOptions} = renderField(makeConfig(), [
-      {id: '1', service: 'My Service', integration_key: 'abc123'},
-    ]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     const inputs = screen.getAllByRole('textbox');
     await userEvent.clear(inputs[0]!);
@@ -129,10 +152,17 @@ describe('TableAdapter', () => {
   });
 
   it('delete row triggers mutation after confirmation', async () => {
-    const {mutationOptions} = renderField(makeConfig(), [
-      {id: '1', service: 'My Service', integration_key: 'abc123'},
-      {id: '2', service: 'Other Service', integration_key: 'def456'},
-    ]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[
+          {id: '1', service: 'My Service', integration_key: 'abc123'},
+          {id: '2', service: 'Other Service', integration_key: 'def456'},
+        ]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
     renderGlobalModal();
 
     // Click delete on first row
@@ -150,9 +180,14 @@ describe('TableAdapter', () => {
   });
 
   it('delete confirmation shows custom message', async () => {
-    renderField(makeConfig(), [
-      {id: '1', service: 'My Service', integration_key: 'abc123'},
-    ]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
@@ -164,18 +199,17 @@ describe('TableAdapter', () => {
 
   it('controls disabled during in-flight mutation', async () => {
     let resolveMutation!: () => void;
-    const mutationOptions = {
+    const pendingMutationOptions = {
       mutationFn: jest.fn(
         () => new Promise<void>(resolve => (resolveMutation = resolve))
       ),
     };
 
-    const org = OrganizationFixture();
     render(
       <BackendJsonFormAdapter
         field={makeConfig()}
         initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
-        mutationOptions={mutationOptions}
+        mutationOptions={pendingMutationOptions}
       />,
       {organization: org}
     );
@@ -191,7 +225,7 @@ describe('TableAdapter', () => {
     await userEvent.click(document.body); // blur triggers save
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalled();
+      expect(pendingMutationOptions.mutationFn).toHaveBeenCalled();
     });
 
     // Controls should be disabled during mutation

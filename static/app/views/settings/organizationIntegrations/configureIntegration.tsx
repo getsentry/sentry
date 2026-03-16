@@ -10,6 +10,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import {BackendJsonFormAdapter} from 'sentry/components/backendJsonFormAdapter';
+import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
 import Confirm from 'sentry/components/confirm';
 import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -409,7 +410,11 @@ function ConfigureIntegration() {
               <BackendJsonFormAdapter
                 key={fieldConfig.name}
                 field={fieldConfig}
-                initialValue={integration.configData?.[fieldConfig.name]}
+                initialValue={
+                  integration.configData?.[fieldConfig.name] as FieldValue<
+                    typeof fieldConfig
+                  >
+                }
                 mutationOptions={integrationMutationOptions}
               />
             ))}

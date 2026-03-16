@@ -18,7 +18,7 @@ const SENTRY_PROJECTS = [
 
 function makeConfig(
   overrides?: Partial<Extract<JsonFormAdapterFieldConfig, {type: 'project_mapper'}>>
-): JsonFormAdapterFieldConfig {
+): Extract<JsonFormAdapterFieldConfig, {type: 'project_mapper'}> {
   return {
     name: 'project_mappings',
     type: 'project_mapper',
@@ -34,27 +34,21 @@ function makeConfig(
   };
 }
 
-function renderField(fieldConfig: JsonFormAdapterFieldConfig, initialValue?: unknown) {
-  const org = OrganizationFixture();
-  const mutationOptions = {
-    mutationFn: jest.fn().mockResolvedValue({}),
-  };
-
-  render(
-    <BackendJsonFormAdapter
-      field={fieldConfig}
-      initialValue={initialValue}
-      mutationOptions={mutationOptions}
-    />,
-    {organization: org}
-  );
-
-  return {mutationOptions};
-}
+const org = OrganizationFixture();
+const mutationOptions = {
+  mutationFn: jest.fn().mockResolvedValue({}),
+};
 
 describe('ProjectMapperAdapter', () => {
   it('renders empty state with two dropdowns and disabled Add button', () => {
-    renderField(makeConfig(), []);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     expect(screen.getByText('Vercel project\u2026')).toBeInTheDocument();
     expect(screen.getByText('Sentry project\u2026')).toBeInTheDocument();
@@ -64,7 +58,14 @@ describe('ProjectMapperAdapter', () => {
   });
 
   it('renders existing mappings with icon, label, link, arrow, IdBadge, delete', () => {
-    renderField(makeConfig(), [[101, 'proj-1']]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[[101, 'proj-1']]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     // Mapped item label
     expect(screen.getByText('my-vercel-project')).toBeInTheDocument();
@@ -80,7 +81,14 @@ describe('ProjectMapperAdapter', () => {
   });
 
   it('shows "Deleted" for unknown mapped items', () => {
-    renderField(makeConfig(), [[101, 'unknown-value']]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[[101, 'unknown-value']]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     expect(screen.getByText('Deleted')).toBeInTheDocument();
     // Sentry project should still render
@@ -88,7 +96,14 @@ describe('ProjectMapperAdapter', () => {
   });
 
   it('shows "Deleted" for unknown Sentry projects', () => {
-    renderField(makeConfig(), [[999, 'proj-1']]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[[999, 'proj-1']]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     // Mapped item should still render
     expect(screen.getByText('my-vercel-project')).toBeInTheDocument();
@@ -96,7 +111,14 @@ describe('ProjectMapperAdapter', () => {
   });
 
   it('add mapping triggers mutation', async () => {
-    const {mutationOptions} = renderField(makeConfig(), []);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     // Select mapped dropdown
     await userEvent.click(screen.getByText('Vercel project\u2026'));
@@ -117,10 +139,17 @@ describe('ProjectMapperAdapter', () => {
   });
 
   it('delete mapping triggers mutation', async () => {
-    const {mutationOptions} = renderField(makeConfig(), [
-      [101, 'proj-1'],
-      [102, 'proj-2'],
-    ]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[
+          [101, 'proj-1'],
+          [102, 'proj-2'],
+        ]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     // Delete the first mapping
     const deleteButtons = screen.getAllByRole('button', {name: 'Delete'});
@@ -134,7 +163,14 @@ describe('ProjectMapperAdapter', () => {
   });
 
   it('filters already-used external items from mapped dropdown', async () => {
-    renderField(makeConfig(), [[101, 'proj-1']]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[[101, 'proj-1']]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     // Open the mapped dropdown
     await userEvent.click(screen.getByText('Vercel project\u2026'));
@@ -150,7 +186,14 @@ describe('ProjectMapperAdapter', () => {
   });
 
   it('does not filter Sentry projects (many-to-one)', async () => {
-    renderField(makeConfig(), [[101, 'proj-1']]);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[[101, 'proj-1']]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     // Open the sentry project dropdown
     await userEvent.click(screen.getByText('Sentry project\u2026'));
@@ -165,7 +208,14 @@ describe('ProjectMapperAdapter', () => {
   });
 
   it('Add button disabled until both selections are made', async () => {
-    renderField(makeConfig(), []);
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
 
     const addButton = screen.getByRole('button', {name: 'Add project'});
     expect(addButton).toBeDisabled();
@@ -187,13 +237,12 @@ describe('ProjectMapperAdapter', () => {
 
   it('controls disabled during in-flight mutation', async () => {
     let resolveMutation!: () => void;
-    const mutationOptions = {
+    const pendingMutationOptions = {
       mutationFn: jest.fn(
         () => new Promise<void>(resolve => (resolveMutation = resolve))
       ),
     };
 
-    const org = OrganizationFixture();
     render(
       <BackendJsonFormAdapter
         field={makeConfig()}
@@ -201,7 +250,7 @@ describe('ProjectMapperAdapter', () => {
           [101, 'proj-1'],
           [102, 'proj-2'],
         ]}
-        mutationOptions={mutationOptions}
+        mutationOptions={pendingMutationOptions}
       />,
       {organization: org}
     );
@@ -214,7 +263,7 @@ describe('ProjectMapperAdapter', () => {
     await userEvent.click(deleteButtons[0]!);
 
     await waitFor(() => {
-      expect(mutationOptions.mutationFn).toHaveBeenCalled();
+      expect(pendingMutationOptions.mutationFn).toHaveBeenCalled();
     });
 
     // Remaining delete button should be disabled during mutation
