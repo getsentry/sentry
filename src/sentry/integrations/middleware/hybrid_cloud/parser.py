@@ -122,7 +122,7 @@ class BaseRequestParser(ABC):
             tags={"destination_region": region.name},
             sample_rate=1.0,
         ):
-            region_client = CellSiloClient(region, retry=True)
+            cell_client = CellSiloClient(region, retry=True)
             with MiddlewareOperationEvent(
                 operation_type=MiddlewareOperationType.GET_REGION_RESPONSE,
                 integration_name=self.provider,
@@ -135,7 +135,7 @@ class BaseRequestParser(ABC):
                     }
                 )
 
-                http_response = region_client.proxy_request(incoming_request=self.request)
+                http_response = cell_client.proxy_request(incoming_request=self.request)
                 return http_response
 
     def get_responses_from_region_silos(self, regions: list[Cell]) -> dict[str, RegionResult]:
