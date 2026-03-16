@@ -207,6 +207,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Digests
+register(
+    "digests.encode-json-zstd",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TOTP (Auth app)
 register(
     "totp.disallow-new-enrollment",
