@@ -61,14 +61,6 @@ class SlackRequestParser(BaseRequestParser):
         SlackUnlinkIdentityView,
     ]
 
-    region_classes = [
-        SlackLinkTeamView,
-        SlackUnlinkTeamView,
-        SlackCommandsEndpoint,
-        SlackEventEndpoint,
-        SlackOptionsLoadEndpoint,
-    ]
-
     webhook_endpoints = [
         SlackCommandsEndpoint,
         SlackActionEndpoint,
