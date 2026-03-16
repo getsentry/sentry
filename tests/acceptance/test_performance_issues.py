@@ -7,11 +7,11 @@ from unittest.mock import MagicMock, patch
 
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry import options
-from sentry.issue_detection.grouptype import (
+from sentry.issues.grouptype import (
+    NoiseConfig,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
 )
-from sentry.issues.grouptype import NoiseConfig
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.models.group import Group
 from sentry.testutils.cases import AcceptanceTestCase, PerformanceIssueTestCase, SnubaTestCase
