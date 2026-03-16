@@ -2485,3 +2485,40 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
 
         assert attrs[long_attr]["valid"] is False
         assert "error" in attrs[long_attr]
+
+    def test_stats_period_limits_time_range(self):
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=2).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"old.tag": "hello"},
+        )
+
+        # Wide time range should find the tag
+        response = self.do_request(
+            payload={
+                "itemType": "spans",
+                "attributes": ["old.tag"],
+            },
+            query_params={"statsPeriod": "7d"},
+        )
+        assert response.status_code == 200
+        assert response.data["attributes"]["old.tag"]["valid"] is True
+
+        # Narrow time range should not find the tag
+        response = self.do_request(
+            payload={
+                "itemType": "spans",
+                "attributes": ["old.tag"],
+            },
+            query_params={"statsPeriod": "1h"},
+        )
+        assert response.status_code == 200
+        assert response.data["attributes"]["old.tag"]["valid"] is False
