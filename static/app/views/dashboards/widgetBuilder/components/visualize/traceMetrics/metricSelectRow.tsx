@@ -3,15 +3,12 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
-  generateFieldAsString,
   type AggregationKeyWithAlias,
   type Column,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {AggregateSelector} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/aggregateSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
   buildTraceMetricAggregate,
   extractTraceMetricFromColumn,
@@ -32,7 +29,6 @@ export function MetricSelectRow({
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
 
-  const isTimeSeries = usesTimeSeriesData(state.displayType);
   const aggregateSource = getTraceMetricAggregateSource(
     state.displayType,
     state.yAxis,
@@ -73,34 +69,12 @@ export function MetricSelectRow({
               return f;
             });
 
+            // Sort fixup is handled by the dispatch handlers
+            // (SET_Y_AXIS, SET_FIELDS, SET_CATEGORICAL_AGGREGATE)
             dispatch({
               type: getTraceMetricAggregateActionType(state.displayType),
               payload: updatedAggregates,
             });
-
-            // Update the sort if the current sort is not used in any of the current fields
-            if (
-              state.sort &&
-              state.sort.length > 0 &&
-              !checkTraceMetricSortUsed(
-                state.sort,
-                isTimeSeries ? updatedAggregates : state.yAxis,
-                isTimeSeries ? state.fields : updatedAggregates
-              )
-            ) {
-              dispatch({
-                type: BuilderStateAction.SET_SORT,
-                payload:
-                  updatedAggregates.length > 0
-                    ? [
-                        {
-                          field: generateFieldAsString(updatedAggregates[0]!),
-                          kind: 'desc' as const,
-                        },
-                      ]
-                    : [],
-              });
-            }
           }}
         />
       </MetricSelectorWrapper>
@@ -114,17 +88,6 @@ export function MetricSelectRow({
       </AggregateSelectorWrapper>
     </Flex>
   );
-}
-
-function checkTraceMetricSortUsed(
-  sort: Array<{field: string}>,
-  yAxis: Column[] = [],
-  fields: Column[] = []
-): boolean {
-  const sortValue = sort[0]?.field;
-  const sortInFields = fields?.some(f => generateFieldAsString(f) === sortValue);
-  const sortInYAxis = yAxis?.some(f => generateFieldAsString(f) === sortValue);
-  return sortInFields || sortInYAxis;
 }
 
 const MetricSelectorWrapper = styled('div')`
