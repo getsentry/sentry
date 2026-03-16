@@ -34,7 +34,7 @@ This section contains critical command execution instructions that apply across 
 
 ### Python Command Execution Requirements
 
-**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
+**CRITICAL**: When running Python commands (pytest, mypy, etc.), you MUST use the virtual environment.
 
 #### For AI Agents (automated commands)
 
@@ -80,11 +80,11 @@ devservices serve
 #### Linting
 
 ```bash
-# Preferred: Run pre-commit hooks on specific files
-pre-commit run --files src/sentry/path/to/file.py
+# Preferred: Run pre-commit hooks on specific files (PREK_QUIET in .envrc means only failures are shown)
+.venv/bin/prek run -q --files src/sentry/path/to/file.py
 
 # Run all pre-commit hooks
-pre-commit run --all-files
+.venv/bin/prek run -q --all-files
 ```
 
 #### Before completing a task
@@ -92,11 +92,10 @@ pre-commit run --all-files
 Before you consider a coding task complete, run pre-commit on any files you created or modified. Use the actual paths (e.g. `src/sentry/foo/bar.py`, `tests/sentry/foo/test_bar.py`, `static/app/components/foo.tsx`):
 
 ```bash
-# From repo root; for automation use the venv
-cd /path/to/sentry && .venv/bin/pre-commit run --files <file1> [file2 ...]
+cd /path/to/sentry && .venv/bin/prek run -q --files <file1> [file2 ...]
 ```
 
-If pre-commit fails, fix the reported issues and run it again until it passes. Do not push with `--no-verify` to skip hooks—fix the issues and try again instead. Only then treat the task as done.
+If a hook fails, fix the reported issues and run it again until it passes. Do not push with `--no-verify` to skip hooks—fix the issues and try again instead. Only then treat the task as done.
 
 #### Testing
 
