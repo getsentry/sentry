@@ -8,7 +8,7 @@ from typing import Any
 
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByOrganizationIdAttribute
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.sentry_apps.services.app import RpcSentryApp, RpcSentryAppInstallation
 from sentry.sentry_apps.services.cell.model import (
     RpcEmptyResult,
@@ -43,7 +43,7 @@ class SentryAppCellService(RpcService):
         """Combines SentryApp.slug and SentryAppComponent.type to create a unique key for TSDB metrics."""
         return f"{sentry_app_slug}:{component_type}"
 
-    @regional_rpc_method(ByOrganizationId())
+    @cell_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def get_select_options(
         self,
@@ -58,7 +58,7 @@ class SentryAppCellService(RpcService):
         """Invokes SelectRequester to get select options."""
         pass
 
-    @regional_rpc_method(ByOrganizationId())
+    @cell_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def create_issue_link(
         self,
@@ -74,7 +74,7 @@ class SentryAppCellService(RpcService):
         """Invokes IssueLinkCreator to create an issue link."""
         pass
 
-    @regional_rpc_method(ByOrganizationId())
+    @cell_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def create_external_issue(
         self,
@@ -89,7 +89,7 @@ class SentryAppCellService(RpcService):
         """Invokes ExternalIssueCreator to create an external issue."""
         pass
 
-    @regional_rpc_method(ByOrganizationId())
+    @cell_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def delete_external_issue(
         self,
@@ -101,7 +101,7 @@ class SentryAppCellService(RpcService):
         """Deletes a PlatformExternalIssue."""
         pass
 
-    @regional_rpc_method(ByOrganizationId())
+    @cell_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def get_service_hook_projects(
         self,
@@ -116,7 +116,7 @@ class SentryAppCellService(RpcService):
         """
         pass
 
-    @regional_rpc_method(ByOrganizationId())
+    @cell_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def set_service_hook_projects(
         self,
@@ -133,7 +133,7 @@ class SentryAppCellService(RpcService):
         """
         pass
 
-    @regional_rpc_method(ByOrganizationId())
+    @cell_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def delete_service_hook_projects(
         self,
@@ -148,7 +148,7 @@ class SentryAppCellService(RpcService):
         """
         pass
 
-    @regional_rpc_method(
+    @cell_rpc_method(
         ByOrganizationIdAttribute(parameter_name="sentry_app", attribute_name="owner_id")
     )
     @abc.abstractmethod
@@ -164,7 +164,7 @@ class SentryAppCellService(RpcService):
         """Gets TSDB stats for Sentry App views and component interactions."""
         pass
 
-    @regional_rpc_method(
+    @cell_rpc_method(
         ByOrganizationIdAttribute(parameter_name="sentry_app", attribute_name="owner_id")
     )
     @abc.abstractmethod

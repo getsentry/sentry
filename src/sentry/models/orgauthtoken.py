@@ -124,7 +124,7 @@ class OrgAuthToken(ReplicatedControlModel):
 
         region_replica_service.upsert_replicated_org_auth_token(
             token=serialize_org_auth_token(self),
-            region_name=region_name,
+            cell_name=region_name,
         )
 
 
