@@ -30,7 +30,7 @@ from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.region import override_regions
+from sentry.testutils.region import override_cells
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Cell, RegionCategory
 from sentry.users.models.identity import Identity
@@ -174,7 +174,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         self.pipeline.state.data = {"external_id": self.external_id}
         with (
-            override_regions(self.regions),
+            override_cells(self.regions),
             patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp,
         ):
             self.pipeline.finish_pipeline()
@@ -193,7 +193,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             mapping.update(cell_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
-        with override_regions(self.regions):
+        with override_cells(self.regions):
             response = self.pipeline.finish_pipeline()
             assert isinstance(response, HttpResponse)
             error_message = "This integration has already been installed on another Sentry organization which resides in a different region. Installation could not be completed."

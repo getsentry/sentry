@@ -16,11 +16,11 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_regions
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_cells
 
 REQUESTING_TEST_REGION = "requesting"
 EXPORTING_TEST_REGION = "exporting"
-SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTING_TEST_REGION)
+SAAS_TO_SAAS_TEST_REGIONS = create_test_cells(REQUESTING_TEST_REGION, EXPORTING_TEST_REGION)
 
 
 @patch("sentry.analytics.record")

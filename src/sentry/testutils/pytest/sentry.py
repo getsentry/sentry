@@ -20,7 +20,7 @@ from django.conf import settings
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
 from sentry.testutils.pytest import xdist
-from sentry.testutils.region import TestEnvRegionDirectory
+from sentry.testutils.region import TestEnvCellDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
 from sentry.types.region import Cell, RegionCategory
@@ -67,7 +67,7 @@ def _configure_test_env_regions() -> None:
 
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
-    # depends on region attributes, use `override_regions` in your test case.
+    # depends on region attributes, use `override_cells` in your test case.
     # Under xdist, seed deterministically so all workers generate the same name
     # (divergent names break xdist's requirement for identical test collection).
     xdist_uid = os.environ.get("PYTEST_XDIST_TESTRUNUID")
@@ -89,9 +89,9 @@ def _configure_test_env_regions() -> None:
     settings.SENTRY_MONOLITH_REGION = region_name
 
     # This not only populates the environment with the default region, but also
-    # ensures that a TestEnvRegionDirectory instance is injected into global state.
+    # ensures that a TestEnvCellDirectory instance is injected into global state.
     # See sentry.testutils.region.get_test_env_directory, which relies on it.
-    region.set_global_directory(TestEnvRegionDirectory([default_region]))
+    region.set_global_directory(TestEnvCellDirectory([default_region]))
 
     settings.SENTRY_SUBNET_SECRET = "secret"
     settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"

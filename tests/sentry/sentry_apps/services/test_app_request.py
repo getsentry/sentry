@@ -6,13 +6,13 @@ from sentry.sentry_apps.services.app_request import SentryAppRequestFilterArgs, 
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 @django_db_all(transaction=True)
-@control_silo_test(regions=create_test_regions("us"))
+@control_silo_test(cells=create_test_cells("us"))
 class TestRegionApp(TestCase):
     def setUp(self) -> None:
         self.user = Factories.create_user()

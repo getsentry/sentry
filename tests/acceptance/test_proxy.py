@@ -16,7 +16,7 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.region import override_regions
+from sentry.testutils.region import override_cells
 from sentry.testutils.silo import cell_silo_test
 from sentry.types.region import Cell
 from sentry.utils import json
@@ -30,7 +30,7 @@ def local_live_server(request: pytest.FixtureRequest, live_server: LiveServer) -
     request.node.live_server = live_server
 
 
-@cell_silo_test(regions=[test_region])
+@cell_silo_test(cells=[test_region])
 @pytest.mark.usefixtures("local_live_server")
 class EndToEndAPIProxyTest(TransactionTestCase):
     live_server: LiveServer
@@ -52,7 +52,7 @@ class EndToEndAPIProxyTest(TransactionTestCase):
         config = asdict(test_region)
         config["address"] = self.live_server.url
 
-        with override_regions([Cell(**config)]):
+        with override_cells([Cell(**config)]):
             self.organization = Factories.create_organization(owner=self.user, region="us")
             self.api_key = Factories.create_api_key(
                 organization=self.organization, scope_list=["org:write", "org:admin", "team:write"]

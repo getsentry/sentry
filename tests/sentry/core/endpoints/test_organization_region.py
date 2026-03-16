@@ -1,12 +1,12 @@
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_cells
 from sentry.types.region import Cell, get_cell_by_name, get_global_directory
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
-@control_silo_test(regions=create_test_regions("us", "de"))
+@control_silo_test(cells=create_test_cells("us", "de"))
 class OrganizationRegionTest(APITestCase):
     endpoint = "sentry-api-0-organization-region"
 

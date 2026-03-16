@@ -94,7 +94,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.task_runner import BurstTaskRunner, BurstTaskRunnerRetryError
-from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_regions
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_cells
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.utils import json
@@ -103,7 +103,7 @@ IMPORT_JSON_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
 
 REQUESTING_TEST_REGION = "requesting"
 EXPORTING_TEST_REGION = "exporting"
-SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTING_TEST_REGION)
+SAAS_TO_SAAS_TEST_REGIONS = create_test_cells(REQUESTING_TEST_REGION, EXPORTING_TEST_REGION)
 
 
 class RelocationTaskTestCase(TestCase):

@@ -10,7 +10,7 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.region import override_regions
+from sentry.testutils.region import override_cells
 from sentry.types.region import Cell, RegionCategory
 from sentry.users.models.user import User
 from sentry.utils import snowflake
@@ -37,7 +37,7 @@ class SnowflakeUtilsTest(TestCase):
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self) -> None:
         region = Cell("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
-        with override_settings(SILO_MODE=SiloMode.CELL), override_regions([region], region):
+        with override_settings(SILO_MODE=SiloMode.CELL), override_cells([region], region):
             snowflake_id = generate_snowflake_id("test_redis_key")
             expected_value = (16 << 48) + (
                 int(self.CURRENT_TIME.timestamp() - settings.SENTRY_SNOWFLAKE_EPOCH_START) << 16
@@ -48,7 +48,7 @@ class SnowflakeUtilsTest(TestCase):
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids_with_region_sequence(self) -> None:
         region = Cell("test-region", 0, "http://testserver", RegionCategory.MULTI_TENANT)
-        with override_settings(SILO_MODE=SiloMode.CELL), override_regions([region], region):
+        with override_settings(SILO_MODE=SiloMode.CELL), override_cells([region], region):
             snowflake_id = generate_snowflake_id("test_redis_key")
 
             for _ in range(MAX_AVAILABLE_REGION_SEQUENCES - 1):
@@ -88,9 +88,9 @@ class SnowflakeUtilsTest(TestCase):
             r2 := Cell("test-region-2", 2, "localhost:8002", RegionCategory.MULTI_TENANT),
         ]
         with override_settings(SILO_MODE=SiloMode.CELL):
-            with override_regions(regions, r1):
+            with override_cells(regions, r1):
                 snowflake1 = generate_snowflake_id("test_redis_key")
-            with override_regions(regions, r2):
+            with override_cells(regions, r2):
                 snowflake2 = generate_snowflake_id("test_redis_key")
 
             def recover_segment_value(segment: SnowflakeBitSegment, value: int) -> int:

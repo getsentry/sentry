@@ -136,7 +136,7 @@ class CellDirectory:
     """A set of cells in a Sentry environment.
 
     This is a singleton class. It is immutable in a production environment,
-    but affords overrides by the subclass TestEnvRegionDirectory.
+    but affords overrides by the subclass TestEnvCellDirectory.
     """
 
     def __init__(

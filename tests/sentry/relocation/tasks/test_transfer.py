@@ -25,10 +25,10 @@ from sentry.testutils.silo import (
     assume_test_silo_mode,
     cell_silo_test,
     control_silo_test,
-    create_test_regions,
+    create_test_cells,
 )
 
-TEST_REGIONS = create_test_regions("us", "de")
+TEST_REGIONS = create_test_cells("us", "de")
 
 
 def create_control_relocation_transfer(organization: Organization, **kwargs):

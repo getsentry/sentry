@@ -5,7 +5,7 @@ from sentry import options
 from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.cases import APITestCase, PermissionTestCase
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.types.region import get_cell_by_name
 from sentry.utils.security.orgauthtoken_token import parse_token
 
@@ -108,7 +108,7 @@ class OrganizationAuthTokensListTest(APITestCase):
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-@control_silo_test(regions=create_test_regions("us"))
+@control_silo_test(cells=create_test_cells("us"))
 class OrganizationAuthTokenCreateTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-tokens"
     method = "POST"

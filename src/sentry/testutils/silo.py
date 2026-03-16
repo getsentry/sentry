@@ -22,7 +22,7 @@ from django.test import override_settings
 
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
-from sentry.testutils.region import get_test_env_directory, override_regions
+from sentry.testutils.region import get_test_env_directory, override_cells
 from sentry.types.region import Cell, RegionCategory
 from sentry.utils.snowflake import uses_snowflake_id
 
@@ -37,7 +37,7 @@ SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 def monkey_patch_single_process_silo_mode_state():
     class LocalSiloModeState(threading.local):
         mode: SiloMode | None = None
-        region: Cell | None = None
+        cell: Cell | None = None
 
     state = LocalSiloModeState()
 
@@ -82,7 +82,7 @@ def monkey_patch_single_process_silo_mode_state():
     SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
 
 
-def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Cell, ...]:
+def create_test_cells(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Cell, ...]:
     from sentry.api.utils import generate_locality_url
 
     single_tenants = frozenset(single_tenants)
@@ -99,6 +99,10 @@ def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tupl
         )
         for (index, name) in enumerate(names)
     )
+
+
+# TODO(cells): Remove alias once no longer used in getsentry
+create_test_regions = create_test_cells
 
 
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
@@ -166,21 +170,29 @@ class SiloModeTestDecorator:
             Callable[..., Any],
         )
     ](
-        self, *, regions: Sequence[Cell] = (), include_monolith_run: bool = False
+        self,
+        *,
+        cells: Sequence[Cell] = (),
+        regions: Sequence[Cell]
+        | None = None,  # TODO(cells): Remove alias once no longer used in getsentry
+        include_monolith_run: bool = False,
     ) -> Callable[[T], T]: ...
 
     def __call__(
         self,
         decorated_obj: Any = None,
         *,
-        regions: Sequence[Cell] = (),
+        cells: Sequence[Cell] = (),
+        regions: Sequence[Cell]
+        | None = None,  # TODO(cells): Remove alias once no longer used in getsentry
         include_monolith_run: bool = False,
     ) -> Any:
         silo_modes = self.silo_modes
         if include_monolith_run:
             silo_modes |= frozenset([SiloMode.MONOLITH])
 
-        mod = _SiloModeTestModification(silo_modes=silo_modes, regions=tuple(regions))
+        resolved_cells = tuple(cells or regions or ())
+        mod = _SiloModeTestModification(silo_modes=silo_modes, cells=resolved_cells)
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
 
 
@@ -189,7 +201,7 @@ class _SiloModeTestModification:
     """Encapsulate the set of changes made to a test class by a SiloModeTestDecorator."""
 
     silo_modes: frozenset[SiloMode]
-    regions: tuple[Cell, ...]
+    cells: tuple[Cell, ...]
 
     def __post_init__(self) -> None:
         if not self.silo_modes:
@@ -198,7 +210,7 @@ class _SiloModeTestModification:
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
         with (
-            override_regions(self.regions) if self.regions else nullcontext(),
+            override_cells(self.cells) if self.cells else nullcontext(),
             assume_test_silo_mode(silo_mode, can_be_monolith=False),
         ):
             yield
@@ -375,10 +387,10 @@ def assume_test_silo_mode(
         if desired_silo == SiloMode.CELL:
             region_dir = get_test_env_directory()
             if region_name is None:
-                with region_dir.swap_to_default_region():
+                with region_dir.swap_to_default_cell():
                     yield
             else:
-                with region_dir.swap_to_region_by_name(region_name):
+                with region_dir.swap_to_cell_by_name(region_name):
                     yield
         else:
             with override_settings(SENTRY_REGION=None):

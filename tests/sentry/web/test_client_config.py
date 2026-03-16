@@ -31,7 +31,7 @@ from sentry.testutils.requests import (
 from sentry.testutils.silo import (
     assume_test_silo_mode_of,
     control_silo_test,
-    create_test_regions,
+    create_test_cells,
     no_silo_test,
 )
 from sentry.types import region
@@ -63,7 +63,7 @@ def none_request() -> None:
 
 
 multiregion_client_config_test = control_silo_test(
-    regions=create_test_regions("us", "eu", "acme", single_tenants=["acme"]),
+    cells=create_test_cells("us", "eu", "acme", single_tenants=["acme"]),
     include_monolith_run=True,
 )
 
@@ -218,7 +218,7 @@ hidden_regions = [
 ]
 
 
-@control_silo_test(regions=hidden_regions, include_monolith_run=True)
+@control_silo_test(cells=hidden_regions, include_monolith_run=True)
 @django_db_all
 def test_client_config_with_hidden_region_data() -> None:
     request, user = make_user_request_from_org()
@@ -299,7 +299,7 @@ def test_client_config_links_regionurl() -> None:
 
 
 @control_silo_test(
-    regions=create_test_regions("us", "eu", "acme", "de", "apac", single_tenants=["acme"]),
+    cells=create_test_cells("us", "eu", "acme", "de", "apac", single_tenants=["acme"]),
     include_monolith_run=True,
 )
 @django_db_all
