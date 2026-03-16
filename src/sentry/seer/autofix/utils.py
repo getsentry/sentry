@@ -16,6 +16,7 @@ from sentry import features, options, ratelimits
 from sentry.constants import (
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     DataCategory,
+    ObjectStatus,
 )
 from sentry.issues.auto_source_code_config.code_mapping import (
     get_sorted_code_mapping_configs,
@@ -40,7 +41,6 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepositoryBranchOverride,
 )
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
-from sentry.seer.utils import filter_repo_by_provider
 from sentry.utils.cache import cache
 from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -417,6 +417,45 @@ def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
     raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
+def resolve_repository_ids(organization_id: int, preferences: list[dict]) -> None:
+    """Resolve missing repository_id fields on preference dicts in-place using a single bulk query."""
+    repos_to_resolve: list[dict] = []
+    external_ids: set[str] = set()
+    providers: set[str] = set()
+    for pref in preferences:
+        for repo in pref.get("repositories", []):
+            external_id = repo["external_id"]
+            provider = repo["provider"]
+
+            # We can't resolve repos with None providers or external IDs.
+            if repo.get("repository_id") is not None or not external_id or not provider:
+                continue
+
+            repos_to_resolve.append(repo)
+            external_ids.add(external_id)
+            providers.add(provider)
+            providers.add(f"integrations:{provider}")
+
+    if not repos_to_resolve:
+        return
+
+    resolved_ids: dict[tuple[str, str], int] = {}
+    for db_repo in Repository.objects.filter(
+        organization_id=organization_id,
+        external_id__in=external_ids,
+        provider__in=providers,
+        status=ObjectStatus.ACTIVE,
+    ).values("id", "external_id", "provider"):
+        resolved_ids[
+            (str(db_repo["external_id"]), str(db_repo["provider"]).removeprefix("integrations:"))
+        ] = db_repo["id"]
+
+    for repo in repos_to_resolve:
+        resolved_id = resolved_ids.get((repo["external_id"], repo["provider"]))
+        if resolved_id is not None:
+            repo["repository_id"] = resolved_id
+
+
 def _write_preference_project_options(project: Project, preference: SeerProjectPreference) -> None:
     project.update_option(
         "sentry:seer_automated_run_stopping_point",
@@ -508,22 +547,6 @@ def _write_preferences_to_sentry_db(
         # (cache cannot be rolled back by the transaction).
         for project, pref in project_preferences:
             _write_preference_project_options(project, pref)
-
-
-def resolve_repository_ids(organization_id: int, preferences: list[dict]) -> None:
-    """Resolve missing repository_id fields on preference dicts in-place."""
-    for pref_dict in preferences:
-        for repo in pref_dict.get("repositories", []):
-            if repo.get("repository_id") is None:
-                matched = filter_repo_by_provider(
-                    organization_id,
-                    repo.get("provider", ""),
-                    repo.get("external_id", ""),
-                    repo.get("owner", ""),
-                    repo.get("name", ""),
-                ).first()
-                if matched is not None:
-                    repo["repository_id"] = matched.id
 
 
 def write_preference_to_sentry_db(project: Project, preference: SeerProjectPreference) -> None:
