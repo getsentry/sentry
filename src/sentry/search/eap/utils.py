@@ -12,7 +12,6 @@ from sentry.search.eap.ourlogs.attributes import (
     LOGS_PRIVATE_ATTRIBUTE_PREFIXES,
     LOGS_PRIVATE_ATTRIBUTES,
     LOGS_REPLACEMENT_ATTRIBUTES,
-    LOGS_REPLACEMENT_MAP,
     OURLOG_ATTRIBUTE_DEFINITIONS,
 )
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
@@ -23,7 +22,6 @@ from sentry.search.eap.profile_functions.attributes import (
     PROFILE_FUNCTIONS_PRIVATE_ATTRIBUTE_PREFIXES,
     PROFILE_FUNCTIONS_PRIVATE_ATTRIBUTES,
     PROFILE_FUNCTIONS_REPLACEMENT_ATTRIBUTES,
-    PROFILE_FUNCTIONS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.profile_functions.definitions import PROFILE_FUNCTIONS_DEFINITIONS
 from sentry.search.eap.spans.attributes import (
@@ -33,7 +31,6 @@ from sentry.search.eap.spans.attributes import (
     SPANS_PRIVATE_ATTRIBUTE_PREFIXES,
     SPANS_PRIVATE_ATTRIBUTES,
     SPANS_REPLACEMENT_ATTRIBUTES,
-    SPANS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.trace_metrics.attributes import (
@@ -43,7 +40,6 @@ from sentry.search.eap.trace_metrics.attributes import (
     TRACE_METRICS_PRIVATE_ATTRIBUTE_PREFIXES,
     TRACE_METRICS_PRIVATE_ATTRIBUTES,
     TRACE_METRICS_REPLACEMENT_ATTRIBUTES,
-    TRACE_METRICS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import AttributeSource, AttributeSourceType, SupportedTraceItemType
@@ -99,14 +95,6 @@ SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES: dict[SupportedTraceItemType, set[str]
     SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_REPLACEMENT_ATTRIBUTES,
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_REPLACEMENT_ATTRIBUTES,
 }
-
-SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, str]] = {
-    SupportedTraceItemType.SPANS: SPANS_REPLACEMENT_MAP,
-    SupportedTraceItemType.LOGS: LOGS_REPLACEMENT_MAP,
-    SupportedTraceItemType.TRACEMETRICS: TRACE_METRICS_REPLACEMENT_MAP,
-    SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_REPLACEMENT_MAP,
-}
-
 
 INTERNAL_TO_SECONDARY_ALIASES: dict[SupportedTraceItemType, dict[str, set[str]]] = {
     SupportedTraceItemType.SPANS: SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
@@ -198,8 +186,3 @@ def is_sentry_convention_replacement_attribute(
     public_alias: str, item_type: SupportedTraceItemType
 ) -> bool:
     return public_alias in SENTRY_CONVENTIONS_REPLACEMENT_ATTRIBUTES.get(item_type, {})
-
-
-def translate_to_sentry_conventions(public_alias: str, item_type: SupportedTraceItemType) -> str:
-    mapping = SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS.get(item_type, {})
-    return mapping.get(public_alias, public_alias)

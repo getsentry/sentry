@@ -48,7 +48,6 @@ from sentry.search.eap.utils import (
     get_secondary_aliases,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
-    translate_to_sentry_conventions,
 )
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
@@ -256,14 +255,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 paginator=ChainPaginator([]),
             )
 
-        use_sentry_conventions = features.has(
-            "organizations:performance-sentry-conventions-fields",
-            organization,
-            actor=request.user,
-        )
-
-        sentry_sdk.set_tag("feature.use_sentry_conventions", use_sentry_conventions)
-
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
@@ -334,43 +325,6 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                         rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
                 else:
                     rpc_response = TraceItemAttributeNamesResponse()
-
-                if use_sentry_conventions:
-                    attribute_keys = {}
-                    for attribute in rpc_response.attributes:
-                        if attribute.name and can_expose_attribute(
-                            attribute.name,
-                            trace_item_type,
-                            include_internal=include_internal,
-                        ):
-                            attr_key = as_attribute_key(
-                                attribute.name,
-                                serialized["attribute_type"],
-                                trace_item_type,
-                            )
-                            public_alias = attr_key["name"]
-                            replacement = translate_to_sentry_conventions(
-                                public_alias, trace_item_type
-                            )
-                            if public_alias != replacement:
-                                attr_key = as_attribute_key(
-                                    replacement,
-                                    serialized["attribute_type"],
-                                    trace_item_type,
-                                )
-
-                            attribute_keys[attr_key["name"]] = attr_key
-                    for aliased_attr in aliased_attributes:
-                        attr_key = as_attribute_key(
-                            aliased_attr.internal_name,
-                            serialized["attribute_type"],
-                            trace_item_type,
-                        )
-                        attribute_keys[attr_key["name"]] = attr_key
-
-                    attributes = list(attribute_keys.values())
-                    sentry_sdk.set_context("api_response", {"attributes": attributes})
-                    return attributes
 
                 attributes = list(
                     filter(

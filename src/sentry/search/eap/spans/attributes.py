@@ -641,12 +641,6 @@ SPANS_REPLACEMENT_ATTRIBUTES: set[str] = {
     if definition.replacement
 }
 
-SPANS_REPLACEMENT_MAP: dict[str, str] = {
-    definition.public_alias: definition.replacement
-    for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
-    if definition.replacement
-}
-
 # Attributes excluded from stats queries (e.g., attribute distributions)
 # These are typically system-level identifiers that don't provide useful distribution insights
 SPANS_STATS_EXCLUDED_ATTRIBUTES: set[str] = {

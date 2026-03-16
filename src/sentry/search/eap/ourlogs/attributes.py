@@ -152,11 +152,6 @@ LOGS_REPLACEMENT_ATTRIBUTES: set[str] = {
     if definition.replacement
 }
 
-LOGS_REPLACEMENT_MAP: dict[str, str] = {
-    definition.public_alias: definition.replacement
-    for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values()
-    if definition.replacement
-}
 LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING: dict[str, set[str]] = {}
 
 for definition in OURLOG_ATTRIBUTE_DEFINITIONS.values():
