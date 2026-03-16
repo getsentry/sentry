@@ -5,8 +5,6 @@ from typing import Any
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 
-logger = logging.getLogger(__name__)
-
 from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, RpcAuthProvider
 from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.db.models import BaseModel, FlexibleForeignKey
@@ -47,6 +45,8 @@ from sentry.models.teamreplica import TeamReplica
 from sentry.notifications.services import RpcExternalActor
 from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.users.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 def get_foreign_key_columns(
