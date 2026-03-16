@@ -45,7 +45,10 @@ const usePopulatePrebuiltIdsWithActualIds = (
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
-        query: {prebuiltId: [...prebuiltIds.sort(), prebuiltId].filter(defined)},
+        query: {
+          prebuiltId: [...prebuiltIds.sort(), prebuiltId].filter(defined),
+          filter: 'showHidden',
+        },
       },
     ],
     {

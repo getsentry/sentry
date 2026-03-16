@@ -15,7 +15,7 @@ from sentry.snuba.models import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
@@ -84,7 +84,7 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
         }
 
 
-@region_silo_test
+@cell_silo_test
 @with_feature("organizations:incidents")
 class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexBaseTest):
     def test_missing_group_type(self) -> None:

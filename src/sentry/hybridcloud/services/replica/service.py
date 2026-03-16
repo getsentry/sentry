@@ -3,7 +3,7 @@ import abc
 from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, RpcAuthProvider
 from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.hybridcloud.rpc.resolvers import ByCellName
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
@@ -49,7 +49,7 @@ class RegionReplicaService(RpcService):
     key = "region_replica"
     local_mode = SiloMode.CELL
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_auth_provider(
         self,
@@ -60,7 +60,7 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_auth_identity(
         self,
@@ -71,14 +71,14 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_api_key(
         self, *, api_key: RpcApiKey, cell_name: str | None = None, region_name: str | None = None
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_api_token(
         self,
@@ -89,14 +89,14 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def delete_replicated_api_token(
         self, *, apitoken_id: int, cell_name: str | None = None, region_name: str | None = None
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_org_auth_token(
         self,
@@ -107,7 +107,7 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_org_slug_reservation(
         self,
@@ -118,7 +118,7 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def delete_replicated_org_slug_reservation(
         self,
@@ -129,7 +129,7 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def delete_replicated_auth_provider(
         self, *, auth_provider_id: int, cell_name: str | None = None, region_name: str | None = None

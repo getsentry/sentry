@@ -12,6 +12,8 @@ from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer
 from sentry.spans.segment_key import SegmentKey, parse_segment_key
 from sentry.testutils.helpers.options import override_options
 
+pytestmark = [pytest.mark.django_db]
+
 DEFAULT_OPTIONS = {
     "spans.buffer.timeout": 60,
     "spans.buffer.root-timeout": 10,
@@ -32,6 +34,9 @@ DEFAULT_OPTIONS = {
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.buffer.zero-copy-dest-threshold-bytes": 0,
     "spans.buffer.max-flush-segments-per-trace": 0,
+    "spans.buffer.write-distributed-payloads": False,
+    "spans.buffer.read-distributed-payloads": False,
+    "spans.buffer.write-merged-payloads": True,
 }
 
 
@@ -1350,3 +1355,160 @@ def test_per_trace_flush_limit_disabled(buffer: SpansBuffer) -> None:
     rv = buffer.flush_segments(now=11)
     buffer.done_flush_segments(rv)
     assert len(rv) == 4
+
+
+# --- Distributed payload keys tests ---
+
+DISTRIBUTED_PHASE_OPTIONS = {
+    "phase1": {
+        **DEFAULT_OPTIONS,
+        "spans.buffer.write-distributed-payloads": True,
+    },
+    "phase2": {
+        **DEFAULT_OPTIONS,
+        "spans.buffer.write-distributed-payloads": True,
+        "spans.buffer.read-distributed-payloads": True,
+    },
+    "phase3": {
+        **DEFAULT_OPTIONS,
+        "spans.buffer.write-distributed-payloads": True,
+        "spans.buffer.read-distributed-payloads": True,
+        "spans.buffer.write-merged-payloads": False,
+    },
+}
+
+
+def _dspan(
+    span_id: str,
+    parent_span_id: str | None = None,
+    is_root: bool = False,
+    ts_offset: float = 0.0,
+) -> Span:
+    return Span(
+        payload=_payload(span_id),
+        trace_id="a" * 32,
+        span_id=span_id,
+        parent_span_id=parent_span_id,
+        segment_id=None,
+        is_segment_span=is_root,
+        project_id=1,
+        end_timestamp=1700000000.0 + ts_offset,
+    )
+
+
+@pytest.fixture(params=["phase1", "phase2", "phase3"])
+def distributed_buffer(request):
+    opts = DISTRIBUTED_PHASE_OPTIONS[request.param]
+    with override_options(opts):
+        buf = SpansBuffer(assigned_shards=list(range(32)))
+        buf.client.flushdb()
+        yield buf
+
+
+def assert_clean_distributed(client: StrictRedis[bytes]):
+    remaining = [x for x in client.keys("*") if b":hrs:" not in x]
+    assert not remaining, f"Leaked keys: {remaining}"
+
+
+def test_distributed_basic(distributed_buffer: SpansBuffer) -> None:
+    """Single segment with root span works across all option combos."""
+    buf = distributed_buffer
+    process_spans([_dspan("a" * 16, "b" * 16), _dspan("b" * 16, is_root=True)], buf, now=0)
+    assert_ttls(buf.client)
+
+    rv = buf.flush_segments(now=11)
+    _normalize_output(rv)
+    seg_key = _segment_id(1, "a" * 32, "b" * 16)
+    assert len(rv[seg_key].spans) == 2
+    buf.done_flush_segments(rv)
+    assert_clean_distributed(buf.client)
+
+
+def test_distributed_multi_batch_merge(distributed_buffer: SpansBuffer) -> None:
+    """Spans arrive in multiple batches, later batch discovers the root."""
+    buf = distributed_buffer
+    buf.process_spans([_dspan("a" * 16, "b" * 16)], now=0)
+    buf.process_spans([_dspan("b" * 16, is_root=True, ts_offset=1)], now=1)
+    assert_ttls(buf.client)
+
+    rv = buf.flush_segments(now=12)
+    seg_key = _segment_id(1, "a" * 32, "b" * 16)
+    assert len(rv[seg_key].spans) == 2
+    buf.done_flush_segments(rv)
+    assert_clean_distributed(buf.client)
+
+
+def test_distributed_deep_tree(distributed_buffer: SpansBuffer) -> None:
+    """Chain d->c->b->a (root), each in a separate batch."""
+    buf = distributed_buffer
+    buf.process_spans([_dspan("d" * 16, "c" * 16, ts_offset=0)], now=0)
+    buf.process_spans([_dspan("c" * 16, "b" * 16, ts_offset=1)], now=1)
+    buf.process_spans([_dspan("b" * 16, "a" * 16, ts_offset=2)], now=2)
+    buf.process_spans([_dspan("a" * 16, is_root=True, ts_offset=3)], now=3)
+
+    rv = buf.flush_segments(now=14)
+    _normalize_output(rv)
+    seg_key = _segment_id(1, "a" * 32, "a" * 16)
+    assert len(rv[seg_key].spans) == 4
+    assert {s.payload["span_id"] for s in rv[seg_key].spans} == {
+        "a" * 16,
+        "b" * 16,
+        "c" * 16,
+        "d" * 16,
+    }
+    buf.done_flush_segments(rv)
+    assert_clean_distributed(buf.client)
+
+
+def test_distributed_multiple_segments(distributed_buffer: SpansBuffer) -> None:
+    """Two independent segments in the same trace."""
+    buf = distributed_buffer
+    process_spans([_dspan("a" * 16, is_root=True), _dspan("b" * 16, is_root=True)], buf, now=0)
+    rv = buf.flush_segments(now=11)
+    assert len(rv) == 2
+    buf.done_flush_segments(rv)
+    assert_clean_distributed(buf.client)
+
+
+def test_distributed_phase1_dual_write() -> None:
+    """Both merged and distributed keys are populated during dual-write."""
+    with override_options(DISTRIBUTED_PHASE_OPTIONS["phase1"]):
+        buf = SpansBuffer(assigned_shards=list(range(32)))
+        buf.client.flushdb()
+        process_spans([_dspan("a" * 16, "b" * 16), _dspan("b" * 16, is_root=True)], buf, now=0)
+
+        set_key = _segment_id(1, "a" * 32, "b" * 16)
+        dist_key = b"span-buf:s:{1:" + b"a" * 32 + b":" + b"b" * 16 + b"}:" + b"b" * 16
+        mk_key = b"span-buf:mk:{1:" + b"a" * 32 + b"}:" + b"b" * 16
+        assert buf.client.scard(set_key) > 0
+        assert buf.client.scard(dist_key) > 0
+        assert buf.client.scard(mk_key) > 0
+
+        rv = buf.flush_segments(now=11)
+        assert len(rv[set_key].spans) == 2
+        buf.done_flush_segments(rv)
+
+
+def test_distributed_phase3_no_merged_write() -> None:
+    """Merged key is not populated when write-merged-payloads is off."""
+    with override_options(DISTRIBUTED_PHASE_OPTIONS["phase3"]):
+        buf = SpansBuffer(assigned_shards=list(range(32)))
+        buf.client.flushdb()
+        process_spans([_dspan("a" * 16, "b" * 16), _dspan("b" * 16, is_root=True)], buf, now=0)
+        set_key = _segment_id(1, "a" * 32, "b" * 16)
+        assert buf.client.scard(set_key) == 0
+
+
+def test_distributed_transition_write_then_read() -> None:
+    """Write with dual-write on, flush with read-distributed on — no data loss."""
+    with override_options(DISTRIBUTED_PHASE_OPTIONS["phase1"]):
+        buf = SpansBuffer(assigned_shards=list(range(32)))
+        buf.client.flushdb()
+        buf.process_spans([_dspan("a" * 16, "b" * 16), _dspan("b" * 16, is_root=True)], now=0)
+
+    with override_options(DISTRIBUTED_PHASE_OPTIONS["phase2"]):
+        rv = buf.flush_segments(now=11)
+        seg_key = _segment_id(1, "a" * 32, "b" * 16)
+        assert len(rv[seg_key].spans) == 2
+        buf.done_flush_segments(rv)
+        assert_clean_distributed(buf.client)
