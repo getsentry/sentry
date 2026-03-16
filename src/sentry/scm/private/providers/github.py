@@ -870,7 +870,7 @@ def map_pull_request_commit(raw: dict[str, Any]) -> PullRequestCommit:
 def map_pull_request(raw: dict[str, Any]) -> PullRequest:
     return PullRequest(
         id=str(raw["id"]),
-        number=raw["number"],
+        number=str(raw["number"]),
         title=raw["title"],
         body=raw.get("body"),
         state=raw["state"],

@@ -517,7 +517,7 @@ class TestGitHubProviderIntegration(TestCase):
         )
 
         pr = result["data"]
-        assert pr["number"] == 42
+        assert pr["number"] == "42"
         assert pr["title"] == "New Feature"
         assert pr["state"] == "open"
         assert pr["head"]["ref"] == "feature"

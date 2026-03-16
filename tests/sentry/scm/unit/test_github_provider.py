@@ -526,7 +526,7 @@ def _check_pr_comments(result: Any) -> None:
 def _check_pull_request(result: Any) -> None:
     pr = result["data"]
     assert pr["id"] == "42"
-    assert pr["number"] == 1
+    assert pr["number"] == "1"
     assert pr["title"] == "Test PR"
     assert pr["body"] == "PR description"
     assert pr["state"] == "open"
@@ -682,7 +682,7 @@ def _check_pr_diff(result: Any) -> None:
 def _check_list_pull_requests(result: Any) -> None:
     assert len(result["data"]) == 1
     pr = result["data"][0]
-    assert pr["number"] == 1
+    assert pr["number"] == "1"
     assert pr["title"] == "Test PR"
     assert result["type"] == "github"
 
