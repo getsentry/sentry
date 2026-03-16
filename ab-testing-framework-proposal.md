@@ -94,17 +94,17 @@ Real-time `group_identify` sets experiment properties as org group properties on
 
 ### BigQuery (via exposure events)
 
-Exposure events land in `events_denormalized` via the existing `analytics.record()` → PubSub pipeline. The `daily_organizations` facts table can join against any exposure event for the org (assignment is deterministic, so all exposure events for a given org carry the same value):
+Exposure events land in `events_denormalized` via the existing `analytics.record()` → PubSub pipeline. The `daily_organizations` facts table can join against the most recent exposure event per org to get the current assignment (handles the edge case where rollout changes cause an org to switch cohorts):
 
 ```sql
 LEFT JOIN (
-  SELECT DISTINCT organization_id, experiment_name, assignment
+  SELECT organization_id, experiment_name, assignment,
+    ROW_NUMBER() OVER (PARTITION BY organization_id, experiment_name
+                       ORDER BY timestamp DESC) as rn
   FROM events_denormalized
   WHERE event_type = 'experiment.exposure'
-) exp ON exp.organization_id = o.organization_id
+) exp ON exp.organization_id = o.organization_id AND exp.rn = 1
 ```
-
-No new tables, no Celery tasks, no Postgres replication — just joining against events that are already flowing.
 
 **Limitation:** Both Amplitude and BigQuery reflect "last known state" rather than "current ground truth." If an experiment is deleted, the last exposure event / group property persists. For v1 this is acceptable — analysts stop querying ended experiments. A future ETL cleanup job can `$unset` stale Amplitude properties if needed.
 
