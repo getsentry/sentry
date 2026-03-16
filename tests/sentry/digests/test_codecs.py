@@ -4,11 +4,13 @@ import pickle
 import zlib
 from collections.abc import Iterator
 from datetime import datetime, timezone
+from unittest.mock import Mock
 
 import pytest
 
 from sentry.digests.codecs import CompressedPickleCodec
 from sentry.digests.types import IdentifierKey, Notification
+from sentry.models.group import Group
 from sentry.services.eventstore.models import Event
 from sentry.testutils.helpers.options import override_options
 
@@ -84,10 +86,8 @@ class TestCompressedPickleCodec:
         """Verify the decoded Event supports the .group setter used by _bind_records."""
         decoded = self.codec.decode(self.codec.encode(_make_notification()))
 
-        class FakeGroup:
-            id: int = 99
-
-        decoded.event.group = FakeGroup()
+        group = Mock(spec=Group, id=99)
+        decoded.event.group = group
         assert decoded.event.group_id == 99
 
     def test_backward_compat_legacy_pickle_zlib(self) -> None:
