@@ -1,5 +1,6 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
@@ -16,6 +17,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
+import {WidgetErrorProvider} from './contexts/widgetErrorContext';
 import {EMPTY_DASHBOARD} from './data';
 import DashboardDetail from './detail';
 import {assignDefaultLayout, assignTempId, getInitialColumnDepths} from './layoutUtils';
@@ -146,6 +148,32 @@ export default function CreateFromSeer() {
   const isLoading =
     !!seerRunId && sessionStatus !== 'completed' && sessionStatus !== 'error' && !isError;
 
+  // Prevent repeat errors on the same widget
+  const reportedWidgetErrors = useRef(new Set<string>());
+
+  const handleWidgetError = useCallback(
+    (widget: Widget, errorMessage: string) => {
+      const errorKey = `${widget.title}:${errorMessage}`;
+      if (reportedWidgetErrors.current.has(errorKey)) {
+        return;
+      }
+      reportedWidgetErrors.current.add(errorKey);
+
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['generated-dashboard-widget-query-error']);
+        scope.setTag('seer.run_id', seerRunId);
+        scope.setLevel('error');
+        Sentry.captureMessage('Generated dashboard widget query error', {
+          extra: {
+            widget_title: widget.title,
+            error_message: errorMessage,
+          },
+        });
+      });
+    },
+    [seerRunId]
+  );
+
   useEffect(() => {
     if (sessionStatus === 'error' || isError) {
       addErrorMessage(t('Failed to generate dashboard'));
@@ -183,11 +211,13 @@ export default function CreateFromSeer() {
 
   return (
     <ErrorBoundary>
-      <DashboardDetail
-        initialState={DashboardState.PREVIEW}
-        dashboard={dashboard}
-        dashboards={[]}
-      />
+      <WidgetErrorProvider value={handleWidgetError}>
+        <DashboardDetail
+          initialState={DashboardState.PREVIEW}
+          dashboard={dashboard}
+          dashboards={[]}
+        />
+      </WidgetErrorProvider>
     </ErrorBoundary>
   );
 }

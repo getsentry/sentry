@@ -19,7 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
-import {NavigationContextProvider} from 'sentry/views/navigation/navigationContext';
+import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
@@ -67,7 +67,7 @@ function AppDrawers() {
 
 function AppLayout({organization}: LayoutProps) {
   return (
-    <NavigationContextProvider>
+    <PrimaryNavigationContextProvider>
       <Flex
         flex="1"
         minWidth="0"
@@ -88,7 +88,7 @@ function AppLayout({organization}: LayoutProps) {
         </Stack>
       </Flex>
       {organization ? <AppDrawers /> : null}
-    </NavigationContextProvider>
+    </PrimaryNavigationContextProvider>
   );
 }
 
