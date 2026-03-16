@@ -69,7 +69,11 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
-import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {SESSION_STORAGE_CONTENT_KEY_MAP} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {
+  addWidgetBuilderSessionStorageParams,
+  DataSet,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
@@ -675,6 +679,9 @@ class DashboardDetail extends Component<Props, State> {
     const path = defined(dashboardId)
       ? `/organizations/${organization.slug}/dashboard/${dashboardId}/widget-builder/widget/${widgetIndex}/edit/`
       : `/organizations/${organization.slug}/dashboards/new/widget-builder/widget/${widgetIndex}/edit/`;
+
+    addWidgetBuilderSessionStorageParams(widget);
+
     navigate(
       normalizeUrl({
         pathname: path,
@@ -757,6 +764,15 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
+  // clean up session storage from non-url params in the widget builder
+  cleanupWidgetBuilderSessionStorage = () => {
+    for (const param of Object.keys(SESSION_STORAGE_CONTENT_KEY_MAP) as Array<
+      keyof typeof SESSION_STORAGE_CONTENT_KEY_MAP
+    >) {
+      sessionStorage.removeItem(SESSION_STORAGE_CONTENT_KEY_MAP[param]);
+    }
+  };
+
   handleCloseWidgetBuilder = (newWidgets?: Widget[]) => {
     const {organization, navigate, location, params, dashboard} = this.props;
     const {dashboardState, modifiedDashboard} = this.state;
@@ -796,6 +812,8 @@ class DashboardDetail extends Component<Props, State> {
         state: navigationState,
       }
     );
+
+    this.cleanupWidgetBuilderSessionStorage();
   };
 
   handleChangeWidgetBuilderView = (openWidgetTemplates: boolean) => {

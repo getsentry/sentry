@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
+import {SESSION_STORAGE_CONTENT_KEY_MAP} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
@@ -47,4 +48,15 @@ export function getResultsLimit(numQueries: number, numYAxes: number) {
   }
 
   return Math.floor(RESULTS_LIMIT / (numQueries * numYAxes));
+}
+
+// for the widget builder params that are not in the url
+// we need to store them in session storage
+export function addWidgetBuilderSessionStorageParams(widget: Widget): void {
+  if (widget.displayType === DisplayType.TEXT) {
+    sessionStorage.setItem(
+      SESSION_STORAGE_CONTENT_KEY_MAP.textContent,
+      JSON.stringify(widget.description ?? '')
+    );
+  }
 }
