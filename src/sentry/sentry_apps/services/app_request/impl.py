@@ -28,15 +28,3 @@ class DatabaseBackedSentryAppRequestService(SentryAppRequestService):
             serialize_rpc_sentry_app_request(req)
             for req in buffer.get_requests(event=event, errors_only=errors_only)
         ]
-
-    # TODO(cells): Deprecated in favor of get_buffer_requests_for_cell
-    def get_buffer_requests_for_region(
-        self,
-        *,
-        sentry_app_id: str,
-        region_name: str,
-        filter: SentryAppRequestFilterArgs | None = None,
-    ) -> list[RpcSentryAppRequest] | None:
-        return self.get_buffer_requests_for_cell(
-            cell_name=region_name, sentry_app_id=sentry_app_id, filter=filter
-        )
