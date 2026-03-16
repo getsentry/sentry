@@ -216,7 +216,7 @@ class TraceEvent:
         if len(self.event["issue.ids"]) > 0:
             if self.span_serialized:
                 self.load_span_serialized_performance_issues(light)
-            else:
+            elif snuba_params is not None:
                 self.load_performance_issues(light, snuba_params)
 
     @property
@@ -287,7 +287,7 @@ class TraceEvent:
                     }
                 )
 
-    def load_performance_issues(self, light: bool, snuba_params: SnubaParams | None) -> None:
+    def load_performance_issues(self, light: bool, snuba_params: SnubaParams) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
         for group_id in self.event["issue.ids"]:
             group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
