@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -106,59 +105,43 @@ export function MobileNavigation() {
       />
       {view === 'closed' ? null : (
         <NavigationOverlayPortal
-          label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
           setView={setView}
+          label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
           closeButtonRef={closeButtonRef}
         >
           {view === 'primary' ? (
             <PrimaryNavigationItems />
           ) : view === 'secondary' ? (
-            <SecondaryMobileWrapper>
-              <GroupHeader>
-                <Button
-                  size="xs"
-                  priority="transparent"
-                  onClick={() => setView('primary')}
-                  icon={<IconChevron direction="left" />}
-                  aria-label={t('Back to primary navigation')}
-                >
-                  {t('Back')}
-                </Button>
-              </GroupHeader>
+            <Stack height="100%">
+              <Flex
+                position="fixed"
+                bottom={theme.space.md}
+                right={theme.space.md}
+                padding="sm"
+              >
+                {p => (
+                  <Button
+                    {...p}
+                    size="xs"
+                    priority="transparent"
+                    onClick={() => setView('primary')}
+                    icon={<IconChevron direction="left" />}
+                    aria-label={t('Back to primary navigation')}
+                  >
+                    {t('Back')}
+                  </Button>
+                )}
+              </Flex>
               <Stack justify="start" align="stretch" overflowY="auto" area="content">
                 <SecondaryNavigationContent />
               </Stack>
-            </SecondaryMobileWrapper>
+            </Stack>
           ) : null}
         </NavigationOverlayPortal>
       )}
     </Flex>
   );
 }
-
-const SecondaryMobileWrapper = styled('div')`
-  position: relative;
-  height: 100%;
-
-  display: grid;
-  grid-template-areas:
-    'header'
-    'content';
-  grid-template-rows: auto 1fr;
-`;
-
-const GroupHeader = styled('h2')`
-  grid-area: header;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: ${p => p.theme.tokens.background.tertiary};
-  display: flex;
-  align-items: center;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.sm};
-  gap: ${p => p.theme.space.md};
-  margin: 0;
-`;
 
 interface NavigationOverlayPortalProps {
   children: React.ReactNode;

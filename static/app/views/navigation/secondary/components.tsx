@@ -421,6 +421,18 @@ function SecondaryNavigationLink({
   );
 }
 
+// :not(:hover) {
+//   [data-drag-icon] {
+//     ${p => p.theme.visuallyHidden}
+//   }
+// }
+
+// :hover {
+//   [data-project-icon] {
+//     ${p => p.theme.visuallyHidden}
+//   }
+// }
+
 function SecondaryNavigationSeparator() {
   return (
     <Container padding="0 xl">

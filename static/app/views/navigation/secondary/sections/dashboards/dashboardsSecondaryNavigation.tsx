@@ -127,6 +127,7 @@ function StarredDashboardItems({
       .filter(p => dashboardProjects.has(p.id))
       .map(p => p.platform)
       .filter(defined);
+
     return (
       <SecondaryNavigation.ListItem key={dashboard.id}>
         <SecondaryNavigation.Link

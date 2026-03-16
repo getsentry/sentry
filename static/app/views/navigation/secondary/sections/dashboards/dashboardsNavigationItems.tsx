@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Reorder, useDragControls} from 'framer-motion';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
@@ -118,9 +118,6 @@ export function DashboardsNavigationItems({
                       e.preventDefault();
                     }}
                   >
-                    <StyledInteractionStateLayer
-                      isPressed={isDragging === dashboard.id}
-                    />
                     <IconGrabbable variant="muted" />
                   </GrabHandleWrapper>
                   <SecondaryNavigation.ProjectIcon
@@ -142,7 +139,9 @@ export function DashboardsNavigationItems({
                 showOnlyOnOverflow
                 skipWrapper
               >
-                <TruncatedTitle>{dashboard.title}</TruncatedTitle>
+                <Text ellipsis variant="muted">
+                  {dashboard.title}
+                </Text>
               </Tooltip>
             </StyledSecondaryNavigationItem>
           </StyledReorderItem>
@@ -153,10 +152,6 @@ export function DashboardsNavigationItems({
 }
 
 const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Link)`
-  align-items: center;
-  padding-right: ${p => p.theme.space.xs};
-  position: relative;
-
   :not(:hover) {
     [data-drag-icon] {
       ${p => p.theme.visuallyHidden}
@@ -190,17 +185,4 @@ const GrabHandleWrapper = styled('div')`
   &:active {
     cursor: grabbing;
   }
-`;
-
-const StyledInteractionStateLayer = styled(InteractionStateLayer)`
-  height: 120%;
-  border-radius: 4px;
-`;
-
-const TruncatedTitle = styled('div')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
