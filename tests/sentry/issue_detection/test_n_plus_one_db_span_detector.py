@@ -7,12 +7,12 @@ import pytest
 
 from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
+from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType
 from sentry.issue_detection.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase

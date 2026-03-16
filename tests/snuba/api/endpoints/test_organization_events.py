@@ -17,7 +17,7 @@ from sentry.discover.models import (
     DiscoverSavedQueryTypes,
     TeamKeyTransaction,
 )
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issue_detection.grouptype import ProfileFileIOGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam

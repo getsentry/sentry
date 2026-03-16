@@ -360,7 +360,7 @@ def test_idempotent_replication(self):
 
 ### 7.3 Silo Test Decorators
 
-- Use **`@region_silo_test`** for tests focused on `RegionOutbox` creation
+- Use **`@cell_silo_test`** for tests focused on `RegionOutbox` creation
 - Use **`@control_silo_test`** for tests focused on `ControlOutbox` creation
 - Use **`@all_silo_test`** for end-to-end replication tests that exercise both silos
 - Only use **`TransactionTestCase`** for threading/concurrency tests (e.g., `threading.Barrier`), not for standard outbox drain tests

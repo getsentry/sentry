@@ -52,21 +52,6 @@ class HookService(RpcService):
         """
         pass
 
-    @cell_rpc_method(ByCellName())
-    @abc.abstractmethod
-    def update_webhook_and_events_for_app_by_region(
-        self,
-        *,
-        application_id: int | None,
-        webhook_url: str | None,
-        events: list[str],
-        region_name: str,
-    ) -> list[RpcServiceHook]:
-        """
-        Update ALL webhooks in a given region for a sentry app.
-        """
-        pass
-
     @cell_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def create_or_update_webhook_and_events_for_installation(

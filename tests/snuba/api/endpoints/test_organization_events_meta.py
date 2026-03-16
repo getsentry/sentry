@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issue_detection.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import (
     APITestCase,
     MetricsEnhancedPerformanceTestCase,

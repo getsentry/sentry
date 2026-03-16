@@ -1,10 +1,10 @@
 ---
-title: AutoSaveField
+title: AutoSaveForm
 description: A field component that automatically saves changes individually, for settings pages and forms where each field persists independently.
 category: forms
 source: '@sentry/scraps/form'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/form/field/autoSaveField.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/form/autoSaveForm.tsx
 ---
 
 import {Container} from '@sentry/scraps/layout';
@@ -13,7 +13,7 @@ import {BasicAutoSaveDemo, FullAutoSaveDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
 
-`AutoSaveField` is for settings pages where each field saves independently. Unlike `useScrapsForm`, each `AutoSaveField` creates its own form instance internally — there's no shared form, no submit button, and no form-level submission.
+`AutoSaveForm` is for settings pages where each field saves independently. Unlike `useScrapsForm`, each `AutoSaveForm` creates its own form instance internally — there's no shared form, no submit button, and no form-level submission.
 
 For traditional submit-based forms, see [Form](./form.mdx).
 
@@ -28,7 +28,7 @@ For traditional submit-based forms, see [Form](./form.mdx).
 ```jsx
 import {z} from 'zod';
 
-import {AutoSaveField} from '@sentry/scraps/form';
+import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
 
@@ -36,7 +36,7 @@ const schema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
 });
 
-<AutoSaveField
+<AutoSaveForm
   name="displayName"
   schema={schema}
   initialValue={user.displayName}
@@ -52,7 +52,7 @@ const schema = z.object({
       <field.Input value={field.state.value} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
-</AutoSaveField>;
+</AutoSaveForm>;
 ```
 
 ## Props
@@ -79,7 +79,7 @@ const schema = z.object({
 
 ## Status Indicators
 
-`AutoSaveField` automatically shows inline status indicators:
+`AutoSaveForm` automatically shows inline status indicators:
 
 - **Spinner** — while saving (mutation pending)
 - **Checkmark** — on success (fades after 2 seconds)
@@ -94,19 +94,19 @@ For dangerous operations (security settings, permissions), use the `confirm` pro
 
 ```jsx
 // Always confirm
-<AutoSaveField
+<AutoSaveForm
   confirm="Are you sure you want to change this setting?"
   {...otherProps}
 >
 
 // Conditional — only confirm when enabling
-<AutoSaveField
+<AutoSaveForm
   confirm={value => value ? t('Are you sure you want to enable this?') : undefined}
   {...otherProps}
 >
 
 // Different messages per direction
-<AutoSaveField
+<AutoSaveForm
   confirm={value =>
     value
       ? t('Enable 2FA requirement for all members?')
@@ -137,7 +137,7 @@ Make sure the zod schema's types are compatible with the API type. For example, 
 
 ## Cache Updates
 
-Always update the data store or React Query cache in `onSuccess` so the UI stays in sync. This is critical for `AutoSaveField` — without it, toggling a field back to its original value won't trigger a save, because TanStack Form compares against `defaultValues` (derived from `initialValue`) to determine if the value has changed.
+Always update the data store or React Query cache in `onSuccess` so the UI stays in sync. This is critical for `AutoSaveForm` — without it, toggling a field back to its original value won't trigger a save, because TanStack Form compares against `defaultValues` (derived from `initialValue`) to determine if the value has changed.
 
 ```jsx
 mutationOptions={{

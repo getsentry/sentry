@@ -6,7 +6,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
 from sentry.rules import MatchType
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
@@ -163,7 +163,7 @@ DUPLICATE_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
 ]
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDeduplicateWorkflowsTest(APITestCase):
     endpoint = "sentry-api-0-organization-deduplicate-workflows"
     method = "put"

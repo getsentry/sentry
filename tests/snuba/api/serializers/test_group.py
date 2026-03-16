@@ -6,11 +6,8 @@ from django.utils import timezone
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
-from sentry.issues.grouptype import (
-    GroupCategory,
-    PerformanceNPlusOneGroupType,
-    ProfileFileIOGroupType,
-)
+from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouplink import GroupLink

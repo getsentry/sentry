@@ -5,13 +5,13 @@ from django.test.utils import override_settings
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from tests.sentry.utils.test_jwt import RS256_KEY
 
 RS256_KEY_B64 = base64.b64encode(RS256_KEY.encode()).decode()
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationConduitDemoEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-conduit-demo"
 

@@ -85,7 +85,7 @@ class CommentEventParser(msgspec.Struct, gc=False, frozen=True):
 
 class PullRequestBranchParser(msgspec.Struct, gc=False, frozen=True):
     ref: str
-    sha: str
+    sha: str | None
 
 
 class PullRequestEventDataParser(msgspec.Struct, gc=False, frozen=True):

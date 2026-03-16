@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from snuba_sdk import Limit
 
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issue_detection.grouptype import ProfileFileIOGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease

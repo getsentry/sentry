@@ -3,7 +3,7 @@ import {mutationOptions} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -138,7 +138,7 @@ function AccountSubscriptions() {
                   });
 
                   return (
-                    <AutoSaveField
+                    <AutoSaveForm
                       key={`${email}-${subscription.listId}-${i}`}
                       name="subscribed"
                       schema={subscriptionSchema}
@@ -174,7 +174,7 @@ function AccountSubscriptions() {
                           </field.Layout.Row>
                         );
                       }}
-                    </AutoSaveField>
+                    </AutoSaveForm>
                   );
                 })}
             </FieldGroup>

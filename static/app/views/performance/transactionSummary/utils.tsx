@@ -138,7 +138,7 @@ export function generateTraceLink(dateSelection: any, view?: DomainView) {
     tableRow: TableDataRow,
     location: Location
   ): LocationDescriptor => {
-    const traceId = `${tableRow.trace}`;
+    const traceId = tableRow.trace ? `${tableRow.trace}` : '';
     if (!traceId) {
       return {};
     }
