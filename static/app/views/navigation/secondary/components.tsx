@@ -24,6 +24,7 @@ import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
+  NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   SECONDARY_SIDEBAR_MAX_WIDTH,
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
@@ -53,7 +54,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
   const resizeHandleRef = useRef<HTMLDivElement>(null);
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
-    'secondary-sidebar-width',
+    NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
     SECONDARY_SIDEBAR_WIDTH
   );
 
@@ -77,7 +78,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
     >
       {({ref, ...props}) => (
         <Container
-          width={SECONDARY_SIDEBAR_WIDTH}
+          width={size}
           height="100%"
           right="0"
           {...props}
