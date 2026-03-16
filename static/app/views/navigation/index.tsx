@@ -50,7 +50,7 @@ function UserAndOrganizationNavigation() {
 
   return (
     <NavigationLayout>
-      {layout === 'sidebar' ? <DesktopNavigation /> : <MobileNavigation />}
+      {layout === 'mobile' ? <MobileNavigation /> : <DesktopNavigation />}
     </NavigationLayout>
   );
 }

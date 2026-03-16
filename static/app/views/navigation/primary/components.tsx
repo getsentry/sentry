@@ -505,7 +505,9 @@ const NavigationLink = styled(
     }
 
     &:hover {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover} [data-icon-container] {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+
+      [data-icon-container] {
         background-color: ${p =>
           p.theme.tokens.interactive.transparent.accent.selected.background.hover};
       }

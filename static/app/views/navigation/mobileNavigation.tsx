@@ -1,10 +1,11 @@
-import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import Hook from 'sentry/components/hook';
 import {IconChevron, IconClose, IconMenu} from 'sentry/icons';
@@ -34,23 +35,15 @@ export function MobileNavigation() {
   /** Close menu after any location pathname change */
   useEffect(() => setView('closed'), [location.pathname]);
 
-  /** Sync menu state with `body` attributes */
-  useLayoutEffect(() => {
-    const mainContent = document.getElementById('main');
-    if (!mainContent) {
-      throw new Error(
-        'Unable to match "#main" element. Please add `id="main"` to the element which wraps the app content.'
-      );
-    }
+  const scrollLock = useScrollLock(document.getElementById('main')!);
 
+  useEffect(() => {
     if (view === 'closed') {
-      mainContent.removeAttribute('inert');
-      document.body.style.removeProperty('overflow');
+      scrollLock.release();
     } else {
-      mainContent.setAttribute('inert', '');
-      document.body.style.setProperty('overflow', 'hidden');
+      scrollLock.acquire();
     }
-  }, [view]);
+  }, [view, scrollLock]);
 
   // The tour only works with the sidebar layout, so if we change to the mobile
   // layout in the middle of the tour, it needs to end.
@@ -84,6 +77,7 @@ export function MobileNavigation() {
       background="secondary"
       justify="between"
       position="sticky"
+      overscrollBehavior="none"
       top={0}
       style={{zIndex: theme.zIndex.sidebar}}
     >
