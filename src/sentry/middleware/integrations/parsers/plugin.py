@@ -9,7 +9,7 @@ from django.http.response import HttpResponseBase
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.types.region import CellResolutionError, get_cell_by_name
+from sentry.types.cell import CellResolutionError, get_cell_by_name
 from sentry_plugins.bitbucket.endpoints.webhook import BitbucketPluginWebhookEndpoint
 from sentry_plugins.github.webhooks.non_integration import GithubPluginWebhookEndpoint
 

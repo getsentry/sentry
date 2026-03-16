@@ -27,7 +27,7 @@ from sentry.sentry_apps.utils.errors import (
     SentryAppIntegratorError,
     SentryAppSentryError,
 )
-from sentry.types.region import find_all_cell_names, find_cells_for_orgs
+from sentry.types.cell import find_all_cell_names, find_cells_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models.project import Project

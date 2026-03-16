@@ -26,7 +26,7 @@ from sentry.silo.util import (
     clean_outbound_headers,
     clean_proxy_headers,
 )
-from sentry.types.region import (
+from sentry.types.cell import (
     Cell,
     CellResolutionError,
     get_cell_by_name,

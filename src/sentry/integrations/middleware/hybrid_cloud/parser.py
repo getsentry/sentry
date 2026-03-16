@@ -31,7 +31,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
-from sentry.types.region import Cell, find_cells_for_orgs, get_cell_by_name
+from sentry.types.cell import Cell, find_cells_for_orgs, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.options import sample_modulo
 

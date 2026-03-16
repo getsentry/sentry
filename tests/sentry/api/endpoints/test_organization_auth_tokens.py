@@ -6,7 +6,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import control_silo_test, create_test_regions
-from sentry.types.region import get_cell_by_name
+from sentry.types.cell import get_cell_by_name
 from sentry.utils.security.orgauthtoken_token import parse_token
 
 

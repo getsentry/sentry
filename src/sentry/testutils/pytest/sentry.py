@@ -22,7 +22,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")

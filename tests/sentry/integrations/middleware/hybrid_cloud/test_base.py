@@ -18,7 +18,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 
 
 def error_regions(region: Cell, invalid_region_names: Iterable[str]) -> HttpResponse:

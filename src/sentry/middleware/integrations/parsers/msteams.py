@@ -16,7 +16,7 @@ from sentry.integrations.msteams import parsing
 from sentry.integrations.msteams.webhook import MsTeamsEvents, MsTeamsWebhookEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.silo.base import control_silo_function
-from sentry.types.region import Cell, CellResolutionError
+from sentry.types.cell import Cell, CellResolutionError
 
 logger = logging.getLogger(__name__)
 
