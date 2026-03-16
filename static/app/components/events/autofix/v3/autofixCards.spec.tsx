@@ -58,6 +58,16 @@ function makePR(overrides: Partial<RepoPRState> = {}): RepoPRState {
   };
 }
 
+const mockAutofix = {
+  runState: null,
+  isLoading: false,
+  isPolling: false,
+  startStep: jest.fn(),
+  createPR: jest.fn(),
+  reset: jest.fn(),
+  triggerCodingAgentHandoff: jest.fn(),
+};
+
 function makeRootCauseArtifact(data: RootCauseArtifact | null) {
   return {
     key: 'root-cause',
@@ -83,7 +93,10 @@ describe('RootCauseCard', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Root Cause')).toBeInTheDocument();
@@ -97,7 +110,10 @@ describe('RootCauseCard', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Why did this happen?')).toBeInTheDocument();
@@ -114,7 +130,10 @@ describe('RootCauseCard', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Reproduction Steps')).toBeInTheDocument();
@@ -126,7 +145,10 @@ describe('RootCauseCard', () => {
     const artifact = makeRootCauseArtifact(null);
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Root Cause')).toBeInTheDocument();
@@ -139,7 +161,10 @@ describe('RootCauseCard', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Root Cause')).toBeInTheDocument();
@@ -154,7 +179,12 @@ describe('SolutionCard', () => {
       steps: [{title: 'Step 1', description: 'Add guard'}],
     });
 
-    render(<SolutionCard section={makeSection('solution', 'completed', [artifact])} />);
+    render(
+      <SolutionCard
+        autofix={mockAutofix}
+        section={makeSection('solution', 'completed', [artifact])}
+      />
+    );
 
     expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
@@ -169,7 +199,12 @@ describe('SolutionCard', () => {
       ],
     });
 
-    render(<SolutionCard section={makeSection('solution', 'completed', [artifact])} />);
+    render(
+      <SolutionCard
+        autofix={mockAutofix}
+        section={makeSection('solution', 'completed', [artifact])}
+      />
+    );
 
     expect(screen.getByText('Steps to Resolve')).toBeInTheDocument();
     expect(screen.getByText('Add validation')).toBeInTheDocument();
@@ -181,7 +216,12 @@ describe('SolutionCard', () => {
   it('renders card shell when artifact data is null', () => {
     const artifact = makeSolutionArtifact(null);
 
-    render(<SolutionCard section={makeSection('solution', 'completed', [artifact])} />);
+    render(
+      <SolutionCard
+        autofix={mockAutofix}
+        section={makeSection('solution', 'completed', [artifact])}
+      />
+    );
 
     expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
   });
@@ -191,6 +231,7 @@ describe('CodeChangesCard', () => {
   it('renders single file in single repo', () => {
     render(
       <CodeChangesCard
+        autofix={mockAutofix}
         section={makeSection('code_changes', 'completed', [
           [makePatch('org/repo', 'src/app.py')],
         ])}
@@ -204,6 +245,7 @@ describe('CodeChangesCard', () => {
   it('renders multiple files in single repo', () => {
     render(
       <CodeChangesCard
+        autofix={mockAutofix}
         section={makeSection('code_changes', 'completed', [
           [
             makePatch('org/repo', 'src/app.py'),
@@ -220,6 +262,7 @@ describe('CodeChangesCard', () => {
   it('renders multiple files in multiple repos', () => {
     render(
       <CodeChangesCard
+        autofix={mockAutofix}
         section={makeSection('code_changes', 'completed', [
           [
             makePatch('org/repo-a', 'src/app.py'),
@@ -236,6 +279,7 @@ describe('CodeChangesCard', () => {
   it('renders repository name labels', () => {
     render(
       <CodeChangesCard
+        autofix={mockAutofix}
         section={makeSection('code_changes', 'completed', [
           [
             makePatch('org/repo-a', 'src/app.py'),
@@ -250,7 +294,12 @@ describe('CodeChangesCard', () => {
   });
 
   it('renders card shell when no code changes artifact found', () => {
-    render(<CodeChangesCard section={makeSection('code_changes', 'completed', [])} />);
+    render(
+      <CodeChangesCard
+        autofix={mockAutofix}
+        section={makeSection('code_changes', 'completed', [])}
+      />
+    );
 
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByText('0 files changed in 0 repos')).toBeInTheDocument();
@@ -261,6 +310,7 @@ describe('PullRequestsCard', () => {
   it('renders PR link buttons with correct text and href', () => {
     render(
       <PullRequestsCard
+        autofix={mockAutofix}
         section={makeSection('pull_request', 'completed', [[makePR()]])}
       />
     );
@@ -275,6 +325,7 @@ describe('PullRequestsCard', () => {
   it('renders multiple PR buttons', () => {
     render(
       <PullRequestsCard
+        autofix={mockAutofix}
         section={makeSection('pull_request', 'completed', [
           [
             makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
@@ -295,6 +346,7 @@ describe('PullRequestsCard', () => {
   it('skips PRs with missing pr_url or pr_number', () => {
     render(
       <PullRequestsCard
+        autofix={mockAutofix}
         section={makeSection('pull_request', 'completed', [
           [
             makePR({repo_name: 'org/repo-a', pr_url: null}),
@@ -324,7 +376,10 @@ describe('ArtifactCard expand/collapse', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Visible why')).toBeInTheDocument();
@@ -337,7 +392,10 @@ describe('ArtifactCard expand/collapse', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Root Cause'}));
@@ -353,7 +411,10 @@ describe('ArtifactCard expand/collapse', () => {
     });
 
     render(
-      <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
+      <RootCauseCard
+        autofix={mockAutofix}
+        section={makeSection('root_cause', 'completed', [artifact])}
+      />
     );
 
     expect(screen.getByText('Bug')).toBeVisible();
