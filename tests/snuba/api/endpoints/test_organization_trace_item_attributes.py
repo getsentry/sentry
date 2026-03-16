@@ -2285,7 +2285,7 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         self.login_as(user=self.user)
         self.project = self.create_project()
 
-    def do_request(self, payload=None, features=None, **kwargs):
+    def do_request(self, payload=None, features=None, query_params=None, **kwargs):
         if features is None:
             features = self.feature_flags
 
@@ -2294,6 +2294,9 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
+            if query_params:
+                encoded = "&".join(f"{k}={v}" for k, v in query_params.items())
+                url = f"{url}?{encoded}"
             return self.client.post(url, payload, format="json", **kwargs)
 
     def test_no_feature(self):
