@@ -8,12 +8,12 @@ from zipfile import ZipFile
 import pytest
 
 from sentry.issue_detection.detectors.io_main_thread_detector import FileIOMainThreadDetector
-from sentry.issue_detection.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issue_detection.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase

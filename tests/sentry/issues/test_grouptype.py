@@ -3,10 +3,6 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.issue_detection.grouptype import (
-    PerformanceNPlusOneGroupType,
-    PerformanceSlowDBQueryGroupType,
-)
 from sentry.issues.grouptype import (
     DEFAULT_EXPIRY_TIME,
     DEFAULT_IGNORE_LIMIT,
@@ -14,6 +10,8 @@ from sentry.issues.grouptype import (
     GroupType,
     GroupTypeRegistry,
     NoiseConfig,
+    PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
     get_group_type_by_slug,
     get_group_types_by_category,
 )

@@ -1,6 +1,6 @@
 from unittest import mock
 
-from sentry.issue_detection.grouptype import PerformanceP95EndpointRegressionGroupType
+from sentry.issues.grouptype import PerformanceP95EndpointRegressionGroupType
 from sentry.seer.breakpoints import BreakpointData
 from sentry.statistical_detectors.issue_platform_adapter import send_regression_to_platform
 

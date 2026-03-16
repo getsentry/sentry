@@ -17,14 +17,14 @@ from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import integration_service
 from sentry.issue_detection.detectors.utils import get_url_from_span
-from sentry.issue_detection.grouptype import (
+from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issue_detection.types import Span
+from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceNPlusOneAPICallsExperimentalGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
-from sentry.issue_detection.performance_problem import PerformanceProblem
-from sentry.issue_detection.types import Span
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.deploy import Deploy

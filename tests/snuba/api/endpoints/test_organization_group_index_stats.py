@@ -1,6 +1,6 @@
 import uuid
 
-from sentry.issue_detection.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin

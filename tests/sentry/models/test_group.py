@@ -8,8 +8,7 @@ from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry.issue_detection.grouptype import ProfileFileIOGroupType
-from sentry.issues.grouptype import FeedbackGroup, ReplayHydrationErrorType
+from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType, ReplayHydrationErrorType
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.groupopenperiod import GroupOpenPeriod
