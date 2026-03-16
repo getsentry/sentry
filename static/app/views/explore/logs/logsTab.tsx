@@ -515,8 +515,9 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           <LogsItemContainer>
             {tableTab === 'logs' ? (
               <LogsInfiniteTable
-                stringAttributes={stringAttributes}
+                booleanAttributes={booleanAttributes}
                 numberAttributes={numberAttributes}
+                stringAttributes={stringAttributes}
               />
             ) : (
               <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />

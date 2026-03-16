@@ -616,7 +616,6 @@ module = [
     "sentry.plugins.validators.*",
     "sentry.post_process_forwarder.*",
     "sentry.preprod.*",
-    "sentry.prevent.*",
     "sentry.profiles.*",
     "sentry.projects.*",
     "sentry.ratelimits.*",

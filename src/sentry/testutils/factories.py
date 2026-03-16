@@ -38,7 +38,7 @@ from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.incidents.grouptype import MetricIssue
@@ -412,7 +412,7 @@ class Factories:
             org.handle_async_replication(org.id)
 
             # Flush remaining organization update outboxes accumulated by org create
-            RegionOutbox(
+            CellOutbox(
                 shard_identifier=org.id,
                 shard_scope=OutboxScope.ORGANIZATION_SCOPE,
                 category=OutboxCategory.ORGANIZATION_UPDATE,

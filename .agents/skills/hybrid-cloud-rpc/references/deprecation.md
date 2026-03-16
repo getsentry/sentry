@@ -40,7 +40,7 @@ When a disabled method is called remotely, it raises `RpcDisabledException` inst
 3. If the method is still needed during the transition, keep it implemented but add a deprecation comment:
 
    ```python
-   @regional_rpc_method(resolve=ByOrganizationId())
+   @cell_rpc_method(resolve=ByOrganizationId())
    @abstractmethod
    def old_method(self, *, organization_id: int) -> RpcThing | None:
        """Deprecated: Use new_method instead. Remove after YYYY-MM-DD."""

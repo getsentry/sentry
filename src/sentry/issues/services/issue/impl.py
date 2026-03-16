@@ -86,9 +86,7 @@ class DatabaseBackedIssueService(IssueService):
 
         return RpcGroupShareMetadata(title=group.title, message=group.message)
 
-    def get_shared_for_region(
-        self, *, region_name: str, share_id: str
-    ) -> RpcGroupShareMetadata | None:
+    def get_shared_for_cell(self, *, cell_name: str, share_id: str) -> RpcGroupShareMetadata | None:
         try:
             group = Group.objects.from_share_id(share_id)
         except Group.DoesNotExist:

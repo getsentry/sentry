@@ -825,20 +825,15 @@ CONDITION_GROUP_HELP_TEXT = """
         """
 
 OWNER_HELP_TEXT = """
-            The user or team who owns the monitor.
+            The ID user or team who owns the monitor or alert prefaced by the string 'user' or 'team'.
 
             **User**
             ```json
-                "type": "user",
-                "id": "12345",
-                "name": "Jane Doe",
-                "email": "jane.doe@sentry.io"
+                "user:123456"
             ```
 
             **Team**
             ```json
-                "type": "team",
-                "id": "123456789",
-                "name": "example-team"
+                "team:456789"
             ```
         """

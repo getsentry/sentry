@@ -20,12 +20,9 @@ import {
 } from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryButtonOverlay,
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-  usePrimaryButtonOverlay,
+  PrimaryNavigation,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 
 const BROADCAST_CATEGORIES: Record<NonNullable<Broadcast['category']>, string> = {
@@ -66,7 +63,7 @@ function WhatsNewContent({
           }),
           {query: {show: 'latest', limit: '3'}},
         ],
-        data => (data ? data.map(item => ({...item, hasSeen: true})) : [])
+        data => (Array.isArray(data) ? data.map(item => ({...item, hasSeen: true})) : [])
       );
     },
   });
@@ -151,7 +148,10 @@ export function PrimaryNavigationWhatsNew() {
     }
   );
   const unseenPostIds = useMemo(
-    () => (broadcasts ?? []).filter(item => !item.hasSeen).map(item => item.id),
+    () =>
+      (Array.isArray(broadcasts) ? broadcasts : [])
+        .filter(item => !item.hasSeen)
+        .map(item => item.id),
     [broadcasts]
   );
 
@@ -159,36 +159,28 @@ export function PrimaryNavigationWhatsNew() {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryButtonOverlay();
-
-  const {layout} = useNavigation();
+  } = usePrimaryNavigationButtonOverlay();
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="broadcasts"
         label={t("What's New")}
+        indicator={unseenPostIds.length > 0 ? 'accent' : undefined}
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconBroadcast />,
           size: 'sm',
         }}
-      >
-        {unseenPostIds.length > 0 && (
-          <SidebarItemUnreadIndicator
-            data-test-id="whats-new-unread-indicator"
-            isMobile={layout === 'mobile'}
-          />
-        )}
-      </SidebarButton>
+      />
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <WhatsNewContent
             unseenPostIds={unseenPostIds}
             isPending={isPending}
-            broadcasts={broadcasts}
+            broadcasts={Array.isArray(broadcasts) ? broadcasts : []}
           />
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );

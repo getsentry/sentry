@@ -88,7 +88,7 @@ def is_in_test_case_body() -> bool:
 
 
 def validate_transaction_using_for_silo_mode(using: str | None) -> None:
-    from sentry.hybridcloud.models.outbox import ControlOutbox, RegionOutbox
+    from sentry.hybridcloud.models.outbox import CellOutbox, ControlOutbox
     from sentry.silo.base import SiloMode
 
     if using is None:
@@ -101,9 +101,9 @@ def validate_transaction_using_for_silo_mode(using: str | None) -> None:
 
     current_silo_mode = SiloMode.get_current_mode()
     control_db = _get_db_for_model_if_available(ControlOutbox)
-    region_db = _get_db_for_model_if_available(RegionOutbox)
+    cell_db = _get_db_for_model_if_available(CellOutbox)
 
-    both_silos_route_to_same_db = control_db == region_db
+    both_silos_route_to_same_db = control_db == cell_db
 
     if both_silos_route_to_same_db or current_silo_mode == SiloMode.MONOLITH:
         return
@@ -113,9 +113,9 @@ def validate_transaction_using_for_silo_mode(using: str | None) -> None:
             f"Cannot use transaction.atomic({using}) except in Control Mode"
         )
 
-    elif using == region_db and current_silo_mode != SiloMode.CELL:
+    elif using == cell_db and current_silo_mode != SiloMode.CELL:
         raise MismatchedSiloTransactionError(
-            f"Cannot use transaction.atomic({using}) except in Region Mode"
+            f"Cannot use transaction.atomic({using}) except in Cell Mode"
         )
 
 

@@ -42,11 +42,11 @@ class SiloClientError(Exception):
     """Indicates an error in processing a cross-silo HTTP request"""
 
 
-def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+def get_cell_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv6Address]:
     """
-    Infers the Region Silo IP addresses from the SENTRY_REGION_CONFIG setting.
+    Infers the Cell Silo IP addresses from the SENTRY_REGION_CONFIG setting.
     """
-    region_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
+    cell_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
     for cell in get_global_directory().cells:
         url = urllib3.util.parse_url(cell.address)
@@ -58,52 +58,50 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
             except Exception:
                 metrics.incr(
                     "hybrid_cloud.silo_client.ip_address_resolution_error",
-                    tags={"region": cell.name},
+                    tags={"cell": cell.name},
                 )
                 sentry_sdk.capture_exception(
-                    CellResolutionError(f"Unable to resolve region host for: {url.host}")
+                    CellResolutionError(f"Unable to resolve cell host for: {url.host}")
                 )
                 continue
-            region_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
+            cell_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
         else:
             sentry_sdk.capture_exception(
                 CellResolutionError(f"Unable to parse url to host for: {cell.address}")
             )
 
-    return frozenset(region_ip_addresses)
+    return frozenset(cell_ip_addresses)
 
 
-def validate_region_ip_address(ip: str) -> bool:
+def validate_cell_ip_address(ip: str) -> bool:
     """
-    Checks if the provided IP address is a Region Silo IP address.
+    Checks if the provided IP address is a Cell Silo IP address.
     """
-    allowed_region_ip_addresses = get_region_ip_addresses()
-    if not allowed_region_ip_addresses:
+    allowed_cell_ip_addresses = get_cell_ip_addresses()
+    if not allowed_cell_ip_addresses:
         sentry_sdk.capture_exception(
-            CellResolutionError(f"allowed_region_ip_addresses is empty for: {ip}")
+            CellResolutionError(f"allowed_cell_ip_addresses is empty for: {ip}")
         )
         return False
 
     ip_address = ipaddress.ip_address(force_str(ip, strings_only=True))
-    result = ip_address in allowed_region_ip_addresses
+    result = ip_address in allowed_cell_ip_addresses
 
     if not result:
-        sentry_sdk.capture_exception(
-            CellResolutionError(f"Disallowed Region Silo IP address: {ip}")
-        )
+        sentry_sdk.capture_exception(CellResolutionError(f"Disallowed Cell Silo IP address: {ip}"))
     return result
 
 
-class RegionSiloClient(BaseApiClient):
+class CellSiloClient(BaseApiClient):
     integration_type = "silo_client"
 
     access_modes = [SiloMode.CONTROL]
 
-    metrics_prefix = "silo_client.region"
-    logger = logging.getLogger("sentry.silo.client.region")
-    silo_client_name = "region"
+    metrics_prefix = "silo_client.cell"
+    logger = logging.getLogger("sentry.silo.client.cell")
+    silo_client_name = "cell"
 
-    def __init__(self, region: Cell, retry: bool = False) -> None:
+    def __init__(self, cell: Cell, retry: bool = False) -> None:
         super().__init__()
         if SiloMode.get_current_mode() not in self.access_modes:
             access_mode_str = ", ".join(str(m) for m in self.access_modes)
@@ -112,12 +110,12 @@ class RegionSiloClient(BaseApiClient):
                 f"Only available in: {access_mode_str}"
             )
 
-        if not isinstance(region, Cell):
-            raise SiloClientError(f"Invalid region provided. Received {type(region)} type instead.")
+        if not isinstance(cell, Cell):
+            raise SiloClientError(f"Invalid cell provided. Received {type(cell)} type instead.")
 
-        # Ensure the region is registered
-        self.region = get_cell_by_name(region.name)
-        self.base_url = self.region.address
+        # Ensure the cell is registered
+        self.cell = get_cell_by_name(cell.name)
+        self.base_url = self.cell.address
         self.retry = retry
 
     def proxy_request(self, incoming_request: HttpRequest) -> HttpResponse:
@@ -168,11 +166,11 @@ class RegionSiloClient(BaseApiClient):
         prefix_hash: str | None = None,
     ) -> Any:
         """
-        Sends a request to the region silo.
+        Sends a request to the cell silo.
         If prefix_hash is provided, the request will be retries up to REQUEST_ATTEMPTS_LIMIT times.
         """
         if prefix_hash is not None:
-            hash = sha256(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
+            hash = sha256(f"{prefix_hash}{self.cell.name}{method}{path}".encode()).hexdigest()
             self.check_request_attempts(hash=hash, method=method, path=path)
         return self._request(
             method=method,
@@ -188,15 +186,15 @@ class RegionSiloClient(BaseApiClient):
     def build_session(self) -> SafeSession:
         """
         Generates a safe Requests session for the API client to use.
-        This injects a custom is_ipaddress_permitted function to allow only connections to Region Silo IP addresses.
+        This injects a custom is_ipaddress_permitted function to allow only connections to Cell Silo IP addresses.
         """
         if not self.retry:
             return build_session(
-                is_ipaddress_permitted=validate_region_ip_address,
+                is_ipaddress_permitted=validate_cell_ip_address,
             )
 
         return build_session(
-            is_ipaddress_permitted=validate_region_ip_address,
+            is_ipaddress_permitted=validate_cell_ip_address,
             max_retries=Retry(
                 total=options.get("hybridcloud.regionsiloclient.retries"),
                 backoff_factor=0.1,

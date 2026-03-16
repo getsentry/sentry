@@ -253,6 +253,42 @@ describe('Performance GridEditable Table', () => {
     );
   });
 
+  it('does not render trace link when trace id is missing', async () => {
+    const initialData = initializeData();
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+
+    render(
+      <EventsTable
+        theme={theme}
+        eventView={eventView}
+        organization={organization}
+        routes={initialData.router.routes}
+        location={initialData.router.location}
+        setError={() => {}}
+        columnTitles={transactionsListTitles}
+        transactionName={transactionName}
+      />
+    );
+
+    // First event has a trace and should render a trace link
+    expect(await screen.findByRole('link', {name: '1234'})).toBeInTheDocument();
+
+    // Second event has no trace - its (no value) should not be a link
+    const noValueElement = screen.getByText('(no value)');
+    expect(noValueElement.closest('a')).toBeNull();
+  });
+
   it('renders replay id', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
