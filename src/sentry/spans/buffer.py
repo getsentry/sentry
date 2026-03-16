@@ -637,7 +637,7 @@ class SpansBuffer:
                 spans=output_spans,
                 project_id=int(project_id.decode("ascii")),
                 score=score,
-                ingested_count=ingested_counts[segment_key],
+                ingested_count=ingested_counts.get(segment_key, 0),
                 distributed_payload_keys=self._distributed_payload_keys_map.get(segment_key, []),
             )
             num_has_root_spans += int(has_root_span)
@@ -892,7 +892,7 @@ class SpansBuffer:
                             1,
                             flushed_segment.queue_key,
                             segment_key,
-                            flushed_segment.score,
+                            int(flushed_segment.score),
                         )
                     zrem_results = p.execute()
 
