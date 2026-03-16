@@ -404,17 +404,26 @@ function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
 
 type MultipleProps<OptionType extends OptionTypeBase> = {
   multiple: true;
+  clearable?: boolean;
   onChange?: (option: OptionType[]) => void;
 };
 
 type SingleProps<OptionType extends OptionTypeBase> = {
+  clearable?: false;
   multiple?: false;
   onChange?: (option: OptionType) => void;
 };
 
+type SingleClearableProps<OptionType extends OptionTypeBase> = {
+  clearable: true;
+  multiple?: false;
+  onChange?: (option: OptionType | null) => void;
+};
+
 type SelectProps<OptionType extends OptionTypeBase> =
   | MultipleProps<OptionType>
-  | SingleProps<OptionType>;
+  | SingleProps<OptionType>
+  | SingleClearableProps<OptionType>;
 
 export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> =
   SelectProps<OptionType> &
@@ -433,10 +442,6 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
        * Backwards compatible shim to work with select2 style choice type.
        */
       choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
-      /**
-       * Enable 'clearable' which allows values to be removed.
-       */
-      clearable?: boolean;
       /**
        * Enable 'create' mode which allows values to be created inline.
        */
