@@ -64,7 +64,7 @@ describe('TraceViewLogsSection', () => {
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
-    await screen.findByText(/i am a log/);
+    expect(await screen.findByText(/i am a log/)).toBeInTheDocument();
     expect(mockRequest).toHaveBeenCalledTimes(1);
   });
 });
