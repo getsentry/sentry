@@ -11,7 +11,7 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry.types.actor import parse_and_validate_actor
+
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -42,6 +42,7 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
+from sentry.types.actor import parse_and_validate_actor
 from sentry.workflow_engine.endpoints.validators.base.action import ActionInput
 from sentry.workflow_engine.endpoints.validators.base.data_condition import DataConditionInput
 from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
@@ -912,7 +913,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            request_data = format_request_data(cast(ProjectRulePostData, request.data))
+            request_data = format_request_data(cast(ProjectRulePostData, request.data), project)
             validator = WorkflowValidator(
                 data=request_data,
                 context={"organization": project.organization, "request": request},
