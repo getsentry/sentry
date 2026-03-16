@@ -12,6 +12,7 @@ import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
+  Table,
   TableBody,
   TableBodyCell,
   TableHeadCell,
@@ -125,13 +126,16 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 `;
 
+export const LogTable = styled(Table)`
+  height: 100%;
+  margin-bottom: 0;
+`;
+
 export const LogTableBody = styled(TableBody)<{
   disableBodyPadding?: boolean;
   expanded?: boolean;
   showHeader?: boolean;
 }>`
-  --collapsedMaxHeight: max(20vh, 15rem);
-
   ${p =>
     p.showHeader
       ? ''
@@ -150,11 +154,7 @@ export const LogTableBody = styled(TableBody)<{
   max-height: ${p =>
     p.expanded
       ? `calc(95vh - ${GRID_BODY_ROW_HEIGHT * 1.5}px)`
-      : 'var(--collapsedMaxHeight)'};
-
-  @media (height >= 60rem) {
-    --collapsedMaxHeight: max(40vh, 20rem);
-  }
+      : 'max(calc(60vh - 20rem), 10rem)'};
 `;
 
 export const LogDetailTableBodyCell = styled(TableBodyCell)`
