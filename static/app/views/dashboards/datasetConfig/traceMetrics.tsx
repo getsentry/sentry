@@ -28,7 +28,9 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {
   useTraceMetricsSeriesQuery,
   useTraceMetricsTableQuery,
@@ -79,7 +81,11 @@ function TraceMetricsSearchBar({
   } = usePageFilters();
   const {state: widgetBuilderState} = useWidgetBuilderContext();
 
-  const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
+  const aggregateSource = usesTimeSeriesData(widgetBuilderState.displayType)
+    ? widgetBuilderState.yAxis
+    : widgetBuilderState.fields;
+  const traceMetric = (aggregateSource?.[0] &&
+    extractTraceMetricFromColumn(aggregateSource[0])) || {name: '', type: ''};
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes(
@@ -128,7 +134,11 @@ function useTraceMetricsSearchBarDataProvider(
   const {pageFilters, widgetQuery} = props;
   const {state: widgetBuilderState} = useWidgetBuilderContext();
 
-  const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
+  const aggregateSource = usesTimeSeriesData(widgetBuilderState.displayType)
+    ? widgetBuilderState.yAxis
+    : widgetBuilderState.fields;
+  const traceMetric = (aggregateSource?.[0] &&
+    extractTraceMetricFromColumn(aggregateSource[0])) || {name: '', type: ''};
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'string');
