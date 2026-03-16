@@ -70,7 +70,7 @@ import {
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
@@ -627,9 +627,9 @@ class DashboardDetail extends Component<Props, State> {
               ...location.query,
               ...(openWidgetTemplates
                 ? defaultLibraryWidget
-                  ? convertWidgetToBuilderStateParams(defaultLibraryWidget)
+                  ? convertWidgetToQueryParams(defaultLibraryWidget)
                   : {}
-                : convertWidgetToBuilderStateParams(
+                : convertWidgetToQueryParams(
                     getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
                   )),
             },
@@ -679,7 +679,7 @@ class DashboardDetail extends Component<Props, State> {
         pathname: path,
         query: {
           ...location.query,
-          ...convertWidgetToBuilderStateParams(widget),
+          ...convertWidgetToQueryParams(widget),
         },
       }),
       {preventScrollReset: true}
