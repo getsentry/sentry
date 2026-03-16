@@ -42,14 +42,14 @@ class BitbucketRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         try:
-            region = get_cell_by_name(mapping.cell_name)
+            cell = get_cell_by_name(mapping.cell_name)
         except CellResolutionError as e:
             logging_extra["error"] = str(e)
             logging_extra["mapping_id"] = mapping.id
             logger.info("%s.no_region", self.provider, extra=logging_extra)
             return self.get_response_from_control_silo()
         return self.get_response_from_webhookpayload(
-            cells=[region], identifier=mapping.organization_id
+            cells=[cell], identifier=mapping.organization_id
         )
 
     def get_response(self) -> HttpResponseBase:
