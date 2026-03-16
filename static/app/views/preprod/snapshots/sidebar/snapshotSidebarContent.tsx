@@ -95,6 +95,7 @@ export function SnapshotSidebarContent({
   );
 
   const sectionRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (sectionParam) {
@@ -125,6 +126,16 @@ export function SnapshotSidebarContent({
     return groups;
   }, [items, isDiffMode]);
 
+  useEffect(() => {
+    if (!listRef.current || !currentItemName) {
+      return;
+    }
+    const el = listRef.current.querySelector(
+      `[data-item-name="${CSS.escape(currentItemName)}"]`
+    );
+    el?.scrollIntoView({block: 'nearest'});
+  }, [currentItemName]);
+
   const isSearching = searchQuery.length > 0;
 
   const handleExpandedChange = (type: string, expanded: boolean) => {
@@ -149,7 +160,7 @@ export function SnapshotSidebarContent({
           />
         </InputGroup>
       </Stack>
-      <Stack overflow="auto" flex="1" paddingRight="0">
+      <Stack ref={listRef} overflow="auto" flex="1" paddingRight="0">
         {isGroupedDiff &&
           SECTION_ORDER.map(section => {
             const sectionItems = groupedItems.get(section.type);
@@ -187,6 +198,7 @@ export function SnapshotSidebarContent({
                     {sectionItems.map(item => (
                       <SidebarItemRow
                         key={item.name}
+                        data-item-name={item.name}
                         isSelected={item.name === currentItemName}
                         onClick={() => onSelectItem(item.name)}
                       >
@@ -219,6 +231,7 @@ export function SnapshotSidebarContent({
             return (
               <SidebarItemRow
                 key={item.name}
+                data-item-name={item.name}
                 isSelected={isSelected}
                 onClick={() => onSelectItem(item.name)}
               >

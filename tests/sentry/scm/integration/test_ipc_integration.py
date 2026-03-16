@@ -7,7 +7,7 @@ from sentry.scm.private.ipc import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import TaskRunner
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import cell_silo_test, control_silo_test
 
 
 class TestProduceToListenerIntegration(TestCase):
@@ -36,7 +36,7 @@ class TestWebhookHandlerControlTaskIntegration(TestCase):
             run_webhook_handler_control_task.delay("anything", "", "check_run")
 
 
-@region_silo_test
+@cell_silo_test
 class TestWebhookHandlerRegionTaskIntegration(TestCase):
     def test_run_webhook_handler_region_task_success(self):
         """Test the task can be delayed without error."""

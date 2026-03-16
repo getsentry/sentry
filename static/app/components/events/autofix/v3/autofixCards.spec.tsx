@@ -122,14 +122,14 @@ describe('RootCauseCard', () => {
     expect(screen.getByText('Click button')).toBeInTheDocument();
   });
 
-  it('returns null when artifact data is null', () => {
+  it('renders card shell when artifact data is null', () => {
     const artifact = makeRootCauseArtifact(null);
 
-    const {container} = render(
+    render(
       <RootCauseCard section={makeSection('root_cause', 'completed', [artifact])} />
     );
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('Root Cause')).toBeInTheDocument();
   });
 
   it('handles empty five_whys with placeholder', () => {
@@ -178,14 +178,12 @@ describe('SolutionCard', () => {
     expect(screen.getByText('Handle edge case')).toBeInTheDocument();
   });
 
-  it('returns null when artifact data is null', () => {
+  it('renders card shell when artifact data is null', () => {
     const artifact = makeSolutionArtifact(null);
 
-    const {container} = render(
-      <SolutionCard section={makeSection('solution', 'completed', [artifact])} />
-    );
+    render(<SolutionCard section={makeSection('solution', 'completed', [artifact])} />);
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
   });
 });
 
@@ -251,12 +249,11 @@ describe('CodeChangesCard', () => {
     expect(screen.getByText('org/repo-b')).toBeInTheDocument();
   });
 
-  it('returns null when no code changes artifact found', () => {
-    const {container} = render(
-      <CodeChangesCard section={makeSection('code_changes', 'completed', [])} />
-    );
+  it('renders card shell when no code changes artifact found', () => {
+    render(<CodeChangesCard section={makeSection('code_changes', 'completed', [])} />);
 
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('Code Changes')).toBeInTheDocument();
+    expect(screen.getByText('0 files changed in 0 repos')).toBeInTheDocument();
   });
 });
 
@@ -300,8 +297,8 @@ describe('PullRequestsCard', () => {
       <PullRequestsCard
         section={makeSection('pull_request', 'completed', [
           [
-            makePR({pr_url: null}),
-            makePR({pr_number: null}),
+            makePR({repo_name: 'org/repo-a', pr_url: null}),
+            makePR({repo_name: 'org/repo-b', pr_number: null}),
             makePR({
               repo_name: 'org/valid',
               pr_number: 55,

@@ -59,6 +59,10 @@ jobs:
         id: tsc
         run: pnpm exec tsc -p tsconfig.json
 
+      - name: tsc (mdx)
+        id: tsc-mdx
+        run: pnpm run typecheck:mdx
+
   eslint:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
@@ -167,7 +171,7 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: Generate form field registry
-        run: node scripts/extractFormFields.ts
+        run: node --experimental-transform-types scripts/extractFormFields.ts
 
       - name: Check for changes
         run: |
@@ -176,7 +180,7 @@ jobs:
             echo "❌ Form field registry is out of sync!"
             echo ""
             echo "Run the following command and commit the changes:"
-            echo "  node scripts/extractFormFields.ts"
+            echo "  node --experimental-transform-types scripts/extractFormFields.ts"
             echo ""
             exit 1
           fi
