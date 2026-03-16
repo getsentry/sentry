@@ -22,11 +22,12 @@ from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issu
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.issue_detection.grouptype import (
+from sentry.issues.grouptype import (
+    FeedbackGroup,
+    NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
-from sentry.issues.grouptype import FeedbackGroup, NoiseConfig
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken

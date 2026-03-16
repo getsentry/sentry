@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 
-from sentry.issue_detection.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header

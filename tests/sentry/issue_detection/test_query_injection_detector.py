@@ -5,12 +5,12 @@ from typing import Any
 import pytest
 
 from sentry.issue_detection.detectors.query_injection_detector import QueryInjectionDetector
-from sentry.issue_detection.grouptype import QueryInjectionVulnerabilityGroupType
 from sentry.issue_detection.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.grouptype import QueryInjectionVulnerabilityGroupType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import get_event
 
