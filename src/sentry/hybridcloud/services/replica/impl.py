@@ -20,7 +20,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
-from sentry.hybridcloud.services.replica.service import ControlReplicaService, RegionReplicaService
+from sentry.hybridcloud.services.replica.service import CellReplicaService, ControlReplicaService
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.models.apikey import ApiKey
@@ -141,7 +141,7 @@ def handle_replication(
             destination.save()
 
 
-class DatabaseBackedRegionReplicaService(RegionReplicaService):
+class DatabaseBackedCellReplicaService(CellReplicaService):
     def upsert_replicated_api_token(
         self,
         *,
