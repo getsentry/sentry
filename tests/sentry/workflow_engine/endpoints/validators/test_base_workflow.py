@@ -843,9 +843,7 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert workflow.owner_user_id == self.user.id
         assert workflow.owner_team_id is None
         attrs = self.serializer.get_attrs([workflow], self.user)
-        response: WorkflowSerializerResponse = self.serializer.serialize(
-            workflow, attrs[workflow], self.user
-        )
+        response = self.serializer.serialize(workflow, attrs[workflow], self.user)
         assert response["owner"] == self.valid_data["owner"]
 
     def test_team_owner_not_member(self, mock_action_validator: mock.MagicMock) -> None:
