@@ -77,7 +77,7 @@ class GithubCopilotTask(BaseModel):
     session_count: int | None = None
     artifacts: list[GithubCopilotArtifact] | None = None
     archived_at: str | None = None
-    last_updated_at: str | None = None
+    updated_at: str | None = None
     created_at: str | None = None
     sessions: list[GithubCopilotSession] | None = None
 
