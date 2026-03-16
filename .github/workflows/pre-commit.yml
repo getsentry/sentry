@@ -71,11 +71,13 @@ jobs:
           key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Setup prek
         run: |
-          .venv/bin/prek install-hooks
+          .venv/bin/prek prepare-hooks
 
       - name: Run prek on PR commits
+        env:
+          ALL_FILES: ${{ steps.changes.outputs.all_files }}
         run: |
-          jq '.[]' --raw-output <<< '${{steps.changes.outputs.all_files}}' |
+          jq '.[]' --raw-output <<< "$ALL_FILES" |
             xargs .venv/bin/prek run -q --files
 
       - name: Apply any pre-commit fixed files

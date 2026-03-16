@@ -290,7 +290,7 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            ("prek dependencies", (".venv/bin/prek", "install-hooks"), {}),
+            ("prek dependencies", (".venv/bin/prek", "install", "--install-hooks", "-f"), {}),
             ("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),
         ),
         verbose,
@@ -311,11 +311,6 @@ def main(context: dict[str, str]) -> int:
             print("⚠️  agent skills failed to install (non-fatal)")
 
     if not IN_GIT_WORKTREE:
-        # Remove old pre-commit/prek-generated hook so we can symlink our wrapper
-        hook = f"{reporoot}/.git/hooks/pre-commit"
-        if os.path.exists(hook) and not os.path.islink(hook):
-            os.remove(hook)
-        fs.ensure_symlink("../../config/hooks/pre-commit", hook)
         fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
         fs.ensure_symlink(
             "../../config/hooks/post-checkout", f"{reporoot}/.git/hooks/post-checkout"
