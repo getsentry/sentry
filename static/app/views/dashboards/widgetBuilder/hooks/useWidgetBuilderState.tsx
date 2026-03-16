@@ -65,7 +65,7 @@ export const MAX_NUM_Y_AXES = 3;
 
 export const stateParamsNotInUrl: Array<keyof WidgetBuilderStateParams> = ['textContent'];
 
-const SESSION_STORAGE_CONTENT_KEY_MAP = {
+export const SESSION_STORAGE_CONTENT_KEY_MAP = {
   textContent: 'dashboard:widget-builder:text-content',
 };
 
