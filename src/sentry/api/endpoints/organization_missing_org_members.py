@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from sentry import roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import Serializer, serialize
 from sentry.constants import ObjectStatus
@@ -71,9 +71,7 @@ def _get_missing_organization_members(
     org_id = organization.id
     domain_query = ""
     if shared_domain:
-        domain_query = (
-            f"AND (UPPER(sentry_commitauthor.email::text) LIKE UPPER('%%{shared_domain}'))"
-        )
+        domain_query = "AND (UPPER(sentry_commitauthor.email::text) LIKE UPPER(%(shared_domain)s))"
     else:
         for filtered_email in FILTERED_EMAILS:
             domain_query += (
@@ -107,7 +105,6 @@ def _get_missing_organization_members(
                 )
         OR sentry_commitauthor.external_id IS NULL))
     """
-    # adding the extra domain query here prevents django raw from putting extra quotations around it
     query += domain_query
     query += """
         AND NOT (UPPER(sentry_commitauthor.email::text) LIKE UPPER('%%+%%'))
@@ -115,12 +112,15 @@ def _get_missing_organization_members(
 
         GROUP BY sentry_commitauthor.id ORDER BY commit__count DESC limit 50"""
 
-    param_dict = {
+    param_dict: dict[str, Any] = {
         "org_id": org_id,
         "date_added": date_added,
         "provider": "integrations:" + provider,
         "integration_ids": tuple(integration_ids),
     }
+
+    if shared_domain:
+        param_dict["shared_domain"] = f"%{shared_domain}"
 
     return list(CommitAuthor.objects.raw(query, param_dict))
 
@@ -148,7 +148,7 @@ def _get_shared_email_domain(organization: Organization) -> str | None:
     return None
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {

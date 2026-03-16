@@ -1,8 +1,8 @@
 import {Button} from '@sentry/scraps/button';
 
-import CommandLine from 'sentry/components/commandLine';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
+import {CommandLine} from 'sentry/components/commandLine';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
@@ -11,7 +11,7 @@ type Props = {
   onRefresh: () => void;
 };
 
-function WaitingActivity({onRefresh, disabled}: Props) {
+export function WaitingActivity({onRefresh, disabled}: Props) {
   return (
     <Panel>
       <EmptyMessage
@@ -31,5 +31,3 @@ function WaitingActivity({onRefresh, disabled}: Props) {
     </Panel>
   );
 }
-
-export default WaitingActivity;

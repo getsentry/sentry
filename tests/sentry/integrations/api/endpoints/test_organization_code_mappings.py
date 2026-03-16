@@ -190,13 +190,13 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert len(response.data) == 2
 
     def test_basic_get_with_invalid_integrationId(self) -> None:
-        url_path = f"{self.url}?integrationId=100"
+        url_path = f"{self.url}?integrationId=999999999"
         response = self.client.get(url_path, format="json")
 
         assert response.status_code == 404, response.content
 
     def test_basic_get_with_invalid_projectId(self) -> None:
-        url_path = f"{self.url}?project=100"
+        url_path = f"{self.url}?project=999999999"
         response = self.client.get(url_path, format="json")
 
         assert response.status_code == 403, response.content
@@ -270,7 +270,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 403, response.content
 
     def test_basic_post_with_invalid_integrationId(self) -> None:
-        response = self.make_post({"integrationId": 100})
+        response = self.make_post({"integrationId": 999999999})
         assert response.status_code == 404, response.content
 
     def test_basic_post_with_no_integrationId(self) -> None:

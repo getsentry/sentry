@@ -4,13 +4,12 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import CommitLink from 'sentry/components/commitLink';
+import {CommitLink} from 'sentry/components/commitLink';
 import type {CommitRowProps} from 'sentry/components/commitRow';
 import {formatCommitMessage} from 'sentry/components/commitRow';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TextOverflow from 'sentry/components/textOverflow';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useUser} from 'sentry/utils/useUser';
 
 function QuickContextCommitRow({commit}: CommitRowProps) {
@@ -56,12 +55,12 @@ function QuickContextCommitRow({commit}: CommitRowProps) {
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   padding: 0;
   border: none;
 
   & + & {
-    margin-top: ${space(1)};
+    margin-top: ${p => p.theme.space.md};
   }
 `;
 

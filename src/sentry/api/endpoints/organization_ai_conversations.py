@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import OrganizationAIConversationsSerializer
@@ -217,7 +217,7 @@ def _build_conversation_response(
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -266,7 +266,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         user_query: str,
         sampling_mode: SAMPLING_MODES = "NORMAL",
     ) -> list[dict]:
-        query_string = _build_conversation_query("has:gen_ai.conversation.id", user_query)
+        base_filter = (
+            "has:gen_ai.conversation.id"
+            " (has:gen_ai.input.messages OR has:gen_ai.request.messages)"
+            " (has:gen_ai.output.messages OR has:gen_ai.response.text)"
+        )
+        query_string = _build_conversation_query(base_filter, user_query)
 
         conversation_ids_results = self._fetch_conversation_ids(
             snuba_params, query_string, offset, limit, sampling_mode

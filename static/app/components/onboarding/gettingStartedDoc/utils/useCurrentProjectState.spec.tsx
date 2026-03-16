@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
+import {useCurrentProjectState} from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {
   feedbackOnboardingPlatforms,
@@ -11,7 +11,7 @@ import {
   replayPlatforms,
 } from 'sentry/data/platformCategories';
 import {OnboardingDrawerKey} from 'sentry/stores/onboardingDrawerStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
 function createWrapper(projectSlug?: string) {

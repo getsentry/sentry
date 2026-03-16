@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   children?: React.ReactNode;
@@ -30,7 +29,7 @@ function EmptyStateWarning({small = false, withIcon = true, children, className}
 export const EmptyStreamWrapper = styled('div')`
   text-align: center;
   font-size: 22px;
-  padding: ${space(4)} ${space(2)};
+  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space.xl};
 
   p {
     line-height: 1.2;
@@ -41,7 +40,7 @@ export const EmptyStreamWrapper = styled('div')`
   }
 
   > svg {
-    margin-bottom: ${space(2)};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;
 
@@ -54,7 +53,7 @@ const SmallMessage = styled('div')`
 `;
 
 const StyledIconSearch = styled(IconSearch)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 export default EmptyStateWarning;

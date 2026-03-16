@@ -5,31 +5,30 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
+import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
-import GroupListHeader from 'sentry/components/issues/groupListHeader';
-import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
-import LoadingError from 'sentry/components/loadingError';
+import {GroupListHeader} from 'sentry/components/issues/groupListHeader';
+import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
+import {LoadingError} from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import Placeholder from 'sentry/components/placeholder';
 import StreamGroup, {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
 } from 'sentry/components/stream/group';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 
 const COLUMNS: GroupListColumn[] = [
@@ -60,26 +59,12 @@ function useMemberList() {
   return memberList;
 }
 
-function useSyncGroupStore(data: Group[] | undefined) {
-  useEffect(() => {
-    GroupStore.loadInitialData([]);
-    return () => {
-      GroupStore.reset();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (data) {
-      GroupStore.add(data);
-    }
-  }, [data]);
-}
-
 export function IssuesWidget() {
   const pageFilters = usePageFilters().selection;
   const organization = useOrganization();
   const memberList = useMemberList();
   const breakpoints = useBreakpoints();
+  const queryClient = useQueryClient();
 
   const {query} = useTransactionNameQuery();
 
@@ -96,25 +81,45 @@ export function IssuesWidget() {
     [datetimeSelection, pageFilters.environments, pageFilters.projects, query]
   );
 
+  const issuesQueryKey = [
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+    {
+      query: queryParams,
+    },
+  ] as const;
   const {
     data: groups,
     isPending,
     error,
     refetch,
-  } = useApiQuery<Group[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: queryParams,
-      },
-    ],
-    {staleTime: 0}
-  );
+  } = useApiQuery<Group[]>(issuesQueryKey, {
+    staleTime: 0,
+  });
 
-  // We need to sync group store with the data as StreamGroup retrieves data from the store
-  useSyncGroupStore(groups);
+  const handleAssigneeChange = (
+    groupId: string,
+    newAssignee: AssignableEntity | null
+  ) => {
+    queryClient.setQueryData<Group[]>(issuesQueryKey, previousGroups =>
+      (previousGroups ?? []).map(previousGroup => {
+        if (previousGroup.id !== groupId) {
+          return previousGroup;
+        }
+        return {
+          ...previousGroup,
+          assignedTo: newAssignee
+            ? {
+                id: newAssignee.id,
+                name: newAssignee.assignee.name,
+                type: newAssignee.type,
+              }
+            : null,
+        };
+      })
+    );
+  };
 
   const issuesUrl = useMemo(() => {
     return {
@@ -173,18 +178,21 @@ export function IssuesWidget() {
                 <Placeholder height="50px" />
               </GroupPlaceholder>
             ))
-          : groups.map(({id, project}) => {
+          : groups.map(group => {
               return (
                 <StreamGroup
-                  key={id}
-                  id={id}
+                  key={group.id}
+                  group={group}
                   canSelect={false}
                   withChart={breakpoints.xl}
                   withColumns={COLUMNS}
-                  memberList={memberList?.[project.slug]}
+                  memberList={memberList?.[group.project.slug]}
                   useFilteredStats={false}
                   statsPeriod={DEFAULT_STREAM_GROUP_STATS_PERIOD}
                   source="laravel-insights"
+                  onAssigneeChange={newAssignee =>
+                    handleAssigneeChange(group.id, newAssignee)
+                  }
                 />
               );
             })}
@@ -202,7 +210,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const GroupPlaceholder = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 
   &:not(:last-child) {
     border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};
@@ -213,13 +221,13 @@ const SuperHeaderLabel = styled(IssueStreamHeaderLabel)`
   color: ${p => p.theme.tokens.content.primary};
   font-size: 1rem;
   line-height: 1.2;
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
 const SuperHeader = styled(PanelHeader)`
   background-color: ${p => p.theme.tokens.background.primary};
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   text-transform: capitalize;
 `;
 

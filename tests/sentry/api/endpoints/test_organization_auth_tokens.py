@@ -6,7 +6,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.cases import APITestCase, PermissionTestCase
 from sentry.testutils.silo import control_silo_test, create_test_regions
-from sentry.types.region import get_region_by_name
+from sentry.types.region import get_cell_by_name
 from sentry.utils.security.orgauthtoken_token import parse_token
 
 
@@ -143,7 +143,7 @@ class OrganizationAuthTokenCreateTest(APITestCase):
         token_payload = parse_token(token=token.get("token"))
         assert token_payload is not None
         assert token_payload.get("region_url", None)
-        assert token_payload.get("region_url") == get_region_by_name(name="us").address
+        assert token_payload.get("region_url") == get_cell_by_name(name="us").address
         assert token_payload.get("url") == options.get("system.url-prefix")
 
     def test_no_name(self) -> None:

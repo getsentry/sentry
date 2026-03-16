@@ -4,7 +4,7 @@ from sentry.sentry_apps.services.app.serial import (
 )
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.silo import cell_silo_test, control_silo_test
 
 
 @control_silo_test
@@ -30,7 +30,7 @@ class TestSentryAppAvatar(TestCase):
         assert rpc_avatar.absolute_url() == self.avatar.absolute_url()
 
 
-@region_silo_test
+@cell_silo_test
 class TestRpcApiApplication(TestCase):
     def setUp(self) -> None:
         super().setUp()

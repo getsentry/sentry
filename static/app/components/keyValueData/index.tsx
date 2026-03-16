@@ -7,10 +7,9 @@ import {Link} from '@sentry/scraps/link';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
@@ -219,16 +218,16 @@ function Container({children}: {children: React.ReactNode}) {
 }
 
 export const CardPanel = styled(Panel)`
-  padding: ${space(0.75)};
+  padding: ${p => p.theme.space.sm};
   display: grid;
-  column-gap: ${space(1.5)};
+  column-gap: ${p => p.theme.space.lg};
   grid-template-columns: fit-content(50%) 1fr;
   font-size: ${p => p.theme.font.size.sm};
 `;
 
 const Title = styled('div')`
   grid-column: span 2;
-  padding: ${space(0.25)} ${space(0.75)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   color: ${p => p.theme.tokens.content.primary};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
@@ -241,8 +240,8 @@ const ContentWrapper = styled('div')<{
   display: grid;
   grid-template-columns: ${p => (p.expandLeft ? '2fr 0.8fr' : 'subgrid')};
   grid-column: span 2;
-  column-gap: ${space(1.5)};
-  padding: ${space(0.25)} ${space(0.75)};
+  column-gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.sm};
   border-radius: 4px;
   color: ${p =>
     p.hasErrors
@@ -297,7 +296,7 @@ export const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: 
   grid-column: ${p => (p.hasEmptySubject ? '1 / -1' : 'span 1')};
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-column-gap: ${space(0.5)};
+  grid-column-gap: ${p => p.theme.space.xs};
 `;
 
 const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
@@ -310,7 +309,7 @@ const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
 const TruncateWrapper = styled('a')`
   display: flex;
   grid-column: 1 / -1;
-  margin: ${space(0.5)} 0;
+  margin: ${p => p.theme.space.xs} 0;
   justify-content: center;
   font-family: ${p => p.theme.font.family.sans};
 `;

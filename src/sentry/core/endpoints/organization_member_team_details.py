@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import audit_log, features, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -110,7 +110,7 @@ def _is_org_owner_or_manager(access: Access) -> bool:
 
 
 @extend_schema(tags=["Teams"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     def convert_args(
         self,
@@ -412,13 +412,29 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                 old_role = team_roles.get(omt.role) if omt.role else None
             except KeyError:
                 old_role = None
-            can_set_old_role = can_set_team_role(request, team, old_role) if old_role else True
+            if old_role is None:
+                old_role = roles.get_minimum_team_role(member.role)
+            can_set_old_role = can_set_team_role(request, team, old_role)
 
             # Verify that the request is allowed to set both the old and new role to prevent role downgrades by low-privilege users
             if not (can_set_new_role and can_set_old_role):
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
             self._change_team_member_role(omt, new_role)
+
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=omt.id,
+                target_user_id=member.user_id,
+                event=audit_log.get_event_id("MEMBER_EDIT"),
+                data={
+                    "email": member.get_email(),
+                    "role": member.role,
+                    "team_slug": team.slug,
+                    "team_role": new_role_id,
+                },
+            )
 
         return Response(
             serialize(omt, request.user, OrganizationMemberTeamDetailsSerializer()), status=200

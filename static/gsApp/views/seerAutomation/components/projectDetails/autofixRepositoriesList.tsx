@@ -15,14 +15,14 @@ import type {
   ProjectSeerPreferences,
   SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
 
 import {AutofixRepositoriesItem} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesItem';
@@ -55,7 +55,7 @@ const getTableHeaders = (organization: Organization): React.ReactNode[] => [
   null,
 ];
 
-export default function AutofixRepositories({canWrite, preference, project}: Props) {
+export function AutofixRepositories({canWrite, preference, project}: Props) {
   const organization = useOrganization();
 
   const {data: repositories, isFetching: isFetchingRepositories} =
@@ -202,5 +202,6 @@ export default function AutofixRepositories({canWrite, preference, project}: Pro
 }
 
 const StyledPanelTable = styled(PanelTable)`
+  margin-bottom: 0;
   grid-template-columns: 1fr repeat(2, max-content);
 `;

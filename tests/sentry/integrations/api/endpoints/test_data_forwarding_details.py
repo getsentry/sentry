@@ -1,13 +1,16 @@
+from datetime import datetime, timedelta, timezone
+
 from django.urls import reverse
 
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-forwarding-details"
 
@@ -23,7 +26,7 @@ class DataForwardingDetailsEndpointTest(APITestCase):
             return super().get_response(*args, **kwargs)
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
     method = "PUT"
 
@@ -170,6 +173,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         )
         assert "invalid project ids" in str(response.data).lower()
 
+    @freeze_time(datetime.now(tz=timezone.utc) - timedelta(hours=1))
     def test_update_with_project_write_bulk_enrollment(self) -> None:
         """Test bulk enrollment of multiple projects by project:write user"""
         data_forwarder = self.create_data_forwarder(
@@ -574,7 +578,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         assert data_forwarder.is_enabled
 
 
-@region_silo_test
+@cell_silo_test
 class DataForwardingDetailsDeleteTest(DataForwardingDetailsEndpointTest):
     method = "DELETE"
 

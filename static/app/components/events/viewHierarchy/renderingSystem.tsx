@@ -4,9 +4,8 @@ import {PlatformIcon} from 'platformicons';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type RenderingSystemProps = {
   platform?: string;
@@ -41,7 +40,7 @@ export {RenderingSystem};
 const Container = styled('div')`
   position: absolute;
   top: -0.5px;
-  left: -${space(3)};
+  left: -${p => p.theme.space['2xl']};
   z-index: 1;
 
   img {

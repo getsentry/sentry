@@ -7,6 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -20,7 +21,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
   reloadInvoice: () => void;
 };
 
-function InvoiceDetailsPaymentForm({
+export default function InvoiceDetailsPaymentForm({
   Header,
   Body,
   closeModal,
@@ -29,10 +30,11 @@ function InvoiceDetailsPaymentForm({
   reloadInvoice,
 }: Props) {
   const location = useLocation();
-  const endpoint = getApiUrl(
-    '/organizations/$organizationIdOrSlug/payments/$paymentId/new/',
-    {path: {organizationIdOrSlug: invoice.customer.slug, paymentId: invoice.id}}
-  );
+  const endpoint = [
+    getApiUrl('/organizations/$organizationIdOrSlug/payments/$paymentId/new/', {
+      path: {organizationIdOrSlug: invoice.customer.slug, paymentId: invoice.id},
+    }),
+  ] satisfies ApiQueryKey;
 
   return (
     <Fragment>
@@ -58,7 +60,7 @@ function InvoiceDetailsPaymentForm({
               closeModal();
             }}
             organization={organization}
-            intentDataEndpoint={endpoint}
+            intentDataQueryKey={endpoint}
             referrer={decodeScalar(location?.query?.referrer)}
             buttonText={t('Pay Now')}
           />
@@ -67,5 +69,3 @@ function InvoiceDetailsPaymentForm({
     </Fragment>
   );
 }
-
-export default InvoiceDetailsPaymentForm;

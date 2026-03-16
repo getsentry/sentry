@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Collection
 from typing import Any
 
@@ -13,7 +14,11 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.region import find_cells_for_orgs
+
+logger = logging.getLogger("sentry.auth.identity")
+
+_MEANINGFUL_UPDATE_FIELDS = frozenset({"user", "user_id", "ident", "data"})
 
 
 @control_silo_model
@@ -32,7 +37,7 @@ class AuthIdentity(ReplicatedControlModel):
     date_added = models.DateTimeField(default=timezone.now)
 
     def outbox_region_names(self) -> Collection[str]:
-        return find_regions_for_orgs([self.auth_provider.organization_id])
+        return find_cells_for_orgs([self.auth_provider.organization_id])
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_auth_identity
@@ -40,7 +45,7 @@ class AuthIdentity(ReplicatedControlModel):
 
         serialized = serialize_auth_identity(self)
         region_replica_service.upsert_replicated_auth_identity(
-            auth_identity=serialized, region_name=region_name
+            auth_identity=serialized, cell_name=region_name
         )
 
     @classmethod
@@ -52,6 +57,33 @@ class AuthIdentity(ReplicatedControlModel):
 
         sanitizer.set_json(json, SanitizableField(model_name, "data"), {})
         sanitizer.set_string(json, SanitizableField(model_name, "ident"))
+
+    def update(self, *args: Any, **kwds: Any) -> int:
+        changed_fields = _MEANINGFUL_UPDATE_FIELDS.intersection(kwds)
+        old_user_id = self.user_id
+        result = super().update(*args, **kwds)
+        if changed_fields:
+            extra: dict[str, Any] = {
+                "auth_identity_id": self.id,
+                "auth_provider_id": self.auth_provider_id,
+                "user_id": old_user_id,
+                "changed_fields": sorted(changed_fields),
+            }
+            if self.user_id != old_user_id:
+                extra["new_user_id"] = self.user_id
+            logger.info("auth_identity.update", extra=extra)
+        return result
+
+    def delete(self, *args: Any, **kwds: Any) -> tuple[int, dict[str, Any]]:
+        logger.info(
+            "auth_identity.delete",
+            extra={
+                "auth_identity_id": self.id,
+                "auth_provider_id": self.auth_provider_id,
+                "user_id": self.user_id,
+            },
+        )
+        return super().delete(*args, **kwds)
 
     class Meta:
         app_label = "sentry"

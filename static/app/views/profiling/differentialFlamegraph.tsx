@@ -6,7 +6,7 @@ import {vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DifferentialFlamegraphLayout} from 'sentry/components/profiling/flamegraph/differentialFlamegraphLayout';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {DifferentialFlamegraphDrawer} from 'sentry/components/profiling/flamegraph/flamegraphDrawer/differentialFlamegraphDrawer';

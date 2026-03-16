@@ -6,18 +6,17 @@ import {Button} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import HighlightModalContainer from 'sentry/components/highlightModalContainer';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft, getTrialLength} from 'getsentry/utils/billing';
 
@@ -146,7 +145,7 @@ function ForcedTrialModal(props: ForcedTrialModalProps) {
 }
 
 const TrialCheckInfo = styled('div')`
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
 
   p {
     font-size: ${p => p.theme.font.size.md};
@@ -170,7 +169,7 @@ export const modalCss = css`
 `;
 
 const Subheader = styled('h4')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   text-transform: uppercase;
   font-weight: bold;
   color: ${p => p.theme.tokens.content.accent};
@@ -180,7 +179,7 @@ const Subheader = styled('h4')`
 const StyledButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
 ))`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   max-width: fit-content;
 `;
 

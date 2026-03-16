@@ -11,18 +11,17 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {useOrganizationFlagLog} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -222,12 +221,12 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
 const Table = styled('div')`
   display: grid;
   grid-template-columns: 0.4fr 0.7fr 0.3fr 0.5fr min-content;
-  column-gap: ${space(1)};
-  row-gap: ${space(0.5)};
-  margin: 0 -${space(1)};
+  column-gap: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space.xs};
+  margin: 0 -${p => p.theme.space.md};
 
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    column-gap: ${space(2)};
+    column-gap: ${p => p.theme.space.xl};
   }
 `;
 
@@ -245,7 +244,7 @@ const Body = styled('div')`
 
 const Header = styled(Body)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space.md};
 `;
 
 const Row = styled(Body)`
@@ -254,7 +253,7 @@ const Row = styled(Body)`
   }
   align-items: center;
   border-radius: 4px;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {
     visibility: hidden;
@@ -272,5 +271,5 @@ const LeftAlignedValue = styled('div')`
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;

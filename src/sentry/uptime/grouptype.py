@@ -240,6 +240,10 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         if assertion_failure_data is not None:
             evidence_data["assertion_failure_data"] = json.dumps(assertion_failure_data)
 
+        check_id = result.get("guid")
+        if check_id:
+            evidence_data["check_id"] = check_id
+
         occurrence = DetectorOccurrence(
             issue_title=f"Downtime detected for {uptime_subscription.url}",
             subtitle="Your monitored domain is down",

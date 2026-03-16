@@ -13,16 +13,15 @@ import {mergeRefs} from '@react-aria/utils';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
+import type {
+  SelectOptionOrSectionWithKey,
+  SelectOptionWithKey,
+} from '@sentry/scraps/compactSelect';
 import {
   getDisabledOptions,
   getHiddenOptions,
   itemIsSectionWithKey,
   ListBox,
-} from '@sentry/scraps/compactSelect';
-import type {
-  SelectKey,
-  SelectOptionOrSectionWithKey,
-  SelectOptionWithKey,
 } from '@sentry/scraps/compactSelect';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
@@ -30,7 +29,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {defined} from 'sentry/utils';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface ComboBoxProps {
   children: CollectionChildren<SelectOptionOrSectionWithKey<string>>;
@@ -72,8 +71,13 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
-  const hiddenOptions: Set<SelectKey> = useMemo(() => {
-    return getHiddenOptions(items, shouldFilterResults ? filterValue : '', maxOptions);
+  const hiddenOptions = useMemo(() => {
+    const {hidden} = getHiddenOptions(
+      items,
+      shouldFilterResults ? filterValue : '',
+      maxOptions
+    );
+    return hidden;
   }, [items, shouldFilterResults, filterValue, maxOptions]);
 
   const disabledKeys = useMemo(

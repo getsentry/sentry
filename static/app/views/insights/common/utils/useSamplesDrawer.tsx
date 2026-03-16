@@ -3,12 +3,12 @@ import type {Location} from 'history';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 interface UseSamplesDrawerProps {

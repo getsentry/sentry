@@ -1,3 +1,5 @@
+import {WidgetFixture} from 'sentry-fixture/widget';
+
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
@@ -119,5 +121,52 @@ describe('convertWidgetToBuilderStateParams', () => {
     expect(params.thresholds).toBe(
       '{"max_values":{"max1":200,"max2":300},"unit":"milliseconds"}'
     );
+  });
+
+  it('defaults axisRange to auto when widget axisRange is null', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      axisRange: null,
+    };
+
+    const params = convertWidgetToBuilderStateParams(
+      widget as unknown as Parameters<typeof convertWidgetToBuilderStateParams>[0]
+    );
+    expect(params.axisRange).toBe('auto');
+  });
+
+  it('defaults axisRange to auto when widget axisRange is invalid', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      axisRange: 'invalid',
+    };
+
+    const params = convertWidgetToBuilderStateParams(
+      widget as unknown as Parameters<typeof convertWidgetToBuilderStateParams>[0]
+    );
+    expect(params.axisRange).toBe('auto');
+  });
+
+  describe('traceMetric', () => {
+    it('includes the trace metric in the builder params', () => {
+      const widget = WidgetFixture({
+        ...getDefaultWidget(WidgetType.TRACEMETRICS),
+        queries: [
+          {
+            aggregates: ['avg(value,test-metric,distribution,second)'],
+            columns: [],
+            conditions: '',
+            name: '',
+            orderby: '',
+          },
+        ],
+      });
+      const params = convertWidgetToBuilderStateParams(widget);
+      expect(JSON.parse(params.traceMetric!)).toEqual({
+        name: 'test-metric',
+        type: 'distribution',
+        unit: 'second',
+      });
+    });
   });
 });

@@ -15,11 +15,10 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   MonitorSortOption,
   MonitorSortOrder,
@@ -238,7 +237,7 @@ const StyledPanelTable = styled(PanelTable)`
 
 const RowPlaceholder = styled('div')`
   grid-column: 1 / -1;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -248,6 +247,6 @@ const RowPlaceholder = styled('div')`
 const MonitorSlug = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;

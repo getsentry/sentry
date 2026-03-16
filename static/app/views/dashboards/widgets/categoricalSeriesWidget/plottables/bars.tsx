@@ -2,7 +2,7 @@
 import Color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
-import barSeries from 'sentry/components/charts/series/barSeries';
+import {BarSeries} from 'sentry/components/charts/series/barSeries';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {formatXAxisValue} from 'sentry/views/dashboards/widgets/categoricalSeriesWidget/formatters/formatXAxisValue';
 import type {
@@ -17,7 +17,7 @@ import {
 } from './categoricalDataSeries';
 import type {CategoricalPlottable} from './plottable';
 
-export interface BarsConfig extends CategoricalDataSeriesConfig {
+interface BarsConfig extends CategoricalDataSeriesConfig {
   /**
    * Called when a bar is clicked.
    */
@@ -73,7 +73,7 @@ export class Bars
     const colorObject = color ? Color(color) : undefined;
 
     return [
-      barSeries({
+      BarSeries({
         name: this.name,
         stack: this.config?.stack,
         yAxisIndex: 0,

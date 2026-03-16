@@ -10,11 +10,11 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const NAMESPACE_SYMBOL = '\uf00d';
 
-const getRecentSearchUrl = (orgSlug: string): string =>
+const getRecentSearchUrl = (orgSlug: string) =>
   getApiUrl('/organizations/$organizationIdOrSlug/recent-searches/', {
     path: {organizationIdOrSlug: orgSlug},
   });

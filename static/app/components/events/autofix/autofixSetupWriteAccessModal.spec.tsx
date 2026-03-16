@@ -8,7 +8,8 @@ import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/aut
 describe('AutofixSetupWriteAccessModal', () => {
   it('displays help text when repos are not all installed', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/1/autofix/setup/?check_write_access=true',
+      url: '/organizations/org-slug/issues/1/autofix/setup/',
+      match: [MockApiClient.matchQuery({check_write_access: true})],
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
         githubWriteIntegration: {
@@ -55,7 +56,8 @@ describe('AutofixSetupWriteAccessModal', () => {
 
   it('displays success text when installed repos for github app text', async () => {
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/1/autofix/setup/?check_write_access=true',
+      url: '/organizations/org-slug/issues/1/autofix/setup/',
+      match: [MockApiClient.matchQuery({check_write_access: true})],
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
         githubWriteIntegration: {

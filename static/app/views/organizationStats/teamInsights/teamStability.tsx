@@ -6,15 +6,14 @@ import round from 'lodash/round';
 import {LinkButton} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -32,7 +31,7 @@ interface TeamStabilityProps extends DateTimeObject {
   projects: Project[];
 }
 
-function TeamStability({
+export function TeamStability({
   organization,
   projects,
   period,
@@ -253,8 +252,6 @@ function TeamStability({
   );
 }
 
-export default TeamStability;
-
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr 0.2fr;
   font-size: ${p => p.theme.font.size.md};
@@ -266,14 +263,14 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   overflow: visible;
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
   ${p =>
     p.isEmpty &&
     css`
       & > div:last-child {
-        padding: 48px ${space(2)};
+        padding: 48px ${p.theme.space.xl};
       }
     `}
 `;
@@ -290,5 +287,5 @@ const ScoreWrapper = styled('div')`
 `;
 
 const PaddedIconArrow = styled(IconArrow)`
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
 `;

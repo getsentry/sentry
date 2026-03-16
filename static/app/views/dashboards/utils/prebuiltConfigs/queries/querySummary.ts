@@ -8,7 +8,7 @@ import {
   QUERIES_PER_MINUTE_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/constants';
 import {BASE_FILTERS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/queries';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
@@ -189,4 +189,5 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       layout: {y: 3, x: 3, h: 2, w: 3, minH: 2},
     },
   ],
+  onboarding: {type: 'module', moduleName: ModuleName.DB},
 };

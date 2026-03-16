@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import type {LineSeriesOption} from 'echarts';
 
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import {segmentTimeSeriesByIncompleteData} from 'sentry/utils/timeSeries/segmentTimeSeriesByIncompleteData';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';

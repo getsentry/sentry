@@ -137,5 +137,4 @@ const storeConfig: IndicatorStoreDefinition = {
   },
 };
 
-const IndicatorStore = createStore(storeConfig);
-export default IndicatorStore;
+export const IndicatorStore = createStore(storeConfig);

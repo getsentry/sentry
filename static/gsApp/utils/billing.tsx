@@ -41,7 +41,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 export const MILLISECONDS_IN_HOUR = 3600_000;
@@ -693,7 +693,8 @@ export function getActiveProductTrial(
       pt =>
         pt.category === category &&
         pt.isStarted &&
-        getDaysSinceDate(pt.endDate ?? '') <= 0
+        getDaysSinceDate(pt.endDate ?? '') <= 0 &&
+        getDaysSinceDate(pt.startDate ?? '') >= 0
     )
     .sort((a, b) => b.endDate?.localeCompare(a.endDate ?? '') || 0);
 

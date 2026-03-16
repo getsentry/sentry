@@ -5,11 +5,10 @@ import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ProjectionPeriodControl} from 'sentry/views/settings/dynamicSampling/projectionPeriodControl';
 import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projectsPreviewTable';
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
@@ -116,7 +115,7 @@ const HeadingRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: ${space(1.5)};
+  padding-bottom: ${p => p.theme.space.lg};
 
   & > h4 {
     margin: 0;

@@ -20,28 +20,27 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
-  useCodingAgentIntegrations,
+  organizationIntegrationsCodingAgents,
   useLaunchCodingAgent,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatRootCauseWithEvent} from 'sentry/components/events/autofix/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChat, IconChevron, IconCopy, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
-import AutofixHighlightPopup from './autofixHighlightPopup';
+import {AutofixHighlightPopup} from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
 
 function useSelectRootCause({groupId, runId}: {groupId: string; runId: string}) {
@@ -442,8 +441,9 @@ function AutofixRootCauseDisplay({
     groupId,
     runId,
   });
-  const {data: codingAgentResponse, isLoading: isLoadingAgents} =
-    useCodingAgentIntegrations();
+  const {data: codingAgentResponse, isLoading: isLoadingAgents} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
   const codingAgentIntegrations = codingAgentResponse?.integrations ?? [];
   const {mutate: launchCodingAgent, isPending: isLaunchingAgent} = useLaunchCodingAgent(
     groupId,
@@ -707,12 +707,12 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
 
 const Description = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  padding-bottom: ${space(2)};
-  margin-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const NoCausesPadding = styled('div')`
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
 `;
 
 const CausesContainer = styled('div')`
@@ -725,7 +725,7 @@ const CausesContainer = styled('div')`
 `;
 
 const Content = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
 `;
 
 const HeaderText = styled('div')`
@@ -733,16 +733,17 @@ const HeaderText = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const CustomRootCausePadding = styled('div')`
-  padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xs']} ${p => p.theme.space.xl}
+    ${p => p.theme.space['2xs']};
 `;
 
 const CauseDescription = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const AnimationWrapper = styled(motion.div)`

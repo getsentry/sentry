@@ -10,6 +10,7 @@ from requests.exceptions import HTTPError
 
 from sentry import options
 from sentry.http import build_session
+from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.shared_integrations.exceptions import ApiError
 
 
@@ -23,7 +24,7 @@ class _GitHubClient:
             try:
                 resp = session.get(
                     f"https://api.github.com{url}",
-                    headers={"Accept": "application/vnd.github.valkyrie-preview+json"},
+                    headers={"Accept": GITHUB_API_ACCEPT_HEADER},
                     auth=(self._client_id, self._client_secret),
                     allow_redirects=True,
                 )

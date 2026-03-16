@@ -96,7 +96,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 },
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         # Test with empty prefix (should return all attributes)
         response = self.do_request(query={"substringMatch": ""})
@@ -133,7 +133,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 },
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self.do_request()
 
@@ -154,7 +154,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 },
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self.do_request()
 
@@ -174,7 +174,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
             ),
         ]
 
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self.do_request()
 
@@ -206,7 +206,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
             ),
         ]
 
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self.do_request(query={"attributeType": "string"})
 
@@ -339,7 +339,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
             ),
         ]
 
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self.do_request()
 
@@ -373,7 +373,7 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
                 },
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self.do_request(query={"attributeType": "boolean"})
 
@@ -945,7 +945,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
                 },
             ),
         ]
-        self.store_trace_metrics(metrics)
+        self.store_eap_items(metrics)
 
         response = self.do_request(query={"attributeType": "string"})
 
@@ -986,7 +986,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
                 },
             ),
         ]
-        self.store_trace_metrics(metrics)
+        self.store_eap_items(metrics)
 
         # Query for http metric attributes
         response = self.do_request(
@@ -1018,7 +1018,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
                 },
             ),
         ]
-        self.store_trace_metrics(metrics)
+        self.store_eap_items(metrics)
 
         response = self.do_request(query={"attributeType": "number"})
 
@@ -1055,7 +1055,7 @@ class OrganizationTraceItemAttributesEndpointTraceMetricsTest(
                 },
             ),
         ]
-        self.store_trace_metrics(metrics)
+        self.store_eap_items(metrics)
 
         response = self.do_request(query={"attributeType": "boolean"})
 
@@ -1144,7 +1144,7 @@ class OrganizationTraceItemAttributeValuesEndpointLogsTest(
                 },
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self.do_request(key="test1")
 
@@ -2089,7 +2089,7 @@ class OrganizationTraceItemAttributeValuesEndpointTraceMetricsTest(
                 attributes={"http.method": "POST"},
             ),
         ]
-        self.store_trace_metrics(metrics)
+        self.store_eap_items(metrics)
 
         response = self.do_request(key="http.method")
         assert response.status_code == 200

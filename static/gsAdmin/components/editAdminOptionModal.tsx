@@ -14,7 +14,7 @@ interface EditAdminOptionModalProps extends ModalRenderProps {
   path: string;
 }
 
-function EditAdminOptionModal({
+export function EditAdminOptionModal({
   Body,
   Header,
   option,
@@ -72,6 +72,3 @@ function EditOption({option}: {option: SerializedOption}) {
     </Fragment>
   );
 }
-
-// TODO(TS): Type cast added as part of react 18 upgrade, can remove after?
-export default EditAdminOptionModal;

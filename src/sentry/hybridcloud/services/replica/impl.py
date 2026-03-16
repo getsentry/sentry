@@ -15,7 +15,7 @@ from sentry.hybridcloud.models import (
     ExternalActorReplica,
     OrgAuthTokenReplica,
 )
-from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
@@ -115,7 +115,7 @@ def get_conflicting_unique_columns(
 
 
 def handle_replication(
-    source_model: type[ReplicatedControlModel] | type[ReplicatedRegionModel],
+    source_model: type[ReplicatedControlModel] | type[ReplicatedCellModel],
     destination: BaseModel,
     fk: str | None = None,
 ) -> None:
@@ -142,7 +142,13 @@ def handle_replication(
 
 
 class DatabaseBackedRegionReplicaService(RegionReplicaService):
-    def upsert_replicated_api_token(self, *, api_token: RpcApiToken, region_name: str) -> None:
+    def upsert_replicated_api_token(
+        self,
+        *,
+        api_token: RpcApiToken,
+        cell_name: str | None = None,
+        region_name: str | None = None,
+    ) -> None:
         organization: Organization | None = None
         if api_token.organization_id is not None:
             try:
@@ -167,12 +173,20 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         )
         handle_replication(ApiToken, destination)
 
-    def delete_replicated_api_token(self, *, apitoken_id: int, region_name: str) -> None:
+    def delete_replicated_api_token(
+        self, *, apitoken_id: int, cell_name: str | None = None, region_name: str | None = None
+    ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(ApiTokenReplica))):
             api_token_qs = ApiTokenReplica.objects.filter(apitoken_id=apitoken_id)
             api_token_qs.delete()
 
-    def upsert_replicated_org_auth_token(self, *, token: RpcOrgAuthToken, region_name: str) -> None:
+    def upsert_replicated_org_auth_token(
+        self,
+        *,
+        token: RpcOrgAuthToken,
+        cell_name: str | None = None,
+        region_name: str | None = None,
+    ) -> None:
         try:
             organization = Organization.objects.get(id=token.organization_id)
         except Organization.DoesNotExist:
@@ -190,7 +204,11 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         handle_replication(OrgAuthToken, destination)
 
     def upsert_replicated_auth_provider(
-        self, *, auth_provider: RpcAuthProvider, region_name: str
+        self,
+        *,
+        auth_provider: RpcAuthProvider,
+        cell_name: str | None = None,
+        region_name: str | None = None,
     ) -> None:
         try:
             organization = Organization.objects.get(id=auth_provider.organization_id)
@@ -211,7 +229,11 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         handle_replication(AuthProvider, destination)
 
     def upsert_replicated_auth_identity(
-        self, *, auth_identity: RpcAuthIdentity, region_name: str
+        self,
+        *,
+        auth_identity: RpcAuthIdentity,
+        cell_name: str | None = None,
+        region_name: str | None = None,
     ) -> None:
         destination = AuthIdentityReplica(
             auth_identity_id=auth_identity.id,
@@ -224,7 +246,9 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
 
         handle_replication(AuthIdentity, destination)
 
-    def upsert_replicated_api_key(self, *, api_key: RpcApiKey, region_name: str) -> None:
+    def upsert_replicated_api_key(
+        self, *, api_key: RpcApiKey, cell_name: str | None = None, region_name: str | None = None
+    ) -> None:
         try:
             organization = Organization.objects.get(id=api_key.organization_id)
         except Organization.DoesNotExist:
@@ -243,7 +267,11 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
         handle_replication(ApiKey, destination)
 
     def upsert_replicated_org_slug_reservation(
-        self, *, slug_reservation: RpcOrganizationSlugReservation, region_name: str
+        self,
+        *,
+        slug_reservation: RpcOrganizationSlugReservation,
+        cell_name: str | None = None,
+        region_name: str | None = None,
     ) -> None:
         with enforce_constraints(
             transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
@@ -262,13 +290,17 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
                 slug=slug_reservation.slug,
                 organization_id=slug_reservation.organization_id,
                 user_id=slug_reservation.user_id,
-                region_name=slug_reservation.region_name,
+                cell_name=slug_reservation.region_name,
                 reservation_type=slug_reservation.reservation_type,
                 organization_slug_reservation_id=slug_reservation.id,
             )
 
     def delete_replicated_org_slug_reservation(
-        self, *, organization_slug_reservation_id: int, region_name: str
+        self,
+        *,
+        organization_slug_reservation_id: int,
+        cell_name: str | None = None,
+        region_name: str | None = None,
     ) -> None:
         with enforce_constraints(
             transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
@@ -278,7 +310,9 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             )
             org_slug_qs.delete()
 
-    def delete_replicated_auth_provider(self, *, auth_provider_id: int, region_name: str) -> None:
+    def delete_replicated_auth_provider(
+        self, *, auth_provider_id: int, cell_name: str | None = None, region_name: str | None = None
+    ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
             AuthProviderReplica.objects.filter(auth_provider_id=auth_provider_id).delete()
 

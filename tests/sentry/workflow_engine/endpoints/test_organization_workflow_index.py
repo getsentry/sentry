@@ -14,7 +14,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -23,11 +23,7 @@ from sentry.workflow_engine.models import (
     WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.typings.notification_action import (
-    ActionTarget,
-    ActionType,
-    SentryAppIdentifier,
-)
+from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
 from tests.sentry.workflow_engine.test_base import (
     BaseWorkflowTest,
     MockActionValidatorTranslator,
@@ -43,7 +39,7 @@ class OrganizationWorkflowAPITestCase(APITestCase):
         self.login_as(user=self.user)
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -339,6 +335,13 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
         assert len(response3.data) == 0
 
+    def test_query_invalid_key(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, qs_params={"query": "invalid_key:value"}, status_code=400
+        )
+        assert "query" in response.data
+        assert "Invalid key for this search: invalid_key" in str(response.data["query"])
+
     def test_filter_by_project(self) -> None:
         self.create_detector_workflow(
             workflow=self.workflow, detector=self.create_detector(project=self.project)
@@ -496,7 +499,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         assert len(response.data) == 1
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkflowTest):
     method = "POST"
 
@@ -711,7 +714,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                             "targetIdentifier": str(self.sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },
@@ -748,7 +750,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                             "targetIdentifier": str(self.sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },
@@ -792,7 +793,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
                 "actions": [
                     {
                         "config": {
-                            "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
                             "targetIdentifier": str(sentry_app.id),
                             "targetType": ActionType.SENTRY_APP,
                         },
@@ -1094,7 +1094,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert other_dcg.conditions.count() == original_condition_count
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
     method = "PUT"
 
@@ -1242,7 +1242,7 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         assert self.workflow_three.enabled is False
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
     method = "DELETE"
 
@@ -1462,7 +1462,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         )
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowProjectAccessTest(
     OrganizationWorkflowAPITestCase, ProjectAccessTestMixin
 ):
@@ -1567,7 +1567,7 @@ class OrganizationWorkflowProjectAccessTest(
         assert str(self.unattached_workflow.id) in workflow_ids
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowPutProjectAccessTest(
     OrganizationWorkflowAPITestCase, ProjectAccessTestMixin
 ):
@@ -1625,7 +1625,7 @@ class OrganizationWorkflowPutProjectAccessTest(
         assert self.user_workflow.enabled is True
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowDeleteProjectAccessTest(
     OrganizationWorkflowAPITestCase, ProjectAccessTestMixin
 ):

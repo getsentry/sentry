@@ -16,6 +16,7 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 class AgeComparisonConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
+    label_template = "The issue is {comparison_type} than {value} {time}"
 
     comparison_json_schema = {
         "type": "object",

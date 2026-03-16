@@ -5,7 +5,7 @@ import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 
 import type {FlamegraphSearch} from './reducers/flamegraphSearch';
-import type {FlamegraphState, FlamegraphStateValue} from './flamegraphContext';
+import type {FlamegraphState} from './flamegraphContext';
 import {
   DEFAULT_FLAMEGRAPH_STATE,
   FlamegraphStateDispatchContext,
@@ -74,8 +74,8 @@ export function FlamegraphStateProvider(
     getDefaultState(props.initialState)
   );
 
-  const flamegraphContextValue: FlamegraphStateValue = useMemo(() => {
-    return [state, {nextState, previousState}];
+  const flamegraphContextValue = useMemo(() => {
+    return [state, {nextState, previousState}] as const;
   }, [state, nextState, previousState]);
 
   return (

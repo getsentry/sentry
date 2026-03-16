@@ -3,7 +3,7 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const frontendConfig: IssueCategoryConfigMapping = {
+export const frontendConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -83,5 +83,3 @@ const frontendConfig: IssueCategoryConfigMapping = {
     autofix: true,
   },
 };
-
-export default frontendConfig;

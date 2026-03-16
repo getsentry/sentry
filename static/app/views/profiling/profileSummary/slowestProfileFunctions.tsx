@@ -7,13 +7,12 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import Count from 'sentry/components/count';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Count} from 'sentry/components/count';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import PerformanceDuration from 'sentry/components/performanceDuration';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -28,7 +27,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const SLOWEST_FUNCTIONS_LIMIT = 15;
 const SLOWEST_FUNCTIONS_CURSOR = 'functionsCursor';
@@ -231,11 +230,11 @@ const SlowestFunctionsList = styled('div')`
 `;
 
 const SlowestFunctionsContainer = styled('div')`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
@@ -264,12 +263,12 @@ const SlowestFunctionsTypeSelect = styled(CompactSelect)`
 
 const SlowestFunctionsQueryState = styled('div')`
   text-align: center;
-  padding: ${space(2)} ${space(0.5)};
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const SlowestFunctionRow = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const SlowestFunctionMainRow = styled('div')`
@@ -291,7 +290,7 @@ const SlowestFunctionMetricsRow = styled('div')`
   justify-content: space-between;
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
 `;
 
 const SLOWEST_FUNCTION_OPTIONS: Array<SelectOption<'application' | 'system' | 'all'>> = [

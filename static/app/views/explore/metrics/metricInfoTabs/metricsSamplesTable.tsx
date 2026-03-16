@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   TraceSamplesTableColumns,
   TraceSamplesTableEmbeddedColumns,
@@ -23,7 +24,10 @@ import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
-import {getMetricTableColumnType} from 'sentry/views/explore/metrics/utils';
+import {
+  getMetricTableColumnType,
+  mapMetricUnitToFieldType,
+} from 'sentry/views/explore/metrics/utils';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const RESULT_LIMIT = 50;
@@ -76,6 +80,21 @@ export function MetricsSamplesTable({
     traceIds,
   });
 
+  const metaWithValueUnit = useMemo<EventsMetaType>(() => {
+    const {fieldType, unit} = mapMetricUnitToFieldType(traceMetric?.unit);
+    return {
+      ...meta,
+      fields: {
+        ...meta.fields,
+        [TraceMetricKnownFieldKey.METRIC_VALUE]: fieldType,
+      },
+      units: {
+        ...meta.units,
+        [TraceMetricKnownFieldKey.METRIC_VALUE]: unit ?? '',
+      },
+    };
+  }, [meta, traceMetric?.unit]);
+
   return (
     <SimpleTableWithHiddenColumns numColumns={columns.length - 1} embedded={embedded}>
       {isFetching && <TransparentLoadingMask />}
@@ -92,7 +111,7 @@ export function MetricsSamplesTable({
               row={row}
               telemetryData={telemetryData}
               columns={columns}
-              meta={meta}
+              meta={metaWithValueUnit}
               embedded={embedded}
             />
           ))

@@ -1,17 +1,17 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
-  CopySetupInstructionsGate,
   OnboardingCopyMarkdownButton,
+  useCopySetupInstructionsEnabled,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
@@ -26,26 +26,25 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {ContinuousProfilingBillingRequirementBanner} from 'sentry/components/profiling/billing/alerts';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import {space} from 'sentry/styles/space';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
-import EventWaiter from 'sentry/utils/eventWaiter';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useApi} from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 function useOnboardingProject() {
   const {projects} = useProjects();
@@ -100,36 +99,37 @@ function StepRenderer({
   step,
   stepIndex,
   isLastStep,
+  trailingItems,
 }: {
   isLastStep: boolean;
   project: Project;
   step: OnboardingStep;
   stepIndex: number;
+  trailingItems?: React.ReactNode;
 }) {
+  const theme = useTheme();
   const {type, title} = step;
-  const api = useApi();
   const organization = useOrganization();
+  const firstIssue = useEventWaiter({
+    eventType: 'profile',
+    organization,
+    project,
+    disabled: !isLastStep,
+  });
 
   return (
-    <GuidedSteps.Step stepKey={type || title} title={title || (type && StepTitles[type])}>
+    <GuidedSteps.Step
+      stepKey={type || title}
+      title={title || (type && StepTitles[type])}
+      trailingItems={trailingItems}
+    >
       <StepIndexProvider index={stepIndex}>
-        <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+        <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
       </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
-        {isLastStep && (
-          <EventWaiter
-            api={api}
-            organization={organization}
-            project={project}
-            eventType="profile"
-          >
-            {({firstIssue}) => (
-              <WaitingIndicator project={project} hasProfile={!!firstIssue} />
-            )}
-          </EventWaiter>
-        )}
+        {isLastStep && <WaitingIndicator project={project} hasProfile={!!firstIssue} />}
       </GuidedSteps.ButtonWrapper>
       {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
       {isLastStep && <PulseSpacer />}
@@ -203,6 +203,7 @@ export function Onboarding() {
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const project = useOnboardingProject();
   const organization = useOrganization();
+  const copyEnabled = useCopySetupInstructionsEnabled();
 
   const currentPlatform = project?.platform
     ? platforms.find(p => p.id === project.platform)
@@ -307,13 +308,10 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <ContinuousProfilingBillingRequirementBanner project={project} />
-      <CopySetupInstructionsGate>
-        <Container paddingBottom="md">
-          <OnboardingCopyMarkdownButton steps={steps} source="profiling_onboarding" />
-        </Container>
-      </CopySetupInstructionsGate>
+      <DescriptionWrapper>
+        {introduction}
+        <ContinuousProfilingBillingRequirementBanner project={project} />
+      </DescriptionWrapper>
       <GuidedSteps>
         {steps.map((step, index) => (
           <StepRenderer
@@ -322,6 +320,15 @@ export function Onboarding() {
             step={step}
             stepIndex={index}
             isLastStep={index === steps.length - 1}
+            trailingItems={
+              index === 0 && copyEnabled ? (
+                <OnboardingCopyMarkdownButton
+                  borderless
+                  steps={steps}
+                  source="profiling_onboarding"
+                />
+              ) : undefined
+            }
           />
         ))}
       </GuidedSteps>
@@ -338,17 +345,17 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   display: flex;
   align-items: center;
   position: relative;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
   z-index: 10;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   flex-grow: 1;
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
 `;
 
 const PulseSpacer = styled('div')`
-  height: ${space(4)};
+  height: ${p => p.theme.space['3xl']};
 `;
 
 const PulsingIndicator = styled('div')`
@@ -357,7 +364,7 @@ const PulsingIndicator = styled('div')`
 `;
 
 const SubTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Title = styled('div')`
@@ -368,19 +375,19 @@ const Title = styled('div')`
 const BulletList = styled('ul')`
   list-style-type: disc;
   padding-left: 20px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   li {
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
   }
 `;
 
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const HeaderText = styled('div')`
@@ -392,7 +399,7 @@ const HeaderText = styled('div')`
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 
   &:after {
     content: '';
@@ -405,7 +412,7 @@ const Setup = styled('div')`
 `;
 
 const Preview = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Body = styled('div')`
@@ -443,20 +450,18 @@ const Divider = styled('hr')`
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
   height: 522px;
   border: 0;
 `;
-
-const CONTENT_SPACING = space(1);
 
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
     color: ${p => p.theme.colors.pink500};
   }
 
-  :not(:last-child) {
-    margin-bottom: ${CONTENT_SPACING};
+  :not(:last-child):has(*) {
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   && > h4,
@@ -470,7 +475,7 @@ const DescriptionWrapper = styled('div')`
   && > * {
     margin: 0;
     &:not(:last-child) {
-      margin-bottom: ${CONTENT_SPACING};
+      margin-bottom: ${p => p.theme.space.md};
     }
   }
 `;

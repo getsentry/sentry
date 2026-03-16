@@ -6,10 +6,9 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {HighlightComponent} from 'sentry/components/highlight';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import Panel from 'sentry/components/panels/panel';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {Panel} from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
-import {space} from 'sentry/styles/space';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {
@@ -104,25 +103,25 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 `;
 
 export const LogAttributeTreeWrapper = styled('div')`
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   border-bottom: 0px;
 `;
 
 export const LogTableBodyCell = styled(TableBodyCell)`
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
-  padding: 2px ${space(2)};
+  padding: 2px ${p => p.theme.space.xl};
 
   font-size: ${p => p.theme.font.size.md};
 
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
   &:nth-child(2) {
-    padding: 2px 0 2px ${space(3)};
+    padding: 2px 0 2px ${p => p.theme.space['2xl']};
   }
 
   &:last-child {
-    padding: 2px ${space(2)};
+    padding: 2px ${p => p.theme.space.xl};
   }
 `;
 
@@ -136,8 +135,8 @@ export const LogTableBody = styled(TableBody)<{
       : p.disableBodyPadding
         ? ''
         : `
-    padding-top: ${space(1)};
-    padding-bottom: ${space(1)};
+    padding-top: ${p.theme.space.md};
+    padding-bottom: ${p.theme.space.md};
     `}
 `;
 
@@ -151,19 +150,19 @@ export const LogDetailTableBodyCell = styled(TableBodyCell)`
   }
 `;
 export const LogDetailTableActionsCell = styled(TableBodyCell)`
-  padding: ${space(0.5)} ${space(2)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   min-height: 0px;
 
   ${LogTableRow} & {
-    padding: ${space(0.5)} ${space(2)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   }
   &:last-child {
-    padding: ${space(0.5)} ${space(2)};
+    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   }
 `;
 export const LogDetailTableActionsButtonBar = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   & button {
     font-weight: ${p => p.theme.font.weight.sans.regular};
   }
@@ -172,7 +171,7 @@ export const LogDetailTableActionsButtonBar = styled('div')`
 export const DetailsWrapper = styled('tr')`
   align-items: center;
   background-color: ${p => p.theme.colors.gray100};
-  padding: ${space(1)} ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.md};
   flex-direction: column;
   white-space: nowrap;
   grid-column: 1 / -1;
@@ -186,7 +185,7 @@ export const DetailsContent = styled(StyledPanel)`
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 export function LogFirstCellContent(props: FlexProps<'div'>) {
@@ -202,7 +201,7 @@ export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right
 export const DetailsBody = styled('div')`
   display: flex;
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  padding: ${space(1)} 0;
+  padding: ${p => p.theme.space.md} 0;
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
 
@@ -212,7 +211,7 @@ export const DetailsBody = styled('div')`
 `;
 
 export const StyledChevronButton = styled(Button)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
 
 const DEFAULT_SIZE = '8px';
@@ -225,7 +224,7 @@ export const ColoredLogCircle = styled('span')<{
   position: relative;
   width: ${p => p.size || DEFAULT_SIZE};
   height: ${p => p.size || DEFAULT_SIZE};
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
   text-indent: -9999em;
   display: inline-block;
   border-radius: 50%;
@@ -278,13 +277,13 @@ export const AlignedCellContent = styled('div')<{
 `;
 
 export const FirstTableHeadCell = styled(TableHeadCell)`
-  padding-right: ${space(1)};
-  padding-left: ${space(2)};
+  padding-right: ${p => p.theme.space.md};
+  padding-left: ${p => p.theme.space.xl};
 `;
 
 export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-right: 0;
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
 `;
 
 export function TableActionsContainer(props: FlexProps<'div'>) {
@@ -293,8 +292,8 @@ export function TableActionsContainer(props: FlexProps<'div'>) {
 
 export const LogsItemContainer = styled('div')`
   flex: 1 1 auto;
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 export const LogsTableActionsContainer = styled(LogsItemContainer)`
@@ -312,7 +311,7 @@ export const LogsGraphContainer = styled(LogsItemContainer)`
 export const AutoRefreshLabel = styled('label')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   margin-bottom: 0;
 `;
 

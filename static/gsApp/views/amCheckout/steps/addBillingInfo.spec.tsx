@@ -6,7 +6,7 @@ import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
@@ -22,7 +22,7 @@ describe('AddBillingInformation', () => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });

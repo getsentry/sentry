@@ -291,7 +291,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           },
           {
             title: t('High Throughput Transactions'),
-            displayType: DisplayType.TOP_N,
+            displayType: DisplayType.AREA,
             limit: TOP_N,
             interval: '5m',
             widgetType: WidgetType.SPANS,
@@ -364,7 +364,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           },
           {
             title: t('Errors by Browser Over Time'),
-            displayType: DisplayType.TOP_N,
+            displayType: DisplayType.AREA,
             limit: TOP_N,
             interval: '5m',
             widgetType: WidgetType.ERRORS,
@@ -400,7 +400,7 @@ export const getDashboardTemplates = (organization: Organization) => {
         widgets: [
           {
             title: t('Top 5 Issues by Unique Users Over Time'),
-            displayType: DisplayType.TOP_N,
+            displayType: DisplayType.AREA,
             limit: TOP_N,
             interval: '5m',
             widgetType: WidgetType.ERRORS,
@@ -783,7 +783,7 @@ export const getDashboardTemplates = (organization: Organization) => {
         widgets: [
           {
             title: t('Top 5 Issues by Unique Users Over Time'),
-            displayType: DisplayType.TOP_N,
+            displayType: DisplayType.AREA,
             interval: '5m',
             widgetType: WidgetType.ERRORS,
             tempId: uniqueId(),
@@ -808,7 +808,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           },
           {
             title: t('Transactions Erroring Over Time'),
-            displayType: DisplayType.TOP_N,
+            displayType: DisplayType.AREA,
             interval: '5m',
             widgetType: WidgetType.SPANS,
             tempId: uniqueId(),
@@ -1823,7 +1823,7 @@ export const getDashboardTemplates = (organization: Organization) => {
         },
         {
           title: t('High Throughput Transactions'),
-          displayType: DisplayType.TOP_N,
+          displayType: DisplayType.AREA,
           limit: TOP_N,
           interval: '5m',
           widgetType: hasDatasetSelector(organization)
@@ -1902,7 +1902,7 @@ export const getDashboardTemplates = (organization: Organization) => {
         },
         {
           title: t('Errors by Browser Over Time'),
-          displayType: DisplayType.TOP_N,
+          displayType: DisplayType.AREA,
           limit: TOP_N,
           interval: '5m',
           widgetType: hasDatasetSelector(organization)
@@ -1942,7 +1942,7 @@ export const getDashboardTemplates = (organization: Organization) => {
       widgets: [
         {
           title: t('Top 5 Issues by Unique Users Over Time'),
-          displayType: DisplayType.TOP_N,
+          displayType: DisplayType.AREA,
           limit: TOP_N,
           interval: '5m',
           widgetType: hasDatasetSelector(organization)
@@ -2349,7 +2349,7 @@ export const getDashboardTemplates = (organization: Organization) => {
       widgets: [
         {
           title: t('Top 5 Issues by Unique Users Over Time'),
-          displayType: DisplayType.TOP_N,
+          displayType: DisplayType.AREA,
           interval: '5m',
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
@@ -2376,7 +2376,7 @@ export const getDashboardTemplates = (organization: Organization) => {
         },
         {
           title: t('Transactions Erroring Over Time'),
-          displayType: DisplayType.TOP_N,
+          displayType: DisplayType.AREA,
           interval: '5m',
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS

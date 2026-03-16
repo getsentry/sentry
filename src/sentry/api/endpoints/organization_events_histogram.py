@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -43,7 +43,7 @@ class HistogramSerializer(serializers.Serializer):
         return fields
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsHistogramEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -64,9 +64,6 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsEndpointBase):
 
         use_metrics = features.has(
             "organizations:performance-use-metrics", organization=organization, actor=request.user
-        )
-        use_metrics_layer = features.has(
-            "organizations:use-metrics-layer", organization=organization, actor=request.user
         )
         dataset = self.get_dataset(request) if use_metrics else discover
         metrics_enhanced = dataset != discover
@@ -89,7 +86,6 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsEndpointBase):
                         max_value=data.get("max"),
                         data_filter=data.get("dataFilter"),
                         referrer="api.organization-events-histogram",
-                        use_metrics_layer=use_metrics_layer,
                     )
 
                 return Response(results)

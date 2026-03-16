@@ -10,12 +10,14 @@ from rest_framework.request import Request
 from sentry import audit_log
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issue_detection.performance_detection import PERFORMANCE_WFE_DETECTOR_TYPES
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 # Only those with organization write permissions can edit system-created detectors (e.g. error detectors).
 SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write"}
@@ -23,7 +25,10 @@ USER_CREATED_DETECTOR_REQUIRED_SCOPES = {"org:write", "alerts:write"}
 
 
 def is_system_created_detector(detector: Detector) -> bool:
-    return detector.type in (ErrorGroupType.slug,)
+    return (
+        detector.type in (ErrorGroupType.slug, IssueStreamGroupType.slug)
+        or detector.type in PERFORMANCE_WFE_DETECTOR_TYPES
+    )
 
 
 def can_edit_system_created_detectors(request: Request, project: Project) -> bool:

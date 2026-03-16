@@ -7,11 +7,11 @@ import round from 'lodash/round';
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
+import {StackedAreaChart} from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
@@ -27,7 +27,7 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
 // eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 import {
   generateReleaseMarkLines,
   releaseComparisonChartHelp,
@@ -124,9 +124,7 @@ class ReleaseSessionsChart extends Component<Props> {
     }
   }
 
-  getChart():
-    | React.ComponentType<StackedAreaChart['props']>
-    | React.ComponentType<AreaChartProps> {
+  getChart(): React.ComponentType<AreaChartProps> {
     const {chartType} = this.props;
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:

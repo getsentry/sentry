@@ -17,7 +17,7 @@ import {
   useActionNodeContext,
 } from 'sentry/views/automations/components/actionNodes';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import AutomationBuilderRow from 'sentry/views/automations/components/automationBuilderRow';
+import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {getIncompatibleActionWarning} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
@@ -54,7 +54,7 @@ function getActionHandler(
   return availableActions.find(handler => handler.type === action.type);
 }
 
-export default function ActionNodeList({
+export function ActionNodeList({
   conditionGroupId,
   placeholder,
   actions,

@@ -22,11 +22,6 @@ describe('CancelSubscription', () => {
       method: 'GET',
       body: subscription,
     });
-    MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
-      method: 'GET',
-      body: subscription,
-    });
   });
 
   it('renders', async () => {

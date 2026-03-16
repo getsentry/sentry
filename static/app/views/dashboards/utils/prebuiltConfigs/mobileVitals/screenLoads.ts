@@ -3,7 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_CONDITION = `is_transaction:true ${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
 const SPAN_OPERATIONS_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation] has:${SpanFields.SPAN_DESCRIPTION} ${SpanFields.SPAN_OP}:[file.read,file.write,ui.load,navigation,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]`;
@@ -192,7 +192,7 @@ const TTID_BAR_CHART_WIDGET: Widget = {
       columns: [SpanFields.DEVICE_CLASS],
       fieldAliases: ['Device Class', 'AVG TTID'],
       conditions: TRANSACTION_CONDITION,
-      orderby: `${SpanFields.DEVICE_CLASS}`,
+      orderby: SpanFields.DEVICE_CLASS,
     },
   ],
   layout: {
@@ -223,7 +223,7 @@ const TTFD_BAR_CHART_WIDGET: Widget = {
       columns: [SpanFields.DEVICE_CLASS],
       fieldAliases: ['Device Class', 'AVG TTFD'],
       conditions: TRANSACTION_CONDITION,
-      orderby: `${SpanFields.DEVICE_CLASS}`,
+      orderby: SpanFields.DEVICE_CLASS,
     },
   ],
   layout: {
@@ -249,14 +249,14 @@ const SPAN_OPERATIONS_TABLE: Widget = {
       fields: [
         SpanFields.SPAN_OP,
         SpanFields.SPAN_DESCRIPTION,
-        `ttid_contribution_rate()`,
-        `ttfd_contribution_rate()`,
+        `equation|ttid_contribution_rate()`,
+        `equation|ttfd_contribution_rate()`,
         `avg(${SpanFields.SPAN_SELF_TIME})`,
         `sum(${SpanFields.SPAN_SELF_TIME})`,
       ],
       aggregates: [
-        `ttid_contribution_rate()`,
-        `ttfd_contribution_rate()`,
+        `equation|ttid_contribution_rate()`,
+        `equation|ttfd_contribution_rate()`,
         `avg(${SpanFields.SPAN_SELF_TIME})`,
         `sum(${SpanFields.SPAN_SELF_TIME})`,
       ],
@@ -311,6 +311,15 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       {
         dataset: WidgetType.SPANS,
         tag: {
+          key: 'os.name',
+          name: 'os.name',
+          kind: FieldKind.TAG,
+        },
+        value: '',
+      },
+      {
+        dataset: WidgetType.SPANS,
+        tag: {
           key: 'transaction',
           name: 'transaction',
           kind: FieldKind.TAG,
@@ -328,4 +337,5 @@ export const MOBILE_VITALS_SCREEN_LOADS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
+  onboarding: {type: 'module', moduleName: ModuleName.SCREEN_LOAD},
 };

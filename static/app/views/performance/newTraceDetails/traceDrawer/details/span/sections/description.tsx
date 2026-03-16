@@ -8,16 +8,15 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import LinkHint from 'sentry/components/structuredEventData/linkHint';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {LinkHint} from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
+import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {
   DisabledImages,
   LOCAL_STORAGE_SHOW_LINKS,
@@ -37,7 +36,7 @@ import {
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
-import SpanSummaryLink from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
+import {SpanSummaryLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   getSearchInExploreTarget,
@@ -68,7 +67,7 @@ export function SpanDescription({
   });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
-  const resolvedModule: ModuleName = resolveSpanModule(
+  const resolvedModule = resolveSpanModule(
     span.sentry_tags?.op,
     span.sentry_tags?.category
   );
@@ -99,15 +98,10 @@ export function SpanDescription({
     ? (span.sentry_tags?.group ?? '')
     : (span.hash ?? '');
   const showAction = hasExploreEnabled ? !!span.description : !!span.op && !!span.hash;
-  const averageSpanDuration: number | undefined =
-    span['span.averageResults']?.['avg(span.duration)'];
+  const averageSpanDuration = span['span.averageResults']?.['avg(span.duration)'];
 
   const actions = showAction ? (
-    <BodyContentWrapper
-      padding={
-        resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : `${space(1)}`
-      }
-    >
+    <BodyContentWrapper padding={resolvedModule === ModuleName.DB ? '8px 16px' : '8px'}>
       <SpanSummaryLink
         op={span.op}
         category={span.sentry_tags?.category}
@@ -318,7 +312,7 @@ const ImageWrapper = styled('div')`
 
 const BodyContentWrapper = styled('div')<{padding: string}>`
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   padding: ${p => p.padding};
 `;
 
@@ -335,19 +329,19 @@ const DescriptionWrapper = styled('div')`
   width: 100%;
   justify-content: space-between;
   flex-direction: row;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   word-break: break-word;
   line-height: 1.4;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const StyledDescriptionWrapper = styled(DescriptionWrapper)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   justify-content: center;
 `;
 
 const StyledLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;

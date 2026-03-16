@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timezone
 from unittest import mock
 
@@ -609,3 +610,110 @@ class PerforceClientTest(TestCase):
 
         path = self.p4_client.build_depot_path(nested_repo, "src/main.cpp")
         assert path == "//depot/game/project/src/main.cpp"
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_writes_p4config_file(self, mock_p4_class):
+        """_connect() must write a config file named by P4CONFIG with P4TRUST and P4TICKETS."""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        captured_cwd = None
+        captured_config = None
+
+        def capture_state():
+            nonlocal captured_cwd, captured_config
+            captured_cwd = mock_p4.cwd
+            config_filename = os.environ.get("P4CONFIG", ".p4config")
+            config_path = f"{captured_cwd}/{config_filename}"
+            if os.path.exists(config_path):
+                with open(config_path) as f:
+                    captured_config = f.read()
+
+        mock_p4.connect.side_effect = capture_state
+
+        with self.p4_client._connect():
+            pass
+
+        # p4.cwd must point to an isolated temp dir
+        assert captured_cwd is not None
+        assert "sentry-p4-" in captured_cwd
+
+        # config file must contain P4TRUST and P4TICKETS pointing into that dir
+        assert captured_config is not None
+        assert f"P4TRUST={captured_cwd}/.p4trust" in captured_config
+        assert f"P4TICKETS={captured_cwd}/.p4tickets" in captured_config
+
+        # ticket_file property must also be set on the P4 instance
+        ticket_path = mock_p4.ticket_file
+        assert "sentry-p4-" in ticket_path
+        assert ticket_path.endswith("/.p4tickets")
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_respects_custom_p4config_filename(self, mock_p4_class):
+        """_connect() must use the actual P4CONFIG env value as the config filename."""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        captured_cwd = None
+        captured_config = None
+
+        def capture_state():
+            nonlocal captured_cwd, captured_config
+            captured_cwd = mock_p4.cwd
+            config_path = f"{captured_cwd}/custom-p4.conf"
+            if os.path.exists(config_path):
+                with open(config_path) as f:
+                    captured_config = f.read()
+
+        mock_p4.connect.side_effect = capture_state
+
+        with mock.patch.dict(os.environ, {"P4CONFIG": "custom-p4.conf"}):
+            with self.p4_client._connect():
+                pass
+
+        assert captured_config is not None
+        assert "P4TRUST=" in captured_config
+        assert "P4TICKETS=" in captured_config
+
+    @mock.patch("sentry.integrations.perforce.client.P4")
+    def test_connect_does_not_use_set_env(self, mock_p4_class):
+        """_connect() must NOT use set_env (it only works on Windows/macOS, not Linux)."""
+        mock_p4 = mock.Mock()
+        mock_p4_class.return_value = mock_p4
+
+        with self.p4_client._connect():
+            pass
+
+        mock_p4.set_env.assert_not_called()
+
+    def test_p4config_isolates_p4trust_per_instance(self):
+        """Verify P4CONFIG + p4.cwd gives each P4 instance its own P4TRUST."""
+        import shutil
+        import tempfile
+
+        from P4 import P4
+
+        os.environ.setdefault("P4CONFIG", ".p4config")
+
+        dir_a = tempfile.mkdtemp(prefix="sentry-p4-test-a-")
+        dir_b = tempfile.mkdtemp(prefix="sentry-p4-test-b-")
+        try:
+            with open(f"{dir_a}/.p4config", "w") as f:
+                f.write(f"P4TRUST={dir_a}/.p4trust\n")
+            with open(f"{dir_b}/.p4config", "w") as f:
+                f.write(f"P4TRUST={dir_b}/.p4trust\n")
+
+            p4a = P4()
+            p4a.cwd = dir_a
+            p4b = P4()
+            p4b.cwd = dir_b
+
+            assert p4a.env("P4TRUST") == f"{dir_a}/.p4trust"
+            assert p4b.env("P4TRUST") == f"{dir_b}/.p4trust"
+        finally:
+            shutil.rmtree(dir_a)
+            shutil.rmtree(dir_b)
+
+    def test_module_level_p4config_is_set(self):
+        """Verify that importing the client module sets P4CONFIG."""
+        assert os.environ.get("P4CONFIG") == ".p4config"

@@ -347,19 +347,25 @@ def get_group_list(
 
     Returns: List of Group objects filtered to only valid groups in the org/projects
     """
-    groups = []
+    groups: list[Group] = []
     # Convert all group IDs to integers and filter out any non-integer values
     group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
     if group_ids_int:
         return list(
             Group.objects.filter(
                 project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
-            )
+            ).select_related("project")
         )
     else:
+        project_ids = {p.id for p in projects}
         for group_id in group_ids:
             if isinstance(group_id, str):
-                groups.append(Group.objects.by_qualified_short_id(organization_id, group_id))
+                try:
+                    group = Group.objects.by_qualified_short_id(organization_id, group_id)
+                except Group.DoesNotExist:
+                    continue
+                if group.project_id in project_ids:
+                    groups.append(group)
 
     return groups
 
@@ -886,13 +892,23 @@ def greatest_semver_release(project: Project) -> Release | None:
 
 
 def get_semver_releases(project: Project) -> QuerySet[Release]:
-    return (
+    order_by_build_code = features.has(
+        "organizations:semver-ordering-with-build-code", project.organization
+    )
+
+    semver_cols = (
+        Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
+    )
+
+    qs = (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
         .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
         .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
-        .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
     )
+    if order_by_build_code:
+        qs = qs.annotate_build_code_column()
+    return qs.order_by(*[f"-{col}" for col in semver_cols])
 
 
 def handle_is_subscribed(

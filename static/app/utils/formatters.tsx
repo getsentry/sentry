@@ -135,7 +135,7 @@ export function formatRate(
 
   // 0 is special!
   if (value === 0) {
-    return `${0}${RATE_UNIT_LABELS[unit]}`;
+    return `0${RATE_UNIT_LABELS[unit]}`;
   }
 
   const minimumValue = options.minimumValue ?? 0;

@@ -43,7 +43,10 @@ export function handleRouteLeave<Q extends Record<PropertyKey, unknown>>({
   });
 }
 
-function useCleanQueryParamsOnRouteLeave<Q>({fieldsToClean, shouldClean}: Opts<Q>) {
+export function useCleanQueryParamsOnRouteLeave<Q>({
+  fieldsToClean,
+  shouldClean,
+}: Opts<Q>) {
   const location = useLocation();
 
   const onRouteLeave = useCallback(
@@ -63,5 +66,3 @@ function useCleanQueryParamsOnRouteLeave<Q>({fieldsToClean, shouldClean}: Opts<Q
     return browserHistory.listen(onRouteLeave);
   }, [onRouteLeave]);
 }
-
-export default useCleanQueryParamsOnRouteLeave;

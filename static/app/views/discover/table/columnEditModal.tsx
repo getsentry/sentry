@@ -9,7 +9,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {DISCOVER2_DOCS_URL} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -25,7 +24,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
-import useTags from 'sentry/utils/useTags';
+import {useTags} from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import {ColumnEditCollection} from './columnEditCollection';
@@ -190,7 +189,7 @@ function ColumnEditModal(props: Props) {
 }
 
 const Instruction = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
 `;
 
 const modalCss = (theme: Theme) => css`

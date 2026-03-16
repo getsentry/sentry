@@ -1,7 +1,7 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -33,7 +33,7 @@ function TraceLoading({
 
 function TraceError({trace}: {trace: UseApiQueryResult<TraceTree.Trace, RequestError>}) {
   const message = useMemo(() => {
-    const status: number | undefined = trace.error?.status;
+    const status = trace.error?.status;
 
     if (status === 404) {
       return tct(

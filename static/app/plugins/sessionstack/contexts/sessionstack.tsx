@@ -18,7 +18,7 @@ type State = {
   width?: number;
 };
 
-class SessionStackContextType extends Component<Props, State> {
+export class SessionStackContextType extends Component<Props, State> {
   state: State = {
     showIframe: false,
   };
@@ -82,5 +82,3 @@ class SessionStackContextType extends Component<Props, State> {
     );
   }
 }
-
-export default SessionStackContextType;

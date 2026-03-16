@@ -8,7 +8,6 @@ import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
 import {IconFlag} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   /**
@@ -30,7 +29,13 @@ type Props = {
   onRetry?: (e: React.MouseEvent) => void;
 };
 
-function DetailedError({className, heading, message, onRetry, hideSupportLinks}: Props) {
+export function DetailedError({
+  className,
+  heading,
+  message,
+  onRetry,
+  hideSupportLinks,
+}: Props) {
   const showFooter = !!onRetry || !hideSupportLinks;
   const lastEventId = getLastEventId();
 
@@ -75,25 +80,23 @@ function DetailedError({className, heading, message, onRetry, hideSupportLinks}:
 }
 
 const Wrapper = styled('div')`
-  margin: ${space(2)} auto 0 auto;
-  padding: ${space(2)};
+  margin: ${p => p.theme.space.xl} auto 0 auto;
+  padding: ${p => p.theme.space.xl};
   width: fit-content;
 `;
 
 const ErrorHeading = styled('h4')`
   display: flex;
-  gap: ${space(1.5)};
+  gap: ${p => p.theme.space.lg};
   align-items: center;
-  margin-left: calc(-1 * (${() => SvgIcon.ICON_SIZES.md} + ${space(1.5)}));
+  margin-left: calc(-1 * (${() => SvgIcon.ICON_SIZES.md} + ${p => p.theme.space.lg}));
 `;
 
 const ErrorFooter = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-  padding-top: ${space(2)};
+  padding-top: ${p => p.theme.space.xl};
 `;
-
-export default DetailedError;

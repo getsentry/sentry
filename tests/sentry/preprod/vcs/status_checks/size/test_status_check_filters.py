@@ -15,12 +15,12 @@ from sentry.preprod.vcs.status_checks.size.tasks import (
     _get_status_check_rules,
     _rule_matches_artifact,
 )
-from sentry.preprod.vcs.status_checks.size.types import StatusCheckRule
+from sentry.preprod.vcs.status_checks.size.types import RuleArtifactType, StatusCheckRule
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class StatusCheckFiltersTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -331,7 +331,8 @@ class StatusCheckFiltersTest(TestCase):
         self.project.update_option(
             "sentry:preprod_size_status_checks_rules",
             '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", '
-            '"value": 100, "filterQuery": "build_configuration_name:Debug"}]',
+            '"value": 100, "filterQuery": "build_configuration_name:Debug", '
+            '"artifactType": "watch_artifact"}]',
         )
 
         rules = _get_status_check_rules(self.project)
@@ -342,6 +343,30 @@ class StatusCheckFiltersTest(TestCase):
         assert rules[0].measurement == "absolute"
         assert rules[0].value == 100
         assert rules[0].filter_query == "build_configuration_name:Debug"
+        assert rules[0].artifact_type == "watch_artifact"
+
+    def test_parse_rules_defaults_missing_artifact_type_to_main(self):
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", "value": 100}]',
+        )
+
+        rules = _get_status_check_rules(self.project)
+
+        assert len(rules) == 1
+        assert rules[0].artifact_type == "main_artifact"
+
+    def test_parse_rules_with_app_clip_artifact_type(self):
+        self.project.update_option(
+            "sentry:preprod_size_status_checks_rules",
+            '[{"id": "rule1", "metric": "install_size", "measurement": "absolute", '
+            '"value": 100, "artifactType": "app_clip_artifact"}]',
+        )
+
+        rules = _get_status_check_rules(self.project)
+
+        assert len(rules) == 1
+        assert rules[0].artifact_type == RuleArtifactType.APP_CLIP_ARTIFACT
 
     def test_evaluate_absolute_diff_threshold_exceeds(self):
         head_artifact = self.create_preprod_artifact(
@@ -789,6 +814,286 @@ class StatusCheckFiltersTest(TestCase):
         )
         assert status == StatusCheckStatus.SUCCESS
         assert triggered_rules == []
+
+    def test_rules_evaluate_watch_artifact_when_explicitly_selected(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=self.commit_comparison,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=50 * 1024 * 1024,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=150 * 1024 * 1024,
+            identifier="com.example.app.watchapp",
+        )
+
+        size_metrics_map = {
+            artifact.id: list(PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=artifact))
+        }
+
+        rule = StatusCheckRule(
+            id="rule1",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="",
+            artifact_type=RuleArtifactType.WATCH_ARTIFACT,
+        )
+
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
+        assert status == StatusCheckStatus.FAILURE
+        assert len(triggered_rules) == 1
+        assert (
+            triggered_rules[0].metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
+        )
+
+    def test_rules_evaluate_app_clip_artifact_when_explicitly_selected(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=self.commit_comparison,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=50 * 1024 * 1024,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=150 * 1024 * 1024,
+            identifier="com.example.app.clip",
+        )
+
+        size_metrics_map = {
+            artifact.id: list(PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=artifact))
+        }
+
+        rule = StatusCheckRule(
+            id="rule1",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="",
+            artifact_type=RuleArtifactType.APP_CLIP_ARTIFACT,
+        )
+
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
+        assert status == StatusCheckStatus.FAILURE
+        assert len(triggered_rules) == 1
+        assert (
+            triggered_rules[0].metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT
+        )
+
+    def test_rules_evaluate_all_app_clips_with_all_artifacts_rule(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=self.commit_comparison,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=50 * 1024 * 1024,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=120 * 1024 * 1024,
+            identifier="com.example.app.clip.a",
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=140 * 1024 * 1024,
+            identifier="com.example.app.clip.b",
+        )
+
+        size_metrics_map = {
+            artifact.id: list(PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=artifact))
+        }
+
+        rule = StatusCheckRule(
+            id="rule1",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="",
+            artifact_type=RuleArtifactType.ALL_ARTIFACTS,
+        )
+
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
+        assert status == StatusCheckStatus.FAILURE
+        assert len(triggered_rules) == 2
+        assert all(
+            tr.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.APP_CLIP_ARTIFACT
+            for tr in triggered_rules
+        )
+        assert {tr.identifier for tr in triggered_rules} == {
+            "com.example.app.clip.a",
+            "com.example.app.clip.b",
+        }
+
+    def test_rules_with_missing_targeted_artifact_type_do_not_fail(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=self.commit_comparison,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=150 * 1024 * 1024,
+        )
+
+        size_metrics_map = {
+            artifact.id: list(PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=artifact))
+        }
+
+        rule = StatusCheckRule(
+            id="rule1",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="",
+            artifact_type=RuleArtifactType.WATCH_ARTIFACT,
+        )
+
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
+        assert status == StatusCheckStatus.SUCCESS
+        assert triggered_rules == []
+
+    def test_rules_evaluate_all_artifacts_when_all_selected(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
+            commit_comparison=self.commit_comparison,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=50 * 1024 * 1024,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=150 * 1024 * 1024,
+            identifier="com.example.app.watchapp",
+        )
+
+        size_metrics_map = {
+            artifact.id: list(PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=artifact))
+        }
+
+        rule = StatusCheckRule(
+            id="rule1",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="",
+            artifact_type=RuleArtifactType.ALL_ARTIFACTS,
+        )
+
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
+        assert status == StatusCheckStatus.FAILURE
+        assert len(triggered_rules) == 1
+        assert (
+            triggered_rules[0].metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT
+        )
+
+    def test_rules_evaluate_dynamic_feature_by_identifier(self):
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            artifact_type=PreprodArtifact.ArtifactType.AAB,
+            commit_comparison=self.commit_comparison,
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=90 * 1024 * 1024,
+            identifier="feature.a",
+        )
+
+        PreprodArtifactSizeMetrics.objects.create(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            max_install_size=140 * 1024 * 1024,
+            identifier="feature.b",
+        )
+
+        size_metrics_map = {
+            artifact.id: list(PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=artifact))
+        }
+
+        rule = StatusCheckRule(
+            id="rule1",
+            metric="install_size",
+            measurement="absolute",
+            value=100 * 1024 * 1024,
+            filter_query="",
+            artifact_type=RuleArtifactType.ANDROID_DYNAMIC_FEATURE_ARTIFACT,
+        )
+
+        status, triggered_rules = _compute_overall_status(
+            [artifact], size_metrics_map, rules=[rule]
+        )
+
+        assert status == StatusCheckStatus.FAILURE
+        assert len(triggered_rules) == 1
+        assert (
+            triggered_rules[0].metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.ANDROID_DYNAMIC_FEATURE
+        )
+        assert triggered_rules[0].identifier == "feature.b"
 
     def test_filters_on_missing_fields_do_not_match(self):
         artifact_no_build_config = PreprodArtifact.objects.create(

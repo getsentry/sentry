@@ -5,11 +5,10 @@ import {AvatarList} from '@sentry/scraps/avatar';
 
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {DataSection} from 'sentry/components/events/styles';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import TimeSince from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {ReleaseWithHealth} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
@@ -31,7 +30,7 @@ import {
 import type {BaseContextProps} from './utils';
 import {ContextType, tenSecondInMs} from './utils';
 
-function ReleaseContext(props: BaseContextProps) {
+export function ReleaseContext(props: BaseContextProps) {
   const user = useUser();
   const {dataRow, organization} = props;
   const {isPending, isError, data} = useApiQuery<ReleaseWithHealth>(
@@ -191,7 +190,7 @@ function ReleaseContext(props: BaseContextProps) {
 }
 
 const StyledAvatarList = styled(AvatarList)`
-  margin: 0 ${space(0.75)};
+  margin: 0 ${p => p.theme.space.sm};
 `;
 
 const ReleaseContextContainer = styled(ContextContainer)`
@@ -204,7 +203,7 @@ const ReleaseContextContainer = styled(ContextContainer)`
     padding: 0;
   }
   & + & {
-    margin-top: ${space(2)};
+    margin-top: ${p => p.theme.space.xl};
   }
 `;
 
@@ -212,5 +211,3 @@ const ReleaseBody = styled(ContextBody)`
   font-size: 13px;
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default ReleaseContext;

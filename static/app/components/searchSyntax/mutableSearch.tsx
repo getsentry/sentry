@@ -6,7 +6,6 @@ import {
   parseSearch,
   TermOperator,
   WildcardOperators,
-  type ParseResult,
   type TokenResult,
 } from './parser';
 import {getKeyName} from './utils';
@@ -107,7 +106,7 @@ function escapeFilterValue(value: string) {
 }
 
 function parseToFlatTokens(query: string): Token[] {
-  const parsed: ParseResult | null = parseSearch(query, {flattenParenGroups: true});
+  const parsed = parseSearch(query, {flattenParenGroups: true});
   const tokens: Token[] = [];
 
   if (!parsed) {

@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 interface BookmarkStarProps extends Omit<ButtonProps, 'as' | 'onToggle'> {
   organization: Organization;

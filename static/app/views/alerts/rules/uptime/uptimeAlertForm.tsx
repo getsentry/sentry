@@ -17,33 +17,35 @@ import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
+import {SentryMemberTeamSelectorField} from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {Assertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeAssertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
-import {mapAssertionFormErrors} from './assertionFormErrors';
+import {AssertionSuggestionsButton} from './assertionSuggestionsButton';
+import {createMapFormErrors} from './formErrors';
 import {HTTPSnippet} from './httpSnippet';
+import {PreviewCheckResultProvider, usePreviewCheckResult} from './previewCheckContext';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
 import {UptimeHeadersField} from './uptimeHeadersField';
+import {useUptimeAssertionFeatures} from './useUptimeAssertionFeatures';
 
 interface Props {
   handleDelete?: () => void;
@@ -96,14 +98,21 @@ function getFormDataFromRule(rule: UptimeRule) {
 }
 
 export function UptimeAlertForm({handleDelete, rule}: Props) {
+  return (
+    <PreviewCheckResultProvider>
+      <UptimeAlertFormContent handleDelete={handleDelete} rule={rule} />
+    </PreviewCheckResultProvider>
+  );
+}
+
+function UptimeAlertFormContent({handleDelete, rule}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const hasRuntimeAssertions = organization.features.includes(
-    'uptime-runtime-assertions'
-  );
+  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
+  const previewCheckResult = usePreviewCheckResult();
 
   const project =
     projects.find(p => selection.projects[0]?.toString() === p.id) ??
@@ -208,7 +217,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
       saveOnBlur={false}
       initialData={initialData}
       submitLabel={rule ? t('Save Rule') : t('Create Rule')}
-      mapFormErrors={mapAssertionFormErrors}
+      mapFormErrors={createMapFormErrors(previewCheckResult)}
       onFieldChange={onFieldChange}
       onPreSubmit={() => {
         if (!methodHasBody(formModel)) {
@@ -217,7 +226,7 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
         // When runtime assertions are disabled, the assertions field is not mounted,
         // so its `getValue` transform won't run. Normalize empty/sentinel assertions to null.
         if (!hasRuntimeAssertions) {
-          const assertion = formModel.getValue<Assertion | null>('assertion');
+          const assertion = formModel.getValue<UptimeAssertion | null>('assertion');
           if (!assertion?.root || assertion.root.children?.length === 0) {
             formModel.setValue('assertion', null);
           }
@@ -239,6 +248,27 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
               <Button priority="danger">{t('Delete Rule')}</Button>
             </Confirm>
           )}
+          {hasRuntimeAssertions && hasAiAssertionSuggestions && (
+            <AssertionSuggestionsButton
+              getFormData={() => {
+                const data = formModel.getTransformedData();
+                return {
+                  url: data.url,
+                  method: data.method ?? DEFAULT_METHOD,
+                  headers: data.headers ?? [],
+                  body: methodHasBody(formModel) ? data.body : null,
+                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                };
+              }}
+              getCurrentAssertion={() =>
+                formModel.getValue<UptimeAssertion | null>('assertion')
+              }
+              onApplySuggestion={newAssertion => {
+                // Cast to any to satisfy FormModel's FieldValue type
+                formModel.setValue('assertion', newAssertion as any);
+              }}
+            />
+          )}
           {hasRuntimeAssertions && (
             <TestUptimeMonitorButton
               label={t('Test Rule')}
@@ -252,10 +282,6 @@ export function UptimeAlertForm({handleDelete, rule}: Props) {
                   timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
                   assertion: data.assertion ?? null,
                 };
-              }}
-              onValidationError={responseJson => {
-                const mapped = mapAssertionFormErrors(responseJson);
-                formModel.handleErrorResponse({responseJSON: mapped});
               }}
             />
           )}
@@ -545,7 +571,7 @@ const AlertListItem = styled(ListItem)`
 `;
 
 const ListItemSubText = styled(Text)`
-  padding-left: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
@@ -553,10 +579,10 @@ const FormRow = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   align-items: center;
-  gap: ${space(2)};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
-  margin-left: ${space(4)};
+  gap: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['3xl']};
+  margin-left: ${p => p.theme.space['3xl']};
 
   ${FieldWrapper} {
     padding: 0;
@@ -564,14 +590,14 @@ const FormRow = styled('div')`
 `;
 
 const Configuration = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
-  margin-left: ${space(4)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['3xl']};
+  margin-left: ${p => p.theme.space['3xl']};
 `;
 
 const ConfigurationPanel = styled(Panel)`
   display: grid;
-  gap: 0 ${space(2)};
+  gap: 0 ${p => p.theme.space.xl};
   grid-template-columns: fit-content(325px) 1fr;
   align-items: center;
 

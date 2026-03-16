@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {IconBusiness} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {isEnterprise} from 'getsentry/utils/billing';
 
@@ -109,7 +108,7 @@ const StyledLabel = styled('div')<{leftAligned?: boolean}>`
   width: 100%;
 
   > :last-child {
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space.md};
   }
 `;
 

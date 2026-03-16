@@ -1,6 +1,6 @@
 import type {Client} from 'sentry/api';
-import getDisplayName from 'sentry/utils/getDisplayName';
-import useApi from 'sentry/utils/useApi';
+import {getDisplayName} from 'sentry/utils/getDisplayName';
+import {useApi} from 'sentry/utils/useApi';
 
 type InjectedApiProps = {
   api: Client;
@@ -17,7 +17,7 @@ type WrappedProps<P> = Omit<P, keyof InjectedApiProps> & Partial<InjectedApiProp
  * If an `api` prop is provided when the component is invoked it will be passed
  * through.
  */
-const withApi = <P extends InjectedApiProps>(
+export const withApi = <P extends InjectedApiProps>(
   WrappedComponent: React.ComponentType<P>,
   options: Parameters<typeof useApi>[0] = {}
 ) => {
@@ -32,5 +32,3 @@ const withApi = <P extends InjectedApiProps>(
 
   return WithApi;
 };
-
-export default withApi;

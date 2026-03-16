@@ -16,7 +16,7 @@ type Props = ModalRenderProps & {
   onSelected: (details: IgnoredStatusDetails) => void;
 };
 
-export default function CustomIgnoreDurationModal(props: Props) {
+export function CustomIgnoreDurationModal(props: Props) {
   const [dateWarning, setDateWarning] = useState<boolean>(false);
   const {Header, Body, Footer, onSelected, closeModal} = props;
 

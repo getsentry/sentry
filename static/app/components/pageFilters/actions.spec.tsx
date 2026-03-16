@@ -15,9 +15,9 @@ import {
 } from 'sentry/components/pageFilters/actions';
 import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import localStorage from 'sentry/utils/localStorage';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import localStorageWrapper from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
 
@@ -43,7 +43,7 @@ describe('PageFilters ActionCreators', () => {
 
     beforeEach(() => {
       router = RouterFixture();
-      localStorage.setItem(
+      localStorageWrapper.setItem(
         key,
         JSON.stringify({
           environments: [],
@@ -53,7 +53,7 @@ describe('PageFilters ActionCreators', () => {
     });
 
     it('loads from local storage when no query params and filters are pinned', () => {
-      localStorage.setItem(
+      localStorageWrapper.setItem(
         key,
         JSON.stringify({
           environments: [],
@@ -69,7 +69,7 @@ describe('PageFilters ActionCreators', () => {
         nonMemberProjects: [],
       });
 
-      expect(localStorage.getItem).toHaveBeenCalledWith(
+      expect(localStorageWrapper.getItem).toHaveBeenCalledWith(
         `global-selection:${organization.slug}`
       );
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -90,7 +90,7 @@ describe('PageFilters ActionCreators', () => {
     });
 
     it('does not load from local storage when no query params and `skipLoadLastUsed` is true', () => {
-      jest.spyOn(localStorage, 'getItem');
+      jest.spyOn(localStorageWrapper, 'getItem');
       initializeUrlState({
         organization,
         queryParams: {},
@@ -100,12 +100,12 @@ describe('PageFilters ActionCreators', () => {
         router,
       });
 
-      expect(localStorage.getItem).not.toHaveBeenCalled();
+      expect(localStorageWrapper.getItem).not.toHaveBeenCalled();
     });
 
     it('does not update local storage (persist) when `shouldPersist` is false', async () => {
       jest.clearAllMocks();
-      jest.spyOn(localStorage, 'getItem').mockReturnValueOnce(
+      jest.spyOn(localStorageWrapper, 'getItem').mockReturnValueOnce(
         JSON.stringify({
           environments: [],
           projects: [],
@@ -144,7 +144,7 @@ describe('PageFilters ActionCreators', () => {
       });
 
       // New value wasn't committed to local storage
-      expect(localStorage.setItem).not.toHaveBeenCalled();
+      expect(localStorageWrapper.setItem).not.toHaveBeenCalled();
     });
 
     it('does not change dates with no query params or defaultSelection', () => {
@@ -355,7 +355,7 @@ describe('PageFilters ActionCreators', () => {
       pageFilterStorageMock.mockRestore();
     });
 
-    it('defaults to all projects when user has no member projects but has accessible projects', () => {
+    it('auto-selects the single non-member project when user has no member projects', () => {
       const nonMemberProject = ProjectFixture({isMember: false});
       initializeUrlState({
         organization,
@@ -363,6 +363,25 @@ describe('PageFilters ActionCreators', () => {
         router,
         memberProjects: [],
         nonMemberProjects: [nonMemberProject],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projects: [parseInt(nonMemberProject.id, 10)],
+        }),
+        true
+      );
+    });
+
+    it('defaults to all projects when user has no member projects but has multiple accessible projects', () => {
+      const nonMemberProject1 = ProjectFixture({id: '10', isMember: false});
+      const nonMemberProject2 = ProjectFixture({id: '11', isMember: false});
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: [],
+        nonMemberProjects: [nonMemberProject1, nonMemberProject2],
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -378,12 +397,49 @@ describe('PageFilters ActionCreators', () => {
       ConfigStore.set('user', UserFixture({isSuperuser: true}));
       OrganizationStore.onUpdate(superuserOrg, {replace: true});
 
+      // When there is only one accessible project, it is auto-selected even for superusers
+      const nonMemberProject = ProjectFixture({isMember: false});
       initializeUrlState({
         organization: superuserOrg,
         queryParams: {},
         router,
         memberProjects: [],
-        nonMemberProjects: [ProjectFixture({isMember: false})],
+        nonMemberProjects: [nonMemberProject],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projects: [parseInt(nonMemberProject.id, 10)],
+        }),
+        true
+      );
+    });
+
+    it('auto-selects the single project when the organization only has one', () => {
+      const singleProject = ProjectFixture({id: '42', isMember: true});
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: [singleProject],
+        nonMemberProjects: [],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projects: [42],
+        }),
+        true
+      );
+    });
+
+    it('does not auto-select when there are multiple projects', () => {
+      initializeUrlState({
+        organization,
+        queryParams: {},
+        router,
+        memberProjects: projects,
+        nonMemberProjects: [],
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -438,7 +494,7 @@ describe('PageFilters ActionCreators', () => {
       const insightsKey = `global-selection:${storageNamespace}:${organization.slug}`;
       const globalKey = `global-selection:${organization.slug}`;
 
-      localStorage.setItem(
+      localStorageWrapper.setItem(
         globalKey,
         JSON.stringify({
           environments: [],
@@ -459,8 +515,8 @@ describe('PageFilters ActionCreators', () => {
         nonMemberProjects: [],
         storageNamespace,
       });
-      expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
-      expect(localStorage.getItem).toHaveBeenCalledWith(globalKey);
+      expect(localStorageWrapper.getItem).toHaveBeenCalledWith(insightsKey);
+      expect(localStorageWrapper.getItem).toHaveBeenCalledWith(globalKey);
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -490,7 +546,7 @@ describe('PageFilters ActionCreators', () => {
       const storageNamespace = 'insights:frontend';
       const insightsKey = `global-selection:${storageNamespace}:${organization.slug}`;
       const globalKey = `global-selection:${organization.slug}`;
-      localStorage.setItem(
+      localStorageWrapper.setItem(
         insightsKey,
         JSON.stringify({
           environments: [],
@@ -503,7 +559,7 @@ describe('PageFilters ActionCreators', () => {
         })
       );
 
-      localStorage.setItem(
+      localStorageWrapper.setItem(
         globalKey,
         JSON.stringify({
           environments: [],
@@ -524,8 +580,8 @@ describe('PageFilters ActionCreators', () => {
         nonMemberProjects: [],
         storageNamespace,
       });
-      expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
-      expect(localStorage.getItem).toHaveBeenCalledWith(globalKey);
+      expect(localStorageWrapper.getItem).toHaveBeenCalledWith(insightsKey);
+      expect(localStorageWrapper.getItem).toHaveBeenCalledWith(globalKey);
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -553,7 +609,7 @@ describe('PageFilters ActionCreators', () => {
 
     it('retrieves filters from a separate key when storageNamespace is provided', () => {
       const insightsKey = `global-selection:insights:${organization.slug}`;
-      localStorage.setItem(
+      localStorageWrapper.setItem(
         insightsKey,
         JSON.stringify({
           environments: [],
@@ -571,7 +627,7 @@ describe('PageFilters ActionCreators', () => {
         storageNamespace: 'insights',
       });
 
-      expect(localStorage.getItem).toHaveBeenCalledWith(insightsKey);
+      expect(localStorageWrapper.getItem).toHaveBeenCalledWith(insightsKey);
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
         expect.objectContaining({
           environments: [],

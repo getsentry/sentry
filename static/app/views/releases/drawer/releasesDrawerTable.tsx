@@ -5,24 +5,23 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {Count} from 'sentry/components/count';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
   extractSelectionParameters,
   normalizeDateTimeParams,
 } from 'sentry/components/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import renderSortableHeaderCell from 'sentry/components/replays/renderSortableHeaderCell';
+import {renderSortableHeaderCell} from 'sentry/components/replays/renderSortableHeaderCell';
 import type {
   GridColumnHeader,
   GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import GridEditable from 'sentry/components/tables/gridEditable';
-import useQueryBasedSorting from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
-import TextOverflow from 'sentry/components/textOverflow';
+import {useQueryBasedSorting} from 'sentry/components/tables/gridEditable/useQueryBasedSorting';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -31,7 +30,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   cleanReleaseCursors,
@@ -253,5 +252,5 @@ const PaginationNoMargin = styled(Pagination)`
 const ReleaseLink = styled(Link)`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

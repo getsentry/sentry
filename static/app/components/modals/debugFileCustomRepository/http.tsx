@@ -5,7 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {
   DEBUG_SOURCE_CASINGS,
@@ -14,7 +14,6 @@ import {
 } from 'sentry/data/debugFileSources';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {uniqueId} from 'sentry/utils/guid';
 
 const CLEAR_PASSWORD_BUTTON_SIZE = 22;
@@ -54,7 +53,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   initialData?: InitialData;
 };
 
-function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
+export function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
   const initialData: Data = {
     id: props.initialData?.id ?? uniqueId(),
     name: props.initialData?.name,
@@ -256,8 +255,6 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
   );
 }
 
-export default Http;
-
 const StyledSelectField = styled(SelectField)`
   padding-right: 0;
 `;
@@ -273,7 +270,7 @@ const ClearPasswordButton = styled(Button)`
   padding: 0;
   position: absolute;
   top: 50%;
-  right: ${space(0.75)};
+  right: ${p => p.theme.space.sm};
   transform: translateY(-50%);
   svg {
     color: ${p => p.theme.colors.gray500};

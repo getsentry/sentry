@@ -14,10 +14,8 @@ import {
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);
@@ -52,13 +50,7 @@ describe('MetricsTabContent', () => {
   });
 
   function ProviderWrapper({children}: {children: React.ReactNode}) {
-    return (
-      <MultiMetricsQueryParamsProvider>
-        <TraceItemAttributeProvider traceItemType={TraceItemDataset.TRACEMETRICS} enabled>
-          {children}
-        </TraceItemAttributeProvider>
-      </MultiMetricsQueryParamsProvider>
-    );
+    return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
   }
 
   const initialRouterConfig = {
@@ -128,7 +120,7 @@ describe('MetricsTabContent', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });
@@ -462,7 +454,7 @@ describe('MetricsTabContent', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: {},
     });

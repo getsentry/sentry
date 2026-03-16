@@ -1,4 +1,3 @@
-import type {CSSProperties} from 'react';
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -7,12 +6,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
-import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
-import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {MessageFormatter} from 'sentry/views/replays/detail/console/messageFormatter';
+import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 
 interface Props extends ReturnType<typeof useCrumbHandlers> {
   currentHoverTime: number | undefined;
@@ -25,14 +23,15 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
     expandedState: Record<string, boolean>
   ) => void;
   startTimestampMs: number;
-  style: CSSProperties;
+  dataIndex?: number;
   expandPaths?: string[];
   ref?: React.Ref<HTMLDivElement>;
 }
 
-function ConsoleLogRow({
+export function ConsoleLogRow({
   currentHoverTime,
   currentTime,
+  dataIndex,
   expandPaths,
   frame,
   onMouseEnter,
@@ -41,7 +40,6 @@ function ConsoleLogRow({
   onClickTimestamp,
   onDimensionChange,
   startTimestampMs,
-  style,
   ref,
 }: Props) {
   const handleDimensionChange = useCallback(
@@ -56,6 +54,7 @@ function ConsoleLogRow({
   return (
     <ConsoleLog
       ref={ref}
+      data-index={dataIndex}
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -66,7 +65,6 @@ function ConsoleLogRow({
       level={(frame as ConsoleFrame).level}
       onMouseEnter={() => onMouseEnter(frame)}
       onMouseLeave={() => onMouseLeave(frame)}
-      style={style}
     >
       <ConsoleLevelIcon level={(frame as ConsoleFrame).level} />
       <Message>
@@ -90,17 +88,15 @@ function ConsoleLogRow({
   );
 }
 
-export default ConsoleLogRow;
-
 const ConsoleLog = styled('div')<{
   hasOccurred: boolean;
   level: undefined | string;
 }>`
   display: grid;
   grid-template-columns: 12px 1fr max-content;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   align-items: baseline;
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
 
   background-color: ${p =>

@@ -79,7 +79,7 @@ from sentry.projects.services.project import RpcProjectFlags
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth.auth import email_unlink_notifications
-from sentry.types.region import find_regions_for_orgs
+from sentry.types.region import find_cells_for_orgs
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_org_delete_log
 
@@ -175,7 +175,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
     def get_organizations_by_user_and_scope(
-        self, *, region_name: str, user: RpcUser, scope: str | None = None
+        self,
+        *,
+        cell_name: str,
+        user: RpcUser,
+        scope: str | None = None,
     ) -> list[RpcOrganization]:
         organizations = Organization.objects.get_for_user(user=user, scope=scope)
         return list(map(serialize_rpc_organization, organizations))
@@ -632,7 +636,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         with unguarded_write(using=router.db_for_write(Team)):
             Team.objects.filter(organization_id=organization_id).update(idp_provisioned=False)
 
-    def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
+    def update_region_user(
+        self,
+        *,
+        user: RpcRegionUser,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+    ) -> None:
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
         # OrganizationMember objects produces outboxes.  In this case, it is safe to do the update directly because
         # the attribute we are changing never needs to produce an outbox.
@@ -814,11 +824,11 @@ class OutboxBackedOrganizationSignalService(OrganizationSignalService):
                 "args": args,
                 "signal": int(RpcOrganizationSignal.from_signal(signal)),
             }
-            for region_name in find_regions_for_orgs([organization_id]):
+            for region_name in find_cells_for_orgs([organization_id]):
                 ControlOutbox(
                     shard_scope=OutboxScope.ORGANIZATION_SCOPE,
                     shard_identifier=organization_id,
-                    region_name=region_name,
+                    cell_name=region_name,
                     category=OutboxCategory.SEND_SIGNAL,
                     object_identifier=ControlOutbox.next_object_identifier(),
                     payload=payload,

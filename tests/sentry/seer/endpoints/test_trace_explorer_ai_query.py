@@ -6,7 +6,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
 
-@with_feature("organizations:gen-ai-explore-traces")
 @with_feature("organizations:gen-ai-features")
 class TraceExplorerAIQueryTest(APITestCase):
     def setUp(self) -> None:
@@ -53,6 +52,10 @@ class TraceExplorerAIQueryTest(APITestCase):
             self.organization.slug,
             [self.project.id],
             "Find slow transactions",
+            viewer_context={
+                "organization_id": self.organization.id,
+                "user_id": self.user.id,
+            },
         )
 
     def test_query_missing_parameters(self) -> None:

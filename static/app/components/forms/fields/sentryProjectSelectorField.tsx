@@ -1,7 +1,7 @@
 import {Flex} from '@sentry/scraps/layout';
 
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 

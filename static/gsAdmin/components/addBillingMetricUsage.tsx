@@ -7,12 +7,12 @@ import InputField from 'sentry/components/forms/fields/inputField';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 function getDateString(date: Date): string {
   // returns date in YYYY-MM-DD format
@@ -72,7 +72,7 @@ function AddBillingMetricUsageModal({
   const orgSlug = organization.slug;
 
   const {data: billingConfig = null, isPending: isLoadingBillingConfig} =
-    useApiQuery<BillingConfig>(['/api/0/billing-config/'], {
+    useApiQuery<BillingConfig>([getApiUrl('/billing-config/')], {
       staleTime: Infinity,
     });
 
@@ -254,9 +254,7 @@ function AddBillingMetricUsageModal({
 
 type Options = Pick<Props, 'onSuccess' | 'organization'>;
 
-const addBillingMetricUsage = (opts: Options) =>
+export const addBillingMetricUsage = (opts: Options) =>
   openModal(deps => <AddBillingMetricUsageModal {...deps} {...opts} />, {
     closeEvents: 'escape-key',
   });
-
-export default addBillingMetricUsage;

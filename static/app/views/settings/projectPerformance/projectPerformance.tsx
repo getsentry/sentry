@@ -12,16 +12,15 @@ import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelFooter from 'sentry/components/panels/panelFooter';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Scope} from 'sentry/types/core';
 import {IssueTitle, IssueType} from 'sentry/types/group';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
@@ -39,11 +38,11 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 // These labels need to be exported so that they can be used in audit logs
@@ -805,9 +804,7 @@ function ProjectPerformance() {
               performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
             ),
             disabledReason,
-            visible: organization.features.includes(
-              'large-http-payload-detector-improvements'
-            ),
+            visible: true,
           },
         ],
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
@@ -1284,7 +1281,7 @@ const StyledJsonForm = styled(JsonForm)`
     text-transform: none;
     margin-bottom: 0;
     background: none;
-    padding: ${space(3)} ${space(2)};
+    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
   }
 `;
 
@@ -1295,7 +1292,7 @@ const StyledPanelFooter = styled(PanelFooter)`
     calc(${p => p.theme.radius.md} - 1px);
 
   ${Actions} {
-    padding: ${space(1.5)};
+    padding: ${p => p.theme.space.lg};
   }
 `;
 

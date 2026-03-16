@@ -4,9 +4,8 @@ import styled from '@emotion/styled';
 
 import {Input, InputGroup} from '@sentry/scraps/input';
 
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import type FormModel from 'sentry/components/forms/model';
-import {space} from 'sentry/styles/space';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
+import type {FormModel} from 'sentry/components/forms/model';
 
 import type {InputFieldProps, OnEvent} from './inputField';
 import InputField from './inputField';
@@ -105,7 +104,7 @@ const HiddenValue = styled('span')`
 `;
 const Suffix = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
   position: absolute;
   top: 50%;
   transform: translateY(-50%);

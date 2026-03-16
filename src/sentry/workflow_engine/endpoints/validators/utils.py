@@ -1,19 +1,38 @@
+import logging
 from typing import Any
 
 from django.forms import ValidationError
 from jsonschema import ValidationError as JsonValidationError
 from jsonschema import validate
 
-from sentry.constants import ObjectStatus
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.utils import metrics
 from sentry.workflow_engine.models.detector import Detector
+
+logger = logging.getLogger(__name__)
+
+
+def log_alerting_quota_hit(
+    object_type: str, organization: Organization, actor: User | RpcUser | None
+) -> None:
+    """Call when a create request is rejected because an org has reached its quota for object_type."""
+    logger.info(
+        "workflow_engine.quota.limit_hit",
+        extra={
+            "object_type": object_type,
+            "organization_id": organization.id,
+            "organization_slug": organization.slug,
+            "actor_id": actor.id if actor is not None else None,
+        },
+    )
+    metrics.incr("workflow_engine.quota.limit_hit", tags={"object_type": object_type})
 
 
 def toggle_detector(detector: Detector, enabled: bool) -> None:
-    updated_detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
-    detector.update(status=updated_detector_status)
-    detector.update(enabled=enabled)
+    detector.toggle(enabled)
 
 
 def validate_json_schema(value: Any, schema: Any) -> Any:

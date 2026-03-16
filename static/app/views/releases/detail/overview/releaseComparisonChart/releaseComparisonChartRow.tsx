@@ -6,11 +6,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import NotAvailable from 'sentry/components/notAvailable';
+import {NotAvailable} from 'sentry/components/notAvailable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {releaseComparisonChartLabels} from 'sentry/views/releases/detail/utils';
@@ -27,7 +26,7 @@ type Props = Omit<ReleaseComparisonRow, 'diffDirection' | 'diffColor'> & {
   withExpanders: boolean;
 };
 
-function ReleaseComparisonChartRow({
+export function ReleaseComparisonChartRow({
   type,
   role,
   drilldown,
@@ -148,15 +147,15 @@ const TitleWrapper = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
 
   input {
-    width: ${space(2)};
-    height: ${space(2)};
+    width: ${p => p.theme.space.xl};
+    height: ${p => p.theme.space.xl};
     flex-shrink: 0;
     background-color: ${p => p.theme.tokens.background.primary};
-    margin-right: ${space(1)} !important;
+    margin-right: ${p => p.theme.space.md} !important;
 
     &:checked:after {
-      width: ${space(1)};
-      height: ${space(1)};
+      width: ${p => p.theme.space.md};
+      height: ${p => p.theme.space.md};
     }
 
     &:hover {
@@ -176,7 +175,7 @@ const ChartTableRow = styled('label')<{
   margin-bottom: 0;
 
   > * {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
   ${p =>
@@ -228,8 +227,8 @@ const ChartTableRow = styled('label')<{
     p.role === 'children' &&
     css`
       ${Cell}, ${NumericCell}, ${DescriptionCell}, ${ExpanderCell} {
-        padding-bottom: ${space(0.75)};
-        padding-top: ${space(0.75)};
+        padding-bottom: ${p.theme.space.sm};
+        padding-top: ${p.theme.space.sm};
         border-bottom: 0;
       }
     `}
@@ -243,5 +242,3 @@ const ToggleButton = styled(Button)`
     background: transparent;
   }
 `;
-
-export default ReleaseComparisonChartRow;

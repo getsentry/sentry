@@ -3,14 +3,13 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import Count from 'sentry/components/count';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Count} from 'sentry/components/count';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {CrashFreeTimeBreakdown} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
@@ -27,7 +26,12 @@ type Props = {
 
 type ReleaseStatsType = {usersBreakdown: CrashFreeTimeBreakdown} | null;
 
-function TotalCrashFreeUsers({location, organization, projectSlug, version}: Props) {
+export function TotalCrashFreeUsers({
+  location,
+  organization,
+  projectSlug,
+  version,
+}: Props) {
   const {
     data: releaseStats,
     isPending,
@@ -129,9 +133,9 @@ const Timeline = styled('div')`
 const DOT_SIZE = 10;
 const Row = styled('div')`
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
-  padding-left: ${space(2)};
-  padding-bottom: ${space(1)};
-  margin-left: ${space(1)};
+  padding-left: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space.md};
+  margin-left: ${p => p.theme.space.md};
   position: relative;
 
   &:before {
@@ -151,18 +155,18 @@ const Row = styled('div')`
 `;
 const InnerRow = styled('div')`
   display: grid;
-  grid-column-gap: ${space(2)};
+  grid-column-gap: ${p => p.theme.space.xl};
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
 
-  padding-bottom: ${space(0.5)};
+  padding-bottom: ${p => p.theme.space.xs};
 `;
 
 const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   text-align: ${p => (p.right ? 'right' : 'left')};
   color: ${p =>
     p.bold ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
-  padding-bottom: ${space(0.25)};
+  padding-bottom: ${p => p.theme.space['2xs']};
   display: block;
   width: 100%;
   white-space: nowrap;
@@ -173,5 +177,3 @@ const Text = styled('div')<{bold?: boolean; right?: boolean}>`
 const Percent = styled(Text)`
   font-variant-numeric: tabular-nums;
 `;
-
-export default TotalCrashFreeUsers;

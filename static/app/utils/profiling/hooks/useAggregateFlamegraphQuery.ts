@@ -1,13 +1,13 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface BaseAggregateFlamegraphQueryParameters {
   datetime?: PageFilters['datetime'];
@@ -33,10 +33,16 @@ interface ProfilesAggregateFlamegraphQueryParameters extends BaseAggregateFlameg
   dataSource: 'profiles';
 }
 
+interface SpansAggregateFlamegraphQueryParameters extends BaseAggregateFlamegraphQueryParameters {
+  dataSource: 'spans';
+  query: string;
+}
+
 export type AggregateFlamegraphQueryParameters =
   | FunctionsAggregateFlamegraphQueryParameters
   | TransactionsAggregateFlamegraphQueryParameters
-  | ProfilesAggregateFlamegraphQueryParameters;
+  | ProfilesAggregateFlamegraphQueryParameters
+  | SpansAggregateFlamegraphQueryParameters;
 
 type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
   Profiling.Schema,
@@ -54,7 +60,7 @@ export function useAggregateFlamegraphQuery(
   if (isDataSourceFunctions(props)) {
     fingerprint = props.fingerprint;
     query = props.query;
-  } else if (isDataSourceTransactions(props)) {
+  } else if (isDataSourceTransactions(props) || isDataSourceSpans(props)) {
     query = props.query;
   }
 
@@ -118,8 +124,18 @@ function isDataSourceFunctions(
   return 'fingerprint' in props;
 }
 
+function isDataSourceSpans(
+  props: AggregateFlamegraphQueryParameters
+): props is SpansAggregateFlamegraphQueryParameters {
+  return 'dataSource' in props && props.dataSource === 'spans';
+}
+
 function isDataSourceTransactions(
   props: AggregateFlamegraphQueryParameters
 ): props is TransactionsAggregateFlamegraphQueryParameters {
-  return !isDataSourceProfiles(props) && !isDataSourceFunctions(props);
+  return (
+    !isDataSourceProfiles(props) &&
+    !isDataSourceFunctions(props) &&
+    !isDataSourceSpans(props)
+  );
 }

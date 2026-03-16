@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
-const StepHeading = styled(
+export const StepHeading = styled(
   (props: React.ComponentProps<typeof motion.h2> & {step: number}) => (
     <motion.h2
       variants={{
@@ -19,11 +18,11 @@ const StepHeading = styled(
     />
   )
 )`
-  margin-left: calc(-${space(2)} - 30px);
+  margin-left: calc(-${p => p.theme.space.xl} - 30px);
   position: relative;
   display: inline-grid;
   grid-template-columns: max-content auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
 
   &:before {
@@ -39,5 +38,3 @@ const StepHeading = styled(
     font-size: 1rem;
   }
 `;
-
-export default StepHeading;

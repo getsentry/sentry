@@ -12,7 +12,6 @@ import {IconSearch, IconTimer, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -182,12 +181,12 @@ const PopulationIndicator = styled(Flex)<{color?: string}>`
     height: 8px;
     border-radius: 50%;
     background-color: ${p => p.color || p.theme.colors.gray500};
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 `;
 
 const ControlsContainer = styled(Flex)`
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
 `;
 

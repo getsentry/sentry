@@ -23,7 +23,7 @@ from sentry.grouping.ingest.caching import (
 )
 from sentry.grouping.ingest.config import update_or_set_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
-    _get_cache_expiry,
+    GROUPHASH_CACHE_EXPIRY_SECONDS,
     find_grouphash_with_group,
     get_or_create_grouphashes,
 )
@@ -441,19 +441,11 @@ class GroupHashCachingTest(TestCase):
             grouping_config_id = "old_config"
             grouping_config_option = "sentry:secondary_grouping_config"
             cache_key = get_grouphash_existence_cache_key(hash_value, self.project.id)
-            # TODO: This can go back to being `options.get("grouping.ingest_grouphash_existence_cache_expiry")`
-            # once we've settled on a retention period
-            cache_expiry, expiry_option_version = _get_cache_expiry(
-                cache_key, cache_type="existence"
-            )
             cached_value: Any = grouphash_exists
         else:
             grouping_config_id = "new_config"
             grouping_config_option = "sentry:grouping_config"
             cache_key = get_grouphash_object_cache_key(hash_value, self.project.id)
-            # TODO: This can go back to being `options.get("grouping.ingest_grouphash_object_cache_expiry")`
-            # once we've settled on a retention period
-            cache_expiry, expiry_option_version = _get_cache_expiry(cache_key, cache_type="object")
             cached_value = grouphash
 
         self.project.update_option(grouping_config_option, grouping_config_id)
@@ -464,26 +456,19 @@ class GroupHashCachingTest(TestCase):
             # testing grouphash object handling)
             cache_get_spy, cache_set_spy, database_fn_spy = spies
             cache_get_args = [cache_key]
-            cache_get_kwargs = {"version": expiry_option_version}
-            cache_set_args = [cache_key, cached_value, cache_expiry]
-            cache_set_kwargs = {"version": expiry_option_version}
+            cache_set_args = [cache_key, cached_value, GROUPHASH_CACHE_EXPIRY_SECONDS]
             database_fn_kwargs = {"project": self.project, "hash": hash_value}
 
-            # TODO: this (and the check below) can be simplified to use in/not in once version is gone
-            assert not cache.has_key(cache_key, version=expiry_option_version)
+            assert cache_key not in cache
 
             # ######### First call for grouphashes, with a hash we've never seen before ######### #
 
             get_or_create_grouphashes(event1, self.project, {}, [hash_value], grouping_config_id)
 
-            assert cache.has_key(cache_key, version=expiry_option_version) == cache_use_expected
+            assert (cache_key in cache) == cache_use_expected
 
-            cache_get_call_count = count_matching_calls(
-                cache_get_spy, *cache_get_args, **cache_get_kwargs
-            )
-            cache_set_call_count = count_matching_calls(
-                cache_set_spy, *cache_set_args, **cache_set_kwargs
-            )
+            cache_get_call_count = count_matching_calls(cache_get_spy, *cache_get_args)
+            cache_set_call_count = count_matching_calls(cache_set_spy, *cache_set_args)
             database_fn_call_count = count_matching_calls(database_fn_spy, **database_fn_kwargs)
 
             assert cache_get_call_count == (1 if cache_check_expected else 0)
@@ -495,12 +480,8 @@ class GroupHashCachingTest(TestCase):
 
             get_or_create_grouphashes(event2, self.project, {}, [hash_value], grouping_config_id)
 
-            cache_get_call_count = count_matching_calls(
-                cache_get_spy, *cache_get_args, **cache_get_kwargs
-            )
-            cache_set_call_count = count_matching_calls(
-                cache_set_spy, *cache_set_args, **cache_set_kwargs
-            )
+            cache_get_call_count = count_matching_calls(cache_get_spy, *cache_get_args)
+            cache_set_call_count = count_matching_calls(cache_set_spy, *cache_set_args)
             database_fn_call_count = count_matching_calls(database_fn_spy, **database_fn_kwargs)
 
             # With caching, call count increases by 1
@@ -602,6 +583,63 @@ class GroupHashCachingTest(TestCase):
             cache_check_expected=False,
             cache_use_expected=False,
         )
+
+    def test_cache_invalidation_error_handling(self):
+        # We don't want the cache invalidation triggered by saving, updating, or deleting a
+        # grouphash to ever make those processes crash
+
+        with (
+            # Called by the grouphash `save` hook
+            patch("sentry.grouping.ingest.caching.cache.delete", side_effect=Exception),
+            # Called by the grouphash `delete` hook
+            patch("sentry.grouping.ingest.caching.cache.delete_many", side_effect=Exception),
+            # The `cache` object is the same one used everywhere, so patching `delete_many` above
+            # also does the patching that the `patch` call below would do, so it's not necessary.
+            # (In fact, patching in both places causes an error when pytest tries to undo the
+            # mocking at the end of the test, because it tries to delete the mock method twice.)
+            #
+            # We can see that it's the same `cache` object everywhere because even when we import it
+            # here, the two mocked methods throw errors. (See the first assertions below.)
+            #
+            # Called by the overridden grouphash queryset `update` method
+            # patch("sentry.models.grouphash.cache.delete_many", side_effect=Exception),
+        ):
+            # Prove that mocking `cache.delete` and `cache.delete_many` in the `caching` module (to
+            # make them both throw errors) in fact causes that side effect everywhere. (See note
+            # above.)
+            with pytest.raises(Exception):
+                cache.delete("not_here")
+            with pytest.raises(Exception):
+                cache.delete_many(["not_here", "still_not_here"])
+
+            # `save` is called internally by `create`
+            GroupHash.objects.create(project=self.project, hash="dogs_are_great")
+            grouphash = GroupHash.objects.filter(
+                project=self.project, hash="dogs_are_great"
+            ).first()
+            # The record was successfully created
+            assert grouphash
+
+            # Test `save` directly
+            grouphash.hash = "maisey"
+            grouphash.save()
+            grouphash.refresh_from_db()
+            # The record was successfully updated
+            assert grouphash.hash == "maisey"
+
+            # Test `update`
+            grouphash.update(hash="adopt_dont_shop")
+            grouphash.refresh_from_db()
+            # The record was successfully updated
+            assert grouphash.hash == "adopt_dont_shop"
+
+            # Test `delete`
+            grouphash.delete()
+            grouphash = GroupHash.objects.filter(
+                project=self.project, hash="adopt_dont_shop"
+            ).first()
+            # The record was successfully deleted
+            assert not grouphash
 
 
 class PlaceholderTitleTest(TestCase):

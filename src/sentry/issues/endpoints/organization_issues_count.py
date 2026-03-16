@@ -6,7 +6,7 @@ from sentry_sdk import start_span
 from sentry import search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import validate_search_filter_permissions
 from sentry.api.helpers.group_index.validators import ValidationError
@@ -26,7 +26,7 @@ ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', a
 ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

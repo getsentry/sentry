@@ -25,7 +25,6 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.workflow_engine.models.action import Action
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 class SentryAppDetailsTest(APITestCase):
@@ -228,25 +227,26 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             },
         ]
         assert not SentryAppInstallation.objects.filter(sentry_app=self.unpublished_app).exists()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not ServiceHook.objects.filter(
                 application_id=self.unpublished_app.application_id
             ).exists()
 
     @override_options({"staff.ga-rollout": True})
     def test_update_internal_app(self) -> None:
-        self.get_success_response(
-            self.internal_integration.slug,
-            webhookUrl="https://newurl.com",
-            scopes=("event:read",),
-            events=("issue",),
-            status_code=200,
-        )
+        with outbox_runner():
+            self.get_success_response(
+                self.internal_integration.slug,
+                webhookUrl="https://newurl.com",
+                scopes=("event:read",),
+                events=("issue",),
+                status_code=200,
+            )
         self.internal_integration.refresh_from_db()
         assert self.internal_integration.webhook_url == "https://newurl.com"
 
         installation = SentryAppInstallation.objects.get(sentry_app=self.internal_integration)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(application_id=self.internal_integration.application_id)
 
         assert hook.application_id == self.internal_integration.application_id
@@ -263,17 +263,21 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert hook.project_id is None
 
         # New test to check if the internal integration's webhook URL is updated correctly
-        self.get_success_response(
-            self.internal_integration.slug,
-            webhookUrl="https://updatedurl.com",
-            status_code=200,
-        )
+        with outbox_runner():
+            self.get_success_response(
+                self.internal_integration.slug,
+                webhookUrl="https://updatedurl.com",
+                status_code=200,
+            )
         self.internal_integration.refresh_from_db()
         assert self.internal_integration.webhook_url == "https://updatedurl.com"
 
-        # Verify the service hook URL is also updated
-        hook.refresh_from_db()
-        assert hook.url == "https://updatedurl.com"
+        # Verify the service hook URL is also updated (re-query since outbox deletes+recreates hooks)
+        with assume_test_silo_mode(SiloMode.CELL):
+            updated_hook = ServiceHook.objects.get(
+                application_id=self.internal_integration.application_id
+            )
+        assert updated_hook.url == "https://updatedurl.com"
 
     @override_options({"staff.ga-rollout": True})
     def test_can_update_name_with_non_unique_name(self) -> None:
@@ -343,7 +347,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             f"Unexpected webhook URL: {self.published_app.webhook_url}"
         )
         # Check service hooks for each organization
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service_hooks_org1 = ServiceHook.objects.filter(
                 organization_id=org1.id, application_id=self.published_app.application_id
             )
@@ -401,7 +405,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             slug=published_app.slug, organization=org2
         )
         # Assert initial service hooks are created
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service_hooks_org1 = ServiceHook.objects.filter(
                 organization_id=org1.id, application_id=published_app.application_id
             )
@@ -421,7 +425,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             assert set(hook.events) == set()
 
         # Update the webhook URL and events
-        with self.tasks():
+        with self.tasks(), outbox_runner():
             self.get_success_response(
                 published_app.slug,
                 webhookUrl="https://newurl.com",
@@ -433,7 +437,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         published_app.refresh_from_db()
         assert published_app.webhook_url == "https://newurl.com"
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             service_hooks_org1 = ServiceHook.objects.filter(
                 organization_id=org1.id, application_id=published_app.application_id
             )
@@ -741,7 +745,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     @override_options({"staff.ga-rollout": True})
     def test_members_cant_update(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # create extra owner because we are demoting one
             self.create_member(
                 organization=self.organization, user=self.create_user(), role="owner"
@@ -761,7 +765,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
     @override_options({"staff.ga-rollout": True})
     def test_create_integration_exceeding_scopes(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # create extra owner because we are demoting one
             self.create_member(
                 organization=self.organization, user=self.create_user(), role="owner"
@@ -807,7 +811,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         possible via the dedicated publish request endpoint which requires org:admin.
         """
         manager_user = self.create_user("manager@example.com", is_superuser=False)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.create_member(
                 user=manager_user, organization=self.organization, role="manager", teams=[]
             )
@@ -851,7 +855,7 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
 
     def setUp(self) -> None:
         super().setUp()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.create_member(user=self.staff_user, organization=self.organization, role="owner")
         self.login_as(user=self.staff_user, staff=True)
 
@@ -947,7 +951,6 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             type=Action.Type.SENTRY_APP,
             config={
                 "target_identifier": str(self.internal_integration.id),
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP,
             },
         )

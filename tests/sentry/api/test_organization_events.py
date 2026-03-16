@@ -50,7 +50,12 @@ class OrganizationEventsEndpointTest(APITestCase):
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
         api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
-        query = {"field": ["project.name", "environment"], "project": [self.project.id]}
+        query = {
+            "field": ["project.name", "environment"],
+            "project": [self.project.id],
+            "statsPeriod": "1h",
+            "query": "environment:staging",
+        }
 
         url = self.reverse_url()
         response = self.client_get(

@@ -12,11 +12,11 @@ import {
 import type {WidgetLayout, WidgetPreview} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
-import WidgetArea from './chartPreviews/area';
-import WidgetBar from './chartPreviews/bar';
-import WidgetLine from './chartPreviews/line';
-import WidgetBigNumber from './chartPreviews/number';
-import WidgetTable from './chartPreviews/table';
+import {AreaPreview as WidgetArea} from './chartPreviews/area';
+import {BarPreview as WidgetBar} from './chartPreviews/bar';
+import {LinePreview as WidgetLine} from './chartPreviews/line';
+import {NumberPreview as WidgetBigNumber} from './chartPreviews/number';
+import {TablePreview as WidgetTable} from './chartPreviews/table';
 
 function miniWidget(displayType: DisplayType): () => React.JSX.Element {
   switch (displayType) {
@@ -39,7 +39,7 @@ type Props = {
   widgetPreview: WidgetPreview[];
 };
 
-function GridPreview({widgetPreview}: Props) {
+export function GridPreview({widgetPreview}: Props) {
   const definedLayouts = widgetPreview
     .map(({layout}) => layout)
     .filter((layout): layout is WidgetLayout => defined(layout));
@@ -69,8 +69,6 @@ function GridPreview({widgetPreview}: Props) {
     </StyledGridLayout>
   );
 }
-
-export default GridPreview;
 
 const PreviewWrapper = styled('div')`
   padding: 20px 8px 4px 12px;

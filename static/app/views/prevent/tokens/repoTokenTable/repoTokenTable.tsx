@@ -7,11 +7,11 @@ import Confirm from 'sentry/components/confirm';
 import Placeholder from 'sentry/components/placeholder';
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRegenerateRepositoryToken} from 'sentry/views/prevent/tokens/repoTokenTable/hooks/useRegenerateRepositoryToken';
 
 type RepoTokenTableResponse = {
@@ -117,7 +117,7 @@ export default function RepoTokenTable({response, sort}: Props) {
 
     const newQuery = {...queryWithoutPagination};
 
-    if (!sort || sort.field !== field) {
+    if (sort?.field !== field) {
       newQuery.sort = field;
     } else if (sort.direction === 'asc') {
       newQuery.sort = `-${field}`;

@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -6,18 +7,17 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelFooter from 'sentry/components/panels/panelFooter';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Automation, AutomationStats} from 'sentry/types/workflowEngine/automations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IssueAlertDetailsProps extends DateTimeObject {
   automationId: Automation['id'];
@@ -30,6 +30,7 @@ export function AutomationStatsChart({
   end,
   utc,
 }: IssueAlertDetailsProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const chartZoomProps = useChartZoom({saveOnZoom: true});
   const {
@@ -69,9 +70,9 @@ export function AutomationStatsChart({
             {...chartZoomProps}
             showTimeInTooltip
             grid={{
-              left: space(0.25),
-              right: space(2),
-              top: space(3),
+              left: theme.space['2xs'],
+              right: theme.space.xl,
+              top: theme.space['2xl'],
               bottom: 0,
             }}
             yAxis={{
@@ -110,7 +111,7 @@ export function AutomationStatsChart({
 const ChartFooter = styled(PanelFooter)`
   display: flex;
   align-items: center;
-  padding: ${space(1)} 20px;
+  padding: ${p => p.theme.space.md} 20px;
 `;
 
 const FooterHeader = styled('h4')`
