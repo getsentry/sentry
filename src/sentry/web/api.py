@@ -98,6 +98,7 @@ def mcp_json(request):
 
     return HttpResponse(json.dumps(MCP_CONFIG), content_type="application/json")
 
+
 @all_silo_view
 @cache_control(max_age=3600, public=True)
 def oauth_authorization_server_metadata(request: HttpRequest) -> HttpResponse:
@@ -132,6 +133,8 @@ def oauth_authorization_server_metadata(request: HttpRequest) -> HttpResponse:
     }
 
     return HttpResponse(json.dumps(metadata), content_type="application/json")
+
+
 @all_silo_view
 @cache_control(max_age=3600, public=True)
 def not_found(request):
