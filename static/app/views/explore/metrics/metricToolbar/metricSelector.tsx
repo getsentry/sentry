@@ -31,6 +31,15 @@ import {
 
 export const NONE_UNIT = 'none';
 
+function hasDisplayMetricUnit(
+  hasMetricUnitsUI: boolean,
+  metricUnit?: string
+): metricUnit is string {
+  return (
+    hasMetricUnitsUI && !!metricUnit && metricUnit !== '-' && metricUnit !== NONE_UNIT
+  );
+}
+
 function MetricOptionTrailingItems({
   metricType,
   metricUnit,
@@ -43,10 +52,7 @@ function MetricOptionTrailingItems({
   return (
     <Fragment>
       <MetricTypeBadge metricType={metricType} />
-      {hasMetricUnitsUI &&
-      metricUnit &&
-      metricUnit !== '-' &&
-      metricUnit !== NONE_UNIT ? (
+      {hasDisplayMetricUnit(hasMetricUnitsUI, metricUnit) ? (
         <Tag variant="promotion">{metricUnit}</Tag>
       ) : null}
     </Fragment>
@@ -488,10 +494,7 @@ function MetricDetailPanel({
         </Text>
         <MetricTypeBadge metricType={metric.metricType} />
       </Flex>
-      {hasMetricUnitsUI &&
-      metric.metricUnit &&
-      metric.metricUnit !== '-' &&
-      metric.metricUnit !== NONE_UNIT ? (
+      {hasDisplayMetricUnit(hasMetricUnitsUI, metric.metricUnit) ? (
         <Flex gap="xs" align="center">
           <Text variant="muted" size="sm">
             {t('Unit:')}
