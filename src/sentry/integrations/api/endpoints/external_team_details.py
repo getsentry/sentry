@@ -32,7 +32,7 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         "DELETE": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
 
     def convert_args(
         self,

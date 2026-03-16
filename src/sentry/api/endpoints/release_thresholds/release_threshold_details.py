@@ -52,7 +52,7 @@ class ReleaseThresholdPUTSerializer(serializers.Serializer[ReleaseThresholdPUTDa
 @cell_silo_endpoint
 class ReleaseThresholdDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
-    owner: ApiOwner = ApiOwner.ENTERPRISE
+    owner: ApiOwner = ApiOwner.UNOWNED
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,

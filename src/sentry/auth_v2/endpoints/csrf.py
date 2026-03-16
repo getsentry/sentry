@@ -24,7 +24,7 @@ class CsrfTokenEndpoint(Endpoint):
     NOTE: This endpoint is not protected by the feature flag in AuthV2Endpoint!
     """
 
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,

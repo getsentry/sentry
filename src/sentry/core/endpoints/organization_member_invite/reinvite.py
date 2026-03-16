@@ -37,7 +37,7 @@ class OrganizationMemberReinviteEndpoint(OrganizationEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     permission_classes = (MemberReinvitePermission,)
 
     def convert_args(

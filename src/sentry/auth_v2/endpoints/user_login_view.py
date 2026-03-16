@@ -10,7 +10,7 @@ from .base import AuthV2Endpoint
 
 @control_silo_endpoint
 class UserLoginView(AuthV2Endpoint):
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

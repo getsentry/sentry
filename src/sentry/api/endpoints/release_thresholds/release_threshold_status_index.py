@@ -101,7 +101,7 @@ class ReleaseThresholdStatusIndexSerializer(
 @cell_silo_endpoint
 @extend_schema(tags=["Releases"])
 class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
-    owner: ApiOwner = ApiOwner.ENTERPRISE
+    owner: ApiOwner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

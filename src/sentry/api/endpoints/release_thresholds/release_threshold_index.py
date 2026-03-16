@@ -32,7 +32,7 @@ class ReleaseThresholdIndexGETValidator(serializers.Serializer[ReleaseThresholdI
 
 @cell_silo_endpoint
 class ReleaseThresholdIndexEndpoint(OrganizationEndpoint):
-    owner: ApiOwner = ApiOwner.ENTERPRISE
+    owner: ApiOwner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

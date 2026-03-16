@@ -39,7 +39,7 @@ class OrganizationAuditLogsEndpoint(ControlSiloOrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     permission_classes = (OrganizationAuditPermission,)
 
     def get(

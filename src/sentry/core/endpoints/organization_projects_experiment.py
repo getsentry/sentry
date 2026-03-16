@@ -70,7 +70,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrgProjectPermission,)
     logger = logging.getLogger("team-project.create")
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
 
     def should_add_creator_to_team(self, user: User | AnonymousUser) -> TypeIs[User]:
         return user.is_authenticated

@@ -23,7 +23,7 @@ class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
 
     @extend_schema(
         operation_id="List a User's Teams for an Organization",

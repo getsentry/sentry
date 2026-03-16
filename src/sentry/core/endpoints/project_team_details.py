@@ -32,7 +32,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         "DELETE": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.UNOWNED
     permission_classes = (ProjectTeamsPermission,)
 
     def convert_args(
