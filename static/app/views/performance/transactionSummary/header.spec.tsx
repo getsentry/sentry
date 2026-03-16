@@ -79,4 +79,44 @@ describe('Performance > Transaction Summary Header', () => {
 
     expect(await screen.findByRole('tab', {name: 'Overview'})).toBeInTheDocument();
   });
+
+  it('should show Tags tab by default', async () => {
+    const {project, organization, router, eventView} = initializeData();
+
+    render(
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TRANSACTION_SUMMARY}
+      />
+    );
+
+    expect(await screen.findByRole('tab', {name: 'Tags'})).toBeInTheDocument();
+  });
+
+  it('should hide Tags tab when EAP feature is enabled', async () => {
+    const {project, organization, router, eventView} = initializeData({
+      features: ['performance-transaction-summary-eap'],
+    });
+
+    render(
+      <TransactionHeader
+        eventView={eventView}
+        location={router.location}
+        organization={organization}
+        projects={[project]}
+        projectId={project.id}
+        transactionName="transaction_name"
+        currentTab={Tab.TRANSACTION_SUMMARY}
+      />,
+      {organization}
+    );
+
+    await screen.findByRole('tab', {name: 'Overview'});
+    expect(screen.queryByRole('tab', {name: 'Tags'})).not.toBeInTheDocument();
+  });
 });

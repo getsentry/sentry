@@ -10,7 +10,11 @@ from django.utils import timezone
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphashmetadata import GROUPHASH_METADATA_SCHEMA_VERSION, HashBasis
+from sentry.models.grouphashmetadata import (
+    GROUPHASH_METADATA_SCHEMA_VERSION,
+    GroupHashMetadata,
+    HashBasis,
+)
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
@@ -403,3 +407,85 @@ class GroupHashMetadataTest(TestCase):
         # Verify that neither the event_id or the update timestamp were changed
         assert grouphash.metadata.event_id == event1.event_id
         assert grouphash.metadata.date_updated == current_date_updated
+
+    def test_cache_updated_after_schema_update(self) -> None:
+        """Test that get_from_cache returns updated metadata after a schema update."""
+
+        with patch(
+            "sentry.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION", "11"
+        ):
+            event1 = save_new_event({"message": "Dogs are great!"}, self.project)
+            grouphash = GroupHash.objects.filter(
+                project=self.project, hash=event1.get_primary_hash()
+            ).first()
+            assert grouphash and grouphash.metadata
+
+            # Populate the cache
+            cached = GroupHashMetadata.objects.get_from_cache(grouphash=grouphash)
+            assert cached.schema_version == "11"
+
+        # Trigger a schema update by sending a new event with a bumped version
+        with (
+            patch(
+                "sentry.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION", "12"
+            ),
+            patch(
+                "sentry.grouping.ingest.grouphash_metadata._get_message_hashing_metadata",
+                return_value={"something": "different"},
+            ),
+        ):
+            save_new_event({"message": "Dogs are great!"}, self.project)
+
+        # Verify the cache now returns the updated metadata
+        cached = GroupHashMetadata.objects.get_from_cache(grouphash=grouphash)
+        assert cached.schema_version == "12"
+        assert cached.hashing_metadata == {"something": "different"}
+
+    def test_cache_updated_after_grouping_config_update(self) -> None:
+        """Test that get_from_cache returns updated metadata after a grouping config update."""
+
+        self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
+
+        event1 = save_new_event({"message": "Dogs are great!"}, self.project)
+        grouphash = GroupHash.objects.filter(
+            project=self.project, hash=event1.get_primary_hash()
+        ).first()
+        assert grouphash and grouphash.metadata
+
+        # Populate the cache
+        cached = GroupHashMetadata.objects.get_from_cache(grouphash=grouphash)
+        assert cached.latest_grouping_config == NO_MSG_PARAM_CONFIG
+
+        # Update the grouping config and send a new event with the same hash
+        self.project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
+        save_new_event({"message": "Dogs are great!"}, self.project)
+
+        # Verify the cache now returns the updated config
+        cached = GroupHashMetadata.objects.get_from_cache(grouphash=grouphash)
+        assert cached.latest_grouping_config == DEFAULT_GROUPING_CONFIG
+
+    def test_cache_updated_after_stale_metadata_refresh(self) -> None:
+        """Test that get_from_cache returns updated metadata after a stale data refresh."""
+
+        event1 = save_new_event({"message": "Dogs are great!"}, self.project)
+        grouphash = GroupHash.objects.filter(
+            project=self.project, hash=event1.get_primary_hash()
+        ).first()
+        assert grouphash and grouphash.metadata
+
+        # Populate the cache
+        cached = GroupHashMetadata.objects.get_from_cache(grouphash=grouphash)
+        assert cached.event_id == event1.event_id
+
+        # Make the metadata stale (older than 90 days)
+        old_date = timezone.now() - timedelta(days=91)
+        grouphash.metadata.update(date_updated=old_date)
+
+        # Send a new event to trigger the stale refresh
+        event2 = save_new_event({"message": "Dogs are great!"}, self.project)
+        assert event2.get_primary_hash() == event1.get_primary_hash()
+
+        # Verify the cache now returns the refreshed metadata
+        cached = GroupHashMetadata.objects.get_from_cache(grouphash=grouphash)
+        assert cached.event_id == event2.event_id
+        assert cached.date_updated and cached.date_updated > old_date
