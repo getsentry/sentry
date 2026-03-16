@@ -184,6 +184,6 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
             return True
         except (IntegrityError, Organization.DoesNotExist) as e:
             # We hit a slug collision here and cannot accept the new slug
-            #  on the region side
+            #  on the cell side
             capture_exception(e)
             return False
