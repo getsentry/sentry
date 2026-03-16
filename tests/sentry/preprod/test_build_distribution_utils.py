@@ -5,10 +5,10 @@ from sentry.preprod.models import (
     PreprodBuildConfiguration,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class IsInstallableArtifactTest(TestCase):
     def _create_artifact(
         self,

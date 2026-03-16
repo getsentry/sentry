@@ -8,7 +8,7 @@
 import {z} from 'zod';
 
 import {
-  AutoSaveField,
+  AutoSaveForm,
   defaultFormOptions,
   FieldGroup,
   useScrapsForm,
@@ -245,7 +245,7 @@ export function BaseFieldDemo() {
 }
 
 // ──────────────────────────────────────────────
-// autoSaveField.mdx demos
+// autoSaveForm.mdx demos
 // ──────────────────────────────────────────────
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -264,7 +264,7 @@ const basicMutationOptions = {
 export function BasicAutoSaveDemo() {
   return (
     <FieldGroup title={t('Profile Settings')}>
-      <AutoSaveField
+      <AutoSaveForm
         name="displayName"
         schema={basicSchema}
         initialValue="Jane Doe"
@@ -275,7 +275,7 @@ export function BasicAutoSaveDemo() {
             <field.Input value={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     </FieldGroup>
   );
 }
@@ -305,7 +305,7 @@ export function FullAutoSaveDemo() {
 
   return (
     <FieldGroup title={t('User Settings')}>
-      <AutoSaveField
+      <AutoSaveForm
         name="name"
         schema={fullSchema}
         initialValue="Jane Doe"
@@ -316,9 +316,9 @@ export function FullAutoSaveDemo() {
             <field.Input value={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
 
-      <AutoSaveField
+      <AutoSaveForm
         name="notifications"
         schema={fullSchema}
         initialValue={false}
@@ -337,9 +337,9 @@ export function FullAutoSaveDemo() {
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
 
-      <AutoSaveField
+      <AutoSaveForm
         name="tags"
         schema={fullSchema}
         initialValue={[]}
@@ -355,9 +355,9 @@ export function FullAutoSaveDemo() {
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
 
-      <AutoSaveField
+      <AutoSaveForm
         name="priority"
         schema={fullSchema}
         initialValue="medium"
@@ -377,9 +377,9 @@ export function FullAutoSaveDemo() {
             </field.Layout.Row>
           </field.Radio.Group>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
 
-      <AutoSaveField
+      <AutoSaveForm
         name="bio"
         schema={fullSchema}
         initialValue=""
@@ -393,9 +393,9 @@ export function FullAutoSaveDemo() {
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
 
-      <AutoSaveField
+      <AutoSaveForm
         name="volume"
         schema={fullSchema}
         initialValue={50}
@@ -412,7 +412,7 @@ export function FullAutoSaveDemo() {
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     </FieldGroup>
   );
 }

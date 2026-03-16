@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from sentry.testutils.cases import SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.uptime import MOCK_ASSERTION_FAILURE_DATA
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.types import IncidentStatus
 from sentry.utils.cursors import Cursor
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
@@ -181,7 +181,7 @@ class ProjectUptimeAlertCheckIndexBaseTest(UptimeAlertBaseEndpointTest):
             assert response.data == []
 
 
-@region_silo_test
+@cell_silo_test
 @freeze_time(MOCK_DATETIME)
 class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
     ProjectUptimeAlertCheckIndexBaseTest, SnubaTestCase, UptimeResultEAPTestCase

@@ -12,6 +12,7 @@ class TriggerSupergroupsEmbeddingTest(TestCase):
         trigger_supergroups_embedding(
             organization_id=1,
             group_id=123,
+            project_id=456,
             artifact_data={"one_line_description": "Null pointer in auth module"},
         )
 
@@ -23,4 +24,5 @@ class TriggerSupergroupsEmbeddingTest(TestCase):
         payload = call_args.args[0]
         assert payload["organization_id"] == 1
         assert payload["group_id"] == 123
+        assert payload["project_id"] == 456
         assert payload["artifact_data"] == {"one_line_description": "Null pointer in auth module"}

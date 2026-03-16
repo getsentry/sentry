@@ -11,7 +11,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -92,16 +91,6 @@ class OrganizationUptimeAssertionSuggestionsEndpoint(OrganizationEndpoint):
                 status=403,
             )
 
-        # Check if assertions are enabled
-        assertions_enabled = features.has(
-            "organizations:uptime-runtime-assertions", organization, actor=request.user
-        )
-        if not assertions_enabled:
-            return self.respond(
-                {"detail": "Uptime assertions are not enabled for this organization"},
-                status=403,
-            )
-
         # Validate the request
         validator = UptimeCheckPreviewValidator(
             data=request.data, context={"organization": organization, "request": request}
@@ -117,7 +106,7 @@ class OrganizationUptimeAssertionSuggestionsEndpoint(OrganizationEndpoint):
             return self.respond({"detail": "No uptime region configured"}, status=400)
 
         # Run the preview check
-        result = checker_api.invoke_checker_preview(assertions_enabled, check_config, region)
+        result = checker_api.invoke_checker_preview(check_config, region)
 
         if result is None:
             return self.respond(
