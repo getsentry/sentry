@@ -36,6 +36,7 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
           : await fetchDashboard(api, organization.slug, dashboard.id);
 
         const newDashboard = cloneDashboard(dashboardDetail);
+        newDashboard.title = `${newDashboard.title} copy`;
         newDashboard.widgets.map(widget => (widget.id = undefined));
         const copiedDashboard = await createDashboard(
           api,
