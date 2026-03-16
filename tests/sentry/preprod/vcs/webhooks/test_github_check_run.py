@@ -11,10 +11,10 @@ from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.vcs.status_checks.size.tasks import APPROVE_SIZE_ACTION_IDENTIFIER
 from sentry.preprod.vcs.webhooks.github_check_run import handle_preprod_check_run_event
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class HandlePreprodCheckRunEventTest(TestCase):
     def setUp(self):
         super().setUp()
