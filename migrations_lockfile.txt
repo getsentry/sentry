@@ -31,7 +31,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0004_pending_delete_seerorganizationsettings
+seer: 0005_delete_seerorganizationsettings
 
 sentry: 1053_protect_projectdebugfile_file
 
