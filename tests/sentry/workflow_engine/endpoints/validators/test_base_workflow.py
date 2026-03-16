@@ -7,6 +7,7 @@ from rest_framework.serializers import ValidationError
 from sentry.auth.access import SystemAccess
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
+from sentry.types.actor import Actor
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     TriggerSerializerResponse,
     WorkflowSerializer,
@@ -869,8 +870,6 @@ class TestWorkflowValidatorUpdate(TestCase):
     def test_reassign_owner_from_own_team_to_any_team(
         self, mock_action_validator: mock.MagicMock
     ) -> None:
-        from sentry.types.actor import Actor
-
         member_team = self.create_team(organization=self.organization)
         member_user = self.create_user()
         self.create_member(
