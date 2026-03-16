@@ -106,7 +106,7 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
 }
 
 
-def build_step_prompt(step: AutofixStep, group: Group, user_feedback: str | None = None) -> str:
+def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None = None) -> str:
     """
     Build the prompt for a step using issue details.
 
@@ -127,12 +127,12 @@ def build_step_prompt(step: AutofixStep, group: Group, user_feedback: str | None
 
     parts = [prompt]
 
-    user_feedback = user_feedback or ""
-    user_feedback = user_feedback.strip()
-    if user_feedback:
+    user_context = user_context or ""
+    user_context = user_context.strip()
+    if user_context:
         parts.append("")
-        parts.append("Use the following user feedback to aid your thinking")
-        parts.append(user_feedback)
+        parts.append("Use the following user context to aid your thinking")
+        parts.append(user_context)
 
     return "\n".join(parts)
 
@@ -190,7 +190,7 @@ def trigger_autofix_explorer(
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "low",
-    user_feedback: str | None = None,
+    user_context: str | None = None,
 ) -> int:
     """
     Start or continue an Explorer-based autofix run.
@@ -212,7 +212,7 @@ def trigger_autofix_explorer(
         enable_coding=config.enable_coding,
     )
 
-    prompt = build_step_prompt(step, group, user_feedback)
+    prompt = build_step_prompt(step, group, user_context)
     prompt_metadata = {"step": step.value}
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
