@@ -16,7 +16,7 @@ from sentry.issue_detection.detectors.utils import (
     get_span_evidence_value,
     get_total_span_duration,
 )
-from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
+from sentry.issue_detection.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project

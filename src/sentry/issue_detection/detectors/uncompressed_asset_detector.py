@@ -4,7 +4,7 @@ import logging
 import re
 from typing import Any
 
-from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
+from sentry.issue_detection.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project

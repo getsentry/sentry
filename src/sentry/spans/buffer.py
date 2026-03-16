@@ -70,12 +70,13 @@ import logging
 import math
 import time
 from collections.abc import Generator, MutableMapping, Sequence
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 
 import orjson
 import zstandard
 from django.conf import settings
 from django.utils.functional import cached_property
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
@@ -612,12 +613,13 @@ class SpansBuffer:
             # This incr metric is needed to get a rate overall.
             metrics.incr("spans.buffer.flush_segments.count_spans_per_segment", amount=len(segment))
             for payload in segment:
-                span = orjson.loads(payload)
+                span: SpanEvent = orjson.loads(payload)
 
                 if not attribute_value(span, "sentry.segment.id"):
-                    if not isinstance(span.get("attributes"), dict):
-                        span["attributes"] = {}
-                    span["attributes"]["sentry.segment.id"] = {
+                    attributes = span.get("attributes")
+                    if not isinstance(attributes, dict):
+                        span["attributes"] = attributes = {}
+                    attributes["sentry.segment.id"] = {
                         "type": "string",
                         "value": segment_span_id,
                     }
@@ -627,7 +629,7 @@ class SpansBuffer:
                 if is_segment:
                     has_root_span = True
 
-                output_spans.append(OutputSpan(payload=span))
+                output_spans.append(OutputSpan(payload=cast(dict[str, Any], span)))
 
             metrics.incr(
                 "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}
