@@ -602,8 +602,6 @@ const NavigationLink = styled(Link)<NavigationLink>`
   }
 `;
 
-// ===== Reorderable primitives =====
-
 const ReorderableItemContext = createContext<{
   controls: DragControls;
   grabbing: boolean;
