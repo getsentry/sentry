@@ -42,33 +42,33 @@ def monkey_patch_single_process_silo_mode_state():
     state = LocalSiloModeState()
 
     @contextlib.contextmanager
-    def enter(mode: SiloMode, region: Cell | None = None) -> Generator[None]:
+    def enter(mode: SiloMode, cell: Cell | None = None) -> Generator[None]:
         assert state.mode is None, (
             "Re-entrant invariant broken! Use exit_single_process_silo_context "
             "to explicit pass 'fake' RPC boundaries."
         )
 
         old_mode = state.mode
-        old_region = state.region
+        old_cell = state.cell
         state.mode = mode
-        state.region = region
+        state.cell = cell
         try:
             yield
         finally:
             state.mode = old_mode
-            state.region = old_region
+            state.cell = old_cell
 
     @contextlib.contextmanager
     def exit() -> Generator[None]:
         old_mode = state.mode
-        old_region = state.region
+        old_cell = state.cell
         state.mode = None
-        state.region = None
+        state.cell = None
         try:
             yield
         finally:
             state.mode = old_mode
-            state.region = old_region
+            state.cell = old_cell
 
     def get_mode() -> SiloMode | None:
         return state.mode
@@ -139,7 +139,7 @@ class SiloModeTestDecorator:
     A test marked with a single silo mode runs only in that mode by default. An
     `include_monolith_run=True` will add a secondary run in monolith mode.
 
-    If a test is marked with both control and region modes, then the primary run will
+    If a test is marked with both control and cell modes, then the primary run will
     be in monolith mode and a secondary run will be generated in each silo mode.
 
     When testing on more than one mode, if the decorator is on a test case class,
