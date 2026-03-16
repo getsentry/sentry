@@ -11,7 +11,7 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 
 | Old System           | New System          | Notes                                        |
 | -------------------- | ------------------- | -------------------------------------------- |
-| `saveOnBlur: true`   | `AutoSaveField`     | Default behavior                             |
+| `saveOnBlur: true`   | `AutoSaveForm`      | Default behavior                             |
 | `confirm`            | `confirm` prop      | `string \| ((value) => string \| undefined)` |
 | `showHelpInTooltip`  | `variant="compact"` | On layout components                         |
 | `disabledReason`     | `disabled="reason"` | String shows tooltip                         |
@@ -47,7 +47,7 @@ This skill helps migrate forms from Sentry's legacy form system (JsonForm, FormM
 **New:**
 
 ```tsx
-<AutoSaveField
+<AutoSaveForm
   name="require2FA"
   confirm={value =>
     value
@@ -148,7 +148,7 @@ The `getData` function transformed field data before sending to the API. In the 
 **New:**
 
 ```tsx
-<AutoSaveField
+<AutoSaveForm
   name="sentry:csp_ignored_sources_defaults"
   schema={schema}
   initialValue={project.options['sentry:csp_ignored_sources_defaults']}
@@ -169,7 +169,7 @@ The `getData` function transformed field data before sending to the API. In the 
       <field.Switch checked={field.state.value} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
-</AutoSaveField>
+</AutoSaveForm>
 ```
 
 **Simpler pattern** - If you just need to wrap the value:
@@ -313,7 +313,7 @@ The `saveMessage` showed a custom toast/alert after successful save. In the new 
 ```tsx
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 
-<AutoSaveField
+<AutoSaveForm
   name="fingerprintingRules"
   schema={schema}
   initialValue={project.fingerprintingRules}
@@ -391,10 +391,10 @@ const form = useScrapsForm({
 });
 ```
 
-**New (with AutoSaveField):**
+**New (with AutoSaveForm):**
 
 ```tsx
-<AutoSaveField
+<AutoSaveForm
   name="enabled"
   schema={schema}
   initialValue={settings.enabled}
@@ -408,7 +408,7 @@ const form = useScrapsForm({
 >
 ```
 
-> **Note**: AutoSaveField with TanStack Query already handles error states gracefully - the mutation's `isError` state is reflected in the UI. Manual reset is typically only needed for specific UX requirements like password fields.
+> **Note**: AutoSaveForm with TanStack Query already handles error states gracefully - the mutation's `isError` state is reflected in the UI. Manual reset is typically only needed for specific UX requirements like password fields.
 
 ### saveOnBlur: false → `useScrapsForm`
 
@@ -495,13 +495,13 @@ import {FormSearch} from 'sentry/components/core/form';
 
 <FormSearch route="/settings/account/details/">
   <FieldGroup title={t('Account Details')}>
-    <AutoSaveField name="name" schema={schema} initialValue={user.name} mutationOptions={...}>
+    <AutoSaveForm name="name" schema={schema} initialValue={user.name} mutationOptions={...}>
       {field => (
         <field.Layout.Row label={t('Name')} hintText={t('Your full name')} required>
           <field.Input />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   </FieldGroup>
 </FormSearch>
 ```
@@ -517,7 +517,7 @@ import {FormSearch} from 'sentry/components/core/form';
 
 - The `route` must match the settings page URL exactly (including trailing slash).
 - Wrap the **entire form section** with a single `FormSearch`, not individual fields.
-- Every `<AutoSaveField>` or `<form.AppField>` inside a `FormSearch` will be indexed. Make sure `label` and `hintText` are plain string literals or `t()` calls — computed/dynamic strings will be skipped by the extractor.
+- Every `<AutoSaveForm>` or `<form.AppField>` inside a `FormSearch` will be indexed. Make sure `label` and `hintText` are plain string literals or `t()` calls — computed/dynamic strings will be skipped by the extractor.
 
 ### The Form Field Registry
 
@@ -586,7 +586,7 @@ This pattern is necessary whenever a required field has no meaningful initial va
 
 ## Migration Checklist
 
-- [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveField
+- [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveForm
 - [ ] Convert field config objects to JSX AppField components
 - [ ] Replace `help` → `hintText` on layouts
 - [ ] Replace `showHelpInTooltip` → `variant="compact"`
