@@ -23,11 +23,11 @@ class SentryAppRequestService(RpcService):
 
     @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
-    def get_buffer_requests_for_region(
+    def get_buffer_requests_for_cell(
         self,
         *,
         sentry_app_id: str,
-        region_name: str,
+        cell_name: str,
         filter: SentryAppRequestFilterArgs | None = None,
     ) -> list[RpcSentryAppRequest] | None:
         pass

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
@@ -111,6 +111,7 @@ function AMCheckout(props: Props) {
     promotionData,
   } = props;
 
+  const hasFetchedBillingConfig = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | boolean>(false);
   const [formData, setFormData] = useState<CheckoutFormData | null>(null);
@@ -574,7 +575,10 @@ function AMCheckout(props: Props) {
 
   useEffect(() => {
     if (subscription.canSelfServe) {
-      fetchBillingConfig();
+      if (!hasFetchedBillingConfig.current) {
+        hasFetchedBillingConfig.current = true;
+        fetchBillingConfig();
+      }
     } else {
       handleRedirect();
     }

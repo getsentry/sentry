@@ -11,10 +11,10 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
 )
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class TestToSizeInfo(TestCase):
     def test_to_size_info_none_input(self):
         """Test to_size_info returns None when given None input."""

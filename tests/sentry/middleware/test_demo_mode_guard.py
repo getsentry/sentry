@@ -7,11 +7,11 @@ from django.test import RequestFactory
 from sentry.middleware.demo_mode_guard import DemoModeGuardMiddleware
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.users.services.user.service import user_service
 
 
-@region_silo_test
+@cell_silo_test
 class DemoModeGuardMiddlewareTestCase(TestCase):
     middleware = DemoModeGuardMiddleware(lambda request: sentinel.response)
 

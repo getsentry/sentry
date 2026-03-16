@@ -37,20 +37,9 @@ class ProjectKeyService(RpcService):
 
     @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
-    def get_project_key_by_region(
-        self, *, region_name: str, project_id: int, role: ProjectKeyRole
+    def get_project_key_by_cell(
+        self, *, cell_name: str, project_id: int, role: ProjectKeyRole
     ) -> RpcProjectKey | None:
-        pass
-
-    @cell_rpc_method(resolve=ByCellName())
-    @abstractmethod
-    def get_project_keys_by_region(
-        self,
-        *,
-        region_name: str,
-        project_ids: list[int],
-        role: ProjectKeyRole,
-    ) -> list[RpcProjectKey]:
         pass
 
 

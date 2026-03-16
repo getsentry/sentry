@@ -15,7 +15,7 @@ import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext
 import {type SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReorderStarredSavedQueries';
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
 type Props = {
   queries: SavedQuery[];
@@ -126,7 +126,7 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
   );
 }
 
-const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Item)`
+const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Link)`
   align-items: center;
   padding-right: ${p => p.theme.space.xs};
   position: relative;

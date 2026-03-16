@@ -8,6 +8,7 @@ from io import BytesIO
 from typing import Any
 
 import pytest
+from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
@@ -42,6 +43,34 @@ class DebugFileTest(TestCase):
 
         assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
         assert not File.objects.filter(id=dif.file.id).exists()
+
+    def test_delete_shared_file_keeps_file_until_last_reference_removed(self) -> None:
+        file = self.create_file(
+            name="shared.dSYM",
+            type="project.dif",
+            headers={"Content-Type": "application/x-mach-binary"},
+        )
+        file.putfile(ContentFile(b""))
+
+        dif1 = self.create_dif_file(
+            debug_id="00000000-0000-0000-0000-000000000000",
+            file=file,
+        )
+        dif2 = self.create_dif_file(
+            debug_id="11111111-1111-1111-1111-111111111111",
+            file=file,
+        )
+
+        dif1.delete()
+
+        assert not ProjectDebugFile.objects.filter(id=dif1.id).exists()
+        assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
+        assert File.objects.filter(id=file.id).exists()
+
+        dif2.delete()
+
+        assert not ProjectDebugFile.objects.filter(id=dif2.id).exists()
+        assert not File.objects.filter(id=file.id).exists()
 
     def test_find_dif_by_debug_id(self) -> None:
         debug_id1 = "dfb8e43a-f242-3d73-a453-aeb6a777ef75"

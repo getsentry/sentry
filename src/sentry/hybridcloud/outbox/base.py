@@ -377,9 +377,9 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
     class Meta:
         abstract = True
 
-    def outbox_region_names(self) -> Collection[str]:
+    def outbox_cell_names(self) -> Collection[str]:
         """
-        Subclasses should override this with logic for inferring the regions that need to be contacted for this resource.
+        Subclasses should override this with logic for inferring the cells that need to be contacted for this resource.
         """
         if hasattr(self, "organization_id"):
             return find_cells_for_orgs([self.organization_id])
@@ -401,11 +401,11 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         """
         Returns outboxes that result from this model's creation, update, or deletion.
-        Subclasses generally should override outbox_region_names or payload_for_update to customize
+        Subclasses generally should override outbox_cell_names or payload_for_update to customize
         this behavior.
         """
         return self.category.as_control_outboxes(
-            cell_names=self.outbox_region_names(),
+            cell_names=self.outbox_cell_names(),
             model=self,
             payload=self.payload_for_update(),
             shard_identifier=shard_identifier,
@@ -416,7 +416,7 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
@@ -429,7 +429,7 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         in this method must be entirely idempotent and safe to async / stale states that can occur.
         """
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         """
         Called one or more times as an outbox receiver processes the class update category and
         the given identifier is found in the database.  This method can be used to invoke service
@@ -450,13 +450,13 @@ class HasControlReplicationHandlers(Protocol):
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
         pass
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         pass
 
 
