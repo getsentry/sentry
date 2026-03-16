@@ -4,7 +4,7 @@ import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -444,7 +444,7 @@ export default function IntegrationDetailedView() {
       case 'github':
         return (
           <FieldGroup>
-            <AutoSaveField
+            <AutoSaveForm
               name="githubPRBot"
               schema={githubFeaturesSchema}
               initialValue={organization.githubPRBot}
@@ -469,8 +469,8 @@ export default function IntegrationDetailedView() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
-            <AutoSaveField
+            </AutoSaveForm>
+            <AutoSaveForm
               name="githubNudgeInvite"
               schema={githubFeaturesSchema}
               initialValue={organization.githubNudgeInvite}
@@ -495,13 +495,13 @@ export default function IntegrationDetailedView() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           </FieldGroup>
         );
       case 'gitlab':
         return (
           <FieldGroup>
-            <AutoSaveField
+            <AutoSaveForm
               name="gitlabPRBot"
               schema={gitlabFeaturesSchema}
               initialValue={organization.gitlabPRBot}
@@ -526,13 +526,13 @@ export default function IntegrationDetailedView() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           </FieldGroup>
         );
       case 'slack':
         return (
           <FieldGroup>
-            <AutoSaveField
+            <AutoSaveForm
               name="issueAlertsThreadFlag"
               schema={slackFeaturesSchema}
               initialValue={organization.issueAlertsThreadFlag}
@@ -557,8 +557,8 @@ export default function IntegrationDetailedView() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
-            <AutoSaveField
+            </AutoSaveForm>
+            <AutoSaveForm
               name="metricAlertsThreadFlag"
               schema={slackFeaturesSchema}
               initialValue={organization.metricAlertsThreadFlag}
@@ -583,7 +583,7 @@ export default function IntegrationDetailedView() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           </FieldGroup>
         );
       default:

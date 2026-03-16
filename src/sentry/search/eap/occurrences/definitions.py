@@ -6,10 +6,11 @@ from sentry.search.eap.occurrences.attributes import (
     OCCURRENCE_ATTRIBUTE_DEFINITIONS,
     OCCURRENCE_VIRTUAL_CONTEXTS,
 )
+from sentry.search.eap.occurrences.formulas import OCCURRENCE_FORMULA_DEFINITIONS
 
 OCCURRENCE_DEFINITIONS = ColumnDefinitions(
     aggregates=OCCURRENCE_AGGREGATE_DEFINITIONS,
-    formulas={},
+    formulas=OCCURRENCE_FORMULA_DEFINITIONS,
     columns=OCCURRENCE_ATTRIBUTE_DEFINITIONS,
     contexts=OCCURRENCE_VIRTUAL_CONTEXTS,
     trace_item_type=TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,

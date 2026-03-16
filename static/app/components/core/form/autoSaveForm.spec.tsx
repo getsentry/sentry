@@ -1,18 +1,18 @@
 import {expectTypeOf} from 'expect-type';
 import {z} from 'zod';
 
-import {AutoSaveField} from '@sentry/scraps/form';
+import {AutoSaveForm} from '@sentry/scraps/form';
 
 const testSchema = z.object({
   testField: z.string(),
 });
 
-describe('AutoSaveField', () => {
+describe('AutoSaveForm', () => {
   describe('types', () => {
     it('should have data type flow towards callbacks', () => {
       function TypeTestField() {
         return (
-          <AutoSaveField
+          <AutoSaveForm
             name="testField"
             schema={testSchema}
             initialValue=""
@@ -39,7 +39,7 @@ describe('AutoSaveField', () => {
                 <field.Input value={field.state.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         );
       }
       void TypeTestField;

@@ -32,6 +32,7 @@ def make_repository() -> Repository:
         "name": "test-org/test-repo",
         "organization_id": 1,
         "is_active": True,
+        "external_id": None,
     }
 
 
@@ -81,6 +82,7 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_file_content", {"path": "README.md"}),
     ("get_commit", {"sha": "abc123"}),
     ("get_commits", {}),
+    ("get_commits_by_path", {"path": "src/main.py"}),
     ("compare_commits", {"start_sha": "aaa", "end_sha": "bbb"}),
     ("get_tree", {"tree_sha": "tree123"}),
     ("get_git_commit", {"sha": "abc123"}),
@@ -91,6 +93,7 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("get_pull_request_diff", {"pull_request_id": "42"}),
     ("get_pull_requests", {}),
     ("create_pull_request", {"title": "T", "body": "B", "head": "h", "base": "b"}),
+    ("create_pull_request_draft", {"title": "T", "body": "B", "head": "h", "base": "b"}),
     ("update_pull_request", {"pull_request_id": "42"}),
     ("request_review", {"pull_request_id": "42", "reviewers": ["user1"]}),
     (
@@ -257,8 +260,8 @@ CLIENT_DELEGATION_TESTS: list[
         ("get_commits", ("test-org/test-repo",), {"sha": None, "path": None}),
     ),
     (
-        "get_commits",
-        {"sha": "main", "path": "src/main.py"},
+        "get_commits_by_path",
+        {"path": "src/main.py", "ref": "main"},
         ("get_commits", ("test-org/test-repo",), {"sha": "main", "path": "src/main.py"}),
     ),
     (
@@ -334,7 +337,19 @@ CLIENT_DELEGATION_TESTS: list[
             "create_pull_request",
             (
                 "test-org/test-repo",
-                {"title": "T", "body": "B", "head": "h", "base": "b", "draft": False},
+                {"title": "T", "body": "B", "head": "h", "base": "b"},
+            ),
+            {},
+        ),
+    ),
+    (
+        "create_pull_request_draft",
+        {"title": "T", "body": "B", "head": "h", "base": "b"},
+        (
+            "create_pull_request",
+            (
+                "test-org/test-repo",
+                {"title": "T", "body": "B", "head": "h", "base": "b", "draft": True},
             ),
             {},
         ),
@@ -511,12 +526,11 @@ def _check_pr_comments(result: Any) -> None:
 def _check_pull_request(result: Any) -> None:
     pr = result["data"]
     assert pr["id"] == "42"
-    assert pr["number"] == 1
+    assert pr["number"] == "1"
     assert pr["title"] == "Test PR"
     assert pr["body"] == "PR description"
     assert pr["state"] == "open"
     assert pr["merged"] is False
-    assert pr["url"] == "https://api.github.com/repos/test-org/test-repo/pulls/1"
     assert pr["html_url"] == "https://github.com/test-org/test-repo/pull/1"
     assert pr["head"]["sha"] == "abc123"
     assert pr["head"]["ref"] == "feature-branch"
@@ -668,7 +682,7 @@ def _check_pr_diff(result: Any) -> None:
 def _check_list_pull_requests(result: Any) -> None:
     assert len(result["data"]) == 1
     pr = result["data"][0]
-    assert pr["number"] == 1
+    assert pr["number"] == "1"
     assert pr["title"] == "Test PR"
     assert result["type"] == "github"
 
@@ -806,6 +820,12 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
         _check_get_commits,
     ),
     (
+        "get_commits_by_path",
+        {"path": "src/main.py"},
+        {"commits_data": [make_github_commit()]},
+        _check_get_commits,
+    ),
+    (
         "compare_commits",
         {"start_sha": "aaa", "end_sha": "bbb"},
         {"comparison_data": [make_github_commit()]},
@@ -861,6 +881,12 @@ TRANSFORM_TESTS: list[tuple[str, dict[str, Any], dict[str, Any], Callable[[Any],
     ),
     (
         "create_pull_request",
+        {"title": "New PR", "body": "PR body", "head": "feature", "base": "main"},
+        {"created_pr_data": make_github_pull_request(title="New PR", body="PR body")},
+        _check_create_pull_request,
+    ),
+    (
+        "create_pull_request_draft",
         {"title": "New PR", "body": "PR body", "head": "feature", "base": "main"},
         {"created_pr_data": make_github_pull_request(title="New PR", body="PR body")},
         _check_create_pull_request,
@@ -1097,24 +1123,6 @@ class TestListPullRequestsEdgeCases:
         result = provider.get_pull_requests()
 
         assert result["data"] == []
-
-
-class TestCreatePullRequestEdgeCases:
-    def test_passes_draft_flag(self):
-        repository = make_repository()
-        client = _make_client()
-        provider = GitHubProvider(client, repository["organization_id"], repository)
-
-        provider.create_pull_request("T", "B", "feature", "main", draft=True)
-
-        assert (
-            "create_pull_request",
-            (
-                "test-org/test-repo",
-                {"title": "T", "body": "B", "head": "feature", "base": "main", "draft": True},
-            ),
-            {},
-        ) in client.calls
 
 
 class TestUpdatePullRequestEdgeCases:
