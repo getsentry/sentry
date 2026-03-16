@@ -395,7 +395,7 @@ class SourceCodeManager:
         """
         Get a paginated list of commits.
 
-        `ref` is either a branch name, a tag name, a commit SHA, or a revision range `A..B`.
+        `ref` is either a branch name, a tag name, or a commit SHA.
         Specifying a commit SHA retrieves commits up to the given commit SHA.
 
         Commits are returned in descending order. Equivalent to `git log ref`.
@@ -417,7 +417,7 @@ class SourceCodeManager:
         """
         Get a paginated list of commits for a given filepath.
 
-        `ref` is either a branch name, a tag name, a commit SHA, or a revision range `A..B`.
+        `ref` is either a branch name, a tag name, or a commit SHA.
         Specifying a commit SHA retrieves commits up to the given commit SHA.
 
         Commits are returned in descending order. Equivalent to `git log ref`.
