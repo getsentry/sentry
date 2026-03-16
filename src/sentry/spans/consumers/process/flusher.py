@@ -446,12 +446,14 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # Minimizing our Redis memory usage also makes COGS easier to reason
         # about.
         backpressure_secs = options.get("spans.buffer.flusher.backpressure-seconds")
-        for backpressure_since in self.process_backpressure_since.values():
+        for process_index, backpressure_since in self.process_backpressure_since.items():
             if (
                 backpressure_since.value > 0
                 and int(time.time()) - backpressure_since.value > backpressure_secs
             ):
-                metrics.incr("spans.buffer.flusher.backpressure")
+                shards = self.process_to_shards_map[process_index]
+                shard_tag = ",".join(map(str, shards))
+                metrics.incr("spans.buffer.flusher.backpressure", tags={"shard": shard_tag})
                 raise MessageRejected()
 
         # We set the drift. The backpressure based on redis memory comes after.
@@ -459,7 +461,11 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # negative value, effectively pausing flushing as well.
         if isinstance(message.payload, int):
             self.current_drift.value = drift = message.payload - int(time.time())
-            metrics.timing("spans.buffer.flusher.drift", drift)
+            metrics.timing(
+                "spans.buffer.flusher.drift",
+                drift,
+                tags={"slice_id": str(self.slice_id or "")},
+            )
 
         # We also pause insertion into Redis if Redis is too full. In this case
         # we cannot allow the flusher to progress either, as it would write
@@ -475,7 +481,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             if available > 0 and used / available > max_memory_percentage:
                 if not self.redis_was_full:
                     logger.fatal("Pausing consumer due to Redis being full")
-                metrics.incr("spans.buffer.flusher.hard_backpressure")
+                metrics.incr(
+                    "spans.buffer.flusher.hard_backpressure",
+                    tags={"slice_id": str(self.slice_id or "")},
+                )
                 self.redis_was_full = True
                 # Pause consumer if Redis memory is full. Because the drift is
                 # set before we emit backpressure, the flusher effectively
