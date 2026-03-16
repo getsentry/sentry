@@ -760,6 +760,139 @@ def query_trace_data(
         for result, query in zip(results, [transaction_query, error_query, occurrence_query])
     ]
 
+    errors_callsite = "api.trace.query_trace_data.errors"
+    if EAPOccurrencesComparator.should_check_experiment(errors_callsite):
+        try:
+            eap_error_result = Occurrences.run_table_query(
+                params=snuba_params,
+                query_string=f"trace:{trace_id}",
+                selected_columns=[
+                    "id",
+                    "project_id",
+                    "project.name",
+                    "timestamp",
+                    "span_id",
+                    "transaction",
+                    "group_id",
+                    "title",
+                    "message",
+                    "level",
+                ],
+                orderby=["id"],
+                offset=0,
+                limit=limit,
+                referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+                config=SearchResolverConfig(),
+                occurrence_category=OccurrenceCategory.ERROR,
+            )
+            eap_errors = [
+                {
+                    "id": row.get("id", ""),
+                    "project": row.get("project.name", ""),
+                    "project.id": row.get("project_id"),
+                    "timestamp": row.get("timestamp", ""),
+                    "timestamp_ms": row.get("timestamp", ""),
+                    "trace.span": row.get("span_id", ""),
+                    "transaction": row.get("transaction", ""),
+                    "issue": row.get("group_id"),
+                    "issue.id": row.get("group_id"),
+                    "title": row.get("title", ""),
+                    "message": row.get("message", ""),
+                    "tags[level]": row.get("level", ""),
+                }
+                for row in eap_error_result.get("data", [])
+            ]
+        except Exception:
+            logger.exception(
+                "Fetching error occurrences for trace from EAP failed in query_trace_data",
+                extra={
+                    "trace_id": trace_id,
+                    "organization_id": (
+                        snuba_params.organization.id if snuba_params.organization else None
+                    ),
+                },
+            )
+            eap_errors = []
+
+        transformed_results[1] = EAPOccurrencesComparator.check_and_choose(
+            control_data=transformed_results[1],
+            experimental_data=eap_errors,
+            callsite=errors_callsite,
+            is_experimental_data_a_null_result=len(eap_errors) == 0,
+            reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
+                {e["id"] for e in snuba}
+            ),
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization else None
+                ),
+                "project_ids": snuba_params.project_ids,
+            },
+        )
+
+    occurrences_callsite = "api.trace.query_trace_data.occurrences"
+    if EAPOccurrencesComparator.should_check_experiment(occurrences_callsite):
+        try:
+            eap_occ_result = Occurrences.run_table_query(
+                params=snuba_params,
+                query_string=f"trace:{trace_id}",
+                selected_columns=["id", "issue_occurrence_id", "group_id"],
+                orderby=None,
+                offset=0,
+                limit=limit,
+                referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+                config=SearchResolverConfig(),
+                occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+            )
+            # Transform EAP rows into the legacy format: group group_ids by
+            # (event_id, occurrence_id) to mimic groupArray(group_id) AS issue.ids
+            # TODO: is there a better way to do this?
+            occ_key_to_group_ids: dict[tuple[str, str], list[int]] = defaultdict(list)
+            for row in eap_occ_result.get("data", []):
+                event_id_val = row.get("id", "")
+                occ_id_val = row.get("issue_occurrence_id", "")
+                group_id_val = row.get("group_id")
+                if event_id_val and occ_id_val:
+                    if group_id_val is not None:
+                        occ_key_to_group_ids[(event_id_val, occ_id_val)].append(group_id_val)
+            eap_occurrences = [
+                {
+                    "event_id": key[0],
+                    "occurrence_id": key[1],
+                    "issue.ids": group_ids,
+                }
+                for key, group_ids in occ_key_to_group_ids.items()
+            ]
+        except Exception:
+            logger.exception(
+                "Fetching issue platform occurrences for trace from EAP failed in query_trace_data",
+                extra={
+                    "trace_id": trace_id,
+                    "organization_id": (
+                        snuba_params.organization.id if snuba_params.organization else None
+                    ),
+                },
+            )
+            eap_occurrences = []
+
+        transformed_results[2] = EAPOccurrencesComparator.check_and_choose(
+            control_data=transformed_results[2],
+            experimental_data=eap_occurrences,
+            callsite=occurrences_callsite,
+            is_experimental_data_a_null_result=len(eap_occurrences) == 0,
+            reasonable_match_comparator=lambda snuba, eap: {
+                (row["event_id"], row["occurrence_id"]) for row in eap
+            }.issubset({(row["event_id"], row["occurrence_id"]) for row in snuba}),
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization else None
+                ),
+                "project_ids": snuba_params.project_ids,
+            },
+        )
+
     # Join group IDs from the occurrence dataset to transactions data
     occurrence_issue_ids = defaultdict(list)
     occurrence_ids = defaultdict(list)
