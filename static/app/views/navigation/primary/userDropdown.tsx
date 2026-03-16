@@ -27,7 +27,6 @@ export function UserDropdown() {
   const user = useUser();
   const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
-  const isMobile = layout === 'mobile';
   const portalContainerRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();
 
@@ -64,10 +63,10 @@ export function UserDropdown() {
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
-      position={isMobile ? 'bottom' : 'right-end'}
+      position={layout === 'mobile' ? 'bottom' : 'right-end'}
       minMenuWidth={200}
       trigger={triggerProps =>
-        isMobile ? (
+        layout === 'mobile' ? (
           <Flex justify="start" padding="md 2xl">
             {props => (
               <PrimaryNavigation.Button
