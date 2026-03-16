@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NamedTuple, TypedDict
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -31,20 +31,6 @@ else:
 VERSION = 1
 
 
-class OwnershipRuleOwner(TypedDict):
-    """Owner entry within a parsed ownership rule schema.
-
-    Always has `type` and `identifier` from the grammar.
-    `id` is added by `add_owner_ids_to_schema` (stored as int in DB).
-    `name` replaces `identifier` in API responses via `rename_schema_identifier_for_parsing`.
-    """
-
-    type: str
-    identifier: NotRequired[str]
-    id: NotRequired[int]
-    name: NotRequired[str]
-
-
 class OwnershipRuleMatcher(TypedDict):
     type: str
     pattern: str
@@ -52,7 +38,7 @@ class OwnershipRuleMatcher(TypedDict):
 
 class OwnershipRule(TypedDict):
     matcher: OwnershipRuleMatcher
-    owners: list[OwnershipRuleOwner]
+    owners: list[dict[str, Any]]
 
 
 # $version is not a valid Python identifier, so we use the functional form.
@@ -267,11 +253,11 @@ class Owner(NamedTuple):
     type: str
     identifier: str
 
-    def dump(self) -> OwnershipRuleOwner:
+    def dump(self) -> dict[str, str]:
         return {"type": self.type, "identifier": self.identifier}
 
     @classmethod
-    def load(cls, data: OwnershipRuleOwner) -> Owner:
+    def load(cls, data: Mapping[str, str]) -> Owner:
         return cls(data["type"], data["identifier"])
 
 
