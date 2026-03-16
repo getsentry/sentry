@@ -2635,6 +2635,13 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         # include the searched group. Without this, _preprocess_group_id_redirects
         # can intersect postgres candidates with the snuba group_id condition
         # and produce an empty IN clause that crashes ClickHouse.
+        # Single value syntax
+        results = self.make_query(
+            search_filter_query=f"issue.id:{self.group1.id}",
+        )
+        assert set(results) == {self.group1}
+
+        # List syntax
         results = self.make_query(
             search_filter_query=f"issue.id:[{self.group1.id}]",
         )
