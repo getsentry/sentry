@@ -24,6 +24,8 @@ from sentry.integrations.models.repository_project_path_config import (
     process_resource_change,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -66,6 +68,38 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationCodeMappingsBulkPermission,)
+
+    @staticmethod
+    def _get_default_branch_from_integration(
+        integration: RpcIntegration,
+        organization: Organization,
+        repo: Repository,
+    ) -> str:
+        """Attempt to resolve a repository's default branch via the integration API."""
+        try:
+            install = integration.get_installation(organization_id=organization.id)
+        except Exception:
+            logger.exception("bulk_code_mappings.get_installation_error")
+            return ""
+
+        if not isinstance(install, RepositoryIntegration):
+            return ""
+
+        try:
+            repositories = install.get_repositories(query=repo.name)
+        except Exception:
+            logger.exception("bulk_code_mappings.get_repositories_error")
+            return ""
+
+        for repo_info in repositories:
+            if repo_info.get("identifier") == repo.name:
+                return repo_info.get("default_branch") or ""
+
+        for repo_info in repositories:
+            if repo_info.get("name") == repo.name:
+                return repo_info.get("default_branch") or ""
+
+        return ""
 
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = BulkCodeMappingsRequestSerializer(data=request.data)
@@ -129,18 +163,23 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Validate default_branch
+        # Resolve default_branch: use provided value, or infer from integration
         default_branch = data.get("default_branch", "")
         integration = integration_service.get_integration(integration_id=repo.integration_id)
-        if (
-            not default_branch
-            and integration
-            and integration.provider != IntegrationProviderSlug.PERFORCE
-        ):
-            return Response(
-                {"detail": "defaultBranch is required for this integration type."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if not default_branch and integration:
+            if integration.provider == IntegrationProviderSlug.PERFORCE:
+                pass  # Perforce does not use branches
+            else:
+                default_branch = self._get_default_branch_from_integration(
+                    integration, organization, repo
+                )
+                if not default_branch:
+                    return Response(
+                        {
+                            "detail": "Could not determine the default branch. Please provide defaultBranch explicitly."
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
         mappings = data["mappings"]
         results = []

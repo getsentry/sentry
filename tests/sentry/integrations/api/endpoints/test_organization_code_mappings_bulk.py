@@ -234,12 +234,47 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.status_code == 400
         assert "not associated with an integration" in response.data["detail"]
 
-    def test_missing_default_branch_for_non_perforce(self) -> None:
+    def test_blank_default_branch_rejected(self) -> None:
         response = self.make_post({"defaultBranch": ""})
         assert response.status_code == 400
         assert "defaultBranch" in str(response.data)
 
-    # --- Side effects ---
+    def test_missing_default_branch_inferred_from_integration(self) -> None:
+        with mock.patch(
+            "sentry.integrations.api.endpoints.organization_code_mappings_bulk."
+            "OrganizationCodeMappingsBulkEndpoint._get_default_branch_from_integration",
+            return_value="develop",
+        ):
+            payload = {
+                "project": self.project1.slug,
+                "repository": self.repo1.name,
+                "mappings": [
+                    {"stackRoot": "com/example/a", "sourceRoot": "modules/a/src"},
+                ],
+            }
+            response = self.client.post(self.url, data=payload, format="json")
+        assert response.status_code == 200, response.content
+        config = RepositoryProjectPathConfig.objects.get(
+            project=self.project1, stack_root="com/example/a"
+        )
+        assert config.default_branch == "develop"
+
+    def test_missing_default_branch_inference_fails(self) -> None:
+        with mock.patch(
+            "sentry.integrations.api.endpoints.organization_code_mappings_bulk."
+            "OrganizationCodeMappingsBulkEndpoint._get_default_branch_from_integration",
+            return_value="",
+        ):
+            payload = {
+                "project": self.project1.slug,
+                "repository": self.repo1.name,
+                "mappings": [
+                    {"stackRoot": "com/example/a", "sourceRoot": "modules/a/src"},
+                ],
+            }
+            response = self.client.post(self.url, data=payload, format="json")
+        assert response.status_code == 400
+        assert "Could not determine the default branch" in response.data["detail"]
 
     def test_process_resource_change_fires_once_after_batch(self) -> None:
         with mock.patch(
