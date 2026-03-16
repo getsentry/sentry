@@ -892,7 +892,7 @@ class SpansBuffer:
                             1,
                             flushed_segment.queue_key,
                             segment_key,
-                            int(flushed_segment.score),
+                            flushed_segment.score,
                         )
                     zrem_results = p.execute()
 
