@@ -221,55 +221,6 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             )
             return []
 
-    def start_stream(
-        self,
-        *,
-        channel_id: str,
-        thread_ts: str,
-    ) -> str:
-        """Start a streaming message in a thread. Returns the stream message ts."""
-        client = self.get_client()
-        try:
-            response = client.chat_startStream(channel=channel_id, thread_ts=thread_ts)
-            return response["ts"]
-        except SlackApiError as e:
-            translate_slack_api_error(e)
-            raise
-
-    def append_stream(
-        self,
-        *,
-        channel_id: str,
-        ts: str,
-        markdown_text: str,
-    ) -> None:
-        """Append text to an active streaming message."""
-        client = self.get_client()
-        try:
-            client.chat_appendStream(channel=channel_id, ts=ts, markdown_text=markdown_text)
-        except SlackApiError as e:
-            translate_slack_api_error(e)
-
-    def stop_stream(
-        self,
-        *,
-        channel_id: str,
-        ts: str,
-        markdown_text: str | None = None,
-        blocks: list[dict[str, Any]] | None = None,
-    ) -> None:
-        """Finalize a streaming message. Blocks may only be provided here."""
-        client = self.get_client()
-        kwargs: dict[str, Any] = {"channel": channel_id, "ts": ts}
-        if markdown_text is not None:
-            kwargs["markdown_text"] = markdown_text
-        if blocks is not None:
-            kwargs["blocks"] = blocks
-        try:
-            client.chat_stopStream(**kwargs)
-        except SlackApiError as e:
-            translate_slack_api_error(e)
-
 
 class SlackIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.SLACK.value
