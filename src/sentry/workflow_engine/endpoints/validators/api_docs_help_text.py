@@ -829,11 +829,11 @@ OWNER_HELP_TEXT = """
 
             **User**
             ```json
-                "user:123456
+                "user:123456"
             ```
 
             **Team**
             ```json
-                "team:456789
+                "team:456789"
             ```
         """
