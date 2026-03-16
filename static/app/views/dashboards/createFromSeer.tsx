@@ -112,7 +112,7 @@ export default function CreateFromSeer() {
 
   const [dashboard, setDashboard] = useState<DashboardDetails>(EMPTY_DASHBOARD);
   const [isUpdating, setisUpdating] = useState(false); // State tracks if dashboard is being updated from user chat input
-  const prevSessionStatusRef = useRef<string | null>(null);
+  const prevUpdatedAtRef = useRef<string | null>(null);
 
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(organization.slug, seerRunId),
@@ -135,16 +135,16 @@ export default function CreateFromSeer() {
 
   const session = data?.session ?? null;
   const sessionStatus = session?.status ?? null;
+  const sessionUpdatedAt = session?.updated_at ?? null;
 
   useEffect(() => {
-    const prevStatus = prevSessionStatusRef.current;
-    prevSessionStatusRef.current = sessionStatus;
+    const prevUpdatedAt = prevUpdatedAtRef.current;
+    prevUpdatedAtRef.current = sessionUpdatedAt;
 
-    const wasTerminal = prevStatus === 'completed' || prevStatus === 'error';
     const isTerminal = sessionStatus === 'completed' || sessionStatus === 'error';
 
-    // Only trigger Dashboard rerender when transition from updating state to completed state
-    if (!wasTerminal && isTerminal && session) {
+    // Only trigger Dashboard rerender when transition to a new completed state
+    if (prevUpdatedAt !== sessionUpdatedAt && isTerminal && session) {
       if (isUpdating) {
         setisUpdating(false);
       }
@@ -157,7 +157,7 @@ export default function CreateFromSeer() {
         });
       }
     }
-  }, [isUpdating, sessionStatus, session]);
+  }, [isUpdating, sessionStatus, session, sessionUpdatedAt]);
 
   const blockMessages = useMemo(
     () => (session ? extractMessages(session) : []),
@@ -166,6 +166,12 @@ export default function CreateFromSeer() {
 
   const isLoading =
     !!seerRunId && sessionStatus !== 'completed' && sessionStatus !== 'error' && !isError;
+
+  useEffect(() => {
+    if (sessionStatus === 'error' || isError) {
+      addErrorMessage(t('Failed to generate dashboard'));
+    }
+  }, [sessionStatus, isError]);
 
   const sendMessage = useCallback(
     async (message: string) => {

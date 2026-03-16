@@ -117,11 +117,11 @@ export function DashboardChatPanel({
           border="primary"
         >
           <Stack>
-            {blocks.map(block => (
+            {blocks.map((block, index) => (
               <BlockComponent
                 key={block.id}
                 block={block}
-                blockIndex={0}
+                blockIndex={index}
                 runId={seerRunId}
               />
             ))}
