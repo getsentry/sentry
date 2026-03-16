@@ -17,7 +17,6 @@ from django.utils.text import slugify
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import json, redis
-from sentry.utils.query import RangeQuerySetWrapper
 
 MAX_ERRORS_PER_SET = 10
 MONITOR_ERRORS_LIFETIME = timedelta(days=7)
@@ -121,8 +120,8 @@ def _get_cluster() -> Any:
     return redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
 
-def build_monitor_identifier(monitor: Any) -> str:
-    return f"monitor:{monitor.id}"
+def build_monitor_identifier(monitor_id: int) -> str:
+    return f"monitor:{monitor_id}"
 
 
 def build_error_identifier(uuid: uuid.UUID) -> str:
@@ -168,8 +167,8 @@ def fix_processing_error_keys(apps: StateApps, schema_editor: BaseDatabaseSchema
     pipeline = redis.pipeline()
 
     # step 1: fix all monitors
-    for monitor in RangeQuerySetWrapper(Monitor.objects.only("id").all()):
-        monitor_identifier = build_monitor_identifier(monitor)
+    for monitor_id in Monitor.objects.values_list("id", flat=True).iterator():
+        monitor_identifier = build_monitor_identifier(monitor_id)
         processing_errors = fetch_processing_errors(monitor_identifier)
         for error_id in processing_errors:
             processing_error = processing_errors[error_id]
@@ -182,8 +181,8 @@ def fix_processing_error_keys(apps: StateApps, schema_editor: BaseDatabaseSchema
         pipeline.execute()
 
     # step 2: fix all projects
-    for project in RangeQuerySetWrapper(Project.objects.only("id").all()):
-        project_identifier = build_project_identifier(str(project.id))
+    for project_id in Project.objects.values_list("id", flat=True).iterator():
+        project_identifier = build_project_identifier(str(project_id))
         processing_errors = fetch_processing_errors(project_identifier)
         for error_id in processing_errors:
             processing_error = processing_errors[error_id]
