@@ -1,0 +1,173 @@
+# Parallel validation workflow: runs sentry backend tests using getsentry's
+# cross-repo coverage DB for selective test selection. Runs alongside the
+# existing backend.yml — not required for merge.
+#
+# Once validated, this will replace prepare-selective-tests in backend.yml.
+name: backend (selective via getsentry)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
+env:
+  SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  SNUBA_NO_WORKERS: 1
+  SENTRY_SKIP_SELENIUM_PLUGIN: '1'
+
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      backend: ${{ steps.changes.outputs.backend_all_without_acceptance }}
+      skip_selective_testing: "${{ contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Check for backend file changes
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+  get-changed-files:
+    if: >-
+      needs.files-changed.outputs.backend == 'true' &&
+      needs.files-changed.outputs.skip_selective_testing != 'true'
+    needs: files-changed
+    name: get changed files
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      sentry-changed-files: ${{ steps.changed.outputs.files }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          CHANGED_FILES=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" | tr '\n' ' ')
+          echo "Changed files: $CHANGED_FILES"
+          echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
+
+  select-tests:
+    if: >-
+      needs.files-changed.outputs.backend == 'true' &&
+      needs.files-changed.outputs.skip_selective_testing != 'true'
+    needs: [files-changed, get-changed-files]
+    name: select tests via getsentry coverage
+    uses: getsentry/getsentry/.github/workflows/select-sentry-tests.yml@master
+    with:
+      sentry-changed-files: ${{ needs.get-changed-files.outputs.sentry-changed-files }}
+    secrets: inherit
+
+  calculate-shards:
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.files-changed.outputs.backend == 'true' &&
+      needs.files-changed.outputs.skip_selective_testing != 'true'
+    needs: [files-changed, select-tests]
+    name: calculate test shards (selective)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
+      shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+          skip-devservices: true
+
+      - name: Download selected tests artifact
+        if: needs.select-tests.outputs.has-selected-tests == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: selected-tests-${{ github.run_id }}
+          path: .artifacts/
+
+      - name: Calculate test shards
+        id: calculate-shards
+        env:
+          SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+          SELECTED_TEST_COUNT: ${{ needs.select-tests.outputs.test-count || '' }}
+        run: |
+          python3 .github/workflows/scripts/calculate-backend-test-shards.py
+
+  backend-test:
+    if: >-
+      always() &&
+      !cancelled() &&
+      needs.files-changed.outputs.backend == 'true' &&
+      needs.files-changed.outputs.skip_selective_testing != 'true' &&
+      needs.calculate-shards.result == 'success' &&
+      needs.calculate-shards.outputs.shard-count != '0'
+    needs: [files-changed, select-tests, calculate-shards]
+    name: backend test (selective)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: ${{ fromJSON(needs.calculate-shards.outputs.shard-indices) }}
+    env:
+      MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
+      TEST_GROUP_STRATEGY: roundrobin
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        with:
+          mode: backend-ci
+
+      - name: Download odiff binary
+        run: |
+          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
+            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
+          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
+          rm odiff-linux-x64
+
+      - name: Download selected tests artifact
+        if: needs.select-tests.outputs.has-selected-tests == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: selected-tests-${{ github.run_id }}
+          path: .artifacts/
+
+      - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
+        env:
+          SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+        run: |
+          make test-python-ci
+
+      - name: Inspect failure
+        if: failure()
+        run: |
+          if command -v devservices; then
+            devservices logs
+          fi
