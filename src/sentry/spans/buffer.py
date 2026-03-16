@@ -123,7 +123,6 @@ class Span(NamedTuple):
     segment_id: str | None
     project_id: int
     payload: bytes
-    end_timestamp: float
     is_segment_span: bool = False
     partition: int = 0
 
@@ -261,12 +260,12 @@ class SpansBuffer:
                             dist_key = self._get_distributed_payload_key(
                                 project_and_trace, parent_span_id
                             )
-                            p.sadd(dist_key, *set_members.keys())
+                            p.sadd(dist_key, *set_members)
                             p.expire(dist_key, redis_ttl)
 
                         if write_merged_payloads:
                             set_key = self._get_span_key(project_and_trace, parent_span_id)
-                            p.sadd(set_key, *set_members.keys())
+                            p.sadd(set_key, *set_members)
 
                     p.execute()
 
@@ -507,13 +506,12 @@ class SpansBuffer:
 
         return trees
 
-    def _prepare_payloads(self, spans: list[Span]) -> dict[str | bytes, float]:
+    def _prepare_payloads(self, spans: list[Span]) -> set[str | bytes]:
         """
-        Prepare span payloads for storage. Returns set_members mapping
-        payload bytes to their minimum timestamp.
+        Prepare span payloads for storage. Returns a set of payload bytes.
         """
         if self._zstd_compressor is None:
-            return {span.payload: span.end_timestamp for span in spans}
+            return {span.payload for span in spans}
 
         combined = b"\x00".join(span.payload for span in spans)
         original_size = len(combined)
@@ -528,9 +526,7 @@ class SpansBuffer:
         metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
         metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
 
-        min_timestamp = min(span.end_timestamp for span in spans)
-
-        return {compressed: min_timestamp}
+        return {compressed}
 
     def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
         # Check for zstd magic header (0xFD2FB528 in little-endian) --
