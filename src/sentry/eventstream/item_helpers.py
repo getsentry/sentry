@@ -157,6 +157,10 @@ def _extract_from_event(event: Event | GroupEvent) -> Mapping[str, float | int]:
     return out
 
 
+def format_attr_key(key: str) -> str:
+    return f"attr[{key}]"
+
+
 def _extract_tags_and_contexts(
     event_data: Mapping[str, Any],
 ) -> Mapping[str, str | float | int | bool | None]:
@@ -167,9 +171,8 @@ def _extract_tags_and_contexts(
         "dist": event_data.get("dist"),
     }
 
-    # From a user's perspective, "attributes" are tags + contexts.
+    # From a user's perspective, "attributes" are tags + contexts (+ flags, from ctx).
     # Yes, it's confusing with the general EAP attributes.
-    format_attr_key = lambda key: f"attr[{key}]"
 
     attr_keys = set()
     tags = event_data.get("tags")
