@@ -8,7 +8,6 @@ import {
   type Column,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {DisplayType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {AggregateSelector} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/aggregateSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -16,8 +15,9 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import {
   buildTraceMetricAggregate,
   extractTraceMetricFromColumn,
+  getTraceMetricAggregateActionType,
+  getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 
@@ -33,12 +33,11 @@ export function MetricSelectRow({
   const {state, dispatch} = useWidgetBuilderContext();
 
   const isTimeSeries = usesTimeSeriesData(state.displayType);
-  const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
-  const aggregateSource = isTimeSeries
-    ? state.yAxis
-    : isCategoricalBarWidget
-      ? state.fields?.filter(f => f.kind === FieldValueKind.FUNCTION)
-      : state.fields;
+  const aggregateSource = getTraceMetricAggregateSource(
+    state.displayType,
+    state.yAxis,
+    state.fields
+  );
 
   const traceMetric = (aggregateSource?.[index]
     ? extractTraceMetricFromColumn(aggregateSource[index])
@@ -74,14 +73,8 @@ export function MetricSelectRow({
               return f;
             });
 
-            const actionType = isTimeSeries
-              ? BuilderStateAction.SET_Y_AXIS
-              : isCategoricalBarWidget
-                ? BuilderStateAction.SET_CATEGORICAL_AGGREGATE
-                : BuilderStateAction.SET_FIELDS;
-
             dispatch({
-              type: actionType,
+              type: getTraceMetricAggregateActionType(state.displayType),
               payload: updatedAggregates,
             });
 

@@ -1,8 +1,10 @@
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {
+  extractTraceMetricFromAggregates,
+  getTraceMetricAggregateSource,
+} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import type {TraceItemAttributeConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
@@ -27,12 +29,12 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
   }
 
   if (state.dataset === WidgetType.TRACEMETRICS) {
-    const aggregateSource = usesTimeSeriesData(state.displayType)
-      ? state.yAxis
-      : state.fields;
-    const traceMetric = aggregateSource?.[0]
-      ? extractTraceMetricFromColumn(aggregateSource[0])
-      : undefined;
+    const aggregateSource = getTraceMetricAggregateSource(
+      state.displayType,
+      state.yAxis,
+      state.fields
+    );
+    const traceMetric = extractTraceMetricFromAggregates(aggregateSource);
 
     if (traceMetric) {
       return {
