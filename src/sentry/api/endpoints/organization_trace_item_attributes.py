@@ -865,10 +865,10 @@ def serialize_type(search_type: constants.SearchType) -> str:
 def _check_attributes_exist(
     resolver: SearchResolver,
     item_type: SupportedTraceItemType,
-    internal_names: set[str],
+    attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]],
 ) -> set[str]:
-    """Check which attribute internal names exist in storage by querying across all types."""
-    if not internal_names:
+    """Check which attribute internal names exist in storage, querying only the relevant type for each."""
+    if not attrs_by_type:
         return set()
 
     meta = resolver.resolve_meta(referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_VALIDATE.value)
@@ -877,17 +877,9 @@ def _check_attributes_exist(
     )
 
     found: set[str] = set()
-    check_types = [
-        AttributeKey.Type.TYPE_STRING,
-        AttributeKey.Type.TYPE_DOUBLE,
-        AttributeKey.Type.TYPE_BOOLEAN,
-    ]
 
-    remaining = set(internal_names)
-    for attr_type in check_types:
-        if not remaining:
-            break
-        for name in list(remaining):
+    for attr_type, names in attrs_by_type.items():
+        for name in names:
             rpc_request = TraceItemAttributeNamesRequest(
                 meta=meta,
                 limit=100,
@@ -898,7 +890,6 @@ def _check_attributes_exist(
             for attr in rpc_response.attributes:
                 if attr.name == name:
                     found.add(name)
-                    remaining.discard(name)
                     break
 
     return found
@@ -961,8 +952,10 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
                 }
 
         if unknown_attrs:
-            internal_names = {resolved.internal_name for _, resolved in unknown_attrs}
-            existing = _check_attributes_exist(resolver, item_type, internal_names)
+            attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]] = {}
+            for _, resolved in unknown_attrs:
+                attrs_by_type.setdefault(resolved.proto_type, []).append(resolved.internal_name)
+            existing = _check_attributes_exist(resolver, item_type, attrs_by_type)
 
             for attr_name, resolved in unknown_attrs:
                 if resolved.internal_name in existing:
