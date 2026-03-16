@@ -1,11 +1,11 @@
 from django.db import router, transaction
 
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.services.cell_organization_provisioning import (
+    cell_organization_provisioning_rpc_service,
+)
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
-)
-from sentry.hybridcloud.services.region_organization_provisioning import (
-    cell_organization_provisioning_rpc_service,
 )
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization

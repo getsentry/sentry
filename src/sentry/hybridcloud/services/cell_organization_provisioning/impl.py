@@ -6,11 +6,11 @@ from sentry import roles
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
+from sentry.hybridcloud.services.cell_organization_provisioning import (
+    CellOrganizationProvisioningRpcService,
+)
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
-)
-from sentry.hybridcloud.services.region_organization_provisioning import (
-    CellOrganizationProvisioningRpcService,
 )
 from sentry.models.organization import ORGANIZATION_NAME_MAX_LENGTH, Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -167,7 +167,7 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
     def update_organization_slug_from_reservation(
         self,
         *,
-        cell_name: str
+        cell_name: str,
         org_slug_temporary_alias_res: RpcOrganizationSlugReservation,
     ) -> bool:
         # Skip any non-primary organization slug updates

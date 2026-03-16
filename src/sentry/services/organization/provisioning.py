@@ -8,7 +8,7 @@ from sentry_sdk import capture_exception
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.outbox.signals import process_control_outbox
-from sentry.hybridcloud.services.region_organization_provisioning import (
+from sentry.hybridcloud.services.cell_organization_provisioning import (
     cell_organization_provisioning_rpc_service,
 )
 from sentry.models.organizationslugreservation import (

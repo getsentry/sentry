@@ -62,7 +62,7 @@ class CellOrganizationProvisioningRpcService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.hybridcloud.services.region_organization_provisioning.impl import (
+        from sentry.hybridcloud.services.cell_organization_provisioning.impl import (
             DatabaseBackedCellOrganizationProvisioningRpcService,
         )
 
