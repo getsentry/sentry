@@ -165,7 +165,7 @@ describe('convertWidgetToBuilderStateParams', () => {
         ],
       });
       const params = convertWidgetToBuilderStateParams(widget);
-      expect(JSON.parse(params.traceMetric!)).toEqual({
+      expect(JSON.parse(params.traceMetric)).toEqual({
         name: 'test-metric',
         type: 'distribution',
         unit: 'second',
