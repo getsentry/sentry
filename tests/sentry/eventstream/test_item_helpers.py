@@ -1,3 +1,5 @@
+import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
@@ -18,6 +20,8 @@ from sentry.eventstream.item_helpers import (
     _extract_time_data,
     _flatten_attrs,
 )
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TestCase
 
@@ -70,7 +74,7 @@ class ItemHelpersTest(TestCase):
 
         assert _flatten_attrs("p", data) == expected
 
-    def test_extract_from_event(
+    def test_extract_from_event_without_issue_occurrence(
         self,
     ) -> None:
         event_data: dict[str, Any] = {}
@@ -80,6 +84,36 @@ class ItemHelpersTest(TestCase):
         assert len(out) == 2
         assert out["group_id"] == event.group_id
         assert out["group_first_seen"] == event.group.first_seen.timestamp()
+        assert "issue_occurrence_id" not in out
+        assert "group_type_id" not in out
+
+    def test_extract_from_event_with_issue_occurrence(self) -> None:
+        event_data: dict[str, Any] = {}
+        event = self.create_group_event(event_data)
+
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            project_id=self.project.id,
+            event_id=event.event_id,
+            fingerprint=["some-fingerprint"],
+            issue_title="something bad happened",
+            subtitle="it was bad",
+            resource_id=None,
+            evidence_data={},
+            evidence_display=[],
+            type=MonitorIncidentType,
+            detection_time=datetime.now(tz=timezone.utc),
+            level="error",
+            culprit=None,
+        )
+        event._occurrence = occurrence
+
+        out = _extract_from_event(event)
+        assert len(out) == 4
+        assert out["group_id"] == event.group_id
+        assert out["group_first_seen"] == event.group.first_seen.timestamp()
+        assert out["issue_occurrence_id"] == occurrence.id
+        assert out["group_type_id"] == MonitorIncidentType.type_id
 
     def test_extract_tags_and_contexts(
         self,

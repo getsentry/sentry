@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.issues.grouptype import WebVitalsGroup
+from sentry.issue_detection.grouptype import WebVitalsGroup
 from sentry.issues.ingest import hash_fingerprint
 from sentry.models.grouphash import GroupHash
 from sentry.tasks.web_vitals_issue_detection import run_web_vitals_issue_detection

@@ -1,6 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
 class OrganizationAlertRuleWorkflowAPITestCase(APITestCase):
@@ -32,7 +32,7 @@ class OrganizationAlertRuleWorkflowAPITestCase(APITestCase):
         )
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationAlertRuleWorkflowIndexGetTest(OrganizationAlertRuleWorkflowAPITestCase):
     def test_get_with_workflow_id_filter(self) -> None:
         response = self.get_success_response(

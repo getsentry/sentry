@@ -182,8 +182,8 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
             self, component, project_slug=project.slug if project else None, values=values
         )
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.hybridcloud.rpc.caching import region_caching_service
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.rpc.caching import cell_caching_service
         from sentry.sentry_apps.services.app.service import get_installation
 
         if self.api_token is not None:
@@ -191,15 +191,15 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
             with outbox_context(flush=False):
                 for ob in self.api_token.outboxes_for_update():
                     ob.save()
-        region_caching_service.clear_key(
-            key=get_installation.key_from(self.id), region_name=region_name
+        cell_caching_service.clear_key(
+            key=get_installation.key_from(self.id), region_name=cell_name
         )
 
     @classmethod
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:

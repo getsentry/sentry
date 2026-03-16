@@ -232,27 +232,27 @@ export function EventsTable({
 
       if (field === 'id' || field === 'trace') {
         const isIssue = !!issueId;
-        let target: LocationDescriptor = {};
+        let target: LocationDescriptor | null = null;
         if (isIssue && !isRegressionIssue && field === 'id') {
-          target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
-        } else {
-          if (field === 'id') {
-            target = generateLinkToEventInTraceView({
-              traceSlug: dataRow.trace?.toString()!,
-              eventId: dataRow.id,
-              timestamp: dataRow.timestamp!,
-              location,
-              organization,
-              source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-              view: domainViewFilters?.view,
-            });
-          } else {
-            target = generateTraceLink(transactionName, domainViewFilters?.view)(
-              organization,
-              dataRow,
-              location
-            );
-          }
+          target = {
+            pathname: `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`,
+          };
+        } else if (field === 'id') {
+          target = generateLinkToEventInTraceView({
+            traceSlug: dataRow.trace?.toString()!,
+            eventId: dataRow.id,
+            timestamp: dataRow.timestamp!,
+            location,
+            organization,
+            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+            view: domainViewFilters?.view,
+          });
+        } else if (dataRow.trace) {
+          target = generateTraceLink(transactionName, domainViewFilters?.view)(
+            organization,
+            dataRow,
+            location
+          );
         }
 
         return (
@@ -262,7 +262,7 @@ export function EventsTable({
             handleCellAction={cellActionHandler}
             allowActions={allowActions}
           >
-            <Link to={target}>{rendered}</Link>
+            {target ? <Link to={target}>{rendered}</Link> : rendered}
           </CellAction>
         );
       }

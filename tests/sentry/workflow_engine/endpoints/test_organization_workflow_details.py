@@ -13,7 +13,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import TaskRunner
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
     Action,
@@ -36,7 +36,7 @@ class OrganizationWorkflowDetailsBaseTest(APITestCase):
         self.login_as(user=self.user)
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
     def test_simple(self) -> None:
         workflow = self.create_workflow(organization_id=self.organization.id)
@@ -53,7 +53,7 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
         self.get_error_response(self.organization.slug, workflow.id, status_code=404)
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "PUT"
 
@@ -758,7 +758,7 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert other_dcg.conditions.count() == original_condition_count
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "DELETE"
 
@@ -849,7 +849,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             assert response.status_code == 404
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationWorkflowDetailsProjectAccessTest(APITestCase, ProjectAccessTestMixin):
     """
     Security tests to verify that project-level access is enforced when

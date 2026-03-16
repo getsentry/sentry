@@ -6,14 +6,14 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sentry.integrations.types import ExternalProviders
-from sentry.issues.grouptype import (
-    FeedbackGroup,
+from sentry.issue_detection.grouptype import (
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
     ProfileFileIOGroupType,
 )
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.group import Group
 from sentry.notifications.notifications.base import BaseNotification

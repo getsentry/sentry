@@ -11,7 +11,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SCIMTestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
 
 class SCIMDetailGetTest(SCIMTestCase):
@@ -567,7 +567,7 @@ class SCIMDetailDeleteTest(SCIMTestCase):
         mock_metrics.incr.assert_called_with("sentry.scim.team.delete")
 
 
-@region_silo_test
+@cell_silo_test
 class SCIMPrivilegeManagementTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-details"
     method = "patch"

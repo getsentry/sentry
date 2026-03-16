@@ -13,7 +13,7 @@ from django.core.cache import cache
 from jsonschema import ValidationError
 
 from sentry import options
-from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileFileIOGroupType
+from sentry.issue_detection.grouptype import PerformanceSlowDBQueryGroupType, ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
     EventLookupError,
