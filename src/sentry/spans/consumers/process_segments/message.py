@@ -19,8 +19,8 @@ from sentry.ingest.transaction_clusterer.datasource.redis import record_segment_
 from sentry.ingest.transaction_clusterer.normalization import normalize_segment_name
 from sentry.insights import FilterSpan
 from sentry.insights import modules as insights_modules
-from sentry.issue_detection.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issue_detection.performance_detection import detect_performance_problems
+from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context

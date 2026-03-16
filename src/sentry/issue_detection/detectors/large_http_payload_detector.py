@@ -4,7 +4,7 @@ import re
 from datetime import timedelta
 from typing import Any
 
-from sentry.issue_detection.grouptype import PerformanceLargeHTTPPayloadGroupType
+from sentry.issues.grouptype import PerformanceLargeHTTPPayloadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
