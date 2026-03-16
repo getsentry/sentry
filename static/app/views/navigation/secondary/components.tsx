@@ -1,9 +1,24 @@
-import {Fragment, useRef, type ReactNode} from 'react';
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import type {To} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
-import {AnimatePresence, motion} from 'framer-motion';
+import {
+  AnimatePresence,
+  motion,
+  Reorder,
+  useDragControls,
+  type DragControls,
+} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
@@ -13,7 +28,7 @@ import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {IconAllProjects, IconChevron, IconMyProjects} from 'sentry/icons';
+import {IconAllProjects, IconChevron, IconGrabbable, IconMyProjects} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableTransition} from 'sentry/utils/testableTransition';
@@ -421,18 +436,6 @@ function SecondaryNavigationLink({
   );
 }
 
-// :not(:hover) {
-//   [data-drag-icon] {
-//     ${p => p.theme.visuallyHidden}
-//   }
-// }
-
-// :hover {
-//   [data-project-icon] {
-//     ${p => p.theme.visuallyHidden}
-//   }
-// }
-
 function SecondaryNavigationSeparator() {
   return (
     <Container padding="0 xl">
@@ -599,6 +602,228 @@ const NavigationLink = styled(Link)<NavigationLink>`
   }
 `;
 
+// ===== Reorderable primitives =====
+
+const ReorderableItemContext = createContext<{
+  controls: DragControls;
+  grabbing: boolean;
+} | null>(null);
+
+function useReorderableItemContext() {
+  const ctx = useContext(ReorderableItemContext);
+  if (!ctx) {
+    throw new Error(
+      'SecondaryNavigation.ReorderableLink must be used within SecondaryNavigation.ReorderableList'
+    );
+  }
+  return ctx;
+}
+
+interface ReorderableListItemProps<T> {
+  children: ReactNode;
+  groupRef: RefObject<HTMLElement | null>;
+  item: T;
+  onDragEnd: () => void;
+}
+
+function ReorderableListItem<T>({
+  item,
+  groupRef,
+  children,
+  onDragEnd: onDragEndProp,
+}: ReorderableListItemProps<T>) {
+  const controls = useDragControls();
+  const [grabbing, setGrabbing] = useState(false);
+  const {setInteraction} = useSecondaryNavigation();
+
+  return (
+    <ReorderableItemContext.Provider value={{controls, grabbing}}>
+      <ReorderableItemContainer
+        grabbing={grabbing}
+        value={item}
+        dragListener={false}
+        dragControls={controls}
+        dragConstraints={groupRef}
+        dragElastic={0.03}
+        dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
+        style={grabbing ? {} : {originY: '0px'}}
+        onDragStart={() => {
+          setGrabbing(true);
+          setInteraction('dragging');
+        }}
+        onDragEnd={() => {
+          setGrabbing(false);
+          setInteraction(null);
+          onDragEndProp();
+        }}
+      >
+        {children}
+      </ReorderableItemContainer>
+    </ReorderableItemContext.Provider>
+  );
+}
+
+interface SecondaryNavigationReorderableListProps<T extends {id: string | number}> {
+  children: (item: T) => ReactNode;
+  items: T[];
+  onDragEnd: (items: T[]) => void;
+}
+
+function SecondaryNavigationReorderableList<T extends {id: string | number}>({
+  items: externalItems,
+  onDragEnd,
+  children,
+}: SecondaryNavigationReorderableListProps<T>) {
+  const groupRef = useRef<HTMLElement>(null);
+  const [items, setItems] = useState<T[]>(externalItems);
+  const orderedItemsRef = useRef<T[]>(externalItems);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setItems(externalItems);
+    orderedItemsRef.current = externalItems;
+  }, [externalItems]);
+
+  return (
+    <ReorderableGroupList
+      ref={groupRef}
+      axis="y"
+      values={items}
+      onReorder={newOrder => {
+        setItems(newOrder);
+        orderedItemsRef.current = newOrder;
+      }}
+      initial={false}
+    >
+      {items.map(item => (
+        <ReorderableListItem
+          key={item.id}
+          item={item}
+          groupRef={groupRef}
+          onDragEnd={() => onDragEnd(orderedItemsRef.current)}
+        >
+          {children(item)}
+        </ReorderableListItem>
+      ))}
+    </ReorderableGroupList>
+  );
+}
+
+interface SecondaryNavigationReorderableLinkProps extends Omit<
+  SecondaryNavigationItemProps,
+  'leadingItems'
+> {
+  icon: ReactNode;
+}
+
+function SecondaryNavigationReorderableLink({
+  icon,
+  onClick,
+  ...linkProps
+}: SecondaryNavigationReorderableLinkProps) {
+  const {controls, grabbing} = useReorderableItemContext();
+  const {interaction} = useSecondaryNavigation();
+
+  return (
+    <StyledReorderableNavigationLink
+      {...linkProps}
+      leadingItems={
+        <Flex justify="center" align="center" position="relative">
+          <GrabHandleWrapper
+            data-drag-icon
+            grabbing={grabbing}
+            onPointerDown={e => {
+              controls.start(e);
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+            onClick={e => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+          >
+            <IconGrabbable variant="muted" />
+          </GrabHandleWrapper>
+          {icon}
+        </Flex>
+      }
+      onPointerDown={e => {
+        e.preventDefault();
+      }}
+      onClick={e => {
+        if (interaction.current) {
+          e.preventDefault();
+          return;
+        }
+        onClick?.(e);
+      }}
+    />
+  );
+}
+
+interface SecondaryNavigationIndicatorProps {
+  variant?: 'accent' | 'danger' | 'warning';
+}
+
+function SecondaryNavigationIndicator({
+  variant = 'accent',
+}: SecondaryNavigationIndicatorProps) {
+  return <NavigationIndicator variant={variant} />;
+}
+
+const ReorderableGroupList = styled(Reorder.Group)`
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  list-style: none;
+` as typeof Reorder.Group;
+
+const ReorderableItemContainer = styled(Reorder.Item, {
+  shouldForwardProp: prop => prop !== 'grabbing',
+})<{grabbing: boolean}>`
+  position: relative;
+  list-style: none;
+  background-color: ${p => (p.grabbing ? p.theme.colors.surface200 : 'transparent')};
+  border-radius: ${p => p.theme.radius.md};
+`;
+
+const GrabHandleWrapper = styled('div')<{grabbing: boolean}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  cursor: ${p => (p.grabbing ? 'grabbing' : 'grab')};
+  z-index: 3;
+`;
+
+const StyledReorderableNavigationLink = styled(SecondaryNavigationLink)`
+  :not(:hover) {
+    [data-drag-icon] {
+      ${p => p.theme.visuallyHidden}
+    }
+  }
+
+  :hover {
+    [data-project-icon] {
+      ${p => p.theme.visuallyHidden}
+    }
+  }
+`;
+
+const NavigationIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
+  background: ${p => p.theme.tokens.graphics[p.variant].vibrant};
+  border: 2px solid ${p => p.theme.tokens.border[p.variant].muted};
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+`;
+
 export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
   Body: SecondaryNavigationBody,
@@ -609,4 +834,7 @@ export const SecondaryNavigation = {
   Link: SecondaryNavigationLink,
   ProjectIcon: SecondaryNavigationProjectIcon,
   Sidebar: SecondarySidebar,
+  ReorderableList: SecondaryNavigationReorderableList,
+  ReorderableLink: SecondaryNavigationReorderableLink,
+  Indicator: SecondaryNavigationIndicator,
 };
