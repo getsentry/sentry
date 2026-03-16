@@ -1,9 +1,11 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import type {
   AutofixSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {SeerDrawerNextStep} from './nextStep';
 
@@ -41,41 +43,39 @@ function defaultArtifacts(step: string): AutofixSection['artifacts'] {
           data: {one_line_summary: 'summary', steps: [{title: 't', description: 'd'}]},
         },
       ];
-    case 'code_changes':
-      return [
-        [
-          {
-            repo_name: 'repo',
-            diff: 'diff content',
-            patch: {
-              added: 1,
-              removed: 0,
-              path: 'file.py',
-              source_file: 'file.py',
-              target_file: 'file.py',
-              type: 'M',
-              hunks: [
+    case 'code_changes': {
+      const codeChange: ExplorerFilePatch = {
+        repo_name: 'repo',
+        diff: 'diff content',
+        patch: {
+          added: 1,
+          removed: 0,
+          path: 'file.py',
+          source_file: 'file.py',
+          target_file: 'file.py',
+          type: DiffFileType.MODIFIED,
+          hunks: [
+            {
+              section_header: '@@ -1,1 +1,2 @@',
+              source_start: 1,
+              source_length: 1,
+              target_start: 1,
+              target_length: 2,
+              lines: [
                 {
-                  section_header: '@@ -1,1 +1,2 @@',
-                  source_start: 1,
-                  source_length: 1,
-                  target_start: 1,
-                  target_length: 2,
-                  lines: [
-                    {
-                      diff_line_no: 1,
-                      line_type: '+',
-                      source_line_no: null,
-                      target_line_no: 1,
-                      value: 'new line',
-                    },
-                  ],
+                  diff_line_no: 1,
+                  line_type: DiffLineType.ADDED,
+                  source_line_no: null,
+                  target_line_no: 1,
+                  value: 'new line',
                 },
               ],
             },
-          },
-        ],
-      ];
+          ],
+        },
+      };
+      return [[codeChange]];
+    }
     default:
       return [];
   }
