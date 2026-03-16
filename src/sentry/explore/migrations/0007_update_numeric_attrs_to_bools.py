@@ -117,6 +117,7 @@ def update_numeric_attrs_to_bools(apps: StateApps, schema_editor: BaseDatabaseSc
                             target = f"tags[{resolved_column.internal_name},number]"
                             new_query = new_query.replace(f"{target}:1", f"{key}:True")
                             new_query = new_query.replace(f"{target}:0", f"{key}:False")
+                            key = f"tags[{resolved_column.internal_name}, boolean]"
                             target = f"tags[{resolved_column.internal_name}, number]"
                             new_query = new_query.replace(f"{target}:1", f"{key}:True")
                             new_query = new_query.replace(f"{target}:0", f"{key}:False")
