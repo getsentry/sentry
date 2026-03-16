@@ -332,7 +332,7 @@ function IssueStackTraceContent({
                       newestFirst={isNewestFirst}
                       onExceptionClick={expandException}
                     />
-                    {idx === 0 ? (
+                    {idx === firstVisibleExceptionIndex ? (
                       <ErrorBoundary customComponent={null}>
                         <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
                       </ErrorBoundary>
