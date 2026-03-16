@@ -17,7 +17,7 @@ from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
-from sentry.issue_detection.grouptype import WebVitalsGroup
+from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
 from sentry.models.project import Project

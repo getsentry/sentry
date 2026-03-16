@@ -10,7 +10,7 @@ from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.api import client
 from sentry.constants import ObjectStatus
-from sentry.issue_detection.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee

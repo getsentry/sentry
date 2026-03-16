@@ -9,13 +9,13 @@ import pytest
 from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.n_plus_one_api_calls_detector import NPlusOneAPICallsDetector
 from sentry.issue_detection.detectors.utils import parameterize_url
-from sentry.issue_detection.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issue_detection.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import create_event, create_span, get_event
 

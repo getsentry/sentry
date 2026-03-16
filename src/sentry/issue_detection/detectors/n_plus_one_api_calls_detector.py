@@ -18,9 +18,9 @@ from sentry.issue_detection.detectors.utils import (
     parameterize_url,
     parameterize_url_with_result,
 )
-from sentry.issue_detection.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
