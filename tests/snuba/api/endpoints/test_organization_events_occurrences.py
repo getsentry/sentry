@@ -251,4 +251,4 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         assert len(data) == 1
         # EAP returns last_seen as Unix timestamp in seconds (float).
         expected_seconds = (base + timedelta(minutes=10)).timestamp()
-        assert abs(data[0]["last_seen()"] - expected_seconds) < 1
+        assert data[0]["last_seen()"] == pytest.approx(expected_seconds, abs=1)
