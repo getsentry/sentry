@@ -143,6 +143,7 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "string",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
