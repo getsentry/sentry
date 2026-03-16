@@ -198,8 +198,8 @@ class SpansBuffer:
                 if payload_keys:
                     mk_key = self._get_payload_key_index(key)
                     p.delete(mk_key)
-                    for batch in itertools.batched(payload_keys, 100):
-                        p.unlink(*batch)
+                    for distributed_key in payload_keys:
+                        p.unlink(distributed_key)
                 self._distributed_payload_keys_map.pop(key, None)
             p.execute()
 
@@ -1033,10 +1033,8 @@ class SpansBuffer:
                     if flushed_segment.distributed_payload_keys:
                         mk_key = self._get_payload_key_index(segment_key)
                         p.delete(mk_key)
-                        for distributed_key_batch in itertools.batched(
-                            flushed_segment.distributed_payload_keys, 100
-                        ):
-                            p.unlink(*distributed_key_batch)
+                        for distributed_key in flushed_segment.distributed_payload_keys:
+                            p.unlink(distributed_key)
 
                 for queue_key, keys in queue_removals.items():
                     for key_batch in itertools.batched(keys, 100):
