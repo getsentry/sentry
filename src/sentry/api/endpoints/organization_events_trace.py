@@ -29,12 +29,13 @@ from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.eap.occurrences.common_queries import count_occurrences_grouped_by_trace_ids
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.occurrences_rpc import OccurrenceCategory
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import base32_encode, format_grouped_length
@@ -316,6 +317,49 @@ class TraceEvent:
                             query_source=self.query_source,
                         )
                     )["data"]
+
+                    callsite = "api.trace.load_performance_issues"
+                    if EAPOccurrencesComparator.should_check_experiment(callsite):
+                        try:
+                            eap_result = Occurrences.run_table_query(
+                                params=snuba_params,
+                                query_string=f"id:{self.event['id']}",
+                                selected_columns=["issue_occurrence_id"],
+                                orderby=None,
+                                offset=0,
+                                limit=len(occurrence_ids) + 100,
+                                referrer=Referrer.API_TRACE_VIEW_GET_OCCURRENCE_IDS.value,
+                                config=SearchResolverConfig(),
+                                occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
+                            )
+                            eap_occurrence_ids = [
+                                {"occurrence_id": row["issue_occurrence_id"]}
+                                for row in eap_result.get("data", [])
+                                if row.get("issue_occurrence_id")
+                            ]
+                        except Exception:
+                            logger.exception(
+                                "Fetching occurrence IDs from EAP failed",
+                                extra={
+                                    "event_id": self.event["id"],
+                                    "project_id": self.event["project.id"],
+                                },
+                            )
+                            eap_occurrence_ids = []
+
+                        occurrence_ids = EAPOccurrencesComparator.check_and_choose(
+                            control_data=occurrence_ids,
+                            experimental_data=eap_occurrence_ids,
+                            callsite=callsite,
+                            is_experimental_data_a_null_result=len(eap_occurrence_ids) == 0,
+                            reasonable_match_comparator=lambda snuba, eap: {
+                                row["occurrence_id"] for row in eap
+                            }.issubset({row["occurrence_id"] for row in snuba}),
+                            debug_context={
+                                "event_id": self.event["id"],
+                                "project_id": self.event["project.id"],
+                            },
+                        )
 
                     issue_occurrences = IssueOccurrence.fetch_multi(
                         [str(occurrence.get("occurrence_id")) for occurrence in occurrence_ids],
