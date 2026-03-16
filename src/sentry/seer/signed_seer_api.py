@@ -231,6 +231,7 @@ class SummarizeIssueRequest(TypedDict):
 class SupergroupsEmbeddingRequest(TypedDict):
     organization_id: int
     group_id: int
+    project_id: int
     artifact_data: dict[str, Any]
 
 
@@ -238,6 +239,7 @@ class SupergroupsListRequest(TypedDict):
     organization_id: int
     offset: NotRequired[int | None]
     limit: NotRequired[int | None]
+    project_ids: NotRequired[list[int] | None]
 
 
 class SupergroupsGetRequest(TypedDict):
