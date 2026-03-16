@@ -1929,6 +1929,100 @@ describe('useWidgetBuilderState', () => {
   });
 
   describe('traceMetric', () => {
+    it('resets sort when SET_Y_AXIS changes aggregates for trace metrics', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            field: ['project'],
+            yAxis: ['sum(value,my.metric,counter,-)'],
+            sort: ['-sum(value,my.metric,counter,-)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // Dispatch SET_Y_AXIS with a different aggregate (simulating metric change)
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {
+              kind: 'function',
+              function: [
+                'avg' as AggregationKeyWithAlias,
+                'value',
+                'other.metric',
+                'gauge',
+                '-',
+              ],
+            },
+          ] as Column[],
+        });
+      });
+
+      // Sort should be updated to the new aggregate
+      expect(result.current.state.sort).toEqual([
+        {kind: 'desc', field: 'avg(value,other.metric,gauge,-)'},
+      ]);
+    });
+
+    it('preserves sort when SET_Y_AXIS keeps the same aggregate string for trace metrics', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.LINE,
+            field: ['project'],
+            yAxis: ['sum(value,my.metric,counter,-)'],
+            sort: ['-sum(value,my.metric,counter,-)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      // Dispatch SET_Y_AXIS with the same aggregate (e.g., adding a second one)
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {
+              kind: 'function',
+              function: [
+                'sum' as AggregationKeyWithAlias,
+                'value',
+                'my.metric',
+                'counter',
+                '-',
+              ],
+            },
+            {
+              kind: 'function',
+              function: [
+                'avg' as AggregationKeyWithAlias,
+                'value',
+                'my.metric',
+                'counter',
+                '-',
+              ],
+            },
+          ] as Column[],
+        });
+      });
+
+      // Sort should remain on sum since it's still present
+      expect(result.current.state.sort).toEqual([
+        {kind: 'desc', field: 'sum(value,my.metric,counter,-)'},
+      ]);
+    });
+
     it('preserves trace metric args when switching from line to categorical bar', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({
