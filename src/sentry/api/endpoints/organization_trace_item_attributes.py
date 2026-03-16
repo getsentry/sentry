@@ -862,6 +862,48 @@ def serialize_type(search_type: constants.SearchType) -> str:
     return "number"
 
 
+def _check_attributes_exist(
+    resolver: SearchResolver,
+    item_type: SupportedTraceItemType,
+    internal_names: set[str],
+) -> set[str]:
+    """Check which attribute internal names exist in storage by querying across all types."""
+    if not internal_names:
+        return set()
+
+    meta = resolver.resolve_meta(referrer=Referrer.API_TRACE_ITEM_ATTRIBUTE_VALIDATE.value)
+    meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
+        item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
+    )
+
+    found: set[str] = set()
+    check_types = [
+        AttributeKey.Type.TYPE_STRING,
+        AttributeKey.Type.TYPE_DOUBLE,
+        AttributeKey.Type.TYPE_BOOLEAN,
+    ]
+
+    remaining = set(internal_names)
+    for attr_type in check_types:
+        if not remaining:
+            break
+        for name in list(remaining):
+            rpc_request = TraceItemAttributeNamesRequest(
+                meta=meta,
+                limit=100,
+                type=attr_type,
+                value_substring_match=name,
+            )
+            rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+            for attr in rpc_response.attributes:
+                if attr.name == name:
+                    found.add(name)
+                    remaining.discard(name)
+                    break
+
+    return found
+
+
 @cell_silo_endpoint
 class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttributesEndpointBase):
     publish_status = {
@@ -897,17 +939,41 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
         )
 
         results: dict[str, dict[str, Any]] = {}
+        # Collect unknown (user tag) attributes that need storage validation
+        unknown_attrs: list[tuple[str, Any]] = []
+
         for attr_name in attribute_names:
             try:
                 resolved, _context = resolver.resolve_attribute(attr_name)
-                results[attr_name] = {
-                    "valid": True,
-                    "type": serialize_type(resolved.search_type),
-                }
+                if attr_name in definitions.contexts or attr_name in definitions.columns:
+                    # Known column or virtual context — always valid
+                    results[attr_name] = {
+                        "valid": True,
+                        "type": serialize_type(resolved.search_type),
+                    }
+                else:
+                    # User tag — need to verify it exists in storage
+                    unknown_attrs.append((attr_name, resolved))
             except InvalidSearchQuery as e:
                 results[attr_name] = {
                     "valid": False,
                     "error": str(e),
                 }
+
+        if unknown_attrs:
+            internal_names = {resolved.internal_name for _, resolved in unknown_attrs}
+            existing = _check_attributes_exist(resolver, item_type, internal_names)
+
+            for attr_name, resolved in unknown_attrs:
+                if resolved.internal_name in existing:
+                    results[attr_name] = {
+                        "valid": True,
+                        "type": serialize_type(resolved.search_type),
+                    }
+                else:
+                    results[attr_name] = {
+                        "valid": False,
+                        "error": f"Unknown attribute: {attr_name}",
+                    }
 
         return Response({"attributes": results})
