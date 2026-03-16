@@ -762,16 +762,26 @@ def format_request_data(
     # we pass in a dummy DCG and then pop it off since we just need the formatted data
 
     for condition in data.get("conditions", []):
-        triggers["conditions"].append(
-            translate_to_data_condition_data(condition, fake_dcg).to_input()
-        )
+        try:
+            triggers["conditions"].append(
+                translate_to_data_condition_data(condition, fake_dcg).to_input()
+            )
+        except KeyError:
+            raise ValidationError("Ensure all required fields are filled in.")
+        except ValueError:
+            raise ValidationError("Invalid condition data")
 
     workflow_payload["triggers"] = triggers
 
     for filter_data in data.get("filters", []):
-        translated_filter_list.append(
-            translate_to_data_condition_data(filter_data, fake_dcg).to_input()
-        )
+        try:
+            translated_filter_list.append(
+                translate_to_data_condition_data(filter_data, fake_dcg).to_input()
+            )
+        except KeyError:
+            raise ValidationError("Ensure all required fields are filled in.")
+        except ValueError:
+            raise ValidationError("Invalid filter data")
 
     translated_actions: list[ActionInput] = []
     for action_data in translate_rule_data_actions_to_notification_actions(
