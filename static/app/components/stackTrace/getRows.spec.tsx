@@ -1,11 +1,7 @@
+import {getLastFrameIndex} from 'sentry/components/events/interfaces/utils';
 import type {Frame} from 'sentry/types/event';
 
-import {
-  createInitialHiddenFrameToggleMap,
-  getFrameCountMap,
-  getLastFrameIndex,
-  getRows,
-} from './getRows';
+import {createInitialHiddenFrameToggleMap, getFrameCountMap, getRows} from './getRows';
 
 let frameSerial = 0;
 

@@ -9,6 +9,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
 import {StackTraceFrameRow} from './frame/frameRow';
+import {RawStackTraceText} from './rawStackTrace';
 import {useStackTraceContext, useStackTraceViewState} from './stackTraceContext';
 
 function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]}) {
@@ -74,35 +75,33 @@ export function StackTraceFrames({
 
   return (
     <FramesPanel>
-      <div>
-        {allRows.map(row => {
-          if (row.kind === 'omitted') {
-            return (
-              <OmittedFramesBanner key={row.rowKey} omittedFrames={row.omittedFrames} />
-            );
-          }
-
-          if (!everVisibleRef.current.has(row.frameIndex)) {
-            return null;
-          }
-
-          const isVisible = visibleIndices.has(row.frameIndex);
-          const activeRow = rowByIndex.get(row.frameIndex) ?? row;
-
+      {allRows.map(row => {
+        if (row.kind === 'omitted') {
           return (
-            <Activity key={row.frameIndex} mode={isVisible ? 'visible' : 'hidden'}>
-              <StackTraceFrameRow row={activeRow}>
-                <StackTraceFrameRow.Header
-                  actions={({isHovering}) => (
-                    <FrameActionsComponent isHovering={isHovering} />
-                  )}
-                />
-                <FrameContextComponent />
-              </StackTraceFrameRow>
-            </Activity>
+            <OmittedFramesBanner key={row.rowKey} omittedFrames={row.omittedFrames} />
           );
-        })}
-      </div>
+        }
+
+        if (!everVisibleRef.current.has(row.frameIndex)) {
+          return null;
+        }
+
+        const isVisible = visibleIndices.has(row.frameIndex);
+        const activeRow = rowByIndex.get(row.frameIndex) ?? row;
+
+        return (
+          <Activity key={row.frameIndex} mode={isVisible ? 'visible' : 'hidden'}>
+            <StackTraceFrameRow row={activeRow}>
+              <StackTraceFrameRow.Header
+                actions={({isHovering}) => (
+                  <FrameActionsComponent isHovering={isHovering} />
+                )}
+              />
+              <FrameContextComponent />
+            </StackTraceFrameRow>
+          </Activity>
+        );
+      })}
     </FramesPanel>
   );
 }
@@ -116,11 +115,4 @@ const OmittedRow = styled(Container)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.colors.red100};
   padding: ${p => `${p.theme.space.sm} ${p.theme.space.md}`};
-`;
-
-const RawStackTraceText = styled('pre')`
-  margin: 0;
-  padding: ${p => p.theme.space.md};
-  overflow: auto;
-  font-size: ${p => p.theme.font.size.sm};
 `;

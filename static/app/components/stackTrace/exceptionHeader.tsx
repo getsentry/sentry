@@ -24,13 +24,11 @@ const ExceptionHeaderHeading = styled(Heading)`
 
 export function ExceptionHeader({type, module}: ExceptionHeaderProps) {
   return (
-    <div>
-      <Tooltip title={t('from %s', module)} disabled={!module}>
-        <ExceptionHeaderHeading as="h5" size="md" wrap="nowrap">
-          {type}
-        </ExceptionHeaderHeading>
-      </Tooltip>
-    </div>
+    <Tooltip title={t('from %s', module)} disabled={!module}>
+      <ExceptionHeaderHeading as="h5" size="md" wrap="nowrap">
+        {type}
+      </ExceptionHeaderHeading>
+    </Tooltip>
   );
 }
 

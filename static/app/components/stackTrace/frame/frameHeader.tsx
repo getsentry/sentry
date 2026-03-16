@@ -11,7 +11,7 @@ import {
 } from 'sentry/components/events/interfaces/frame/utils';
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
-import type {Frame} from 'sentry/types/event';
+import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 
@@ -63,7 +63,8 @@ export function FrameHeader({actions}: FrameHeaderProps) {
   } = useStackTraceFrameContext();
 
   const resolvedActions = typeof actions === 'function' ? actions({isHovering}) : actions;
-  const hasLeadHint = !isExpanded && !frame.inApp && (nextFrame?.inApp || !nextFrame);
+  const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
+  const hasLeadHint = !isExpanded && leadsToApp;
 
   return (
     <HeaderGrid
@@ -84,10 +85,11 @@ export function FrameHeader({actions}: FrameHeaderProps) {
       <MainContent isMuted={hasLeadHint} isExpanded={isExpanded}>
         <FrameLocation
           frame={frame}
-          nextFrame={nextFrame}
           event={event}
           platform={platform}
           isExpanded={isExpanded}
+          leadsToApp={leadsToApp}
+          hasNextFrame={!!nextFrame}
         />
         <FrameContext frame={frame} platform={platform} />
       </MainContent>
@@ -103,26 +105,21 @@ export function FrameHeader({actions}: FrameHeaderProps) {
 
 function FrameLocation({
   frame,
-  nextFrame,
   event,
   platform,
   isExpanded,
+  leadsToApp,
+  hasNextFrame,
 }: {
-  event: any;
+  event: Event;
   frame: Frame;
+  hasNextFrame: boolean;
   isExpanded: boolean;
-  nextFrame: Frame | undefined;
+  leadsToApp: boolean;
   platform: PlatformKey;
 }) {
-  const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const frameDisplayPath = getFrameDisplayPath(frame, platform);
-
-  const frameLocationSuffix =
-    defined(frame.lineNo) && frame.lineNo >= 0
-      ? defined(frame.colNo) && frame.colNo >= 0
-        ? `:${frame.lineNo}:${frame.colNo}`
-        : `:${frame.lineNo}`
-      : '';
+  const frameLocationSuffix = formatFrameLocation('', frame.lineNo, frame.colNo);
 
   const framePathTooltip =
     frame.absPath && frame.absPath !== frameDisplayPath
@@ -144,7 +141,7 @@ function FrameLocation({
     <LocationWrapper>
       {!isExpanded && leadsToApp ? (
         <LeadHint>
-          {getLeadHint({event, hasNextFrame: !!nextFrame})}
+          {getLeadHint({event, hasNextFrame})}
           {': '}
         </LeadHint>
       ) : null}

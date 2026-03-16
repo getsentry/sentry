@@ -3,7 +3,10 @@ import {Fragment} from 'react';
 import {Tag} from '@sentry/scraps/badge';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
+import {
+  useStackTraceContext,
+  useStackTraceFrameContext,
+} from 'sentry/components/stackTrace/stackTraceContext';
 import {IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
@@ -14,12 +17,17 @@ interface DefaultFrameActionsProps {
   isHovering: boolean;
 }
 
+/**
+ * Default trailing actions rendered for every frame row:
+ * hidden-frames toggle, repeated-frame badge, in-app badge, and chevron.
+ */
 export function DefaultFrameActions({isHovering: _isHovering}: DefaultFrameActionsProps) {
-  const {frame, timesRepeated} = useStackTraceFrameContext();
+  const {hasAnyExpandableFrames} = useStackTraceContext();
+  const {frame, hiddenFrameCount, timesRepeated} = useStackTraceFrameContext();
 
   return (
     <Fragment>
-      <HiddenFramesToggleAction />
+      {hiddenFrameCount ? <HiddenFramesToggleAction /> : null}
       {timesRepeated > 0 ? (
         <Tooltip
           title={tn('Frame repeated %s time', 'Frame repeated %s times', timesRepeated)}
@@ -35,7 +43,7 @@ export function DefaultFrameActions({isHovering: _isHovering}: DefaultFrameActio
         </Tooltip>
       ) : null}
       {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
-      <ChevronAction />
+      {hasAnyExpandableFrames ? <ChevronAction /> : null}
     </Fragment>
   );
 }

@@ -1,19 +1,6 @@
+import {isRepeatedFrame} from 'sentry/components/events/interfaces/utils';
 import type {FrameRow, OmittedFramesRow, Row} from 'sentry/components/stackTrace/types';
 import type {Frame} from 'sentry/types/event';
-
-function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
-  if (!nextFrame) {
-    return false;
-  }
-
-  return (
-    frame.lineNo === nextFrame.lineNo &&
-    frame.instructionAddr === nextFrame.instructionAddr &&
-    frame.package === nextFrame.package &&
-    frame.module === nextFrame.module &&
-    frame.function === nextFrame.function
-  );
-}
 
 function frameIsVisible(
   frame: Frame,
@@ -27,21 +14,6 @@ function frameIsVisible(
     // Include the last non-app frame to keep the call chain understandable.
     (!frame.inApp && !nextFrame)
   );
-}
-
-export function getLastFrameIndex(frames: Frame[]) {
-  const inAppFrameIndexes = frames
-    .map((frame, frameIndex) => {
-      if (frame.inApp) {
-        return frameIndex;
-      }
-      return undefined;
-    })
-    .filter((frame): frame is number => frame !== undefined);
-
-  return inAppFrameIndexes.length
-    ? inAppFrameIndexes[inAppFrameIndexes.length - 1]!
-    : frames.length - 1;
 }
 
 export function createInitialHiddenFrameToggleMap(
@@ -208,8 +180,12 @@ export function getRows({
         rowKey: `omitted-${framesOmitted[0]}-${framesOmitted[1]}`,
       } satisfies OmittedFramesRow;
     })
-    .filter((row): row is Row | Row[] => !!row)
-    .flat();
+    .flatMap((row): Row[] => {
+      if (!row) {
+        return [];
+      }
+      return Array.isArray(row) ? row : [row];
+    });
 
   if (maxDepth !== undefined) {
     rows = rows.slice(-maxDepth);

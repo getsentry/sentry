@@ -1,17 +1,13 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {isExpandable as frameHasExpandableDetails} from 'sentry/components/events/interfaces/frame/utils';
+import {getLastFrameIndex} from 'sentry/components/events/interfaces/utils';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {useProjects} from 'sentry/utils/useProjects';
 
-import {
-  createInitialHiddenFrameToggleMap,
-  getFrameCountMap,
-  getLastFrameIndex,
-  getRows,
-} from './getRows';
+import {createInitialHiddenFrameToggleMap, getFrameCountMap, getRows} from './getRows';
 import {StackTraceContext, useStackTraceViewState} from './stackTraceContext';
 import type {StackTraceContextValue} from './stackTraceContext';
 import type {StackTraceProviderProps} from './types';
@@ -43,7 +39,10 @@ export function StackTraceProvider({
     () => projects.find(candidate => candidate.id === event.projectID),
     [event.projectID, projects]
   );
-  const lastFrameIndex = useMemo(() => getLastFrameIndex(frames), [frames]);
+  const lastFrameIndex = useMemo(
+    () => getLastFrameIndex(frames) ?? frames.length - 1,
+    [frames]
+  );
 
   const [hiddenFrameToggleMap, setHiddenFrameToggleMap] = useState(() =>
     createInitialHiddenFrameToggleMap(frames, view === 'full')
@@ -112,6 +111,13 @@ export function StackTraceProvider({
     [rows, frames.length, activeStacktrace.registers, platform]
   );
 
+  const toggleHiddenFrames = useCallback((frameIndex: number) => {
+    setHiddenFrameToggleMap(prevState => ({
+      ...prevState,
+      [frameIndex]: !prevState[frameIndex],
+    }));
+  }, []);
+
   const value = useMemo<StackTraceContextValue>(
     () => ({
       allRows,
@@ -128,12 +134,7 @@ export function StackTraceProvider({
       meta,
       hiddenFrameToggleMap,
       lastFrameIndex,
-      toggleHiddenFrames: (frameIndex: number) => {
-        setHiddenFrameToggleMap(prevState => ({
-          ...prevState,
-          [frameIndex]: !prevState[frameIndex],
-        }));
-      },
+      toggleHiddenFrames,
     }),
     [
       allRows,
@@ -150,6 +151,7 @@ export function StackTraceProvider({
       project,
       rows,
       activeStacktrace,
+      toggleHiddenFrames,
     ]
   );
 

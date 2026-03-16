@@ -7,7 +7,10 @@ import {
   ChevronAction,
   HiddenFramesToggleAction,
 } from 'sentry/components/stackTrace/frame/actions';
-import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
+import {
+  useStackTraceContext,
+  useStackTraceFrameContext,
+} from 'sentry/components/stackTrace/stackTraceContext';
 import {IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
@@ -19,13 +22,14 @@ interface IssueFrameActionsProps {
 }
 
 export function IssueFrameActions({isHovering}: IssueFrameActionsProps) {
-  const {frame, timesRepeated} = useStackTraceFrameContext();
+  const {hasAnyExpandableFrames} = useStackTraceContext();
+  const {frame, hiddenFrameCount, timesRepeated} = useStackTraceFrameContext();
 
   return (
     <Fragment>
       <IssueSourceLinkAction isHovering={isHovering} />
       <IssueSourceMapsDebuggerAction />
-      <HiddenFramesToggleAction />
+      {hiddenFrameCount ? <HiddenFramesToggleAction /> : null}
       {timesRepeated > 0 ? (
         <Tooltip
           title={tn('Frame repeated %s time', 'Frame repeated %s times', timesRepeated)}
@@ -41,7 +45,7 @@ export function IssueFrameActions({isHovering}: IssueFrameActionsProps) {
         </Tooltip>
       ) : null}
       {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
-      <ChevronAction />
+      {hasAnyExpandableFrames ? <ChevronAction /> : null}
     </Fragment>
   );
 }

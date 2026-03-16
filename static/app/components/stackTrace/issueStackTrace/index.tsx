@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -27,6 +26,7 @@ import {
   ExceptionDescription,
   ExceptionHeader,
 } from 'sentry/components/stackTrace/exceptionHeader';
+import {RawStackTraceText} from 'sentry/components/stackTrace/rawStackTrace';
 import {
   StackTraceViewStateProvider,
   useStackTraceViewState,
@@ -219,7 +219,9 @@ function IssueStackTraceContent({
       <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
         {hasExceptionInfo && (
           <Flex direction="column" gap="sm">
-            <ExceptionHeader type={type} module={module} />
+            <div>
+              <ExceptionHeader type={type} module={module} />
+            </div>
             <ExceptionDescription
               value={value}
               mechanism={exc.mechanism}
@@ -383,10 +385,3 @@ function IssueStackTraceSuspectCommits({
     </ErrorBoundary>
   );
 }
-
-const RawStackTraceText = styled('pre')`
-  margin: 0;
-  padding: ${p => p.theme.space.md};
-  overflow: auto;
-  font-size: ${p => p.theme.font.size.sm};
-`;
