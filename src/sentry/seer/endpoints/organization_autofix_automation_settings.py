@@ -352,7 +352,11 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 bulk_write_preferences_to_sentry_db(projects, validated_preferences)
             except Exception:
                 logger.exception(
-                    "seer.write_preferences.failed", extra={"organization_id": organization.id}
+                    "seer.write_preferences.failed",
+                    extra={
+                        "organization_id": organization.id,
+                        "project_ids": list(projects_by_id.keys()),
+                    },
                 )
 
         self.create_audit_entry(

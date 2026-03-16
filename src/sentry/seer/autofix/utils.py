@@ -446,28 +446,19 @@ def _write_preferences_to_sentry_db(
 
     Replaces all existing SeerProjectRepository rows for the given projects.
     """
-    validated_project_preferences: list[tuple[Project, SeerProjectPreference]] = []
-    for project, pref in project_preferences:
-        if project.id != pref.project_id:
-            logger.warning(
-                "seer.write_preferences.project_id_mismatch",
-                extra={"project_id": project.id, "preference_project_id": pref.project_id},
-            )
-            continue
-        validated_project_preferences.append((project, pref))
-
-    if not validated_project_preferences:
+    if not project_preferences:
         return
 
     with transaction.atomic(using=router.db_for_write(SeerProjectRepository)):
         # Delete existing rows
-        validated_project_ids = {project.id for project, _ in validated_project_preferences}
-        SeerProjectRepository.objects.filter(project_id__in=validated_project_ids).delete()
+        SeerProjectRepository.objects.filter(
+            project_id__in={project.id for project, _ in project_preferences}
+        ).delete()
 
         # Collect project repos to create and map overrides by (project_id, repository_id)
         project_repos_to_create: list[SeerProjectRepository] = []
         overrides_by_key: dict[tuple[int, int], list[BranchOverride]] = {}
-        for project, pref in validated_project_preferences:
+        for project, pref in project_preferences:
             for repo_def in pref.repositories:
                 if repo_def.repository_id is None:
                     logger.warning(
@@ -496,8 +487,7 @@ def _write_preferences_to_sentry_db(
         # Create project repos
         created_project_repos = SeerProjectRepository.objects.bulk_create(project_repos_to_create)
 
-        # Create branch overrides, keying on (project_id, repository_id) from the
-        # returned objects rather than relying on bulk_create return ordering
+        # Create branch overrides, keying on (project_id, repository_id)
         overrides_to_create: list[SeerProjectRepositoryBranchOverride] = []
         for seer_project_repo in created_project_repos:
             for override in overrides_by_key.get(
@@ -515,7 +505,7 @@ def _write_preferences_to_sentry_db(
 
         # Write ProjectOptions last so cache updates only happen after all DB writes succeed
         # (cache cannot be rolled back by the transaction).
-        for project, pref in validated_project_preferences:
+        for project, pref in project_preferences:
             _write_preference_project_options(project, pref)
 
 
