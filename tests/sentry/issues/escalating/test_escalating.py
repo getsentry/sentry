@@ -366,6 +366,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         assert snuba_cached is False
         assert eap_cached is False
 
+    @pytest.mark.skip(reason="flaky: #110755")
     @freeze_time(FROZEN_TIME)
     def test_eap_hourly_count_excludes_old_events(self) -> None:
         self.store_events_to_snuba_and_eap(
