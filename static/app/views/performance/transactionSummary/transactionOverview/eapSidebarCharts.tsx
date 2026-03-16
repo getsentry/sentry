@@ -43,6 +43,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
 
   const transactionSearch = new MutableSearch('');
   transactionSearch.addFilterValue('transaction', transactionName);
+  transactionSearch.addFilterValue('is_transaction', 'true');
 
   const {
     data: failureRateSeriesData,
