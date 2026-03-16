@@ -21,12 +21,11 @@ from sentry.integrations.slack.message_builder.issues import (
 from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.time_utils import time_since
-from sentry.issues.grouptype import (
-    FeedbackGroup,
-    GroupCategory,
+from sentry.issue_detection.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
+from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee

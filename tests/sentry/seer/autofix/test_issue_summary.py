@@ -7,7 +7,7 @@ import orjson
 import pytest
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.issues.grouptype import WebVitalsGroup
+from sentry.issue_detection.grouptype import WebVitalsGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.locks import locks
 from sentry.seer.autofix.constants import SeerAutomationSource

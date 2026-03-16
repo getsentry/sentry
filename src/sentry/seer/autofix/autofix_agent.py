@@ -106,7 +106,7 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
 }
 
 
-def build_step_prompt(step: AutofixStep, group: Group) -> str:
+def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None = None) -> str:
     """
     Build the prompt for a step using issue details.
 
@@ -118,12 +118,23 @@ def build_step_prompt(step: AutofixStep, group: Group) -> str:
         Formatted prompt string
     """
     config = STEP_CONFIGS[step]
-    return config.prompt_fn(
+    prompt = config.prompt_fn(
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         artifact_key=step.value,
     )
+
+    parts = [prompt]
+
+    user_context = user_context or ""
+    user_context = user_context.strip()
+    if user_context:
+        parts.append("")
+        parts.append("Use the following user context to aid your thinking")
+        parts.append(user_context)
+
+    return "\n".join(parts)
 
 
 def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerActionType:
@@ -179,6 +190,7 @@ def trigger_autofix_explorer(
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "low",
+    user_context: str | None = None,
 ) -> int:
     """
     Start or continue an Explorer-based autofix run.
@@ -200,7 +212,7 @@ def trigger_autofix_explorer(
         enable_coding=config.enable_coding,
     )
 
-    prompt = build_step_prompt(step, group)
+    prompt = build_step_prompt(step, group, user_context)
     prompt_metadata = {"step": step.value}
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema

@@ -64,7 +64,7 @@ import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 
@@ -205,9 +205,7 @@ export function WidgetBuilderSlideout({
         // clears the widget to start fresh on the library page
         dispatch({
           type: 'SET_STATE',
-          payload: convertWidgetToBuilderStateParams(
-            widgetLibraryWidgets[0] ?? ({} as Widget)
-          ),
+          payload: convertWidgetToBuilderState(widgetLibraryWidgets[0] ?? ({} as Widget)),
         });
       }}
     >

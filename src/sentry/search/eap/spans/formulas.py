@@ -28,6 +28,7 @@ from sentry.search.eap.columns import (
     ResolverSettings,
     ValueArgumentDefinition,
 )
+from sentry.search.eap.common_formulas import make_epm, make_eps
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.spans.utils import (
     WEB_VITALS_MEASUREMENTS,
@@ -733,31 +734,6 @@ def tpm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     )
 
 
-def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
-    extrapolation_mode = settings["extrapolation_mode"]
-    is_timeseries_request = settings["snuba_params"].is_timeseries_request
-
-    divisor = (
-        settings["snuba_params"].timeseries_granularity_secs
-        if is_timeseries_request
-        else settings["snuba_params"].interval
-    )
-
-    return Column.BinaryFormula(
-        left=Column(
-            aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_COUNT,
-                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
-                extrapolation_mode=extrapolation_mode,
-            ),
-        ),
-        op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(
-            literal=LiteralValue(val_double=divisor / 60),
-        ),
-    )
-
-
 def failure_count(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
@@ -789,31 +765,6 @@ def failure_count(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bi
         ),
         op=Column.BinaryFormula.OP_MULTIPLY,
         right=Column(literal=LiteralValue(val_double=1.0)),
-    )
-
-
-def eps(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
-    extrapolation_mode = settings["extrapolation_mode"]
-    is_timeseries_request = settings["snuba_params"].is_timeseries_request
-
-    divisor = (
-        settings["snuba_params"].timeseries_granularity_secs
-        if is_timeseries_request
-        else settings["snuba_params"].interval
-    )
-
-    return Column.BinaryFormula(
-        left=Column(
-            aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_COUNT,
-                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
-                extrapolation_mode=extrapolation_mode,
-            ),
-        ),
-        op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(
-            literal=LiteralValue(val_double=divisor),
-        ),
     )
 
 
@@ -1045,6 +996,8 @@ def user_misery(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     )
 
 
+_SPAN_COUNT_KEY = AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms")
+
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(
         default_search_type="percentage",
@@ -1232,7 +1185,10 @@ SPAN_FORMULA_DEFINITIONS = {
         private=True,
     ),
     "epm": FormulaDefinition(
-        default_search_type="rate", arguments=[], formula_resolver=epm, is_aggregate=True
+        default_search_type="rate",
+        arguments=[],
+        formula_resolver=make_epm(_SPAN_COUNT_KEY),
+        is_aggregate=True,
     ),
     "tpm": FormulaDefinition(
         default_search_type="rate", arguments=[], formula_resolver=tpm, is_aggregate=True
@@ -1244,7 +1200,10 @@ SPAN_FORMULA_DEFINITIONS = {
         is_aggregate=True,
     ),
     "eps": FormulaDefinition(
-        default_search_type="rate", arguments=[], formula_resolver=eps, is_aggregate=True
+        default_search_type="rate",
+        arguments=[],
+        formula_resolver=make_eps(_SPAN_COUNT_KEY),
+        is_aggregate=True,
     ),
     "apdex": FormulaDefinition(
         default_search_type="number",

@@ -15,8 +15,8 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import (
     all_silo_test,
     assume_test_silo_mode,
+    cell_silo_test,
     control_silo_test,
-    region_silo_test,
 )
 from sentry.users.models.userip import UserIP
 
@@ -165,7 +165,7 @@ def test_invalid_skip_list(mock_logger: MagicMock) -> None:
 
 
 @django_db_all
-@region_silo_test
+@cell_silo_test
 def test_skip_list_rpc_call_with_invalid_data_passed() -> None:
     log_service.record_audit_log(event=AuditLogEvent(event_id=100))
 

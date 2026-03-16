@@ -28,7 +28,7 @@ jobs:
     # Map a step output to a job output
     outputs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
-      backend: ${{ steps.changes.outputs.backend_all }}
+      backend: ${{ steps.changes.outputs.backend_all_without_acceptance }}
       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}

@@ -2,7 +2,7 @@ import {Fragment, useEffect} from 'react';
 import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -428,7 +428,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     return filteredFields.map(field => {
       const schema = z.object({[field.name]: z.string()});
       return (
-        <AutoSaveField
+        <AutoSaveForm
           key={field.name}
           name={field.name}
           schema={schema}
@@ -444,7 +444,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
               />
             </fieldApi.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
       );
     });
   };
@@ -461,7 +461,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
     const schema = z.object({[notificationType]: z.string()});
     return (
-      <AutoSaveField
+      <AutoSaveForm
         name={notificationType}
         schema={schema}
         initialValue={initialTopOptionData[notificationType] ?? 'always'}
@@ -476,7 +476,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
             />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     );
   };
 
@@ -496,7 +496,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       </FieldGroup>
       {notificationType !== 'reports' && notificationType !== 'brokenMonitors' ? (
         <FieldGroup title={t('Delivery Method')}>
-          <AutoSaveField
+          <AutoSaveForm
             name="provider"
             schema={providerSchema}
             initialValue={initialProviders}
@@ -521,7 +521,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
                 </field.Layout.Row>
               </Fragment>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         </FieldGroup>
       ) : null}
       <NotificationSettingsByEntity

@@ -94,7 +94,7 @@ def validate_region_ip_address(ip: str) -> bool:
     return result
 
 
-class RegionSiloClient(BaseApiClient):
+class CellSiloClient(BaseApiClient):
     integration_type = "silo_client"
 
     access_modes = [SiloMode.CONTROL]
