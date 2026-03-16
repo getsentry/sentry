@@ -169,7 +169,7 @@ class BaseRequestParser(ABC):
         integration_id: int | None = None,
     ) -> HttpResponseBase:
         """
-        Used to create webhookpayloads for provided regions to handle the webhooks asynchronously.
+        Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
         if len(cells) < 1:
@@ -181,7 +181,7 @@ class BaseRequestParser(ABC):
         payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_REGION,
-                region=cell.name,
+                cell=cell.name,
                 provider=self.provider,
                 identifier=shard_identifier,
                 integration_id=integration_id,
@@ -414,7 +414,7 @@ class BaseRequestParser(ABC):
             # create webhookpayloads for each service
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.CODECOV,
-                region=None,
+                cell=None,
                 provider=self.provider,
                 identifier=shard_identifier,
                 integration_id=None,
