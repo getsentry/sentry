@@ -34,12 +34,12 @@ logger = logging.getLogger(__name__)
 MAX_MAPPINGS = 300
 
 
-class MappingItemSerializer(serializers.Serializer):
+class MappingItemSerializer(serializers.Serializer[dict[str, object]]):
     stack_root = gen_path_regex_field()
     source_root = gen_path_regex_field()
 
 
-class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer):
+class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]]):
     project = serializers.CharField(required=True)
     repository = serializers.CharField(required=True)
     default_branch = serializers.RegexField(
@@ -50,7 +50,7 @@ class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer):
     )
     mappings = MappingItemSerializer(many=True, required=True)
 
-    def validate_mappings(self, mappings):
+    def validate_mappings(self, mappings: list[dict[str, str]]) -> list[dict[str, str]]:
         if len(mappings) > MAX_MAPPINGS:
             raise serializers.ValidationError(
                 f"A maximum of {MAX_MAPPINGS} mappings can be submitted at once."

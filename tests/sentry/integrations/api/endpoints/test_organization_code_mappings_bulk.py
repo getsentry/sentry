@@ -43,8 +43,6 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             payload.update(data)
         return self.client.post(self.url, data=payload, format="json", **kwargs)
 
-    # --- Happy path ---
-
     def test_create_single_mapping(self) -> None:
         response = self.make_post()
         assert response.status_code == 200, response.content
@@ -154,8 +152,6 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["created"] == 1
 
-    # --- Validation errors ---
-
     def test_missing_project(self) -> None:
         response = self.make_post({"project": None})
         assert response.status_code == 400
@@ -217,8 +213,6 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
     def test_valid_branch_with_periods(self) -> None:
         response = self.make_post({"defaultBranch": "release-2.0.0"})
         assert response.status_code == 200, response.content
-
-    # --- Resolution errors ---
 
     def test_unknown_project_slug(self) -> None:
         response = self.make_post({"project": "nonexistent-project"})
