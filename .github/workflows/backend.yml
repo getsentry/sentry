@@ -3,8 +3,9 @@ name: backend
 on:
   push:
     branches:
-      - mchen/tiered-xdist-v2
-      - mchen/tiered-xdist-v2-clean
+      - master
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
@@ -292,7 +293,7 @@ jobs:
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
         run: |
-          set -e
+          set -eo pipefail
           XDIST_N=${XDIST_WORKERS:-3}
           SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
           SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
