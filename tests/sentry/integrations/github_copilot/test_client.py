@@ -51,13 +51,13 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response = Mock()
         mock_response.json = {
             "id": "task-123",
-            "status": "completed",
+            "state": "completed",
             "created_at": "2024-01-01T00:00:00Z",
-            "last_updated_at": "2024-01-01T01:00:00Z",
+            "updated_at": "2024-01-01T01:00:00Z",
             "artifacts": [
                 {
                     "provider": "github",
-                    "type": "pull_request",
+                    "type": "github_resource",
                     "data": {"id": 456, "type": "pull", "global_id": "PR_abc123"},
                 }
             ],
@@ -71,7 +71,7 @@ class GithubCopilotAgentClientTest(TestCase):
 
         assert isinstance(result, GithubCopilotTask)
         assert result.id == "task-123"
-        assert result.status == "completed"
+        assert result.state == "completed"
         assert result.artifacts is not None
         assert len(result.artifacts) == 1
         assert result.artifacts[0].data is not None
@@ -90,7 +90,7 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_response = Mock()
         mock_response.json = {
             "id": "task-123",
-            "status": "running",
+            "state": "in_progress",
         }
         mock_response.status_code = 200
         mock_get.return_value = mock_response
@@ -100,7 +100,7 @@ class GithubCopilotAgentClientTest(TestCase):
         )
 
         assert result.id == "task-123"
-        assert result.status == "running"
+        assert result.state == "in_progress"
         assert result.artifacts is None
 
     def _make_launch_request(self, prompt: str = "Fix the bug") -> CodingAgentLaunchRequest:

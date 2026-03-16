@@ -22,12 +22,13 @@ from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
 from sentry.integrations.types import DataForwarderProviderSlug
-from sentry.issue_detection.grouptype import (
+from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
+from sentry.issues.grouptype import (
+    FeedbackGroup,
+    GroupCategory,
     PerformanceNPlusOneGroupType,
     PerformanceP95EndpointRegressionGroupType,
 )
-from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
-from sentry.issues.grouptype import FeedbackGroup, GroupCategory
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity, ActivityIntegration

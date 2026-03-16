@@ -242,6 +242,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             trigger_supergroups_embedding(
                 organization_id=organization.id,
                 group_id=group_id,
+                project_id=group.project_id,
                 artifact_data=root_cause_artifact.data,
             )
         except Exception:

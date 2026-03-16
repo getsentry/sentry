@@ -11,7 +11,14 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.auth.superuser import superuser_has_permission
-from sentry.issue_detection.grouptype import (
+from sentry.issue_detection.performance_detection import (
+    SETTINGS_PROJECT_OPTION_KEY,
+    get_merged_settings,
+    reset_performance_settings,
+    update_performance_settings,
+)
+from sentry.issues.grouptype import (
+    GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
@@ -28,13 +35,6 @@ from sentry.issue_detection.grouptype import (
     QueryInjectionVulnerabilityGroupType,
     WebVitalsGroup,
 )
-from sentry.issue_detection.performance_detection import (
-    SETTINGS_PROJECT_OPTION_KEY,
-    get_merged_settings,
-    reset_performance_settings,
-    update_performance_settings,
-)
-from sentry.issues.grouptype import GroupType
 from sentry.models.project import Project
 
 MAX_VALUE = 2147483647
