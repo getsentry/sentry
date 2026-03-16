@@ -631,8 +631,6 @@ function DataWidgetViewerModal(props: Props) {
                 widget={primaryWidget}
                 tableItemLimit={widget.limit}
                 onZoom={onZoom}
-                legendSelection={widgetLegendState.getWidgetSelectionState(widget)}
-                onLegendSelectionChange={selected => onLegendSelectChanged({selected})}
                 showConfidenceWarning={
                   widget.widgetType === WidgetType.SPANS ||
                   widget.widgetType === WidgetType.TRACEMETRICS ||
