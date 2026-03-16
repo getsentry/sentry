@@ -27,7 +27,7 @@ env:
 
 jobs:
   lint:
-    name: pre-commit
+    name: pre-commit lint
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
