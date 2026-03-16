@@ -227,7 +227,7 @@ def main(context: dict[str, str]) -> int:
     # no more imports from devenv past this point! if the venv is recreated
     # then we won't have access to devenv libs until it gets reinstalled
 
-    # venv's still needed for frontend because repo-local devenv and pre-commit
+    # venv's still needed for frontend because repo-local devenv and prek
     # exist inside it
 
     venv_dir = f"{reporoot}/.venv"
@@ -266,7 +266,7 @@ def main(context: dict[str, str]) -> int:
         venv_dir,
         (
             # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
-            # and pre-commit were moved to inside devenv and not the sentry venv
+            # and prek were moved to inside devenv and not the sentry venv
             (
                 "python dependencies",
                 (
@@ -290,7 +290,7 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
+            ("prek dependencies", (".venv/bin/prek", "install", "--install-hooks", "-f"), {}),
             ("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),
         ),
         verbose,
