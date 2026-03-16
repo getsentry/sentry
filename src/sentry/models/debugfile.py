@@ -250,6 +250,22 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
                 all_features.update(dif.features)
 
 
+def create_dif_from_file(
+    project: Project,
+    file: File,
+    path: str,
+    name: str | None = None,
+    debug_id: str | None = None,
+) -> tuple[ProjectDebugFile, bool]:
+    """Validates an existing DIF file and ensures its ProjectDebugFile exists."""
+    result = detect_dif_from_path(path, name=name, debug_id=debug_id)
+
+    if len(result) != 1:
+        raise BadDif("Object contains %s architectures (1 expected)" % len(result))
+
+    return create_dif_from_id(project, result[0], file=file)
+
+
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
