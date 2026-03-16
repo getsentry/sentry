@@ -16,7 +16,7 @@ from sentry.workflow_engine.models.detector import Detector
 logger = logging.getLogger(__name__)
 
 
-def update_owner(owner: OwnerActorField) -> tuple[int | None, int | None]:
+def update_owner(owner: OwnerActorField | None) -> tuple[int | None, int | None]:
     if owner:
         if owner.is_user:
             owner_user_id = owner.id

@@ -255,7 +255,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             # Handle owner field update
             if "owner" in validated_data:
                 instance.owner_user_id, instance.owner_team_id = update_owner(
-                    validated_data.get("owner")
+                    validated_data.pop("owner")
                 )
 
             # Update the workflow
@@ -306,6 +306,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                     owner_user_id = owner.id
                 elif owner.is_team:
                     owner_team_id = owner.id
+
+            owner_user_id, owner_team_id = update_owner(validated_value.get("owner"))
 
             workflow = Workflow.objects.create(
                 name=validated_value["name"],

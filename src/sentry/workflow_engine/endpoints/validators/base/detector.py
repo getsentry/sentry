@@ -195,7 +195,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
             # Handle owner field update
             if "owner" in validated_data:
                 instance.owner_user_id, instance.owner_team_id = update_owner(
-                    validated_data.get("owner")
+                    validated_data.pop("owner")
                 )
 
             if "condition_group" in validated_data:
@@ -272,14 +272,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                         condition_group=condition_group,
                     )
 
-            owner = validated_data.get("owner")
-            owner_user_id = None
-            owner_team_id = None
-            if owner:
-                if owner.is_user:
-                    owner_user_id = owner.id
-                elif owner.is_team:
-                    owner_team_id = owner.id
+            owner_user_id, owner_team_id = update_owner(validated_data.get("owner"))
 
             detector = Detector(
                 project_id=self.context["project"].id,
