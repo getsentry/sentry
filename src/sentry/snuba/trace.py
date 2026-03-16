@@ -377,7 +377,7 @@ def _run_errors_query_eap(
         return []
 
     # Replicate the legacy to_other(id, error_id, 0, 1) ordering bias:
-    # move the row matching error_id to the front of the list
+    # move the row matching error_id to the end of the list
     # TODO: is there a better way to do this?
     if error_id is not None and eap_data:
         target_idx = None
@@ -386,7 +386,7 @@ def _run_errors_query_eap(
                 target_idx = i
                 break
         if target_idx is not None and target_idx > 0:
-            eap_data.insert(0, eap_data.pop(target_idx))
+            eap_data.append(eap_data.pop(target_idx))
 
     transformed: list[dict[str, Any]] = []
     for row in eap_data:
