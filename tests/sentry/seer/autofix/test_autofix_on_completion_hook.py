@@ -393,6 +393,7 @@ class TestAutofixOnCompletionHookSupergroups(TestCase):
         mock_trigger_sg.assert_called_once_with(
             organization_id=self.organization.id,
             group_id=self.group.id,
+            project_id=self.group.project_id,
             artifact_data=block.artifacts[0].data,
         )
 
