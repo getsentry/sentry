@@ -41,7 +41,7 @@ class VstsRequestParser(BaseRequestParser):
             if not integration:
                 return self.get_default_missing_integration_response()
 
-            regions = self.get_regions_from_organizations()
+            regions = self.get_cells_from_organizations()
         except Integration.DoesNotExist:
             return self.get_default_missing_integration_response()
 

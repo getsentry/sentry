@@ -252,29 +252,29 @@ class BaseRequestParser(ABC):
             "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
 
-    def get_response_from_first_region(self):
-        regions = self.get_regions_from_organizations()
-        first_region = regions[0]
-        response_map = self.get_responses_from_region_silos(regions=[first_region])
-        region_result = response_map[first_region.name]
+    def get_response_from_first_cell(self):
+        cells = self.get_cells_from_organizations()
+        first_cell = cells[0]
+        response_map = self.get_responses_from_region_silos(regions=[first_cell])
+        cell_result = response_map[first_cell.name]
         with MiddlewareOperationEvent(
             operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_FIRST_REGION,
             integration_name=self.provider,
-            region=first_region.name,
+            region=first_cell.name,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
                     "path": self.request.path,
-                    "region": first_region.name,
+                    "region": first_cell.name,
                 }
             )
-            if region_result.error is not None:
+            if cell_result.error is not None:
                 # We want to fail loudly so that devs know this error happened on the region silo (for now)
-                raise SiloClientError(region_result.error)
-            return region_result.response
+                raise SiloClientError(cell_result.error)
+            return cell_result.response
 
-    def get_response_from_all_regions(self):
-        regions = self.get_regions_from_organizations()
+    def get_response_from_all_cells(self):
+        regions = self.get_cells_from_organizations()
         response_map = self.get_responses_from_region_silos(regions=regions)
         successful_responses = [
             result for result in response_map.values() if result.response is not None
@@ -362,7 +362,7 @@ class BaseRequestParser(ABC):
         """
         return organizations
 
-    def get_regions_from_organizations(
+    def get_cells_from_organizations(
         self, organizations: list[RpcOrganizationMapping] | None = None
     ) -> list[Cell]:
         """

@@ -62,7 +62,7 @@ class JiraRequestParser(BaseRequestParser):
         if not integration:
             raise Integration.DoesNotExist()
 
-        regions = self.get_regions_from_organizations()
+        regions = self.get_cells_from_organizations()
 
         if len(regions) == 0:
             return self.get_default_missing_integration_response()

@@ -318,7 +318,7 @@ class SlackRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         try:
-            regions = self.get_regions_from_organizations()
+            regions = self.get_cells_from_organizations()
         except Integration.DoesNotExist:
             # Alert, as there may be a misconfiguration issue
             sentry_sdk.capture_exception()
@@ -342,7 +342,7 @@ class SlackRequestParser(BaseRequestParser):
                 return (
                     self.get_async_region_response(regions=regions)
                     if self.response_url
-                    else self.get_response_from_all_regions()
+                    else self.get_response_from_all_cells()
                 )
 
         # Slack webhooks can only receive one synchronous call/response, as there are many
@@ -352,5 +352,5 @@ class SlackRequestParser(BaseRequestParser):
         return (
             self.get_async_region_response(regions=[regions[0]])
             if self.response_url
-            else self.get_response_from_first_region()
+            else self.get_response_from_first_cell()
         )

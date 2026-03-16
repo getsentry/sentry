@@ -37,7 +37,7 @@ class JiraServerRequestParser(BaseRequestParser):
         if len(organizations) == 0:
             return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
 
-        regions = self.get_regions_from_organizations(organizations=organizations)
+        regions = self.get_cells_from_organizations(organizations=organizations)
 
         try:
             data = orjson.loads(self.request.body)

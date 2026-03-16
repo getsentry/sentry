@@ -60,7 +60,7 @@ class DiscordRequestParser(BaseRequestParser):
         self._discord_request: DiscordRequest = self.view_class.discord_request_class(drf_request)
         return self._discord_request
 
-    def get_async_region_response(self, regions: Sequence[Cell]) -> HttpResponse:
+    def get_async_cell_response(self, regions: Sequence[Cell]) -> HttpResponse:
         if self.discord_request:
             convert_to_async_discord_response.apply_async(
                 kwargs={
@@ -122,26 +122,26 @@ class DiscordRequestParser(BaseRequestParser):
                 return DiscordInteractionsEndpoint.respond_ping()
 
         try:
-            regions = self.get_regions_from_organizations()
+            cells = self.get_cells_from_organizations()
         except Integration.DoesNotExist:
             return self.get_default_missing_integration_response()
 
-        if len(regions) == 0:
+        if len(cells) == 0:
             return self.get_default_missing_integration_response()
 
         if is_discord_interactions_endpoint and self.discord_request:
             if self.discord_request.is_command():
                 return (
-                    self.get_async_region_response(regions=[regions[0]])
+                    self.get_async_cell_response(regions=[cells[0]])
                     if self.discord_request.response_url
-                    else self.get_response_from_first_region()
+                    else self.get_response_from_first_cell()
                 )
 
             if self.discord_request.is_message_component():
                 return (
-                    self.get_async_region_response(regions=regions)
+                    self.get_async_cell_response(regions=cells)
                     if self.discord_request.response_url
-                    else self.get_response_from_all_regions()
+                    else self.get_response_from_all_cells()
                 )
 
         return self.get_response_from_control_silo()
