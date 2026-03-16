@@ -80,7 +80,7 @@ async function fetchTraceMetaInBatches(
 
   while (clonedTraceIds.length > 0) {
     const batch = clonedTraceIds.splice(0, 3);
-    const results = await Promise.allSettled<TraceMeta | EAPTraceMeta>(
+    const results = await Promise.allSettled<EAPTraceMeta>(
       batch.map(replayTrace => {
         const queryParams = getMetaQueryParams(replayTrace, normalizedParams, filters);
         return fetchSingleTraceMetaNew(api, organization, replayTrace, queryParams);
@@ -91,16 +91,7 @@ async function fetchTraceMetaInBatches(
       if (result.status === 'fulfilled') {
         acc.errors += result.value.errors;
         acc.performance_issues += result.value.performance_issues;
-
-        if ('projects' in acc && 'projects' in result.value) {
-          acc.projects = Math.max(acc.projects, result.value.projects);
-        }
-        if ('transactions' in acc && 'transactions' in result.value) {
-          acc.transactions += result.value.transactions;
-        }
-        if ('logs' in acc && 'logs' in result.value) {
-          acc.logs += result.value.logs;
-        }
+        acc.logs += result.value.logs;
 
         // Turn the transaction_child_count_map array into a map of transaction id to child count
         // for more efficient lookups.
