@@ -146,6 +146,7 @@ export const LogTableBody = styled(TableBody)<{
   /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
   min-height: 1px;
 
+  height: 100%;
   max-height: ${p =>
     p.expanded
       ? `calc(95vh - ${GRID_BODY_ROW_HEIGHT * 1.5}px)`
@@ -441,7 +442,7 @@ export const FloatingBackToTopContainer = styled('div')<{
   position: absolute;
   z-index: 1;
   opacity: ${p => (p.inReplay ? 1 : 0.9)};
-  top: ${p => (p.inReplay ? '90px;' : '65px;')};
+  top: ${p => (p.inReplay ? p.theme.space.md : '65px;')};
   left: calc(50% - var(--floatingWidth) / 2);
   width: var(--floatingWidth);
   display: flex;

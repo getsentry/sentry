@@ -163,10 +163,9 @@ const BorderedSection = styled(FluidHeight)<{isStatus?: boolean}>`
 `;
 
 const TableScrollContainer = styled('div')`
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow-y: hidden;
+  position: relative;
   height: 100%;
-  min-height: 0;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 `;
