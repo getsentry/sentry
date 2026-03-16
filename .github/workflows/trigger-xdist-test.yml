@@ -1,0 +1,60 @@
+name: trigger xdist tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Total runs to reach'
+        default: '100'
+      triggered:
+        description: 'Runs already triggered'
+        default: '2'
+
+jobs:
+  trigger-loop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    steps:
+      - name: Dispatch backend runs in batches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TARGET=${{ inputs.target }}
+          COUNT=${{ inputs.triggered }}
+          BRANCH="mchen/xdist-bootstrap-test"
+          BATCH=2
+          INTERVAL=900
+          # Re-trigger ourselves before the 6h job limit (~5.5h = 330min = 22 batches)
+          MAX_BATCHES=22
+
+          echo "Target: $TARGET | Already triggered: $COUNT | Batch: $BATCH every ${INTERVAL}s"
+          batches_done=0
+
+          while [ "$COUNT" -lt "$TARGET" ] && [ "$batches_done" -lt "$MAX_BATCHES" ]; do
+            echo "[$(date -u '+%H:%M:%S')] Sleeping ${INTERVAL}s ($COUNT/$TARGET triggered, batch $((batches_done+1))/$MAX_BATCHES)..."
+            sleep "$INTERVAL"
+
+            for _ in $(seq 1 $BATCH); do
+              [ "$COUNT" -ge "$TARGET" ] && break
+              gh workflow run backend.yml --repo "${{ github.repository }}" --ref "$BRANCH"
+              COUNT=$((COUNT + 1))
+              echo "[$(date -u '+%H:%M:%S')] Triggered #$COUNT/$TARGET"
+              sleep 2
+            done
+            batches_done=$((batches_done + 1))
+          done
+
+          echo "This job triggered $((batches_done * BATCH)) runs. Total so far: $COUNT/$TARGET"
+
+          if [ "$COUNT" -lt "$TARGET" ]; then
+            echo "Re-dispatching ourselves for remaining runs..."
+            gh workflow run trigger-xdist-test.yml \
+              --repo "${{ github.repository }}" \
+              --ref "${{ github.ref }}" \
+              -f target="$TARGET" \
+              -f triggered="$COUNT"
+            echo "Re-triggered. Next job will continue from $COUNT."
+          else
+            echo "Done! All $TARGET runs triggered."
+          fi
