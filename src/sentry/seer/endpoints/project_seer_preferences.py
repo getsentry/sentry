@@ -36,6 +36,21 @@ class BranchOverrideSerializer(CamelSnakeSerializer):
     branch_name = serializers.CharField(required=True)
 
 
+def validate_unique_branch_overrides(value):
+    if not value:
+        return value
+
+    seen = set()
+    for override in value:
+        key = (override["tag_name"], override["tag_value"])
+        if key in seen:
+            raise serializers.ValidationError(
+                f"Duplicate branch override for tag {key[0]}={key[1]}"
+            )
+        seen.add(key)
+    return value
+
+
 class RepositorySerializer(CamelSnakeSerializer):
     organization_id = serializers.IntegerField(required=True)
     integration_id = serializers.CharField(required=True)
@@ -54,17 +69,7 @@ class RepositorySerializer(CamelSnakeSerializer):
     provider_raw = serializers.CharField(required=False, allow_null=True)
 
     def validate_branch_overrides(self, value):
-        if not value:
-            return value
-        seen = set()
-        for override in value:
-            key = (override["tag_name"], override["tag_value"])
-            if key in seen:
-                raise serializers.ValidationError(
-                    f"Duplicate branch override for tag {key[0]}={key[1]}"
-                )
-            seen.add(key)
-        return value
+        return validate_unique_branch_overrides(value)
 
 
 class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):

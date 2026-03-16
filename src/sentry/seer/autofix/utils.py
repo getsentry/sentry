@@ -444,7 +444,7 @@ def _write_preferences_to_sentry_db(
 ) -> None:
     """Write project preferences to ProjectOption + SeerProjectRepository.
 
-    Replaces all existing SeerProjectRepository rows for the given projects.
+    Replaces SeerProjectRepository rows for projects that can be safely rebuilt.
     """
     validated_project_preferences: list[tuple[Project, SeerProjectPreference]] = []
     for project, pref in project_preferences:
@@ -459,42 +459,58 @@ def _write_preferences_to_sentry_db(
     if not validated_project_preferences:
         return
 
-    with transaction.atomic(using=router.db_for_write(SeerProjectRepository)):
-        # Delete existing rows
-        validated_project_ids = {project.id for project, _ in validated_project_preferences}
-        SeerProjectRepository.objects.filter(project_id__in=validated_project_ids).delete()
+    project_ids_to_replace: set[int] = set()
+    project_repos_to_create: list[SeerProjectRepository] = []
+    overrides_by_key: dict[tuple[int, int], list[BranchOverride]] = {}
 
-        # Collect project repos to create and map overrides by (project_id, repository_id)
-        project_repos_to_create: list[SeerProjectRepository] = []
-        overrides_by_key: dict[tuple[int, int], list[BranchOverride]] = {}
-        for project, pref in validated_project_preferences:
-            for repo_def in pref.repositories:
-                if repo_def.repository_id is None:
-                    logger.warning(
-                        "seer.write_preferences.repo_missing_id",
-                        extra={
-                            "project_id": project.id,
-                            "organization_id": project.organization_id,
-                            "external_id": repo_def.external_id,
-                        },
-                    )
-                    continue
-
-                project_repos_to_create.append(
-                    SeerProjectRepository(
-                        project=project,
-                        repository_id=repo_def.repository_id,
-                        branch_name=repo_def.branch_name,
-                        instructions=repo_def.instructions,
-                    )
+    for project, pref in validated_project_preferences:
+        has_repos_with_id = False
+        for repo_def in pref.repositories:
+            if repo_def.repository_id is None:
+                logger.warning(
+                    "seer.write_preferences.repo_missing_id",
+                    extra={
+                        "project_id": project.id,
+                        "organization_id": project.organization_id,
+                        "external_id": repo_def.external_id,
+                    },
                 )
-                if repo_def.branch_overrides:
-                    overrides_by_key[(project.id, repo_def.repository_id)] = (
-                        repo_def.branch_overrides
-                    )
+                continue
+
+            has_repos_with_id = True
+            project_repos_to_create.append(
+                SeerProjectRepository(
+                    project=project,
+                    repository_id=repo_def.repository_id,
+                    branch_name=repo_def.branch_name,
+                    instructions=repo_def.instructions,
+                )
+            )
+            if repo_def.branch_overrides:
+                overrides_by_key[(project.id, repo_def.repository_id)] = repo_def.branch_overrides
+
+        # Always replace when the source has no repositories (clear existing rows).
+        # For non-empty sources, only replace if we can recreate at least one row.
+        if not pref.repositories or has_repos_with_id:
+            project_ids_to_replace.add(project.id)
+        else:
+            logger.warning(
+                "seer.write_preferences.skip_repo_replace_missing_ids",
+                extra={"project_id": project.id, "organization_id": project.organization_id},
+            )
+
+    with transaction.atomic(using=router.db_for_write(SeerProjectRepository)):
+        # Delete and replace existing rows for projects we can safely rebuild.
+        SeerProjectRepository.objects.filter(project_id__in=project_ids_to_replace).delete()
 
         # Create project repos
-        created_project_repos = SeerProjectRepository.objects.bulk_create(project_repos_to_create)
+        created_project_repos = SeerProjectRepository.objects.bulk_create(
+            [
+                project_repo
+                for project_repo in project_repos_to_create
+                if project_repo.project_id in project_ids_to_replace
+            ]
+        )
 
         # Create branch overrides, keying on (project_id, repository_id) from the
         # returned objects rather than relying on bulk_create return ordering

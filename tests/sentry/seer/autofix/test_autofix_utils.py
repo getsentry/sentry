@@ -840,6 +840,45 @@ class TestWritePreferencesToSentryDb(TestCase):
             == 0
         )
 
+    def test_missing_repository_ids_do_not_delete_existing_rows(self):
+        initial_preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_name="initial-branch",
+                ),
+            ],
+        )
+        write_preference_to_sentry_db(self.project, initial_preference)
+
+        preference_with_missing_repo_id = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_name="new-branch-without-id",
+                ),
+            ],
+            automated_run_stopping_point="open_pr",
+        )
+        write_preference_to_sentry_db(self.project, preference_with_missing_repo_id)
+
+        repos = SeerProjectRepository.objects.filter(project=self.project)
+        assert len(repos) == 1
+        assert repos[0].repository_id == self.repo.id
+        assert repos[0].branch_name == "initial-branch"
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+
     def test_multiple_repos_for_one_project(self):
         repo2 = self.create_repo(
             project=self.project,
