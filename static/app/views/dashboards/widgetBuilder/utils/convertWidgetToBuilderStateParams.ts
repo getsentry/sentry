@@ -28,11 +28,11 @@ function stringifyFields(
 }
 
 /**
- * Converts a widget to URL query params for initializing the widget builder state.
- * Use convertWidgetToBuilderSetStateParams for SET_STATE dispatches that
- * need to carry some extra information for text widgets.
+ * Converts a widget to URL query params to open the widget builder in the correct state.
+ * Use `convertWidgetToBuilderSetStateParams` for `SET_STATE` dispatches as the URL
+ * query params and widget builder state varies.
  */
-export function convertWidgetToBuilderStateParams(
+export function convertWidgetToQueryParams(
   widget: Widget
 ): WidgetBuilderStateQueryParams {
   const query = widget.queries.flatMap(q => q.conditions);
@@ -83,12 +83,14 @@ export function convertWidgetToBuilderStateParams(
 }
 
 /**
- * Converts a widget to SET_STATE params, including textContent for text widgets.
- * Use this when dispatching SET_STATE actions. This will carry all necessary information
- * needed for text widgets in addition to all other widgets.
+ * Converts a widget to widget builder state.
+ * Use this when dispatching SET_STATE actions. This will carry all information
+ * (including non-url query params) needed to set the state for the widget builder UI.
  */
 export function convertWidgetToBuilderState(widget: Widget): WidgetBuilderStateParams {
-  const state = convertWidgetToBuilderStateParams(widget);
+  // The state uses most of the same params as the query params
+  const state = convertWidgetToQueryParams(widget);
+  // add in the additional non-url query params
   if (widget.displayType === DisplayType.TEXT) {
     return {...state, textContent: widget.description};
   }
