@@ -354,22 +354,9 @@ jobs:
           SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
         run: |
           if [ -n "${XDIST_WORKERS}" ]; then
-            python3 -b -m pytest tests \
-              --reuse-db \
-              -n ${XDIST_WORKERS} \
-              --dist=loadfile \
-              --ignore tests/acceptance \
-              --ignore tests/apidocs \
-              --ignore tests/js \
-              --ignore tests/tools \
-              --json-report \
-              --json-report-file=".artifacts/pytest.json" \
-              --json-report-omit=log \
-              --junit-xml=.artifacts/pytest.junit.xml \
-              -o junit_suite_name=pytest
-          else
-            make test-python-ci
+            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
           fi
+          make test-python-ci
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
