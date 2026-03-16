@@ -115,6 +115,9 @@ class Feature:
     created_at: str | None = None
     "The datetime when this feature was created."
 
+    experiment_mode: str | None = None
+    "The experiment mode for this feature. When set, the flag is treated as an experiment."
+
     def match(self, context: EvaluationContext) -> bool:
         if not self.enabled:
             return False
@@ -151,12 +154,17 @@ class Feature:
                 email=raw_owner.get("email"),
             )
 
+            raw_experiment_mode = config_dict.get("experiment_mode")
+
             feature = cls(
                 name=name,
                 owner=owner,
                 enabled=bool(config_dict.get("enabled", True)),
                 created_at=str(config_dict.get("created_at")),
                 segments=segments,
+                experiment_mode=str(raw_experiment_mode)
+                if raw_experiment_mode is not None
+                else None,
             )
         except Exception as exc:
             raise InvalidFeatureFlagConfiguration(

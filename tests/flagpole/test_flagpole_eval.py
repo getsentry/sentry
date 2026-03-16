@@ -4,6 +4,7 @@ from unittest import mock
 
 import pytest
 import yaml
+from jsonschema import ValidationError
 
 from flagpole import Feature, OwnerInfo
 from flagpole.conditions import EqualsCondition, Segment
@@ -380,3 +381,85 @@ class TestEvaluateFlag:
         assert rollout == 75
         assert segment
         assert segment.name == "partial-rollout-segment"
+
+
+class TestExperimentMode:
+    """Test experiment_mode field on Feature dataclass."""
+
+    def test_feature_with_experiment_mode_simple(self):
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "growth"},
+            "created_at": "2026-03-13",
+            "experiment_mode": "simple",
+            "segments": [{"name": "all-orgs", "rollout": 50, "conditions": []}],
+        }
+
+        feature = Feature.from_feature_dictionary("test-experiment", config_dict)
+
+        assert feature.experiment_mode == "simple"
+
+    def test_feature_without_experiment_mode(self):
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "growth"},
+            "created_at": "2026-03-13",
+            "segments": [{"name": "all-orgs", "rollout": 100, "conditions": []}],
+        }
+
+        feature = Feature.from_feature_dictionary("test-feature", config_dict)
+
+        assert feature.experiment_mode is None
+
+    def test_experiment_mode_does_not_affect_match(self):
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "growth"},
+            "created_at": "2026-03-13",
+            "segments": [{"name": "all-orgs", "rollout": 100, "conditions": []}],
+        }
+        config_with_experiment = {**config_dict, "experiment_mode": "simple"}
+
+        feature_regular = Feature.from_feature_dictionary("regular", config_dict)
+        feature_experiment = Feature.from_feature_dictionary("experiment", config_with_experiment)
+
+        context = EvaluationContext({"user_id": 123})
+
+        assert feature_regular.match(context) == feature_experiment.match(context)
+
+    def test_validate_invalid_experiment_mode(self):
+        feature = Feature(
+            name="test-feature",
+            owner=OwnerInfo(team="growth"),
+            enabled=True,
+            created_at="2026-03-13",
+            segments=[],
+            experiment_mode="invalid",
+        )
+
+        with pytest.raises(ValidationError):
+            feature.validate()
+
+    def test_validate_valid_experiment_mode(self):
+        feature = Feature(
+            name="test-feature",
+            owner=OwnerInfo(team="growth"),
+            enabled=True,
+            created_at="2026-03-13",
+            segments=[],
+            experiment_mode="simple",
+        )
+
+        assert feature.validate() is True
+
+    def test_validate_none_experiment_mode(self):
+        feature = Feature(
+            name="test-feature",
+            owner=OwnerInfo(team="growth"),
+            enabled=True,
+            created_at="2026-03-13",
+            segments=[],
+            experiment_mode=None,
+        )
+
+        assert feature.validate() is True
