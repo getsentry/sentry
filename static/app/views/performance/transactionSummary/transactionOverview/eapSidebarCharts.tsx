@@ -46,7 +46,7 @@ function ApdexWidget({transactionName}: ApdexWidgetProps) {
   const {transactionThreshold} = useTransactionSummaryContext();
 
   const threshold = transactionThreshold ?? 300;
-  const apdexField = `apdex(span.duration, ${threshold})` as const;
+  const apdexField = `apdex(span.duration,${threshold})` as const;
 
   const transactionSearch = new MutableSearch('');
   transactionSearch.addFilterValue('transaction', transactionName);
