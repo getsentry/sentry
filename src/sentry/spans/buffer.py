@@ -216,7 +216,6 @@ class SpansBuffer:
         root_timeout = options.get("spans.buffer.root-timeout")
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
         max_spans_per_evalsha = options.get("spans.buffer.max-spans-per-evalsha")
-        zero_copy_threshold = options.get("spans.buffer.zero-copy-dest-threshold-bytes")
         write_distributed_payloads = options.get("spans.buffer.write-distributed-payloads")
         write_merged_payloads = options.get("spans.buffer.write-merged-payloads")
 
@@ -298,7 +297,6 @@ class SpansBuffer:
                             redis_ttl,
                             max_segment_bytes,
                             byte_count,
-                            zero_copy_threshold,
                             "true" if write_distributed_payloads else "false",
                             "true" if write_merged_payloads else "false",
                             *span_ids,
