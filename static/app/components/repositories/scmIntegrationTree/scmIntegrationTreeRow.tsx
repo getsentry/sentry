@@ -392,7 +392,7 @@ const RowContainer = styled('div')`
   width: 100%;
   border-bottom: 1px solid ${p => p.theme.tokens.border.neutral.muted};
   &:last-child {
-    border-bottom: none;
+    border-bottom: 1px solid transparent;
   }
 `;
 
