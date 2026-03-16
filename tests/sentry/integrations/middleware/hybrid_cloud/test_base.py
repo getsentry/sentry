@@ -110,7 +110,7 @@ class BaseRequestParserTest(TestCase):
     def test_get_response_from_webhookpayload_creation(self) -> None:
         with pytest.raises(AttributeError):
             BaseRequestParser(self.request, self.response_handler).get_response_from_webhookpayload(
-                regions=self.region_config
+                cells=self.region_config
             )
 
         class MockParser(BaseRequestParser):
