@@ -17,6 +17,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
+import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
 type Props = {
   hasWebVitals: boolean;
@@ -43,10 +44,15 @@ function ApdexWidget({transactionName}: ApdexWidgetProps) {
   const organization = useOrganization();
   const theme = useTheme();
   const {selection} = usePageFilters();
-  const {transactionThreshold} = useTransactionSummaryContext();
+  const {transactionThreshold, transactionThresholdMetric} =
+    useTransactionSummaryContext();
 
   const threshold = transactionThreshold ?? 300;
-  const apdexField = `apdex(span.duration,${threshold})` as const;
+  const apdexDurationField =
+    transactionThresholdMetric === TransactionThresholdMetric.LARGEST_CONTENTFUL_PAINT
+      ? 'measurements.lcp'
+      : 'span.duration';
+  const apdexField = `apdex(${apdexDurationField},${threshold})` as const;
 
   const transactionSearch = new MutableSearch('');
   transactionSearch.addFilterValue('transaction', transactionName);
