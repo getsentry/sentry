@@ -58,27 +58,35 @@ export function CodeChangesPreview({artifact}: CodeChangesPreviewProps) {
     return patchesByRepo;
   }, [artifact]);
 
-  const reposChanged = patchesForRepos.size;
+  const summary = useMemo(() => {
+    const reposChanged = patchesForRepos.size;
 
-  const filesChanged = useMemo(() => {
-    const changed = new Set<string>();
+    const filesChanged = new Set<string>();
 
     for (const [repo, patchesForRepo] of patchesForRepos.entries()) {
       for (const patch of patchesForRepo) {
-        changed.add(`${repo}:${patch.patch.path}`);
+        filesChanged.add(`${repo}:${patch.patch.path}`);
       }
     }
 
-    return changed.size;
+    if (reposChanged === 0) {
+      return t('No files changed');
+    }
+
+    if (reposChanged === 1) {
+      return tn(
+        '%s file changed in 1 repo',
+        '%s files changed in 1 repo',
+        filesChanged.size
+      );
+    }
+
+    return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesForRepos]);
 
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
-      {reposChanged === 1
-        ? tn('%s file changed in 1 repo', '%s files changed in 1 repo', filesChanged)
-        : reposChanged > 1
-          ? t('%s files changed in %s repos', filesChanged, reposChanged)
-          : null}
+      {summary}
     </ArtifactCard>
   );
 }

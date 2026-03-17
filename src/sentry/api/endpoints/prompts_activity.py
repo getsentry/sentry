@@ -9,7 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -34,7 +34,7 @@ class PromptsActivitySerializer(serializers.Serializer):
         return value
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class PromptsActivityEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,

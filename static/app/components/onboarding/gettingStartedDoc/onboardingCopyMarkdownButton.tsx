@@ -8,7 +8,7 @@ import {stepsToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdow
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface CopyMarkdownButtonProps {
   getMarkdown: () => string;

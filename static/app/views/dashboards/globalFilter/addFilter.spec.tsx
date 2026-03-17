@@ -117,4 +117,46 @@ describe('AddFilter', () => {
       value: '',
     });
   });
+
+  it('retrieves filter keys for the metrics dataset', async () => {
+    render(
+      <AddFilter
+        globalFilters={[]}
+        getSearchBarData={getSearchBarData}
+        onAddFilter={() => {}}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
+    await userEvent.click(screen.getByText('Metrics'));
+
+    expect(screen.getByText('Select Metrics Tag')).toBeInTheDocument();
+    expect(screen.getByText(mockFilterKeys['browser.name']!.key)).toBeInTheDocument();
+    expect(screen.getByText(mockFilterKeys.environment!.key)).toBeInTheDocument();
+  });
+
+  it('calls onAddFilter with trace metrics dataset', async () => {
+    const onAddFilter = jest.fn();
+    render(
+      <AddFilter
+        globalFilters={[]}
+        getSearchBarData={getSearchBarData}
+        onAddFilter={onAddFilter}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
+    await userEvent.click(screen.getByText('Metrics'));
+    await userEvent.click(
+      screen.getByRole('option', {name: mockFilterKeys.environment!.key})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(onAddFilter).toHaveBeenCalledTimes(1);
+    expect(onAddFilter).toHaveBeenCalledWith({
+      dataset: WidgetType.TRACEMETRICS,
+      tag: mockFilterKeys.environment,
+      value: '',
+    });
+  });
 });

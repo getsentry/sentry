@@ -11,7 +11,7 @@ from sentry_sdk import Scope
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations.analytics import IntegrationStacktraceLinkEvent
@@ -94,7 +94,7 @@ def set_tags(scope: Scope, result: StacktraceLinkOutcome, integrations: list[Non
     scope.set_tag("stacktrace_link.has_integration", len(integrations) > 0)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

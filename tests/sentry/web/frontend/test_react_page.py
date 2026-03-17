@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
 
 us = Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
@@ -401,21 +401,7 @@ class ReactPageViewTest(TestCase):
             ]
             assert "activeorg" in self.client.session
 
-    def test_document_policy_header_when_flag_is_enabled(self) -> None:
-        org = self.create_organization(owner=self.user)
-
-        self.login_as(self.user)
-
-        with self.feature({"organizations:profiling-browser": [org.slug]}):
-            response = self.client.get(
-                "/issues/",
-                HTTP_HOST=f"{org.slug}.testserver",
-                follow=True,
-            )
-            assert response.status_code == 200
-            assert response.headers["Document-Policy"] == "js-profiling"
-
-    def test_document_policy_header_when_flag_is_disabled(self) -> None:
+    def test_document_policy_header(self) -> None:
         org = self.create_organization(owner=self.user)
 
         self.login_as(self.user)
@@ -426,7 +412,7 @@ class ReactPageViewTest(TestCase):
             follow=True,
         )
         assert response.status_code == 200
-        assert "Document-Policy" not in response.headers
+        assert response.headers["Document-Policy"] == "js-profiling"
 
     def test_dns_prefetch(self) -> None:
         us_region = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)

@@ -9,7 +9,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import IntegrationExternalMappings from './integrationExternalMappings';
+import {IntegrationExternalMappings} from './integrationExternalMappings';
 
 describe('IntegrationExternalMappings', () => {
   const {organization} = initializeOrg();

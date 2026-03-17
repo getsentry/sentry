@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconBusiness, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -13,7 +13,7 @@ import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength, hasJustStartedPlanTrial} from 'getsentry/utils/billing';
 
-import withSubscription from './withSubscription';
+import {withSubscription} from './withSubscription';
 
 type MemberInviteProps = {
   children: (opts: {

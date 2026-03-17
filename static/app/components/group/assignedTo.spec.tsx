@@ -10,10 +10,10 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AssignedTo from 'sentry/components/group/assignedTo';
-import GroupStore from 'sentry/stores/groupStore';
-import MemberListStore from 'sentry/stores/memberListStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization, Team} from 'sentry/types/organization';

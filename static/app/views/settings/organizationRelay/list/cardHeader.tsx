@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-import ConfirmDelete from 'sentry/components/confirmDelete';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DateTime} from 'sentry/components/dateTime';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Relay} from 'sentry/types/relay';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 type Props = Relay & {
   disabled: boolean;
@@ -17,7 +17,7 @@ type Props = Relay & {
   onEdit: (publicKey: Relay['publicKey']) => () => void;
 };
 
-function CardHeader({
+export function CardHeader({
   publicKey,
   name,
   description,
@@ -83,8 +83,6 @@ function CardHeader({
     </Header>
   );
 }
-
-export default CardHeader;
 
 const KeyName = styled('div')`
   grid-row: 1/2;

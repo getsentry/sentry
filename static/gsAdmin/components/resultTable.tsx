@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-const ResultTable = styled('table')`
+export const ResultTable = styled('table')`
   margin: 0;
   width: 100%;
   line-height: 1;
@@ -33,5 +33,3 @@ const ResultTable = styled('table')`
     }
   }
 `;
-
-export default ResultTable;

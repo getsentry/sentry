@@ -7,7 +7,7 @@ type Props = Omit<DataScrubFormModalProps, 'title' | 'onGetNewRules'> & {
   savedRules: Rule[];
 };
 
-function Add({savedRules, ...props}: Props) {
+export function Add({savedRules, ...props}: Props) {
   const handleGetNewRules = (
     values: Parameters<DataScrubFormModalProps['onGetNewRules']>[0]
   ) => {
@@ -22,5 +22,3 @@ function Add({savedRules, ...props}: Props) {
     />
   );
 }
-
-export default Add;

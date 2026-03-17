@@ -44,7 +44,7 @@ class EmailMissingLinksControlTest(TestCase):
         assert "SSO link request invoked by bar@example.com" in message.body
 
     def test_email_missing_links_organization_deleted(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.organization.delete()
 
         with self.tasks():

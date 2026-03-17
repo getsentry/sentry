@@ -3,10 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 
-import Panel from './panel';
+import {Panel} from './panel';
 
 type PanelTableProps = {
   /**

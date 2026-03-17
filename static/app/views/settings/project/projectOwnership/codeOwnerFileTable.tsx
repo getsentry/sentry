@@ -15,8 +15,8 @@ import {t} from 'sentry/locale';
 import type {CodeOwner, CodeownersFile} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import ViewCodeOwnerModal, {modalCss} from './viewCodeOwnerModal';
 

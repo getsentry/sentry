@@ -6,7 +6,7 @@ import {useQuery} from '@tanstack/react-query';
 import * as qs from 'query-string';
 import type {Tagged} from 'type-fest';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import type {ImageAvatarProps} from './imageAvatar/imageAvatar';
 import type {LetterAvatarProps} from './letterAvatar/letterAvatar';
@@ -158,7 +158,8 @@ async function hashGravatarId(gravatarId: string): Promise<string> {
  * the svg, etc) will also need to be changed there.
  */
 function getInitials(name: string | undefined): Tagged<string, '__avatar'> {
-  const sanitizedName = name?.trim();
+  const sanitizedName =
+    name === null || name === undefined ? undefined : String(name).trim();
 
   if (!sanitizedName) {
     return '?' as Tagged<string, '__avatar'>;

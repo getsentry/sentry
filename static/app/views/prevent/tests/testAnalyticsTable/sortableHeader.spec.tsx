@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import SortableHeader from './sortableHeader';
+import {SortableHeader} from './sortableHeader';
 
 const mockLocation = {
   pathname: '/prevent/tests/',

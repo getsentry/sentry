@@ -6,7 +6,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
+import {FirstLastSeenSection} from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 
 describe('FirstLastSeenSection', () => {
   const organization = OrganizationFixture();

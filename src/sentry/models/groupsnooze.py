@@ -14,7 +14,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.manager.base import BaseManager
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
-@region_silo_model
+@cell_silo_model
 class GroupSnooze(Model):
     """
     A snooze marks an issue as ignored until a condition is hit.

@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 import {UserFixture} from 'sentry-fixture/user';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 

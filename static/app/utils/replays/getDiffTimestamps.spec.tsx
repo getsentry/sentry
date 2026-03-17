@@ -15,7 +15,7 @@ import {
   getReplayDiffOffsetsFromFrame,
 } from 'sentry/utils/replays/getDiffTimestamps';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {
   IncrementalSource,
   isHydrationErrorFrame,

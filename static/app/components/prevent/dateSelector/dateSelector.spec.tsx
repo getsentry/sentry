@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
+import {PreventQueryParamsProvider} from 'sentry/components/prevent/container/preventParamsProvider';
 import {DateSelector} from 'sentry/components/prevent/dateSelector/dateSelector';
 
 describe('DateSelector', () => {

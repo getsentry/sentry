@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {DeployBadge} from '@sentry/scraps/badge';
 
 import * as SidebarSection from 'sentry/components/sidebarSection';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Deploy} from 'sentry/types/release';
@@ -15,7 +15,7 @@ type Props = {
   version: string;
 };
 
-function Deploys({version, orgSlug, projectId, deploys}: Props) {
+export function Deploys({version, orgSlug, projectId, deploys}: Props) {
   return (
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Deploys')}</SidebarSection.Title>
@@ -47,5 +47,3 @@ const Row = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default Deploys;

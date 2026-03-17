@@ -4,7 +4,7 @@ from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.repository import repository_service
 from sentry.organizations.services.organization import organization_service
-from sentry.types.region import RegionMappingNotFound
+from sentry.types.cell import CellMappingNotFound
 from sentry.workflow_engine.service.action import action_service
 
 
@@ -41,7 +41,7 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegrat
                     status=ObjectStatus.DISABLED,
                 )
 
-        except RegionMappingNotFound:
+        except CellMappingNotFound:
             # This can happen when an organization has been deleted already.
             pass
         return super().delete_instance(instance)

@@ -5,7 +5,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
 
-function NotFound() {
+export function NotFound() {
   return (
     <Alert.Container>
       <Alert variant="danger">
@@ -48,5 +48,3 @@ const Heading = styled('h1')`
   line-height: 1.4;
   margin-bottom: ${p => p.theme.space.md};
 `;
-
-export default NotFound;

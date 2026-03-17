@@ -339,7 +339,7 @@ class UserService(RpcService):
         pass
 
 
-@back_with_silo_cache("user_service.get_user", SiloMode.REGION, RpcUser)
+@back_with_silo_cache("user_service.get_user", SiloMode.CELL, RpcUser)
 def get_user(user_id: int) -> RpcUser | None:
     users = user_service.get_many(filter={"user_ids": [user_id]})
     if len(users) > 0:
@@ -347,7 +347,7 @@ def get_user(user_id: int) -> RpcUser | None:
     return None
 
 
-@back_with_silo_cache_many("user_service.get_many_by_id", SiloMode.REGION, RpcUser)
+@back_with_silo_cache_many("user_service.get_many_by_id", SiloMode.CELL, RpcUser)
 def get_many_by_id(ids: list[int]) -> list[RpcUser]:
     return user_service.get_many(filter={"user_ids": ids})
 

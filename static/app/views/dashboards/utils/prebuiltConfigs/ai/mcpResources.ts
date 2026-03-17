@@ -88,14 +88,14 @@ const RESOURCES_TABLE = {
         SpanFields.MCP_RESOURCE_URI,
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
@@ -138,4 +138,9 @@ export const MCP_RESOURCES_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   widgets: [...FIRST_ROW_WIDGETS, RESOURCES_TABLE],
+  onboarding: {
+    type: 'custom',
+    componentId: 'mcp',
+    requiredProjectFlags: ['hasInsightsMCP'],
+  },
 };

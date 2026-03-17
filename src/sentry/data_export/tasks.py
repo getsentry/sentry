@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
         delay=60,
     ),
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def assemble_download(
     data_export_id: int,
@@ -314,7 +314,7 @@ def store_export_chunk_as_blob(
 @instrumented_task(
     name="sentry.data_export.tasks.merge_blobs",
     namespace=export_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def merge_export_blobs(data_export_id: int, **kwargs: Any) -> None:
     extra: dict[str, Any] = {"data_export_id": data_export_id}

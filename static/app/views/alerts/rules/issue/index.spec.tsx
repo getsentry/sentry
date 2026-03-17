@@ -16,14 +16,14 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
@@ -581,7 +581,7 @@ describe('IssueRuleEditor', () => {
           location: {
             query: {
               createFromDuplicate: 'true',
-              duplicateRuleId: `${rule.id}`,
+              duplicateRuleId: rule.id,
             },
           },
         },
@@ -606,7 +606,7 @@ describe('IssueRuleEditor', () => {
           location: {
             query: {
               createFromDuplicate: 'true',
-              duplicateRuleId: `${rule.id}`,
+              duplicateRuleId: rule.id,
             },
           },
         },

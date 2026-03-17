@@ -5,11 +5,11 @@ import {useResizeObserver} from '@react-aria/utils';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import ReplayPreferenceDropdown from 'sentry/components/replays/preferences/replayPreferenceDropdown';
+import {ReplayPreferenceDropdown} from 'sentry/components/replays/preferences/replayPreferenceDropdown';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
-import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
-import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
+import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
+import {TimeAndScrubberGrid} from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconChevron, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
@@ -66,7 +66,7 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
   );
 }
 
-export default function ReplayController({
+export function ReplayController({
   toggleFullscreen,
   hideFastForward = false,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],

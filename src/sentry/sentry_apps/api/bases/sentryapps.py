@@ -22,7 +22,7 @@ from sentry.organizations.services.organization import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryApp, app_service
-from sentry.sentry_apps.services.region.model import RpcSentryAppError
+from sentry.sentry_apps.services.cell.model import RpcSentryAppError
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
     SentryAppIntegratorError,
@@ -96,7 +96,7 @@ class SentryAppsAndStaffPermission(StaffPermissionMixin, SentryAppsPermission):
 class IntegrationPlatformEndpoint(Endpoint):
     def respond_rpc_sentry_app_error(self, rpc_error: RpcSentryAppError) -> Response:
         """
-        Surfaces errors from the region-side Sentry App RPC to the client.
+        Surfaces errors from the cell-side Sentry App RPC to the client.
         """
         response_body = rpc_error.get_public_dict()
         status_code = rpc_error.status_code or 500
@@ -286,7 +286,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         return (args, kwargs)
 
 
-class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
+class CellSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     def convert_args(
         self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
     ):

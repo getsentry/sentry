@@ -8,11 +8,13 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
-import TagStore from 'sentry/stores/tagStore';
+import {TagStore} from 'sentry/stores/tagStore';
 import type {Group} from 'sentry/types/group';
 import IssueList from 'sentry/views/issueList/overview';
 
-jest.mock('sentry/views/issueList/filters', () => jest.fn(() => null));
+jest.mock('sentry/views/issueList/filters', () => ({
+  IssueListFilters: jest.fn(() => null),
+}));
 jest.mock('sentry/components/stream/group', () => ({
   __esModule: true,
   default: jest.fn(({group}: {group: Group}) => <div data-test-id={group.id} />),

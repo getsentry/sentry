@@ -244,6 +244,10 @@ const mockNetworkRequests = () => {
       },
     },
   });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/trace-items/attributes/',
+    body: [],
+  });
 
   const mockSearchResponse = [
     {

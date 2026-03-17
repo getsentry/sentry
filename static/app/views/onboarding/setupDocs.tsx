@@ -9,17 +9,17 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SetupIntroduction} from 'sentry/views/onboarding/components/setupIntroduction';
 import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
 
-import FirstEventFooter from './components/firstEventFooter';
+import {FirstEventFooter} from './components/firstEventFooter';
 import type {StepProps} from './types';
 
-function SetupDocs({recentCreatedProject: project}: StepProps) {
+export function SetupDocs({recentCreatedProject: project}: StepProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -87,8 +87,6 @@ function SetupDocs({recentCreatedProject: project}: StepProps) {
     </Fragment>
   );
 }
-
-export default SetupDocs;
 
 const MainContent = styled('div')`
   max-width: 850px;

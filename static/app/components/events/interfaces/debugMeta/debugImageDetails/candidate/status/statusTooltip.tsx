@@ -5,14 +5,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {getStatusTooltipDescription} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/utils';
 import type {ImageCandidate} from 'sentry/types/debugImage';
 
-import Status from '.';
+import {Status} from '.';
 
 type Props = {
   candidate: ImageCandidate;
   hasReprocessWarning: boolean;
 };
 
-function StatusTooltip({candidate, hasReprocessWarning}: Props) {
+export function StatusTooltip({candidate, hasReprocessWarning}: Props) {
   const {download} = candidate;
   const {label, description, disabled} = getStatusTooltipDescription(
     candidate,
@@ -35,8 +35,6 @@ function StatusTooltip({candidate, hasReprocessWarning}: Props) {
     </Tooltip>
   );
 }
-
-export default StatusTooltip;
 
 const Title = styled('div')`
   text-align: left;
