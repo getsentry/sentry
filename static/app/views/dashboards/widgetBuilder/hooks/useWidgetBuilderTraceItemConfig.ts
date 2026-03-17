@@ -1,6 +1,10 @@
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {
+  extractTraceMetricFromAggregates,
+  getTraceMetricAggregateSource,
+} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import type {TraceItemAttributeConfig} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
@@ -24,12 +28,21 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
     };
   }
 
-  if (state.dataset === WidgetType.TRACEMETRICS && state.traceMetric) {
-    return {
-      traceItemType: TraceItemDataset.TRACEMETRICS,
-      enabled: true,
-      query: createTraceMetricFilter(state.traceMetric),
-    };
+  if (state.dataset === WidgetType.TRACEMETRICS) {
+    const aggregateSource = getTraceMetricAggregateSource(
+      state.displayType,
+      state.yAxis,
+      state.fields
+    );
+    const traceMetric = extractTraceMetricFromAggregates(aggregateSource);
+
+    if (traceMetric) {
+      return {
+        traceItemType: TraceItemDataset.TRACEMETRICS,
+        enabled: true,
+        query: createTraceMetricFilter(traceMetric),
+      };
+    }
   }
 
   if (state.dataset === WidgetType.PREPROD_APP_SIZE) {

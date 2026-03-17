@@ -11,7 +11,7 @@ from django.http import HttpRequest
 from pydantic.dataclasses import dataclass
 
 from sentry import options
-from sentry.conf.types.region_config import CellConfig, LocalityConfig
+from sentry.conf.types.cell_config import CellConfig, LocalityConfig
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState, control_silo_function
 from sentry.utils.env import in_test_environment
 
