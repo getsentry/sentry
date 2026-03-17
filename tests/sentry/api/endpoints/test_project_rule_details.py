@@ -124,6 +124,7 @@ def assert_serializer_results_match(
             del rule_action_data["legacy_rule_id"]
         if rule_action_data.get("workflow_id"):
             del rule_action_data["workflow_id"]
+
         assert rule_action_data == workflow_action_data
 
     # XXX: actionMatch is always coerced to 'any-short' for a Workflow as it is the only acceptable value

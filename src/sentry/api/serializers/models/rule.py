@@ -285,20 +285,44 @@ class RuleSerializer(Serializer):
         report_used_legacy_models()
 
         environment = attrs["environment"]
-        all_conditions = [
-            dict(list(o.items()) + [("name", generate_rule_label(obj.project, obj, o))])
-            for o in obj.data.get("conditions", [])
-        ]
+        all_conditions = []
+        for o in obj.data.get("conditions", []):
+            normalized_o = dict(o)
+            # EventFrequencyPercentCondition stores float values (e.g. 100.0) but the
+            # WorkflowEngineRuleSerializer normalizes integer-valued floats to int when
+            # rendering labels. Normalize here so both serializers produce consistent labels.
+            if (
+                normalized_o.get("id")
+                == "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
+                and isinstance(normalized_o.get("value"), float)
+            ):
+                if normalized_o["value"].is_integer():
+                    normalized_o["value"] = int(normalized_o["value"])
+            all_conditions.append(
+                dict(
+                    list(normalized_o.items())
+                    + [("name", generate_rule_label(obj.project, obj, normalized_o))]
+                )
+            )
 
         actions = []
         for action in obj.data.get("actions", []):
             try:
-                actions.append(
-                    dict(
-                        list(action.items())
-                        + [("name", generate_rule_label(obj.project, obj, action))]
-                    )
+                action_data = dict(
+                    list(action.items()) + [("name", generate_rule_label(obj.project, obj, action))]
                 )
+                # Normalize email Member/Team actions to match WorkflowEngineRuleSerializer output
+                if action_data.get(
+                    "id"
+                ) == "sentry.mail.actions.NotifyEmailAction" and action_data.get("targetType") in (
+                    ActionTargetType.MEMBER.value,
+                    ActionTargetType.TEAM.value,
+                ):
+                    if action_data.get("targetIdentifier") is not None:
+                        action_data["targetIdentifier"] = str(action_data["targetIdentifier"])
+                    if "fallthroughType" not in action_data:
+                        action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+                actions.append(action_data)
             except serializers.ValidationError:
                 # Integrations can be deleted and we don't want to fail to load the rule
                 pass
@@ -448,7 +472,6 @@ class WorkflowEngineRuleSerializer(Serializer):
         ) -> dict[str, Any]:
             from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
                 BaseEventFrequencyQueryHandler,
-                PercentSessionsQueryHandler,
                 slow_condition_query_handler_registry,
             )
             from sentry.workflow_engine.types import DataConditionHandler
@@ -467,12 +490,7 @@ class WorkflowEngineRuleSerializer(Serializer):
                 except NoRegistrationExistsError:
                     raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
 
-            # PercentSessionsQueryHandler.render_label converts float values to int (e.g. 100.0 → 100),
-            # but the legacy format preserves the float. Use label_template directly to match legacy output.
-            if is_slow_condition and issubclass(handler, PercentSessionsQueryHandler):
-                condition_data["name"] = handler.label_template.format(**condition_data)
-            else:
-                condition_data["name"] = handler.render_label(condition_data)
+            condition_data["name"] = handler.render_label(condition_data)
             return condition_data
 
         def generate_condition_filters(conditions: list[DataCondition], is_filter: bool):
@@ -661,17 +679,6 @@ class WorkflowEngineRuleSerializer(Serializer):
                     and action_data.get("targetIdentifier") is None
                 ):
                     action_data["targetIdentifier"] = ""
-
-                # XXX: convert targetIdentifier from string to int for email Team/Member actions
-                if (
-                    action.type == Action.Type.EMAIL.value
-                    and isinstance(action_data.get("targetIdentifier"), str)
-                    and action_data["targetIdentifier"] != ""
-                ):
-                    try:
-                        action_data["targetIdentifier"] = int(action_data["targetIdentifier"])
-                    except (ValueError, TypeError):
-                        pass
 
                 # XXX: remove notes unless it actually has content
                 if action.data.get("notes") == "":
