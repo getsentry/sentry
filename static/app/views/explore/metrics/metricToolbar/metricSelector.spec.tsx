@@ -41,6 +41,15 @@ describe('MetricSelector', () => {
         referrer: 'api.explore.metric-options',
       }),
     ]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [
+        {key: 'device.name', type: 'string'},
+        {key: 'release', type: 'string'},
+      ],
+    });
   });
 
   afterEach(() => {
@@ -458,6 +467,24 @@ describe('MetricSelector', () => {
 
       expect(await screen.findByText('Type:')).toBeInTheDocument();
       expect((await screen.findAllByText('bar')).length).toBeGreaterThan(0);
+    });
+
+    it('shows attributes section in side panel', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization: {
+          ...organization,
+          features: [
+            ...organization.features,
+            'tracemetrics-attributes-dropdown-side-panel',
+          ],
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await screen.findByRole('listbox');
+
+      expect(await screen.findByText('device.name')).toBeInTheDocument();
+      expect(await screen.findByText('release')).toBeInTheDocument();
     });
 
     it('side panel updates when hovering over a different metric option', async () => {
