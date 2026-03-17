@@ -263,9 +263,6 @@ function PrimaryNavigationUnreadIndicator({
       top={layout === 'mobile' ? `-${theme.space.xs}` : '0'}
       right={layout === 'mobile' ? 'auto' : '0px'}
       left={layout === 'mobile' ? '11px' : 'auto'}
-      width="10px"
-      height="10px"
-      radius="full"
     >
       {p => (
         <DotIndicator

@@ -1,6 +1,8 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {unreachable} from 'sentry/utils/unreachable';
 
 type DotIndicatorVariant = 'danger' | 'warning' | 'info';
@@ -24,23 +26,20 @@ interface DotIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
  *
  * Placement is the caller's responsibility — no positioning props are provided.
  */
-export function DotIndicator({
-  'aria-label': ariaLabel,
-  role,
-  variant,
-  ...props
-}: DotIndicatorProps) {
-  const resolvedRole = role ?? (ariaLabel ? 'img' : undefined);
-  const ariaHidden = !ariaLabel && !role ? true : undefined;
-
+export function DotIndicator(props: DotIndicatorProps) {
+  const {variant, ...spanProps} = props;
   return (
-    <StyledDot
-      variant={variant}
-      role={resolvedRole}
-      aria-label={ariaLabel}
-      aria-hidden={ariaHidden}
-      {...props}
-    />
+    <Container flexShrink={0}>
+      {p => (
+        <Dot
+          {...p}
+          {...spanProps}
+          variant={variant}
+          role={spanProps.role ?? (spanProps['aria-label'] ? 'img' : undefined)}
+          aria-hidden={!spanProps['aria-label'] && !spanProps.role ? true : undefined}
+        />
+      )}
+    </Container>
   );
 }
 
@@ -70,12 +69,10 @@ function getDotTokens(
   }
 }
 
-const StyledDot = styled('span')<{variant: DotIndicatorVariant}>`
-  display: inline-block;
-  flex-shrink: 0;
+const Dot = styled('span')<{variant: DotIndicatorVariant}>`
   border-radius: 50%;
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   background-color: ${p => getDotTokens(p.variant, p.theme).background};
   border: 2px solid ${p => getDotTokens(p.variant, p.theme).border};
 `;
