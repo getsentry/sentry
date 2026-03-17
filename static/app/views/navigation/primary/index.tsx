@@ -38,6 +38,7 @@ export function PrimaryNavigationItems() {
   const ref = useRef<HTMLUListElement>(null);
 
   const {layout} = usePrimaryNavigation();
+  const hasPageFrame = organization.features.includes('page-frame');
 
   const makeNavigationItemProps = useActivateNavigationGroupOnHover({ref});
 
@@ -148,6 +149,12 @@ export function PrimaryNavigationItems() {
           </NavigationTourElement>
         </Feature>
 
+        {!hasPageFrame && (
+          <PrimaryNavigation.ListItem padding="0 md">
+            <PrimaryNavigation.Separator />
+          </PrimaryNavigation.ListItem>
+        )}
+
         <Feature features={['workflow-engine-ui']}>
           <PrimaryNavigation.ListItem>
             <PrimaryNavigation.Link
@@ -157,7 +164,7 @@ export function PrimaryNavigationItems() {
               {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
             >
               <IconSiren />
-              <BetaBadge type="alpha" aria-hidden="true" />
+              <BetaBadge type="alpha" aria-hidden="true" hasPageFrame={hasPageFrame} />
             </PrimaryNavigation.Link>
           </PrimaryNavigation.ListItem>
         </Feature>
@@ -189,7 +196,10 @@ export function PrimaryNavigationItems() {
         </NavigationTourElement>
       </PrimaryNavigation.List>
 
-      <Stack gap={layout === 'mobile' ? undefined : 'md'} paddingBottom="md">
+      <Stack
+        gap={layout === 'mobile' || !hasPageFrame ? undefined : 'md'}
+        paddingBottom="md"
+      >
         <PrimaryNavigation.FooterItems>
           <ErrorBoundary customComponent={null}>
             <PrimaryNavigationOnboarding />
@@ -219,10 +229,10 @@ export function PrimaryNavigationItems() {
   );
 }
 
-const BetaBadge = styled(FeatureBadge)`
+const BetaBadge = styled(FeatureBadge)<{hasPageFrame?: boolean}>`
   pointer-events: none;
   position: absolute;
-  top: 4px;
+  top: ${p => (p.hasPageFrame ? '4px' : '0px')};
   right: 6px;
   font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${p => p.theme.space.xs};

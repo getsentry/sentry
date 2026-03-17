@@ -228,14 +228,22 @@ interface SecondaryNavigationHeaderProps {
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
+  const organization = useOrganization();
   const isCollapsed = view !== 'expanded';
+  const hasPageFrame = organization.features.includes('page-frame');
 
   return (
     <Grid
       columns="1fr auto"
       align="center"
       borderBottom="muted"
-      height={layout === 'mobile' ? undefined : `${PRIMARY_HEADER_HEIGHT}px`}
+      height={
+        layout === 'mobile'
+          ? undefined
+          : hasPageFrame
+            ? `${PRIMARY_HEADER_HEIGHT}px`
+            : '44px'
+      }
       padding={layout === 'mobile' ? 'md xl' : '0 md 0 xl'}
     >
       <div>

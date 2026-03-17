@@ -45,20 +45,43 @@ interface PrimaryNavigationSidebarProps extends Omit<GridProps, 'aria-label' | '
 
 function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebarProps) {
   const theme = useTheme();
+  const organization = useOrganization();
+  const hasPageFrame = organization.features.includes('page-frame');
+
+  if (hasPageFrame) {
+    return (
+      <Grid
+        as="nav"
+        aria-label={t('Primary Navigation')}
+        borderRight="primary"
+        background="primary"
+        columns="1fr"
+        rows={`${PRIMARY_HEADER_HEIGHT}px 1fr min-content`}
+        width={`${PRIMARY_SIDEBAR_WIDTH}px`}
+        style={{zIndex: theme.zIndex.sidebarPanel}}
+        {...props}
+      >
+        {children}
+      </Grid>
+    );
+  }
+
   return (
-    <Grid
+    <Flex
       as="nav"
       aria-label={t('Primary Navigation')}
+      width={`${PRIMARY_SIDEBAR_WIDTH}px`}
+      padding="lg 0 md 0"
       borderRight="primary"
       background="primary"
-      columns="1fr"
-      rows={`${PRIMARY_HEADER_HEIGHT}px 1fr min-content`}
-      width={`${PRIMARY_SIDEBAR_WIDTH}px`}
+      direction="column"
+      align="center"
+      justify="between"
       style={{zIndex: theme.zIndex.sidebarPanel}}
-      {...props}
+      {...(props as any)}
     >
       {children}
-    </Grid>
+    </Flex>
   );
 }
 
@@ -72,6 +95,8 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
     !ConfigStore.get('isSelfHosted') &&
     !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
+  const hasPageFrame = organization.features.includes('page-frame');
+
   return (
     <Flex
       as="header"
@@ -79,8 +104,8 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
       align="center"
       justify="center"
       position="relative"
-      borderBottom="muted"
-      width="100%"
+      borderBottom={hasPageFrame ? 'muted' : undefined}
+      width={hasPageFrame ? '100%' : undefined}
       {...props}
     >
       {props.children}
@@ -106,6 +131,8 @@ interface PrimaryNavigationListProps extends FlexProps<'ul'> {}
 
 function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps) {
   const {layout} = usePrimaryNavigation();
+  const organization = useOrganization();
+  const hasPageFrame = organization.features.includes('page-frame');
 
   return (
     <Stack
@@ -114,7 +141,9 @@ function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps)
       margin="0"
       padding="0"
       width="100%"
+      gap={hasPageFrame ? undefined : 'xs'}
       align={layout === 'mobile' ? 'stretch' : 'center'}
+      paddingTop={hasPageFrame ? undefined : 'md'}
       {...props}
     >
       {children}
@@ -423,9 +452,15 @@ function PrimaryNavigationFooterItems(props: PrimaryNavigationFooterItemsProps) 
   );
 }
 
+function PrimaryNavigationSeparator() {
+  return <Stack.Separator border="muted" style={{width: '100%'}} />;
+}
+
 const NavigationLink = styled(
   (props: LinkProps) => {
     const {layout} = usePrimaryNavigation();
+    const organization = useOrganization();
+    const hasPageFrame = organization.features.includes('page-frame');
     return (
       <Flex
         position="relative"
@@ -434,7 +469,7 @@ const NavigationLink = styled(
         direction={layout === 'mobile' ? 'row' : 'column'}
         justify={layout === 'mobile' ? 'start' : 'center'}
         gap={layout === 'mobile' ? 'md' : 'xs'}
-        padding={layout === 'mobile' ? 'md lg' : 'md 0 xs 0'}
+        padding={layout === 'mobile' ? 'md lg' : hasPageFrame ? 'md 0 xs 0' : 'sm lg'}
       >
         {p => <Link {...mergeProps(p, props)} />}
       </Flex>
@@ -599,6 +634,7 @@ export const PrimaryNavigation = {
   Button: PrimaryNavigationButton,
   ButtonBar: PrimaryNavigationButtonBar,
   Menu: PrimaryNavigationMenu,
+  Separator: PrimaryNavigationSeparator,
   ButtonOverlay: PrimaryNavigationButtonOverlay,
   Sidebar: PrimaryNavigationSidebar,
   SidebarHeader: PrimaryNavigationSidebarHeader,
