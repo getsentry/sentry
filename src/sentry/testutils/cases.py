@@ -1208,10 +1208,21 @@ class SnubaTestCase(BaseTestCase):
         extra_event_data: dict[str, Any] | None = None,
     ) -> list[Event]:
         """
-        Store occurrences in both legacy Snuba and EAP via the production dual-write path.
+        Store events (occurrence trace items) in both legacy Snuba and EAP.
+
+        EAP items are captured from the eventstream serialization path in production
+        and inserted synchronously via store_eap_items() to ensure consistency
+        in tests.
         """
+        captured_items: list[TraceItem] = []
+
         events: list[Event] = []
-        with self.options({"eventstream.eap_forwarding_rate": 1.0}):
+        with (
+            self.options({"eventstream.eap_forwarding_rate": 1.0}),
+            mock.patch.object(
+                SnubaEventStream, "_send_item", side_effect=lambda item: captured_items.append(item)
+            ),
+        ):
             for _ in range(count):
                 data: dict[str, Any] = {
                     "message": message or f"error in {fingerprint}",
@@ -1229,6 +1240,10 @@ class SnubaTestCase(BaseTestCase):
                     assert_no_errors=False,
                 )
                 events.append(event)
+
+        if captured_items:
+            self.store_eap_items(captured_items)
+
         return events
 
     def store_eap_items(self, items: Sequence[TraceItem]) -> None:
