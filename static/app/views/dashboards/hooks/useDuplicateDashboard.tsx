@@ -74,6 +74,7 @@ export function useDuplicatePrebuiltDashboard({onSuccess}: UseDuplicateDashboard
         );
       }
       try {
+        setIsLoading(true);
         const dashboardDetail = await resolveLinkedDashboardIds({
           queryClient,
           orgSlug: organization.slug,
@@ -83,7 +84,6 @@ export function useDuplicatePrebuiltDashboard({onSuccess}: UseDuplicateDashboard
         delete newDashboard.prebuiltId;
         newDashboard.title = `${newDashboard.title} copy`;
         newDashboard.widgets.map(widget => (widget.id = undefined));
-        setIsLoading(true);
         const copiedDashboard = await createDashboard(
           api,
           organization.slug,
