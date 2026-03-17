@@ -16,13 +16,8 @@ import {useScmProviders} from './useScmProviders';
 
 export function ScmConnect({onComplete}: StepProps) {
   const onboardingContext = useOnboardingContext();
-  const {
-    scmProviders,
-    scmIntegrationsByProviderKey,
-    isPending,
-    refetchIntegrations,
-    activeIntegrationExisting,
-  } = useScmProviders();
+  const {scmProviders, isPending, refetchIntegrations, activeIntegrationExisting} =
+    useScmProviders();
 
   const [activeIntegration, setActiveIntegration] = useState<Integration | null>(
     () => onboardingContext.selectedIntegration ?? null
@@ -41,11 +36,6 @@ export function ScmConnect({onComplete}: StepProps) {
     },
     [refetchIntegrations]
   );
-
-  const handleSelectProvider = useCallback((installation: Integration) => {
-    setActiveIntegration(installation);
-    setSelectedRepo(null);
-  }, []);
 
   const handleContinue = useCallback(() => {
     if (effectiveIntegration) {
@@ -82,12 +72,7 @@ export function ScmConnect({onComplete}: StepProps) {
             onSelectRepo={setSelectedRepo}
           />
         ) : (
-          <ProviderPills
-            providers={scmProviders}
-            integrationsByProviderKey={scmIntegrationsByProviderKey}
-            onInstall={handleInstall}
-            onSelect={handleSelectProvider}
-          />
+          <ProviderPills providers={scmProviders} onInstall={handleInstall} />
         )}
       </Stack>
 
