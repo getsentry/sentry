@@ -197,25 +197,27 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
         <LoadingDetails messages={section.messages} />
       ) : (
         <Fragment>
-          <Text>{summary}</Text>
           {patchesForRepos.size ? (
-            [...patchesForRepos.entries()].map(([repo, patches]) => (
-              <ArtifactDetails key={repo}>
-                <Flex gap="lg">
-                  <Text bold>{t('Repository:')}</Text>
-                  <Text>{repo}</Text>
-                </Flex>
-                {patches.map((patch, index) => (
-                  <FileDiffViewer
-                    key={index}
-                    patch={patch.patch}
-                    showBorder
-                    collapsible
-                    defaultExpanded={artifact && artifact.length <= 1}
-                  />
-                ))}
-              </ArtifactDetails>
-            ))
+            <Fragment>
+              <Text>{summary}</Text>
+              {[...patchesForRepos.entries()].map(([repo, patches]) => (
+                <ArtifactDetails key={repo}>
+                  <Flex gap="lg">
+                    <Text bold>{t('Repository:')}</Text>
+                    <Text>{repo}</Text>
+                  </Flex>
+                  {patches.map((patch, index) => (
+                    <FileDiffViewer
+                      key={index}
+                      patch={patch.patch}
+                      showBorder
+                      collapsible
+                      defaultExpanded={artifact && artifact.length <= 1}
+                    />
+                  ))}
+                </ArtifactDetails>
+              ))}
+            </Fragment>
           ) : (
             <ArtifactDetails>
               <Text>
