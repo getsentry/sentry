@@ -39,7 +39,15 @@ export function useRepoSearch(integrationId: string, selectedRepo: Repository | 
 
   const {reposByIdentifier, dropdownItems} = useMemo(
     () =>
-      (searchQuery.data?.[0]?.repos ?? []).reduce(
+      (searchQuery.data?.[0]?.repos ?? []).reduce<{
+        dropdownItems: Array<{
+          disabled: boolean;
+          label: string;
+          textValue: string;
+          value: string;
+        }>;
+        reposByIdentifier: Map<string, IntegrationRepository>;
+      }>(
         (acc, repo) => {
           acc.reposByIdentifier.set(repo.identifier, repo);
           acc.dropdownItems.push({
@@ -51,13 +59,8 @@ export function useRepoSearch(integrationId: string, selectedRepo: Repository | 
           return acc;
         },
         {
-          reposByIdentifier: new Map<string, IntegrationRepository>(),
-          dropdownItems: [] as Array<{
-            disabled: boolean;
-            label: string;
-            textValue: string;
-            value: string;
-          }>,
+          reposByIdentifier: new Map(),
+          dropdownItems: [],
         }
       ),
     [searchQuery.data, selectedRepo]
