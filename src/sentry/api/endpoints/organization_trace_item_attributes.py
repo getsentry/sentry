@@ -1,4 +1,5 @@
 from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -72,12 +73,15 @@ from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
 from sentry.utils.cursors import Cursor, CursorResult
 
+POSSIBLE_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
+
 
 class TraceItemAttributeKey(TypedDict):
     key: str
     name: str
     secondaryAliases: NotRequired[list[str]]
     attributeSource: dict[str, str | bool]
+    attributeType: Literal["string", "number", "boolean"]
 
 
 class TraceItemAttributesNamesPaginator:
@@ -144,8 +148,10 @@ class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
         [e.value for e in SupportedTraceItemType], required=False, source="item_type"
     )
     dataset = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=False)
-    attributeType = serializers.ChoiceField(
-        ["string", "number", "boolean"], required=False, source="attribute_type"
+    attributeType = serializers.MultipleChoiceField(
+        choices=POSSIBLE_ATTRIBUTE_TYPES,
+        required=False,
+        source="attribute_type",
     )
     substringMatch = serializers.CharField(required=False, source="substring_match")
     query = serializers.CharField(required=False)
@@ -241,6 +247,7 @@ def as_attribute_key(
         # source of the attribute, used to determine whether to show the sentry icon etc. and helps delineate between sentry and user attributes when the names are identical
         # eg. sentry.environment and environment set by the user both have the same alias (name).
         "attributeSource": serialized_source,
+        "attributeType": attr_type,
     }
 
     if secondary_aliases:
@@ -278,7 +285,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         serialized = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
-        attribute_type = serialized.get("attribute_type")
+        attribute_types = serialized.get("attribute_type")
+        if len(attribute_types) == 0:
+            attribute_types = POSSIBLE_ATTRIBUTE_TYPES
         # Deprecating this so we're using the same param name as the events endpoints
         item_type = serialized.get("item_type")
         # Dataset is going to replace item_type
@@ -309,23 +318,32 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
 
-        def data_fn(offset: int, limit: int):
-            if attribute_type is None:
-                # query all 3 types in parallel if its not passed and return 1 just list
-                pass
-            else:
-                return self.query_trace_attributes(
-                    offset,
-                    limit,
-                    meta,
-                    query_filter,
-                    substring_match,
-                    attribute_type,
-                    column_definitions,
-                    use_sentry_conventions,
-                    trace_item_type,
-                    include_internal,
-                )
+        def data_fn(offset: int, limit: int) -> list[TraceItemAttributeKey]:
+            futures = []
+            with ThreadPoolExecutor(
+                thread_name_prefix=__name__,
+                max_workers=len(POSSIBLE_ATTRIBUTE_TYPES),
+            ) as pool:
+                for attribute_type in attribute_types:
+                    futures.append(
+                        pool.submit(
+                            self.query_trace_attributes,
+                            offset,
+                            limit,
+                            meta,
+                            query_filter,
+                            substring_match,
+                            attribute_type,
+                            column_definitions,
+                            use_sentry_conventions,
+                            trace_item_type,
+                            include_internal,
+                        )
+                    )
+            attributes = []
+            for future in futures:
+                attributes.extend(future.result())
+            return attributes
 
         return self.paginate(
             request=request,
