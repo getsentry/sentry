@@ -60,7 +60,10 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
   );
 
   const scmIntegrations = useMemo(
-    () => (integrationsQuery.data ?? []).filter(i => scmProviderKeys.has(i.provider.key)),
+    () =>
+      (integrationsQuery.data ?? []).filter(
+        i => i !== null && scmProviderKeys.has(i.provider.key)
+      ),
     [integrationsQuery.data, scmProviderKeys]
   );
 

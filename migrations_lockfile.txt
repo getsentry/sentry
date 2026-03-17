@@ -7,7 +7,7 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 discover: 0003_discover_json_field
 
-explore: 0006_add_changed_reason_field_explore
+explore: 0007_update_numeric_attrs_to_bools
 
 feedback: 0007_cleanup_failed_safe_deletes
 
@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0005_delete_seerorganizationsettings
 
-sentry: 1053_protect_projectdebugfile_file
+sentry: 1054_rename_regionscheduleddeletion_to_cellscheduleddeletion
 
 social_auth: 0003_social_auth_json_field
 

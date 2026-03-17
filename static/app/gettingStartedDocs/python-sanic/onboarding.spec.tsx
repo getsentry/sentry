@@ -3,7 +3,7 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from '.';
+import {docs} from '.';
 
 describe('sanic onboarding docs', () => {
   it('renders doc correctly', () => {

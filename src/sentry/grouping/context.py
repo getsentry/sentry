@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Self
 
 from sentry.grouping.parameterization import experimental_parameterizer
 from sentry.grouping.parameterization import parameterizer as default_parameterizer
-from sentry.grouping.utils import get_canonical_message_from_event
+from sentry.grouping.utils import get_all_messages_from_event
 from sentry.options.rollout import in_rollout_group
 
 if TYPE_CHECKING:
@@ -43,27 +43,27 @@ class GroupingContext:
         self.config = strategy_config
         self.event = event
 
-        # Store the event's message, in both raw and parameterized form, as well as the
-        # parameterizer. This will save us having to recheck which parameterizer to use, and save us
-        # from having to reparameterize the message if it's used in multiple places during grouping
-        # (in the error value component and a custom fingerprint, for example).
-        event_message = get_canonical_message_from_event(event)
-        parameterizer = (
+        # Store the event's messages, in both raw and parameterized form, as well as the
+        # parameterizer. This will save us from having to reparameterize a message if it's used in
+        # multiple places during grouping (in app and system variants, for example, or the error
+        # value component and a custom fingerprint). Also, in case we try to normalize a message we
+        # haven't handled here (which we shouldn't, but just in case), it will save us having to
+        # recheck which parameterizer to use.
+        self.parameterizer = (
             experimental_parameterizer
             if in_rollout_group("grouping.experimental_parameterization", event.project_id)
             else default_parameterizer
         )
-        self.parameterizer = parameterizer
-        # "Canonical" because it's the message which is used for the `{{ message }}` variable and
-        # for message-based grouping. (When grouping is based on error message, in case of an error
-        # chain we use all messages.)
-        self.canonical_event_message = event_message
-        self.canonical_message_parameterized = parameterizer.parameterize(event_message)
+        self.message_parameterization_map = {
+            message: self.parameterizer.parameterize(message)
+            for message in get_all_messages_from_event(event)
+        }
 
         # Track use of the cached values for metrics purposes. Any use past the first one signifies
-        # a reuse of the value, thus proving caching worthwhile.
+        # a reuse of the value, thus proving caching worthwhile. (We track via raw message rather
+        # than parameterized value in case two messages parameterize the same way.)
+        self.messages_seen: set[str] = set()
         self.cached_parameterizer_used = False
-        self.cached_param_result_used = False
 
         self._push_context_layer()
 

@@ -10,7 +10,7 @@ import {
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
-import controlsilopatterns from 'sentry/data/controlsiloUrlPatterns';
+import {controlsiloUrlPatterns} from 'sentry/data/controlsiloUrlPatterns';
 import {metric} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -767,7 +767,7 @@ function detectControlSiloPath(path: string): boolean {
   const url = new URL(path, 'https://sentry.io');
   path = url.pathname;
   path = path.startsWith('/') ? path.substring(1) : path;
-  for (const pattern of controlsilopatterns) {
+  for (const pattern of controlsiloUrlPatterns) {
     if (pattern.test(path)) {
       return true;
     }

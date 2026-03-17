@@ -90,7 +90,6 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
   // Remove the report dialog on unmount
   useEffect(() => () => document.querySelector('.sentry-error-embed-wrapper')?.remove());
 
-  // TODO(dcramer): show additional resource links
   return (
     <Alert.Container>
       <Alert variant="danger" showIcon={false}>
@@ -101,7 +100,9 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
           We use Sentry to monitor Sentry and it's likely we're already looking into this!
           `)}
         </p>
-        <p>{t("If you're daring, you may want to try the following:")}</p>
+        <p style={{marginBottom: 0}}>
+          {t("If you're daring, you may want to try the following:")}
+        </p>
         <List symbol="bullet">
           {window?.adblockSuspected && (
             <ListItem>
@@ -122,11 +123,35 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
             })}
           </ListItem>
           <ListItem>
-            {tct(`If all else fails, [link:contact us] with more details.`, {
-              link: (
-                <ExternalLink href="https://github.com/getsentry/sentry/issues/new/choose" />
-              ),
-            })}
+            {tct(
+              `Still stuck? Our [link:troubleshooting guide] has tips for common browser-related issues.`,
+              {
+                link: (
+                  <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22088541158555-Why-Sentry-io-is-not-loading" />
+                ),
+              }
+            )}
+          </ListItem>
+        </List>
+        <p style={{marginTop: '1em', marginBottom: 0}}>
+          {tct(
+            `If the guide does not help, [link:contact support] — include as many of these details as you can:`,
+            {
+              link: <ExternalLink href="https://sentry.zendesk.com/hc/en-us" />,
+            }
+          )}
+        </p>
+        <List symbol="bullet">
+          <ListItem>{t('Browser logs (console and network tab errors)')}</ListItem>
+          <ListItem>
+            {t(
+              'Whether anyone else in your organization sees the same error on that page'
+            )}
+          </ListItem>
+          <ListItem>{t('Which browser(s) and version(s) you are using')}</ListItem>
+          <ListItem>{t('Whether the error is intermittent or consistent')}</ListItem>
+          <ListItem>
+            {t('Whether the error only appears on that page, or on other pages too')}
           </ListItem>
         </List>
       </Alert>

@@ -5,6 +5,7 @@ import {parseAsBoolean, useQueryState} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -296,12 +297,19 @@ export function SizeCompareMainContent() {
       {/* Insights Section */}
       {comparisonDataQuery.data?.insight_diff_items &&
         comparisonDataQuery.data.insight_diff_items.length > 0 && (
-          <InsightComparisonSection
-            totalInstallSizeBytes={
-              comparisonDataQuery.data?.size_metric_diff_item.head_install_size
-            }
-            insightDiffItems={comparisonDataQuery.data.insight_diff_items}
-          />
+          <Stack gap="xl">
+            <Separator orientation="horizontal" border="primary" />
+            <Stack gap="md">
+              <Heading as="h2">{t('Insight Diff')}</Heading>
+              <InsightComparisonSection
+                totalInstallSizeBytes={
+                  comparisonDataQuery.data?.size_metric_diff_item.head_install_size
+                }
+                insightDiffItems={comparisonDataQuery.data.insight_diff_items}
+              />
+            </Stack>
+            <Separator orientation="horizontal" border="primary" />
+          </Stack>
         )}
 
       {/* Items Changed Section */}
@@ -376,7 +384,13 @@ export function SizeCompareMainContent() {
       {/* Treemap Diff Section */}
       {comparisonDataQuery.data?.diff_items &&
         comparisonDataQuery.data.diff_items.length > 0 && (
-          <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />
+          <Stack gap="xl">
+            <Separator orientation="horizontal" border="primary" />
+            <Stack gap="md">
+              <Heading as="h2">{t('X-Ray Diff')}</Heading>
+              <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />
+            </Stack>
+          </Stack>
         )}
     </Flex>
   );

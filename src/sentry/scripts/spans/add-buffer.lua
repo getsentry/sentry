@@ -28,7 +28,6 @@ ARGS:
 - set_timeout -- int
 - max_segment_bytes -- int -- The maximum number of bytes the segment can contain.
 - byte_count -- int -- The total number of bytes in the subsegment.
-- zero_copy_dest_threshold -- int -- When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set exceeds this many bytes.
 - write_distributed_payloads -- "true" or "false" -- When true, maintain member-keys tracking sets for distributed payload keys.
 - write_merged_payloads -- "true" or "false" -- When false, skip set merges and set keys expire cmds.
 - *span_id -- str[] -- The span ids in the subsegment.
@@ -50,10 +49,9 @@ local has_root_span = ARGV[3] == "true"
 local set_timeout = tonumber(ARGV[4])
 local max_segment_bytes = tonumber(ARGV[5])
 local byte_count = tonumber(ARGV[6])
-local zero_copy_dest_threshold = tonumber(ARGV[7])
-local write_distributed_payloads = ARGV[8] == "true"
-local write_merged_payloads = ARGV[9] == "true"
-local NUM_ARGS = 9
+local write_distributed_payloads = ARGV[7] == "true"
+local write_merged_payloads = ARGV[8] == "true"
+local NUM_ARGS = 8
 
 local function get_time_ms()
     local time = redis.call("TIME")
@@ -209,14 +207,11 @@ if not write_merged_payloads then
     table.insert(latency_table, {"distributed_ibc_merge_step_latency_ms", arg_cleanup_end_time_ms - sunionstore_args_end_time_ms})
 
 elseif #sunionstore_args > 0 then
-    local dest_memory = redis.call("memory", "usage", set_key) or 0
     local ingested_byte_count_key = string.format("span-buf:ibc:%s", set_key)
     local dest_bytes = tonumber(redis.call("get", ingested_byte_count_key) or 0)
 
     local already_oversized = dest_bytes > max_segment_bytes
     table.insert(metrics_table, {"parent_span_set_already_oversized", already_oversized and 1 or 0})
-
-    local use_zero_copy_dest = not already_oversized and zero_copy_dest_threshold > 0 and dest_memory > zero_copy_dest_threshold
 
     local start_output_size = redis.call("scard", set_key)
     local scard_end_time_ms = get_time_ms()
@@ -226,9 +221,12 @@ elseif #sunionstore_args > 0 then
     if already_oversized then
         -- Dest already exceeds max_segment_bytes, skip merge entirely.
         output_size = start_output_size
-    elseif use_zero_copy_dest then
-        -- Zero-copy: read each source set and SADD its members into dest.
-        -- Avoids SUNIONSTORE re-reading the entire large destination set.
+    else
+        -- Read each source set and SADD its members into dest.
+        -- We use SMEMBERS+SADD instead of SUNIONSTORE because SUNIONSTORE
+        -- re-serialises the entire destination set on every call, making it
+        -- O(destination + sources). SMEMBERS+SADD is O(sources) only, which
+        -- is significantly cheaper when the destination set is large.
         local all_members = {}
         for i = 1, #sunionstore_args do
             local members = redis.call("smembers", sunionstore_args[i])
@@ -244,10 +242,7 @@ elseif #sunionstore_args > 0 then
             redis.call("sadd", set_key, unpack(all_members, i, last))
         end
         output_size = redis.call("scard", set_key)
-    else
-        output_size = redis.call("sunionstore", set_key, set_key, unpack(sunionstore_args))
     end
-    table.insert(metrics_table, {"used_zero_copy_dest", use_zero_copy_dest and 1 or 0})
     local sunionstore_end_time_ms = get_time_ms()
     table.insert(latency_table, {"sunionstore_step_latency_ms", sunionstore_end_time_ms - scard_end_time_ms})
 
