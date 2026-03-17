@@ -582,16 +582,10 @@ function MetricListBoxOption({
     listState,
     ref
   );
-  const optionPropsMerged = mergeProps(optionProps, {
-    onMouseEnter: () => {
-      listState.selectionManager.setFocused(true);
-      listState.selectionManager.setFocusedKey(item.key);
-    },
-  });
 
   return (
     <MenuListItem
-      {...optionPropsMerged}
+      {...optionProps}
       as="li"
       data-index={dataIndex}
       ref={mergeRefs(ref, measureRef)}
