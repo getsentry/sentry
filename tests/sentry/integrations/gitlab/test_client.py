@@ -26,7 +26,8 @@ from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
     ApiRetryError,
 )
-from sentry.testutils.silo import control_silo_test
+from sentry.silo.base import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
 from sentry.utils.cache import cache
 
@@ -149,6 +150,33 @@ class GitlabRefreshAuthTest(GitLabClientTest):
 
         self.assert_request_failed_refresh()
         self.assert_identity_was_not_refreshed()
+
+    @responses.activate
+    def test_refresh_auth_fails_with_missing_client_credentials(self) -> None:
+        """
+        When client_id or client_secret are missing from identity data,
+        the refresh should raise IdentityNotValid early without making
+        an HTTP request to the OAuth endpoint.
+        """
+        self.add_get_user_response(success=False)
+
+        # Remove client_id and client_secret from identity data
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            identity = Identity.objects.get(id=self.gitlab_client.identity.id)
+            identity.data.pop("client_id", None)
+            identity.data.pop("client_secret", None)
+            identity.save()
+
+        # Reload the identity in the client
+        self.gitlab_client.refreshed_identity = None
+        self.installation.default_identity = identity.get_rpc_identity()
+
+        with pytest.raises(IdentityNotValid):
+            self.make_users_request()
+
+        # Only the initial API call should have been made, no refresh attempt
+        assert len(responses.calls) == 1
+        self.assert_response_call(responses.calls[0], self.request_url, 401)
 
     @responses.activate
     def test_no_refresh_when_api_call_successful(self) -> None:
