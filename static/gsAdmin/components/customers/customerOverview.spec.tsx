@@ -696,7 +696,37 @@ describe('CustomerOverview', () => {
     await waitFor(() => {
       const term = screen.getByText('Sample Rate (24h):');
       const definition = term.nextElementSibling;
-      expect(definition).toHaveTextContent('75.00%');
+      expect(definition).toHaveTextContent('75%');
+    });
+  });
+
+  it('renders matching sample rate without comparison string', async () => {
+    const organization = OrganizationFixture({
+      features: ['dynamic-sampling'],
+      desiredSampleRate: 1.0,
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
+      body: {effectiveSampleRate: 1.0},
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    await waitFor(() => {
+      const term = screen.getByText('Sample Rate (24h):');
+      const definition = term.nextElementSibling;
+      expect(definition).toHaveTextContent('100%');
+      expect(definition).not.toHaveTextContent('instead of');
     });
   });
 
