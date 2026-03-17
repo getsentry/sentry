@@ -21,7 +21,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

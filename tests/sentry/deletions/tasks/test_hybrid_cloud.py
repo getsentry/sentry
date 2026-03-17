@@ -45,7 +45,7 @@ from sentry.testutils.silo import (
     cell_silo_test,
     control_silo_test,
 )
-from sentry.types.region import find_cells_for_user
+from sentry.types.cell import find_cells_for_user
 from sentry.users.models.user import User
 
 

@@ -33,7 +33,7 @@ import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {exportDashboard} from './exportDashboard';
 import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
-import {DashboardState, MAX_WIDGETS} from './types';
+import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
 
 type Props = {
   dashboard: DashboardDetails;
@@ -87,10 +87,6 @@ export function Controls({
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
   const navigate = useNavigate();
-  const hasPrebuiltControlsFeature = organization.features.includes(
-    'dashboards-prebuilt-controls'
-  );
-
   const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
     useDuplicatePrebuiltDashboard({
       onSuccess: (newDashboard: DashboardDetails) => {
@@ -99,10 +95,6 @@ export function Controls({
     });
 
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
-
-  if (isPrebuiltDashboard && !hasPrebuiltControlsFeature) {
-    return null;
-  }
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
@@ -221,7 +213,22 @@ export function Controls({
       return null;
     }
     if (isPrebuiltDashboard) {
-      return null;
+      return (
+        <Button
+          data-test-id="dashboard-edit"
+          aria-label={t('edit-dashboard')}
+          icon={<IconEdit />}
+          disabled
+          tooltipProps={{
+            title: tct(
+              'This is a [label] dashboard and cannot be edited. Duplicate it to make changes.',
+              {label: PREBUILT_DASHBOARD_LABEL}
+            ),
+          }}
+          priority="default"
+          size="sm"
+        />
+      );
     }
     const isDisabled = !hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving;
     const toolTipMessage = isSaving

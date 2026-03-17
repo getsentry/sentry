@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {useUserViewedReplays} from 'sentry/components/replays/useUserViewedReplays';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 import {UnmaskAlert} from './unmaskAlert';
 

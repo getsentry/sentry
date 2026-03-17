@@ -37,7 +37,7 @@ import type {
   TimeSeries,
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
+import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
@@ -362,7 +362,7 @@ function VisualizationWidgetContent({
               {labelContent}
             </Tooltip>
             <TextAlignRight>
-              {value === null ? '—' : formatYAxisValue(value, dataType, dataUnit)}
+              {value === null ? '—' : formatTooltipValue(value, dataType, dataUnit)}
             </TextAlignRight>
           </Fragment>
         );

@@ -1359,14 +1359,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
-# {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
-register(
-    "ai-agent-monitoring.custom-model-mapping",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -3269,15 +3261,6 @@ register(
 # chunks to avoid Lua unpack() limits. Set to 0 for unlimited.
 register(
     "spans.buffer.max-spans-per-evalsha",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set
-# exceeds this many bytes (via MEMORY USAGE). This avoids the expensive
-# re-serialisation of the entire destination set during SUNIONSTORE.
-register(
-    "spans.buffer.zero-copy-dest-threshold-bytes",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
