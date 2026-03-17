@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Literal
-
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     BoldTextBlock,
@@ -22,7 +20,7 @@ from sentry.notifications.platform.types import (
 
 
 class ErrorAlertData(NotificationData):
-    source: Literal[NotificationSource.ERROR_ALERT] = NotificationSource.ERROR_ALERT
+    source: NotificationSource = NotificationSource.ERROR_ALERT
     error_type: str
     error_message: str
     project_name: str
@@ -115,7 +113,7 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
 
 
 class DeploymentData(NotificationData):
-    source: Literal[NotificationSource.DEPLOYMENT] = NotificationSource.DEPLOYMENT
+    source: NotificationSource = NotificationSource.DEPLOYMENT
     project_name: str
     version: str
     environment: str
@@ -184,9 +182,7 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
 
 
 class SlowLoadMetricAlertData(NotificationData):
-    source: Literal[NotificationSource.SLOW_LOAD_METRIC_ALERT] = (
-        NotificationSource.SLOW_LOAD_METRIC_ALERT
-    )
+    source: NotificationSource = NotificationSource.SLOW_LOAD_METRIC_ALERT
     alert_type: str
     severity: str
     project_name: str
@@ -244,9 +240,7 @@ class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetri
 
 
 class PerformanceAlertData(NotificationData):
-    source: Literal[NotificationSource.PERFORMANCE_MONITORING] = (
-        NotificationSource.PERFORMANCE_MONITORING
-    )
+    source: NotificationSource = NotificationSource.PERFORMANCE_MONITORING
     metric_name: str
     threshold: str
     current_value: str
@@ -312,7 +306,7 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
 
 
 class TeamUpdateData(NotificationData):
-    source: Literal[NotificationSource.TEAM_COMMUNICATION] = NotificationSource.TEAM_COMMUNICATION
+    source: NotificationSource = NotificationSource.TEAM_COMMUNICATION
     team_name: str
     update_type: str
     message: str

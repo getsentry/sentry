@@ -109,6 +109,7 @@ class NotificationService[T: NotificationData]:
         *,
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
+        **kwargs: Any,
     ) -> None:
         """
         Send a notification directly to a target via task, if you care about using the result of the notification, use notify_sync instead.

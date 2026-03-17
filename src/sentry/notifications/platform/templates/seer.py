@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, TypedDict
+from typing import TypedDict
 
 from pydantic import Field
 
@@ -33,7 +33,7 @@ def _get_next_stopping_point(current: AutofixStoppingPoint) -> AutofixStoppingPo
 
 class SeerAutofixError(NotificationData):
     error_message: str
-    source: Literal[NotificationSource.SEER_AUTOFIX_ERROR] = NotificationSource.SEER_AUTOFIX_ERROR
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_ERROR
     error_title: str = "Seer had some trouble..."
 
 
@@ -75,7 +75,7 @@ class SeerAutofixUpdate(NotificationData):
     changes: list[SeerAutofixCodeChange] = Field(default_factory=list)
     pull_requests: list[SeerAutofixPullRequest] = Field(default_factory=list)
     summary: str | None = None
-    source: Literal[NotificationSource.SEER_AUTOFIX_UPDATE] = NotificationSource.SEER_AUTOFIX_UPDATE
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_UPDATE
 
     @property
     def has_next_trigger(self) -> bool:
@@ -144,9 +144,7 @@ class SeerAutofixTrigger(NotificationData):
     project_id: int
     group_id: int
     run_id: int | None = None
-    source: Literal[NotificationSource.SEER_AUTOFIX_TRIGGER] = (
-        NotificationSource.SEER_AUTOFIX_TRIGGER
-    )
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_TRIGGER
     stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
 
     @staticmethod

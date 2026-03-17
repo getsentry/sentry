@@ -1,5 +1,3 @@
-from typing import Literal
-
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     CodeTextBlock,
@@ -14,9 +12,7 @@ from sentry.notifications.platform.types import (
 
 
 class UnableToDeleteRepository(NotificationData):
-    source: Literal[NotificationSource.UNABLE_TO_DELETE_REPOSITORY] = (
-        NotificationSource.UNABLE_TO_DELETE_REPOSITORY
-    )
+    source: NotificationSource = NotificationSource.UNABLE_TO_DELETE_REPOSITORY
     repository_name: str
     provider_name: str
     error_message: str

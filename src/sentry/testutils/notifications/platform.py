@@ -1,5 +1,3 @@
-from typing import Literal
-
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     NotificationBodyFormattingBlockType,
@@ -19,7 +17,7 @@ from sentry.notifications.platform.types import (
 
 
 class MockNotification(NotificationData):
-    source: Literal[NotificationSource.TEST] = NotificationSource.TEST
+    source: NotificationSource = NotificationSource.TEST
     message: str
 
 

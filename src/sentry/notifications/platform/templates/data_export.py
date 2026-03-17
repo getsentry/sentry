@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any
 
 import orjson
 from django.utils import timezone
@@ -24,7 +24,7 @@ def format_date(date: datetime) -> str:
 
 
 class DataExportSuccess(NotificationData):
-    source: Literal[NotificationSource.DATA_EXPORT_SUCCESS] = NotificationSource.DATA_EXPORT_SUCCESS
+    source: NotificationSource = NotificationSource.DATA_EXPORT_SUCCESS
     export_url: str
     expiration_date: datetime
 
@@ -55,7 +55,7 @@ class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
 
 
 class DataExportFailure(NotificationData):
-    source: Literal[NotificationSource.DATA_EXPORT_FAILURE] = NotificationSource.DATA_EXPORT_FAILURE
+    source: NotificationSource = NotificationSource.DATA_EXPORT_FAILURE
     error_message: str
     error_payload: dict[str, Any]
     creation_date: datetime

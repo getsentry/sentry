@@ -115,6 +115,7 @@ class NotificationTarget(BaseModel):
 
     class Config:
         frozen = True
+        use_enum_values = True
 
     provider_key: NotificationProviderKey
     resource_type: NotificationTargetResourceType
@@ -137,6 +138,7 @@ class NotificationData(BaseModel):
 
     class Config:
         frozen = True
+        use_enum_values = True
 
     source: NotificationSource
     """
