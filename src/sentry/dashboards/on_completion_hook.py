@@ -12,6 +12,11 @@ from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
 
 logger = logging.getLogger(__name__)
 
+FIX_PROMPT = "The generated dashboard artifact has validation errors."
+FIX_PROMPT_SECONDARY = "Please fix the following issues and regenerate the dashboard artifact:"
+
+MAX_VALIDATION_RETRIES = 3
+
 
 class DashboardOnCompletionHook(ExplorerOnCompletionHook):
     """
@@ -20,6 +25,9 @@ class DashboardOnCompletionHook(ExplorerOnCompletionHook):
     Validates the generated dashboard artifact against the GeneratedDashboard
     Pydantic model. If validation fails (e.g. blocklisted functions), asks Seer
     to regenerate with the error details.
+
+    The hook is limited to MAX_VALIDATION_RETRIES retry attempts to prevent
+    infinite loops, since on_completion_hooks persist across continue_run calls.
     """
 
     @classmethod
@@ -46,6 +54,32 @@ class DashboardOnCompletionHook(ExplorerOnCompletionHook):
                     "organization_id": organization.id,
                 },
             )
+
+            # Count consecutive fix requests in the current failure chain by
+            # scanning blocks in reverse. A non-fix user message (i.e. the user
+            # explicitly continuing the conversation) breaks the chain so each
+            # new user-driven generation gets its own retry budget.
+            retry_count = 0
+            for block in reversed(state.blocks):
+                if (
+                    block.message.role == "user"
+                    and block.message.content
+                    and block.message.content.startswith(FIX_PROMPT)
+                ):
+                    retry_count += 1
+                elif block.message.role == "user":
+                    break
+            if retry_count >= MAX_VALIDATION_RETRIES:
+                logger.info(
+                    "dashboards.on_completion_hook.max_retries_reached",
+                    extra={
+                        "run_id": run_id,
+                        "organization_id": organization.id,
+                        "retry_count": retry_count,
+                    },
+                )
+                return
+
             cls._request_fix(organization, run_id, validation_error)
             return
 
@@ -68,11 +102,7 @@ class DashboardOnCompletionHook(ExplorerOnCompletionHook):
             # We only request a single regeneration. No further generation requests are made if this fails.
             client.continue_run(
                 run_id,
-                prompt=(
-                    "The generated dashboard artifact has validation errors. "
-                    "Please fix the following issues and regenerate the dashboard artifact:\n\n"
-                    f"{error}"
-                ),
+                prompt=(f"{FIX_PROMPT} {FIX_PROMPT_SECONDARY}\n\n{error}"),
                 artifact_key="dashboard",
                 artifact_schema=GeneratedDashboard,
             )
