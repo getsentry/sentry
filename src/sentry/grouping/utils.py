@@ -118,3 +118,19 @@ def get_canonical_message_from_event(event: Event) -> str:
         or get_path(event.data, "exception", "values", -1, "value")
         or ""
     )
+
+
+def get_all_messages_from_event(event: Event) -> set[str]:
+    """
+    Get all messages contained in the event. Looks at log messages and exceptions, including
+    exception chains.
+    """
+    exceptions = get_path(event.data, "exception", "values", filter=True) or []
+    messages = {
+        get_canonical_message_from_event(event),  # This will grab a log message if available
+        *(exc.get("value") for exc in exceptions),
+    }
+    messages.discard("")  # In case `get_canonical_message_from_event` came up empty
+    messages.discard(None)  # In case any of the `get` calls came up empty
+
+    return messages
