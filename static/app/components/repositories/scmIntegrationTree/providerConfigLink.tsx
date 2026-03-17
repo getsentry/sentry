@@ -22,12 +22,14 @@ function getProviderConfigUrl(integration: OrganizationIntegration): string | nu
 
   if (provider.key === 'github_enterprise') {
     if (domainName) {
+      // GHE externalId format is "<host>:<numeric_installation_id>"
+      const installationId = externalId.split(':').at(-1);
       const host = domainName.split('/')[0];
       if (accountType === 'Organization') {
         const orgName = domainName.replace(`${host}/`, '');
-        return `https://${host}/organizations/${orgName}/settings/installations/${externalId}`;
+        return `https://${host}/organizations/${orgName}/settings/installations/${installationId}`;
       }
-      return `https://${host}/settings/installations/${externalId}`;
+      return `https://${host}/settings/installations/${installationId}`;
     }
     return null;
   }
