@@ -77,6 +77,7 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
       background="primary"
       direction="column"
       align="center"
+      justify="between"
       style={{zIndex: theme.zIndex.sidebarPanel}}
       {...props}
     >
@@ -177,55 +178,66 @@ interface PrimaryNavigationLinkProps
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = usePrimaryNavigationOrganization();
   const {layout} = usePrimaryNavigation();
-
+  const hasPageFrame = organization?.features.includes('page-frame');
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
 
+  const sharedLinkProps = {
+    to: props.to,
+    reloadDocument: appState === 'stale',
+    state: {source: SIDEBAR_NAVIGATION_SOURCE},
+    'aria-selected': props['aria-selected'],
+    'aria-current': props['aria-current'],
+    onMouseEnter: props.onMouseEnter,
+    onMouseLeave: props.onMouseLeave,
+    onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
+      trackAnalytics('navigation.primary_item_clicked', {
+        item: props.analyticsKey,
+        organization,
+        ...props.analyticsParams,
+      });
+      props.onClick?.(e);
+    },
+    [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
+  };
+
+  if (layout === 'mobile') {
+    return (
+      <MobileNavigationLink {...sharedLinkProps}>
+        {props.children}
+        {props.label}
+      </MobileNavigationLink>
+    );
+  }
+
+  const desktopChildren = (
+    <Fragment>
+      <Flex
+        as="span"
+        align="center"
+        justify="center"
+        padding="sm"
+        radius="md"
+        data-icon-container
+      >
+        {props.children}
+      </Flex>
+      <Text size="xs" bold variant="muted" style={{letterSpacing: '-0.05em'}}>
+        {props.label}
+      </Text>
+    </Fragment>
+  );
+
+  if (hasPageFrame) {
+    return (
+      <DesktopPageFrameNavigationLink {...sharedLinkProps}>
+        {desktopChildren}
+      </DesktopPageFrameNavigationLink>
+    );
+  }
+
   return (
-    <NavigationLink
-      to={props.to}
-      reloadDocument={appState === 'stale'}
-      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-      aria-selected={props['aria-selected']}
-      aria-current={props['aria-current']}
-      layout={layout}
-      onMouseEnter={props.onMouseEnter}
-      onMouseLeave={props.onMouseLeave}
-      onClick={e => {
-        trackAnalytics('navigation.primary_item_clicked', {
-          item: props.analyticsKey,
-          organization,
-          ...props.analyticsParams,
-        });
-        props.onClick?.(e);
-      }}
-      {...{
-        [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
-      }}
-    >
-      {layout === 'mobile' ? (
-        <Fragment>
-          {props.children}
-          {props.label}
-        </Fragment>
-      ) : (
-        <Fragment>
-          <Flex
-            as="span"
-            align="center"
-            justify="center"
-            padding="sm"
-            radius="md"
-            data-icon-container
-          >
-            {props.children}
-          </Flex>
-          <Text size="xs" bold variant="muted" style={{letterSpacing: '-0.05em'}}>
-            {props.label}
-          </Text>
-        </Fragment>
-      )}
-    </NavigationLink>
+    <DesktopNavigationLink {...sharedLinkProps}>{desktopChildren}</DesktopNavigationLink>
   );
 }
 
@@ -456,37 +468,21 @@ function PrimaryNavigationSeparator() {
   return <Stack.Separator border="muted" style={{width: '100%'}} />;
 }
 
-const NavigationLink = styled(
-  (props: LinkProps) => {
-    const {layout} = usePrimaryNavigation();
-    const organization = usePrimaryNavigationOrganization();
-    const hasPageFrame = organization?.features.includes('page-frame');
-    return (
-      <Flex
-        position="relative"
-        width="100%"
-        align="center"
-        direction={layout === 'mobile' ? 'row' : 'column'}
-        justify={layout === 'mobile' ? 'start' : 'center'}
-        gap={layout === 'mobile' ? 'md' : 'xs'}
-        padding={layout === 'mobile' ? 'md lg' : hasPageFrame ? 'md 0 xs 0' : 'sm lg'}
-      >
-        {p => <Link {...mergeProps(p, props)} />}
-      </Flex>
-    );
-  },
-  {
-    shouldForwardProp: prop => prop !== 'layout' && prop !== 'size',
-  }
-)<{layout: 'mobile' | 'sidebar'; size?: ButtonProps['size']}>`
-  /* Disable default link styles and only apply them to the icon container */
-  color: ${p =>
-    p.layout === 'mobile'
-      ? p.theme.tokens.content.primary
-      : p.theme.tokens.interactive.link.neutral.rest};
-
-  font-weight: ${p =>
-    p.layout === 'mobile' ? p.theme.font.weight.sans.medium : undefined};
+const MobileNavigationLink = styled((props: LinkProps) => (
+  <Flex
+    position="relative"
+    width="100%"
+    align="center"
+    direction="row"
+    justify="start"
+    gap="md"
+    padding="md lg"
+  >
+    {p => <Link {...mergeProps(p, props)} />}
+  </Flex>
+))`
+  color: ${p => p.theme.tokens.content.primary};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
   outline: none;
   box-shadow: none;
   transition: none;
@@ -501,9 +497,8 @@ const NavigationLink = styled(
   &::before {
     content: '';
     position: absolute;
-    /* We align the active state indicator to the top of the icon container, not to the center of the button */
-    top: ${p => (p.layout === 'mobile' ? '50%' : '12px')};
-    transform: ${p => (p.layout === 'mobile' ? 'translateY(-50%)' : 'none')};
+    top: 50%;
+    transform: translateY(-50%);
     left: 0px;
     width: 4px;
     height: 20px;
@@ -513,7 +508,6 @@ const NavigationLink = styled(
     opacity: 0;
   }
 
-  /* Apply focus styles only to the icon container */
   &:focus-visible {
     [data-icon-container] {
       outline: none;
@@ -524,6 +518,7 @@ const NavigationLink = styled(
   &:hover,
   &[aria-selected='true'] {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+
     [data-icon-container] {
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.neutral.background.hover};
@@ -536,6 +531,7 @@ const NavigationLink = styled(
     &::before {
       opacity: 1;
     }
+
     [data-icon-container] {
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.rest};
@@ -547,6 +543,147 @@ const NavigationLink = styled(
       [data-icon-container] {
         background-color: ${p =>
           p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+      }
+    }
+  }
+`;
+
+const DesktopNavigationLink = styled((props: LinkProps) => (
+  <Flex
+    position="relative"
+    width="100%"
+    align="center"
+    direction="column"
+    justify="center"
+    gap="xs"
+    padding="sm lg"
+  >
+    {p => <Link {...mergeProps(p, props)} />}
+  </Flex>
+))`
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  outline: none;
+  box-shadow: none;
+  transition: none;
+
+  &:active,
+  &:focus-visible {
+    outline: none;
+    box-shadow: none;
+    color: currentColor;
+  }
+
+  /* Active state indicator bar */
+  &::before {
+    content: '';
+    position: absolute;
+    /* We align the active state indicator to the top of the icon container, not to the center of the button */
+    top: 12px;
+    left: 0px;
+    width: 4px;
+    height: 20px;
+    border-radius: ${p => p.theme.radius['2xs']};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
+    transition: opacity 0.1s ease-in-out;
+    opacity: 0;
+  }
+
+  &:focus-visible {
+    [data-icon-container] {
+      outline: none;
+      box-shadow: 0 0 0 2px ${p => p.theme.tokens.focus.default};
+    }
+  }
+
+  &:hover,
+  &[aria-selected='true'] {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+
+    [data-icon-container] {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.hover};
+    }
+  }
+
+  &[aria-current='page'] {
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+
+    &::before {
+      opacity: 1;
+    }
+
+    [data-icon-container] {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    }
+
+    &:hover {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+
+      [data-icon-container] {
+        background-color: ${p =>
+          p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+      }
+    }
+  }
+`;
+
+const DesktopPageFrameNavigationLink = styled((props: LinkProps) => (
+  <Flex
+    position="relative"
+    width="100%"
+    align="center"
+    direction="column"
+    justify="center"
+    gap="xs"
+    padding="md 0 xs 0"
+  >
+    {p => <Link {...mergeProps(p, props)} />}
+  </Flex>
+))`
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  outline: none;
+  box-shadow: none;
+  transition: none;
+
+  &:active,
+  &:focus-visible {
+    outline: none;
+    box-shadow: none;
+    color: currentColor;
+  }
+
+  &:focus-visible {
+    [data-icon-container] {
+      outline: none;
+      box-shadow: 0 0 0 2px ${p => p.theme.tokens.interactive.link.accent.rest};
+    }
+  }
+
+  &:hover,
+  &[aria-selected='true'] {
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+
+    [data-icon-container] {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    }
+  }
+
+  &[aria-current='page'] {
+    color: ${p => p.theme.tokens.content.primary};
+
+    [data-icon-container] {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.rest};
+    }
+
+    &:hover {
+      color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+
+      [data-icon-container] {
+        background-color: ${p =>
+          p.theme.tokens.interactive.transparent.neutral.background.hover};
       }
     }
   }
@@ -592,13 +729,20 @@ function PrimaryNavigationButtonFeatureBadge(props: FeatureBadgeProps) {
   const organization = usePrimaryNavigationOrganization();
   const hasPageFrame = organization?.features.includes('page-frame');
 
-  if (!hasPageFrame) {
+  if (hasPageFrame) {
     return null;
   }
 
   return (
-    <Container right="6px" top="4px" position="absolute" padding="0 xs" height="16px">
-      {p => <FeatureBadge {...mergeProps(p, props)} type="alpha" aria-hidden="true" />}
+    <Container right="6px" top="0px" position="absolute" padding="0 xs" height="16px">
+      {p => (
+        <FeatureBadge
+          {...mergeProps(p, props)}
+          type="alpha"
+          aria-hidden="true"
+          style={{fontSize: '11px'}}
+        />
+      )}
     </Container>
   );
 }
