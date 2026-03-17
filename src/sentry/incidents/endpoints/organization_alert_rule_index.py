@@ -105,7 +105,10 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -277,6 +280,7 @@ class AlertRuleFetchMixin(Endpoint):
             response[ALERT_RULES_COUNT_HEADER] = detectors.count()
         else:
             alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+            report_used_legacy_models()
             if not features.has("organizations:performance-view", organization):
                 alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
             response = self.paginate(
