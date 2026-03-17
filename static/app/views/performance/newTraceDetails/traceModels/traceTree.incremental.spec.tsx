@@ -25,15 +25,23 @@ describe('incremental trace fetch', () => {
     ];
 
     const tree = TraceTree.FromTrace(
-      makeTrace({
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 1',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
-          }),
-        ],
-      }),
+      makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'txn-1',
+          op: 'txn 1',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          children: [
+            makeEAPSpan({
+              event_id: 'txn-2',
+              start_timestamp: 1,
+              end_timestamp: 2,
+              op: 'txn 2',
+              parent_span_id: 'txn-1',
+            }),
+          ],
+        }),
+      ]),
       {replay: null, meta: null, organization}
     );
 
@@ -41,33 +49,48 @@ describe('incremental trace fetch', () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 3',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 4'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'txn-3',
+          op: 'txn 3',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          children: [
+            makeEAPSpan({
+              event_id: 'txn-4',
+              start_timestamp: 1,
+              end_timestamp: 2,
+              op: 'txn 4',
+              parent_span_id: 'txn-3',
+            }),
+          ],
+        }),
+      ]),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 5',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'txn-5',
+          op: 'txn 5',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          children: [
+            makeEAPSpan({
+              event_id: 'txn-6',
+              start_timestamp: 1,
+              end_timestamp: 2,
+              op: 'txn 6',
+              parent_span_id: 'txn-5',
+            }),
+          ],
+        }),
+      ]),
     });
 
     tree.build();
+    // 1 root trace node + 2 eap spans
     expect(tree.list).toHaveLength(3);
 
     tree.fetchAdditionalTraces({
@@ -83,6 +106,7 @@ describe('incremental trace fetch', () => {
 
     await waitFor(() => expect(tree.root.children[0]!.fetchStatus).toBe('idle'));
 
+    // 1 root trace node + 2 eap spans + 4 newly fetched eap spans
     expect(tree.list).toHaveLength(7);
   });
 
@@ -94,15 +118,23 @@ describe('incremental trace fetch', () => {
     ];
 
     const tree = TraceTree.FromTrace(
-      makeTrace({
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 1',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
-          }),
-        ],
-      }),
+      makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'txn-1',
+          op: 'txn 1',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          children: [
+            makeEAPSpan({
+              event_id: 'txn-2',
+              start_timestamp: 1,
+              end_timestamp: 2,
+              op: 'txn 2',
+              parent_span_id: 'txn-1',
+            }),
+          ],
+        }),
+      ]),
       {replay: null, meta: null, organization}
     );
 
@@ -115,33 +147,48 @@ describe('incremental trace fetch', () => {
     const mockedResponse2 = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 5',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'txn-5',
+          op: 'txn 5',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          children: [
+            makeEAPSpan({
+              event_id: 'txn-6',
+              start_timestamp: 1,
+              end_timestamp: 2,
+              op: 'txn 6',
+              parent_span_id: 'txn-5',
+            }),
+          ],
+        }),
+      ]),
     });
     const mockedResponse3 = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/trace/slug3/?include_uptime=1&limit=10000&timestamp=3',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 7',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 8'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'txn-7',
+          op: 'txn 7',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          children: [
+            makeEAPSpan({
+              event_id: 'txn-8',
+              start_timestamp: 1,
+              end_timestamp: 2,
+              op: 'txn 8',
+              parent_span_id: 'txn-7',
+            }),
+          ],
+        }),
+      ]),
     });
 
     tree.build();
+    // 1 root trace node + 2 eap spans
     expect(tree.list).toHaveLength(3);
 
     tree.fetchAdditionalTraces({
@@ -158,6 +205,7 @@ describe('incremental trace fetch', () => {
     await waitFor(() => expect(tree.root.children[0]!.fetchStatus).toBe('idle'));
     tree.build();
 
+    // 1 root trace node + 2 eap spans + 4 newly fetched eap spans
     expect(tree.list).toHaveLength(7);
     expect(mockedResponse1).toHaveBeenCalledTimes(1);
     expect(mockedResponse2).toHaveBeenCalledTimes(1);
