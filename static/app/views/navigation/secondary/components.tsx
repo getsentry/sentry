@@ -6,20 +6,30 @@ import {
   useRef,
   useState,
   type ReactNode,
-  type RefObject,
 } from 'react';
 import type {To} from 'react-router-dom';
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {restrictToVerticalAxis} from '@dnd-kit/modifiers';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
-import {
-  AnimatePresence,
-  LayoutGroup,
-  motion,
-  Reorder,
-  useDragControls,
-  type DragControls,
-} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
@@ -35,6 +45,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableTransition} from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -603,9 +614,29 @@ const NavigationLink = styled(Link)<NavigationLink>`
   }
 `;
 
+/**
+ * A custom PointerSensor that only activates for mouse and pen pointer events,
+ * not touch events. This ensures that touch navigation (tapping) works normally.
+ */
+class NavigationPointerSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({nativeEvent: event}: React.PointerEvent): boolean => {
+        if (!event.isPrimary || event.button !== 0 || event.pointerType === 'touch') {
+          return false;
+        }
+        return true;
+      },
+    },
+  ];
+}
+
 const ReorderableItemContext = createContext<{
-  controls: DragControls;
-  grabbing: boolean;
+  attributes: ReturnType<typeof useSortable>['attributes'];
+  isDragging: boolean;
+  listeners: ReturnType<typeof useSortable>['listeners'];
+  setActivatorNodeRef: ReturnType<typeof useSortable>['setActivatorNodeRef'];
 } | null>(null);
 
 function useReorderableItemContext() {
@@ -618,42 +649,48 @@ function useReorderableItemContext() {
   return ctx;
 }
 
-interface ReorderableListItemProps<T> {
+interface ReorderableListItemProps<T extends {id: string | number}> {
   children: ReactNode;
-  groupRef: RefObject<HTMLElement | null>;
   item: T;
-  onDragEnd: () => void;
 }
 
-function ReorderableListItem<T>(props: ReorderableListItemProps<T>) {
-  const controls = useDragControls();
-  const [grabbing, setGrabbing] = useState(false);
-  const {setInteraction} = useSecondaryNavigation();
+function ReorderableListItem<T extends {id: string | number}>(
+  props: ReorderableListItemProps<T>
+) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({id: props.item.id});
 
   return (
-    <ReorderableItemContext.Provider value={{controls, grabbing}}>
-      <ReorderableItemContainer
-        {...props}
-        grabbing={grabbing}
-        value={props.item}
-        dragListener={false}
-        dragControls={controls}
-        dragConstraints={props.groupRef}
-        dragElastic={0.03}
-        dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
-        style={grabbing ? {} : {originY: '0px'}}
-        onDragStart={() => {
-          setGrabbing(true);
-          setInteraction('dragging');
-        }}
-        onDragEnd={() => {
-          setGrabbing(false);
-          setInteraction(null);
-          props.onDragEnd();
-        }}
+    <ReorderableItemContext.Provider
+      value={{attributes, isDragging, listeners, setActivatorNodeRef}}
+    >
+      <Container
+        radius="md"
+        position="relative"
+        background={isDragging ? 'secondary' : undefined}
       >
-        {props.children}
-      </ReorderableItemContainer>
+        {p => (
+          <div
+            {...p}
+            ref={setNodeRef}
+            data-is-dragging={isDragging ? true : undefined}
+            style={{
+              transform: CSS.Transform.toString(transform),
+              transition: transition ?? undefined,
+              zIndex: isDragging ? 1 : undefined,
+            }}
+          >
+            {props.children}
+          </div>
+        )}
+      </Container>
     </ReorderableItemContext.Provider>
   );
 }
@@ -667,36 +704,45 @@ interface SecondaryNavigationReorderableListProps<T extends {id: string | number
 function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   props: SecondaryNavigationReorderableListProps<T>
 ) {
-  const groupRef = useRef<HTMLElement>(null);
-  const [localItems, setLocalItems] = useState(props.items);
+  const [items, setItems] = useState<T[]>(props.items);
 
-  useEffect(() => {
-    // This will be removed in a future PR
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-    setLocalItems(props.items);
-  }, [props.items]);
+  const sensors = useSensors(
+    useSensor(NavigationPointerSensor, {
+      activationConstraint: {distance: 5},
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const {active, over} = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = items.findIndex(item => item.id === active.id);
+      const newIndex = items.findIndex(item => item.id === over.id);
+      const newItems = arrayMove(items, oldIndex, newIndex);
+      setItems(newItems);
+      props.onDragEnd(newItems);
+    }
+  }
 
   return (
-    <LayoutGroup>
-      <ReorderableGroupList
-        axis="y"
-        ref={groupRef}
-        initial={false}
-        values={localItems}
-        onReorder={setLocalItems}
-      >
-        {localItems.map(item => (
-          <ReorderableListItem
-            key={item.id}
-            item={item}
-            groupRef={groupRef}
-            onDragEnd={() => props.onDragEnd(localItems)}
-          >
-            {props.children(item)}
-          </ReorderableListItem>
-        ))}
-      </ReorderableGroupList>
-    </LayoutGroup>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      modifiers={[restrictToVerticalAxis]}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={items} strategy={verticalListSortingStrategy}>
+        <Stack direction="column" padding="0" width="100%">
+          {items.map(item => (
+            <ReorderableListItem key={item.id} item={item}>
+              {props.children(item)}
+            </ReorderableListItem>
+          ))}
+        </Stack>
+      </SortableContext>
+    </DndContext>
   );
 }
 
@@ -707,57 +753,83 @@ interface SecondaryNavigationReorderableLinkProps extends Omit<
   icon: ReactNode;
 }
 
-function SecondaryNavigationReorderableLink(
-  props: SecondaryNavigationReorderableLinkProps
-) {
-  const {interaction} = useSecondaryNavigation();
+function SecondaryNavigationReorderableLink({
+  analyticsItemName,
+  children,
+  to,
+  activeTo = to,
+  isActive: incomingIsActive,
+  end = false,
+  icon,
+  trailingItems,
+}: SecondaryNavigationReorderableLinkProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isActive =
+    incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
+  const {layout} = usePrimaryNavigation();
+  const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
+  const {isDragging} = useReorderableItemContext();
 
-  const {icon, onClick, ...linkProps} = props;
+  function handleNavigate() {
+    if (isDragging) {
+      return;
+    }
+    if (analyticsItemName) {
+      trackAnalytics('navigation.secondary_item_clicked', {
+        item: analyticsItemName,
+        organization,
+      });
+    }
+    closeCollapsedNavigationHovercard();
+    navigate(to as string, {state: {source: SIDEBAR_NAVIGATION_SOURCE}});
+  }
+
   return (
-    <StyledReorderableNavigationLink
-      {...linkProps}
-      leadingItems={
-        <Flex justify="center" align="center" position="relative">
-          <GrabHandle />
-          <Flex justify="center" align="center" data-reorderable-handle-slot>
-            {icon}
-          </Flex>
-        </Flex>
-      }
-      onPointerDown={e => {
-        e.preventDefault();
-      }}
-      onClick={e => {
-        if (interaction.current) {
+    <StyledReorderableFakeLink
+      role="link"
+      tabIndex={0}
+      layout={layout}
+      aria-current={isActive ? 'page' : undefined}
+      aria-selected={isActive}
+      onClick={handleNavigate}
+      onKeyDown={(e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          return;
+          handleNavigate();
         }
-        onClick?.(e);
       }}
-    />
+    >
+      <Flex justify="center" align="center" position="relative">
+        <GrabHandle />
+        <Flex justify="center" align="center" data-reorderable-handle-slot>
+          {icon}
+        </Flex>
+      </Flex>
+      <Text ellipsis variant={layout === 'sidebar' ? 'muted' : undefined}>
+        {children}
+      </Text>
+      {trailingItems}
+    </StyledReorderableFakeLink>
   );
 }
 
 function GrabHandle(props: FlexProps<'div'>) {
-  const {controls, grabbing} = useReorderableItemContext();
+  const {attributes, isDragging, listeners, setActivatorNodeRef} =
+    useReorderableItemContext();
   return (
     <Flex
       {...props}
       data-drag-icon
-      onPointerDown={e => {
-        controls.start(e);
-        e.stopPropagation();
-        e.preventDefault();
-      }}
-      onClick={e => {
-        e.stopPropagation();
-        e.preventDefault();
-      }}
+      ref={setActivatorNodeRef}
+      {...listeners}
+      {...attributes}
       width="18px"
       height="18px"
       justify="center"
       align="center"
-      style={{cursor: grabbing ? 'grabbing' : 'grab'}}
+      style={{cursor: isDragging ? 'grabbing' : 'grab'}}
     >
       <IconGrabbable variant="muted" />
     </Flex>
@@ -788,37 +860,68 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
   border: 2px solid ${p => p.theme.tokens.border[p.variant].muted};
 `;
 
-type GroupProps<T> = Omit<
-  React.ComponentProps<typeof Reorder.Group>,
-  'values' | 'onReorder'
-> & {
-  onReorder: (values: T[]) => void;
-  values: T[];
-};
-
-function ReorderableGroupList<T extends {id: string | number}>(props: GroupProps<T>) {
-  return (
-    <Stack direction="column" padding="0" width="100%" margin="0">
-      {/* MergeProps is not working here due to the type signature, but it's not actually
-      needed anyway because p will only ever be a className prop */}
-      {p => <Reorder.Group {...p} {...props} />}
-    </Stack>
-  );
+interface NavigationFakeLinkProps {
+  layout: 'mobile' | 'sidebar';
 }
 
-function ReorderableItemContainer(props: React.ComponentProps<typeof Reorder.Item>) {
-  return (
-    <Container
-      radius="md"
-      position="relative"
-      background={props.grabbing ? 'secondary' : undefined}
-    >
-      {p => <Reorder.Item {...p} {...props} />}
-    </Container>
-  );
-}
+const NavigationFakeLink = styled('div')<NavigationFakeLinkProps>`
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  padding: ${p =>
+    p.layout === 'mobile'
+      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`
+      : `${p.theme.space.md} ${p.theme.space.lg}`};
+  border-radius: ${p => p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
+  cursor: pointer;
+  user-select: none;
 
-const StyledReorderableNavigationLink = styled(SecondaryNavigationLink)`
+  /* Renders the active state indicator */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 20px;
+    left: -${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.radius['2xs']};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
+    transition: opacity 0.1s ease-in-out;
+    opacity: 0;
+  }
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &[aria-selected='true'] {
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+
+    &::before {
+      opacity: 1;
+    }
+
+    &:hover {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+    }
+  }
+
+  &:focus-visible {
+    outline: ${p => p.theme.focusRing()};
+  }
+`;
+
+const StyledReorderableFakeLink = styled(NavigationFakeLink)`
   :not(:hover) {
     [data-drag-icon] {
       ${p => p.theme.visuallyHidden}
