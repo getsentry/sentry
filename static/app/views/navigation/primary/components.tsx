@@ -8,7 +8,7 @@ import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {DotIndicator, type DotIndicatorVariant} from '@sentry/scraps/dotIndicator';
+import {DotIndicator} from '@sentry/scraps/dotIndicator';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -247,16 +247,8 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   );
 }
 
-type NavIndicatorVariant = 'accent' | 'danger' | 'warning';
-
-const NAV_TO_DOT_VARIANT: Record<NavIndicatorVariant, DotIndicatorVariant> = {
-  accent: 'info',
-  danger: 'danger',
-  warning: 'warning',
-};
-
 interface PrimaryNavigationUnreadIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant: NavIndicatorVariant;
+  variant: 'accent' | 'danger' | 'warning';
 }
 
 function PrimaryNavigationUnreadIndicator({
@@ -278,7 +270,7 @@ function PrimaryNavigationUnreadIndicator({
       {p => (
         <DotIndicator
           {...mergeProps(p, props)}
-          variant={NAV_TO_DOT_VARIANT[variant]}
+          variant={variant === 'accent' ? 'info' : variant}
           data-unread-indicator
         />
       )}

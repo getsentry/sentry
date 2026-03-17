@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
-export type DotIndicatorVariant = 'danger' | 'warning' | 'info';
+type DotIndicatorVariant = 'danger' | 'warning' | 'info';
 
-export interface DotIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
+interface DotIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant: DotIndicatorVariant;
 }
 

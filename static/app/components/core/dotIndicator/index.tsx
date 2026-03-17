@@ -1,5 +1,1 @@
-export {
-  DotIndicator,
-  type DotIndicatorProps,
-  type DotIndicatorVariant,
-} from './dotIndicator';
+export {DotIndicator} from './dotIndicator';
