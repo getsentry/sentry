@@ -239,7 +239,7 @@ describe('MetricSelector', () => {
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{Enter}');
 
-      expect(onChange).toHaveBeenCalled();
+      expect(onChange).toHaveBeenCalledTimes(1);
     });
 
     it('ArrowDown from search moves focus to first option', async () => {
@@ -309,7 +309,7 @@ describe('MetricSelector', () => {
       });
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{Enter}');
-      expect(onChange).toHaveBeenCalled();
+      expect(onChange).toHaveBeenCalledTimes(1);
     });
 
     it('ArrowUp does not go below index 0', async () => {

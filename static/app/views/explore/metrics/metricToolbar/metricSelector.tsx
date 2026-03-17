@@ -531,7 +531,6 @@ export function MetricSelector({
                                   size="md"
                                   dataIndex={virtualRow.index}
                                   measureRef={virtualizer.measureElement}
-                                  onSelect={handleSelect}
                                 />
                               );
                             })}
@@ -562,7 +561,6 @@ interface MetricListBoxOptionProps {
   dataIndex: number;
   item: Node<MetricSelectOption>;
   listState: ListState<MetricSelectOption>;
-  onSelect: (option: MetricSelectOption) => void;
   size: MenuListItemProps['size'];
   measureRef?: React.Ref<HTMLLIElement>;
 }
@@ -570,7 +568,6 @@ interface MetricListBoxOptionProps {
 function MetricListBoxOption({
   item,
   listState,
-  onSelect,
   size,
   dataIndex,
   measureRef,
@@ -583,12 +580,6 @@ function MetricListBoxOption({
     ref
   );
   const optionPropsMerged = mergeProps(optionProps, {
-    onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        onSelect(option);
-      }
-    },
     onMouseEnter: () => {
       listState.selectionManager.setFocused(true);
       listState.selectionManager.setFocusedKey(item.key);
