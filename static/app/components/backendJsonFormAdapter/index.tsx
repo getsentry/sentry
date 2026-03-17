@@ -12,7 +12,10 @@ import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {FieldValue, JsonFormAdapterFieldConfig} from './types';
 
-function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
+function getZodType(
+  fieldType: JsonFormAdapterFieldConfig['type'],
+  fieldName: JsonFormAdapterFieldConfig['name']
+) {
   switch (fieldType) {
     case 'boolean':
       return z.boolean();
@@ -25,11 +28,14 @@ function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
       return z.string();
     case 'number':
       return z.number();
+    case 'choice_mapper':
+    case 'project_mapper':
+      return z.object({
+        [fieldName]: z.any(),
+      });
     case 'select':
     case 'choice':
-    case 'choice_mapper':
     case 'table':
-    case 'project_mapper':
       return z.any();
     default:
       unreachable(fieldType);
@@ -93,16 +99,15 @@ export function BackendJsonFormAdapter<
   const fieldName = field.name;
 
   const schema = useMemo(
-    () => z.object({[fieldName]: getZodType(field.type)}),
+    () => z.object({[fieldName]: getZodType(field.type, fieldName)}),
     [fieldName, field.type]
   );
 
   if (field.type === 'table') {
-    const tableSchema = z.object({[fieldName]: z.any()});
     return (
       <AutoSaveForm
         name={fieldName}
-        schema={tableSchema}
+        schema={schema}
         initialValue={initialValue ?? field.default ?? []}
         mutationOptions={mutationOptions}
       >
@@ -137,14 +142,10 @@ export function BackendJsonFormAdapter<
   }
 
   if (field.type === 'project_mapper') {
-    const projectMapperSchema = z.object({
-      [fieldName]: z.any(),
-    });
-
     return (
       <AutoSaveForm
         name={fieldName}
-        schema={projectMapperSchema}
+        schema={schema}
         initialValue={initialValue ?? field.default ?? []}
         mutationOptions={mutationOptions}
       >
@@ -180,14 +181,10 @@ export function BackendJsonFormAdapter<
   }
 
   if (field.type === 'choice_mapper') {
-    const choiceMapperSchema = z.object({
-      [fieldName]: z.any(),
-    });
-
     return (
       <AutoSaveForm
         name={fieldName}
-        schema={choiceMapperSchema}
+        schema={schema}
         initialValue={initialValue ?? field.default ?? {}}
         mutationOptions={mutationOptions}
       >
