@@ -303,7 +303,7 @@ export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   ],
   onboarding: {
     type: 'overview',
-    requiredProjectFlags: ['hasInsightsDb', 'hasInsightsHttp'],
+    requiredProjectFlags: ['firstTransactionEvent'],
     description: 'Get started with backend tracing',
   },
 };
