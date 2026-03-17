@@ -40,7 +40,7 @@ describe('incremental trace fetch', () => {
     // Mock the API calls
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
+      url: '/organizations/org-slug/trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
       body: {
         transactions: [
           makeTransaction({
@@ -54,7 +54,7 @@ describe('incremental trace fetch', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
+      url: '/organizations/org-slug/trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
       body: {
         transactions: [
           makeTransaction({
@@ -77,7 +77,7 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'non-eap',
+
       meta: null,
     });
 
@@ -109,12 +109,12 @@ describe('incremental trace fetch', () => {
     // Mock the API calls
     const mockedResponse1 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
+      url: '/organizations/org-slug/trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
       statusCode: 400,
     });
     const mockedResponse2 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
+      url: '/organizations/org-slug/trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
       body: {
         transactions: [
           makeTransaction({
@@ -128,7 +128,7 @@ describe('incremental trace fetch', () => {
     });
     const mockedResponse3 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace/slug3/?include_uptime=1&limit=10000&timestamp=3',
+      url: '/organizations/org-slug/trace/slug3/?include_uptime=1&limit=10000&timestamp=3',
       body: {
         transactions: [
           makeTransaction({
@@ -151,7 +151,7 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'non-eap',
+
       meta: null,
     });
 
@@ -238,7 +238,7 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'eap',
+
       meta: null,
     });
 
@@ -318,7 +318,7 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'eap',
+
       meta: null,
     });
 
