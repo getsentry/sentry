@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {TagWithTopValues} from 'sentry/types/group';
@@ -15,7 +15,7 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useUser} from 'sentry/utils/useUser';
-import OwnerInput from 'sentry/views/settings/project/projectOwnership/ownerInput';
+import {OwnerInput} from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 type IssueOwnershipResponse = {
   autoAssignment: boolean;
@@ -107,7 +107,7 @@ function OwnershipSuggestions({
   );
 }
 
-function ProjectOwnershipModal({
+export function ProjectOwnershipModal({
   organization,
   project,
   issueId,
@@ -200,5 +200,3 @@ const StyledPre = styled('pre')`
   line-height: 1.6;
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default ProjectOwnershipModal;

@@ -10,7 +10,7 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {UserReport} from 'sentry/types/group';
 import {escape, nl2br} from 'sentry/utils';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 type Props = {
   issueId: string;

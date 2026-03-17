@@ -3,7 +3,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
 const COLD_START_CONDITION = `${SpanFields.SPAN_OP}:app.start.cold ${SpanFields.SPAN_DESCRIPTION}:["Cold Start","Cold App Start"]`;
@@ -192,7 +192,7 @@ const COLD_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
       aggregates: [`avg(${SpanFields.APP_START_COLD})`],
       columns: [SpanFields.DEVICE_CLASS],
       conditions: TRANSACTION_OP_CONDITION,
-      orderby: `${SpanFields.DEVICE_CLASS}`,
+      orderby: SpanFields.DEVICE_CLASS,
     },
   ],
   layout: {
@@ -219,7 +219,7 @@ const WARM_START_DEVICE_DISTRIBUTION_WIDGET: Widget = {
       aggregates: [`avg(${SpanFields.APP_START_WARM})`],
       columns: [SpanFields.DEVICE_CLASS],
       conditions: TRANSACTION_OP_CONDITION,
-      orderby: `${SpanFields.DEVICE_CLASS}`,
+      orderby: SpanFields.DEVICE_CLASS,
     },
   ],
   layout: {
@@ -363,4 +363,5 @@ export const MOBILE_VITALS_APP_STARTS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
+  onboarding: {type: 'module', moduleName: ModuleName.APP_START},
 };

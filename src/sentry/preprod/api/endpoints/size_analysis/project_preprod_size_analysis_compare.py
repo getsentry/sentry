@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import StaffRequired
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
@@ -70,7 +70,7 @@ def _delete_existing_comparisons(
     return comparisons_deleted, files_deleted
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodArtifactSizeAnalysisCompareEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {

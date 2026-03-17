@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const configurationIssuesConfig: IssueCategoryConfigMapping = {
+export const configurationIssuesConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -52,5 +52,3 @@ const configurationIssuesConfig: IssueCategoryConfigMapping = {
     groupingInfo: {enabled: false},
   },
 };
-
-export default configurationIssuesConfig;

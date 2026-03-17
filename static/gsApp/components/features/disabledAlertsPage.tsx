@@ -1,17 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconBusiness} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName, hasPerformance} from 'getsentry/utils/billing';
 
-import AlertsBackground from './illustrations/alertsBackground';
+import {AlertsBackground} from './illustrations/alertsBackground';
 import PageUpsellOverlay from './pageUpsellOverlay';
 import PlanFeature from './planFeature';
 

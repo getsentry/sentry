@@ -7,9 +7,7 @@ interface Return {
   projectSlug: string | undefined;
 }
 
-export default function decodeFeedbackSlug(
-  val: string | string[] | null | undefined
-): Return {
+export function decodeFeedbackSlug(val: string | string[] | null | undefined): Return {
   const [projectSlug, feedbackId] = decodeScalar(val, '').split(':');
   return {projectSlug, feedbackId};
 }

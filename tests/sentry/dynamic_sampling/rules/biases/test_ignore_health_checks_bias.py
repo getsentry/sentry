@@ -99,6 +99,15 @@ def matches_health_check_globs(transaction_name: str) -> bool:
         ("healthcheck", "*healthcheck*"),
         ("my-service-healthcheck", "*healthcheck*"),
         ("healthcheck-endpoint", "*healthcheck*"),
+        # Pattern: *health-check*
+        ("/health-check", "*health-check*"),
+        ("/health-check/", "*health-check*"),
+        ("/api/health-check", "*health-check*"),
+        ("GET /health-check", "*health-check*"),
+        ("GET /api/v1/health-check", "*health-check*"),
+        ("health-check", "*health-check*"),
+        ("my-service-health-check", "*health-check*"),
+        ("health-check-endpoint", "*health-check*"),
         # Pattern: *heartbeat*
         ("/heartbeat", "*heartbeat*"),
         ("/api/heartbeat", "*heartbeat*"),

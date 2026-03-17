@@ -14,7 +14,7 @@ import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
 import {Overlay} from 'sentry/components/overlay';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {useTimezone} from 'sentry/components/timezoneProvider';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';

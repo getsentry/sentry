@@ -1,6 +1,6 @@
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
@@ -9,7 +9,7 @@ interface Props {
   openInNewTab?: boolean;
 }
 
-export default function AutomationTitleCell({automation, openInNewTab}: Props) {
+export function AutomationTitleCell({automation, openInNewTab}: Props) {
   const organization = useOrganization();
 
   const warning = getAutomationActionsWarning(automation);

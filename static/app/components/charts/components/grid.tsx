@@ -6,7 +6,7 @@ import merge from 'lodash/merge';
  *
  * e.g. alignment of your chart?
  */
-export default function Grid(props: GridComponentOption = {}): GridComponentOption {
+export function Grid(props: GridComponentOption = {}): GridComponentOption {
   return merge(
     {
       top: 20,

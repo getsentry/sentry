@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AiSetupDataConsent from './AiSetupDataConsent';
+import {AiSetupDataConsent} from './AiSetupDataConsent';
 
 describe('AiSetupDataConsent', () => {
   const organization = OrganizationFixture();

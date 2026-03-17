@@ -9,10 +9,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
-import ReleaseDropdownFilter from 'sentry/components/replays/releaseDropdownFilter';
+import {ReleaseDropdownFilter} from 'sentry/components/replays/releaseDropdownFilter';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
-import Version from 'sentry/components/version';
-import useOrganization from 'sentry/utils/useOrganization';
+import {Version} from 'sentry/components/version';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
@@ -56,7 +56,7 @@ function renderValueList(values: ReactNode[]) {
   ));
 }
 
-function ReplayTagsTableRow({name, values, generateUrl}: Props) {
+export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   const organization = useOrganization();
 
   const renderTagValue = useMemo(() => {
@@ -136,8 +136,6 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
     />
   );
 }
-
-export default ReplayTagsTableRow;
 
 const ValueContainer = styled('div')`
   span {

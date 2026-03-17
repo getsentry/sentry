@@ -19,7 +19,7 @@ type Props = {
   tokenPrefix?: string;
 };
 
-function ApiTokenRow({
+export function ApiTokenRow({
   token,
   onRemove,
   tokenPrefix = '',
@@ -80,5 +80,3 @@ const Actions = styled((props: GridProps) => (
 const TokenPreview = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default ApiTokenRow;

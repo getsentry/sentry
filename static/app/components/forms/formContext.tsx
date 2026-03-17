@@ -1,6 +1,6 @@
 import {createContext} from 'react';
 
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 
 /**
  * Context type used in 'settings' forms.
@@ -21,9 +21,7 @@ type FormContextData = {
   saveOnBlur?: boolean;
 };
 
-const FormContext = createContext<FormContextData>({
+export const FormContext = createContext<FormContextData>({
   form: undefined,
   saveOnBlur: undefined,
 });
-
-export default FormContext;

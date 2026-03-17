@@ -187,7 +187,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
             integration_id=integration.id,
         )
 
-        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+        with patch.object(GithubRequestParser, "get_cells_from_organizations", return_value=[]):
             response = self.client.post(
                 path=self.url,
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,
@@ -204,7 +204,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         assert integration.name == "octocat"
         assert integration.status == ObjectStatus.DISABLED
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
             assert repo.status == ObjectStatus.DISABLED
 
@@ -268,7 +268,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         )
         integration.add_organization(self.project.organization.id, self.user)
 
-        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+        with patch.object(GithubRequestParser, "get_cells_from_organizations", return_value=[]):
             response = self.client.post(
                 path=self.url,
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,
@@ -312,7 +312,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         )
         integration.add_organization(self.project.organization.id, self.user)
 
-        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+        with patch.object(GithubRequestParser, "get_cells_from_organizations", return_value=[]):
             response = self.client.post(
                 path=self.url,
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,

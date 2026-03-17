@@ -6,11 +6,11 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {Organization} from 'sentry/types/organization';
 
-import deleteBillingMetricHistory from 'admin/components/deleteBillingMetricHistory';
+import {deleteBillingMetricHistory} from 'admin/components/deleteBillingMetricHistory';
 
 describe('DeleteBillingMetricHistory', () => {
   // Add afterEach to clean up after tests

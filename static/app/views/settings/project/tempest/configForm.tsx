@@ -1,9 +1,9 @@
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -20,7 +20,7 @@ interface ConfigFormProps {
 export function ConfigForm({organization, project}: ConfigFormProps) {
   return (
     <FieldGroup title={t('General Settings')}>
-      <AutoSaveField
+      <AutoSaveForm
         name="tempestFetchScreenshots"
         schema={schema}
         initialValue={project.tempestFetchScreenshots ?? false}
@@ -42,7 +42,7 @@ export function ConfigForm({organization, project}: ConfigFormProps) {
             <field.Switch checked={field.state.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </AutoSaveField>
+      </AutoSaveForm>
     </FieldGroup>
   );
 }

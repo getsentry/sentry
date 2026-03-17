@@ -7,7 +7,7 @@ import type {PlainRoute} from 'sentry/types/legacyReactRouter';
  * @param route If given, will only take into account routes between `route` and end of the routes list
  * @return Object Returns a react-router route object
  */
-export default function findFirstRouteWithoutRouteParam(
+export function findFirstRouteWithoutRouteParam(
   routes: PlainRoute[],
   route?: PlainRoute
 ) {

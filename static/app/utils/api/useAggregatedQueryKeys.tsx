@@ -78,7 +78,7 @@ function isQueryKeyInList<AggregatableQueryKey>(queryList: AggregatableQueryKey[
  * - You will implement `responseReducer(prev: Data, result: ApiResult)` which
  *   combines `defaultData` with the data that was fetched with the queryKey.
  */
-export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
+export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
   cacheKey,
   getQueryKey,
   onError,

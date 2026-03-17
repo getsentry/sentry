@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 type RenderProps = {
   fallCount: number;

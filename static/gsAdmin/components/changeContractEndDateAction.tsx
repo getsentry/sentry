@@ -70,7 +70,7 @@ type Options = Omit<ChangeContractEndDateModalProps, keyof ModalRenderProps>;
 const openActionModal = (props: Options) =>
   openModal(deps => <ChangeContractEndDateModal {...deps} {...props} />);
 
-function ChangeContractEndDateAction(props: Options) {
+export function ChangeContractEndDateAction(props: Options) {
   return (
     <Button priority="link" size="zero" onClick={() => openActionModal(props)}>
       {moment(props.contractPeriodEnd).format('ll')}
@@ -81,5 +81,3 @@ function ChangeContractEndDateAction(props: Options) {
 const DateField = styled(InputField)`
   padding-left: 0;
 `;
-
-export default ChangeContractEndDateAction;
