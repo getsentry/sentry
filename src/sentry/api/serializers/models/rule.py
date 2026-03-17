@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.db.models import Max, Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers
@@ -560,8 +560,20 @@ class WorkflowEngineRuleSerializer(Serializer):
             result[workflow]["action_match"] = (
                 workflow.when_condition_group.logic_type if workflow.when_condition_group else None
             )
+
+            # Check if workflow has at least one WorkflowDataConditionGroup
+            # prefetched_wdcgs is set by Prefetch(to_attr="prefetched_wdcgs") in _fetch_workflows
+            prefetched_wdcgs = cast("list[WorkflowDataConditionGroup]", workflow.prefetched_wdcgs)
+            if not prefetched_wdcgs:
+                # Workflow has no WorkflowDataConditionGroups - set defaults
+                result[workflow]["filter_match"] = None
+                result[workflow]["conditions"] = []
+                result[workflow]["filters"] = []
+                result[workflow]["actions"] = []
+                continue
+
             # pick first DCG for filter_match (rules only have 1)
-            workflow_dcg = workflow.prefetched_wdcgs[0]  # type: ignore[attr-defined]
+            workflow_dcg = prefetched_wdcgs[0]
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
             # build up actions data
@@ -642,9 +654,14 @@ class WorkflowEngineRuleSerializer(Serializer):
                 serialized_actions.append(action_data)
 
             # Generate conditions and filters
-            conditions, filters = self._generate_rule_conditions_filters(
-                workflow, result[workflow]["projects"][0], workflow_dcg
-            )
+            projects = result[workflow]["projects"]
+            if projects:
+                conditions, filters = self._generate_rule_conditions_filters(
+                    workflow, projects[0], workflow_dcg
+                )
+            else:
+                conditions, filters = [], []
+
             for f in filters:
                 # IssueCategoryFilter stores numeric string choices and must stay as str
                 if (
