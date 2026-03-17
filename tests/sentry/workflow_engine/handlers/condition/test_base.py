@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import Any, Mapping
 from uuid import uuid4
 
-from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.group import Group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now

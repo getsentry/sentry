@@ -148,7 +148,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         except SentryApp.DoesNotExist:
             return None
 
-    def outbox_region_names(self) -> Collection[str]:
+    def outbox_cell_names(self) -> Collection[str]:
         return find_cells_for_orgs([self.organization_id])
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:

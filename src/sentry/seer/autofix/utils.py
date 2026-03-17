@@ -818,9 +818,7 @@ def get_coding_agent_prompt(
     base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
 
     if short_id:
-        base_prompt = (
-            f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the pull request description."
-        )
+        base_prompt = f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the commit message."
 
     if instruction and instruction.strip():
         base_prompt = f"{base_prompt}\n\n{instruction.strip()}"

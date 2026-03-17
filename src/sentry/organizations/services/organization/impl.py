@@ -12,7 +12,7 @@ from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
@@ -310,7 +310,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 return serialize_member(org_member)
             except OrganizationMember.DoesNotExist:
                 try:
-                    org_member = OrganizationMember.objects.get(
+                    org_member = OrganizationMember.objects.select_for_update().get(
                         id=organization_member_id, organization_id=organization_id
                     )
                     org_member.set_user(user_id)
@@ -727,13 +727,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 response_state=RpcOrganizationDeleteState.OWNS_PUBLISHED_INTEGRATION
             )
 
-        with transaction.atomic(router.db_for_write(RegionScheduledDeletion)):
+        with transaction.atomic(router.db_for_write(CellScheduledDeletion)):
             updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
                 org_id=orm_organization.id
             )
 
             if updated_organization is not None:
-                schedule = RegionScheduledDeletion.schedule(orm_organization, days=1, actor=user)
+                schedule = CellScheduledDeletion.schedule(orm_organization, days=1, actor=user)
 
                 Organization.objects.uncache_object(updated_organization.id)
                 return RpcOrganizationDeleteResponse(

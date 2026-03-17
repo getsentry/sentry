@@ -5,7 +5,6 @@ import {
   serializeFields,
   serializeSorts,
   serializeThresholds,
-  serializeTraceMetric,
   stateParamsNotInUrl,
   type WidgetBuilderState,
   type WidgetBuilderStateQueryParams,
@@ -14,7 +13,7 @@ import {
 export function convertBuilderStateToStateQueryParams(
   state: WidgetBuilderState
 ): WidgetBuilderStateQueryParams {
-  const {fields, yAxis, sort, thresholds, traceMetric, ...rest} = state;
+  const {fields, yAxis, sort, thresholds, ...rest} = state;
   const allowedRemainingParams = omit(rest, stateParamsNotInUrl);
   return {
     ...allowedRemainingParams,
@@ -22,9 +21,5 @@ export function convertBuilderStateToStateQueryParams(
     yAxis: serializeFields(yAxis ?? []),
     sort: serializeSorts(WidgetType.SPANS)(sort ?? []),
     thresholds: thresholds ? serializeThresholds(thresholds) : undefined,
-    traceMetric:
-      traceMetric?.name && traceMetric?.type
-        ? serializeTraceMetric(traceMetric)
-        : undefined,
   };
 }

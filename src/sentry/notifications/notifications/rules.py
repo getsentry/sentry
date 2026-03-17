@@ -17,11 +17,12 @@ from sentry.integrations.types import (
     ExternalProviders,
     IntegrationProviderSlug,
 )
-from sentry.issue_detection.grouptype import (
+from sentry.issues.grouptype import (
+    GROUP_CATEGORIES_CUSTOM_EMAIL,
+    GroupCategory,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
-from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
 from sentry.models.group import Group
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (

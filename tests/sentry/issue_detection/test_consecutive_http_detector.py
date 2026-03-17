@@ -5,12 +5,12 @@ from typing import Any
 import pytest
 
 from sentry.issue_detection.detectors.consecutive_http_detector import ConsecutiveHTTPSpanDetector
-from sentry.issue_detection.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.issue_detection.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils.cases import TestCase

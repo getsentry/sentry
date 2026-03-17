@@ -47,7 +47,7 @@ export function SeerDrawerContent({aiConfig, autofix}: SeerDrawerContentProps) {
 
   return (
     <Flex direction="column" gap="lg">
-      <SeerDrawerArtifacts sections={sections} />
+      <SeerDrawerArtifacts autofix={autofix} sections={sections} />
       {autofix.runState?.status === 'completed' && (
         <SeerDrawerNextStep autofix={autofix} sections={sections} />
       )}
@@ -56,27 +56,32 @@ export function SeerDrawerContent({aiConfig, autofix}: SeerDrawerContentProps) {
 }
 
 interface SeerDrawerArtifactsProps {
+  autofix: ReturnType<typeof useExplorerAutofix>;
   sections: AutofixSection[];
 }
 
-function SeerDrawerArtifacts({sections}: SeerDrawerArtifactsProps) {
+function SeerDrawerArtifacts({autofix, sections}: SeerDrawerArtifactsProps) {
   return (
     <Fragment>
       {sections.map(section => {
         if (isRootCauseSection(section)) {
-          return <RootCauseCard key={section.step} section={section} />;
+          return <RootCauseCard key={section.step} autofix={autofix} section={section} />;
         }
 
         if (isSolutionSection(section)) {
-          return <SolutionCard key={section.step} section={section} />;
+          return <SolutionCard key={section.step} autofix={autofix} section={section} />;
         }
 
         if (isCodeChangesSection(section)) {
-          return <CodeChangesCard key={section.step} section={section} />;
+          return (
+            <CodeChangesCard key={section.step} autofix={autofix} section={section} />
+          );
         }
 
         if (isPullRequestSection(section)) {
-          return <PullRequestsCard key={section.step} section={section} />;
+          return (
+            <PullRequestsCard key={section.step} autofix={autofix} section={section} />
+          );
         }
 
         // TODO: maybe send a log?

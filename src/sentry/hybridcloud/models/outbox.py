@@ -432,10 +432,6 @@ class CellOutboxBase(OutboxBase):
     __repr__ = sane_repr("payload", *coalesced_columns)
 
 
-# TODO(cells): remove once getsentry updated
-RegionOutboxBase = CellOutboxBase
-
-
 @cell_silo_model
 class CellOutbox(CellOutboxBase):
     class Meta:
@@ -459,10 +455,6 @@ class CellOutbox(CellOutboxBase):
             ),
             models.Index(fields=("shard_scope", "shard_identifier", "id")),
         )
-
-
-# TODO(cells): remove once all usage is updated
-RegionOutbox = CellOutbox
 
 
 # Outboxes bound from control silo -> region silo

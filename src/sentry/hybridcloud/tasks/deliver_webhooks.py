@@ -633,7 +633,7 @@ def perform_request(payload: WebhookPayload) -> None:
 
 def perform_region_request(region: Cell, payload: WebhookPayload) -> None:
     try:
-        client = CellSiloClient(region=region)
+        client = CellSiloClient(cell=region)
         with metrics.timer(
             "hybridcloud.deliver_webhooks.send_request",
             tags={"destination_region": region.name},

@@ -211,7 +211,7 @@ def _project_key_errors_snuba(
             ),
             Condition(
                 Column("group_status", entity=group_attributes_entity),
-                Op.IN,
+                Op.EQ,
                 GroupStatus.UNRESOLVED,
             ),
             Condition(Column("level", entity=events_entity), Op.EQ, "error"),
@@ -438,7 +438,7 @@ def _project_key_performance_issues_eap(
             limit=3,
             referrer=referrer,
             config=SearchResolverConfig(),
-            occurrence_category=OccurrenceCategory.GENERIC,
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
         )
     except Exception:
         logger.exception(

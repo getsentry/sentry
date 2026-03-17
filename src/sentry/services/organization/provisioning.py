@@ -8,8 +8,8 @@ from sentry_sdk import capture_exception
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.outbox.signals import process_control_outbox
-from sentry.hybridcloud.services.region_organization_provisioning import (
-    region_organization_provisioning_rpc_service,
+from sentry.hybridcloud.services.cell_organization_provisioning import (
+    cell_organization_provisioning_rpc_service,
 )
 from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
@@ -205,7 +205,7 @@ def handle_organization_provisioning_outbox_payload(
 
     org_slug_reservation = org_slug_reservation_qs.get()
 
-    able_to_provision = region_organization_provisioning_rpc_service.create_organization_in_cell(
+    able_to_provision = cell_organization_provisioning_rpc_service.create_organization_in_cell(
         organization_id=organization_id,
         provision_payload=provisioning_payload,
         cell_name=region_name,
@@ -266,7 +266,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
     )
 
     able_to_update_slug = (
-        region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
+        cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
             cell_name=region_name,
             org_slug_temporary_alias_res=serialize_slug_reservation(
                 slug_reservation=org_slug_reservation

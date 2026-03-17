@@ -1,5 +1,6 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
@@ -9,21 +10,25 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
+import {WidgetErrorProvider} from './contexts/widgetErrorContext';
+import {DashboardChatPanel} from './dashboardChatPanel';
 import {EMPTY_DASHBOARD} from './data';
 import DashboardDetail from './detail';
 import {assignDefaultLayout, assignTempId, getInitialColumnDepths} from './layoutUtils';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardState} from './types';
-import {cloneDashboard} from './utils';
 
 const POLL_INTERVAL_MS = 500;
+const DASHBOARD_ARTIFACT_KEY = 'dashboard';
 
 type DashboardArtifact = {
   title: string;
@@ -65,18 +70,20 @@ function extractDashboardFromSession(
   title: string;
   widgets: Widget[];
 } | null {
-  for (const block of session.blocks) {
-    for (const artifact of block.artifacts ?? []) {
-      if (artifact.key === 'dashboard' && artifact.data) {
-        const data = artifact.data as DashboardArtifact;
-        return {
-          title: data.title,
-          widgets: assignDefaultLayout(
-            data.widgets.map(normalizeWidget).map(assignTempId),
-            getInitialColumnDepths()
-          ),
-        };
-      }
+  // Newest dashboard artifacts appear closer to the end of the array
+  for (let i = session.blocks.length - 1; i >= 0; i--) {
+    const artifact = session.blocks[i]!.artifacts?.find(
+      a => a.key === DASHBOARD_ARTIFACT_KEY && a.data
+    );
+    if (artifact) {
+      const data = artifact.data as DashboardArtifact;
+      return {
+        title: data.title,
+        widgets: assignDefaultLayout(
+          data.widgets.map(normalizeWidget).map(assignTempId),
+          getInitialColumnDepths()
+        ),
+      };
     }
   }
   return null;
@@ -97,11 +104,17 @@ function extractMessages(
 export default function CreateFromSeer() {
   const organization = useOrganization();
   const location = useLocation();
+  const api = useApi();
+  const queryClient = useQueryClient();
 
   const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
   const hasFeature =
     organization.features.includes('dashboards-edit') &&
     organization.features.includes('dashboards-ai-generate');
+
+  const [dashboard, setDashboard] = useState<DashboardDetails>(EMPTY_DASHBOARD);
+  const [isUpdating, setisUpdating] = useState(false); // State tracks if dashboard is being updated from user chat input
+  const prevUpdatedAtRef = useRef<string | null>(null);
 
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(organization.slug, seerRunId),
@@ -110,6 +123,9 @@ export default function CreateFromSeer() {
       retry: false,
       enabled: !!seerRunId && hasFeature,
       refetchInterval: query => {
+        if (isUpdating) {
+          return POLL_INTERVAL_MS;
+        }
         const status = query.state.data?.[0]?.session?.status;
         if (status === 'completed' || status === 'error') {
           return false;
@@ -121,36 +137,96 @@ export default function CreateFromSeer() {
 
   const session = data?.session ?? null;
   const sessionStatus = session?.status ?? null;
+  const sessionUpdatedAt = session?.updated_at ?? null;
+
+  useEffect(() => {
+    const prevUpdatedAt = prevUpdatedAtRef.current;
+    prevUpdatedAtRef.current = sessionUpdatedAt;
+
+    const isTerminal = sessionStatus === 'completed' || sessionStatus === 'error';
+
+    // Only trigger Dashboard rerender when transition to a new completed state
+    if (prevUpdatedAt !== sessionUpdatedAt && isTerminal && session) {
+      if (isUpdating) {
+        setisUpdating(false);
+      }
+      const dashboardData = extractDashboardFromSession(session);
+      if (dashboardData) {
+        setDashboard({
+          ...EMPTY_DASHBOARD,
+          title: dashboardData.title,
+          widgets: dashboardData.widgets,
+        });
+      }
+    }
+  }, [isUpdating, sessionStatus, session, sessionUpdatedAt]);
 
   const blockMessages = useMemo(
     () => (session ? extractMessages(session) : []),
     [session]
   );
 
-  const dashboard = useMemo<DashboardDetails>(() => {
-    const baseDashboard = cloneDashboard(EMPTY_DASHBOARD);
-    if (sessionStatus !== 'completed' || !session) {
-      return baseDashboard;
-    }
-    const dashboardData = extractDashboardFromSession(session);
-    if (!dashboardData) {
-      return baseDashboard;
-    }
-    return {
-      ...baseDashboard,
-      title: dashboardData.title,
-      widgets: dashboardData.widgets,
-    };
-  }, [session, sessionStatus]);
-
   const isLoading =
     !!seerRunId && sessionStatus !== 'completed' && sessionStatus !== 'error' && !isError;
+
+  // Prevent repeat errors on the same widget
+  const reportedWidgetErrors = useRef(new Set<string>());
+
+  const handleWidgetError = useCallback(
+    (widget: Widget, errorMessage: string) => {
+      const errorKey = `${widget.title}:${errorMessage}`;
+      if (reportedWidgetErrors.current.has(errorKey)) {
+        return;
+      }
+      reportedWidgetErrors.current.add(errorKey);
+
+      Sentry.withScope(scope => {
+        scope.setFingerprint(['generated-dashboard-widget-query-error']);
+        scope.setTag('seer.run_id', seerRunId);
+        scope.setLevel('error');
+        Sentry.captureMessage('Generated dashboard widget query error', {
+          extra: {
+            widget_title: widget.title,
+            error_message: errorMessage,
+          },
+        });
+      });
+    },
+    [seerRunId]
+  );
 
   useEffect(() => {
     if (sessionStatus === 'error' || isError) {
       addErrorMessage(t('Failed to generate dashboard'));
     }
   }, [sessionStatus, isError]);
+
+  const sendMessage = useCallback(
+    async (message: string) => {
+      if (!seerRunId) {
+        return;
+      }
+      setisUpdating(true);
+      try {
+        const {url} = parseQueryKey(
+          makeSeerExplorerQueryKey(organization.slug, seerRunId)
+        );
+        await api.requestPromise(url, {
+          method: 'POST',
+          data: {
+            query: message,
+          },
+        });
+        queryClient.invalidateQueries({
+          queryKey: makeSeerExplorerQueryKey(organization.slug, seerRunId),
+        });
+      } catch {
+        setisUpdating(false);
+        addErrorMessage(t('Failed to send message'));
+      }
+    },
+    [api, organization.slug, queryClient, seerRunId]
+  );
 
   if (!hasFeature) {
     return (
@@ -164,7 +240,7 @@ export default function CreateFromSeer() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading && !isUpdating) {
     return (
       <Layout.Page withPadding>
         <Flex direction="column" gap="lg" align="center">
@@ -183,11 +259,18 @@ export default function CreateFromSeer() {
 
   return (
     <ErrorBoundary>
-      <DashboardDetail
-        initialState={DashboardState.PREVIEW}
-        dashboard={dashboard}
-        dashboards={[]}
-      />
+      <WidgetErrorProvider value={handleWidgetError}>
+        <DashboardDetail
+          initialState={DashboardState.PREVIEW}
+          dashboard={dashboard}
+          dashboards={[]}
+        />
+        <DashboardChatPanel
+          blocks={session?.blocks ?? []}
+          onSend={sendMessage}
+          isUpdating={isUpdating}
+        />
+      </WidgetErrorProvider>
     </ErrorBoundary>
   );
 }

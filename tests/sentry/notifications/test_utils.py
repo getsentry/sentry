@@ -1,12 +1,12 @@
 import types
 from unittest import TestCase
 
-from sentry.issue_detection.grouptype import (
+from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.grouptype import (
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
-from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.notifications.utils import (
     NPlusOneAPICallProblemContext,
     PerformanceProblemContext,

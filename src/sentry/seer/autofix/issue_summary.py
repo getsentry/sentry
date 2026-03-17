@@ -43,7 +43,7 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     make_summarize_issue_request,
 )
-from sentry.seer.supergroups_lightweight_rca import trigger_lightweight_rca
+from sentry.seer.supergroups.lightweight_rca import trigger_lightweight_rca
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -169,6 +169,14 @@ def _trigger_autofix_task(
         except Group.DoesNotExist:
             logger.warning("_trigger_autofix_task.group_not_found", extra={"group_id": group_id})
             return
+
+        sentry_sdk.set_tags(
+            {
+                "group_id": group_id,
+                "org_id": group.organization.id,
+                "project_id": group.project_id,
+            }
+        )
 
         user: User | AnonymousUser | RpcUser | None = None
         if user_id:
