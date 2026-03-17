@@ -130,9 +130,8 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         frozen_time = f"2024-01-{15 + day} {hour:02d}:00:00"
 
         with freeze_time(frozen_time):
-            with self.feature({"organizations:seer-explorer": True}):
-                with override_options({"explorer.service_map.allowed_organizations": org_ids}):
-                    result = get_allowed_org_ids_context_engine_indexing()
+            with self.feature({"organizations:seer-explorer-context-engine": True}):
+                result = get_allowed_org_ids_context_engine_indexing()
 
         assert len(result) > 0
         assert org_ids[0] in result
@@ -144,18 +143,15 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
     def test_excludes_orgs_without_feature_flag(self):
         org_with_flag = self.create_organization()
         org_without_flag = self.create_organization()
-        all_ids = [org_with_flag.id, org_without_flag.id]
 
-        with self.feature({"organizations:seer-explorer": [org_with_flag.slug]}):
-            with override_options({"explorer.service_map.allowed_organizations": all_ids}):
-                result = get_allowed_org_ids_context_engine_indexing()
+        with self.feature({"organizations:seer-explorer-context-engine": [org_with_flag.slug]}):
+            result = get_allowed_org_ids_context_engine_indexing()
 
         assert org_without_flag.id not in result
 
-    def test_returns_empty_when_allowlist_empty(self):
-        with self.feature({"organizations:seer-explorer": True}):
-            with override_options({"explorer.service_map.allowed_organizations": []}):
-                result = get_allowed_org_ids_context_engine_indexing()
+    def test_returns_empty_when_no_orgs_have_feature_flag(self):
+        with self.feature({"organizations:seer-explorer-context-engine": False}):
+            result = get_allowed_org_ids_context_engine_indexing()
 
         assert result == []
 
@@ -185,12 +181,7 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
     @mock.patch("sentry.tasks.context_engine_index.build_service_map.apply_async")
     @mock.patch("sentry.tasks.context_engine_index.index_org_project_knowledge.apply_async")
     def test_noop_when_no_allowed_orgs(self, mock_index, mock_build):
-        with override_options(
-            {
-                "explorer.context_engine_indexing.enable": True,
-                "explorer.service_map.allowed_organizations": [],
-            }
-        ):
+        with override_options({"explorer.context_engine_indexing.enable": True}):
             schedule_context_engine_indexing_tasks()
 
         mock_index.assert_not_called()

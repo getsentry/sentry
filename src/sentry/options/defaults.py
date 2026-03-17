@@ -1180,12 +1180,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "explorer.service_map.allowed_organizations",
-    default=[],
-    type=Sequence,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "explorer.service_map.max_edges",
     default=5000,
     type=Int,

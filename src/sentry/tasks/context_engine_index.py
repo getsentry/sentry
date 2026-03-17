@@ -212,15 +212,12 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     """
     Get the list of allowed organizations for context engine indexing.
 
-    Only includes orgs that are both in the options allowlist AND have the
-    seer-explorer feature flag enabled. Spreads orgs evenly across every hour
+    Only includes orgs that have the seer-explorer-context-engine feature flag
+    enabled. Spreads orgs evenly across every hour
     of the day, every day of the week (168 slots total). Each org is
     deterministically assigned a slot via md5 hash so it is indexed exactly
     once per week.
     """
-    # TODO: Remove allowlist check once fully rolled out
-    allowed_org_ids: set[int] = set(options.get("explorer.service_map.allowed_organizations"))
-
     now = datetime.now(UTC)
     current_slot = now.weekday() * 24 + now.hour
     TOTAL_HOURLY_SLOTS = 24 * 7  # 168 slots across every hour of the week
@@ -230,7 +227,9 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
         Organization.objects.filter(status=ObjectStatus.ACTIVE),
         result_value_getter=lambda o: o.id,
     ):
-        if features.has("organizations:seer-explorer", org) and org.id in allowed_org_ids:
+        if features.has("organizations:seer-explorer", org) and features.has(
+            "organizations:seer-explorer-context-engine", org
+        ):
             if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == current_slot:
                 eligible_org_ids.append(org.id)
 
@@ -246,9 +245,8 @@ def schedule_context_engine_indexing_tasks() -> None:
     """
     Schedule context engine indexing tasks for all allowed organizations.
 
-    Reads the org allowlist from the explorer.service_map.allowed_organizations
-    option and dispatches index_org_project_knowledge and build_service_map
-    for each org.
+    Dispatches index_org_project_knowledge and build_service_map for each org
+    with the seer-explorer-context-engine feature flag enabled.
     """
     if not options.get("explorer.context_engine_indexing.enable"):
         logger.info("explorer.context_engine_indexing.enable flag is disabled")
