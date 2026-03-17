@@ -8,6 +8,7 @@ import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {DotIndicator, type DotIndicatorVariant} from '@sentry/scraps/dotIndicator';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -246,34 +247,44 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   );
 }
 
+type NavIndicatorVariant = 'accent' | 'danger' | 'warning';
+
+const NAV_TO_DOT_VARIANT: Record<NavIndicatorVariant, DotIndicatorVariant> = {
+  accent: 'info',
+  danger: 'danger',
+  warning: 'warning',
+};
+
 interface PrimaryNavigationUnreadIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant: 'accent' | 'danger' | 'warning';
+  variant: NavIndicatorVariant;
 }
 
-const PrimaryNavigationUnreadIndicator = styled(
-  (props: PrimaryNavigationUnreadIndicatorProps) => {
-    const theme = useTheme();
-    const {layout} = usePrimaryNavigation();
-    return (
-      <Container
-        position="absolute"
-        top={layout === 'mobile' ? `-${theme.space.xs}` : '0'}
-        right={layout === 'mobile' ? 'auto' : '0px'}
-        left={layout === 'mobile' ? '11px' : 'auto'}
-        width="10px"
-        height="10px"
-        radius="full"
-      >
-        {p => <div {...mergeProps(p, props)} data-unread-indicator />}
-      </Container>
-    );
-  }
-)<{
-  variant?: 'accent' | 'danger' | 'warning';
-}>`
-  background: ${p => p.theme.tokens.graphics[p.variant ?? 'accent'].vibrant};
-  border: 2px solid ${p => p.theme.tokens.border[p.variant ?? 'accent'].muted};
-`;
+function PrimaryNavigationUnreadIndicator({
+  variant,
+  ...props
+}: PrimaryNavigationUnreadIndicatorProps) {
+  const theme = useTheme();
+  const {layout} = usePrimaryNavigation();
+  return (
+    <Container
+      position="absolute"
+      top={layout === 'mobile' ? `-${theme.space.xs}` : '0'}
+      right={layout === 'mobile' ? 'auto' : '0px'}
+      left={layout === 'mobile' ? '11px' : 'auto'}
+      width="10px"
+      height="10px"
+      radius="full"
+    >
+      {p => (
+        <DotIndicator
+          {...mergeProps(p, props)}
+          variant={NAV_TO_DOT_VARIANT[variant]}
+          data-unread-indicator
+        />
+      )}
+    </Container>
+  );
+}
 
 interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   items: MenuItemProps[];
