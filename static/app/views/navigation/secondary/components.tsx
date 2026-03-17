@@ -1,4 +1,12 @@
-import {createContext, Fragment, useContext, useRef, type ReactNode} from 'react';
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import type {To} from 'react-router-dom';
 import {
   closestCenter,
@@ -704,12 +712,23 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
     })
   );
 
+  // We need to hold a copy of the local state because dnd-kit does not play well
+  // with the optimistic updates and async state.
+  // See: https://github.com/clauderic/dnd-kit/issues/921
+  const [items, setItems] = useState<T[]>(props.items);
+  useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setItems(props.items);
+  }, [props.items]);
+
   function handleDragEnd(event: DragEndEvent) {
     const {active, over} = event;
     if (over && active.id !== over.id) {
-      const oldIndex = props.items.findIndex(item => item.id === active.id);
-      const newIndex = props.items.findIndex(item => item.id === over.id);
-      props.onDragEnd(arrayMove(props.items, oldIndex, newIndex));
+      const oldIndex = items.findIndex(item => item.id === active.id);
+      const newIndex = items.findIndex(item => item.id === over.id);
+      const newItems = arrayMove(items, oldIndex, newIndex);
+      props.onDragEnd(newItems);
+      setItems(newItems);
     }
   }
 
@@ -720,9 +739,9 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={props.items} strategy={verticalListSortingStrategy}>
+      <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <Stack direction="column" padding="0" width="100%">
-          {props.items.map(item => (
+          {items.map(item => (
             <ReorderableListItem key={item.id} item={item}>
               {props.children(item)}
             </ReorderableListItem>
