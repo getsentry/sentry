@@ -21,8 +21,8 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {

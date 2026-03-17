@@ -2,15 +2,15 @@ import {useCallback} from 'react';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
-import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
+import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {convertToReloadPath, getEventPath} from 'getsentry/utils/routeAnalytics';
 
 type Props = ButtonProps;
 
-export default function useButtonTracking({
+export function useButtonTracking({
   analyticsEventName,
   analyticsEventKey,
   analyticsParams,

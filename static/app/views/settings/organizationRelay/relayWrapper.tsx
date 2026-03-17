@@ -3,7 +3,7 @@ import omit from 'lodash/omit';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -13,13 +13,13 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay, RelayActivity} from 'sentry/types/relay';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
@@ -81,7 +81,7 @@ export function RelayWrapper() {
       <OrganizationPermissionAlert />
       {organization.features.includes('ingest-through-trusted-relays-only') && (
         <FieldGroup title={t('Data Authenticity')}>
-          <AutoSaveField
+          <AutoSaveForm
             name="ingestThroughTrustedRelaysOnly"
             schema={relaySchema}
             initialValue={organization.ingestThroughTrustedRelaysOnly === 'enabled'}
@@ -122,7 +122,7 @@ export function RelayWrapper() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         </FieldGroup>
       )}
       <TextBlock>

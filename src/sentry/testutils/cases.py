@@ -463,7 +463,7 @@ class TestCase(BaseTestCase, DjangoTestCase):
                         if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
                             continue
                         region = None
-                        if mode is SiloMode.REGION:
+                        if mode is SiloMode.CELL:
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
@@ -694,7 +694,7 @@ class APITestCaseMixin:
             }
             if params:
                 url += "?" + urlencode(params)
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 resp = getattr(client, method.lower())(
                     url, b"".join(data), headers["Content-Type"], **extra
                 )
@@ -732,7 +732,7 @@ class TwoFactorAPITestCase(APITestCase):
         return reverse("sentry-account-settings-security")
 
     def enable_org_2fa(self, organization):
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             organization.flags.require_2fa = True
             organization.save()
 
@@ -998,7 +998,7 @@ class IntegrationTestCase(TestCase):
         super().setUp()
 
         self.organization = self.create_organization(name="foo", owner=self.user)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.login_as(self.user)
@@ -1167,14 +1167,6 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_ourlogs(self, ourlogs):
-        files = {f"log_{i}": log.SerializeToString() for i, log in enumerate(ourlogs)}
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
     def produce_and_store_eap_items(
         self, producer_mock_path: str, produce_fn: Callable[..., Any], *args: Any, **kwargs: Any
     ) -> list[TraceItem]:
@@ -1246,6 +1238,11 @@ class SnubaTestCase(BaseTestCase):
             files=files,
         )
         assert response.status_code == 200
+        # Reverse the ids since these are stored in little endian in
+        # ClickHouse and end up reversed. This helps if we want to compare
+        # these inserted items to results returned from EAP.
+        for item in items:
+            item.item_id = item.item_id[::-1]
 
     def store_issues(self, issues):
         assert (
@@ -2481,7 +2478,7 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_repository(
         self,
         repository_config,
@@ -3208,16 +3205,21 @@ class UptimeTestCaseMixin:
             return_value="https://fake.com/",
         )
         self.mock_requests_get_ctx = mock.patch("sentry.uptime.rdap.query.requests.get")
+        self.mock_invoke_checker_validator_ctx = mock.patch(
+            "sentry.uptime.checker_api.invoke_checker_validator", return_value=None
+        )
         self.mock_resolve_hostname = self.mock_resolve_hostname_ctx.__enter__()
         self.mock_resolve_rdap_provider = self.mock_resolve_rdap_provider_ctx.__enter__()
         self.mock_requests_get = self.mock_requests_get_ctx.__enter__()
         self.mock_requests_get.return_value.json.return_value = {"entities": [{"handle": "hi"}]}
+        self.mock_invoke_checker_validator = self.mock_invoke_checker_validator_ctx.__enter__()
 
     def tearDown(self):
         super().tearDown()
         self.mock_resolve_hostname_ctx.__exit__(None, None, None)
         self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
         self.mock_requests_get_ctx.__exit__(None, None, None)
+        self.mock_invoke_checker_validator_ctx.__exit__(None, None, None)
 
     def create_uptime_result(
         self,
@@ -3558,7 +3560,7 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         environment: str | None = None,
         title: str = "some error",
         transaction: str | None = None,
-        occurrence_type: str = "error",
+        issue_occurrence_id: str | None = None,
         tags: dict[str, str] | None = None,
         attributes: dict[str, Any] | None = None,
         retention_days: int = 90,
@@ -3580,11 +3582,12 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         data: dict[str, Any] = {
             "level": level,
             "title": title,
-            "type": occurrence_type,
         }
         preprocessed: dict[str, Any] = {}
         if group_id is not None:
             preprocessed["group_id"] = group_id
+        if issue_occurrence_id is not None:
+            preprocessed["issue_occurrence_id"] = issue_occurrence_id
         if environment is not None:
             data["environment"] = environment
         if transaction is not None:
@@ -4202,25 +4205,6 @@ class UptimeResultEAPTestCase(BaseTestCase):
             retention_days=90,
             attributes=attributes_proto,
         )
-
-    def store_uptime_results(self, uptime_results):
-        """Store uptime results in the EAP dataset."""
-        import requests
-        from django.conf import settings
-
-        files = {
-            f"uptime_{i}": result.SerializeToString() for i, result in enumerate(uptime_results)
-        }
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
-        for result in uptime_results:
-            # Reverse the ids here since these are stored in little endian in Clickhouse
-            # and end up reversed.
-            result.item_id = result.item_id[::-1]
 
 
 class ProcessingErrorTestCase(BaseTestCase):

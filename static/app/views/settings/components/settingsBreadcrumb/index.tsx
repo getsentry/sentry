@@ -5,8 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 
 import {useBreadcrumbsPathmap} from './context';
 import {Divider} from './divider';

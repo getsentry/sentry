@@ -21,11 +21,13 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
   isArtifact,
+  isExplorerFilePatch,
+  isRepoPRState,
   type Artifact,
   type Block,
   type ExplorerCodingAgentState,
@@ -129,6 +131,14 @@ interface SuggestedAssignee {
 export interface TriageArtifact {
   suggested_assignee?: SuggestedAssignee | null;
   suspect_commit?: SuspectCommit | null;
+}
+
+export function isCodeChangesArtifact(value: unknown): value is ExplorerFilePatch[] {
+  return isArrayOf(value, isExplorerFilePatch) && value.length > 0;
+}
+
+export function isPullRequestArtifact(value: unknown): value is RepoPRState[] {
+  return isArrayOf(value, isRepoPRState) && value.length > 0;
 }
 
 /**
@@ -290,78 +300,160 @@ export function getOrderedArtifactKeys(
   });
 }
 
-const CODE_CHANGES_KEY = Symbol('codeChanges');
+export interface AutofixSection {
+  artifacts: AutofixArtifact[];
+  messages: Array<Block['message']>;
+  status: 'processing' | 'completed';
+  step: string;
+}
 
-type ArtifactKey = string | typeof CODE_CHANGES_KEY;
-export type AutofixArtifact = Artifact<unknown> | ExplorerFilePatch[] | RepoPRState[];
-
-export function getOrderedAutofixArtifacts(
-  runState: ExplorerAutofixState | null
-): AutofixArtifact[] {
+/**
+ * Groups a flat list of autofix blocks into ordered sections.
+ *
+ * Blocks arrive as a flat stream from the backend. Each block may carry a
+ * `metadata.step` field that signals the start of a new logical section
+ * (e.g. "root_cause", "code_changes", "pull_request"). This function walks
+ * the blocks in order, splitting them into sections at each step boundary,
+ * and attaches the relevant artifacts (file patches, PR states) to each section.
+ */
+export function getOrderedAutofixSections(runState: ExplorerAutofixState | null) {
   const blocks = runState?.blocks ?? [];
   if (!blocks.length) {
     return [];
   }
 
-  type OrderedArtifact = {
-    artifact: Artifact;
-    index: number;
-    type: 'artifact';
-  };
-
-  type OrderedExplorerFilePatch = {
-    index: number;
-    patches: Map<string, ExplorerFilePatch>;
-    type: 'patch';
-  };
-
-  const artifactsByKey = new Map<
-    ArtifactKey,
-    OrderedArtifact | OrderedExplorerFilePatch
-  >();
+  // Accumulates file patches across all blocks, keyed by "repo:path".
+  // Patches are merged globally (later patches for the same file overwrite
+  // earlier ones) and snapshotted into the code_changes section when it finalizes.
   const mergedByFile = new Map<string, ExplorerFilePatch>();
 
-  for (let index = 0; index < blocks.length; index++) {
-    const block = blocks[index]!;
+  const sections: AutofixSection[] = [];
 
-    for (const artifact of block.artifacts ?? []) {
-      artifactsByKey.set(artifact.key, {
-        type: 'artifact',
-        index,
-        artifact,
-      });
+  // The "current" section being built. Blocks without a step marker are
+  // appended to whatever section is in progress (initially an 'unknown' one).
+  let section: AutofixSection = {
+    step: 'unknown',
+    artifacts: [],
+    messages: [],
+    status: 'processing',
+  };
+
+  // Closes the current section and pushes it to `sections` (if non-empty).
+  function finalizeSection() {
+    if (section.messages.length) {
+      // Mark the section as completed if the last message is a terminal marker.
+      const lastMessage = section.messages[section.messages.length - 1];
+      if (isLastMessageOfSection(lastMessage)) {
+        section.status = 'completed';
+      }
+
+      if (section.step === 'code_changes') {
+        // Snapshot the accumulated file patches as an artifact for this section.
+        section.artifacts.push(Array.from(mergedByFile.values()));
+      }
+
+      sections.push(section);
     }
+  }
 
+  for (const block of blocks) {
+    // Accumulate file patches globally — they need to be merged across all
+    // blocks regardless of section boundaries so later patches win per file.
     if (block.merged_file_patches?.length) {
       for (const patch of block.merged_file_patches) {
         const key = `${patch.repo_name}:${patch.patch.path}`;
         mergedByFile.set(key, patch);
       }
-      artifactsByKey.set(CODE_CHANGES_KEY, {
-        type: 'patch',
-        index,
-        patches: mergedByFile,
-      });
     }
-  }
 
-  const artifacts: AutofixArtifact[] = [...artifactsByKey.values()]
-    .sort((artifact1, artifact2) => artifact1.index - artifact2.index)
-    .map(artifact => {
-      if (artifact.type === 'artifact') {
-        return artifact.artifact;
+    const message = block.message;
+
+    // A step marker means this block starts a new section.
+    // Finalize the previous section and start a fresh one.
+    const metadata = message.metadata;
+    if (defined(metadata) && defined(metadata.step)) {
+      if (metadata.step !== section.step) {
+        finalizeSection();
       }
-      return Array.from(artifact.patches.values());
-    });
 
-  if (runState?.repo_pr_states) {
-    const states = Object.values(runState.repo_pr_states);
-    if (states.length) {
-      artifacts.push(states);
+      section = {
+        step: metadata.step,
+        artifacts: [],
+        messages: [],
+        status: 'processing',
+      };
     }
+
+    // Append the block's message and any inline artifacts to the current section.
+    section.messages.push(message);
+    section.artifacts.push(...(block.artifacts ?? []));
   }
 
-  return artifacts;
+  // Finalize the last in-progress section.
+  finalizeSection();
+
+  // If there are any PR states, append a synthetic "pull_request" section.
+  const artifact = Object.values(runState?.repo_pr_states ?? {});
+  if (artifact.length) {
+    sections.push({
+      step: 'pull_request',
+      artifacts: [artifact],
+      messages: [],
+      status: artifact.some(pullRequest => pullRequest.pr_creation_status === 'creating')
+        ? 'processing'
+        : 'completed',
+    });
+  }
+
+  return sections;
+}
+
+export function isRootCauseSection(section: AutofixSection): boolean {
+  return section.step === 'root_cause';
+}
+
+export function isSolutionSection(section: AutofixSection): boolean {
+  return section.step === 'solution';
+}
+
+export function isCodeChangesSection(section: AutofixSection): boolean {
+  return section.step === 'code_changes';
+}
+
+export function isPullRequestSection(section: AutofixSection): boolean {
+  return section.step === 'pull_request';
+}
+
+export type AutofixArtifact = Artifact<unknown> | ExplorerFilePatch[] | RepoPRState[];
+
+export function getOrderedAutofixArtifacts(
+  runState: ExplorerAutofixState | null
+): AutofixArtifact[] {
+  return getOrderedAutofixSections(runState)
+    .map(section => {
+      if (isRootCauseSection(section)) {
+        return section.artifacts.findLast(isRootCauseArtifact) ?? null;
+      }
+      if (isSolutionSection(section)) {
+        return section.artifacts.findLast(isSolutionArtifact) ?? null;
+      }
+      if (isCodeChangesSection(section)) {
+        return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
+      }
+      if (isPullRequestSection(section)) {
+        return section.artifacts.findLast(isPullRequestArtifact) ?? null;
+      }
+      return null;
+    })
+    .filter(defined);
+}
+
+function isLastMessageOfSection(message?: Block['message']): boolean {
+  return (
+    message?.role === 'assistant' &&
+    message?.content !== 'Thinking...' &&
+    !message?.tool_calls?.length
+  );
 }
 
 /**
@@ -449,10 +541,20 @@ export function useExplorerAutofix(
    * @param runId - Optional run ID to continue an existing run
    */
   const startStep = useCallback(
-    async (step: AutofixExplorerStep, runId?: number) => {
+    async (step: AutofixExplorerStep, runId?: number, userContext?: string) => {
       setWaitingForResponse(true);
 
       try {
+        const data: Record<string, any> = {step};
+
+        if (defined(runId)) {
+          data.run_id = runId;
+        }
+
+        if (userContext) {
+          data.user_context = userContext;
+        }
+
         const response = await api.requestPromise(
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
             path: {organizationIdOrSlug: orgSlug, issueId: groupId},
@@ -460,11 +562,7 @@ export function useExplorerAutofix(
           {
             method: 'POST',
             query: {mode: 'explorer'},
-            data: {
-              step,
-              intelligence_level: 'low',
-              ...(runId !== undefined && {run_id: runId}),
-            },
+            data,
           }
         );
 

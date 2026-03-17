@@ -57,11 +57,11 @@ import {
   decodeSorts,
 } from 'sentry/utils/queryString';
 import type {Theme} from 'sentry/utils/theme';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
@@ -90,6 +90,7 @@ import {
   getWidgetTableRowExploreUrlFunction,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
+import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -101,6 +102,7 @@ import {
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -622,27 +624,43 @@ function DataWidgetViewerModal(props: Props) {
                 : HALF_CONTAINER_HEIGHT
             }
           >
-            <MemoizedWidgetCardChartContainer
-              api={api}
-              selection={modalSelection}
-              dashboardFilters={dashboardFilters}
-              // Top N charts rely on the orderby of the table
-              widget={primaryWidget}
-              tableItemLimit={widget.limit}
-              onZoom={onZoom}
-              onLegendSelectChanged={onLegendSelectChanged}
-              legendOptions={{
-                selected: widgetLegendState.getWidgetSelectionState(widget),
-              }}
-              noPadding
-              widgetLegendState={widgetLegendState}
-              showConfidenceWarning={
-                widget.widgetType === WidgetType.SPANS ||
-                widget.widgetType === WidgetType.TRACEMETRICS ||
-                widget.widgetType === WidgetType.LOGS
-              }
-              widgetInterval={widgetInterval}
-            />
+            {widgetCanUseTimeSeriesVisualization(primaryWidget) ? (
+              <VisualizationWidget
+                selection={modalSelection}
+                dashboardFilters={dashboardFilters}
+                widget={primaryWidget}
+                tableItemLimit={widget.limit}
+                onZoom={onZoom}
+                showConfidenceWarning={
+                  widget.widgetType === WidgetType.SPANS ||
+                  widget.widgetType === WidgetType.TRACEMETRICS ||
+                  widget.widgetType === WidgetType.LOGS
+                }
+                widgetInterval={widgetInterval}
+              />
+            ) : (
+              <MemoizedWidgetCardChartContainer
+                api={api}
+                selection={modalSelection}
+                dashboardFilters={dashboardFilters}
+                // Top N charts rely on the orderby of the table
+                widget={primaryWidget}
+                tableItemLimit={widget.limit}
+                onZoom={onZoom}
+                onLegendSelectChanged={onLegendSelectChanged}
+                legendOptions={{
+                  selected: widgetLegendState.getWidgetSelectionState(widget),
+                }}
+                noPadding
+                widgetLegendState={widgetLegendState}
+                showConfidenceWarning={
+                  widget.widgetType === WidgetType.SPANS ||
+                  widget.widgetType === WidgetType.TRACEMETRICS ||
+                  widget.widgetType === WidgetType.LOGS
+                }
+                widgetInterval={widgetInterval}
+              />
+            )}
           </Container>
         )}
         {widget.queries.length > 1 && (

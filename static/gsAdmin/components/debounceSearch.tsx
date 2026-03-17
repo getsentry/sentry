@@ -5,8 +5,8 @@ import debounce from 'lodash/debounce';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import SearchBar from 'sentry/components/searchBar';
-import useApi from 'sentry/utils/useApi';
-import useKeyPress from 'sentry/utils/useKeyPress';
+import {useApi} from 'sentry/utils/useApi';
+import {useKeyPress} from 'sentry/utils/useKeyPress';
 
 type Props = {
   onSelectResult: (value: string) => void;

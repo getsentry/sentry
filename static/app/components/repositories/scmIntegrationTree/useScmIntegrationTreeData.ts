@@ -9,13 +9,14 @@ import type {
 } from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useInfiniteQuery, useQueries, useQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ScmIntegrationTreeData = {
   connectedIdentifiers: Set<string>;
   connectedRepos: Repository[];
   isError: boolean;
   isPending: boolean;
+  refetchIntegrations: () => void;
   reposByIntegrationId: Record<string, IntegrationRepository[]>;
   reposPendingByIntegrationId: Record<string, boolean>;
   reposQueryKey: unknown;
@@ -59,7 +60,10 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
   );
 
   const scmIntegrations = useMemo(
-    () => (integrationsQuery.data ?? []).filter(i => scmProviderKeys.has(i.provider.key)),
+    () =>
+      (integrationsQuery.data ?? []).filter(
+        i => i !== null && scmProviderKeys.has(i.provider.key)
+      ),
     [integrationsQuery.data, scmProviderKeys]
   );
 
@@ -136,6 +140,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
     scmIntegrations,
     connectedRepos,
     connectedIdentifiers,
+    refetchIntegrations: integrationsQuery.refetch,
     reposByIntegrationId,
     reposPendingByIntegrationId,
     reposQueryKey: reposQueryOptions.queryKey,

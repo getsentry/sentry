@@ -15,7 +15,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
   useAgentOptions,
@@ -23,7 +23,7 @@ import {
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,
 } from 'getsentry/views/seerAutomation/components/seerAgentHooks';
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   autofixSettings: undefined | AutofixAutomationSettings;

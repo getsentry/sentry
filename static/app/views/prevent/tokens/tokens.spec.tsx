@@ -3,7 +3,7 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreventQueryParamsProvider} from 'sentry/components/prevent/container/preventParamsProvider';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {parseSortFromQuery} from 'sentry/views/prevent/tokens/repoTokenTable/repoTokenTable';
 import {TokensPage} from 'sentry/views/prevent/tokens/tokens';
 

@@ -4,7 +4,7 @@ import {
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
 interface UseUptimeRuleOptions {

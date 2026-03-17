@@ -11,7 +11,7 @@ from django.http import HttpRequest
 from pydantic.dataclasses import dataclass
 
 from sentry import options
-from sentry.conf.types.region_config import CellConfig, LocalityConfig
+from sentry.conf.types.cell_config import CellConfig, LocalityConfig
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState, control_silo_function
 from sentry.utils.env import in_test_environment
 
@@ -356,10 +356,6 @@ def subdomain_is_locality(request: HttpRequest) -> bool:
     return get_global_directory().get_locality_by_name(subdomain) is not None
 
 
-# TODO(cells): Remove alias once getsentry import sites are updated
-subdomain_is_region = subdomain_is_locality
-
-
 @control_silo_function
 def get_cell_for_organization(organization_id_or_slug: str) -> Cell:
     """Resolve an organization to the cell where its data is stored."""
@@ -414,8 +410,8 @@ def get_local_cell() -> Cell:
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
 
-    if SiloMode.get_current_mode() != SiloMode.REGION:
-        raise CellContextError("Not a region silo")
+    if SiloMode.get_current_mode() != SiloMode.CELL:
+        raise CellContextError("Not a cell silo")
 
     # In our threaded acceptance tests, we need to override the region of the current
     # context when passing through test rpc calls, but we can't rely on settings because
@@ -431,10 +427,6 @@ def get_local_cell() -> Cell:
         else:
             raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
     return get_cell_by_name(settings.SENTRY_REGION)
-
-
-# TODO(cells): Remove alias once getsentry import sites are updated
-get_local_region = get_local_cell
 
 
 @control_silo_function
@@ -510,14 +502,3 @@ def find_all_multitenant_locality_names() -> list[str]:
         for loc in get_global_directory().localities
         if loc.category == RegionCategory.MULTI_TENANT and loc.visible
     ]
-
-
-# TODO(cells): Remove aliases once getsentry import sites are updated
-RegionConfigurationError = CellConfigurationError
-RegionResolutionError = CellResolutionError
-RegionMappingNotFound = CellMappingNotFound
-RegionContextError = CellContextError
-RegionDirectory = CellDirectory
-find_regions_for_orgs = find_cells_for_orgs
-find_regions_for_user = find_cells_for_user
-find_all_multitenant_region_names = find_all_multitenant_cell_names

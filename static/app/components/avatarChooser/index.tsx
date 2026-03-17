@@ -24,7 +24,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {AvatarCropper} from './avatarCropper';
 import {useUploader} from './useUploader';

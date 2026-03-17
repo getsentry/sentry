@@ -1,8 +1,6 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type ColorStop = {
   color: string;
   percent: number;
@@ -43,7 +41,7 @@ const VitalBar = styled('div')<VitalBarProps>`
   background: ${p => p.theme.colors.gray100};
   display: grid;
   grid-template-columns: ${p => p.fractions.map(f => `${f}fr`).join(' ')};
-  margin-bottom: ${p => (p.barHeight ? '' : space(1))};
+  margin-bottom: ${p => (p.barHeight ? '' : p.theme.space.md)};
   border-radius: 2px;
 `;
 

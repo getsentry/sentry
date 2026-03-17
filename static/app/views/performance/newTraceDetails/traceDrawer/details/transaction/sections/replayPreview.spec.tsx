@@ -4,7 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {EventTransaction} from 'sentry/types/event';
 
 import {ReplayPreview} from './replayPreview';

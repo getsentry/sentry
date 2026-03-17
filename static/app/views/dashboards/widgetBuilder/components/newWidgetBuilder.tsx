@@ -14,17 +14,16 @@ import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DisplayType,
   type DashboardDetails,
@@ -349,7 +348,7 @@ export function WidgetPreviewContainer({
                     height: getPreviewHeight(),
                     outline: isDragEnabled
                       ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
-                        `${space(1)} solid ${theme.tokens.border.primary}`
+                        `8px solid ${theme.tokens.border.primary}`
                       : undefined,
                   }}
                 >

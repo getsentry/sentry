@@ -14,7 +14,7 @@ import {useRoutes} from './useRoutes';
  *
  * react-router 6 does not include this hook.
  */
-function useRouter(): InjectedRouter<any, any> {
+export function useRouter(): InjectedRouter<any, any> {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
@@ -45,5 +45,3 @@ function useRouter(): InjectedRouter<any, any> {
 
   return router;
 }
-
-export default useRouter;

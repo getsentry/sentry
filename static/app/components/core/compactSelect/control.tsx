@@ -29,8 +29,8 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
-import useOverlay from 'sentry/utils/useOverlay';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOverlay} from 'sentry/utils/useOverlay';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 import type {SingleListProps} from './list';
 import type {

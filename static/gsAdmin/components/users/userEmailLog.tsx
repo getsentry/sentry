@@ -6,7 +6,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
 
 import {ResultTable} from 'admin/components/resultTable';

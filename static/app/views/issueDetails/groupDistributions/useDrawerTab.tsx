@@ -1,7 +1,7 @@
-import useUrlParams from 'sentry/utils/url/useUrlParams';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 
-export default function useDrawerTab({enabled}: {enabled: boolean}) {
+export function useDrawerTab({enabled}: {enabled: boolean}) {
   const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams(
     'tab',
     DrawerTab.TAGS

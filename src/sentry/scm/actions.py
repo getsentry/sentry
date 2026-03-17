@@ -127,9 +127,9 @@ class SourceCodeManager:
             record_count=self.record_count,
         )
 
-    def can(self, actions: list[str]) -> bool:
+    def can(self, actions: list[str]) -> dict[str, bool]:
         """
-        Returns true if the SourceCodeManager can execute a set of actions against a target API.
+        Returns the named set of actions the SourceCodeManager can execute against the target API.
 
         Interactions with source code management services are not transactional. There are many
         failure points in the process and partial states are a reality that must be handled. One
@@ -139,10 +139,11 @@ class SourceCodeManager:
         alter some behavior when we know the request will fail deterministically. This eliminates
         the need to clean-up side-effects after a partially implemented SCM provider fails.
         """
-        return all(
-            hasattr(ActionMap, action) and isinstance(self.provider, getattr(ActionMap, action))
+        return {
+            action: hasattr(ActionMap, action)
+            and isinstance(self.provider, getattr(ActionMap, action))
             for action in actions
-        )
+        }
 
     def get_issue_comments(
         self,
@@ -388,15 +389,44 @@ class SourceCodeManager:
 
     def get_commits(
         self,
-        sha: SHA | None = None,
-        path: str | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
+        """
+        Get a paginated list of commits.
+
+        `ref` is either a branch name, a tag name, or a commit SHA.
+        Specifying a commit SHA retrieves commits up to the given commit SHA.
+
+        Commits are returned in descending order. Equivalent to `git log ref`.
+        """
         return self._exec(
             ActionMap.get_commits,  # type: ignore[type-abstract]
             lambda p: p.get_commits(
-                sha=sha, path=path, pagination=pagination, request_options=request_options
+                ref=ref, pagination=pagination, request_options=request_options
+            ),
+        )
+
+    def get_commits_by_path(
+        self,
+        path: str,
+        ref: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        """
+        Get a paginated list of commits for a given filepath.
+
+        `ref` is either a branch name, a tag name, or a commit SHA.
+        Specifying a commit SHA retrieves commits up to the given commit SHA.
+
+        Commits are returned in descending order. Equivalent to `git log ref`.
+        """
+        return self._exec(
+            ActionMap.get_commits_by_path,  # type: ignore[type-abstract]
+            lambda p: p.get_commits_by_path(
+                path=path, ref=ref, pagination=pagination, request_options=request_options
             ),
         )
 
@@ -501,11 +531,22 @@ class SourceCodeManager:
         body: str,
         head: BranchName,
         base: BranchName,
-        draft: bool = False,
     ) -> ActionResult[PullRequest]:
         return self._exec(
             ActionMap.create_pull_request,  # type: ignore[type-abstract]
-            lambda p: p.create_pull_request(title, body, head, base, draft=draft),
+            lambda p: p.create_pull_request(title, body, head, base),
+        )
+
+    def create_pull_request_draft(
+        self,
+        title: str,
+        body: str,
+        head: BranchName,
+        base: BranchName,
+    ) -> ActionResult[PullRequest]:
+        return self._exec(
+            ActionMap.create_pull_request_draft,  # type: ignore[type-abstract]
+            lambda p: p.create_pull_request_draft(title, body, head, base),
         )
 
     def update_pull_request(

@@ -19,7 +19,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CodingAgentSettings} from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/codingAgentSettings';
 import {SeerAgentSettings} from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/seerAgentSettings';

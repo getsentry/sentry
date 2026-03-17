@@ -67,13 +67,13 @@ class UserHybridCloudDeletionTest(TestCase):
             name="some-search", owner=self.user, organization=self.organization
         )
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def user_tombstone_exists(self, user_id: int) -> bool:
         return RegionTombstone.objects.filter(
             table_name="auth_user", object_identifier=user_id
         ).exists()
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def get_user_saved_search_count(self) -> int:
         return SavedSearch.objects.filter(owner_id=self.user_id).count()
 
@@ -87,7 +87,7 @@ class UserHybridCloudDeletionTest(TestCase):
         # cascade is asynchronous, ensure there is still related search,
         assert self.get_user_saved_search_count() == 1
 
-        with assume_test_silo_mode(SiloMode.REGION), self.tasks():
+        with assume_test_silo_mode(SiloMode.CELL), self.tasks():
             schedule_hybrid_cloud_foreign_key_jobs()
 
         # Ensure they are all now gone.
@@ -102,10 +102,10 @@ class UserHybridCloudDeletionTest(TestCase):
 
         with outbox_runner():
             self.user.delete()
-        with assume_test_silo_mode(SiloMode.REGION), self.tasks():
+        with assume_test_silo_mode(SiloMode.CELL), self.tasks():
             schedule_hybrid_cloud_foreign_key_jobs()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert SavedSearch.objects.filter(owner_id=another_user.id).exists()
 
     def test_cascades_to_multiple_regions(self) -> None:
@@ -117,7 +117,7 @@ class UserHybridCloudDeletionTest(TestCase):
             self.user.delete()
 
         assert self.get_user_saved_search_count() == 2
-        with assume_test_silo_mode(SiloMode.REGION), self.tasks():
+        with assume_test_silo_mode(SiloMode.CELL), self.tasks():
             schedule_hybrid_cloud_foreign_key_jobs()
         assert self.get_user_saved_search_count() == 0
 
@@ -146,7 +146,7 @@ class UserHybridCloudDeletionTest(TestCase):
             self.user.delete()
 
         assert self.get_user_saved_search_count() == 2
-        with assume_test_silo_mode(SiloMode.REGION), self.tasks():
+        with assume_test_silo_mode(SiloMode.CELL), self.tasks():
             schedule_hybrid_cloud_foreign_key_jobs()
         assert self.get_user_saved_search_count() == 0
 
@@ -155,7 +155,7 @@ class UserHybridCloudDeletionTest(TestCase):
         na_org = self.create_organization(region=_TEST_REGIONS[0])
         self.create_member(user=user, organization=na_org)
 
-        with patch.object(caching_module, "region_caching_service") as mock_caching_service:
+        with patch.object(caching_module, "cell_caching_service") as mock_caching_service:
             user.username = "bob2"
             user.save()
             mock_caching_service.clear_key.assert_any_call(
@@ -201,8 +201,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         for model in sorted(models, key=lambda x: get_model_name(x)):
             model_relations = dependencies()[get_model_name(model)]
             user_refs = [k for k, v in model_relations.foreign_keys.items() if v.model == User]
-            is_region_model = SiloMode.REGION in model_relations.silos
-            with assume_test_silo_mode(SiloMode.REGION if is_region_model else SiloMode.CONTROL):
+            is_region_model = SiloMode.CELL in model_relations.silos
+            with assume_test_silo_mode(SiloMode.CELL if is_region_model else SiloMode.CONTROL):
                 for present_user in present:
                     q = Q()
                     for ref in user_refs:
@@ -237,7 +237,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
 
         from_user.merge_to(to_user)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not OrganizationMember.objects.filter(user_id=from_user.id).exists()
             for member in OrganizationMember.objects.filter(user_id=to_user.id):
                 self.assert_org_member_mapping(org_member=member)
@@ -263,10 +263,10 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         org = self.create_organization(name="conflict-org")
 
         with outbox_runner():
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 self.create_member(user=from_user, organization=org)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             project = self.create_project(organization=org)
             group = self.create_group(project=project)
             # Create conflicting GroupSeen entries for both users on the same group
@@ -277,7 +277,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         with outbox_runner():
             from_user.merge_to(to_user)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not GroupSeen.objects.filter(group=group, user_id=from_user.id).exists()
             assert GroupSeen.objects.filter(group=group, user_id=to_user.id).count() == 1
 
@@ -325,7 +325,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         )
 
         # Access requests should cancel out once users are merged.
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             OrganizationAccessRequest.objects.create(
                 team=team_1, member=from_user_member, requester_id=to_user.id
             )
@@ -341,7 +341,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
             from_user.merge_to(to_user)
 
         self.verify_model_existence_by_user(expected_models, present=[to_user], absent=[from_user])
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             for member in OrganizationMember.objects.filter(user_id__in=[from_user.id, to_user.id]):
                 self.assert_org_member_mapping(org_member=member)
             member = OrganizationMember.objects.get(user_id=to_user.id)
@@ -349,7 +349,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         assert member.role == "owner"
         assert list(member.teams.all().order_by("pk")) == all_teams
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not OrganizationAccessRequest.objects.filter(team__in=all_teams).exists()
 
     @expect_models(
@@ -434,7 +434,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         org = self.create_exhaustive_organization(
             slug=org_slug, owner=from_user, member=to_user, other_members=[random_user]
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             from_member = OrganizationMember.objects.get(organization=org, user_id=from_user.id)
             rand_member = OrganizationMember.objects.get(organization=org, user_id=random_user.id)
             team_1 = self.create_team(organization=org, members=[from_member])
@@ -456,7 +456,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
 
         self.verify_model_existence_by_user(expected_models, present=[to_user], absent=[from_user])
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             to_member = OrganizationMember.objects.get(organization=org, user_id=to_user.id)
             assert OrganizationAccessRequest.objects.filter(
                 member=to_member,
@@ -476,12 +476,12 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         org_slug = "hojicha"
         org = self.create_organization(name=org_slug)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.create_member_invite(organization=org, email=from_user.email)
         with outbox_runner():
             from_user.merge_to(to_user)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert OrganizationMemberInvite.objects.filter(
                 organization=org, email=from_user.email
             ).exists()

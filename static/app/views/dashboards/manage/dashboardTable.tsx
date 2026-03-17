@@ -25,13 +25,13 @@ import GridEditable, {
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
@@ -41,6 +41,7 @@ import type {
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 type Props = {
   api: Client;
@@ -230,7 +231,7 @@ function DashboardTable({
         </Flex>
       ) : (
         <Flex justify="between" align="center" gap="3xl">
-          <Tooltip title="Sentry">
+          <Tooltip title={PREBUILT_DASHBOARD_LABEL}>
             <ActivityAvatar type="system" size={26} />
           </Tooltip>
         </Flex>
@@ -295,18 +296,9 @@ function DashboardTable({
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
                   size="sm"
-                  disabled={
-                    hasReachedDashboardLimit ||
-                    isLoadingDashboardsLimit ||
-                    (defined(dataRow.prebuiltId) &&
-                      !organization.features.includes('dashboards-prebuilt-controls'))
-                  }
+                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
                   tooltipProps={{
-                    title:
-                      defined(dataRow.prebuiltId) &&
-                      !organization.features.includes('dashboards-prebuilt-controls')
-                        ? t('Prebuilt dashboards cannot be duplicated')
-                        : limitMessage,
+                    title: limitMessage,
                   }}
                 />
               )}
@@ -330,7 +322,9 @@ function DashboardTable({
               }
               tooltipProps={{
                 title: defined(dataRow.prebuiltId)
-                  ? t('Prebuilt dashboards cannot be deleted')
+                  ? tct('[label] dashboards cannot be deleted', {
+                      label: PREBUILT_DASHBOARD_LABEL,
+                    })
                   : undefined,
               }}
             />

@@ -39,7 +39,7 @@ type Decoder = KnownDecoder | GenericDecoder;
  * });
  * ```
  */
-export default function useLocationQuery<
+export function useLocationQuery<
   InferredRequestShape extends Record<string, Scalar | Scalar[] | Decoder>,
   InferredResponseShape extends {
     readonly [Property in keyof InferredRequestShape]: InferredRequestShape[Property] extends Decoder

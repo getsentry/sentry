@@ -32,16 +32,16 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {getDashboardTemplates} from 'sentry/views/dashboards/data';
 import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
@@ -54,7 +54,7 @@ import OwnedDashboardsTable, {
   OWNED_CURSOR_KEY,
 } from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
-import {DashboardFilter} from 'sentry/views/dashboards/types';
+import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import RouteError from 'sentry/views/routeError';
@@ -78,12 +78,12 @@ const GRID = 'grid';
 const TABLE = 'table';
 
 function shouldShowTemplates(): boolean {
-  const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
+  const shouldShow = localStorageWrapper.getItem(SHOW_TEMPLATES_KEY);
   return shouldShow === 'true' || shouldShow === null;
 }
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
-  const dashboardsLayout = localStorage.getItem(LAYOUT_KEY);
+  const dashboardsLayout = localStorageWrapper.getItem(LAYOUT_KEY);
 
   // There was a bug where the layout was saved as 'list' instead of 'table'
   // this coerces it back to TABLE in case we still rely on it anywhere
@@ -590,7 +590,7 @@ function ManageDashboards() {
       renderDisabled={renderNoAccess}
     >
       <SentryDocumentTitle
-        title={isOnlyPrebuilt ? t('Sentry Built') : t('All Dashboards')}
+        title={isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
         orgSlug={organization.slug}
       >
         <ErrorBoundary>
@@ -604,7 +604,7 @@ function ManageDashboards() {
                 <Layout.Header unified>
                   <Layout.HeaderContent unified>
                     <Layout.Title>
-                      {isOnlyPrebuilt ? t('Sentry Built') : t('All Dashboards')}
+                      {isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
                       <PageHeadingQuestionTooltip
                         docsUrl="https://docs.sentry.io/product/dashboards/"
                         title={

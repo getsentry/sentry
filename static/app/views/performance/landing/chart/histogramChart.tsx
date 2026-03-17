@@ -13,7 +13,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,

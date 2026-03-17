@@ -44,7 +44,6 @@ import {TeamSelector} from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IssueAlertConfiguration,
   IssueAlertRule,
@@ -64,7 +63,7 @@ import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {withProjects} from 'sentry/utils/withProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -1093,7 +1092,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
               styles={{
                 container: (provided: Record<string, string | number | boolean>) => ({
                   ...provided,
-                  marginBottom: space(1),
+                  marginBottom: '8px',
                 }),
               }}
               options={projectOptions}

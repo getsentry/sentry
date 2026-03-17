@@ -68,11 +68,12 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
     calculate_sample_rates_of_projects,
@@ -244,6 +245,18 @@ ORG_OPTIONS = (
         "sentry:enable_seer_coding",
         bool,
         ENABLE_SEER_CODING_DEFAULT,
+    ),
+    (
+        "defaultCodingAgent",
+        "sentry:seer_default_coding_agent",
+        str,
+        SEER_DEFAULT_CODING_AGENT_DEFAULT,
+    ),
+    (
+        "defaultCodingAgentIntegrationId",
+        "sentry:seer_default_coding_agent_integration_id",
+        int,
+        None,
     ),
     (
         # Informs UI default for automated_run_stopping_point in project preferences
@@ -1251,7 +1264,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
-                RegionScheduledDeletion.cancel(organization)
+                CellScheduledDeletion.cancel(organization)
             elif changed_data:
                 if "enabledConsolePlatforms" in changed_data:
                     create_console_platform_audit_log(

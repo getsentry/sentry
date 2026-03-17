@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.seer.cleanup_seer_repository_preferences",
     namespace=seer_tasks,
     processing_deadline_duration=60 * 5,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def cleanup_seer_repository_preferences(
     organization_id: int, repo_external_id: str, repo_provider: str

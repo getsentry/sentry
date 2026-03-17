@@ -10,7 +10,7 @@ import type {SessionApiResponse} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {SERIES_NAME_PART_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import {getWidgetInterval} from 'sentry/views/dashboards/utils';

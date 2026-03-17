@@ -10,7 +10,7 @@ import {CONFIG_DOCS_URL} from 'sentry/constants';
 import {IconChevron, IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {selectText} from 'sentry/utils/selectText';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 const installText = (features: Props['features'], featureName: string): string => {
   const featuresList = Array.isArray(features) ? features : [features];
