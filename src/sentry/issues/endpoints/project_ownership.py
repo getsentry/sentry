@@ -255,14 +255,6 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         )
         ownership.save()
 
-    def _stringify_schema_owner_ids(self, schema: dict[str, Any]) -> None:
-        """Convert integer owner IDs to strings for API responses."""
-        if schema.get("rules"):
-            for rule in schema["rules"]:
-                for rule_owner in rule["owners"]:
-                    if "id" in rule_owner:
-                        rule_owner["id"] = str(rule_owner["id"])
-
     def rename_schema_identifier_for_parsing(self, ownership: ProjectOwnership) -> None:
         """
         Rename the attribute "identifier" to "name" in the schema response so that it can be parsed
@@ -274,7 +266,6 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             for rule in ownership.schema["rules"]:
                 for rule_owner in rule["owners"]:
                     rule_owner["name"] = rule_owner.pop("identifier")
-            self._stringify_schema_owner_ids(ownership.schema)
 
     @extend_schema(
         operation_id="Retrieve Ownership Configuration for a Project",
