@@ -558,8 +558,8 @@ def poll_github_copilot_agents(
                         pr_url=pr_url,
                     )
 
-                    # Status: queued, in_progress, completed, failed, timed_out
-                    is_task_done = task_status.status == "completed"
+                    # The Copilot API uses `state` (not `status`) for task lifecycle.
+                    is_task_done = task_status.state == "completed"
                     new_status = (
                         CodingAgentStatus.COMPLETED if is_task_done else CodingAgentStatus.RUNNING
                     )
@@ -575,19 +575,19 @@ def poll_github_copilot_agents(
                         extra={
                             "agent_id": agent_id,
                             "pr_url": pr_url,
-                            "task_status": task_status.status,
+                            "task_state": task_status.state,
                             "is_task_done": is_task_done,
                         },
                     )
 
-            elif task_status.status in ("failed", "timed_out"):
+            elif task_status.state in ("failed", "timed_out"):
                 update_coding_agent_state(
                     agent_id=agent_id,
                     status=CodingAgentStatus.FAILED,
                 )
                 logger.info(
                     "coding_agent.github_copilot.task_failed",
-                    extra={"agent_id": agent_id, "task_status": task_status.status},
+                    extra={"agent_id": agent_id, "task_state": task_status.state},
                 )
 
         except Exception:

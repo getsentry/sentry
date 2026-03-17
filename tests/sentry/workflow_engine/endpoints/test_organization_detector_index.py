@@ -52,6 +52,10 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
+        self.mock_invoke_checker_validator_ctx = mock.patch(
+            "sentry.uptime.checker_api.invoke_checker_validator", return_value=None
+        )
+        self.mock_invoke_checker_validator = self.mock_invoke_checker_validator_ctx.__enter__()
         self.environment = Environment.objects.create(
             organization_id=self.organization.id, name="production"
         )
@@ -65,6 +69,10 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
         self.issue_stream_detector = self.create_detector(
             type=IssueStreamGroupType.slug, project=self.project, name="Issue Stream"
         )
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        self.mock_invoke_checker_validator_ctx.__exit__(None, None, None)
 
 
 @cell_silo_test

@@ -67,8 +67,8 @@ class _AsyncRegionDispatcher(ABC):
         raise NotImplementedError
 
     def _dispatch_to_region(self, region_name: str) -> _AsyncResult:
-        region = get_cell_by_name(region_name)
-        client = CellSiloClient(region=region)
+        cell = get_cell_by_name(region_name)
+        client = CellSiloClient(cell=cell)
         response = client.request(
             method=self.request_payload["method"],
             path=self.request_payload["path"],
@@ -77,7 +77,7 @@ class _AsyncRegionDispatcher(ABC):
             json=False,
             raw_response=True,
         )
-        return _AsyncResult(region, cast(Response, response))
+        return _AsyncResult(cell, cast(Response, response))
 
     def _forward_response(self, result: _AsyncResult) -> Response | None:
         if not result.was_successful():

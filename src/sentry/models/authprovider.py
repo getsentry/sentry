@@ -45,27 +45,27 @@ class AuthProvider(ReplicatedControlModel):
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_auth_provider
-        from sentry.hybridcloud.services.replica.service import region_replica_service
+        from sentry.hybridcloud.services.replica.service import cell_replica_service
 
         serialized = serialize_auth_provider(self)
-        region_replica_service.upsert_replicated_auth_provider(
-            auth_provider=serialized, cell_name=region_name
+        cell_replica_service.upsert_replicated_auth_provider(
+            auth_provider=serialized, cell_name=cell_name
         )
 
     @classmethod
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
-        from sentry.hybridcloud.services.replica.service import region_replica_service
+        from sentry.hybridcloud.services.replica.service import cell_replica_service
 
-        region_replica_service.delete_replicated_auth_provider(
-            auth_provider_id=identifier, cell_name=region_name
+        cell_replica_service.delete_replicated_auth_provider(
+            auth_provider_id=identifier, cell_name=cell_name
         )
 
     class flags(TypedClassBitField):

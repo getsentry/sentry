@@ -11,11 +11,13 @@ from sentry.seer.signed_seer_api import (
 def trigger_supergroups_embedding(
     organization_id: int,
     group_id: int,
+    project_id: int,
     artifact_data: dict,
 ) -> None:
     body = SupergroupsEmbeddingRequest(
         organization_id=organization_id,
         group_id=group_id,
+        project_id=project_id,
         artifact_data=artifact_data,
     )
     viewer_context = SeerViewerContext(organization_id=organization_id)

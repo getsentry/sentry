@@ -57,8 +57,9 @@ export function ToolbarGroupByDropdown({
   loading,
   onClose,
 }: ToolbarGroupByDropdownProps) {
-  const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
+  const {attributes, listeners, setNodeRef, transform} = useSortable({
     id: column.id,
+    transition: null,
   });
 
   function handleColumnChange(option: SelectOption<SelectKey>) {
@@ -76,7 +77,7 @@ export function ToolbarGroupByDropdown({
     <ToolbarRow
       key={column.id}
       ref={setNodeRef}
-      style={{transform: CSS.Transform.toString(transform), transition}}
+      style={{transform: CSS.Transform.toString(transform)}}
       {...attributes}
     >
       {canDelete ? (

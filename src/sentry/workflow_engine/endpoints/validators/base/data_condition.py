@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, NotRequired, TypedDict, TypeVar
 
 from jsonschema import ValidationError as JsonValidationError
 from rest_framework import serializers
@@ -16,6 +16,13 @@ from sentry.workflow_engine.types import DataConditionHandler
 
 ComparisonType = TypeVar("ComparisonType")
 ConditionResult = TypeVar("ConditionResult")
+
+
+class DataConditionInput(TypedDict):
+    id: NotRequired[int]
+    type: str
+    comparison: Any
+    conditionResult: Any
 
 
 class AbstractDataConditionValidator(

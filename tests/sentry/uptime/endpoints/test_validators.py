@@ -78,6 +78,13 @@ class UptimeMonitorDataSourceValidatorTest(TestCase):
             "project": self.project,
             "request": self.make_request(),
         }
+        self.mock_invoke_checker_validator_ctx = mock.patch(
+            "sentry.uptime.checker_api.invoke_checker_validator", return_value=None
+        )
+        self.mock_invoke_checker_validator = self.mock_invoke_checker_validator_ctx.__enter__()
+
+    def tearDown(self):
+        self.mock_invoke_checker_validator_ctx.__exit__(None, None, None)
 
     def test_simple(self):
         validator = UptimeMonitorDataSourceValidator(

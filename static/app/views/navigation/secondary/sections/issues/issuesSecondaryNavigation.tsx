@@ -6,8 +6,8 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
 
 export function IssuesSecondaryNavigation() {
@@ -21,56 +21,75 @@ export function IssuesSecondaryNavigation() {
       <SecondaryNavigation.Header>{t('Issues')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="issues-feed">
-          <SecondaryNavigation.Item
-            to={`${baseUrl}/`}
-            end
-            analyticsItemName="issues_feed"
-          >
-            {t('Feed')}
-          </SecondaryNavigation.Item>
+          <SecondaryNavigation.List>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/`}
+                end
+                analyticsItemName="issues_feed"
+              >
+                {t('Feed')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+          </SecondaryNavigation.List>
           {hasTopIssuesUI && (
-            <SecondaryNavigation.Item
-              to={`${baseUrl}/supergroups/`}
-              analyticsItemName="issues_supergroups"
-            >
-              {t('Supergroups')}
-            </SecondaryNavigation.Item>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/supergroups/`}
+                analyticsItemName="issues_supergroups"
+              >
+                {t('Supergroups')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
           )}
         </SecondaryNavigation.Section>
+        <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-types">
-          {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
-            <SecondaryNavigation.Item
-              key={key}
-              to={`${baseUrl}/${key}/`}
-              end
-              analyticsItemName={`issues_types_${key}`}
-            >
-              {label}
-            </SecondaryNavigation.Item>
-          ))}
-          <SecondaryNavigation.Item
-            to={`${baseUrl}/feedback/`}
-            analyticsItemName="issues_feedback"
-          >
-            {t('User Feedback')}
-          </SecondaryNavigation.Item>
-          {organization.features.includes('seer-autopilot') && (
-            <SecondaryNavigation.Item
-              to={`${baseUrl}/instrumentation/`}
-              analyticsItemName="issues_instrumentation"
-            >
-              {t('Instrumentation')}
-            </SecondaryNavigation.Item>
-          )}
+          <SecondaryNavigation.List>
+            {Object.values(ISSUE_TAXONOMY_CONFIG).map(({key, label}) => (
+              <SecondaryNavigation.ListItem key={key}>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/${key}/`}
+                  end
+                  analyticsItemName={`issues_types_${key}`}
+                >
+                  {label}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            ))}
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/feedback/`}
+                analyticsItemName="issues_feedback"
+              >
+                {t('User Feedback')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+            {organization.features.includes('seer-autopilot') && (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/instrumentation/`}
+                  analyticsItemName="issues_instrumentation"
+                >
+                  {t('Instrumentation')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            )}
+          </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
+        <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="issues-views-all">
-          <SecondaryNavigation.Item
-            to={`${baseUrl}/views/`}
-            analyticsItemName="issues_all_views"
-            end
-          >
-            {t('All Views')}
-          </SecondaryNavigation.Item>
+          <SecondaryNavigation.List>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/views/`}
+                analyticsItemName="issues_all_views"
+                end
+              >
+                {t('All Views')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+          </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <IssueViews sectionRef={sectionRef} />
         <ConfigureSection baseUrl={baseUrl} />
@@ -81,7 +100,7 @@ export function IssuesSecondaryNavigation() {
 
 function ConfigureSection({baseUrl}: {baseUrl: string}) {
   const organization = useOrganization();
-  const {layout} = useNavigation();
+  const {layout} = usePrimaryNavigation();
   const isSticky = layout === 'sidebar';
 
   const hasRedirectOptOut = organization.features.includes(
@@ -95,20 +114,27 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
     : `${baseUrl}/alerts/rules/`;
 
   return (
-    <StickyBottomSection
-      id="issues-configure"
-      title={t('Configure')}
-      collapsible={false}
-      isSticky={isSticky}
-    >
-      <SecondaryNavigation.Item
-        to={alertsLink}
-        {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
-        analyticsItemName="issues_alerts"
+    <Fragment>
+      <SecondaryNavigation.Separator />
+      <StickyBottomSection
+        id="issues-configure"
+        title={t('Configure')}
+        collapsible={false}
+        isSticky={isSticky}
       >
-        {t('Alerts')}
-      </SecondaryNavigation.Item>
-    </StickyBottomSection>
+        <SecondaryNavigation.List>
+          <SecondaryNavigation.ListItem>
+            <SecondaryNavigation.Link
+              to={alertsLink}
+              {...(!shouldRedirectToWorkflowEngineUI && {activeTo: `${baseUrl}/alerts/`})}
+              analyticsItemName="issues_alerts"
+            >
+              {t('Alerts')}
+            </SecondaryNavigation.Link>
+          </SecondaryNavigation.ListItem>
+        </SecondaryNavigation.List>
+      </StickyBottomSection>
+    </Fragment>
   );
 }
 
