@@ -487,7 +487,9 @@ function MetricDetailPanel({
 
   return (
     <Stack gap="md">
-      <Text bold>{metric.metricName}</Text>
+      <Text bold wordBreak="break-all">
+        {metric.metricName}
+      </Text>
       <Flex gap="xs" align="center">
         <Text variant="muted" size="sm">
           {t('Type:')}
