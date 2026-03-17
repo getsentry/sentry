@@ -1,4 +1,5 @@
 from sentry.seer.entrypoints.slack.mention import (
+    IssueLink,
     build_thread_context,
     extract_issue_links,
     extract_prompt,
@@ -50,17 +51,17 @@ class ExtractIssueLinksTest(TestCase):
     def test_standard_issue_url(self):
         text = "check <https://sentry.io/organizations/test-org/issues/456/|ISSUE-456>"
         result = extract_issue_links(text)
-        assert result == [(456, None)]
+        assert result == [IssueLink(group_id=456)]
 
     def test_issue_url_with_event(self):
         text = "see <https://sentry.io/organizations/test-org/issues/789/events/abc123/|link>"
         result = extract_issue_links(text)
-        assert result == [(789, "abc123")]
+        assert result == [IssueLink(group_id=789, event_id="abc123")]
 
     def test_customer_domain_issue_url(self):
         text = "look at <https://test-org.sentry.io/issues/321/|issue>"
         result = extract_issue_links(text)
-        assert result == [(321, None)]
+        assert result == [IssueLink(group_id=321)]
 
     def test_multiple_issue_urls(self):
         text = (
@@ -68,7 +69,7 @@ class ExtractIssueLinksTest(TestCase):
             "and <https://sentry.io/organizations/test-org/issues/222/|two>"
         )
         result = extract_issue_links(text)
-        assert result == [(111, None), (222, None)]
+        assert result == [IssueLink(group_id=111), IssueLink(group_id=222)]
 
     def test_deduplicates_same_issue(self):
         text = (
@@ -76,7 +77,7 @@ class ExtractIssueLinksTest(TestCase):
             "<https://sentry.io/organizations/test-org/issues/111/|second>"
         )
         result = extract_issue_links(text)
-        assert result == [(111, None)]
+        assert result == [IssueLink(group_id=111)]
 
     def test_no_issue_urls(self):
         text = "no links here, just text"
@@ -85,12 +86,12 @@ class ExtractIssueLinksTest(TestCase):
     def test_ignores_non_issue_urls(self):
         text = "<https://google.com|Google> and <https://sentry.io/organizations/test-org/issues/999/|issue>"
         result = extract_issue_links(text)
-        assert result == [(999, None)]
+        assert result == [IssueLink(group_id=999)]
 
     def test_plain_url_without_label(self):
         text = "<https://sentry.io/organizations/test-org/issues/555/>"
         result = extract_issue_links(text)
-        assert result == [(555, None)]
+        assert result == [IssueLink(group_id=555)]
 
     def test_ignores_metric_alert_urls(self):
         text = "<https://sentry.io/organizations/test-org/alerts/rules/details/42/|alert>"
