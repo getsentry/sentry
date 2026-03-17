@@ -54,7 +54,7 @@ export const Body = styled(
     showVerticalScrollbar?: boolean;
   }) => (
     <Panel {...props}>
-      <PanelBody>{children}</PanelBody>
+      <StyledPanelBody>{children}</StyledPanelBody>
     </Panel>
   )
 )`
@@ -331,4 +331,8 @@ export const GridResizer = styled('div')<{dataRows: number}>`
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
     opacity: 0.4;
   }
+`;
+
+const StyledPanelBody = styled(PanelBody)`
+  height: 100%;
 `;
