@@ -417,7 +417,7 @@ class ReactPageViewTest(TestCase):
     def test_dns_prefetch(self) -> None:
         us_region = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
         de_region = Cell("de", 1, "https://de.testserver", RegionCategory.MULTI_TENANT)
-        with override_cells(regions=[us_region, de_region]):
+        with override_cells(cells=[us_region, de_region]):
             user = self.create_user("bar@example.com")
             org = self.create_organization(owner=user)
             self.login_as(user)
