@@ -147,7 +147,8 @@ def pytest_configure(config: pytest.Config) -> None:
 
     if os.environ.get("PYTEST_XDIST_WORKER"):
         for db_conf in settings.DATABASES.values():
-            db_conf.setdefault("OPTIONS", {})["options"] = "-c lock_timeout=30000"
+            opts = db_conf.setdefault("OPTIONS", {})  # type: ignore[arg-type]
+            opts["options"] = "-c lock_timeout=30000"
 
     # Ensure we can test secure ssl settings
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
