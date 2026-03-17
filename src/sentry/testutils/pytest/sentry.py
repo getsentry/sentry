@@ -146,6 +146,9 @@ def pytest_configure(config: pytest.Config) -> None:
     configure_split_db()
 
     if os.environ.get("PYTEST_XDIST_WORKER"):
+        # Under xdist, parallel workers can hit PostgreSQL deadlocks on shared
+        # tables. Set a lock_timeout so the query fails fast and pytest --reruns
+        # can retry it, rather than hanging indefinitely.
         for alias in settings.DATABASES:
             settings.DATABASES[alias].setdefault("OPTIONS", {})["options"] = (
                 "-c lock_timeout=180000"  # type: ignore[index]
