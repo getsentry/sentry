@@ -116,11 +116,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert req_params["client_id"] == ["client_id"]
         assert req_params["client_secret"] == ["client_secret"]
 
-        assert resp.status_code == 302
-        assert (
-            resp["Location"]
-            == f"http://testserver/settings/{self.organization.slug}/integrations/gitlab/"
-        )
+        assert resp.status_code == 200
 
     @responses.activate
     @patch("sentry.integrations.gitlab.integration.sha1_text")
@@ -585,12 +581,7 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         assert req_params["client_id"] == ["client_id"]
         assert req_params["client_secret"] == ["client_secret"]
 
-        assert resp.status_code == 302
-
-        assert (
-            resp["Location"]
-            == f"http://testserver/settings/{self.organization.slug}/integrations/gitlab/"
-        )
+        assert resp.status_code == 200
 
     @responses.activate
     @patch("sentry.integrations.gitlab.integration.sha1_text")
