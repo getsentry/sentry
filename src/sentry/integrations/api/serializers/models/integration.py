@@ -151,12 +151,15 @@ class OrganizationIntegrationSerializer(Serializer):
         # integration installation config object which very well may be making
         # API request for config options.
         integration: RpcIntegration = attrs.get("integration")  # type: ignore[assignment]
-        serialized_integration: MutableMapping[str, Any] = serialize(
+        serialized_integration: MutableMapping[str, Any] | None = serialize(
             objects=integration,
             user=user,
             serializer=IntegrationConfigSerializer(obj.organization_id, params=self.params),
             include_config=include_config,
         )
+
+        if serialized_integration is None:
+            raise Exception(f"Failed to serialize integration {integration.id}")
 
         dynamic_display_information = None
         config_data = None
