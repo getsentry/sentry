@@ -457,9 +457,9 @@ function DynamicSampling({organization}: {organization: Organization}) {
       {ratesMatch
         ? formatRate(effectiveSampleRate)
         : effectiveSampleRate && desiredSampleRate
-          ? `${effectiveSampleRate.toFixed(2)}% instead of ${desiredSampleRate.toFixed(2)}% (~${diffSampleRate?.toFixed(2)}%)`
+          ? `${formatRate(effectiveSampleRate)} instead of ${formatRate(desiredSampleRate)} (~${formatRate(diffSampleRate!)})`
           : desiredSampleRate
-            ? `${desiredSampleRate.toFixed(2)}%`
+            ? formatRate(desiredSampleRate)
             : 'n/a'}
     </ThresholdLabel>
   );

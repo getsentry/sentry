@@ -751,7 +751,7 @@ describe('CustomerOverview', () => {
         organization={organization}
       />
     );
-    await screen.findByText('54.00% instead of 60.00% (~6.00%)');
+    await screen.findByText('54% instead of 60% (~6%)');
   });
 
   it('renders n/a when effective sample rate is missing', async () => {
