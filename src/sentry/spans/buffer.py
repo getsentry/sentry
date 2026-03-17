@@ -70,12 +70,13 @@ import logging
 import math
 import time
 from collections.abc import Generator, MutableMapping, Sequence
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 
 import orjson
 import zstandard
 from django.conf import settings
 from django.utils.functional import cached_property
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry import options
@@ -122,7 +123,6 @@ class Span(NamedTuple):
     segment_id: str | None
     project_id: int
     payload: bytes
-    end_timestamp: float
     is_segment_span: bool = False
     partition: int = 0
 
@@ -198,8 +198,8 @@ class SpansBuffer:
                 if payload_keys:
                     mk_key = self._get_payload_key_index(key)
                     p.delete(mk_key)
-                    for batch in itertools.batched(payload_keys, 100):
-                        p.unlink(*batch)
+                    for distributed_key in payload_keys:
+                        p.unlink(distributed_key)
                 self._distributed_payload_keys_map.pop(key, None)
             p.execute()
 
@@ -259,12 +259,12 @@ class SpansBuffer:
                             dist_key = self._get_distributed_payload_key(
                                 project_and_trace, parent_span_id
                             )
-                            p.sadd(dist_key, *set_members.keys())
+                            p.sadd(dist_key, *set_members)
                             p.expire(dist_key, redis_ttl)
 
                         if write_merged_payloads:
                             set_key = self._get_span_key(project_and_trace, parent_span_id)
-                            p.sadd(set_key, *set_members.keys())
+                            p.sadd(set_key, *set_members)
 
                     p.execute()
 
@@ -504,13 +504,12 @@ class SpansBuffer:
 
         return trees
 
-    def _prepare_payloads(self, spans: list[Span]) -> dict[str | bytes, float]:
+    def _prepare_payloads(self, spans: list[Span]) -> set[str | bytes]:
         """
-        Prepare span payloads for storage. Returns set_members mapping
-        payload bytes to their minimum timestamp.
+        Prepare span payloads for storage. Returns a set of payload bytes.
         """
         if self._zstd_compressor is None:
-            return {span.payload: span.end_timestamp for span in spans}
+            return {span.payload for span in spans}
 
         combined = b"\x00".join(span.payload for span in spans)
         original_size = len(combined)
@@ -525,9 +524,7 @@ class SpansBuffer:
         metrics.timing("spans.buffer.compression.compressed_size", compressed_size)
         metrics.timing("spans.buffer.compression.compression_ratio", compression_ratio)
 
-        min_timestamp = min(span.end_timestamp for span in spans)
-
-        return {compressed: min_timestamp}
+        return {compressed}
 
     def _decompress_batch(self, compressed_data: bytes) -> list[bytes]:
         # Check for zstd magic header (0xFD2FB528 in little-endian) --
@@ -589,7 +586,15 @@ class SpansBuffer:
 
         data_start = time.monotonic()
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
-            segments, ingested_counts = self._load_segment_data([k for _, _, k, _ in segment_keys])
+            # Pass queue mapping to enable TTL expiration detection
+            segment_to_queue = {
+                segment_key: queue_key for _, queue_key, segment_key, _ in segment_keys
+            }
+            segments, ingested_counts = self._load_segment_data(
+                [k for _, _, k, _ in segment_keys],
+                segment_to_queue,
+                now,
+            )
         load_data_latency_ms = int((time.monotonic() - data_start) * 1000)
 
         return_segments = {}
@@ -610,12 +615,13 @@ class SpansBuffer:
             # This incr metric is needed to get a rate overall.
             metrics.incr("spans.buffer.flush_segments.count_spans_per_segment", amount=len(segment))
             for payload in segment:
-                span = orjson.loads(payload)
+                span: SpanEvent = orjson.loads(payload)
 
                 if not attribute_value(span, "sentry.segment.id"):
-                    if not isinstance(span.get("attributes"), dict):
-                        span["attributes"] = {}
-                    span["attributes"]["sentry.segment.id"] = {
+                    attributes = span.get("attributes")
+                    if not isinstance(attributes, dict):
+                        span["attributes"] = attributes = {}
+                    attributes["sentry.segment.id"] = {
                         "type": "string",
                         "value": segment_span_id,
                     }
@@ -625,7 +631,7 @@ class SpansBuffer:
                 if is_segment:
                     has_root_span = True
 
-                output_spans.append(OutputSpan(payload=span))
+                output_spans.append(OutputSpan(payload=cast(dict[str, Any], span)))
 
             metrics.incr(
                 "spans.buffer.flush_segments.num_segments_per_shard", tags={"shard_i": shard}
@@ -680,17 +686,60 @@ class SpansBuffer:
         self.any_shard_at_limit = any_shard_at_limit
         return return_segments
 
+    def _apply_per_trace_limit(
+        self,
+        segment_keys: list[tuple[int, QueueKey, SegmentKey]],
+        max_per_trace: int,
+        now: int,
+    ) -> list[tuple[int, QueueKey, SegmentKey]]:
+        """
+        Limits how many segments a single trace can be flushed in one cycle.
+        Prevents a trace from monopolizing the cycle and concentrating all
+        operations on one Redis node.
+
+        Deferred segments have their score set to ``now`` so they no longer
+        sit at the front of the sorted set.  This avoids head-of-line
+        blocking where a hot trace's overdue segments are re-fetched and
+        re-discarded every cycle.
+        """
+        if max_per_trace <= 0:
+            return segment_keys
+        trace_counts: dict[bytes, int] = {}
+        accepted: list[tuple[int, QueueKey, SegmentKey]] = []
+        deferred: list[tuple[int, QueueKey, SegmentKey]] = []
+        for shard, queue_key, segment_key in segment_keys:
+            _, trace_id, _ = parse_segment_key(segment_key)
+            count = trace_counts.get(trace_id, 0)
+            if count < max_per_trace:
+                accepted.append((shard, queue_key, segment_key))
+                trace_counts[trace_id] = count + 1
+            else:
+                deferred.append((shard, queue_key, segment_key))
+
+        if deferred:
+            num_deferred = len(deferred)
+            metrics.incr("spans.buffer.flush_segments.deferred", amount=num_deferred)
+            with self.client.pipeline(transaction=False) as p:
+                for shard, queue_key, segment_key in deferred:
+                    p.zadd(queue_key, {segment_key: now})
+                p.execute()
+
+        return accepted
+
     def _load_segment_data(
-        self, segment_keys: list[SegmentKey]
+        self,
+        segment_keys: list[SegmentKey],
+        segment_to_queue: dict[SegmentKey, QueueKey],
+        now: int,
     ) -> tuple[dict[SegmentKey, list[bytes]], dict[SegmentKey, int]]:
         """
         Loads the segments from Redis, given a list of segment keys. Segments
         exceeding a certain size are skipped, and an error is logged.
 
         :param segment_keys: List of segment keys to load.
-        :return: Tuple of (payloads, ingested_counts). payloads maps segment
-            keys to lists of span payloads. ingested_counts maps segment keys
-            to ingested count at read time.
+        :param segment_to_queue: Mapping of segment keys to their queue keys for TTL checking.
+        :param now: Current timestamp for age calculation.
+        :return: payloads mapping segment keys to lists of span payloads.
         """
 
         page_size = options.get("spans.buffer.segment-page-size")
@@ -807,6 +856,9 @@ class SpansBuffer:
         ingested_counts: dict[SegmentKey, int] = {}
 
         # Calculate dropped counts: total ingested - successfully loaded
+        redis_ttl = options.get("spans.buffer.redis-ttl")
+        root_timeout = options.get("spans.buffer.root-timeout")
+
         for i, key in enumerate(segment_keys):
             ingested_count = ingested_results[i * 2]
             ingested_byte_count = ingested_results[i * 2 + 1]
@@ -850,12 +902,23 @@ class SpansBuffer:
                         quantity=dropped,
                     )
             elif not payloads.get(key):
-                # BUG DETECTION: Segment was in the flush queue but both the data
-                # (span-buf:s:*) and metadata (span-buf:ic:*) keys are missing.
-                # This means the Redis keys expired before the flusher could process
-                # them, resulting in silent data loss. The spans were already committed
-                # from the ingest Kafka topic, so they cannot be recovered.
-                metrics.incr("spans.buffer.segment_expired_before_flush")
+                # Both data and metadata are missing. This could be:
+                # 1. TTL expiration (segment sat in queue for >1 hour) - TRUE DATA LOSS
+                # 2. Race condition (another consumer flushed between load and metadata fetch)
+                # Only increment metric if segment is old enough to have actually expired.
+                queue_key = segment_to_queue.get(key)
+                if queue_key:
+                    deadline_score = self.client.zscore(queue_key, key)
+                    if deadline_score is not None:
+                        deadline = int(deadline_score)
+                        time_past_deadline = now - deadline
+                        # Estimate segment age: deadline = creation_time + timeout
+                        # Use root_timeout as conservative estimate (smaller value)
+                        estimated_age = time_past_deadline + root_timeout
+
+                        if estimated_age > redis_ttl:
+                            # Segment is older than TTL - true expiration (data loss)
+                            metrics.incr("spans.buffer.segment_expired_before_flush")
 
         for key, spans in payloads.items():
             if not spans:
@@ -968,10 +1031,8 @@ class SpansBuffer:
                     if flushed_segment.distributed_payload_keys:
                         mk_key = self._get_payload_key_index(segment_key)
                         p.delete(mk_key)
-                        for distributed_key_batch in itertools.batched(
-                            flushed_segment.distributed_payload_keys, 100
-                        ):
-                            p.unlink(*distributed_key_batch)
+                        for distributed_key in flushed_segment.distributed_payload_keys:
+                            p.unlink(distributed_key)
 
                 for queue_key, keys in queue_removals.items():
                     for key_batch in itertools.batched(keys, 100):

@@ -1359,14 +1359,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
-# {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
-register(
-    "ai-agent-monitoring.custom-model-mapping",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -2645,6 +2637,16 @@ register(
 register(
     "sentry-apps.webhook.timeout.sec",
     default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Hard timeout for webhook requests to prevent indefinite hangs.
+# Must be strictly less than the shortest task processing_deadline_duration that
+# calls send_and_save_webhook_request (currently 8s for send_alert_webhook_v2 and
+# send_resource_change_webhook), otherwise timeout_alarm raises ValueError.
+register(
+    "sentry-apps.webhook.hard-timeout.sec",
+    default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -13,12 +13,9 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryButtonOverlay,
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-  usePrimaryButtonOverlay,
+  PrimaryNavigation,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
@@ -183,9 +180,7 @@ export function PrimaryNavSeerConfigReminder() {
     triggerProps: overlayTriggerProps,
     overlayProps,
     state,
-  } = usePrimaryButtonOverlay();
-
-  const {layout} = useNavigation();
+  } = usePrimaryNavigationButtonOverlay();
 
   const {canSeeReminder, analyticsParams} = useCanSeeReminder(organization);
   const copy = useReminderCopywriting();
@@ -206,22 +201,18 @@ export function PrimaryNavSeerConfigReminder() {
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="seer-config-reminder"
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
+        indicator="accent"
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconSeer />,
         }}
-      >
-        <SidebarItemUnreadIndicator
-          data-test-id="seer-config-reminder-indicator"
-          isMobile={layout === 'mobile'}
-        />
-      </SidebarButton>
+      />
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <Stack gap="lg" padding="xl">
             <Heading as="h3">{copy.title}</Heading>
             <Text>{copy.description}</Text>
@@ -237,7 +228,7 @@ export function PrimaryNavSeerConfigReminder() {
               </LinkButton>
             </Flex>
           </Stack>
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );

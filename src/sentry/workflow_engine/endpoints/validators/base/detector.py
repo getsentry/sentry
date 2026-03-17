@@ -28,6 +28,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
     log_alerting_quota_hit,
     toggle_detector,
+    update_owner,
 )
 from sentry.workflow_engine.models import (
     DataConditionGroup,
@@ -193,18 +194,9 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
 
             # Handle owner field update
             if "owner" in validated_data:
-                owner = validated_data.get("owner")
-                if owner:
-                    if owner.is_user:
-                        instance.owner_user_id = owner.id
-                        instance.owner_team_id = None
-                    elif owner.is_team:
-                        instance.owner_user_id = None
-                        instance.owner_team_id = owner.id
-                else:
-                    # Clear owner if None is passed
-                    instance.owner_user_id = None
-                    instance.owner_team_id = None
+                instance.owner_user_id, instance.owner_team_id = update_owner(
+                    validated_data.pop("owner")
+                )
 
             if "condition_group" in validated_data:
                 condition_group = validated_data.pop("condition_group")
@@ -280,14 +272,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                         condition_group=condition_group,
                     )
 
-            owner = validated_data.get("owner")
-            owner_user_id = None
-            owner_team_id = None
-            if owner:
-                if owner.is_user:
-                    owner_user_id = owner.id
-                elif owner.is_team:
-                    owner_team_id = owner.id
+            owner_user_id, owner_team_id = update_owner(validated_data.get("owner"))
 
             detector = Detector(
                 project_id=self.context["project"].id,

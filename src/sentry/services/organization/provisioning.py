@@ -66,31 +66,36 @@ class OrganizationProvisioningService:
 
         return rpc_org
 
+    def provision_organization_in_cell(
+        self,
+        provisioning_options: OrganizationProvisioningOptions,
+        cell_name: str | None = None,
+    ) -> RpcOrganization:
+        """
+        Creates a new Organization in the destination cell. If called from a
+        cell silo without a cell_name, the local cell name will be used.
+
+        :param provisioning_options: A provisioning payload containing all the necessary
+        data to fully provision an organization within the cell.
+
+        :param cell_name: The cell to provision the organization in
+        :return: RpcOrganization of the newly created org
+        """
+
+        destination_cell_name = self._validate_or_default_region(region_name=cell_name)
+        return self._control_based_provisioning(
+            provisioning_options=provisioning_options, region_name=destination_cell_name
+        )
+
+    # TODO(cells): Remove when all callers switch to `provision_organization_in_cell`
     def provision_organization_in_region(
         self,
         provisioning_options: OrganizationProvisioningOptions,
         region_name: str | None = None,
     ) -> RpcOrganization:
-        """
-        Creates a new Organization in the destination region. If called from a
-        region silo without a region_name, the local region name will be used.
-
-        :param provisioning_options: A provisioning payload containing all the necessary
-        data to fully provision an organization within the region.
-
-        :param region_name: The region to provision the organization in
-        :return: RpcOrganization of the newly created org
-        """
-
-        destination_region_name = self._validate_or_default_region(region_name=region_name)
-        return self._control_based_provisioning(
-            provisioning_options=provisioning_options, region_name=destination_region_name
+        return self.provision_organization_in_cell(
+            provisioning_options=provisioning_options, cell_name=region_name
         )
-
-    def idempotent_provision_organization_in_region(
-        self, provisioning_options: OrganizationProvisioningOptions, region_name: str | None
-    ) -> RpcOrganization:
-        raise NotImplementedError()
 
     def _control_based_slug_change(
         self, organization_id: int, slug: str, region_name: str | None = None

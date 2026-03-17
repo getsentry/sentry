@@ -949,6 +949,26 @@ describe('DetectorEdit', () => {
             },
             dataSources: [
               {
+                assertion: {
+                  root: {
+                    id: expect.any(String),
+                    op: 'and',
+                    children: [
+                      {
+                        id: expect.any(String),
+                        op: 'status_code_check',
+                        operator: {cmp: 'greater_than'},
+                        value: 199,
+                      },
+                      {
+                        id: expect.any(String),
+                        op: 'status_code_check',
+                        operator: {cmp: 'less_than'},
+                        value: 300,
+                      },
+                    ],
+                  },
+                },
                 intervalSeconds: 60,
                 method: 'POST',
                 timeoutMs: 5000,
@@ -1016,6 +1036,26 @@ describe('DetectorEdit', () => {
             },
             dataSources: [
               {
+                assertion: {
+                  root: {
+                    id: expect.any(String),
+                    op: 'and',
+                    children: [
+                      {
+                        id: expect.any(String),
+                        op: 'status_code_check',
+                        operator: {cmp: 'greater_than'},
+                        value: 199,
+                      },
+                      {
+                        id: expect.any(String),
+                        op: 'status_code_check',
+                        operator: {cmp: 'less_than'},
+                        value: 300,
+                      },
+                    ],
+                  },
+                },
                 intervalSeconds: 60,
                 method: 'GET',
                 timeoutMs: 5000,

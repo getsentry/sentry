@@ -408,7 +408,6 @@ def run_webhook_handler_control_task(
         event_type_hint,
         stream=scm_event_stream,
         get_current_time=time.time,
-        report_error=report_error_to_sentry,
         record_count=record_count_metric,
         record_distribution=record_distribution_metric,
         record_timer=record_timer_metric,
@@ -430,7 +429,6 @@ def run_webhook_handler_region_task(
         event_type_hint,
         stream=scm_event_stream,
         get_current_time=time.time,
-        report_error=report_error_to_sentry,
         record_count=record_count_metric,
         record_distribution=record_distribution_metric,
         record_timer=record_timer_metric,
@@ -467,7 +465,6 @@ def run_listener(
     *,
     stream: SourceCodeManagerEventStream,
     get_current_time: Callable[[], float] = time.monotonic,
-    report_error: Callable[[Exception], None] = report_error_to_sentry,
     record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
     record_distribution: Callable[
         [str, int, dict[str, str], str], None
@@ -479,10 +476,9 @@ def run_listener(
 
     try:
         event = deserialize_event(event_data, event_type_hint)
-    except msgspec.MsgspecError as e:
-        report_error(e)
+    except msgspec.MsgspecError:
         record_count(f"{METRIC_PREFIX}.failed", 1, {"reason": "parse", "fn": listener})
-        return None
+        raise
 
     if isinstance(event, CheckRunEvent):
         exec_listener(listener, stream.check_run_listeners, event, record_count)
