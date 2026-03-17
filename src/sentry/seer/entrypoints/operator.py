@@ -28,7 +28,6 @@ from sentry.seer.entrypoints.registry import (
     autofix_entrypoint_registry,
     explorer_entrypoint_registry,
 )
-from sentry.seer.entrypoints.slack.entrypoint import SlackExplorerCachePayload
 from sentry.seer.entrypoints.types import SeerAutofixEntrypoint, SeerEntrypointKey
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.explorer.on_completion_hook import ExplorerOnCompletionHook
@@ -682,6 +681,8 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
             ) in explorer_entrypoint_registry.registrations.items():
                 if not entrypoint_cls.has_access(organization=organization):
                     continue
+
+                from sentry.seer.entrypoints.slack.entrypoint import SlackExplorerCachePayload
 
                 cache_payload = SeerOperatorExplorerCache[SlackExplorerCachePayload].get(
                     entrypoint_key=str(entrypoint_key),
