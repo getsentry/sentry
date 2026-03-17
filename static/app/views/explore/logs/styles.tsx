@@ -442,7 +442,7 @@ export const FloatingBackToTopContainer = styled('div')<{
   position: absolute;
   z-index: 1;
   opacity: ${p => (p.inReplay ? 1 : 0.9)};
-  top: ${p => (p.inReplay ? p.theme.space.md : '65px;')};
+  top: ${p => (p.inReplay ? p.theme.space.md : '65px')};
   left: calc(50% - var(--floatingWidth) / 2);
   width: var(--floatingWidth);
   display: flex;
