@@ -59,9 +59,7 @@ export function IssueViewItem({view, isActive}: IssueViewItemProps) {
       }}
     >
       <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
-        <Text ellipsis variant="muted">
-          {view.label}
-        </Text>
+        {view.label}
       </Tooltip>
       {isActive && hasUnsavedChanges && changedParams && (
         <Tooltip
