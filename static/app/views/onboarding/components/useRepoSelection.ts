@@ -72,8 +72,11 @@ export function useRepoSelection({
 
   const cleanupPreviousAdd = () => {
     if (addedRepoIdRef.current) {
-      hideRepository(api, organization.slug, addedRepoIdRef.current).catch(() => {});
-      addedRepoIdRef.current = null;
+      try {
+        hideRepository(api, organization.slug, addedRepoIdRef.current);
+      } finally {
+        addedRepoIdRef.current = null;
+      }
     }
   };
 
