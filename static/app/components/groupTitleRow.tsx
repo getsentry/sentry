@@ -5,11 +5,10 @@ import {useHover} from '@react-aria/interactions';
 import {Link} from '@sentry/scraps/link';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {EventOrGroupTitle} from 'sentry/components/eventOrGroupTitle';
 import {EventMessage} from 'sentry/components/events/eventMessage';
+import {GroupTitle} from 'sentry/components/groupTitle';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconStar} from 'sentry/icons';
-import type {Event} from 'sentry/types/event';
 import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getMessage, isGroup, isTombstone} from 'sentry/utils/events';
@@ -21,8 +20,8 @@ import {createIssueLink} from 'sentry/views/issueList/utils';
 
 import {EventTitleError} from './eventTitleError';
 
-interface EventOrGroupHeaderProps {
-  data: Event | Group | GroupTombstoneHelper;
+interface GroupTitleRowProps {
+  data: Group | GroupTombstoneHelper;
   eventId?: string;
   hideIcons?: boolean;
   hideLevel?: boolean;
@@ -71,16 +70,16 @@ function usePreloadGroupOnHover({
 }
 
 /**
- * Displays an event or group/issue title (i.e. in Stream)
+ * Displays a group/issue title row (i.e. in Stream)
  */
-export function EventOrGroupHeader({
+export function GroupTitleRow({
   data,
   query,
   onClick,
   hideIcons,
   eventId,
   source,
-}: EventOrGroupHeaderProps) {
+}: GroupTitleRowProps) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -100,7 +99,7 @@ export function EventOrGroupHeader({
           </IconWrapper>
         )}
         <ErrorBoundary customComponent={() => <EventTitleError />} mini>
-          <StyledEventOrGroupTitle data={data} withStackTracePreview query={query} />
+          <StyledGroupTitle data={data} withStackTracePreview query={query} />
         </ErrorBoundary>
       </Fragment>
     );
@@ -197,6 +196,6 @@ const TitleWithoutLink = styled('span')`
   text-overflow: ellipsis;
 `;
 
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+const StyledGroupTitle = styled(GroupTitle)`
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;

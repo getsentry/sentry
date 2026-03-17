@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
-import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
+import {GroupTitleRow} from 'sentry/components/groupTitleRow';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -85,8 +85,8 @@ function Issue(props: IssueProps) {
         </IconBackground>
       </IconWrapper>
       <Stack justify="left" width="100%" overflow="hidden">
-        <EventOrGroupHeader data={fetchedIssue} eventId={props.issue.event_id} />
-        <EventOrGroupExtraDetails data={fetchedIssue} />
+        <GroupTitleRow data={fetchedIssue} eventId={props.issue.event_id} />
+        <GroupMetaRow data={fetchedIssue} />
       </Stack>
     </StyledPanelItem>
   ) : isError ? (

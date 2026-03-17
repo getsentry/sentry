@@ -13,10 +13,10 @@ import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown'
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
-import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
-import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
+import {GroupTitleRow} from 'sentry/components/groupTitleRow';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PanelItem} from 'sentry/components/panels/panelItem';
@@ -635,8 +635,8 @@ function StreamGroup({
           />
         )}
         <GroupSummary canSelect={selectionEnabled}>
-          <EventOrGroupHeader data={group} query={query} source={referrer} />
-          <EventOrGroupExtraDetails data={group} showLifetime={false} />
+          <GroupTitleRow data={group} query={query} source={referrer} />
+          <GroupMetaRow data={group} showLifetime={false} />
         </GroupSummary>
       </Fragment>
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
