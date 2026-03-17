@@ -15,6 +15,7 @@ import type {
   Integration,
   IntegrationProvider,
   IntegrationRepository,
+  Repository,
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
@@ -32,14 +33,35 @@ interface RepoSearchResult {
   repos: IntegrationRepository[];
 }
 
+/**
+ * Convert context-stored Repository[] back to IntegrationRepository[] so the
+ * RepoSelector can display previously selected repos on mount.
+ */
+function contextReposToIntegrationRepos(repos?: Repository[]): IntegrationRepository[] {
+  if (!repos) {
+    return [];
+  }
+  return repos.map(r => ({
+    identifier: r.externalSlug || r.name,
+    name: r.name,
+    isInstalled: false,
+  }));
+}
+
 export function ScmConnect({onComplete}: StepProps) {
   const onboardingContext = useOnboardingContext();
   const {scmProviders, scmIntegrations, isPending, refetchIntegrations} =
     useScmProviders();
 
-  const [activeIntegration, setActiveIntegration] = useState<Integration | null>(null);
-  const [selectedRepos, setSelectedRepos] = useState<IntegrationRepository[]>([]);
-  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  const [activeIntegration, setActiveIntegration] = useState<Integration | null>(
+    () => onboardingContext.selectedIntegration ?? null
+  );
+  const [selectedRepos, setSelectedRepos] = useState<IntegrationRepository[]>(() =>
+    contextReposToIntegrationRepos(onboardingContext.selectedRepositories)
+  );
+  const [hasAutoSelected, setHasAutoSelected] = useState(
+    () => !!onboardingContext.selectedIntegration
+  );
 
   // Auto-select an existing SCM integration so returning users see the
   // connected view instead of the provider pills.
