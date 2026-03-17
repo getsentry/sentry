@@ -19,28 +19,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-import {
-  AlignmentDemo,
-  alignments,
-  densityConfigs,
-  DensityDemo,
-  ElementDemo,
-  elements,
-  EllipsisDemo,
-  FractionComparisonDemo,
-  LinkDemo,
-  MonospaceComparisonDemo,
-  ResponsiveDemo,
-  SizeDemo,
-  sizes,
-  TabularComparisonDemo,
-  typographyFeatures,
-  VariantDemo,
-  variants,
-  WordBreakDemo,
-  WrapBalanceDemo,
-} from './text.demos';
-
 export const documentation = import('!!type-loader!@sentry/scraps/text/text');
 
 To create basic text, wrap content in a `<Text>` component. For semantic headings, use `<Heading>` with the appropriate `as` prop.
@@ -56,9 +34,12 @@ Text components support different sizes: `xs`, `sm`, `md` (default), `lg`, `xl`,
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    {[...sizes].reverse().map(size => (
-      <SizeDemo key={size} size={size} />
-    ))}
+    <Text size="2xl">Extra extra large text</Text>
+    <Text size="xl">Extra large text</Text>
+    <Text size="lg">Large text</Text>
+    <Text size="md">Medium text (default)</Text>
+    <Text size="sm">Small text</Text>
+    <Text size="xs">Extra small text</Text>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
@@ -76,9 +57,13 @@ Text components support various color variants: `primary` (default), `muted`, `a
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    {variants.map(variant => (
-      <VariantDemo key={variant} variant={variant} />
-    ))}
+    <Text variant="primary">Primary text (default)</Text>
+    <Text variant="muted">Muted text</Text>
+    <Text variant="accent">Accent text</Text>
+    <Text variant="success">Success text</Text>
+    <Text variant="warning">Warning text</Text>
+    <Text variant="danger">Danger text</Text>
+    <Text variant="promotion">Promotion text</Text>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
@@ -97,9 +82,9 @@ The `<Text>` component can be rendered as different HTML elements using the `as`
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    {elements.map(as => (
-      <ElementDemo key={as} as={as} />
-    ))}
+    <Text as="p">Text rendered as a paragraph element</Text>
+    <Text as="span">Text rendered as a span element</Text>
+    <Text as="div">Text rendered as a div element</Text>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
@@ -114,9 +99,14 @@ Text components support various typography options including bold, italic, under
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    {typographyFeatures.map(feature => (
-      <span key={feature.name}>{feature.render()}</span>
-    ))}
+    <Text bold>Bold text</Text>
+    <Text italic>Italic text</Text>
+    <Text underline>Underlined text</Text>
+    <Text underline="dotted">Dotted underlined text</Text>
+    <Text strikethrough>Strikethrough text</Text>
+    <Text bold italic underline>
+      Bold italic underlined text
+    </Text>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
@@ -135,7 +125,13 @@ Text components support various typography options including bold, italic, under
 Both `<Link>` and `<ExternalLink>` components can be used inline in `<Text>` components to give a styled link.
 
 <Storybook.Demo>
-  <LinkDemo />
+  <Container padding="md">
+    <Text>
+      This is a paragraph with an{' '}
+      <Link to="/organizations/sentry/issues/">inline link</Link> that inherits text
+      styling.
+    </Text>
+  </Container>
 </Storybook.Demo>
 ```jsx
 <Text>
@@ -151,9 +147,20 @@ Control text alignment with the `align` prop: `left` (default), `center`, `right
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
     <Stack gap="md">
-      {alignments.map(align => (
-        <AlignmentDemo key={align} align={align} />
-      ))}
+      <Container width="200px" padding="md" border="primary">
+        <Text align="left">Left aligned text</Text>
+      </Container>
+      <Container width="200px" padding="md" border="primary">
+        <Text align="center">Center aligned text</Text>
+      </Container>
+      <Container width="200px" padding="md" border="primary">
+        <Text align="right">Right aligned text</Text>
+      </Container>
+      <Container width="200px" padding="md" border="primary">
+        <Text align="justify">
+          Justified text that will wrap to multiple lines and be justified.
+        </Text>
+      </Container>
     </Stack>
   </Storybook.SideBySide>
 </Storybook.Demo>
@@ -173,9 +180,27 @@ Control line height with the `density` prop: `compressed` (1.0), default (1.2), 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
     <Stack gap="md">
-      {densityConfigs.map(config => (
-        <DensityDemo key={config.name} density={config.density} label={config.label} />
-      ))}
+      <Container>
+        <Heading as="h4">Compressed density</Heading>
+        <Text as="p" density="compressed">
+          Compressed density text. Lorem ipsum dolor sit amet, consectetur adipiscing
+          elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        </Text>
+      </Container>
+      <Container>
+        <Heading as="h4">Default density</Heading>
+        <Text as="p">
+          Default density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+          Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        </Text>
+      </Container>
+      <Container>
+        <Heading as="h4">Comfortable density</Heading>
+        <Text as="p" density="comfortable">
+          Comfortable density text. Lorem ipsum dolor sit amet, consectetur adipiscing
+          elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        </Text>
+      </Container>
     </Stack>
   </Storybook.SideBySide>
 </Storybook.Demo>
@@ -190,7 +215,9 @@ Control line height with the `density` prop: `compressed` (1.0), default (1.2), 
 Handle text overflow with the `ellipsis` prop to truncate long text with an ellipsis.
 
 <Storybook.Demo>
-  <EllipsisDemo />
+  <Container width="200px" padding="md" border="primary">
+    <Text ellipsis>This is a very long text that will be truncated with an ellipsis</Text>
+  </Container>
 </Storybook.Demo>
 ```jsx
 <Container width="200px" padding="md" border="primary">
@@ -204,8 +231,17 @@ Use the `textWrap` prop to control how the text wraps, and the `wordBreak` prop 
 
 <Storybook.Demo>
   <Stack gap="md">
-    <WordBreakDemo />
-    <WrapBalanceDemo />
+    <Container width="200px" padding="md" border="primary">
+      <Text wordBreak="break-word">
+        A URL string that breaks on word boundaries:
+        https://example.com/path/?marketingParam1=value1&marketingParam2=some-awkward-long-value
+      </Text>
+    </Container>
+    <Container width="200px" padding="md" border="primary">
+      <Text textWrap="balance">
+        Balanced text wrapping for a string of words of varying lengths
+      </Text>
+    </Container>
   </Stack>
 </Storybook.Demo>
 ```jsx
@@ -229,7 +265,18 @@ Use `monospace` for fixed-width text.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <MonospaceComparisonDemo />
+    <Flex align="center" gap="xl">
+      <Text>1234567890</Text>
+      <Text size="sm" variant="muted">
+        Regular
+      </Text>
+    </Flex>
+    <Flex align="center" gap="xl">
+      <Text monospace>1234567890</Text>
+      <Text size="sm" variant="muted">
+        Monospace
+      </Text>
+    </Flex>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
@@ -243,8 +290,30 @@ Use `tabular` for consistent number alignment and `fraction` for diagonal fracti
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <TabularComparisonDemo />
-    <FractionComparisonDemo />
+    <Flex align="center" gap="xl">
+      <Text>1234567890</Text>
+      <Text size="sm" variant="muted">
+        Regular numbers
+      </Text>
+    </Flex>
+    <Flex align="center" gap="xl">
+      <Text tabular>1234567890</Text>
+      <Text size="sm" variant="muted">
+        Tabular numbers
+      </Text>
+    </Flex>
+    <Flex align="center" gap="xl">
+      <Text>1/2 3/4 5/8</Text>
+      <Text size="sm" variant="muted">
+        Regular fractions
+      </Text>
+    </Flex>
+    <Flex align="center" gap="xl">
+      <Text fraction>1/2 3/4 5/8</Text>
+      <Text size="sm" variant="muted">
+        Diagonal fractions
+      </Text>
+    </Flex>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
@@ -257,7 +326,14 @@ Use `tabular` for consistent number alignment and `fraction` for diagonal fracti
 Text components support responsive sizes using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
 
 <Storybook.Demo>
-  <ResponsiveDemo />
+  <Container width="200px" border="primary">
+    <Text
+      size={{xs: 'xs', sm: 'sm', md: 'md', lg: 'lg', xl: 'xl'}}
+      align={{xs: 'left', sm: 'center', md: 'right', lg: 'justify', xl: 'left'}}
+    >
+      Responsive text
+    </Text>
+  </Container>
 </Storybook.Demo>
 ```jsx
 <Text
