@@ -257,7 +257,13 @@ export function parseAssistantContent(node: AITraceSpanNode): string | null {
 }
 
 export function getNodeTimestamp(node: AITraceSpanNode): number {
-  return 'start_timestamp' in node.value ? node.value.start_timestamp : 0;
+  if ('end_timestamp' in node.value && typeof node.value.end_timestamp === 'number') {
+    return node.value.end_timestamp;
+  }
+  if ('timestamp' in node.value && typeof node.value.timestamp === 'number') {
+    return node.value.timestamp;
+  }
+  return 0;
 }
 
 function getNodeEndTimestamp(node: AITraceSpanNode): number {
