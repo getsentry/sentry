@@ -68,6 +68,7 @@ class SentryAppWebhookHaltReason(StrEnum):
     GOT_CLIENT_ERROR = "got_client_error"
     INTEGRATOR_ERROR = "integrator_error"
     MISSING_INSTALLATION = "missing_installation"
+    MISSING_SERVICEHOOK = "missing_servicehook"
     RESTRICTED_IP = "restricted_ip"
     CONNECTION_RESET = "connection_reset"
     HARD_TIMEOUT = "hard_timeout"
