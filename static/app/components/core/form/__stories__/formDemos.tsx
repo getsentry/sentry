@@ -1,3 +1,4 @@
+import {mutationOptions} from '@tanstack/react-query';
 /**
  * Demo components for form .mdx documentation.
  *
@@ -254,20 +255,24 @@ const basicSchema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
 });
 
-const basicMutationOptions = {
-  mutationFn: async (data: unknown) => {
-    await sleep(1000);
-    return data;
-  },
-};
-
 export function BasicAutoSaveDemo() {
+  // Simulated server state for demonstration
+  const [serverState, setServerState] = React.useState({displayName: 'Jane Doe'});
+
+  const basicMutationOptions = mutationOptions({
+    mutationFn: async (data: {displayName: string}) => {
+      await sleep(1000);
+      return data;
+    },
+    onSuccess: setServerState,
+  });
+
   return (
     <FieldGroup title={t('Profile Settings')}>
       <AutoSaveForm
         name="displayName"
         schema={basicSchema}
-        initialValue="Jane Doe"
+        initialValue={serverState.displayName}
         mutationOptions={basicMutationOptions}
       >
         {field => (
