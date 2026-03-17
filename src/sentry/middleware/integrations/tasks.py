@@ -50,8 +50,8 @@ class _AsyncCellDispatcher(ABC):
         logger.info(
             self.log_message("async_region_response"),
             extra={
-                "regions": [r.region.name for r in successes],
-                "response_map": {r.region.name: r.response.status_code for r in results},
+                "regions": [r.cell.name for r in successes],
+                "response_map": {r.cell.name: r.response.status_code for r in results},
             },
         )
 
@@ -95,7 +95,7 @@ class _AsyncCellDispatcher(ABC):
                 "integration.async_integration_response",
                 extra={
                     "path": self.request_payload["path"],
-                    "cell": result.region.name,
+                    "cell": result.cell.name,
                     "cell_status_code": result.response.status_code,
                     "integration_status_code": integration_response.status_code,
                 },
