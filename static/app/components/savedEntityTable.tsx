@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -145,9 +146,6 @@ const StyledLink = styled(Link)`
   text-decoration-color: ${p => p.theme.tokens.border.primary};
   display: block;
   width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 SavedEntityTable.CellName = function CellName({
@@ -157,7 +155,11 @@ SavedEntityTable.CellName = function CellName({
   children: ReactNode;
   to: string;
 }) {
-  return <StyledLink to={to}>{children}</StyledLink>;
+  return (
+    <StyledLink to={to}>
+      <Text ellipsis>{children}</Text>
+    </StyledLink>
+  );
 };
 
 SavedEntityTable.CellProjects = function CellProjects({
