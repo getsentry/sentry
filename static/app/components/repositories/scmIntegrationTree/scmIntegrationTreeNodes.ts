@@ -106,8 +106,6 @@ export function buildIntegrationTreeNodes({
           }
         }
       }
-
-      // nodes.push({type: 'add-config', provider});
     }
   }
 

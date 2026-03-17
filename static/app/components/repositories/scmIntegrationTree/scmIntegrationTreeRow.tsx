@@ -378,7 +378,7 @@ function LoadingReposMessage() {
   return (
     <Flex align="center" gap="sm">
       <Text size="sm" variant="muted">
-        {messages[messageIndex]}
+        {messages[Math.min(messageIndex, messages.length - 1)]}
       </Text>
       <LoadingIndicator size={16} />
     </Flex>
