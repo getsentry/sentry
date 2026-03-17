@@ -252,7 +252,7 @@ function extractAnalyticsQueryFields(payload: NewQuery): Partial<NewQuery> {
   };
 }
 
-export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType {
+export function displayModeToDisplayType(displayMode: DisplayModes | undefined) {
   switch (displayMode) {
     case DisplayModes.DAILYTOP5:
     case DisplayModes.DAILY:
