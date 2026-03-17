@@ -1,6 +1,8 @@
+from unittest import mock
+
 import pytest
 
-from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
+from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_sdk_urls, get_sdk_versions, get_suggested_updates
 
 PYTHON_INDEX_STATE = SdkIndexState(sdk_versions={"sentry.python": "0.9.1"})
 
@@ -217,3 +219,41 @@ def test_more_specific_dotnet_sdk(some_dotnet_sdk) -> None:
                 "type": "changeSdk",
             }
         ]
+
+
+@mock.patch(
+    "sentry.sdk_updates.get_sdk_index",
+    return_value={
+        "sentry.python": {
+            "version": "1.0.0",
+            "main_docs_url": "https://docs.sentry.io/platforms/python/",
+        },
+        "sentry.incomplete": {
+            "version": "0.1.0",
+        },
+    },
+)
+def test_get_sdk_urls_missing_main_docs_url(mock_index):
+    urls = get_sdk_urls()
+    assert "sentry.python" in urls
+    assert urls["sentry.python"] == "https://docs.sentry.io/platforms/python/"
+    assert "sentry.incomplete" not in urls
+
+
+@mock.patch(
+    "sentry.sdk_updates.get_sdk_index",
+    return_value={
+        "sentry.python": {
+            "version": "1.0.0",
+            "main_docs_url": "https://docs.sentry.io/platforms/python/",
+        },
+        "sentry.incomplete": {
+            "main_docs_url": "https://docs.sentry.io/platforms/incomplete/",
+        },
+    },
+)
+def test_get_sdk_versions_missing_version(mock_index):
+    versions = get_sdk_versions()
+    assert "sentry.python" in versions
+    assert versions["sentry.python"] == "1.0.0"
+    assert "sentry.incomplete" not in versions
