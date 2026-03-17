@@ -10,33 +10,33 @@ import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
-import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
+import {ReplayCurrentScreen} from 'sentry/components/replays/replayCurrentScreen';
+import {ReplayCurrentUrl} from 'sentry/components/replays/replayCurrentUrl';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
+import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replayPlayer';
+import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
 import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableColumns';
-import TimeAndScrubberGrid from 'sentry/components/replays/timeAndScrubberGrid';
+import {TimeAndScrubberGrid} from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
+import {useMarkReplayViewed} from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import useFullscreen from 'sentry/utils/window/useFullscreen';
-import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
-import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
-import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import {useFullscreen} from 'sentry/utils/window/useFullscreen';
+import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
+import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
+import {BrowserOSIcons} from 'sentry/views/replays/detail/browserOSIcons';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
-export default function ReplayPreviewPlayer({
+export function ReplayPreviewPlayer({
   query,
   errorBeforeReplayStart,
   replayId,

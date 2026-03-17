@@ -6,7 +6,7 @@ import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useUser} from 'sentry/utils/useUser';
 
 import {useTimezone} from './timezoneProvider';

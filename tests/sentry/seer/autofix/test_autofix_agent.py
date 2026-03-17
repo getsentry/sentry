@@ -149,7 +149,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
 
         prompt = generate_autofix_handoff_prompt(state, short_id="AIML-2301")
 
-        assert "Include 'Fixes AIML-2301' in the pull request description" in prompt
+        assert "Include 'Fixes AIML-2301' in the commit message" in prompt
 
     def test_prompt_without_short_id(self):
         """Test that 'Fixes' is not in prompt when short_id is None."""
@@ -177,7 +177,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
             state, instruction="Focus on performance", short_id="PROJ-123"
         )
 
-        assert "Include 'Fixes PROJ-123' in the pull request description" in prompt
+        assert "Include 'Fixes PROJ-123' in the commit message" in prompt
         assert "Focus on performance" in prompt
 
 

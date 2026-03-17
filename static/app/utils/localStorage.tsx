@@ -1,5 +1,3 @@
-import createLocalStorage from './createStorage';
+import {createStorage} from './createStorage';
 
-const Storage = createLocalStorage(() => window.localStorage);
-
-export default Storage;
+export const localStorageWrapper = createStorage(() => window.localStorage);

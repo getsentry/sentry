@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry import similarity
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.constants import CELL_API_DEPRECATION_DATE
@@ -21,7 +21,7 @@ def _fix_label(label: tuple[str, ...] | str) -> str:
     return label
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
     """
     This endpoint uses the legacy MinHash similarity system which has been replaced

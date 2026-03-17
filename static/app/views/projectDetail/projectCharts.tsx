@@ -5,8 +5,8 @@ import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import {BarChart} from 'sentry/components/charts/barChart';
-import LoadingPanel from 'sentry/components/charts/loadingPanel';
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {
   ChartContainer,
   ChartControls,
@@ -21,7 +21,7 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -33,7 +33,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {
   getANRRateText,

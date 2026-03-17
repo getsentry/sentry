@@ -1,8 +1,8 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 describe('normalizeUrl', () => {
   let configState: Config;

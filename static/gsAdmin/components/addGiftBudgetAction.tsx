@@ -12,7 +12,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
@@ -191,13 +191,11 @@ function AddGiftBudgetModal({
 
 type Options = Pick<Props, 'onSuccess' | 'organization' | 'subscription'>;
 
-const addGiftBudgetAction = (opts: Options) => {
+export const addGiftBudgetAction = (opts: Options) => {
   return openModal(deps => <AddGiftBudgetModal {...deps} {...opts} />, {
     closeEvents: 'escape-key',
   });
 };
-
-export default addGiftBudgetAction;
 
 const BudgetCard = styled('div')<{isSelected: boolean}>`
   padding: ${p => p.theme.space.xl};

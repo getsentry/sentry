@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Subscription} from 'getsentry/types';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type Props = {
   customer: Subscription;
@@ -62,7 +62,7 @@ const StatusList = styled('dl')`
   }
 `;
 
-function CustomerStatus({customer}: Props) {
+export function CustomerStatus({customer}: Props) {
   const label = getLabel(customer);
 
   return (
@@ -75,5 +75,3 @@ function CustomerStatus({customer}: Props) {
     </Fragment>
   );
 }
-
-export default CustomerStatus;

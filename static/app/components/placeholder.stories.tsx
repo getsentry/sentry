@@ -18,7 +18,7 @@ export default Storybook.story('Placeholder', story => {
 
   story('With Bottom Gutter', () => (
     <div>
-      <Placeholder bottomGutter={2} />
+      <Placeholder bottomGutter="xl" />
       <div>Content below placeholder</div>
     </div>
   ));

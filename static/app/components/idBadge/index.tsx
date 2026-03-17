@@ -10,7 +10,7 @@ import getBadge from './getBadge';
  * Organization, project, team, user
  */
 
-function IdBadge(props: GetBadgeProps) {
+export function IdBadge(props: GetBadgeProps) {
   const componentBadge = getBadge(props);
 
   if (!componentBadge) {
@@ -21,8 +21,6 @@ function IdBadge(props: GetBadgeProps) {
 
   return <InlineErrorBoundary mini>{componentBadge}</InlineErrorBoundary>;
 }
-
-export default IdBadge;
 
 const InlineErrorBoundary = styled(ErrorBoundary)`
   background-color: transparent;

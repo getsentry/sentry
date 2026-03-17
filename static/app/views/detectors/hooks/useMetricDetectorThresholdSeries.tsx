@@ -4,9 +4,9 @@ import {useTheme} from '@emotion/react';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
 
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
 import {
   DataConditionType,

@@ -1,5 +1,5 @@
 import InputField from 'sentry/components/deprecatedforms/inputField';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 
 type Props = {
   max?: number;

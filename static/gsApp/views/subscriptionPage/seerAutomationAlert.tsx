@@ -8,14 +8,14 @@ import {Link} from '@sentry/scraps/link';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 
 interface SeerAutomationAlertProps {
   organization: Organization;
 }
 
-export default function SeerAutomationAlert({organization}: SeerAutomationAlertProps) {
+export function SeerAutomationAlert({organization}: SeerAutomationAlertProps) {
   const location = useLocation();
   const isRedirectedFromCheckout = !!location.query.showSeerAutomationAlert;
 

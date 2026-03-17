@@ -2,7 +2,7 @@ import type {Theme} from '@emotion/react';
 
 import {ChartType} from 'sentry/chartcuterie/types';
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
-import VisualMap from 'sentry/components/charts/components/visualMap';
+import {VisualMap} from 'sentry/components/charts/components/visualMap';
 import type {EventsStatsData, EventsStatsSeries} from 'sentry/types/organization';
 import {
   axisLabelFormatter,
@@ -14,8 +14,8 @@ import {
   TrendFunctionField,
   type NormalizedTrendsTransaction,
 } from 'sentry/views/performance/trends/types';
-import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
-import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
+import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
+import {transformEventStats} from 'sentry/views/performance/trends/utils/transformEventStats';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
 export type EventBreakpointChartData = {

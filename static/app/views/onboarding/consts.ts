@@ -1,6 +1,6 @@
 import type {MotionProps} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 export const ONBOARDING_WELCOME_SCREEN_SOURCE = 'targeted_onboarding';
 

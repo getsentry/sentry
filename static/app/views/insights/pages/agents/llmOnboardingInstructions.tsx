@@ -6,8 +6,8 @@ import {useCopySetupInstructionsEnabled} from 'sentry/components/onboarding/gett
 import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function ManualInstrumentationNote({docsLink}: {docsLink: React.ReactNode}) {
   const copyEnabled = useCopySetupInstructionsEnabled();

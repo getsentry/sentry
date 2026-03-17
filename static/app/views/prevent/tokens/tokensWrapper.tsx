@@ -2,15 +2,15 @@ import {Outlet} from 'react-router-dom';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import NotFound from 'sentry/components/errors/notFound';
+import {NotFound} from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PreventQueryParamsProvider from 'sentry/components/prevent/container/preventParamsProvider';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PreventQueryParamsProvider} from 'sentry/components/prevent/container/preventParamsProvider';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export default function TokensPageWrapper() {
+export function TokensPageWrapper() {
   const organization = useOrganization();
 
   const tooltip = t('Manage your upload tokens that are created in Sentry Prevent.');

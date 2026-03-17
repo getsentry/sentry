@@ -13,12 +13,12 @@ import type {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type useOverlay from 'sentry/utils/useOverlay';
+import type {useOverlay} from 'sentry/utils/useOverlay';
 
 import {DropdownMenu} from './index';
 import type {MenuItemProps} from './item';
 import DropdownMenuItem from './item';
-import DropdownMenuSection from './section';
+import {DropdownMenuSection} from './section';
 
 type OverlayState = ReturnType<typeof useOverlay>['state'];
 

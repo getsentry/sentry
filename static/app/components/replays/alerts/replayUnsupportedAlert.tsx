@@ -8,7 +8,7 @@ interface Props {
   projectSlug: string;
 }
 
-export default function ReplayUnsupportedAlert({projectSlug}: Props) {
+export function ReplayUnsupportedAlert({projectSlug}: Props) {
   const docsLink = (
     <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/#supported-sdks" />
   );

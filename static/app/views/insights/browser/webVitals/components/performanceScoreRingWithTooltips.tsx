@@ -8,10 +8,10 @@ import {Link} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMouseTracking from 'sentry/utils/useMouseTracking';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMouseTracking} from 'sentry/utils/useMouseTracking';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import PerformanceScoreRing from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
+import {PerformanceScoreRing} from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
 import type {
   ProjectScore,
   WebVitals,
@@ -133,7 +133,7 @@ function WebVitalLabel({
   );
 }
 
-function PerformanceScoreRingWithTooltips({
+export function PerformanceScoreRingWithTooltips({
   projectScore,
   projectData,
   ringBackgroundColors,
@@ -419,5 +419,3 @@ const Dot = styled('span')<{color: string}>`
 const TooltipValue = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default PerformanceScoreRingWithTooltips;

@@ -25,7 +25,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, RegionCategory, RegionResolutionError
+from sentry.types.cell import Cell, CellResolutionError, RegionCategory
 
 region_config = [Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)]
 
@@ -302,7 +302,7 @@ class DrainMailboxTest(TestCase):
             mailbox_name="github:123",
             cell_name="lolnope",
         )
-        with pytest.raises(RegionResolutionError):
+        with pytest.raises(CellResolutionError):
             drain_mailbox(webhook_one.id)
         assert len(responses.calls) == 0
 
@@ -386,7 +386,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_success_codecov(self) -> None:
         responses.add(
@@ -406,6 +408,7 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL=None)
+    @override_options({"codecov.forward-webhooks.disabled": False})
     @override_regions(region_config)
     def test_drain_codecov_configuration_error(self) -> None:
         responses.add(
@@ -427,7 +430,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_codecov_request_error(self) -> None:
         responses.add(
@@ -448,6 +453,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 3
 
     @responses.activate
+    @override_options({"codecov.forward-webhooks.disabled": False})
     def test_drain_codecov_filtered_getsentry_owner(self) -> None:
         """Skip list uses default option (getsentry); no client or request needed."""
         records = create_payloads_with_destination_type(
@@ -462,7 +468,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_codecov_not_filtered_other_owner(self) -> None:
         responses.add(
@@ -484,7 +492,9 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     def test_drain_codecov_not_filtered_malformed_body(self) -> None:
         responses.add(
@@ -502,6 +512,19 @@ class DrainMailboxTest(TestCase):
         drain_mailbox(records[0].id)
 
         assert len(responses.calls) == 3
+        assert not WebhookPayload.objects.filter().exists()
+
+    @responses.activate
+    @override_options({"codecov.forward-webhooks.disabled": True})
+    @override_regions(region_config)
+    def test_drain_codecov_skipped_when_forwarding_disabled(self) -> None:
+        """When codecov.forward-webhooks.disabled is True, payloads are drained but not sent."""
+        records = create_payloads_with_destination_type(
+            2, "github:codecov:123", DestinationType.CODECOV
+        )
+        drain_mailbox(records[0].id)
+
+        assert len(responses.calls) == 0
         assert not WebhookPayload.objects.filter().exists()
 
     @responses.activate
@@ -715,7 +738,7 @@ class DrainMailboxParallelTest(TestCase):
             mailbox_name="github:123",
             cell_name="lolnope",
         )
-        with pytest.raises(RegionResolutionError):
+        with pytest.raises(CellResolutionError):
             drain_mailbox_parallel(webhook_one.id)
         assert len(responses.calls) == 0
 
@@ -1041,7 +1064,9 @@ class DeliveryTimeMetricsTest(TestCase):
 
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL="https://api.codecov.io")
-    @override_options({"codecov.api-bridge-signing-secret": "test"})
+    @override_options(
+        {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
+    )
     @override_regions(region_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_codecov_region_sent_to(self, mock_metrics: MagicMock) -> None:
@@ -1074,7 +1099,6 @@ class DeliveryTimeMetricsTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    @override_options({"hybridcloud.deliver_webhooks.delivery_time_include_github_tags": True})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_github_event_and_action(self, mock_metrics: MagicMock) -> None:
         responses.add(
@@ -1102,12 +1126,10 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
-        assert tags.get("github_event_type") == "pull_request"
-        assert tags.get("github_action") == "opened"
+        assert tags.get("github_event_and_action") == "pull_request.opened"
 
     @responses.activate
     @override_regions(region_config)
-    @override_options({"hybridcloud.deliver_webhooks.delivery_time_include_github_tags": True})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_github_event_only(self, mock_metrics: MagicMock) -> None:
         responses.add(
@@ -1135,8 +1157,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
-        assert tags.get("github_event_type") == "push"
-        assert "github_action" not in tags
+        assert tags.get("github_event_and_action") == "push.unknown"
 
     @responses.activate
     @override_regions(region_config)
@@ -1163,8 +1184,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
-        assert "github_event_type" not in tags
-        assert "github_action" not in tags
+        assert "github_event_and_action" not in tags
 
 
 @control_silo_test

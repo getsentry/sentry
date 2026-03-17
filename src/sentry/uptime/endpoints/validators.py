@@ -12,7 +12,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_SUCCESS,
 )
 
-from sentry import audit_log, features, quotas
+from sentry import audit_log, quotas
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.superuser import is_active_superuser
@@ -151,10 +151,6 @@ def _validate_request_size(method, url, headers, body):
 def _validate_check_config(
     attrs, uptime_subscription: UptimeSubscription | None, organization, user
 ):
-    assertions_enabled = features.has(
-        "organizations:uptime-runtime-assertions", organization, actor=user
-    )
-
     validated_data = attrs
     if uptime_subscription is not None:
         validated_data = {}
@@ -177,7 +173,7 @@ def _validate_check_config(
     region = get_region_config(get_active_regions()[0].slug)
     assert region is not None
     check_config = checker_api.create_preview_check(validated_data, region)
-    result = checker_api.invoke_checker_validator(assertions_enabled, check_config, region)
+    result = checker_api.invoke_checker_validator(check_config, region)
     if result is not None and result.status_code >= 400:
         raise serializers.ValidationError({"assertion": result.json()})
 

@@ -26,7 +26,7 @@ interface MetricInfoTabsProps {
   isMetricOptionsEmpty?: boolean;
 }
 
-export default function MetricInfoTabs({
+export function MetricInfoTabs({
   traceMetric,
   additionalActions,
   contentsHidden,
