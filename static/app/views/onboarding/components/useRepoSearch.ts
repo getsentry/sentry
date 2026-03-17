@@ -52,7 +52,7 @@ export function useRepoSearch(integrationId: string, selectedRepo: Repository | 
           acc.reposByIdentifier.set(repo.identifier, repo);
           acc.dropdownItems.push({
             value: repo.identifier,
-            label: repo.isInstalled ? `${repo.name} (Already Added)` : repo.name,
+            label: repo.name,
             textValue: repo.name,
             disabled: repo.identifier === selectedRepo?.externalSlug,
           });
