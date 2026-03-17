@@ -36,7 +36,7 @@ class TestRegionApp(TestCase):
             },
         )
 
-    def test_get_buffer_requests_for_region(self) -> None:
+    def test_get_buffer_requests_for_cell(self) -> None:
         buffer = SentryAppWebhookRequestsBuffer(self.app)
         buffer.add_request(
             response_code=200,
@@ -44,13 +44,13 @@ class TestRegionApp(TestCase):
             event="issue.assigned",
             url=self.app.webhook_url,
         )
-        requests = app_request_service.get_buffer_requests_for_region(
-            sentry_app_id=self.app.id, region_name="us"
+        requests = app_request_service.get_buffer_requests_for_cell(
+            sentry_app_id=self.app.id, cell_name="us"
         )
         assert requests and len(requests) == 1
         assert requests[0].organization_id == self.org.id
 
-    def test_get_buffer_requests_for_region_with_error_request(self) -> None:
+    def test_get_buffer_requests_for_cell_with_error_request(self) -> None:
         buffer = SentryAppWebhookRequestsBuffer(self.app)
 
         mock_response = Mock(spec=Response)
@@ -71,8 +71,8 @@ class TestRegionApp(TestCase):
                 "Content-Type": "application/json",
             },
         )
-        requests = app_request_service.get_buffer_requests_for_region(
-            sentry_app_id=self.app.id, region_name="us"
+        requests = app_request_service.get_buffer_requests_for_cell(
+            sentry_app_id=self.app.id, cell_name="us"
         )
         assert requests and len(requests) == 1
         assert requests[0].error_id == "abc123"
@@ -83,7 +83,7 @@ class TestRegionApp(TestCase):
         }
         assert requests[0].response_body == json.dumps(mock_response.content)
 
-    def test_get_filtered_buffer_requests_for_region(self) -> None:
+    def test_get_filtered_buffer_requests_for_cell(self) -> None:
         buffer = SentryAppWebhookRequestsBuffer(self.app)
         buffer.add_request(
             response_code=200,
@@ -98,21 +98,21 @@ class TestRegionApp(TestCase):
             url=self.app.webhook_url,
         )
         filter: SentryAppRequestFilterArgs = {"event": "issue.assigned"}
-        requests = app_request_service.get_buffer_requests_for_region(
-            sentry_app_id=self.app.id, region_name="us", filter=filter
+        requests = app_request_service.get_buffer_requests_for_cell(
+            sentry_app_id=self.app.id, cell_name="us", filter=filter
         )
         assert requests and len(requests) == 1
         assert requests[0].organization_id == self.org.id
 
     def test_empty_buffer(self) -> None:
-        requests = app_request_service.get_buffer_requests_for_region(
-            sentry_app_id=self.app.id, region_name="us"
+        requests = app_request_service.get_buffer_requests_for_cell(
+            sentry_app_id=self.app.id, cell_name="us"
         )
         assert requests == []
 
     def test_invalid_app_id(self) -> None:
-        requests = app_request_service.get_buffer_requests_for_region(
+        requests = app_request_service.get_buffer_requests_for_cell(
             sentry_app_id=-1,
-            region_name="us",
+            cell_name="us",
         )
         assert requests is None

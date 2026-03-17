@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PreventQueryParamsProvider} from 'sentry/components/prevent/container/preventParamsProvider';
 import {IntegratedOrgSelector} from 'sentry/components/prevent/integratedOrgSelector/integratedOrgSelector';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 const MOCK_INTEGRATED_ORG_NAME = 'my-other-org-with-a-super-long-name';
 const MOCK_INTEGRATED_ORG_NAME_2 = 'other-org';

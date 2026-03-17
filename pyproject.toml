@@ -475,6 +475,7 @@ module = [
     "sentry.incidents.utils.*",
     "sentry.ingest.slicing",
     "sentry.insights.migrations.*",
+    "sentry.integrations.api.endpoints.organization_code_mappings_bulk",
     "sentry.integrations.api.parsers.*",
     "sentry.integrations.coding_agent.*",
     "sentry.integrations.discord.actions.*",

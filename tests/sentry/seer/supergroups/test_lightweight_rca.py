@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.seer.supergroups_lightweight_rca import trigger_lightweight_rca
+from sentry.seer.supergroups.lightweight_rca import trigger_lightweight_rca
 from sentry.testutils.cases import TestCase
 
 
@@ -17,7 +17,7 @@ class TestTriggerLightweightRca(TestCase):
 
         assert run_id is None
 
-    @patch("sentry.seer.supergroups_lightweight_rca.SeerExplorerClient")
+    @patch("sentry.seer.supergroups.lightweight_rca.SeerExplorerClient")
     def test_creates_client_with_correct_params(self, mock_client_cls):
         mock_client = MagicMock()
         mock_client.start_run.return_value = 42
@@ -38,7 +38,7 @@ class TestTriggerLightweightRca(TestCase):
         assert kwargs["category_key"] == "lightweight_rca"
         assert kwargs["category_value"] == str(self.group.id)
 
-    @patch("sentry.seer.supergroups_lightweight_rca.SeerExplorerClient")
+    @patch("sentry.seer.supergroups.lightweight_rca.SeerExplorerClient")
     def test_start_run_called_with_correct_params(self, mock_client_cls):
         mock_client = MagicMock()
         mock_client.start_run.return_value = 42
@@ -54,7 +54,7 @@ class TestTriggerLightweightRca(TestCase):
         assert kwargs["metadata"] == {"group_id": self.group.id}
         assert "root cause" in kwargs["prompt"].lower()
 
-    @patch("sentry.seer.supergroups_lightweight_rca.SeerExplorerClient")
+    @patch("sentry.seer.supergroups.lightweight_rca.SeerExplorerClient")
     def test_returns_none_on_error(self, mock_client_cls):
         mock_client_cls.side_effect = Exception("connection failed")
 

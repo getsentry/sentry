@@ -106,12 +106,12 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
                 {children}
               </Grid>
               <Container
-                position="absolute"
-                right="0"
                 top="0"
+                right="0"
                 bottom="0"
                 width="8px"
                 radius="lg"
+                position="absolute"
               >
                 {p => (
                   <ResizeHandle
@@ -468,6 +468,7 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
       align="center"
       width="18px"
       height="18px"
+      position="relative"
       data-project-icon
     >
       {icons}

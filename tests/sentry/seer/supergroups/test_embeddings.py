@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
-from sentry.seer.supergroups import trigger_supergroups_embedding
+from sentry.seer.supergroups.embeddings import trigger_supergroups_embedding
 from sentry.testutils.cases import TestCase
 
 
 class TriggerSupergroupsEmbeddingTest(TestCase):
-    @patch("sentry.seer.supergroups.make_supergroups_embedding_request")
+    @patch("sentry.seer.supergroups.embeddings.make_supergroups_embedding_request")
     def test_calls_seer_with_correct_payload(self, mock_request):
         mock_request.return_value.status = 200
 

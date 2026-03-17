@@ -1,7 +1,7 @@
 from sentry.auth.services.auth.serial import serialize_auth_provider
 from sentry.hybridcloud.models import ApiKeyReplica, ExternalActorReplica
 from sentry.hybridcloud.models.outbox import outbox_context
-from sentry.hybridcloud.services.replica import region_replica_service
+from sentry.hybridcloud.services.replica import cell_replica_service
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
@@ -105,9 +105,7 @@ def test_replicate_auth_provider() -> None:
     serialized.organization_id = 99999
 
     # Should still succeed despite non existent organization
-    region_replica_service.upsert_replicated_auth_provider(
-        auth_provider=serialized, region_name="us"
-    )
+    cell_replica_service.upsert_replicated_auth_provider(auth_provider=serialized, region_name="us")
 
 
 @django_db_all(transaction=True)
