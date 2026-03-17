@@ -30,6 +30,8 @@ def process_pending() -> None:
     """
     from sentry import buffer
 
+    print("hi")
+
     lock = get_process_lock("process_pending")
 
     try:
