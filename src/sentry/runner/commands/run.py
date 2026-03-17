@@ -33,42 +33,6 @@ def _address_validate(
     return host, port
 
 
-class QueueSetType(click.ParamType):
-    name = "text"
-
-    def convert(self, value: str | None, param: object, ctx: object) -> frozenset[str] | None:
-        if value is None:
-            return None
-        # Providing a compatibility with splitting
-        # the `events` queue until multiple queues
-        # without the need to explicitly add them.
-        queues = set()
-        for queue in value.split(","):
-            if queue == "events":
-                queues.add("events.preprocess_event")
-                queues.add("events.process_event")
-                queues.add("events.save_event")
-
-                from sentry.runner.initializer import show_big_error
-
-                show_big_error(
-                    [
-                        "DEPRECATED",
-                        "`events` queue no longer exists.",
-                        "Switch to using:",
-                        "- events.preprocess_event",
-                        "- events.process_event",
-                        "- events.save_event",
-                    ]
-                )
-            else:
-                queues.add(queue)
-        return frozenset(queues)
-
-
-QueueSet = QueueSetType()
-
-
 @click.group()
 def run() -> None:
     "Run a service."
@@ -209,85 +173,6 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
             while True:
                 sleep_time = runner.tick()
                 time.sleep(sleep_time)
-
-
-@run.command()
-@click.option(
-    "--pidfile",
-    help=(
-        "Optional file used to store the process pid. The "
-        "program will not start if this file already exists and "
-        "the pid is still alive."
-    ),
-)
-@click.option(
-    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
-)
-@click.option("--quiet", "-q", is_flag=True, default=False)
-@click.option("--no-color", is_flag=True, default=False)
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
-@click.option("--without-gossip", is_flag=True, default=False)
-@click.option("--without-mingle", is_flag=True, default=False)
-@click.option("--without-heartbeat", is_flag=True, default=False)
-@log_options()
-@configuration
-def cron(**options: Any) -> None:
-    # TODO(taskworker) Remove this stub command
-    while True:
-        click.secho(
-            "The cron command has been removed. Use `sentry run taskworker-scheduler` instead.",
-            fg="yellow",
-        )
-        time.sleep(5)
-
-
-@run.command()
-@click.option(
-    "--hostname",
-    "-n",
-    help=("Set custom hostname, e.g. 'w1.%h'. Expands: %h(hostname), %n (name) and %d, (domain)."),
-)
-@click.option(
-    "--queues",
-    "-Q",
-    type=QueueSet,
-    help=(
-        "List of queues to enable for this worker, separated by "
-        "comma. By default all configured queues are enabled. "
-        "Example: -Q video,image"
-    ),
-)
-@click.option("--exclude-queues", "-X", type=QueueSet)
-@click.option(
-    "--concurrency",
-    "-c",
-    default=1,
-    help=(
-        "Number of child processes processing the queue. The "
-        "default is the number of CPUs available on your "
-        "system."
-    ),
-)
-@click.option(
-    "--logfile", "-f", help=("Path to log file. If no logfile is specified, stderr is used.")
-)
-@click.option("--quiet", "-q", is_flag=True, default=False)
-@click.option("--no-color", is_flag=True, default=False)
-@click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
-@click.option("--without-gossip", is_flag=True, default=False)
-@click.option("--without-mingle", is_flag=True, default=False)
-@click.option("--without-heartbeat", is_flag=True, default=False)
-@click.option("--max-tasks-per-child", default=10000)
-@click.option("--ignore-unknown-queues", is_flag=True, default=False)
-@log_options()
-@configuration
-def worker(ignore_unknown_queues: bool, **options: Any) -> None:
-    # TODO(taskworker) Remove this stub command
-    while True:
-        click.secho(
-            "The worker command has been removed. Use `sentry run taskworker` instead.", fg="yellow"
-        )
-        time.sleep(5)
 
 
 @run.command()
