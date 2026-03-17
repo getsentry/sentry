@@ -651,7 +651,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             )
 
     # TODO(cells): Remove when callers updated
-    def update_region_user(self, *, user: RpcRegionUser, cell_name: str | None = None) -> None:
+    def update_region_user(self, *, user: RpcRegionUser, cell_name: str) -> None:
         return self.update_cell_user(user=user, cell_name=cell_name)
 
     def get_option(self, *, organization_id: int, key: str) -> OptionValue:
