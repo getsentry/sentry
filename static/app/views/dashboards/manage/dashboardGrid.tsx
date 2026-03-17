@@ -123,7 +123,9 @@ function DashboardGrid({
           ? tct('[label] dashboards cannot be duplicated', {
               label: PREBUILT_DASHBOARD_LABEL,
             })
-          : limitMessage,
+          : hasReachedDashboardLimit
+            ? limitMessage
+            : undefined,
         tooltipOptions: {
           isHoverable: true,
         },
