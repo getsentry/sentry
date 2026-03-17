@@ -391,7 +391,7 @@ function ConfigureIntegration() {
       mutationFn: (data: Record<string, unknown>) =>
         fetchMutation({method: 'POST', url: integrationEndpoint, data}),
       onSuccess: () => {
-        void queryClient.invalidateQueries({
+        return queryClient.invalidateQueries({
           queryKey: makeIntegrationQuery(organization, integrationId),
         });
       },
