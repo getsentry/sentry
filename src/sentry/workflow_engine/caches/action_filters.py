@@ -6,22 +6,23 @@ from django.db.models import F
 from sentry.workflow_engine.caches.mapping import CacheMapping
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.types import WorkflowId
 from sentry.workflow_engine.utils import scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
 CACHE_TTL = 300  # 5 minutes
 ACTION_FILTER_CACHE_NAME = "action_filters_by_workflow"
 METRIC_PREFIX = f"workflow_engine.cache.processing_workflow.{ACTION_FILTER_CACHE_NAME}"
-ActionFiltersByWorkflow = dict[int, list[DataConditionGroup]]
+ActionFiltersByWorkflow = dict[WorkflowId, list[DataConditionGroup]]
 
 
 class _ActionFilterCacheKey(NamedTuple):
-    workflow_id: int
+    workflow_id: WorkflowId
 
 
 class _CacheResults(NamedTuple):
     cached: ActionFiltersByWorkflow
-    missed_ids: list[int]
+    missed_ids: list[WorkflowId]
 
 
 _action_filters_cache = CacheMapping[_ActionFilterCacheKey, list[DataConditionGroup]](
@@ -32,7 +33,7 @@ _action_filters_cache = CacheMapping[_ActionFilterCacheKey, list[DataConditionGr
 
 def _check_cache_by_workflows(workflows: Collection[Workflow]) -> _CacheResults:
     results: ActionFiltersByWorkflow = {}
-    missed_ids: list[int] = []
+    missed_ids: list[WorkflowId] = []
 
     keys = [_ActionFilterCacheKey(w.id) for w in workflows]
     cache_results = _action_filters_cache.get_many(inputs=keys)
@@ -51,7 +52,7 @@ def _check_cache_by_workflows(workflows: Collection[Workflow]) -> _CacheResults:
     )
 
 
-def _get_action_filters_by_workflows(workflow_ids: list[int]) -> ActionFiltersByWorkflow:
+def _query_action_filters_by_workflows(workflow_ids: list[WorkflowId]) -> ActionFiltersByWorkflow:
     decorated_action_filters = list(
         DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow_id__in=workflow_ids)
         .prefetch_related("conditions")
@@ -72,6 +73,7 @@ def _populate_cache(action_filters_by_workflow: ActionFiltersByWorkflow) -> None
         for workflow_id, action_filters in action_filters_by_workflow.items()
     }
 
+    # TODO -- Add cache invalidation
     _action_filters_cache.set_many(cache_items, CACHE_TTL)
 
 
@@ -89,9 +91,10 @@ def get_action_filters_by_workflows(
         workflows: Collection[Workflow] a collection of the workflows to get the filters for
 
     Returns:
-        dict[int, list[DataConditionGroup]] mapping workflow IDs to their action filters.
+        dict[WorkflowId, list[DataConditionGroup]] mapping workflow IDs to their action filters.
             Each list contains the DataConditionGroups with prefetched conditions.
     """
+    # TODO - use this hook in `processors/workflow.py`'s evaluate_workflows_action_filters
     if not workflows:
         return {}
 
@@ -99,7 +102,7 @@ def get_action_filters_by_workflows(
     action_filters_by_workflow = cache_results.cached
 
     if cache_results.missed_ids:
-        query_results = _get_action_filters_by_workflows(cache_results.missed_ids)
+        query_results = _query_action_filters_by_workflows(cache_results.missed_ids)
         _populate_cache(query_results)
 
         for workflow_id, action_filters in query_results.items():

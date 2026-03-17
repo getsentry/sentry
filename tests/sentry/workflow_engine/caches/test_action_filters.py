@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from unittest.mock import patch
 
 from sentry.testutils.cases import TestCase
@@ -11,6 +12,24 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Workflow,
 )
+
+
+@contextmanager
+def mock_query_action_filters(return_value=None):
+    with patch(
+        "sentry.workflow_engine.caches.action_filters._query_action_filters_by_workflows",
+        return_value=return_value,
+    ) as mock_query:
+        yield mock_query
+
+
+@contextmanager
+def mock_check_action_filters_cache(return_value: _CacheResults = None):
+    with patch(
+        "sentry.workflow_engine.caches.action_filters._check_cache_by_workflows",
+        return_value=return_value,
+    ) as mock_cache:
+        yield mock_cache
 
 
 class TestActionFilterCache(TestCase):
@@ -46,17 +65,20 @@ class TestActionFilterCache(TestCase):
         expected_action_filters: list[DataConditionGroup],
     ) -> None:
         result_filters = results[workflow.id]
-        assert len(result_filters) == len(expected_action_filters)
 
-        for i in range(len(expected_action_filters)):
-            assert result_filters[i].id == expected_action_filters[i].id
+        for result_filter, expected_filter in zip(
+            result_filters, expected_action_filters, strict=True
+        ):
+            assert result_filter.id == expected_filter.id
 
             # check each condition is the same
-            result_conditions = result_filters[i].conditions.all()
-            expected_conditions = expected_action_filters[i].conditions.all()
+            result_conditions = result_filter.conditions.all()
+            expected_conditions = expected_filter.conditions.all()
 
-            for j in range(len(expected_conditions)):
-                assert result_conditions[j].id == expected_conditions[j].id
+            for result_cond, expected_cond in zip(
+                result_conditions, expected_conditions, strict=True
+            ):
+                assert result_cond.id == expected_cond.id
 
     def test_no_workflows_passed(self) -> None:
         result = get_action_filters_by_workflows([])
@@ -66,10 +88,7 @@ class TestActionFilterCache(TestCase):
         num_conditions = 2
         workflow, action_filters = self.create_workflow_with_filters(num_conditions=num_conditions)
 
-        with patch(
-            "sentry.workflow_engine.caches.action_filters._check_cache_by_workflows",
-            return_value=_CacheResults(cached={}, missed_ids=[workflow.id]),
-        ):
+        with mock_check_action_filters_cache(_CacheResults(cached={}, missed_ids=[workflow.id])):
             results = get_action_filters_by_workflows([workflow])
 
         self.assert_cache_result(results, workflow, action_filters)
@@ -80,9 +99,7 @@ class TestActionFilterCache(TestCase):
 
         _populate_cache({workflow.id: action_filters})
 
-        with patch(
-            "sentry.workflow_engine.caches.action_filters._get_action_filters_by_workflows"
-        ) as mock_query:
+        with mock_query_action_filters() as mock_query:
             results = get_action_filters_by_workflows([workflow])
             mock_query.assert_not_called()
 
@@ -92,9 +109,8 @@ class TestActionFilterCache(TestCase):
         workflow, action_filters = self.create_workflow_with_filters()
         workflow_two, action_filters_two = self.create_workflow_with_filters(num_filters=2)
 
-        with patch(
-            "sentry.workflow_engine.caches.action_filters._check_cache_by_workflows",
-            return_value=_CacheResults(cached={}, missed_ids=[workflow.id, workflow_two.id]),
+        with mock_check_action_filters_cache(
+            _CacheResults(cached={}, missed_ids=[workflow.id, workflow_two.id])
         ):
             results = get_action_filters_by_workflows([workflow, workflow_two])
 
@@ -112,9 +128,7 @@ class TestActionFilterCache(TestCase):
             }
         )
 
-        with patch(
-            "sentry.workflow_engine.caches.action_filters._get_action_filters_by_workflows"
-        ) as mock_query:
+        with mock_query_action_filters() as mock_query:
             results = get_action_filters_by_workflows([workflow, workflow_two])
             mock_query.assert_not_called()
 
@@ -146,10 +160,7 @@ class TestActionFilterCache(TestCase):
             }
         )
 
-        with patch(
-            "sentry.workflow_engine.caches.action_filters._get_action_filters_by_workflows",
-            return_value={workflow.id: action_filters},
-        ) as mock_query:
+        with mock_query_action_filters(return_value={workflow.id: action_filters}) as mock_query:
             results = get_action_filters_by_workflows([workflow, workflow_two])
             mock_query.assert_called_once_with([workflow.id])
 
@@ -164,9 +175,7 @@ class TestActionFilterCache(TestCase):
         assert result[workflow.id] == []
 
         # Second call - should be cache hit, no DB query
-        with patch(
-            "sentry.workflow_engine.caches.action_filters._get_action_filters_by_workflows"
-        ) as mock_query:
+        with mock_query_action_filters() as mock_query:
             result = get_action_filters_by_workflows([workflow])
             mock_query.assert_not_called()
 
