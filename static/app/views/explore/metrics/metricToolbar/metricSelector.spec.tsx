@@ -254,6 +254,20 @@ describe('MetricSelector', () => {
       ).toHaveFocus();
     });
 
+    it('ArrowUp from search moves focus to last option', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization,
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.keyboard('{ArrowUp}');
+
+      expect(
+        await screen.findByRole('option', {
+          name: SORTED_METRIC_NAMES[SORTED_METRIC_NAMES.length - 1]!,
+        })
+      ).toHaveFocus();
+    });
+
     it('ArrowDown twice selects second option with Enter', async () => {
       const onChange = jest.fn();
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={onChange} />, {
