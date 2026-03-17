@@ -641,50 +641,51 @@ const DesktopPageFrameNavigationLink = styled((props: LinkProps) => (
     {p => <Link {...mergeProps(p, props)} />}
   </Flex>
 ))`
-  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   outline: none;
   box-shadow: none;
   transition: none;
 
-  &:active,
-  &:focus-visible {
-    outline: none;
-    box-shadow: none;
-    color: currentColor;
-  }
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 
-  &:focus-visible {
-    [data-icon-container] {
-      outline: none;
-      box-shadow: 0 0 0 2px ${p => p.theme.tokens.interactive.link.accent.rest};
-    }
+  [data-icon-container] {
+    border: 1px solid transparent;
   }
 
   &:hover,
   &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    [data-icon-container] {
+      border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.neutral.background.hover};
+    }
+
+    * {
+      color: ${p => p.theme.tokens.interactive.link.neutral.hover} !important;
+    }
+  }
+
+  &:focus-visible {
+    box-shadow: none;
+    outline: none;
+
+    * {
+      color: ${p => p.theme.tokens.interactive.link.neutral.rest} !important;
+    }
 
     [data-icon-container] {
-      background-color: ${p =>
-        p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+      ${p => p.theme.focusRing()}
     }
   }
 
   &[aria-current='page'] {
-    color: ${p => p.theme.tokens.content.primary};
-
     [data-icon-container] {
       background-color: ${p =>
-        p.theme.tokens.interactive.transparent.neutral.background.rest};
+        p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+      border: 1px solid ${p => p.theme.tokens.border.transparent.accent.muted};
     }
 
-    &:hover {
-      color: ${p => p.theme.tokens.interactive.link.neutral.hover};
-
-      [data-icon-container] {
-        background-color: ${p =>
-          p.theme.tokens.interactive.transparent.neutral.background.hover};
-      }
+    * {
+      color: ${p => p.theme.tokens.content.primary} !important;
     }
   }
 `;
