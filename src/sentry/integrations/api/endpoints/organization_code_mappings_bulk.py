@@ -70,6 +70,75 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationCodeMappingsBulkPermission,)
 
+    @staticmethod
+    def _auto_create_repository(
+        organization: Organization,
+        repo_name: str,
+        provider: str,
+    ) -> tuple[Repository | None, Response | None]:
+        """
+        Auto-create a Repository if the provider integration can verify it exists.
+        Returns (repo, None) on success or (None, error_response) on failure.
+        """
+        # Normalize provider: strip "integrations:" prefix if present
+        short_provider = provider.removeprefix("integrations:")
+        repo_provider = f"integrations:{short_provider}"
+
+        org_integrations = integration_service.get_organization_integrations(
+            organization_id=organization.id, providers=[short_provider]
+        )
+        if not org_integrations:
+            return None, Response(
+                {"detail": f"No {provider} integration installed on this organization."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Use the first matching integration
+        org_int = org_integrations[0]
+        integration = integration_service.get_integration(integration_id=org_int.integration_id)
+        if not integration:
+            return None, None  # Fall through to 404
+
+        try:
+            install = integration.get_installation(organization_id=organization.id)
+        except Exception:
+            logger.exception("bulk_code_mappings.auto_create_repo.get_installation_error")
+            return None, None
+
+        if not isinstance(install, RepositoryIntegration):
+            return None, None
+
+        # Verify the repo exists on the provider
+        try:
+            repositories = install.get_repositories(query=repo_name)
+        except Exception:
+            logger.exception("bulk_code_mappings.auto_create_repo.get_repositories_error")
+            return None, None
+
+        repo_info = None
+        for r in repositories:
+            if r.get("identifier") == repo_name:
+                repo_info = r
+                break
+        if not repo_info:
+            for r in repositories:
+                if r.get("name") == repo_name:
+                    repo_info = r
+                    break
+
+        if not repo_info:
+            return None, None  # Repo doesn't exist on provider, fall through to 404
+
+        repo, _ = Repository.objects.get_or_create(
+            name=repo_name,
+            organization_id=organization.id,
+            defaults={
+                "integration_id": org_int.integration_id,
+                "provider": repo_provider,
+            },
+        )
+        return repo, None
+
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = BulkCodeMappingsRequestSerializer(data=request.data)
         if not serializer.is_valid():
@@ -106,11 +175,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         if provider:
             repo_filter = repo_filter.filter(provider__in=[provider, f"integrations:{provider}"])
         repos = list(repo_filter[:2])  # Only need 2 to detect duplicates
-        if len(repos) == 0:
-            return Response(
-                {"detail": f"Repository not found: {data['repository']}"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+
         if len(repos) > 1:
             return Response(
                 {
@@ -119,7 +184,22 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                 },
                 status=status.HTTP_409_CONFLICT,
             )
-        repo = repos[0]
+
+        repo: Repository | None = repos[0] if repos else None
+
+        # Auto-create repository if not found and provider is given
+        if repo is None and provider:
+            repo, error_response = self._auto_create_repository(
+                organization, data["repository"], provider
+            )
+            if error_response:
+                return error_response
+
+        if repo is None:
+            return Response(
+                {"detail": f"Repository not found: {data['repository']}"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         if not repo.integration_id:
             return Response(

@@ -3,6 +3,7 @@ from unittest import mock
 from django.urls import reverse
 
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
 
@@ -318,6 +319,41 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         # With provider, should resolve to the correct repo
         response = self.make_post({"provider": "github"})
         assert response.status_code == 200, response.content
+
+    def test_auto_create_repository_when_provider_given(self) -> None:
+        new_repo_name = "getsentry/new-repo"
+        assert not Repository.objects.filter(
+            name=new_repo_name, organization_id=self.organization.id
+        ).exists()
+
+        def fake_auto_create(organization, repo_name, provider):
+            repo, _ = Repository.objects.get_or_create(
+                name=repo_name,
+                organization_id=organization.id,
+                defaults={
+                    "integration_id": self.integration.id,
+                    "provider": "integrations:github",
+                },
+            )
+            return repo, None
+
+        with mock.patch(
+            "sentry.integrations.api.endpoints.organization_code_mappings_bulk."
+            "OrganizationCodeMappingsBulkEndpoint._auto_create_repository",
+            side_effect=fake_auto_create,
+        ):
+            response = self.make_post(
+                {
+                    "repository": new_repo_name,
+                    "provider": "github",
+                }
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["created"] == 1
+
+        repo = Repository.objects.get(name=new_repo_name, organization_id=self.organization.id)
+        assert repo.provider == "integrations:github"
+        assert repo.integration_id == self.integration.id
 
     def test_duplicate_stack_root_in_request_last_wins(self) -> None:
         response = self.make_post(
