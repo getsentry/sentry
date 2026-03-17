@@ -1,8 +1,6 @@
 import {Fragment, useRef} from 'react';
-import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
@@ -149,7 +147,7 @@ export function PrimaryNavigationItems() {
           </NavigationTourElement>
         </Feature>
 
-        {!hasPageFrame && (
+        {hasPageFrame ? null : (
           <PrimaryNavigation.ListItem padding="0 md">
             <PrimaryNavigation.Separator />
           </PrimaryNavigation.ListItem>
@@ -164,7 +162,7 @@ export function PrimaryNavigationItems() {
               {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
             >
               <IconSiren />
-              <BetaBadge type="alpha" aria-hidden="true" hasPageFrame={hasPageFrame} />
+              <PrimaryNavigation.ButtonFeatureBadge type="alpha" />
             </PrimaryNavigation.Link>
           </PrimaryNavigation.ListItem>
         </Feature>
@@ -196,10 +194,7 @@ export function PrimaryNavigationItems() {
         </NavigationTourElement>
       </PrimaryNavigation.List>
 
-      <Stack
-        gap={layout === 'mobile' || !hasPageFrame ? undefined : 'md'}
-        paddingBottom="md"
-      >
+      <Stack gap={layout === 'mobile' ? undefined : 'md'} paddingBottom="md">
         <PrimaryNavigation.FooterItems>
           <ErrorBoundary customComponent={null}>
             <PrimaryNavigationOnboarding />
@@ -228,13 +223,3 @@ export function PrimaryNavigationItems() {
     </Fragment>
   );
 }
-
-const BetaBadge = styled(FeatureBadge)<{hasPageFrame?: boolean}>`
-  pointer-events: none;
-  position: absolute;
-  top: ${p => (p.hasPageFrame ? '4px' : '0px')};
-  right: 6px;
-  font-size: ${p => p.theme.font.size.xs};
-  padding: 0 ${p => p.theme.space.xs};
-  height: 16px;
-`;

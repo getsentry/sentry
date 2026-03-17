@@ -6,16 +6,10 @@ import {FocusScope} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
 import type {LocationDescriptor} from 'history';
 
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {
-  Container,
-  Flex,
-  Grid,
-  Stack,
-  type FlexProps,
-  type GridProps,
-} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -41,12 +35,19 @@ import {
 } from 'sentry/views/navigation/constants';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
-interface PrimaryNavigationSidebarProps extends Omit<GridProps, 'aria-label' | 'as'> {}
+function usePrimaryNavigationOrganization() {
+  return useOrganization({allowNull: true});
+}
+
+interface PrimaryNavigationSidebarProps {
+  children: React.ReactNode;
+  'data-test-id'?: string;
+}
 
 function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebarProps) {
   const theme = useTheme();
-  const organization = useOrganization();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const organization = usePrimaryNavigationOrganization();
+  const hasPageFrame = organization?.features.includes('page-frame');
 
   if (hasPageFrame) {
     return (
@@ -78,7 +79,7 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
       align="center"
       justify="between"
       style={{zIndex: theme.zIndex.sidebarPanel}}
-      {...(props as any)}
+      {...props}
     >
       {children}
     </Flex>
@@ -89,13 +90,13 @@ interface PrimaryNavigationSidebarHeaderProps extends Omit<FlexProps<'header'>, 
 
 function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderProps) {
   const theme = useTheme();
-  const organization = useOrganization();
+  const organization = usePrimaryNavigationOrganization();
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
     !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = organization?.features.includes('page-frame');
 
   return (
     <Flex
@@ -131,8 +132,8 @@ interface PrimaryNavigationListProps extends FlexProps<'ul'> {}
 
 function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps) {
   const {layout} = usePrimaryNavigation();
-  const organization = useOrganization();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const organization = usePrimaryNavigationOrganization();
+  const hasPageFrame = organization?.features.includes('page-frame');
 
   return (
     <Stack
@@ -175,7 +176,7 @@ interface PrimaryNavigationLinkProps
 }
 
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
-  const organization = useOrganization();
+  const organization = usePrimaryNavigationOrganization();
   const {layout} = usePrimaryNavigation();
 
   // Reload the page when the frontend is stale to ensure users get the latest version
@@ -238,7 +239,7 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
 
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const {layout} = usePrimaryNavigation();
-  const organization = useOrganization();
+  const organization = usePrimaryNavigationOrganization();
 
   return (
     <Tooltip
@@ -324,7 +325,7 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
 function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   const TriggerWrap = props.triggerWrap ?? Fragment;
   const theme = useTheme();
-  const organization = useOrganization({allowNull: true});
+  const organization = usePrimaryNavigationOrganization();
   const {layout} = usePrimaryNavigation();
 
   const portalContainerRef = useRef<HTMLElement | null>(null);
@@ -459,8 +460,8 @@ function PrimaryNavigationSeparator() {
 const NavigationLink = styled(
   (props: LinkProps) => {
     const {layout} = usePrimaryNavigation();
-    const organization = useOrganization();
-    const hasPageFrame = organization.features.includes('page-frame');
+    const organization = usePrimaryNavigationOrganization();
+    const hasPageFrame = organization?.features.includes('page-frame');
     return (
       <Flex
         position="relative"
@@ -588,6 +589,21 @@ function PrimaryNavigationButtonOverlay(props: PrimaryNavigationButtonOverlayPro
   );
 }
 
+function PrimaryNavigationButtonFeatureBadge(props: FeatureBadgeProps) {
+  const organization = usePrimaryNavigationOrganization();
+  const hasPageFrame = organization?.features.includes('page-frame');
+
+  if (!hasPageFrame) {
+    return null;
+  }
+
+  return (
+    <Container right="6px" top="4px" position="absolute" padding="0 xs" height="16px">
+      {p => <FeatureBadge {...mergeProps(p, props)} type="alpha" aria-hidden="true" />}
+    </Container>
+  );
+}
+
 function ScrollableOverlay(props: OverlayProps) {
   const theme = useTheme();
   const {layout} = usePrimaryNavigation();
@@ -632,6 +648,7 @@ export const PrimaryNavigation = {
   ListItem: PrimaryNavigationListItem,
   Link: PrimaryNavigationLink,
   Button: PrimaryNavigationButton,
+  ButtonFeatureBadge: PrimaryNavigationButtonFeatureBadge,
   ButtonBar: PrimaryNavigationButtonBar,
   Menu: PrimaryNavigationMenu,
   Separator: PrimaryNavigationSeparator,

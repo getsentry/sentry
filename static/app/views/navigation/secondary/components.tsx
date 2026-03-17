@@ -79,10 +79,10 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
     >
       {({ref, ...props}) => (
         <Container
-          width={size}
           height="100%"
           right="0"
           {...props}
+          width={`${size}px`}
           ref={mergeRefs(resizableContainerRef, ref)}
           {...{
             [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
