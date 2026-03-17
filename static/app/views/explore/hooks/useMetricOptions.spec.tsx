@@ -63,7 +63,12 @@ describe('useMetricOptions', () => {
       match: [
         MockApiClient.matchQuery({
           dataset: DiscoverDatasets.TRACEMETRICS,
-          field: ['metric.name', 'metric.type', 'count(metric.name)'],
+          field: [
+            'metric.name',
+            'metric.type',
+            'count(metric.name)',
+            'max(timestamp_precise)',
+          ],
           referrer: 'api.explore.metric-options',
         }),
       ],
@@ -112,7 +117,12 @@ describe('useMetricOptions', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'tracemetrics',
-          field: ['metric.name', 'metric.type', 'count(metric.name)'],
+          field: [
+            'metric.name',
+            'metric.type',
+            'count(metric.name)',
+            'max(timestamp_precise)',
+          ],
           referrer: 'api.explore.metric-options',
           statsPeriod: '3d',
         }),

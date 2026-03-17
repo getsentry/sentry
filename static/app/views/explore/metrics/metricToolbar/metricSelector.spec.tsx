@@ -435,8 +435,11 @@ describe('MetricSelector', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.hover(await screen.findByRole('option', {name: 'bar'}));
 
       expect(await screen.findByText('Type:')).toBeInTheDocument();
+      expect(await screen.findByText('Last seen')).toBeInTheDocument();
+      expect(await screen.findByText('Times seen')).toBeInTheDocument();
     });
 
     it('side panel defaults to current metric when no option is hovered', async () => {
