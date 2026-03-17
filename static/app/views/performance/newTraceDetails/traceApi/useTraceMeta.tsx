@@ -104,6 +104,7 @@ async function fetchTraceMetaInBatches(
         }
 
         acc.span_count += result.value.span_count;
+        acc.uptime_checks += result.value.uptime_checks;
         Object.entries(result.value.span_count_map).forEach(([span_op, count]: any) => {
           acc.span_count_map[span_op] = (acc.span_count_map[span_op] ?? 0) + count;
         });

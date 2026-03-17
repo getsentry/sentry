@@ -103,7 +103,7 @@ describe('useTraceMeta', () => {
           '1': 1,
           '2': 2,
         },
-        uptime_checks: 0,
+        uptime_checks: 1,
       },
       errors: [],
       status: 'success',
