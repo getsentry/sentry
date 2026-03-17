@@ -30,6 +30,7 @@ import {FrameVariables} from './frameVariables';
 import {usePrismTokensSourceContext} from './usePrismTokensSourceContext';
 import {useSourceContext} from './useSourceContext';
 import {useStacktraceCoverage} from './useStacktraceCoverage';
+import {hasPotentialSourceContext} from './utils';
 
 type Props = {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
@@ -97,9 +98,7 @@ export function Context({
     defined(project) &&
     !hasContextSource &&
     isExpanded &&
-    !!frame.lineNo &&
-    !!(frame.filename || frame.absPath) &&
-    frame.inApp;
+    hasPotentialSourceContext(frame);
 
   const {data: sourceContextData, isPending: isLoadingSourceContext} = useSourceContext(
     {
