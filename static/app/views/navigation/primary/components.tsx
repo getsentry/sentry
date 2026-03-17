@@ -77,7 +77,6 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
       background="primary"
       direction="column"
       align="center"
-      justify="between"
       style={{zIndex: theme.zIndex.sidebarPanel}}
       {...props}
     >

@@ -194,7 +194,11 @@ export function PrimaryNavigationItems() {
         </NavigationTourElement>
       </PrimaryNavigation.List>
 
-      <Stack gap={layout === 'mobile' ? undefined : 'md'} paddingBottom="md">
+      <Stack
+        gap={layout === 'mobile' ? undefined : 'md'}
+        marginTop={hasPageFrame ? undefined : 'auto'}
+        paddingBottom="md"
+      >
         <PrimaryNavigation.FooterItems>
           <ErrorBoundary customComponent={null}>
             <PrimaryNavigationOnboarding />
