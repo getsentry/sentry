@@ -288,7 +288,6 @@ function NextStepTemplate({
                 <Button
                   {...triggerProps}
                   disabled={codingAgentOptions.length <= 0}
-                  // disabled={isLoading || (step === 'code_changes' && !enableSeerCoding)}
                   priority="primary"
                   icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                   aria-label={t('More code fix options')}

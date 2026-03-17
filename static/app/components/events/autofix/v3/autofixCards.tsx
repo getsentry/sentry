@@ -7,7 +7,7 @@ import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  CodingAgentProvider,
+  getCodingAgentName,
   getResultButtonLabel,
 } from 'sentry/components/events/autofix/types';
 import {
@@ -303,18 +303,7 @@ export function CodingAgentCard({section}: AutofixCardProps) {
 
   const provider = artifact?.[0]?.provider;
 
-  const agentName = useMemo(() => {
-    switch (provider) {
-      case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
-        return t('Cursor Cloud Agent');
-      case CodingAgentProvider.CLAUDE_CODE_AGENT:
-        return t('Claude Agent');
-      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
-        return t('GitHub Copilot');
-      default:
-        return t('Coding Agent');
-    }
-  }, [provider]);
+  const agentName = useMemo(() => getCodingAgentName(provider), [provider]);
 
   return (
     <ArtifactCard icon={<IconBot />} title={agentName}>
