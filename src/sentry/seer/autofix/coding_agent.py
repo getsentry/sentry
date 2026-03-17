@@ -733,8 +733,13 @@ def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None
     return client
 
 
-def extract_result_url_from_events(events: list[ClaudeSessionEvent]) -> str | None:
-    """Extract a GitHub PR or branch URL from session events."""
+def extract_result_from_events(events: list[ClaudeSessionEvent]) -> tuple[str | None, str | None]:
+    """Extract a GitHub PR or branch URL and its surrounding text block from session events.
+
+    Returns:
+        Tuple of (url, text_block). text_block is the full text content of the agent
+        event block that contained the URL, suitable for display as a result description.
+    """
     pr_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/pull/\d+")
     branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/[-\w./]*[-\w]")
 
@@ -746,12 +751,12 @@ def extract_result_url_from_events(events: list[ClaudeSessionEvent]) -> str | No
                 text = block.get("text", "")
                 pr_match = pr_pattern.search(text)
                 if pr_match:
-                    return pr_match.group(0)
+                    return pr_match.group(0), text
                 branch_match = branch_pattern.search(text)
                 if branch_match:
-                    return branch_match.group(0)
+                    return branch_match.group(0), text
 
-    return None
+    return None, None
 
 
 def build_result_from_events(
@@ -763,8 +768,9 @@ def build_result_from_events(
 ) -> tuple[Any | None, CodingAgentStatus]:
     result = None
     pr_url = None
+    description = ""
     if new_status == CodingAgentStatus.COMPLETED:
-        pr_url = extract_result_url_from_events(events)
+        pr_url, description = extract_result_from_events(events)
         if not pr_url:
             logger.warning(
                 "coding_agent.claude_code.no_result_url_in_response",
@@ -777,6 +783,8 @@ def build_result_from_events(
             agent_name=agent_name,
             pr_url=pr_url,
         )
+        if result:
+            result.description = description or ""
     except Exception:
         logger.exception(
             "coding_agent.claude_code.build_result_error",
