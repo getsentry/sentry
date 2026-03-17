@@ -40,7 +40,10 @@ export function useSourceContext(
   {event, frame, orgSlug, projectSlug}: UseSourceContextProps,
   options: Partial<UseApiQueryOptions<SourceContextResponse>> = {}
 ) {
-  const query = buildStacktraceLinkQuery(event, frame);
+  const query = {
+    ...buildStacktraceLinkQuery(event, frame),
+    file: (frame.filename || frame.absPath)!,
+  };
   return useApiQuery<SourceContextResponse>(
     sourceContextQueryKey(orgSlug, projectSlug, query),
     {
