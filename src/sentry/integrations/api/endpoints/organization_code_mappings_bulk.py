@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationCodeMappingsBulkPermission,
     OrganizationEndpoint,
@@ -62,7 +62,7 @@ class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]])
         return mappings
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -123,9 +123,9 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         repo, _ = Repository.objects.get_or_create(
             name=repo_name,
             organization_id=organization.id,
+            provider=repo_provider,
             defaults={
                 "integration_id": org_int.integration_id,
-                "provider": repo_provider,
             },
         )
         return repo, None
