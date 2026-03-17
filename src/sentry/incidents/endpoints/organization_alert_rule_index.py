@@ -625,6 +625,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
         # Legacy path below
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+        report_used_legacy_models()
 
         issue_rules = Rule.objects.filter(
             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
