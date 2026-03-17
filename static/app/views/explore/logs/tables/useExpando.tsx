@@ -14,7 +14,8 @@ interface Expando {
 
 export function useExpando(): Expando {
   const [expanded, setExpanded] = useState(false);
-  const ref = useRef<HTMLButtonElement>(null);
+  const refDesktop = useRef<HTMLButtonElement>(null);
+  const refMobile = useRef<HTMLButtonElement>(null);
 
   const [Icon, text] = expanded
     ? [IconContract, t('Collapse')]
@@ -26,9 +27,11 @@ export function useExpando(): Expando {
 
   useLayoutEffect(() => {
     if (expanded) {
-      ref.current?.scrollIntoView({
-        block: 'start',
-      });
+      for (const ref of [refDesktop, refMobile]) {
+        ref.current?.scrollIntoView({
+          block: 'start',
+        });
+      }
     }
   }, [expanded]);
 
@@ -36,15 +39,18 @@ export function useExpando(): Expando {
     'aria-label': text,
     icon: <Icon />,
     onClick: toggleExpanded,
-    ref,
     size: 'sm',
   } as const;
 
   return {
     button: (
       <TableActionButton
-        mobile={<ExpandoButton {...buttonProps} />}
-        desktop={<ExpandoButton {...buttonProps}>{text}</ExpandoButton>}
+        desktop={
+          <ExpandoButton {...buttonProps} ref={refDesktop}>
+            {text}
+          </ExpandoButton>
+        }
+        mobile={<ExpandoButton {...buttonProps} ref={refMobile} />}
       />
     ),
     expanded,
