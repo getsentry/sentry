@@ -2661,6 +2661,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-cutover": "default",
     "taskworker-email": "default",
     "taskworker-email-dlq": "default",
+    "taskworker-example": "default",
     "taskworker-ingest": "default",
     "taskworker-ingest-dlq": "default",
     "taskworker-ingest-errors": "default",
