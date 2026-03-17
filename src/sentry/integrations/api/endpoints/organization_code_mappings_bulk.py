@@ -43,6 +43,7 @@ class MappingItemSerializer(serializers.Serializer[dict[str, object]]):
 class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]]):
     project = serializers.CharField(required=True)
     repository = serializers.CharField(required=True)
+    provider = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
         required=False,
@@ -85,7 +86,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
             )
         except Project.DoesNotExist:
             return Response(
-                {"detail": f"Project not found: {data['project']}"},
+                {"detail": f"Project not found or not active: {data['project']}"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
@@ -95,25 +96,30 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Resolve repository by name
-        try:
-            repo = Repository.objects.get(
-                organization_id=organization.id,
-                name=data["repository"],
-                status=ObjectStatus.ACTIVE,
-            )
-        except Repository.DoesNotExist:
+        # Resolve repository by name (and optionally provider)
+        repo_filter = Repository.objects.filter(
+            organization_id=organization.id,
+            name=data["repository"],
+            status=ObjectStatus.ACTIVE,
+        )
+        provider = (data.get("provider") or "").strip()
+        if provider:
+            repo_filter = repo_filter.filter(provider__in=[provider, f"integrations:{provider}"])
+        repos = list(repo_filter[:2])  # Only need 2 to detect duplicates
+        if len(repos) == 0:
             return Response(
                 {"detail": f"Repository not found: {data['repository']}"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        except Repository.MultipleObjectsReturned:
+        if len(repos) > 1:
             return Response(
                 {
-                    "detail": f"Multiple repositories found with name: {data['repository']}. Please ensure repository names are unique."
+                    "detail": f"Multiple repositories found with name: {data['repository']}. "
+                    "Provide the provider field (e.g. 'github', 'gitlab') to disambiguate."
                 },
                 status=status.HTTP_409_CONFLICT,
             )
+        repo = repos[0]
 
         if not repo.integration_id:
             return Response(

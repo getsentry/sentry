@@ -299,7 +299,25 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         instance = mock_prc.call_args[0][0]
         assert instance._skip_post_save is False
 
-    # --- Edge cases ---
+    def test_provider_disambiguates_duplicate_repos(self) -> None:
+        # Give repo1 a provider so we can filter on it
+        self.repo1.provider = "integrations:github"
+        self.repo1.save()
+        # Create a second repo with the same name but different provider
+        self.create_repo(
+            project=self.project1,
+            name=self.repo1.name,
+            provider="integrations:gitlab",
+            integration_id=self.integration.id,
+        )
+        # Without provider, should get 409
+        response = self.make_post()
+        assert response.status_code == 409
+        assert "Multiple repositories" in response.data["detail"]
+
+        # With provider, should resolve to the correct repo
+        response = self.make_post({"provider": "github"})
+        assert response.status_code == 200, response.content
 
     def test_duplicate_stack_root_in_request_last_wins(self) -> None:
         response = self.make_post(
