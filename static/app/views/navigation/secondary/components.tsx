@@ -1,12 +1,4 @@
-import {
-  createContext,
-  Fragment,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import {createContext, Fragment, useContext, useRef, type ReactNode} from 'react';
 import type {To} from 'react-router-dom';
 import {
   closestCenter,
@@ -26,7 +18,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {useTheme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -554,63 +546,68 @@ function Collapsible(props: CollapsibleProps) {
 
 const MotionFlex = motion.create(Flex);
 
+function navigationItemStyles(p: {layout: 'mobile' | 'sidebar'; theme: Theme}) {
+  return css`
+    display: flex;
+    gap: ${p.theme.space.sm};
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    color: ${p.theme.tokens.interactive.link.neutral.rest};
+    padding: ${p.layout === 'mobile'
+      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`
+      : `${p.theme.space.md} ${p.theme.space.lg}`};
+    border-radius: ${p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
+
+    /* Renders the active state indicator */
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 20px;
+      left: -${p.theme.space.sm};
+      border-radius: ${p.theme.radius['2xs']};
+      background-color: ${p.theme.tokens.graphics.accent.vibrant};
+      transition: opacity 0.1s ease-in-out;
+      opacity: 0;
+    }
+
+    &:hover {
+      color: ${p.theme.tokens.interactive.link.neutral.hover};
+      background-color: ${p.theme.tokens.interactive.transparent.neutral.background
+        .hover};
+    }
+
+    &[aria-selected='true'] {
+      color: ${p.theme.tokens.interactive.link.accent.rest};
+      background-color: ${p.theme.tokens.interactive.transparent.accent.selected
+        .background.rest};
+
+      &::before {
+        opacity: 1;
+      }
+
+      &:hover {
+        color: ${p.theme.tokens.interactive.link.accent.hover};
+        background-color: ${p.theme.tokens.interactive.transparent.accent.selected
+          .background.hover};
+      }
+    }
+  `;
+}
+
 interface NavigationLink extends LinkProps {
   layout: 'mobile' | 'sidebar';
 }
 
 const NavigationLink = styled(Link)<NavigationLink>`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
-  padding: ${p =>
-    p.layout === 'mobile'
-      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`
-      : `${p.theme.space.md} ${p.theme.space.lg}`};
-  border-radius: ${p => p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
+  ${p => navigationItemStyles(p)}
 
   /* Disable interaction state layer */
   > [data-isl] {
     display: none;
-  }
-
-  /* Renders the active state indicator */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 20px;
-    left: -${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity 0.1s ease-in-out;
-    opacity: 0;
-  }
-
-  &:hover {
-    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-
-  &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.interactive.link.accent.rest};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
-
-    &::before {
-      opacity: 1;
-    }
-    /* Override the default hover styles */
-    &:hover {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover};
-      background-color: ${p =>
-        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
-    }
   }
 `;
 
@@ -675,21 +672,15 @@ function ReorderableListItem<T extends {id: string | number}>(
         radius="md"
         position="relative"
         background={isDragging ? 'secondary' : undefined}
+        ref={setNodeRef}
+        data-is-dragging={isDragging ? true : undefined}
+        style={{
+          transform: CSS.Transform.toString(transform),
+          transition: transition ?? undefined,
+          zIndex: isDragging ? 1 : undefined,
+        }}
       >
-        {p => (
-          <div
-            {...p}
-            ref={setNodeRef}
-            data-is-dragging={isDragging ? true : undefined}
-            style={{
-              transform: CSS.Transform.toString(transform),
-              transition: transition ?? undefined,
-              zIndex: isDragging ? 1 : undefined,
-            }}
-          >
-            {props.children}
-          </div>
-        )}
+        {props.children}
       </Container>
     </ReorderableItemContext.Provider>
   );
@@ -704,8 +695,6 @@ interface SecondaryNavigationReorderableListProps<T extends {id: string | number
 function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   props: SecondaryNavigationReorderableListProps<T>
 ) {
-  const [items, setItems] = useState<T[]>(props.items);
-
   const sensors = useSensors(
     useSensor(NavigationPointerSensor, {
       activationConstraint: {distance: 5},
@@ -718,11 +707,9 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   function handleDragEnd(event: DragEndEvent) {
     const {active, over} = event;
     if (over && active.id !== over.id) {
-      const oldIndex = items.findIndex(item => item.id === active.id);
-      const newIndex = items.findIndex(item => item.id === over.id);
-      const newItems = arrayMove(items, oldIndex, newIndex);
-      setItems(newItems);
-      props.onDragEnd(newItems);
+      const oldIndex = props.items.findIndex(item => item.id === active.id);
+      const newIndex = props.items.findIndex(item => item.id === over.id);
+      props.onDragEnd(arrayMove(props.items, oldIndex, newIndex));
     }
   }
 
@@ -733,9 +720,9 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={items} strategy={verticalListSortingStrategy}>
+      <SortableContext items={props.items} strategy={verticalListSortingStrategy}>
         <Stack direction="column" padding="0" width="100%">
-          {items.map(item => (
+          {props.items.map(item => (
             <ReorderableListItem key={item.id} item={item}>
               {props.children(item)}
             </ReorderableListItem>
@@ -795,7 +782,7 @@ function SecondaryNavigationReorderableLink({
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
       onClick={handleNavigate}
-      onKeyDown={(e: React.KeyboardEvent) => {
+      onKeyDown={e => {
         // When the grab handle has focus, dnd-kit owns Space/Enter for pick-up
         // and drop. Without this guard those keys would also trigger navigation
         // via bubbling, making the drop action unreliable.
@@ -880,56 +867,9 @@ interface NavigationFakeLinkProps {
 }
 
 const NavigationFakeLink = styled('div')<NavigationFakeLinkProps>`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
-  padding: ${p =>
-    p.layout === 'mobile'
-      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`
-      : `${p.theme.space.md} ${p.theme.space.lg}`};
-  border-radius: ${p => p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
+  ${p => navigationItemStyles(p)}
   cursor: pointer;
   user-select: none;
-
-  /* Renders the active state indicator */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 20px;
-    left: -${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.radius['2xs']};
-    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity 0.1s ease-in-out;
-    opacity: 0;
-  }
-
-  &:hover {
-    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-
-  &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.interactive.link.accent.rest};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
-
-    &::before {
-      opacity: 1;
-    }
-
-    &:hover {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover};
-      background-color: ${p =>
-        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
-    }
-  }
 
   &:focus-visible {
     ${p => p.theme.focusRing()}
