@@ -11,8 +11,10 @@ import {
   isRootCauseArtifact,
   isSolutionArtifact,
   type AutofixSection,
+  type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import Placeholder from 'sentry/components/placeholder';
+import {IconRefresh} from 'sentry/icons';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
@@ -23,95 +25,132 @@ import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 interface AutofixCardProps {
+  autofix: ReturnType<typeof useExplorerAutofix>;
   section: AutofixSection;
 }
 
-export function RootCauseCard({section}: AutofixCardProps) {
+export function RootCauseCard({autofix, section}: AutofixCardProps) {
   const artifact = useMemo(
     () => section.artifacts.findLast(isRootCauseArtifact),
     [section.artifacts]
   );
 
+  const {runState, startStep} = autofix;
+  const runId = runState?.run_id;
+
   return (
     <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
-      {
-        section.status === 'processing' ? (
-          <LoadingDetails messages={section.messages} />
-        ) : artifact?.data ? (
-          <Fragment>
-            <Text>{artifact.data.one_line_description}</Text>
-            {artifact.data.five_whys?.length ? (
-              <Fragment>
+      {section.status === 'processing' ? (
+        <LoadingDetails messages={section.messages} />
+      ) : artifact?.data ? (
+        <Fragment>
+          <Text>{artifact.data.one_line_description}</Text>
+          {artifact.data.five_whys?.length ? (
+            <Fragment>
+              <ArtifactDetails>
+                <Text bold>{t('Why did this happen?')}</Text>
+                <Container as="ul" margin="0">
+                  {artifact.data.five_whys.map((why, index) => (
+                    <li key={index}>
+                      <Text>{why}</Text>
+                    </li>
+                  ))}
+                </Container>
+              </ArtifactDetails>
+              {artifact.data.reproduction_steps?.length ? (
                 <ArtifactDetails>
-                  <Text bold>{t('Why did this happen?')}</Text>
-                  <Container as="ul" margin="0">
-                    {artifact.data.five_whys.map((why, index) => (
+                  <Text bold>{t('Reproduction Steps')}</Text>
+                  <Container as="ol" margin="0">
+                    {artifact.data?.reproduction_steps.map((step, index) => (
                       <li key={index}>
-                        <Text>{why}</Text>
+                        <Text>{step}</Text>
                       </li>
                     ))}
                   </Container>
                 </ArtifactDetails>
-                {artifact.data.reproduction_steps?.length ? (
-                  <ArtifactDetails>
-                    <Text bold>{t('Reproduction Steps')}</Text>
-                    <Container as="ol" margin="0">
-                      {artifact.data?.reproduction_steps.map((step, index) => (
-                        <li key={index}>
-                          <Text>{step}</Text>
-                        </li>
-                      ))}
-                    </Container>
-                  </ArtifactDetails>
-                ) : null}
-              </Fragment>
-            ) : null}
-          </Fragment>
-        ) : null /* TODO: need an empty state when the artifact doesn't exist */
-      }
+              ) : null}
+            </Fragment>
+          ) : null}
+        </Fragment>
+      ) : (
+        <ArtifactDetails>
+          <Text>
+            {t(
+              'Seer failed to generate a root cause. This one is on us. Try running it again.'
+            )}
+          </Text>
+          <div>
+            <Button
+              priority="primary"
+              icon={<IconRefresh />}
+              onClick={() => startStep('root_cause', runId)}
+            >
+              {t('Re-run')}
+            </Button>
+          </div>
+        </ArtifactDetails>
+      )}
     </ArtifactCard>
   );
 }
 
-export function SolutionCard({section}: AutofixCardProps) {
+export function SolutionCard({autofix, section}: AutofixCardProps) {
   const artifact = useMemo(
     () => section.artifacts.findLast(isSolutionArtifact),
     [section.artifacts]
   );
 
+  const {runState, startStep} = autofix;
+  const runId = runState?.run_id;
+
   return (
     <ArtifactCard icon={<IconList />} title={t('Implementation Plan')}>
-      {
-        section.status === 'processing' ? (
-          <LoadingDetails messages={section.messages} />
-        ) : artifact?.data ? (
-          <Fragment>
-            <Text>{artifact.data.one_line_summary}</Text>
-            {artifact.data.steps ? (
-              <ArtifactDetails>
-                <Text bold>{t('Steps to Resolve')}</Text>
-                <Container as="ol" margin="0">
-                  {artifact.data.steps.map((step, index) => (
-                    <li key={index}>
-                      <Flex direction="column">
-                        <Text>{step.title}</Text>
-                        <Text size="sm" variant="muted">
-                          {step.description}
-                        </Text>
-                      </Flex>
-                    </li>
-                  ))}
-                </Container>
-              </ArtifactDetails>
-            ) : null}
-          </Fragment>
-        ) : null /* TODO: need an empty state when the artifact doesn't exist */
-      }
+      {section.status === 'processing' ? (
+        <LoadingDetails messages={section.messages} />
+      ) : artifact?.data ? (
+        <Fragment>
+          <Text>{artifact.data.one_line_summary}</Text>
+          {artifact.data.steps ? (
+            <ArtifactDetails>
+              <Text bold>{t('Steps to Resolve')}</Text>
+              <Container as="ol" margin="0">
+                {artifact.data.steps.map((step, index) => (
+                  <li key={index}>
+                    <Flex direction="column">
+                      <Text>{step.title}</Text>
+                      <Text size="sm" variant="muted">
+                        {step.description}
+                      </Text>
+                    </Flex>
+                  </li>
+                ))}
+              </Container>
+            </ArtifactDetails>
+          ) : null}
+        </Fragment>
+      ) : (
+        <ArtifactDetails>
+          <Text>
+            {t(
+              'Seer failed to generate an implementation plan. This one is on us. Try running it again.'
+            )}
+          </Text>
+          <div>
+            <Button
+              priority="primary"
+              icon={<IconRefresh />}
+              onClick={() => startStep('solution', runId)}
+            >
+              {t('Re-run')}
+            </Button>
+          </div>
+        </ArtifactDetails>
+      )}
     </ArtifactCard>
   );
 }
 
-export function CodeChangesCard({section}: AutofixCardProps) {
+export function CodeChangesCard({autofix, section}: AutofixCardProps) {
   const artifact = useMemo(
     () => section.artifacts.findLast(isCodeChangesArtifact),
     [section.artifacts]
@@ -149,34 +188,54 @@ export function CodeChangesCard({section}: AutofixCardProps) {
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesForRepos]);
 
+  const {runState, startStep} = autofix;
+  const runId = runState?.run_id;
+
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
       {section.status === 'processing' ? (
         <LoadingDetails messages={section.messages} />
       ) : (
         <Fragment>
-          <Text>{summary}</Text>
-          {
-            patchesForRepos.size
-              ? [...patchesForRepos.entries()].map(([repo, patches]) => (
-                  <ArtifactDetails key={repo}>
-                    <Flex gap="lg">
-                      <Text bold>{t('Repository:')}</Text>
-                      <Text>{repo}</Text>
-                    </Flex>
-                    {patches.map((patch, index) => (
-                      <FileDiffViewer
-                        key={index}
-                        patch={patch.patch}
-                        showBorder
-                        collapsible
-                        defaultExpanded={artifact && artifact.length <= 1}
-                      />
-                    ))}
-                  </ArtifactDetails>
-                ))
-              : null /* TODO: need an empty state when no changes were made */
-          }
+          {patchesForRepos.size ? (
+            <Fragment>
+              <Text>{summary}</Text>
+              {[...patchesForRepos.entries()].map(([repo, patches]) => (
+                <ArtifactDetails key={repo}>
+                  <Flex gap="lg">
+                    <Text bold>{t('Repository:')}</Text>
+                    <Text>{repo}</Text>
+                  </Flex>
+                  {patches.map((patch, index) => (
+                    <FileDiffViewer
+                      key={index}
+                      patch={patch.patch}
+                      showBorder
+                      collapsible
+                      defaultExpanded={artifact && artifact.length <= 1}
+                    />
+                  ))}
+                </ArtifactDetails>
+              ))}
+            </Fragment>
+          ) : (
+            <ArtifactDetails>
+              <Text>
+                {t(
+                  'Seer failed to generate a code change. This one is on us. Try running it again.'
+                )}
+              </Text>
+              <div>
+                <Button
+                  priority="primary"
+                  icon={<IconRefresh />}
+                  onClick={() => startStep('code_changes', runId)}
+                >
+                  {t('Re-run')}
+                </Button>
+              </div>
+            </ArtifactDetails>
+          )}
         </Fragment>
       )}
     </ArtifactCard>
