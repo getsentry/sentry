@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -24,8 +24,8 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import useOrganization from 'sentry/utils/useOrganization';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {AddCodeOwnerModal} from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
@@ -226,7 +226,7 @@ export default function ProjectOwnership() {
         )}
         {ownership && !isOwnershipError ? (
           <FieldGroup title={t('Issue Owners')}>
-            <AutoSaveField
+            <AutoSaveForm
               name="autoAssignment"
               schema={ownershipSchema}
               initialValue={ownership.autoAssignment}
@@ -260,8 +260,8 @@ export default function ProjectOwnership() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
-            <AutoSaveField
+            </AutoSaveForm>
+            <AutoSaveForm
               name="codeownersAutoSync"
               schema={ownershipSchema}
               initialValue={ownership.codeownersAutoSync}
@@ -281,7 +281,7 @@ export default function ProjectOwnership() {
                   />
                 </field.Layout.Row>
               )}
-            </AutoSaveField>
+            </AutoSaveForm>
           </FieldGroup>
         ) : (
           <Alert.Container>

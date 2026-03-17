@@ -116,7 +116,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Found root cause', role: 'assistant'},
+              message: {
+                content: 'Found root cause',
+                role: 'assistant',
+                metadata: {step: 'root_cause'},
+              },
               timestamp: new Date().toISOString(),
               artifacts: [
                 {
@@ -155,7 +159,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Found solution', role: 'assistant'},
+              message: {
+                content: 'Found solution',
+                role: 'assistant',
+                metadata: {step: 'solution'},
+              },
               timestamp: new Date().toISOString(),
               artifacts: [
                 {
@@ -193,7 +201,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Made changes', role: 'assistant'},
+              message: {
+                content: 'Made changes',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
               timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
@@ -249,7 +261,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Created PR', role: 'assistant'},
+              message: {
+                content: 'Created PR',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
               timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
@@ -305,7 +321,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Created PR', role: 'assistant'},
+              message: {
+                content: 'Created PR',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
               timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
@@ -377,7 +397,11 @@ describe('AutofixSection', () => {
           blocks: [
             {
               id: 'block-1',
-              message: {content: 'Analysis complete', role: 'assistant'},
+              message: {
+                content: 'Found root cause',
+                role: 'assistant',
+                metadata: {step: 'root_cause'},
+              },
               timestamp: new Date().toISOString(),
               artifacts: [
                 {
@@ -389,6 +413,17 @@ describe('AutofixSection', () => {
                     reproduction_steps: ['step'],
                   },
                 },
+              ],
+            },
+            {
+              id: 'block-2',
+              message: {
+                content: 'Proposed fix',
+                role: 'assistant',
+                metadata: {step: 'solution'},
+              },
+              timestamp: new Date().toISOString(),
+              artifacts: [
                 {
                   key: 'solution',
                   reason: 'Proposed fix',
@@ -398,6 +433,15 @@ describe('AutofixSection', () => {
                   },
                 },
               ],
+            },
+            {
+              id: 'block-3',
+              message: {
+                content: 'Made code changes',
+                role: 'assistant',
+                metadata: {step: 'code_changes'},
+              },
+              timestamp: new Date().toISOString(),
               merged_file_patches: [
                 {
                   diff: '',

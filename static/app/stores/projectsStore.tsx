@@ -201,5 +201,4 @@ const storeConfig: ProjectsStoreDefinition = {
   },
 };
 
-const ProjectsStore = createStore(storeConfig);
-export default ProjectsStore;
+export const ProjectsStore = createStore(storeConfig);

@@ -16,7 +16,7 @@ export function createPromotionCheckQueryKey(orgSlug: string): ApiQueryKey {
 /**
  * Initiates a promotion trigger check for the organization
  */
-export default function usePromotionTriggerCheck(organization: Organization) {
+export function usePromotionTriggerCheck(organization: Organization) {
   return useApiQuery<PromotionData>(createPromotionCheckQueryKey(organization.slug), {
     staleTime: 10000,
     retry: 0,

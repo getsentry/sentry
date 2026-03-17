@@ -224,6 +224,9 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     can_add = True
     """whether or not the integration installation be initiated from Sentry"""
 
+    allow_multiple = True
+    """whether multiple installations of this integration are allowed per organization"""
+
     can_disable = False
     """
     if the integration can be uninstalled in Sentry, set to False

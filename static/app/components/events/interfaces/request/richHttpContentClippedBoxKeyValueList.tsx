@@ -5,7 +5,7 @@ import type {EntryRequest} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
-import getTransformedData from './getTransformedData';
+import {getTransformedData} from './getTransformedData';
 
 type Data = EntryRequest['data']['data'];
 

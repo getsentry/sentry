@@ -10,7 +10,7 @@ import {DiffFeedbackBanner} from 'sentry/components/replays/diff/diffFeedbackBan
 import {After, Before} from 'sentry/components/replays/diff/utils';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
-import useExtractPageHtml from 'sentry/utils/replays/hooks/useExtractPageHtml';
+import {useExtractPageHtml} from 'sentry/utils/replays/hooks/useExtractPageHtml';
 
 export function ReplayTextDiff() {
   const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();

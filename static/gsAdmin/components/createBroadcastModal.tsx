@@ -9,7 +9,7 @@ import type {Field, OnSubmitCallback} from 'sentry/components/forms/types';
 import type {Broadcast} from 'sentry/types/system';
 import {useMutation} from 'sentry/utils/queryClient';
 import {safeURL} from 'sentry/utils/url/safeURL';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 interface CreateBroadcastModal extends ModalRenderProps {

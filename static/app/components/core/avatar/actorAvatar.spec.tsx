@@ -6,9 +6,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 
-import MemberListStore from 'sentry/stores/memberListStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Team as TeamType} from 'sentry/types/organization';
 import type {User as UserType} from 'sentry/types/user';
 

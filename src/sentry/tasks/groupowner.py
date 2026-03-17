@@ -188,7 +188,7 @@ def _process_suspect_commits(
     namespace=issues_tasks,
     processing_deadline_duration=TASK_DURATION_S,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def process_suspect_commits(

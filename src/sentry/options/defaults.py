@@ -1352,13 +1352,11 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
-# {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
 register(
-    "ai-agent-monitoring.custom-model-mapping",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    "seer.explorer.context-engine-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # ## sentry.killswitches
@@ -2492,11 +2490,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "hybridcloud.deliver_webhooks.delivery_time_include_github_tags",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
     default=["github"],
@@ -2644,6 +2637,16 @@ register(
 register(
     "sentry-apps.webhook.timeout.sec",
     default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Hard timeout for webhook requests to prevent indefinite hangs.
+# Must be strictly less than the shortest task processing_deadline_duration that
+# calls send_and_save_webhook_request (currently 8s for send_alert_webhook_v2 and
+# send_resource_change_webhook), otherwise timeout_alarm raises ValueError.
+register(
+    "sentry-apps.webhook.hard-timeout.sec",
+    default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3213,15 +3216,6 @@ register(
     default=500,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Maximum number of segments a single trace can flush per cycle. Prevents a
-# single trace from monopolizing a flush cycle and concentrating SSCAN load
-# on one Redis node. 0 means no limit.
-register(
-    "spans.buffer.max-flush-segments-per-trace",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Maximum memory percentage for the span buffer in Redis before rejecting messages.
 register(
     "spans.buffer.max-memory-percentage",
@@ -3298,6 +3292,27 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Write payload sets to per-span distributed keys AND merged keys.
+# Flusher reads merged keys as before.
+register(
+    "spans.buffer.write-distributed-payloads",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Switch flusher to read from distributed keys instead of merged.
+register(
+    "spans.buffer.read-distributed-payloads",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Set to False to stop writing merged keys and skip set merges.
+# Disable after read-distributed-payloads is stable. Rollback: re-enable
+# this flag to resume merged writes before reverting read-distributed-payloads.
+register(
+    "spans.buffer.write-merged-payloads",
+    default=True,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
 register(
@@ -3305,6 +3320,11 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.done-flush-conditional-zrem",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Segments consumer
@@ -3325,6 +3345,12 @@ register(
 )
 register(
     "spans.process-segments.drop-segments",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.process-segments.skip-enrichment-projects",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,

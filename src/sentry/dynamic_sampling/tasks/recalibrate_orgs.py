@@ -39,7 +39,7 @@ from sentry.taskworker.retry import Retry
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=1 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
@@ -81,7 +81,7 @@ def _process_orgs_volumes(org_volumes: Sequence[OrganizationDataVolume]) -> None
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=6 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def recalibrate_orgs_batch(orgs: Sequence[tuple[OrganizationId, int, int]]) -> None:
@@ -148,7 +148,7 @@ def recalibrate_org(org_id: OrganizationId, total: int, indexed: int) -> None:
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=2 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def recalibrate_projects_batch(orgs: list[OrganizationId]) -> None:

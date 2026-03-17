@@ -13,14 +13,14 @@ from sentry.preprod.size_analysis.grouptype import (
     SizeAnalysisDataPacket,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodSizeAnalysisDetectorValidatorTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -55,7 +55,7 @@ class PreprodSizeAnalysisDetectorValidatorTest(TestCase):
         detector.save()
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -376,7 +376,179 @@ class PreprodSizeAnalysisDetectorHandlerTest(TestCase):
             handler.evaluate(data_packet)
 
 
-@region_silo_test
+@cell_silo_test
+class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.condition_group = self.create_data_condition_group(
+            organization=self.project.organization,
+        )
+        self.create_data_condition(
+            condition_group=self.condition_group,
+            type=Condition.GREATER,
+            comparison=1000000,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        self.head_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+        )
+        self.head_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
+            id=self.head_artifact.id
+        )
+        self.base_artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_id="com.example.app",
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+        )
+        self.base_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
+            id=self.base_artifact.id
+        )
+
+    def _make_data_packet(self) -> SizeAnalysisDataPacket:
+        return DataPacket(
+            source_id="test",
+            packet={
+                "head_install_size_bytes": 5000000,
+                "head_download_size_bytes": 2000000,
+                "metadata": {
+                    "platform": "android",
+                    "head_metric_id": 100,
+                    "base_metric_id": 200,
+                    "head_artifact_id": self.head_artifact.id,
+                    "base_artifact_id": self.base_artifact.id,
+                    "head_artifact": self.head_artifact,
+                    "base_artifact": self.base_artifact,
+                },
+            },
+        )
+
+    def test_no_query_evaluates_normally(self):
+        detector = self.create_detector(
+            name="test-detector",
+            type=PreprodSizeAnalysisGroupType.slug,
+            project=self.project,
+            config={"threshold_type": "absolute", "measurement": "install_size"},
+            workflow_condition_group=self.condition_group,
+        )
+        handler = PreprodSizeAnalysisDetectorHandler(detector)
+        result = handler.evaluate(self._make_data_packet())
+
+        assert None in result
+        assert result[None].priority == DetectorPriorityLevel.HIGH
+
+    def test_empty_query_evaluates_normally(self):
+        detector = self.create_detector(
+            name="test-detector",
+            type=PreprodSizeAnalysisGroupType.slug,
+            project=self.project,
+            config={"threshold_type": "absolute", "measurement": "install_size", "query": ""},
+            workflow_condition_group=self.condition_group,
+        )
+        handler = PreprodSizeAnalysisDetectorHandler(detector)
+        result = handler.evaluate(self._make_data_packet())
+
+        assert None in result
+        assert result[None].priority == DetectorPriorityLevel.HIGH
+
+    def test_whitespace_query_evaluates_normally(self):
+        detector = self.create_detector(
+            name="test-detector",
+            type=PreprodSizeAnalysisGroupType.slug,
+            project=self.project,
+            config={"threshold_type": "absolute", "measurement": "install_size", "query": "   "},
+            workflow_condition_group=self.condition_group,
+        )
+        handler = PreprodSizeAnalysisDetectorHandler(detector)
+        result = handler.evaluate(self._make_data_packet())
+
+        assert None in result
+        assert result[None].priority == DetectorPriorityLevel.HIGH
+
+    def test_matching_query_evaluates_normally(self):
+        detector = self.create_detector(
+            name="test-detector",
+            type=PreprodSizeAnalysisGroupType.slug,
+            project=self.project,
+            config={
+                "threshold_type": "absolute",
+                "measurement": "install_size",
+                "query": "app_id:com.example.app",
+            },
+            workflow_condition_group=self.condition_group,
+        )
+        handler = PreprodSizeAnalysisDetectorHandler(detector)
+        result = handler.evaluate(self._make_data_packet())
+
+        assert None in result
+        assert result[None].priority == DetectorPriorityLevel.HIGH
+
+    def test_non_matching_query_skips_evaluation(self):
+        detector = self.create_detector(
+            name="test-detector",
+            type=PreprodSizeAnalysisGroupType.slug,
+            project=self.project,
+            config={
+                "threshold_type": "absolute",
+                "measurement": "install_size",
+                "query": "app_id:com.other.app",
+            },
+            workflow_condition_group=self.condition_group,
+        )
+        handler = PreprodSizeAnalysisDetectorHandler(detector)
+        result = handler.evaluate(self._make_data_packet())
+
+        assert result == {}
+
+    def test_invalid_query_skips_evaluation_and_logs_exception(self):
+        detector = self.create_detector(
+            name="test-detector",
+            type=PreprodSizeAnalysisGroupType.slug,
+            project=self.project,
+            config={
+                "threshold_type": "absolute",
+                "measurement": "install_size",
+                "query": "foo OR bar",
+            },
+            workflow_condition_group=self.condition_group,
+        )
+        handler = PreprodSizeAnalysisDetectorHandler(detector)
+
+        with mock.patch("sentry.preprod.size_analysis.grouptype.logger") as mock_logger:
+            result = handler.evaluate(self._make_data_packet())
+
+        assert result == {}
+        mock_logger.exception.assert_called_once_with(
+            "preprod.size_analysis.invalid_detector_query",
+            extra={"detector_id": detector.id, "query": "foo OR bar"},
+        )
+
+    def test_no_metadata_with_query_raises_error(self):
+        detector = self.create_detector(
+            name="test-detector",
+            type=PreprodSizeAnalysisGroupType.slug,
+            project=self.project,
+            config={
+                "threshold_type": "absolute",
+                "measurement": "install_size",
+                "query": "app_id:com.example.app",
+            },
+            workflow_condition_group=self.condition_group,
+        )
+        data_packet: SizeAnalysisDataPacket = DataPacket(
+            source_id="test",
+            packet={
+                "head_install_size_bytes": 5000000,
+                "head_download_size_bytes": 2000000,
+            },
+        )
+        handler = PreprodSizeAnalysisDetectorHandler(detector)
+        with pytest.raises(ValueError, match="missing metadata required to evaluate query filter"):
+            handler.evaluate(data_packet)
+
+
+@cell_silo_test
 class PreprodSizeAnalysisDetectorHandlerIntegrationTest(TestCase):
     def test_e2e(self):
         condition_group = self.create_data_condition_group(
@@ -412,7 +584,7 @@ class PreprodSizeAnalysisDetectorHandlerIntegrationTest(TestCase):
         assert mock_produce_occurrence_to_kafka.call_count == 1
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
     """Tests for the content of created occurrences (title, platform, tags, evidence)."""
 

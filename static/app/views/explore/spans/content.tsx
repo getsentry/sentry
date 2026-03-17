@@ -19,7 +19,7 @@ import {
   useMaxPickableDays,
   type MaxPickableDaysOptions,
 } from 'sentry/utils/useMaxPickableDays';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {
   MAX_DAYS_FOR_CROSS_EVENTS,

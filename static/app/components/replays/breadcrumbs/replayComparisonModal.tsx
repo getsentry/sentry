@@ -20,7 +20,7 @@ import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {isHydrateCrumb, type HydrationErrorFrame} from 'sentry/utils/replays/types';
 
 interface Props extends ModalRenderProps {

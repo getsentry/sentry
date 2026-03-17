@@ -44,6 +44,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         super().setUp()
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
+            order=0,
             title="Widget 1",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -52,6 +53,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
         )
         self.widget_2 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
+            order=1,
             title="Widget 2",
             display_type=DashboardWidgetDisplayTypes.TABLE,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -916,12 +918,14 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.create_user_member_role()
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
+            order=2,
             title="Widget 3",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
         )
         self.widget_4 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
+            order=3,
             title="Widget 4",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
             widget_type=DashboardWidgetTypes.DISCOVER,
@@ -3443,7 +3447,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "id": str(widget_query.id),
                             "name": "Query with Links",
                             "fields": ["count()", "project", "environment"],
-                            "columns": ["project"],
+                            "columns": ["project", "environment"],
                             "aggregates": ["count()"],
                             "conditions": "event.type:error",
                             "linkedDashboards": [
@@ -3725,7 +3729,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
         response = self.do_request("put", self.url(dashboard.id), data=data)
         assert response.status_code == 400, response.data
-        assert b"Linked dashboard does not appear in the fields of the query" in response.content
+        assert (
+            b"Linked dashboard field does not appear in the columns of the widget query"
+            in response.content
+        )
 
     def test_rejects_cross_org_linked_dashboard(self) -> None:
         other_org = self.create_organization(name="other-org")

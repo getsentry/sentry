@@ -4,7 +4,7 @@ import {PlatformIcon} from 'platformicons';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {TextOverflow} from 'sentry/components/textOverflow';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 export function ProjectInfo({id, isWidget}: {id: number; isWidget: boolean}) {
   const {projects} = useProjects();

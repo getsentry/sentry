@@ -3,7 +3,7 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {t} from 'sentry/locale';
 import {IssueCategory} from 'sentry/types/group';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssueListContainer} from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
 

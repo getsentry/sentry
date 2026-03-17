@@ -13,7 +13,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {CronDetectorDetails} from 'sentry/views/detectors/components/details/cron';
 
 describe('CronDetectorDetails - check-ins', () => {

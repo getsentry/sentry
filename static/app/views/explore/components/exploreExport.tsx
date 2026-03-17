@@ -7,7 +7,7 @@ import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface QueryInfo {

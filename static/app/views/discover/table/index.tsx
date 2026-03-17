@@ -20,7 +20,7 @@ import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/t
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import TableView from './tableView';

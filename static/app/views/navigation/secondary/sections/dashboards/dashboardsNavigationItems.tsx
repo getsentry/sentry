@@ -10,13 +10,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useReorderStarredDashboards} from 'sentry/views/dashboards/hooks/useReorderStarredDashboards';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
 type DashboardsNavigationItemsProps = {
   initialDashboards: DashboardListItem[];
@@ -152,7 +152,7 @@ export function DashboardsNavigationItems({
   );
 }
 
-const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Item)`
+const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Link)`
   align-items: center;
   padding-right: ${p => p.theme.space.xs};
   position: relative;

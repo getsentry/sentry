@@ -148,7 +148,7 @@ class VstsIntegration(RepositoryIntegration, VstsIssuesSpec):
 
     def get_client(self) -> VstsApiClient:
         base_url = self.instance
-        if SiloMode.get_current_mode() != SiloMode.REGION:
+        if SiloMode.get_current_mode() != SiloMode.CELL:
             self._check_domain_name(self.default_identity)
 
         if self.org_integration is None:

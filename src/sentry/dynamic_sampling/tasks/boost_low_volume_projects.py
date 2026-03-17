@@ -114,7 +114,7 @@ def _partition_orgs_by_measure(
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=20 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects() -> None:
@@ -178,7 +178,7 @@ def _record_partitioning_metrics(orgs_by_measure: dict[SamplingMeasure, list[int
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=3 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
@@ -218,7 +218,7 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=3 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(

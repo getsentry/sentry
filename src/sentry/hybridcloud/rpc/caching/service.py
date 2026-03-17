@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 import pydantic
 
 from sentry.hybridcloud.rpc.resolvers import ByCellName
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
 from sentry.silo.base import SiloMode
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
@@ -18,17 +18,17 @@ if TYPE_CHECKING:
     pass
 
 
-class RegionCachingService(RpcService):
+class CellCachingService(RpcService):
     key = "region_caching"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from .impl import LocalRegionCachingService
+        from .impl import LocalCellCachingService
 
-        return LocalRegionCachingService()
+        return LocalCellCachingService()
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def clear_key(self, *, region_name: str, key: str) -> int:
         pass
@@ -290,7 +290,7 @@ def back_with_silo_cache(
     If the cache read fails, the decorated function will be called and its result
     will be stored in cache. The decorator adds helper methods on the wrapped
     function for generating keys to clear cache entries
-    with region_caching_service and control_caching_service.
+    with cell_caching_service and control_caching_service.
 
     See user_service.get_user() for an example usage.
     """
@@ -335,7 +335,7 @@ def back_with_silo_cache_list(
     If the cache read for the id value fails, the decorated function will be called and
     its result will be stored in cache. The decorator also adds method on the wrapped
     function for generating keys to clear cache entires with
-    with region_caching_service and control_caching_service.
+    with cell_caching_service and control_caching_service.
 
     See app_service.installations_for_organization() for an example usage.
     """
@@ -346,7 +346,7 @@ def back_with_silo_cache_list(
     return wrapper
 
 
-region_caching_service = RegionCachingService.create_delegation()
+cell_caching_service = CellCachingService.create_delegation()
 
 
 class ControlCachingService(RpcService):

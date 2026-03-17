@@ -20,8 +20,8 @@ import type {
 } from 'sentry/types/notificationActions';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ProjectBadge} from 'sentry/views/organizationStats/teamInsights/styles';
 
 import {withSubscription} from 'getsentry/components/withSubscription';

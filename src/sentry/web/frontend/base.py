@@ -132,28 +132,24 @@ If a request is received and the application is not in CONTROL/MONOLITH
 mode a 404 will be returned.
 """
 
-cell_silo_view = ViewSiloLimit([SiloMode.REGION])
+cell_silo_view = ViewSiloLimit([SiloMode.CELL])
 """
-Apply to frontend views that exist in REGION Silo
-If a request is received and the application is not in REGION/MONOLITH
+Apply to frontend views that exist in CELL Silo
+If a request is received and the application is not in CELL/MONOLITH
 mode a 404 will be returned.
 """
 
-all_silo_view = ViewSiloLimit([SiloMode.REGION, SiloMode.CONTROL, SiloMode.MONOLITH])
+all_silo_view = ViewSiloLimit([SiloMode.CELL, SiloMode.CONTROL, SiloMode.MONOLITH])
 """
-Apply to frontend views that respond in both CONTROL and REGION mode.
+Apply to frontend views that respond in both CONTROL and CELL mode.
 """
 
-internal_cell_silo_view = ViewSiloLimit([SiloMode.REGION], internal=True)
+internal_cell_silo_view = ViewSiloLimit([SiloMode.CELL], internal=True)
 """
-Apply to frontend views that exist in REGION Silo
+Apply to frontend views that exist in CELL Silo
 and are not accessible via cell routing.
 This is generally for debug/development views.
 """
-
-# TODO(cells): remove aliases once no longer used by getsentry
-region_silo_view = cell_silo_view
-internal_region_silo_view = internal_cell_silo_view
 
 
 class _HasRespond(Protocol):

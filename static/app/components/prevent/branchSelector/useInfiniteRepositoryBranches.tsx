@@ -9,7 +9,7 @@ import {
   type InfiniteData,
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type RepositoryBranchItem = {
   name: string;

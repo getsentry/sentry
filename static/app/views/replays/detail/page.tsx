@@ -5,7 +5,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {ReplayLayout} from 'sentry/views/replays/detail/layout/replayLayout';
 import {ReplayDetailsError} from 'sentry/views/replays/detail/replayDetailsError';
 

@@ -530,7 +530,7 @@ def count_performance_issues(
             snuba_params=params,
             trace_ids=[trace_id],
             referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
-            occurrence_category=OccurrenceCategory.GENERIC,
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
         ).get(trace_id, 0)
         performance_issues_count = EAPOccurrencesComparator.check_and_choose(
             snuba_count,

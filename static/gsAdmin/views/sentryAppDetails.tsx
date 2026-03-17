@@ -18,14 +18,14 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
 import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import type {ActionItem} from 'admin/components/detailsPage';
-import DetailsPage from 'admin/components/detailsPage';
+import {DetailsPage} from 'admin/components/detailsPage';
 import {SentryAppUpdateModal} from 'admin/components/sentryAppUpdateModal';
 
 export function SentryAppDetails() {

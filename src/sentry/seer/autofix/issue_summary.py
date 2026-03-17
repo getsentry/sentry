@@ -43,6 +43,7 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     make_summarize_issue_request,
 )
+from sentry.seer.supergroups_lightweight_rca import trigger_lightweight_rca
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -169,6 +170,14 @@ def _trigger_autofix_task(
             logger.warning("_trigger_autofix_task.group_not_found", extra={"group_id": group_id})
             return
 
+        sentry_sdk.set_tags(
+            {
+                "group_id": group_id,
+                "org_id": group.organization.id,
+                "project_id": group.project_id,
+            }
+        )
+
         user: User | AnonymousUser | RpcUser | None = None
         if user_id:
             user = user_service.get_user(user_id=user_id)
@@ -192,6 +201,13 @@ def _trigger_autofix_task(
                 run_id=None,
                 stopping_point=stopping_point,
             )
+            try:
+                trigger_lightweight_rca(group)
+            except Exception:
+                logger.exception(
+                    "lightweight_rca.trigger_error_in_trigger_autofix_task",
+                    extra={"group_id": group_id},
+                )
         else:
             response = trigger_autofix(
                 group=group,

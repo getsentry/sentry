@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {MotionNodeAnimationOptions} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 type Props = {
   animateVariant: MotionNodeAnimationOptions['animate'];

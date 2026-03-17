@@ -6,11 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -18,15 +17,15 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {getProfileDurationCategoryForPlatform} from 'sentry/utils/profiling/platforms';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openAM2ProfilingUpsellModal} from 'getsentry/actionCreators/modal';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
 import {withSubscription} from 'getsentry/components/withSubscription';
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {BilledDataCategoryInfo, ProductTrial, Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 import {
@@ -303,7 +302,7 @@ function ContinuousProfilingBetaAlertBannerInner({
           buttonProps={{
             priority: 'default',
             size: 'xs',
-            style: {marginBlock: `-${space(0.25)}`},
+            style: {marginBlock: '-2px'},
           }}
           eventTypes={eventTypes}
           notificationType="overage_critical"

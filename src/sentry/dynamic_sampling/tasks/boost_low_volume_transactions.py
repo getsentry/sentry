@@ -86,7 +86,7 @@ class ProjectTransactionsTotals(ProjectIdentity, total=True):
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=10 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions() -> None:
@@ -152,7 +152,7 @@ def _process_orgs_for_boost_low_volume_transactions(
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=4 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions_of_project(project_transactions: ProjectTransactions) -> None:

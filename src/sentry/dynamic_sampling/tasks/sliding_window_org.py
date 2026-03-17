@@ -28,7 +28,7 @@ from sentry.taskworker.retry import Retry
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=15 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def sliding_window_org() -> None:

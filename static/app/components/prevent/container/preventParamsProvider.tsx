@@ -7,7 +7,7 @@ import type {
 } from 'sentry/components/prevent/context/preventContext';
 import {PreventContext} from 'sentry/components/prevent/context/preventContext';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type PreventQueryParamsProviderProps = {
   children?: NonNullable<React.ReactNode>;

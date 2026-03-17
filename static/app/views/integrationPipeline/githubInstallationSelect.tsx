@@ -14,7 +14,7 @@ import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {IconAdd, IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {GithubInstallationInstallButtonProps} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';

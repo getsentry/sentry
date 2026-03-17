@@ -12,7 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
 import {FTCConsentLocation, PlanTier} from 'getsentry/types';
 import {BillingInformation} from 'getsentry/views/subscriptionPage/billingInformation';

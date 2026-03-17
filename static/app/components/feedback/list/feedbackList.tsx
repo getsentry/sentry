@@ -11,7 +11,7 @@ import type {ApiResult} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {FeedbackListHeader} from 'sentry/components/feedback/list/feedbackListHeader';
 import {FeedbackListItem} from 'sentry/components/feedback/list/feedbackListItem';
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {InfiniteListItems} from 'sentry/components/infiniteList/infiniteListItems';
 import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListState';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -38,7 +38,9 @@ interface Props {
 export function FeedbackList({onItemSelect}: Props) {
   const {listQueryKey} = useFeedbackQueryKeys();
   const queryResult = useInfiniteApiQuery<FeedbackIssueListItem[]>({
-    queryKey: listQueryKey ?? (['infinite', ''] as unknown as InfiniteApiQueryKey),
+    queryKey:
+      listQueryKey ??
+      ([{infinite: true, version: 'v1'}, ''] as unknown as InfiniteApiQueryKey),
     enabled: Boolean(listQueryKey),
   });
 

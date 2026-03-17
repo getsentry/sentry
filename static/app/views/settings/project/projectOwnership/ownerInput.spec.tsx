@@ -4,7 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
 import {OwnerInput} from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
 describe('Project Ownership Input', () => {

@@ -4,7 +4,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {Duration} from 'sentry/components/duration';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';

@@ -14,11 +14,10 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
-import useJumpButtons from 'sentry/components/replays/useJumpButtons';
+import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {GridResizer} from 'sentry/components/tables/gridEditable/styles';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
@@ -420,7 +419,7 @@ export function LogsInfiniteTable({
       '.log-table-row-chevron-button': {
         width: '24px',
         height: '24px',
-        padding: `${space(0.5)} ${space(0.75)}`,
+        padding: '4px 6px',
         marginRight: '4px',
         display: 'flex',
         alignItems: 'center',

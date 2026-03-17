@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -43,6 +43,7 @@ function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
 
   const transactionSearch = new MutableSearch('');
   transactionSearch.addFilterValue('transaction', transactionName);
+  transactionSearch.addFilterValue('is_transaction', 'true');
 
   const {
     data: failureRateSeriesData,

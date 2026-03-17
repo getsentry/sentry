@@ -2,14 +2,14 @@ import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
@@ -61,7 +61,7 @@ export function SeerAutomationDefault() {
     <Fragment>
       {!canWrite && <OrganizationPermissionAlert />}
       <FieldGroup title={t('Default Automation for New Projects')}>
-        <AutoSaveField
+        <AutoSaveForm
           name="defaultSeerScannerAutomation"
           schema={seerDefaultsSchema}
           initialValue={organization.defaultSeerScannerAutomation ?? false}
@@ -81,9 +81,9 @@ export function SeerAutomationDefault() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
         {scannerEnabled && (
-          <AutoSaveField
+          <AutoSaveForm
             name="defaultAutofixAutomationTuning"
             schema={seerDefaultsSchema}
             initialValue={organization.defaultAutofixAutomationTuning ?? 'off'}
@@ -104,11 +104,11 @@ export function SeerAutomationDefault() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         )}
       </FieldGroup>
       <FieldGroup title={t('Advanced Settings')}>
-        <AutoSaveField
+        <AutoSaveForm
           name="enableSeerEnhancedAlerts"
           schema={seerDefaultsSchema}
           initialValue={organization.enableSeerEnhancedAlerts ?? true}
@@ -128,8 +128,8 @@ export function SeerAutomationDefault() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
-        <AutoSaveField
+        </AutoSaveForm>
+        <AutoSaveForm
           name="enableSeerCoding"
           schema={seerDefaultsSchema}
           initialValue={organization.enableSeerCoding ?? true}
@@ -147,7 +147,7 @@ export function SeerAutomationDefault() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
       </FieldGroup>
     </Fragment>
   );
