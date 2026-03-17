@@ -64,15 +64,15 @@ class OAuthDeviceView(AuthLoginView):
     - Handles the user-facing verification step where the user enters the
       `user_code` shown on their device and then explicitly approves or denies
       the authorization request (RFC 8628 §3.3).
-    - Supports `verification_uri_complete` by accepting `user_code` on GET as a
-      prefill hint, but does not validate or advance the flow until the user
-      submits the form. This preserves the explicit interaction at the
-      verification endpoint described in RFC 8628 §3.3/§3.3.1 and aligns with
-      the phishing mitigation guidance in §5.4.
+    - Supports `verification_uri_complete` by accepting `user_code` on GET and,
+      after validation, advancing to the explicit approve/deny step. This keeps
+      the user interaction at the verification endpoint described in RFC 8628
+      §3.3/§3.3.1 while still requiring a second confirmation step and aligning
+      with the phishing mitigation guidance in §5.4.
 
     Flow:
-    1. GET /oauth/device - Show the entry form, optionally prefilled from
-       `verification_uri_complete` (`?user_code=...`)
+    1. GET /oauth/device - Show the entry form, or validate `user_code` from
+       `verification_uri_complete` (`?user_code=...`) and show the approval form
     2. POST /oauth/device - Validate the code and show the approval form
     3. POST /oauth/device (op=approve/deny) - Complete verification
 
@@ -94,16 +94,9 @@ class OAuthDeviceView(AuthLoginView):
 
     def _error_response(self, request: HttpRequest, error: str) -> HttpResponseBase:
         """Return an error response on the device code entry page."""
-        return self._entry_form_response(request, error=error)
-
-    def _entry_form_response(
-        self, request: HttpRequest, *, error: str | None = None, user_code: str = ""
-    ) -> HttpResponseBase:
-        """Render the device code entry form with an optional prefilled code."""
         context = self.get_default_context(request) | {
             "user": request.user,
             "error": error,
-            "user_code": user_code,
         }
         return self.respond("sentry/oauth-device.html", context)
 
@@ -157,9 +150,9 @@ class OAuthDeviceView(AuthLoginView):
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         # RFC 8628 §3.3.1 allows `verification_uri_complete` to carry the user code.
-        # We intentionally treat it as a prefill hint only, and keep validation on
-        # POST so the user still explicitly continues the verification flow per
-        # §3.3 and the confirmation guidance in §5.4.
+        # We validate it here and advance to the approval step, but the user must
+        # still explicitly approve or deny the request per §3.3 and the
+        # confirmation guidance in §5.4.
         user_code = request.GET.get("user_code", "").upper().strip()
 
         if not request.user.is_authenticated:
@@ -168,8 +161,17 @@ class OAuthDeviceView(AuthLoginView):
                 request.session["device_user_code"] = user_code
             return super().get(request, **kwargs)
 
+        if user_code:
+            return self._show_approval_form(request, user_code)
+
         stored_code = request.session.pop("device_user_code", None)
-        return self._entry_form_response(request, user_code=user_code or stored_code or "")
+        if stored_code:
+            return self._show_approval_form(request, stored_code)
+
+        context = self.get_default_context(request) | {
+            "user": request.user,
+        }
+        return self.respond("sentry/oauth-device.html", context)
 
     def _show_approval_form(self, request: HttpRequest, user_code: str) -> HttpResponseBase:
         """Show the approval form for a valid user code."""

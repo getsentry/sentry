@@ -48,35 +48,20 @@ class OAuthDeviceVerificationTest(TestCase):
         assert resp.status_code == 200
         assert b"user_code" in resp.content.lower()
 
-    def test_get_with_valid_user_code_prefills_entry_form(self) -> None:
-        """GET with user_code should prefill the entry form without validating it."""
+    def test_get_with_valid_user_code_shows_approval_form(self) -> None:
+        """GET with valid user_code should show approval form."""
         self.login_as(self.user)
         resp = self.client.get(f"{self.path}?user_code={self.device_code.user_code}")
         assert resp.status_code == 200
-        assert self.device_code.user_code.encode() in resp.content
-        assert b"Enter Device Code" in resp.content
-        assert b"approve" not in resp.content.lower()
+        assert b"Test App" in resp.content
+        assert b"approve" in resp.content.lower()
 
-    def test_get_with_invalid_user_code_prefills_entry_form(self) -> None:
-        """GET with invalid user_code should still only prefill the entry form."""
+    def test_get_with_invalid_user_code_shows_error(self) -> None:
+        """GET with invalid user_code should show error."""
         self.login_as(self.user)
         resp = self.client.get(f"{self.path}?user_code=XXXX-XXXX")
         assert resp.status_code == 200
-        assert b'value="XXXX-XXXX"' in resp.content
-        assert b"Enter Device Code" in resp.content
-        assert b"invalid" not in resp.content.lower()
-
-    def test_get_uses_session_user_code_to_prefill_entry_form(self) -> None:
-        """Stored user_code should prefill the entry form after login."""
-        self.login_as(self.user)
-        session = self.client.session
-        session["device_user_code"] = self.device_code.user_code
-        session.save()
-
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        assert self.device_code.user_code.encode() in resp.content
-        assert self.client.session.get("device_user_code") is None
+        assert b"invalid" in resp.content.lower() or b"expired" in resp.content.lower()
 
     def test_post_user_code_shows_approval_form(self) -> None:
         """POST with user_code should show approval form."""
