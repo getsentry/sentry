@@ -770,6 +770,15 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
             installation.organization_id, installation.id
         )
         if not servicehook:
+            # Check if the installation has been deleted. If so, the ServiceHook
+            # was cascade-deleted and this is an expected race condition from a
+            # stale task message — halt gracefully instead of raising an error.
+            current_install = app_service.installation_by_id(id=installation.id)
+            if not current_install:
+                lifecycle.record_halt(
+                    halt_reason=SentryAppWebhookHaltReason.MISSING_INSTALLATION
+                )
+                return
             lifecycle.add_extra("events", installation.sentry_app.events)
             lifecycle.add_extras(
                 {

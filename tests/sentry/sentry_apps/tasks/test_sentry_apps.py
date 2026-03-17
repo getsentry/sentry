@@ -1645,6 +1645,44 @@ class TestWorkflowNotification(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_gracefully_halts_when_installation_deleted_and_servicehook_missing(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        """
+        When a SentryAppInstallation is deleted, ServiceHook is cascade-deleted.
+        Stale task messages should halt gracefully instead of raising an error.
+        """
+        install = self.install
+        issue = self.issue
+
+        # Get the RPC installation object before deletion
+        from sentry.sentry_apps.services.app.service import app_service
+
+        rpc_install = app_service.installation_by_id(id=install.id)
+        assert rpc_install is not None
+
+        # Delete the ServiceHook (simulating cascade delete) and soft-delete the installation
+        ServiceHook.objects.filter(
+            organization_id=install.organization_id,
+            actor_id=install.id,
+        ).delete()
+        with assume_test_silo_mode_of(SentryAppInstallation):
+            install.delete()
+
+        # send_webhooks should halt gracefully, not raise an error
+        send_webhooks(installation=rpc_install, event="issue.assigned", data={"issue": serialize(issue)})
+        assert not safe_urlopen.called
+
+        # SLO assertions - should record a halt, not a failure
+        assert_halt_metric(mock_record, SentryAppWebhookHaltReason.MISSING_INSTALLATION)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=0
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_does_not_send_if_event_not_in_app_events(
         self, mock_record: MagicMock, safe_urlopen: MagicMock
     ) -> None:
