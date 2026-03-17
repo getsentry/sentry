@@ -34,6 +34,7 @@ from sentry.seer.signed_seer_api import (
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
@@ -206,6 +207,27 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
         raise
 
 
+def get_allowed_org_ids_context_engine_indexing() -> list[int]:
+    """
+    Get the list of allowed organizations for context engine indexing.
+
+    Spreads orgs evenly across every hour of the day, every day of the week(168 slots total).
+    Each org is deterministically assigned a slot via md5 hash so it is indexed exactly once per week.
+    Using a hash rather than a simple modulo ensures stable, uniform distribution of orgs across all slots.
+    """
+    all_org_ids: list[int] = options.get("explorer.service_map.allowed_organizations")
+
+    now = datetime.now(UTC)
+    current_slot = now.weekday() * 24 + now.hour
+
+    TOTAL_HOURLY_SLOTS = 24 * 7  # 168 slots across every hour of the week
+    return [
+        org_id
+        for org_id in all_org_ids
+        if int(md5_text(str(org_id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == current_slot
+    ]
+
+
 @instrumented_task(
     name="sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
     namespace=seer_tasks,
@@ -223,13 +245,11 @@ def schedule_context_engine_indexing_tasks() -> None:
         logger.info("explorer.context_engine_indexing.enable flag is disabled")
         return
 
-    allowed_org_ids = options.get("explorer.service_map.allowed_organizations")
+    allowed_org_ids = get_allowed_org_ids_context_engine_indexing()
     if not allowed_org_ids:
         logger.info("No allowed organizations for context engine indexing")
         return
 
-    # TODO: as the list of allowed organizations grows, we should batch the tasks to avoid overwhelming the system
-    # Also possibly consider spreading the tasks out across a day or week.
     dispatched = 0
     for org_id in allowed_org_ids:
         try:
