@@ -627,7 +627,6 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
             head_ref="feature/test-branch",
             base_ref="main",
             head_repo_name="owner/repo",
-            provider="github",
             pr_number=42,
         )
         head_artifact = self.create_preprod_artifact(
@@ -678,7 +677,6 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert event_data["tags"]["head.base_sha"] == "b" * 40
         assert event_data["tags"]["head.base_branch"] == "main"
         assert event_data["tags"]["head.pr_number"] == "42"
-        assert event_data["tags"]["head.provider"] == "github"
         assert "base.sha" not in event_data["tags"]
         assert occurrence.evidence_data["head_artifact_id"] == head_artifact.id
         assert occurrence.evidence_data["base_artifact_id"] == base_artifact.id

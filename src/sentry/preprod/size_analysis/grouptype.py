@@ -69,8 +69,6 @@ def _artifact_to_tags(artifact: PreprodArtifact) -> dict[str, str]:
             tags["base_branch"] = commit_comparison.base_ref
         if commit_comparison.pr_number is not None:
             tags["pr_number"] = str(commit_comparison.pr_number)
-        if commit_comparison.provider:
-            tags["provider"] = commit_comparison.provider
 
     return tags
 
