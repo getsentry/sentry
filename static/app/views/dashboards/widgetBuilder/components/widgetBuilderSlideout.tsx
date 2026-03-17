@@ -44,6 +44,7 @@ import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder
 import {WidgetBuilderDatasetSelector} from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
+import {LegendTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/legendTypeSelector';
 import {WidgetBuilderNameAndDescription} from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {
   WidgetPreviewContainer,
@@ -390,6 +391,7 @@ export function WidgetBuilderSlideout({
                     <Section>
                       <WidgetBuilderTypeSelector error={error} setError={setError} />
                       {isTimeSeriesWidget && <AxisRangeSection />}
+                      {isTimeSeriesWidget && <LegendTypeSelector />}
                     </Section>
                     <div ref={observeForDraggablePreview}>
                       {isSmallScreen && (
