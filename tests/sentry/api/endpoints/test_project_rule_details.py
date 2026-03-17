@@ -699,7 +699,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
 
         # first set it up so that it does have an owner
-        payload = {
+        payload: dict[str, Any] = {
             "name": "hello world",
             "owner": f"user:{self.user.id}",
             "actionMatch": "any",
