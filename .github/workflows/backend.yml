@@ -3,9 +3,7 @@ name: backend
 on:
   push:
     branches:
-      - master
-  pull_request:
-    types: [opened, synchronize, reopened, labeled]
+      - mchen/xdist-stress-test
   workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
