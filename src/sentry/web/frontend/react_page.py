@@ -15,7 +15,7 @@ from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import customer_domain_path, generate_organization_url
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
-from sentry.types.region import (
+from sentry.types.cell import (
     find_all_multitenant_locality_names,
     subdomain_is_locality,
 )

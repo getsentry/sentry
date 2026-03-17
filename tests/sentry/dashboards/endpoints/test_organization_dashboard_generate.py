@@ -44,6 +44,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
         mock_client_class.assert_called_once_with(self.organization, ANY)
         mock_client.start_run.assert_called_once_with(
             prompt="Show me error rates by project",
+            on_page_context=ANY,
             artifact_key="dashboard",
             artifact_schema=ANY,
             request=ANY,

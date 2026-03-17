@@ -18,7 +18,7 @@ from sentry.models.organizationslugreservation import (
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 
 
 class OrganizationProvisioningException(Exception):

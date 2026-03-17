@@ -13,7 +13,7 @@ from rest_framework.exceptions import APIException
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.types.region import CellContextError, get_local_cell
+from sentry.types.cell import CellContextError, get_local_cell
 from sentry.utils import redis
 
 if TYPE_CHECKING:
