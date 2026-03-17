@@ -286,7 +286,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
         attribute_types = serialized.get("attribute_type")
-        if len(attribute_types) == 0:
+        if len(attribute_types) == 0 or attribute_types is None:
             attribute_types = POSSIBLE_ATTRIBUTE_TYPES
         # Deprecating this so we're using the same param name as the events endpoints
         item_type = serialized.get("item_type")
@@ -417,9 +417,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                 aliased_attributes,
             )
 
-        sentry_sdk.set_context("api_response", {"attributes": attributes})
-        span.set_data("attribute_count", len(attributes))
-        span.set_data("attribute_type", attribute_type)
+            sentry_sdk.set_context("api_response", {"attributes": attributes})
+            span.set_data("attribute_count", len(attributes))
+            span.set_data("attribute_type", attribute_type)
         return attributes
 
     def serialize_trace_attributes_using_sentry_conventions(
@@ -429,7 +429,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         trace_item_type: SupportedTraceItemType,
         include_internal: bool,
         substring_match: str,
-        aliased_attributes: list[str],
+        aliased_attributes: list[ResolvedAttribute],
     ) -> list[TraceItemAttributeKey]:
         attribute_keys = {}
         for attribute in rpc_response.attributes:
