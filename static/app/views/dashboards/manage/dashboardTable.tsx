@@ -210,7 +210,7 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.NAME) {
       return (
-        <Text ellipsis underline variant="accent">
+        <Text ellipsis variant="accent">
           <Link
             to={{
               pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
