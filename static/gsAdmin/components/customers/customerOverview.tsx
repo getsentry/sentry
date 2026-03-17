@@ -452,7 +452,9 @@ function DynamicSampling({organization}: {organization: Organization}) {
       }
     >
       {/* When rates match, show just the rate instead of "X% instead of X% (~0%)" */}
-      {effectiveSampleRate && desiredSampleRate && diffSampleRate === 0
+      {effectiveSampleRate &&
+      desiredSampleRate &&
+      formatRate(effectiveSampleRate) === formatRate(desiredSampleRate)
         ? formatRate(effectiveSampleRate)
         : effectiveSampleRate && desiredSampleRate
           ? `${formatRate(effectiveSampleRate)} instead of ${formatRate(desiredSampleRate)} (~${formatRate(diffSampleRate!)})`

@@ -730,6 +730,37 @@ describe('CustomerOverview', () => {
     });
   });
 
+  it('renders matching rate without comparison when floating-point diff is near zero', async () => {
+    const organization = OrganizationFixture({
+      features: ['dynamic-sampling'],
+      desiredSampleRate: 0.6,
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+    });
+
+    // Simulates floating-point imprecision: 0.600001 * 100 !== 0.6 * 100
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
+      body: {effectiveSampleRate: 0.600001},
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    await waitFor(() => {
+      const term = screen.getByText('Sample Rate (24h):');
+      const definition = term.nextElementSibling;
+      expect(definition).toHaveTextContent('60%');
+      expect(definition).not.toHaveTextContent('instead of');
+    });
+  });
+
   it('renders effective sample rate with desired comparison string', async () => {
     const organization = OrganizationFixture({
       features: ['dynamic-sampling'],
