@@ -7,7 +7,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import get_cell_for_organization
+from sentry.types.cell import get_cell_for_organization
 
 
 @control_silo_test

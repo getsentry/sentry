@@ -14,7 +14,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.types.region import find_cells_for_orgs
+from sentry.types.cell import find_cells_for_orgs
 
 logger = logging.getLogger("sentry.auth.identity")
 

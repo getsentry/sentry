@@ -29,7 +29,7 @@ from sentry.issues.services.issue.model import RpcExternalIssueGroupMetadata
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.region import find_cells_for_orgs
+from sentry.types.cell import find_cells_for_orgs
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import cell_silo_view, control_silo_view
 

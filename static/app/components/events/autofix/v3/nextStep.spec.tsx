@@ -1,9 +1,11 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import type {
   AutofixSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
 import {SeerDrawerNextStep} from './nextStep';
 
@@ -23,10 +25,69 @@ function makeAutofix(
   } as ReturnType<typeof useExplorerAutofix>;
 }
 
-function makeSection(step: string): AutofixSection {
+function defaultArtifacts(step: string): AutofixSection['artifacts'] {
+  switch (step) {
+    case 'root_cause':
+      return [
+        {
+          key: 'root_cause',
+          reason: 'test',
+          data: {one_line_description: 'desc', five_whys: ['why']},
+        },
+      ];
+    case 'solution':
+      return [
+        {
+          key: 'solution',
+          reason: 'test',
+          data: {one_line_summary: 'summary', steps: [{title: 't', description: 'd'}]},
+        },
+      ];
+    case 'code_changes': {
+      const codeChange: ExplorerFilePatch = {
+        repo_name: 'repo',
+        diff: 'diff content',
+        patch: {
+          added: 1,
+          removed: 0,
+          path: 'file.py',
+          source_file: 'file.py',
+          target_file: 'file.py',
+          type: DiffFileType.MODIFIED,
+          hunks: [
+            {
+              section_header: '@@ -1,1 +1,2 @@',
+              source_start: 1,
+              source_length: 1,
+              target_start: 1,
+              target_length: 2,
+              lines: [
+                {
+                  diff_line_no: 1,
+                  line_type: DiffLineType.ADDED,
+                  source_line_no: null,
+                  target_line_no: 1,
+                  value: 'new line',
+                },
+              ],
+            },
+          ],
+        },
+      };
+      return [[codeChange]];
+    }
+    default:
+      return [];
+  }
+}
+
+function makeSection(
+  step: string,
+  artifacts?: AutofixSection['artifacts']
+): AutofixSection {
   return {
     step,
-    artifacts: [],
+    artifacts: artifacts ?? defaultArtifacts(step),
     messages: [],
     status: 'completed',
   };
@@ -46,6 +107,17 @@ describe('SeerDrawerNextStep', () => {
   });
 
   describe('RootCauseNextStep', () => {
+    it('returns null when section has no artifacts', () => {
+      const autofix = makeAutofix();
+      const {container} = render(
+        <SeerDrawerNextStep
+          sections={[makeSection('root_cause', [])]}
+          autofix={autofix}
+        />
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
     it('renders prompt and yes button', () => {
       const autofix = makeAutofix();
       render(
@@ -113,6 +185,14 @@ describe('SeerDrawerNextStep', () => {
   });
 
   describe('SolutionNextStep', () => {
+    it('returns null when section has no artifacts', () => {
+      const autofix = makeAutofix();
+      const {container} = render(
+        <SeerDrawerNextStep sections={[makeSection('solution', [])]} autofix={autofix} />
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
     it('renders prompt and yes button', () => {
       const autofix = makeAutofix();
       render(
@@ -182,6 +262,17 @@ describe('SeerDrawerNextStep', () => {
   });
 
   describe('CodeChangesNextStep', () => {
+    it('returns null when section has no artifacts', () => {
+      const autofix = makeAutofix();
+      const {container} = render(
+        <SeerDrawerNextStep
+          sections={[makeSection('code_changes', [])]}
+          autofix={autofix}
+        />
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
     it('renders prompt and yes button', () => {
       const autofix = makeAutofix();
       render(
