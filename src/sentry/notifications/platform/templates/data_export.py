@@ -1,6 +1,5 @@
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 import orjson
 from django.utils import timezone
@@ -24,14 +23,13 @@ def format_date(date: datetime) -> str:
     return date.strftime("%I:%M %p on %B %d, %Y (%Z)")
 
 
-@dataclass(frozen=True)
 class DataExportSuccess(NotificationData):
-    source = NotificationSource.DATA_EXPORT_SUCCESS
+    source: Literal[NotificationSource.DATA_EXPORT_SUCCESS] = NotificationSource.DATA_EXPORT_SUCCESS
     export_url: str
     expiration_date: datetime
 
 
-@template_registry.register(DataExportSuccess.source)
+@template_registry.register(NotificationSource.DATA_EXPORT_SUCCESS)
 class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
     category = NotificationCategory.DATA_EXPORT
     example_data = DataExportSuccess(
@@ -56,15 +54,14 @@ class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
         )
 
 
-@dataclass(frozen=True)
 class DataExportFailure(NotificationData):
-    source = NotificationSource.DATA_EXPORT_FAILURE
+    source: Literal[NotificationSource.DATA_EXPORT_FAILURE] = NotificationSource.DATA_EXPORT_FAILURE
     error_message: str
     error_payload: dict[str, Any]
     creation_date: datetime
 
 
-@template_registry.register(DataExportFailure.source)
+@template_registry.register(NotificationSource.DATA_EXPORT_FAILURE)
 class DataExportFailureTemplate(NotificationTemplate[DataExportFailure]):
     category = NotificationCategory.DATA_EXPORT
     example_data = DataExportFailure(

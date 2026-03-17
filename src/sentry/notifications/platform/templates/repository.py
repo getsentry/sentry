@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from typing import Literal
 
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
@@ -13,15 +13,16 @@ from sentry.notifications.platform.types import (
 )
 
 
-@dataclass(frozen=True)
 class UnableToDeleteRepository(NotificationData):
-    source = NotificationSource.UNABLE_TO_DELETE_REPOSITORY
+    source: Literal[NotificationSource.UNABLE_TO_DELETE_REPOSITORY] = (
+        NotificationSource.UNABLE_TO_DELETE_REPOSITORY
+    )
     repository_name: str
     provider_name: str
     error_message: str
 
 
-@template_registry.register(UnableToDeleteRepository.source)
+@template_registry.register(NotificationSource.UNABLE_TO_DELETE_REPOSITORY)
 class UnableToDeleteRepositoryTemplate(NotificationTemplate[UnableToDeleteRepository]):
     category = NotificationCategory.REPOSITORY
     example_data = UnableToDeleteRepository(

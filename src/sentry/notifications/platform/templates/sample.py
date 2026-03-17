@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import Literal
 
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
@@ -21,9 +21,8 @@ from sentry.notifications.platform.types import (
 )
 
 
-@dataclass(frozen=True)
 class ErrorAlertData(NotificationData):
-    source = NotificationSource.ERROR_ALERT
+    source: Literal[NotificationSource.ERROR_ALERT] = NotificationSource.ERROR_ALERT
     error_type: str
     error_message: str
     project_name: str
@@ -35,7 +34,7 @@ class ErrorAlertData(NotificationData):
     assign_url: str
 
 
-@template_registry.register(ErrorAlertData.source)
+@template_registry.register(NotificationSource.ERROR_ALERT)
 class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
     category = NotificationCategory.DEBUG
     example_data = ErrorAlertData(
@@ -115,9 +114,8 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
         )
 
 
-@dataclass(frozen=True)
 class DeploymentData(NotificationData):
-    source = NotificationSource.DEPLOYMENT
+    source: Literal[NotificationSource.DEPLOYMENT] = NotificationSource.DEPLOYMENT
     project_name: str
     version: str
     environment: str
@@ -128,7 +126,7 @@ class DeploymentData(NotificationData):
     rollback_url: str
 
 
-@template_registry.register(DeploymentData.source)
+@template_registry.register(NotificationSource.DEPLOYMENT)
 class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
     category = NotificationCategory.DEBUG
 
@@ -185,9 +183,10 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
         )
 
 
-@dataclass(frozen=True)
 class SlowLoadMetricAlertData(NotificationData):
-    source = NotificationSource.SLOW_LOAD_METRIC_ALERT
+    source: Literal[NotificationSource.SLOW_LOAD_METRIC_ALERT] = (
+        NotificationSource.SLOW_LOAD_METRIC_ALERT
+    )
     alert_type: str
     severity: str
     project_name: str
@@ -200,7 +199,7 @@ class SlowLoadMetricAlertData(NotificationData):
     chart_url: str
 
 
-@template_registry.register(SlowLoadMetricAlertData.source)
+@template_registry.register(NotificationSource.SLOW_LOAD_METRIC_ALERT)
 class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetricAlertData]):
     category = NotificationCategory.DEBUG
     example_data = SlowLoadMetricAlertData(
@@ -244,9 +243,10 @@ class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetri
         )
 
 
-@dataclass(frozen=True)
 class PerformanceAlertData(NotificationData):
-    source = NotificationSource.PERFORMANCE_MONITORING
+    source: Literal[NotificationSource.PERFORMANCE_MONITORING] = (
+        NotificationSource.PERFORMANCE_MONITORING
+    )
     metric_name: str
     threshold: str
     current_value: str
@@ -255,7 +255,7 @@ class PerformanceAlertData(NotificationData):
     investigation_url: str
 
 
-@template_registry.register(PerformanceAlertData.source)
+@template_registry.register(NotificationSource.PERFORMANCE_MONITORING)
 class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlertData]):
     category = NotificationCategory.DEBUG
     example_data = PerformanceAlertData(
@@ -311,9 +311,8 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
         )
 
 
-@dataclass(frozen=True)
 class TeamUpdateData(NotificationData):
-    source = NotificationSource.TEAM_COMMUNICATION
+    source: Literal[NotificationSource.TEAM_COMMUNICATION] = NotificationSource.TEAM_COMMUNICATION
     team_name: str
     update_type: str
     message: str
@@ -321,7 +320,7 @@ class TeamUpdateData(NotificationData):
     timestamp: str
 
 
-@template_registry.register(TeamUpdateData.source)
+@template_registry.register(NotificationSource.TEAM_COMMUNICATION)
 class TeamUpdateNotificationTemplate(NotificationTemplate[TeamUpdateData]):
     category = NotificationCategory.DEBUG
     example_data = TeamUpdateData(
