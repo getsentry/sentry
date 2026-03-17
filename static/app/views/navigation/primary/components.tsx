@@ -739,9 +739,8 @@ function PrimaryNavigationButtonFeatureBadge(props: FeatureBadgeProps) {
       {p => (
         <FeatureBadge
           {...mergeProps(p, props)}
-          type="alpha"
           aria-hidden="true"
-          style={{fontSize: '11px'}}
+          style={{fontSize: '11px', pointerEvents: 'none'}}
         />
       )}
     </Container>
