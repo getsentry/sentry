@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, Final, get_type_hints
 
 from sentry.models.organization import Organization
+from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.metrics import (
     NotificationEventLifecycleMetric,
     NotificationInteractionType,
@@ -14,6 +15,13 @@ from sentry.notifications.platform.provider import NotificationProvider, SendRes
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.rollout import NotificationRolloutService
 from sentry.notifications.platform.target import NotificationTargetDto
+from sentry.notifications.platform.threading import (
+    ThreadContext,
+    ThreadingConfig,
+    ThreadingLookup,
+    ThreadingOptions,
+    ThreadingService,
+)
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -45,7 +53,12 @@ class NotificationService[T: NotificationData]:
     ) -> bool:
         return NotificationRolloutService(organization=organization).should_notify(source=source)
 
-    def notify_target(self, *, target: NotificationTarget) -> SendResult:
+    def notify_target(
+        self,
+        *,
+        target: NotificationTarget,
+        threading_options: ThreadingOptions | None = None,
+    ) -> SendResult:
         """
         Send a notification directly to a target synchronously.
         NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
@@ -79,14 +92,42 @@ class NotificationService[T: NotificationData]:
                 data=self.data, template=template, provider=provider
             )
 
-            # Step 3: Send the notification
-            result = provider.send(target=target, renderable=renderable)
+            # Step 3: Resolve thread if threading requested
+            thread: NotificationThread | None = None
+            thread_context: ThreadContext | None = None
+            if threading_options is not None:
+                threading_lookup = ThreadingLookup(
+                    key_type=threading_options.thread_key.key_type,
+                    key_data=threading_options.thread_key.key_data,
+                    provider_key=target.provider_key,
+                    target_id=target.resource_id,
+                )
+                thread = ThreadingService.resolve(threading_lookup=threading_lookup)
+                thread_context = ThreadContext(
+                    thread_key=threading_options.thread_key,
+                    thread=thread,
+                    reply_broadcast=threading_options.reply_broadcast,
+                )
+
+            # Step 4: Send the notification
+            result = provider.send(
+                target=target, renderable=renderable, thread_context=thread_context
+            )
 
             match result.status:
                 case SendStatus.HALT:
                     lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
                 case SendStatus.FAILURE:
                     lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
+
+            # Step 5: Store threading result
+            if threading_options is not None:
+                NotificationService._handle_threading_result(
+                    threading_options=threading_options,
+                    thread=thread,
+                    target=target,
+                    result=result,
+                )
 
             return result
 
@@ -106,6 +147,7 @@ class NotificationService[T: NotificationData]:
         *,
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
+        threading_options: ThreadingOptions | None = None,
     ) -> None:
         """
         Send a notification directly to a target via task, if you care about using the result of the notification, use notify_sync instead.
@@ -119,6 +161,7 @@ class NotificationService[T: NotificationData]:
             notify_target_async.delay(
                 data=serialized_data,
                 nested_target=serialized_target.to_dict(),
+                threading_options=threading_options.dict() if threading_options else None,
             )
 
     def notify_sync(
@@ -126,13 +169,14 @@ class NotificationService[T: NotificationData]:
         *,
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
+        threading_options: ThreadingOptions | None = None,
     ) -> Mapping[NotificationProviderKey, list[SendResult]]:
         self._validate_strategy_and_targets(strategy=strategy, targets=targets)
         targets = self._get_targets(strategy=strategy, targets=targets)
 
         errors: dict[NotificationProviderKey, list[SendResult]] = defaultdict(list)
         for target in targets:
-            result = self.notify_target(target=target)
+            result = self.notify_target(target=target, threading_options=threading_options)
             if result.status != SendStatus.SUCCESS:
                 errors[target.provider_key].append(result)
 
@@ -166,6 +210,51 @@ class NotificationService[T: NotificationData]:
             return []
         return targets
 
+    @staticmethod
+    def _handle_threading_result(
+        *,
+        threading_options: ThreadingOptions,
+        thread: NotificationThread | None,
+        target: NotificationTarget,
+        result: SendResult,
+    ) -> None:
+        if result.status == SendStatus.SUCCESS and result.provider_message_id is not None:
+            if thread is None:
+                threading_config = ThreadingConfig(
+                    key_type=threading_options.thread_key.key_type,
+                    key_data=threading_options.thread_key.key_data,
+                    provider_key=target.provider_key,
+                    target_id=target.resource_id,
+                    thread_identifier=result.provider_message_id,
+                    provider_data=None,
+                )
+                ThreadingService.store_new_thread(
+                    threading_config=threading_config,
+                    external_message_id=result.provider_message_id,
+                )
+            else:
+                ThreadingService.store_existing_thread(
+                    thread=thread,
+                    external_message_id=result.provider_message_id,
+                )
+
+        # If the first send failed, then we don't create a record since it'll be orphaned
+        elif result.status in (SendStatus.HALT, SendStatus.FAILURE) and thread is not None:
+            ThreadingService.store_error(
+                thread=thread,
+                provider_key=target.provider_key,
+                target_id=target.resource_id,
+                error_details=result.error_details or {},
+            )
+        else:
+            logger.error(
+                "notifications.platform.service.invalid_threading_result",
+                extra={"result": result, "thread": thread, "target": target},
+            )
+            raise NotificationServiceError(
+                "Failed to store threading result due to malformed result"
+            )
+
 
 @instrumented_task(
     name="src.sentry.notifications.platform.service.notify_target_async",
@@ -177,6 +266,7 @@ def notify_target_async(
     *,
     data: dict[str, Any],
     nested_target: dict[str, Any],
+    threading_options: dict[str, Any] | None = None,
 ) -> None:
     """
     Send a notification directly to a target asynchronously.
@@ -193,6 +283,7 @@ def notify_target_async(
         return
 
     notification_data = notification_data_dto.notification_data
+    options = ThreadingOptions.parse_obj(threading_options) if threading_options else None
 
     lifecycle_metric = NotificationEventLifecycleMetric(
         interaction_type=NotificationInteractionType.NOTIFY_TARGET_ASYNC,
@@ -218,14 +309,40 @@ def notify_target_async(
             data=notification_data, template=template, provider=provider
         )
 
-        # Step 4: Send the notification
-        result = provider.send(target=target, renderable=renderable)
+        # Step 4: Resolve thread if threading requested
+        thread: NotificationThread | None = None
+        thread_context: ThreadContext | None = None
+        if options is not None:
+            threading_lookup = ThreadingLookup(
+                key_type=options.thread_key.key_type,
+                key_data=options.thread_key.key_data,
+                provider_key=target.provider_key,
+                target_id=target.resource_id,
+            )
+            thread = ThreadingService.resolve(threading_lookup=threading_lookup)
+            thread_context = ThreadContext(
+                thread_key=options.thread_key,
+                thread=thread,
+                reply_broadcast=options.reply_broadcast,
+            )
+
+        # Step 5: Send the notification
+        result = provider.send(target=target, renderable=renderable, thread_context=thread_context)
 
         match result.status:
             case SendStatus.HALT:
                 lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
             case SendStatus.FAILURE:
                 lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
+
+        # Step 6: Store threading result
+        if options is not None:
+            NotificationService._handle_threading_result(
+                threading_options=options,
+                thread=thread,
+                target=target,
+                result=result,
+            )
 
 
 @dataclass

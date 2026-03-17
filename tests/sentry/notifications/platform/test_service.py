@@ -5,6 +5,8 @@ from django.core.mail import EmailMultiAlternatives
 from django.utils import timezone
 
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.notifications.models.notificationrecord import NotificationRecord
+from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
 from sentry.notifications.platform.provider import SendResult, SendStatus
 from sentry.notifications.platform.service import (
@@ -17,8 +19,10 @@ from sentry.notifications.platform.target import (
     IntegrationNotificationTarget,
 )
 from sentry.notifications.platform.templates.data_export import DataExportFailure
+from sentry.notifications.platform.threading import ThreadingOptions, ThreadKey
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
+    NotificationSource,
     NotificationTargetResourceType,
 )
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
@@ -230,3 +234,191 @@ class NotificationDataDtoTest(TestCase):
         assert dto.notification_data.error_message == "Export failed"
         assert dto.notification_data.error_payload == {"export_type": "Issues", "project": [123]}
         assert dto.notification_data.creation_date == now
+
+
+class NotificationServiceThreadingTest(TestCase):
+    """Tests for threading orchestration in NotificationService."""
+
+    def setUp(self) -> None:
+        self.slack_integration = self.create_integration(
+            organization=self.organization, provider="slack", external_id="ext-threading"
+        )
+        self.target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.SLACK,
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id="C1234567890",
+            integration_id=self.slack_integration.id,
+            organization_id=self.organization.id,
+        )
+        self.threading_options = ThreadingOptions(
+            thread_key=ThreadKey(
+                key_type=NotificationSource.ERROR_ALERT,
+                key_data={"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"},
+            ),
+            reply_broadcast=True,
+        )
+
+    @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
+    def test_notify_target_with_threading_first_message(self, mock_send: mock.MagicMock) -> None:
+        """First message creates a new thread and record."""
+        mock_send.return_value = SendResult(
+            provider_message_id="1234567890.111111",
+            is_threaded=True,
+        )
+
+        service = NotificationService(data=MockNotification(message="test"))
+        service.notify_target(target=self.target, threading_options=self.threading_options)
+
+        assert NotificationThread.objects.count() == 1
+        thread = NotificationThread.objects.first()
+        assert thread is not None
+        assert thread.thread_identifier == "1234567890.111111"
+        assert thread.key_type == NotificationSource.ERROR_ALERT
+        assert thread.provider_key == NotificationProviderKey.SLACK
+        assert thread.target_id == "C1234567890"
+
+        assert NotificationRecord.objects.count() == 1
+        record = NotificationRecord.objects.first()
+        assert record is not None
+        assert record.thread_id == thread.id
+        assert record.message_id == "1234567890.111111"
+
+    @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
+    def test_notify_target_with_threading_subsequent_message(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        """Second message links to the existing thread."""
+        mock_send.return_value = SendResult(
+            provider_message_id="1234567890.111111", is_threaded=True
+        )
+        service = NotificationService(data=MockNotification(message="first"))
+        service.notify_target(target=self.target, threading_options=self.threading_options)
+
+        # Second message should resolve the existing thread and link to it
+        mock_send.return_value = SendResult(
+            provider_message_id="1234567890.222222", is_threaded=True
+        )
+        service = NotificationService(data=MockNotification(message="second"))
+        service.notify_target(target=self.target, threading_options=self.threading_options)
+
+        assert NotificationThread.objects.count() == 1
+        assert NotificationRecord.objects.count() == 2
+
+        records = list(NotificationRecord.objects.order_by("date_added"))
+        assert records[0].message_id == "1234567890.111111"
+        assert records[1].message_id == "1234567890.222222"
+        assert records[0].thread_id == records[1].thread_id
+
+    @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
+    def test_notify_target_passes_thread_context_to_provider(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        """Provider receives ThreadContext with the resolved thread on the second message."""
+        mock_send.return_value = SendResult(
+            provider_message_id="1234567890.111111", is_threaded=True
+        )
+        service = NotificationService(data=MockNotification(message="first"))
+        service.notify_target(target=self.target, threading_options=self.threading_options)
+
+        # First call: thread_context should have thread=None (no existing thread)
+        _, first_kwargs = mock_send.call_args
+        first_ctx = first_kwargs["thread_context"]
+        assert first_ctx is not None
+        assert first_ctx.thread is None
+        assert first_ctx.reply_broadcast is True
+
+        # Second call: thread_context should have the resolved thread
+        mock_send.return_value = SendResult(
+            provider_message_id="1234567890.222222", is_threaded=True
+        )
+        service = NotificationService(data=MockNotification(message="second"))
+        service.notify_target(target=self.target, threading_options=self.threading_options)
+
+        _, second_kwargs = mock_send.call_args
+        second_ctx = second_kwargs["thread_context"]
+        assert second_ctx is not None
+        assert second_ctx.thread is not None
+        assert second_ctx.thread.thread_identifier == "1234567890.111111"
+
+    @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
+    def test_notify_target_without_threading_options(self, mock_send: mock.MagicMock) -> None:
+        """Without threading_options, no threading DB operations happen."""
+        mock_send.return_value = SendResult()
+
+        service = NotificationService(data=MockNotification(message="test"))
+        service.notify_target(target=self.target)
+
+        mock_send.assert_called_once()
+        _, kwargs = mock_send.call_args
+        assert kwargs.get("thread_context") is None
+
+        assert NotificationThread.objects.count() == 0
+        assert NotificationRecord.objects.count() == 0
+
+    @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
+    def test_notify_target_with_threading_failure_on_existing_thread(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        """Failed send on an existing thread stores an error record."""
+        # First message succeeds and creates the thread
+        mock_send.return_value = SendResult(
+            provider_message_id="1234567890.111111", is_threaded=True
+        )
+        service = NotificationService(data=MockNotification(message="first"))
+        service.notify_target(target=self.target, threading_options=self.threading_options)
+
+        # Second message fails
+        mock_send.return_value = SendResult(
+            status=SendStatus.HALT,
+            exception=IntegrationConfigurationError(message="channel_not_found"),
+            error_code=404,
+            error_details={"msg": "channel_not_found"},
+        )
+        service = NotificationService(data=MockNotification(message="second"))
+        service.notify_target(target=self.target, threading_options=self.threading_options)
+
+        assert NotificationThread.objects.count() == 1
+        # 2 records: first success + second error
+        assert NotificationRecord.objects.count() == 2
+
+        error_record = NotificationRecord.objects.filter(message_id="").first()
+        assert error_record is not None
+        assert error_record.error_details == {"msg": "channel_not_found"}
+        assert error_record.thread is not None
+
+    @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
+    def test_notify_target_with_threading_failure_on_first_message(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        """Failed send on the first message (no thread exists) raises."""
+        mock_send.return_value = SendResult(
+            status=SendStatus.HALT,
+            exception=IntegrationConfigurationError(message="channel_not_found"),
+            error_code=404,
+            error_details={"msg": "channel_not_found"},
+        )
+
+        service = NotificationService(data=MockNotification(message="test"))
+        with pytest.raises(NotificationServiceError):
+            service.notify_target(target=self.target, threading_options=self.threading_options)
+
+    @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
+    def test_notify_async_threading_end_to_end(self, mock_send: mock.MagicMock) -> None:
+        """Full async flow: notify_async → task → resolve → send → store."""
+        mock_send.return_value = SendResult(
+            provider_message_id="1234567890.111111", is_threaded=True
+        )
+
+        service = NotificationService(data=MockNotification(message="async test"))
+        with self.tasks():
+            service.notify_async(targets=[self.target], threading_options=self.threading_options)
+
+        assert NotificationThread.objects.count() == 1
+        thread = NotificationThread.objects.first()
+        assert thread is not None
+        assert thread.thread_identifier == "1234567890.111111"
+
+        assert NotificationRecord.objects.count() == 1
+        record = NotificationRecord.objects.first()
+        assert record is not None
+        assert record.thread_id == thread.id

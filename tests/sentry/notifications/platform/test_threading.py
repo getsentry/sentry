@@ -5,7 +5,9 @@ from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.threading import (
     ThreadingConfig,
     ThreadingLookup,
+    ThreadingOptions,
     ThreadingService,
+    ThreadKey,
 )
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.testutils.cases import TestCase
@@ -236,3 +238,55 @@ class ThreadingServiceStoreExistingThreadTest(ThreadingServiceTestBase):
 
         assert NotificationThread.objects.count() == 1
         assert NotificationRecord.objects.count() == 2
+
+
+class ThreadingServiceStoreErrorTest(ThreadingServiceTestBase):
+    def test_store_error_with_existing_thread(self) -> None:
+        thread, _ = ThreadingService.store_new_thread(
+            threading_config=self.threading_config,
+            external_message_id=self.message_id,
+        )
+
+        error_details = {"msg": "channel_not_found", "error_code": 404}
+        record = ThreadingService.store_error(
+            thread=thread,
+            provider_key=self.provider_key,
+            target_id=self.target_id,
+            error_details=error_details,
+        )
+
+        assert record.thread_id == thread.id
+        assert record.message_id == ""
+        assert record.error_details == error_details
+        assert record.provider_key == self.provider_key
+        assert record.target_id == self.target_id
+
+
+class ThreadingOptionsTest(TestCase):
+    def test_to_dict_from_dict_roundtrip(self) -> None:
+        options = ThreadingOptions(
+            thread_key=ThreadKey(
+                key_type=NotificationSource.ERROR_ALERT,
+                key_data={"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"},
+            ),
+            reply_broadcast=True,
+        )
+
+        serialized = options.dict()
+        deserialized = ThreadingOptions.parse_obj(serialized)
+
+        assert deserialized.thread_key.key_type == options.thread_key.key_type
+        assert deserialized.thread_key.key_data == options.thread_key.key_data
+        assert deserialized.reply_broadcast == options.reply_broadcast
+
+    def test_from_dict_defaults_reply_broadcast_to_false(self) -> None:
+        data = {
+            "thread_key": {
+                "key_type": NotificationSource.ERROR_ALERT.value,
+                "key_data": {"id": 1},
+            },
+        }
+
+        options = ThreadingOptions.parse_obj(data)
+
+        assert options.reply_broadcast is False
