@@ -52,7 +52,7 @@ def naive_build_integration(data):
 )
 class FinishPipelineTestCase(IntegrationTestCase):
     provider = ExampleIntegrationProvider
-    regions = (
+    cells = (
         Cell("na", 0, "North America", RegionCategory.MULTI_TENANT),
         Cell("eu", 5, "Europe", RegionCategory.MULTI_TENANT),
     )
@@ -73,7 +73,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ):
             yield
 
-    def _setup_region_restriction(self):
+    def _setup_cell_restriction(self):
         self.provider.is_region_restricted = True
         na_orgs = [
             self.create_organization(name="na_org"),
@@ -141,30 +141,30 @@ class FinishPipelineTestCase(IntegrationTestCase):
             ).exists()
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_provider_should_check_region_violation(self, *args) -> None:
-        """Ensures we validate regions if `provider.is_region_restricted` is set to True"""
+    def test_provider_should_check_cell_violation(self, *args) -> None:
+        """Ensures we validate cells if `provider.is_region_restricted` is set to True"""
         self.provider.is_region_restricted = True
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch(
-            "sentry.integrations.pipeline.is_violating_region_restriction"
+            "sentry.integrations.pipeline.is_violating_cell_restriction"
         ) as mock_check_violation:
             self.pipeline.finish_pipeline()
             assert mock_check_violation.called
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_provider_should_not_check_region_violation(self, *args) -> None:
-        """Ensures we don't reject regions if `provider.is_region_restricted` is set to False"""
+    def test_provider_should_not_check_cell_violation(self, *args) -> None:
+        """Ensures we don't reject cells if `provider.is_region_restricted` is set to False"""
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch(
-            "sentry.integrations.pipeline.is_violating_region_restriction"
+            "sentry.integrations.pipeline.is_violating_cell_restriction"
         ) as mock_check_violation:
             self.pipeline.finish_pipeline()
             assert not mock_check_violation.called
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_is_violating_region_restriction_success(self, *args) -> None:
-        """Ensures pipeline can complete if all integration organizations reside in one region."""
-        self._setup_region_restriction()
+    def test_is_violating_cell_restriction_success(self, *args) -> None:
+        """Ensures pipeline can complete if all integration organizations reside in one cell."""
+        self._setup_cell_restriction()
 
         # Installing organization is from the same region
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
@@ -174,7 +174,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         self.pipeline.state.data = {"external_id": self.external_id}
         with (
-            override_regions(self.regions),
+            override_regions(self.cells),
             patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp,
         ):
             self.pipeline.finish_pipeline()
@@ -182,18 +182,18 @@ class FinishPipelineTestCase(IntegrationTestCase):
             assert success
 
     @patch("sentry.signals.integration_added.send_robust")
-    def test_is_violating_region_restriction_failure(self, *args) -> None:
-        """Ensures pipeline can produces an error if all integration organizations do not reside in one region."""
-        self._setup_region_restriction()
+    def test_is_violating_cell_restriction_failure(self, *args) -> None:
+        """Ensures pipeline can produces an error if all integration organizations do not reside in one cell."""
+        self._setup_cell_restriction()
 
-        # Installing organization is from a different region
+        # Installing organization is from a different cell
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             mapping.update(cell_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
-        with override_regions(self.regions):
+        with override_regions(self.cells):
             response = self.pipeline.finish_pipeline()
             assert isinstance(response, HttpResponse)
             error_message = "This integration has already been installed on another Sentry organization which resides in a different region. Installation could not be completed."
