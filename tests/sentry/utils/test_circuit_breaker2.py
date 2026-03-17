@@ -127,6 +127,7 @@ class CircuitBreakerTest(TestCase):
 
         assert breaker.__dict__ == {
             "key": "dogs_are_great",
+            "metrics_key": "dogs_are_great",
             "broken_state_key": "dogs_are_great.circuit_breaker.broken",
             "recovery_state_key": "dogs_are_great.circuit_breaker.in_recovery",
             "error_limit": 200,
@@ -162,6 +163,25 @@ class CircuitBreakerTest(TestCase):
             "prefix_override": "dogs_are_great.circuit_breaker.recovery",
         }
         assert isinstance(breaker.redis_pipeline, Pipeline)
+
+    def test_metrics_key_defaults_to_key(self) -> None:
+        breaker = MockCircuitBreaker("dogs_are_great", DEFAULT_CONFIG)
+        assert breaker.metrics_key == "dogs_are_great"
+
+    @patch("sentry.utils.circuit_breaker2.metrics.incr")
+    def test_metrics_key_override_used_in_metrics(self, mock_metrics_incr: MagicMock) -> None:
+        config: CircuitBreakerConfig = {**DEFAULT_CONFIG, "metrics_key": "system.webhook"}
+        breaker = MockCircuitBreaker("sentry_app.12345", config)
+        assert breaker.key == "sentry_app.12345"
+        assert breaker.metrics_key == "system.webhook"
+
+        # Cache keys still use the per-app key
+        assert "sentry_app.12345" in breaker.broken_state_key
+
+        # Metrics use the system-level key
+        breaker._set_breaker_state(CircuitBreakerState.BROKEN)
+        breaker.should_allow_request()
+        mock_metrics_incr.assert_called_with("circuit_breaker.system.webhook.request_blocked")
 
     @patch("sentry.utils.circuit_breaker2.logger")
     def test_fixes_too_loose_recovery_limit(self, mock_logger: MagicMock) -> None:

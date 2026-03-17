@@ -61,6 +61,9 @@ class CircuitBreakerConfig(TypedDict):
     error_rate_threshold: NotRequired[float]
     # Minimum absolute error count before the rate check applies
     error_floor: NotRequired[int]
+    # Optional override for the key used in metric names. Use when the cache key is high-cardinality
+    # (e.g. per-app) but metrics should aggregate at a system level. Defaults to `key`.
+    metrics_key: NotRequired[str]
 
 
 # A limit to be used in rate-based mode to track total requests. Should not be used in count-based mode.
@@ -137,6 +140,7 @@ class CircuitBreaker:
 
     def __init__(self, key: str, config: CircuitBreakerConfig):
         self.key = key
+        self.metrics_key = config.get("metrics_key", key)
         self.broken_state_key = f"{key}.circuit_breaker.broken"
         self.recovery_state_key = f"{key}.circuit_breaker.in_recovery"
 
@@ -358,7 +362,7 @@ class CircuitBreaker:
                 },
             )
             metrics.incr(
-                f"circuit_breaker.{self.key}.error_limit_hit",
+                f"circuit_breaker.{self.metrics_key}.error_limit_hit",
                 sample_rate=1.0,
                 tags={"current_state": state.value},
             )
@@ -398,7 +402,7 @@ class CircuitBreaker:
         state, _ = self._get_state_and_remaining_time()
 
         if state == CircuitBreakerState.BROKEN:
-            metrics.incr(f"circuit_breaker.{self.key}.request_blocked")
+            metrics.incr(f"circuit_breaker.{self.metrics_key}.request_blocked")
             return False
 
         controlling_quota = self._get_controlling_quota(state)
@@ -407,7 +411,7 @@ class CircuitBreaker:
         # said, it's possible we could be in a race condition and hit this just as the state is
         # being changed, so just to be safe we also check here.
         if self._should_trip(controlling_quota):
-            metrics.incr(f"circuit_breaker.{self.key}.request_blocked")
+            metrics.incr(f"circuit_breaker.{self.metrics_key}.request_blocked")
             return False
 
         return True
