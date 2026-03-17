@@ -66,6 +66,7 @@ const config: Config.InitialOptions = {
     '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.mjs?$': ['babel-jest', babelConfig as any],
+    '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length
