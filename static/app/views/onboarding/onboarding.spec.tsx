@@ -585,6 +585,10 @@ describe('Onboarding', () => {
         url: `/organizations/${scmOrganization.slug}/integrations/`,
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/repos/`,
+        body: [],
+      });
     });
 
     function renderOnboarding(step: string) {
@@ -666,6 +670,10 @@ describe('Onboarding', () => {
             },
           },
         ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/repos/`,
+        body: [],
       });
 
       renderOnboarding('scm-connect');
