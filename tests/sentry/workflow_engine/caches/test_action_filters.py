@@ -16,7 +16,9 @@ from sentry.workflow_engine.models import (
 
 
 @contextmanager
-def mock_query_action_filters(return_value: ActionFiltersByWorkflow = None) -> Generator[MagicMock]:
+def mock_query_action_filters(
+    return_value: ActionFiltersByWorkflow | None = None,
+) -> Generator[MagicMock]:
     with patch(
         "sentry.workflow_engine.caches.action_filters._query_action_filters_by_workflows",
         return_value=return_value,
@@ -25,7 +27,9 @@ def mock_query_action_filters(return_value: ActionFiltersByWorkflow = None) -> G
 
 
 @contextmanager
-def mock_check_action_filters_cache(return_value: _CacheResults = None) -> Generator[MagicMock]:
+def mock_check_action_filters_cache(
+    return_value: _CacheResults | None = None,
+) -> Generator[MagicMock]:
     with patch(
         "sentry.workflow_engine.caches.action_filters._check_cache_by_workflows",
         return_value=return_value,
