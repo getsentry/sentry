@@ -313,7 +313,6 @@ export function MetricSelector({
   const {listBoxProps} = useListBox(
     {
       shouldFocusWrap: true,
-      shouldFocusOnHover: true,
       shouldSelectOnPressUp: true,
       'aria-labelledby': triggerId,
     },
@@ -532,6 +531,7 @@ export function MetricSelector({
                                   key={item.key}
                                   item={item}
                                   listState={listState}
+                                  onSelect={handleSelect}
                                   size="md"
                                   dataIndex={virtualRow.index}
                                   measureRef={virtualizer.measureElement}
@@ -565,6 +565,7 @@ interface MetricListBoxOptionProps {
   dataIndex: number;
   item: Node<MetricSelectOption>;
   listState: ListState<MetricSelectOption>;
+  onSelect: (option: MetricSelectOption) => void;
   size: MenuListItemProps['size'];
   measureRef?: React.Ref<HTMLLIElement>;
 }
@@ -572,6 +573,7 @@ interface MetricListBoxOptionProps {
 function MetricListBoxOption({
   item,
   listState,
+  onSelect,
   size,
   dataIndex,
   measureRef,
@@ -583,10 +585,23 @@ function MetricListBoxOption({
     listState,
     ref
   );
+  const optionPropsMerged = mergeProps(optionProps, {
+    onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+      if (e.key !== 'Enter' || !listState.selectionManager.isSelected(item.key)) {
+        return;
+      }
+      e.preventDefault();
+      onSelect(option);
+    },
+    onMouseEnter: () => {
+      listState.selectionManager.setFocused(true);
+      listState.selectionManager.setFocusedKey(item.key);
+    },
+  });
 
   return (
     <MenuListItem
-      {...optionProps}
+      {...optionPropsMerged}
       as="li"
       data-index={dataIndex}
       ref={mergeRefs(ref, measureRef)}
