@@ -94,10 +94,11 @@ export function Context({
   const hasScmSourceContext = organization.features.includes('scm-source-context');
   const shouldFetchSourceContext =
     hasScmSourceContext &&
+    defined(project) &&
     !hasContextSource &&
     isExpanded &&
     !!frame.lineNo &&
-    !!frame.filename &&
+    !!(frame.filename || frame.absPath) &&
     frame.inApp;
 
   const {data: sourceContextData, isPending: isLoadingSourceContext} = useSourceContext(
