@@ -11,9 +11,10 @@ import {
 } from 'sentry/components/events/interfaces/frame/utils';
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
-import type {Event, Frame} from 'sentry/types/event';
+import type {Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 function getFrameDisplayPath(frame: Frame, platform: PlatformKey) {
   const framePlatform = getPlatform(frame.platform, platform);
@@ -52,7 +53,6 @@ interface FrameHeaderProps {
 export function FrameHeader({actions}: FrameHeaderProps) {
   const [isHovering, setIsHovering] = useState(false);
   const {
-    event,
     frame,
     frameContextId,
     isExpandable,
@@ -85,7 +85,6 @@ export function FrameHeader({actions}: FrameHeaderProps) {
       <MainContent isMuted={hasLeadHint} isExpanded={isExpanded}>
         <FrameLocation
           frame={frame}
-          event={event}
           platform={platform}
           isExpanded={isExpanded}
           leadsToApp={leadsToApp}
@@ -105,37 +104,20 @@ export function FrameHeader({actions}: FrameHeaderProps) {
 
 function FrameLocation({
   frame,
-  event,
   platform,
   isExpanded,
   leadsToApp,
   hasNextFrame,
 }: {
-  event: Event;
   frame: Frame;
   hasNextFrame: boolean;
   isExpanded: boolean;
   leadsToApp: boolean;
   platform: PlatformKey;
 }) {
+  const {event} = useStackTraceFrameContext();
   const frameDisplayPath = getFrameDisplayPath(frame, platform);
   const frameLocationSuffix = formatFrameLocation('', frame.lineNo, frame.colNo);
-
-  const framePathTooltip =
-    frame.absPath && frame.absPath !== frameDisplayPath
-      ? formatFrameLocation(frame.absPath, frame.lineNo, frame.colNo)
-      : undefined;
-
-  const sourceMapInfoText = frame.mapUrl ?? frame.map;
-  const shouldShowSourceMapInfo = !!frame.origAbsPath && !!sourceMapInfoText;
-
-  const frameInfoTooltip =
-    framePathTooltip || shouldShowSourceMapInfo ? (
-      <CombinedTooltipContent
-        absPath={framePathTooltip}
-        sourceMapInfo={shouldShowSourceMapInfo ? sourceMapInfoText : undefined}
-      />
-    ) : undefined;
 
   return (
     <LocationWrapper>
@@ -145,21 +127,14 @@ function FrameLocation({
           {': '}
         </LeadHint>
       ) : null}
-      <Tooltip
-        title={frameInfoTooltip}
-        disabled={!frameInfoTooltip}
-        maxWidth={450}
-        skipWrapper
-        delay={1000}
-        isHoverable
-      >
+      <FrameLocationTooltip frame={frame} frameDisplayPath={frameDisplayPath}>
         <Path data-test-id="core-stacktrace-frame-location">
           <span>
             <span>{frameDisplayPath}</span>
             {frameLocationSuffix ? <span>{frameLocationSuffix}</span> : null}
           </span>
         </Path>
-      </Tooltip>
+      </FrameLocationTooltip>
     </LocationWrapper>
   );
 }
@@ -196,28 +171,65 @@ function FrameContext({frame, platform}: {frame: Frame; platform: PlatformKey}) 
   );
 }
 
-function CombinedTooltipContent({
-  absPath,
-  sourceMapInfo,
+function FrameLocationTooltip({
+  frame,
+  frameDisplayPath,
+  children,
 }: {
-  absPath: string | undefined;
-  sourceMapInfo: string | undefined;
+  children: React.ReactNode;
+  frame: Frame;
+  frameDisplayPath: string;
 }) {
+  const absPath =
+    frame.absPath && frame.absPath !== frameDisplayPath
+      ? formatFrameLocation(frame.absPath, frame.lineNo, frame.colNo)
+      : undefined;
+
+  const sourceMapInfoText = frame.mapUrl ?? frame.map;
+  const showSourceMap = !!frame.origAbsPath && !!sourceMapInfoText;
+  const externalUrl = frame.absPath && isUrl(frame.absPath) ? frame.absPath : undefined;
+
+  const hasContent = !!absPath || showSourceMap || !!externalUrl;
+
   return (
-    <CombinedTooltipContentContainer>
-      {absPath ? (
-        <Fragment>
-          <strong>{t('File')}</strong>
-          <span>{absPath}</span>
-        </Fragment>
-      ) : null}
-      {sourceMapInfo ? (
-        <Fragment>
-          <strong>{t('Source Map')}</strong>
-          <span>{sourceMapInfo}</span>
-        </Fragment>
-      ) : null}
-    </CombinedTooltipContentContainer>
+    <Tooltip
+      title={
+        <TooltipContent>
+          {absPath ? (
+            <Fragment>
+              <strong>{t('File')}</strong>
+              <span>{absPath}</span>
+            </Fragment>
+          ) : null}
+          {showSourceMap ? (
+            <Fragment>
+              <strong>{t('Source Map')}</strong>
+              <span>{sourceMapInfoText}</span>
+            </Fragment>
+          ) : null}
+          {externalUrl ? (
+            <Fragment>
+              <strong>{t('URL')}</strong>
+              <a
+                href={externalUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={e => e.stopPropagation()}
+              >
+                {externalUrl}
+              </a>
+            </Fragment>
+          ) : null}
+        </TooltipContent>
+      }
+      disabled={!hasContent}
+      maxWidth={450}
+      skipWrapper
+      delay={1000}
+      isHoverable
+    >
+      {children}
+    </Tooltip>
   );
 }
 
@@ -333,7 +345,7 @@ const PkgName = styled('span')`
   white-space: nowrap;
 `;
 
-const CombinedTooltipContentContainer = styled('div')`
+const TooltipContent = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: baseline;

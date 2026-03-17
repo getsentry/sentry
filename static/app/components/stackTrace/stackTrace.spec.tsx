@@ -788,4 +788,35 @@ describe('Core StackTrace', () => {
       await screen.findByText('No additional details are available for this frame.')
     ).toBeInTheDocument();
   });
+
+  it('shows URL link in tooltip when absPath is an http URL', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+    render(
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              absPath: 'https://example.com/static/app.js',
+              filename: 'app.js',
+              inApp: true,
+            },
+          ],
+        }}
+      >
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    const location = await screen.findByTestId('core-stacktrace-frame-location');
+    await userEvent.hover(location);
+
+    expect(
+      await screen.findByRole('link', {name: 'https://example.com/static/app.js'})
+    ).toHaveAttribute('href', 'https://example.com/static/app.js');
+  });
 });
