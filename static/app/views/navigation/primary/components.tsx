@@ -67,19 +67,12 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
     !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
   return (
-    <Flex
-      as="header"
-      direction="column"
-      align="center"
-      justify="center"
-      position="relative"
-      {...props}
-    >
+    <Flex as="header" direction="column" align="center" justify="center" {...props}>
       {props.children}
       {showSuperuserWarning && (
         <Container
           position="absolute"
-          top={`-${theme.space.lg}`}
+          top={0}
           left={0}
           width={`${PRIMARY_SIDEBAR_WIDTH}px`}
           style={{
