@@ -152,6 +152,12 @@ describe('RootCauseCard', () => {
     );
 
     expect(screen.getByText('Root Cause')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer failed to generate a root cause. This one is on us. Try running it again.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
   });
 
   it('handles empty five_whys with placeholder', () => {
@@ -224,6 +230,12 @@ describe('SolutionCard', () => {
     );
 
     expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer failed to generate an implementation plan. This one is on us. Try running it again.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
   });
 });
 
@@ -302,7 +314,12 @@ describe('CodeChangesCard', () => {
     );
 
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
-    expect(screen.getByText('0 files changed in 0 repos')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Seer failed to generate a code change. This one is on us. Try running it again.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-run'})).toBeInTheDocument();
   });
 });
 
