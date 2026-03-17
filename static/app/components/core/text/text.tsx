@@ -177,11 +177,10 @@ export const Text = styled(
 
   color: ${p =>
     p.variant === 'inherit'
-      ? 'inherit'
-      : p.variant
-        ? (p.theme.tokens.content[p.variant === 'muted' ? 'secondary' : p.variant] ??
-          p.theme.tokens.content.primary)
-        : p.theme.tokens.content.primary};
+      ? undefined
+      : p.theme.tokens.content[
+          p.variant === 'muted' ? 'secondary' : (p.variant ?? 'primary')
+        ]};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};

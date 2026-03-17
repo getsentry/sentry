@@ -57,9 +57,11 @@ export const Heading = styled(
   text-decoration: ${p => getTextDecoration(p)};
 
   color: ${p =>
-    p.theme.tokens.content[
-      p.variant === 'muted' ? 'secondary' : (p.variant ?? 'primary')
-    ]};
+    p.variant === 'inherit'
+      ? undefined
+      : p.theme.tokens.content[
+          p.variant === 'muted' ? 'secondary' : (p.variant ?? 'primary')
+        ]};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
