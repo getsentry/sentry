@@ -28,7 +28,7 @@ Use a custom renderer when:
 Do NOT use a custom renderer when:
 
 - The default block types (`ParagraphBlock`, `CodeBlock`, `PlainTextBlock`, `BoldTextBlock`, `CodeTextBlock`) are sufficient
-- You only need to tweak styling — that's the default renderer's job
+- You only need to tweak styling — the default renderers establish common styles that the majority of notifications should abide by.
 
 ## File Placement
 

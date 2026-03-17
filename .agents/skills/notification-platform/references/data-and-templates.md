@@ -106,13 +106,7 @@ class DataExportFailureTemplate(NotificationTemplate[DataExportFailure]):
 
 ## NotificationCategory to NotificationSource Mapping
 
-| Category           | Sources                                                                                                       |
-| ------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `DEBUG`            | `TEST`, `ERROR_ALERT`, `DEPLOYMENT`, `SLOW_LOAD_METRIC_ALERT`, `PERFORMANCE_MONITORING`, `TEAM_COMMUNICATION` |
-| `DATA_EXPORT`      | `DATA_EXPORT_SUCCESS`, `DATA_EXPORT_FAILURE`                                                                  |
-| `DYNAMIC_SAMPLING` | `CUSTOM_RULE_SAMPLES_FULFILLED`                                                                               |
-| `REPOSITORY`       | `UNABLE_TO_DELETE_REPOSITORY`                                                                                 |
-| `SEER`             | `SEER_AUTOFIX_TRIGGER`, `SEER_AUTOFIX_ERROR`, `SEER_AUTOFIX_SUCCESS`, `SEER_AUTOFIX_UPDATE`                   |
+> For a complete list of `NotificationCategory` to `NotificationSource` mappings, load `src/sentry/notifications/platform/types.py`.
 
 ## NotificationRenderedTemplate Field Reference
 

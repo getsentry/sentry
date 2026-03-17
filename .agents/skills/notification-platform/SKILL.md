@@ -33,7 +33,9 @@ After any operation, continue to Step 8 (Test) and Step 9 (Verify).
 
 ## Step 2: Define the Notification Source
 
-Every notification needs a unique `NotificationSource` enum value and must be mapped to a `NotificationCategory`.
+Every notification needs a unique `NotificationSource` enum value and must be mapped to a `NotificationCategory`. A `NotificationSource` should represent the domain or feature that a given notification belongs to.
+
+> For examples, load `src/sentry/notifications/platform/types.py`.
 
 **File:** `types.py`
 
@@ -55,7 +57,7 @@ NOTIFICATION_SOURCE_MAP[NotificationCategory.MY_CATEGORY].append(
 
 If no existing `NotificationCategory` fits, add a new one to the `NotificationCategory` enum first, then create its entry in `NOTIFICATION_SOURCE_MAP`.
 
-**Current categories:** `DEBUG`, `DATA_EXPORT`, `DYNAMIC_SAMPLING`, `REPOSITORY`, `SEER`
+All `NotificationCategory` options are defined in the `src/sentry/notifications/platform/types.py` file.
 
 ## Step 3: Create the Notification Data
 

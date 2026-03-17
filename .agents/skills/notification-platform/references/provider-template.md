@@ -2,16 +2,16 @@
 
 ## Provider Protocol Requirements
 
-| Attribute/Method               | Type                                      | Description                                   |
-| ------------------------------ | ----------------------------------------- | --------------------------------------------- |
-| `key`                          | `NotificationProviderKey`                 | Unique enum value for this provider           |
-| `default_renderer`             | `type[NotificationRenderer[RenderableT]]` | Default renderer class                        |
-| `target_class`                 | `type[NotificationTarget]`                | Target class this provider accepts            |
-| `target_resource_types`        | `list[NotificationTargetResourceType]`    | Supported resource types                      |
-| `validate_target(target)`      | classmethod                               | Validates target is correct type for provider |
-| `get_renderer(data, category)` | classmethod                               | Returns renderer class (default or custom)    |
-| `is_available(organization)`   | classmethod                               | Whether provider is enabled                   |
-| `send(target, renderable)`     | classmethod                               | Delivers the rendered notification            |
+| Attribute/Method               | Type                                      | Description                                                                                                                                                       |
+| ------------------------------ | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `key`                          | `NotificationProviderKey`                 | Unique enum value for this provider                                                                                                                               |
+| `default_renderer`             | `type[NotificationRenderer[RenderableT]]` | Default renderer class                                                                                                                                            |
+| `target_class`                 | `type[NotificationTarget]`                | Target class this provider accepts                                                                                                                                |
+| `target_resource_types`        | `list[NotificationTargetResourceType]`    | Supported resource types                                                                                                                                          |
+| `validate_target(target)`      | classmethod                               | Validates target is correct type for provider                                                                                                                     |
+| `get_renderer(data, category)` | classmethod                               | Returns renderer class (default or custom)                                                                                                                        |
+| `is_available(organization)`   | classmethod                               | Whether provider is enabled                                                                                                                                       |
+| `send(target, renderable)`     | classmethod                               | Delivers the rendered notification, typically by instantiating an `IntegrationInstallation` class of the matching provider type, and invoking its dispatch method |
 
 ## Provider Scaffold
 
