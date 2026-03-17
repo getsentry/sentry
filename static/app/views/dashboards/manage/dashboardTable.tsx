@@ -231,7 +231,7 @@ function DashboardTable({
         </Flex>
       ) : (
         <Flex justify="between" align="center" gap="3xl">
-          <Tooltip title="Sentry">
+          <Tooltip title={PREBUILT_DASHBOARD_LABEL}>
             <ActivityAvatar type="system" size={26} />
           </Tooltip>
         </Flex>
