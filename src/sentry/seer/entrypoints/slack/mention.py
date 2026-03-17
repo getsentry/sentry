@@ -2,10 +2,18 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from sentry.integrations.slack.unfurl.handlers import match_link
 from sentry.integrations.slack.unfurl.types import LinkType
+
+
+@dataclass(frozen=True)
+class IssueLink:
+    group_id: int
+    event_id: str | None = None
+
 
 # Slack formats URLs as <URL|label> or <URL>
 _SLACK_URL_RE = re.compile(r"<(https?://[^|>]+)(?:\|[^>]*)?>")
@@ -23,19 +31,19 @@ def extract_prompt(text: str, bot_user_id: str) -> str:
     return re.sub(r" {2,}", " ", cleaned)
 
 
-def extract_issue_links(text: str) -> list[tuple[int, str | None]]:
-    """Extract Sentry issue ``(group_id, event_id)`` tuples from Slack message text."""
+def extract_issue_links(text: str) -> list[IssueLink]:
+    """Extract Sentry issue links from Slack message text."""
     urls = _SLACK_URL_RE.findall(text)
-    results: list[tuple[int, str | None]] = []
-    seen_issue_ids: set[int] = set()
+    results: list[IssueLink] = []
+    seen_group_ids: set[int] = set()
 
     for url in urls:
         link_type, args = match_link(url)
         if link_type == LinkType.ISSUES and args is not None:
-            issue_id: int = args["issue_id"]
-            if issue_id not in seen_issue_ids:
-                seen_issue_ids.add(issue_id)
-                results.append((issue_id, args.get("event_id")))
+            group_id: int = args["issue_id"]
+            if group_id not in seen_group_ids:
+                seen_group_ids.add(group_id)
+                results.append(IssueLink(group_id=group_id, event_id=args.get("event_id")))
 
     return results
 
