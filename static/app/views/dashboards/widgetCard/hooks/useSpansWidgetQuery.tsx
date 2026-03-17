@@ -27,11 +27,12 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
+import {SERIES_NAME_PART_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {labelSeriesForLegend} from 'sentry/views/dashboards/utils/labelSeriesForLegend';
+import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -213,18 +214,21 @@ export function useSpansSeriesQuery(
 
       rawData[requestIndex] = responseData;
 
-      const transformedResult = labelSeriesForLegend(
-        SpansConfig.transformSeries!(
-          responseData,
-          filteredWidget.queries[requestIndex]!,
-          organization
-        ),
+      const transformedResult = SpansConfig.transformSeries!(
+        responseData,
+        filteredWidget.queries[requestIndex]!,
+        organization
+      );
+      const seriesQueryPrefix = getSeriesQueryPrefix(
         filteredWidget.queries[requestIndex]!,
         filteredWidget
       );
 
       // Maintain color consistency
       transformedResult.forEach((result: Series, resultIndex: number) => {
+        if (seriesQueryPrefix) {
+          result.seriesName = `${seriesQueryPrefix}${SERIES_NAME_PART_DELIMITER}${result.seriesName}`;
+        }
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
