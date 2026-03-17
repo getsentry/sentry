@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -70,5 +70,4 @@ function RedirectToProjectModal({slug, Header, Body}: Props) {
   );
 }
 
-export default RedirectToProjectModal;
 export {RedirectToProjectModal};

@@ -137,7 +137,7 @@ describe('WhatsNew', () => {
 
     await screen.findByText('Seen Broadcast 1');
 
-    act(() => jest.advanceTimersByTime(1000));
+    act(() => jest.advanceTimersByTime(2000));
 
     await waitFor(() => {
       expect(putMock).not.toHaveBeenCalled();
@@ -185,7 +185,7 @@ describe('WhatsNew', () => {
 
     await screen.findByText('Test Broadcast 1');
 
-    act(() => jest.advanceTimersByTime(1000));
+    act(() => jest.advanceTimersByTime(2000));
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
@@ -234,7 +234,7 @@ describe('WhatsNew', () => {
 
     await screen.findByText('Test Broadcast 1');
 
-    act(() => jest.advanceTimersByTime(1000));
+    act(() => jest.advanceTimersByTime(2000));
 
     await waitFor(() => {
       expect(

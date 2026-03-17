@@ -15,7 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SentryIsAuthenticated
+from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -65,7 +65,7 @@ class ApiTokensEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
-    permission_classes = (SentryIsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated, DisallowImpersonatedTokenCreation)
 
     @method_decorator(never_cache)
     def get(self, request: Request) -> Response:

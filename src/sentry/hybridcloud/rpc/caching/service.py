@@ -30,7 +30,13 @@ class CellCachingService(RpcService):
 
     @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
-    def clear_key(self, *, region_name: str, key: str) -> int:
+    def clear_key(
+        self,
+        *,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        key: str,
+    ) -> int:
         pass
 
 

@@ -12,7 +12,7 @@ from typing import Any, ParamSpec, TypeVar
 from sentry.utils.env import in_test_environment
 
 if typing.TYPE_CHECKING:
-    from sentry.types.region import Cell
+    from sentry.types.cell import Cell
 
 
 P = ParamSpec("P")

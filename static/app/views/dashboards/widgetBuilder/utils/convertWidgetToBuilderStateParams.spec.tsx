@@ -1,5 +1,3 @@
-import {WidgetFixture} from 'sentry-fixture/widget';
-
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   convertWidgetToBuilderState,
@@ -148,29 +146,6 @@ describe('convertWidgetToBuilderStateParams', () => {
       widget as unknown as Parameters<typeof convertWidgetToQueryParams>[0]
     );
     expect(params.axisRange).toBe('auto');
-  });
-
-  describe('traceMetric', () => {
-    it('includes the trace metric in the builder params', () => {
-      const widget = WidgetFixture({
-        ...getDefaultWidget(WidgetType.TRACEMETRICS),
-        queries: [
-          {
-            aggregates: ['avg(value,test-metric,distribution,second)'],
-            columns: [],
-            conditions: '',
-            name: '',
-            orderby: '',
-          },
-        ],
-      });
-      const params = convertWidgetToQueryParams(widget);
-      expect(JSON.parse(params.traceMetric!)).toEqual({
-        name: 'test-metric',
-        type: 'distribution',
-        unit: 'second',
-      });
-    });
   });
 
   describe('text widget', () => {

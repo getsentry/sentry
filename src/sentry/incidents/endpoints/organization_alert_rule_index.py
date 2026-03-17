@@ -3,7 +3,16 @@ from collections.abc import Sequence
 from copy import deepcopy
 from datetime import UTC, datetime
 
-from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
+from django.db.models import (
+    Case,
+    DateTimeField,
+    IntegerField,
+    OuterRef,
+    Q,
+    Subquery,
+    Value,
+    When,
+)
 from django.db.models.fields import BigIntegerField
 from django.db.models.functions import Cast, Coalesce
 from django.http.response import HttpResponseBase
@@ -41,10 +50,14 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializerResponse,
     CombinedRuleSerializer,
 )
+from sentry.incidents.endpoints.serializers.workflow_engine_combined import (
+    WorkflowEngineCombinedRuleSerializer,
+)
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
 from sentry.incidents.endpoints.utils import parse_team_params
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident, IncidentStatus
@@ -56,6 +69,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
 )
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.middleware import is_frontend_request
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -85,17 +99,32 @@ from sentry.uptime.types import (
 from sentry.utils.cursors import Cursor, StringCursor
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.endpoints.validators.utils import log_alerting_quota_hit
-from sentry.workflow_engine.models import Detector, DetectorState
+from sentry.workflow_engine.models import (
+    Detector,
+    DetectorState,
+    Workflow,
+)
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
 
+# Sentinel values for incident_status annotation when sorting combined rules
+# Used to ensure proper sort order for rules without active incidents
+INCIDENT_STATUS_NONE = -1  # Metric alerts with no active incident
+INCIDENT_STATUS_NOT_APPLICABLE = -2  # Rule types without incident concept (issue alerts, etc.)
 
-def filter_detectors_by_dataset(
-    detectors: BaseQuerySet[Detector], dataset: Dataset
+
+def filter_detectors_by_datasets(
+    detectors: BaseQuerySet[Detector], datasets: Sequence[Dataset]
 ) -> BaseQuerySet[Detector]:
-    """Filter detectors to only those with the specified dataset."""
+    """
+    Filter detectors to only those matching the specified datasets.
+
+    Uses a single query with an IN clause regardless of how many datasets are provided.
+    """
+    dataset_values = [d.value for d in datasets]
+
     # Filter by joining through Detector -> DataSource -> QuerySubscription -> SnubaQuery
     # Cast DataSource.source_id (string) to int so the subquery can use the index on QuerySubscription.id
     return (
@@ -105,7 +134,7 @@ def filter_detectors_by_dataset(
         .filter(
             data_sources__type="snuba_query_subscription",
             source_id_as_int__in=QuerySubscription.objects.filter(
-                snuba_query__dataset=dataset.value
+                snuba_query__dataset__in=dataset_values
             ).values_list("id", flat=True),
         )
         .distinct()
@@ -235,7 +264,7 @@ class AlertRuleFetchMixin(Endpoint):
                 .distinct()
             )  # Deduplicate after JOIN
             if not features.has("organizations:performance-view", organization):
-                detectors = filter_detectors_by_dataset(detectors, Dataset.Events)
+                detectors = filter_detectors_by_datasets(detectors, [Dataset.Events])
             response = self.paginate(
                 request,
                 queryset=detectors,
@@ -312,11 +341,212 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    def _get_uptime_rules_base_queryset(self, projects: Sequence[Project]) -> BaseQuerySet:
+        return (
+            Detector.objects.filter(
+                type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+                project__in=projects,
+                config__mode__in=(
+                    UptimeMonitorMode.MANUAL.value,
+                    UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
+                ),
+                data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+                status=ObjectStatus.ACTIVE,
+            )
+            .select_related("project")
+            .prefetch_related("data_sources")
+        )
+
+    def _get_cron_rules_base_queryset(self, projects: Sequence[Project]) -> BaseQuerySet:
+        return (
+            Monitor.objects.filter(project_id__in=[p.id for p in projects])
+            .exclude(
+                status__in=[
+                    ObjectStatus.PENDING_DELETION,
+                    ObjectStatus.DELETION_IN_PROGRESS,
+                ]
+            )
+            .annotate(
+                # Since monitors have multiple environment's which can each have
+                # their own status, find the 'worst' status among all of the
+                # environments and use that as the status of this monitor.
+                resolved_status=MonitorEnvironment.objects.filter(monitor_id=OuterRef("pk"))
+                .annotate(ordering=MONITOR_ENVIRONMENT_ORDERING)
+                .order_by("ordering")
+                .values("status")[:1]
+            )
+        )
+
+    def _get_workflow_engine(
+        self,
+        request: Request,
+        organization: Organization,
+        projects: Sequence[Project],
+        teams_query: BaseQuerySet[Team] | None,
+        unassigned: bool | None,
+        name: str | None,
+        datasets: list[str],
+        expand: list[str],
+        sort_key: list[str],
+        is_asc: bool,
+        case_insensitive: bool,
+        type_filter: list[str],
+    ) -> Response:
+        """Workflow engine path for combined rules endpoint."""
+
+        metric_detectors = Detector.objects.filter(
+            type=MetricIssue.slug,
+            project__in=projects,
+        ).select_related("project")
+
+        issue_workflows = (
+            Workflow.objects.filter(
+                detectorworkflow__detector__project__in=projects,
+                organization=organization,
+            )
+            .exclude(detectorworkflow__detector__type=MetricIssue.slug)
+            .exclude(detectorworkflow__detector__type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE)
+            .distinct()
+        )
+
+        uptime_rules = self._get_uptime_rules_base_queryset(projects)
+        crons_rules = self._get_cron_rules_base_queryset(projects)
+
+        if teams_query is not None:
+            team_ids = list(teams_query.values_list("id", flat=True))
+            team_condition = Q(owner_team_id__in=team_ids)
+            if unassigned:
+                team_condition = team_condition | Q(owner_team_id__isnull=True)
+
+            metric_detectors = metric_detectors.filter(team_condition)
+            issue_workflows = issue_workflows.filter(team_condition)
+            uptime_rules = uptime_rules.filter(team_condition)
+            crons_rules = crons_rules.filter(team_condition)
+
+        if name:
+            metric_detectors = metric_detectors.filter(name__icontains=name)
+            issue_workflows = issue_workflows.filter(name__icontains=name)
+            uptime_rules = uptime_rules.filter(name__icontains=name)
+            crons_rules = crons_rules.filter(name__icontains=name)
+
+        if not features.has("organizations:performance-view", organization):
+            metric_detectors = filter_detectors_by_datasets(metric_detectors, [Dataset.Events])
+        elif len(datasets) > 0:
+            try:
+                dataset_objs = [Dataset(d) for d in datasets]
+            except ValueError:
+                return Response(
+                    {"detail": "Invalid dataset parameter"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            metric_detectors = filter_detectors_by_datasets(metric_detectors, dataset_objs)
+
+            if Dataset.Events.value not in datasets:
+                issue_workflows = Workflow.objects.none()
+
+        if "incident_status" in sort_key:
+            metric_detectors = metric_detectors.annotate(
+                detector_priority=Subquery(
+                    DetectorState.objects.filter(detector=OuterRef("pk")).values("state")[:1]
+                ),
+                incident_status=Case(
+                    When(
+                        detector_priority=DetectorPriorityLevel.HIGH,
+                        then=IncidentStatus.CRITICAL.value,
+                    ),
+                    When(
+                        detector_priority=DetectorPriorityLevel.MEDIUM,
+                        then=IncidentStatus.WARNING.value,
+                    ),
+                    default=INCIDENT_STATUS_NONE,
+                ),
+            )
+            issue_workflows = issue_workflows.annotate(
+                incident_status=Value(INCIDENT_STATUS_NOT_APPLICABLE, output_field=IntegerField())
+            )
+            # Uptime and crons: same as legacy
+            uptime_rules = uptime_rules.annotate(
+                detector_priority=Subquery(
+                    DetectorState.objects.filter(detector=OuterRef("pk")).values("state")[:1]
+                ),
+                incident_status=Case(
+                    When(
+                        detector_priority=DetectorPriorityLevel.HIGH,
+                        then=IncidentStatus.CRITICAL.value,
+                    ),
+                    default=INCIDENT_STATUS_NOT_APPLICABLE,
+                ),
+            )
+            crons_rules = crons_rules.annotate(
+                incident_status=Case(
+                    When(resolved_status=MonitorStatus.ERROR, then=IncidentStatus.CRITICAL.value),
+                    default=INCIDENT_STATUS_NOT_APPLICABLE,
+                )
+            )
+
+        if "date_triggered" in sort_key:
+            far_past_date = Value(datetime.min.replace(tzinfo=UTC), output_field=DateTimeField())
+            metric_detectors = metric_detectors.annotate(
+                date_triggered=Coalesce(
+                    Subquery(
+                        GroupOpenPeriod.objects.filter(
+                            group__detectorgroup__detector=OuterRef("pk")
+                        )
+                        .order_by("-date_started")
+                        .values("date_started")[:1]
+                    ),
+                    far_past_date,
+                )
+            )
+            issue_workflows = issue_workflows.annotate(date_triggered=far_past_date)
+            uptime_rules = uptime_rules.annotate(date_triggered=far_past_date)
+            crons_rules = crons_rules.annotate(
+                date_triggered=Coalesce(
+                    Subquery(
+                        MonitorIncident.objects.filter(monitor_id=OuterRef("pk"))
+                        .order_by("-starting_timestamp")
+                        .values("starting_timestamp")[:1]
+                    ),
+                    far_past_date,
+                ),
+            )
+
+        # Build intermediaries for pagination
+        intermediaries: list[CombinedQuerysetIntermediary] = []
+
+        def has_type(rule_type: str) -> bool:
+            return not type_filter or rule_type in type_filter
+
+        if has_type("alert_rule"):
+            intermediaries.append(CombinedQuerysetIntermediary(metric_detectors, sort_key))
+        if has_type("rule"):
+            intermediaries.append(CombinedQuerysetIntermediary(issue_workflows, sort_key))
+        if has_type("uptime"):
+            intermediaries.append(CombinedQuerysetIntermediary(uptime_rules, sort_key))
+        if has_type("monitor"):
+            intermediaries.append(CombinedQuerysetIntermediary(crons_rules, sort_key))
+
+        response = self.paginate(
+            request,
+            paginator_cls=CombinedQuerysetPaginator,
+            on_results=lambda x: serialize(
+                x, request.user, WorkflowEngineCombinedRuleSerializer(expand=expand)
+            ),
+            default_per_page=25,
+            intermediaries=intermediaries,
+            desc=not is_asc,
+            cursor_cls=StringCursor if case_insensitive else Cursor,
+            case_insensitive=case_insensitive,
+        )
+        response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
+        return response
+
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-combined-rules")
     def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches metric, issue, crons, and uptime alert rules for an organization
         """
+        # Common setup: project resolution
         project_ids = self.get_requested_project_ids_unchecked(request) or None
         if project_ids == {-1}:  # All projects for org:
             project_ids = set(
@@ -342,6 +572,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         # index to filter on. Also enforces permission checks.
         projects = self.get_projects(request, organization, project_ids=project_ids)
 
+        # Common setup: team parsing
         teams = request.GET.getlist("team", [])
         teams_query = None
         unassigned = None
@@ -351,6 +582,44 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             except InvalidParams as err:
                 return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
 
+        # Common setup: sort validation
+        is_asc = request.GET.get("asc", False) == "1"
+        sort_key = request.GET.getlist("sort", ["date_added"])
+        invalid_keys = [key for key in sort_key if key not in VALID_COMBINED_RULE_SORT_KEYS]
+        if invalid_keys:
+            return Response(
+                {"detail": f"Invalid sort key(s): {', '.join(invalid_keys)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        case_insensitive = sort_key == ["name"]
+
+        # Common setup: expand parsing
+        expand = request.GET.getlist("expand", [])
+
+        # Common setup: name and dataset filters
+        name = request.GET.get("name", None)
+        datasets = request.GET.getlist("dataset", [])
+
+        # Common setup: type filter
+        type_filter = request.GET.getlist("alertType", [])
+
+        if features.has("organizations:workflow-engine-rule-serializers", organization):
+            return self._get_workflow_engine(
+                request=request,
+                organization=organization,
+                projects=projects,
+                teams_query=teams_query,
+                unassigned=unassigned,
+                name=name,
+                datasets=datasets,
+                expand=expand,
+                sort_key=sort_key,
+                is_asc=is_asc,
+                case_insensitive=case_insensitive,
+                type_filter=type_filter,
+            )
+
+        # Legacy path below
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
 
         issue_rules = Rule.objects.filter(
@@ -359,50 +628,18 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             project__in=projects,
         )
 
-        uptime_rules = (
-            Detector.objects.filter(
-                type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-                project__in=projects,
-                config__mode__in=(
-                    UptimeMonitorMode.MANUAL.value,
-                    UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
-                ),
-                data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-                status=ObjectStatus.ACTIVE,
-            )
-            .select_related("project")
-            .prefetch_related("data_sources")
-        )
-        crons_rules = (
-            Monitor.objects.filter(project_id__in=[p.id for p in projects])
-            .exclude(
-                status__in=[
-                    ObjectStatus.PENDING_DELETION,
-                    ObjectStatus.DELETION_IN_PROGRESS,
-                ]
-            )
-            .annotate(
-                # Since monitors have multiple environment's which can each have
-                # their own status, find the 'worst' status among all of the
-                # environments and use that as the status of this monitor.
-                resolved_status=MonitorEnvironment.objects.filter(monitor_id=OuterRef("pk"))
-                .annotate(ordering=MONITOR_ENVIRONMENT_ORDERING)
-                .order_by("ordering")
-                .values("status")[:1]
-            )
-        )
+        uptime_rules = self._get_uptime_rules_base_queryset(projects)
+        crons_rules = self._get_cron_rules_base_queryset(projects)
 
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
         else:
-            datasets = request.GET.getlist("dataset", [])
             if len(datasets) > 0:
                 alert_rules = alert_rules.filter(snuba_query__dataset__in=datasets)
                 if Dataset.Events.value not in datasets:
                     issue_rules = Rule.objects.none()
 
-        name = request.GET.get("name", None)
         if name:
             alert_rules = alert_rules.filter(name__icontains=name)
             issue_rules = issue_rules.filter(label__icontains=name)
@@ -424,7 +661,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             uptime_rules = uptime_rules.filter(team_rule_condition)
             crons_rules = crons_rules.filter(team_rule_condition)
 
-        expand = request.GET.getlist("expand", [])
         if "latestIncident" in expand:
             alert_rules = alert_rules.annotate(
                 incident_id=Coalesce(
@@ -437,18 +673,9 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 )
             )
 
-        is_asc = request.GET.get("asc", False) == "1"
-        sort_key = request.GET.getlist("sort", ["date_added"])
-        invalid_keys = [key for key in sort_key if key not in VALID_COMBINED_RULE_SORT_KEYS]
-        if invalid_keys:
-            return Response(
-                {"detail": f"Invalid sort key(s): {', '.join(invalid_keys)}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         rule_sort_key = [
             "label" if x == "name" else x for x in sort_key
         ]  # Rule's don't share the same field name for their title/label/name...so we account for that here.
-        case_insensitive = sort_key == ["name"]
 
         if "incident_status" in sort_key:
             alert_rules = alert_rules.annotate(
@@ -458,11 +685,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                         .order_by("-date_started")
                         .values("status")[:1]
                     ),
-                    Value(-1, output_field=IntegerField()),
+                    Value(INCIDENT_STATUS_NONE, output_field=IntegerField()),
                 )
             )
             issue_rules = issue_rules.annotate(
-                incident_status=Value(-2, output_field=IntegerField())
+                incident_status=Value(INCIDENT_STATUS_NOT_APPLICABLE, output_field=IntegerField())
             )
             uptime_rules = uptime_rules.annotate(
                 detector_priority=Subquery(
@@ -475,7 +702,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                         detector_priority=DetectorPriorityLevel.HIGH,
                         then=IncidentStatus.CRITICAL.value,
                     ),
-                    default=-2,
+                    default=INCIDENT_STATUS_NOT_APPLICABLE,
                 ),
             )
             crons_rules = crons_rules.annotate(
@@ -483,7 +710,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                     # If a cron monitor is failing we want to treat it the same
                     # as if an alert is failing, so sort by the critical status
                     When(resolved_status=MonitorStatus.ERROR, then=IncidentStatus.CRITICAL.value),
-                    default=-2,
+                    default=INCIDENT_STATUS_NOT_APPLICABLE,
                 )
             )
 
@@ -511,8 +738,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                     far_past_date,
                 ),
             )
-
-        type_filter = request.GET.getlist("alertType", [])
 
         def has_type(type: str) -> bool:
             return not type_filter or type in type_filter

@@ -204,7 +204,7 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
             ),
             ResolvedAttribute(
                 public_alias="http.referer",
-                internal_name="http_referrer",
+                internal_name="http_referer",
                 search_type="string",
             ),
             # Exception data

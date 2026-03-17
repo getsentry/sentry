@@ -140,6 +140,10 @@ describe('Dashboards > Dashboard', () => {
       method: 'GET',
       body: TagsFixture(),
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
   });
 
   it('fetches tags', () => {
