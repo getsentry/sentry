@@ -173,8 +173,8 @@ class SiloModeTestDecorator:
         self,
         *,
         cells: Sequence[Cell] = (),
-        regions: Sequence[Cell]
-        | None = None,  # TODO(cells): Remove alias once no longer used in getsentry
+        # TODO(cells): Remove alias once no longer used in getsentry
+        regions: Sequence[Cell] | None = None,
         include_monolith_run: bool = False,
     ) -> Callable[[T], T]: ...
 
@@ -183,8 +183,8 @@ class SiloModeTestDecorator:
         decorated_obj: Any = None,
         *,
         cells: Sequence[Cell] = (),
-        regions: Sequence[Cell]
-        | None = None,  # TODO(cells): Remove alias once no longer used in getsentry
+        # TODO(cells): Remove alias once no longer used in getsentry
+        regions: Sequence[Cell] | None = None,
         include_monolith_run: bool = False,
     ) -> Any:
         silo_modes = self.silo_modes
