@@ -16,11 +16,14 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
+import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsSidePanelUI} from 'sentry/views/explore/metrics/metricsFlags';
@@ -29,6 +32,7 @@ import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 
 export const NONE_UNIT = 'none';
 
@@ -479,6 +483,80 @@ export function MetricSelector({
   );
 }
 
+function MetricAttributesSection({
+  metricName,
+  metricType,
+}: {
+  metricName: string;
+  metricType: string;
+}) {
+  const traceMetricFilter = createTraceMetricFilter({name: metricName, type: metricType});
+
+  const {attributes: stringAttrs, isLoading: stringLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'string'
+    );
+  const {attributes: numberAttrs, isLoading: numberLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'number'
+    );
+  const {attributes: booleanAttrs, isLoading: booleanLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'boolean'
+    );
+
+  const isLoading = stringLoading || numberLoading || booleanLoading;
+
+  const attributeKeys = useMemo(() => {
+    const keys = new Set([
+      ...Object.keys(stringAttrs ?? {}),
+      ...Object.keys(numberAttrs ?? {}),
+      ...Object.keys(booleanAttrs ?? {}),
+    ]);
+    return [...keys]
+      .filter(key => !HiddenTraceMetricGroupByFields.includes(key))
+      .sort((a, b) => prettifyTagKey(a).localeCompare(prettifyTagKey(b)));
+  }, [stringAttrs, numberAttrs, booleanAttrs]);
+
+  if (isLoading) {
+    return (
+      <Stack gap="xs">
+        <Text size="md">{t('Attributes')}:</Text>
+        <Flex gap="xs">
+          <LoadingIndicator size={16} />
+        </Flex>
+      </Stack>
+    );
+  }
+
+  if (attributeKeys.length === 0) {
+    return (
+      <Stack gap="xs">
+        <Text size="md">{t('Attributes')}:</Text>
+        <Flex gap="xs">
+          <Text size="md">{t('No attributes found')}</Text>
+        </Flex>
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack gap="xs">
+      <Text size="md">{t('Attributes')}:</Text>
+      <Flex wrap="wrap" gap="xs">
+        {attributeKeys.map(key => (
+          <Tag key={key} variant="muted">
+            {prettifyTagKey(key)}
+          </Tag>
+        ))}
+      </Flex>
+    </Stack>
+  );
+}
+
 function MetricDetailPanel({
   metric,
   hasMetricUnitsUI,
@@ -529,6 +607,10 @@ function MetricDetailPanel({
           <Text size="md">{metric.count.toLocaleString()}</Text>
         </Flex>
       )}
+      <MetricAttributesSection
+        metricName={metric.metricName}
+        metricType={metric.metricType}
+      />
     </Stack>
   );
 }
