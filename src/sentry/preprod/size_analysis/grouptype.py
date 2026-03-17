@@ -236,13 +236,16 @@ class PreprodSizeAnalysisDetectorHandler(
 
             commit_comparison = metadata["head_artifact"].commit_comparison
             if commit_comparison is not None:
-                tags["git.sha"] = commit_comparison.head_sha
-                tags["git.branch"] = commit_comparison.head_ref
-                tags["git.repo"] = commit_comparison.head_repo_name
-                if commit_comparison.base_sha:
-                    tags["git.base_sha"] = commit_comparison.base_sha
-                if commit_comparison.base_ref:
-                    tags["git.base_branch"] = commit_comparison.base_ref
+                if (head_sha := commit_comparison.head_sha) is not None:
+                    tags["git.sha"] = head_sha
+                if (head_ref := commit_comparison.head_ref) is not None:
+                    tags["git.branch"] = head_ref
+                if (head_repo := commit_comparison.head_repo_name) is not None:
+                    tags["git.repo"] = head_repo
+                if (base_sha := commit_comparison.base_sha) is not None:
+                    tags["git.base_sha"] = base_sha
+                if (base_ref := commit_comparison.base_ref) is not None:
+                    tags["git.base_branch"] = base_ref
                 if commit_comparison.pr_number is not None:
                     tags["git.pr_number"] = str(commit_comparison.pr_number)
 
