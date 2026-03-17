@@ -67,7 +67,7 @@ describe('IssueViewsList', () => {
     render(<IssueViewsList />, {organization});
 
     expect(await screen.findByText('Foo')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Foo'})).toHaveAttribute(
+    expect(screen.getByText('Foo')).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/views/1/`
     );
@@ -76,7 +76,7 @@ describe('IssueViewsList', () => {
     expect(screen.getByText('0')).toBeInTheDocument();
 
     expect(await screen.findByText('Bar')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Bar'})).toHaveAttribute(
+    expect(screen.getByText('Bar')).toHaveAttribute(
       'href',
       `/organizations/org-slug/issues/views/2/`
     );
