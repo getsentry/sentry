@@ -8,7 +8,14 @@ import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  Grid,
+  Stack,
+  type FlexProps,
+  type GridProps,
+} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -28,31 +35,30 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
+  PRIMARY_HEADER_HEIGHT,
   PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
 } from 'sentry/views/navigation/constants';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
-interface PrimaryNavigationSidebarProps extends Omit<FlexProps, 'aria-label' | 'as'> {}
+interface PrimaryNavigationSidebarProps extends Omit<GridProps, 'aria-label' | 'as'> {}
 
 function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebarProps) {
   const theme = useTheme();
   return (
-    <Flex
+    <Grid
       as="nav"
-      width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-      padding="lg 0 md 0"
+      aria-label={t('Primary Navigation')}
       borderRight="primary"
       background="primary"
-      direction="column"
-      align="center"
-      justify="between"
-      aria-label={t('Primary Navigation')}
+      columns="1fr"
+      rows={`${PRIMARY_HEADER_HEIGHT}px 1fr min-content`}
+      width={`${PRIMARY_SIDEBAR_WIDTH}px`}
       style={{zIndex: theme.zIndex.sidebarPanel}}
       {...props}
     >
       {children}
-    </Flex>
+    </Grid>
   );
 }
 
@@ -73,6 +79,8 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
       align="center"
       justify="center"
       position="relative"
+      borderBottom="muted"
+      width="100%"
       {...props}
     >
       {props.children}
@@ -106,9 +114,7 @@ function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps)
       margin="0"
       padding="0"
       width="100%"
-      gap="xs"
       align={layout === 'mobile' ? 'stretch' : 'center'}
-      paddingTop="md"
       {...props}
     >
       {children}
@@ -417,10 +423,6 @@ function PrimaryNavigationFooterItems(props: PrimaryNavigationFooterItemsProps) 
   );
 }
 
-function PrimaryNavigationSeparator() {
-  return <Stack.Separator border="muted" style={{width: '100%'}} />;
-}
-
 const NavigationLink = styled(
   (props: LinkProps) => {
     const {layout} = usePrimaryNavigation();
@@ -432,7 +434,7 @@ const NavigationLink = styled(
         direction={layout === 'mobile' ? 'row' : 'column'}
         justify={layout === 'mobile' ? 'start' : 'center'}
         gap={layout === 'mobile' ? 'md' : 'xs'}
-        padding={layout === 'mobile' ? 'md lg' : 'sm lg'}
+        padding={layout === 'mobile' ? 'md lg' : 'md 0 xs 0'}
       >
         {p => <Link {...mergeProps(p, props)} />}
       </Flex>
@@ -597,7 +599,6 @@ export const PrimaryNavigation = {
   Button: PrimaryNavigationButton,
   ButtonBar: PrimaryNavigationButtonBar,
   Menu: PrimaryNavigationMenu,
-  Separator: PrimaryNavigationSeparator,
   ButtonOverlay: PrimaryNavigationButtonOverlay,
   Sidebar: PrimaryNavigationSidebar,
   SidebarHeader: PrimaryNavigationSidebarHeader,

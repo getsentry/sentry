@@ -30,11 +30,14 @@ import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
   const ref = useRef<HTMLUListElement>(null);
+
+  const {layout} = usePrimaryNavigation();
 
   const makeNavigationItemProps = useActivateNavigationGroupOnHover({ref});
 
@@ -145,10 +148,6 @@ export function PrimaryNavigationItems() {
           </NavigationTourElement>
         </Feature>
 
-        <PrimaryNavigation.ListItem padding="0 md">
-          <PrimaryNavigation.Separator />
-        </PrimaryNavigation.ListItem>
-
         <Feature features={['workflow-engine-ui']}>
           <PrimaryNavigation.ListItem>
             <PrimaryNavigation.Link
@@ -190,7 +189,7 @@ export function PrimaryNavigationItems() {
         </NavigationTourElement>
       </PrimaryNavigation.List>
 
-      <Stack gap="md" marginTop="auto" paddingBottom="md">
+      <Stack gap={layout === 'mobile' ? undefined : 'md'} paddingBottom="md">
         <PrimaryNavigation.FooterItems>
           <ErrorBoundary customComponent={null}>
             <PrimaryNavigationOnboarding />
@@ -223,7 +222,7 @@ export function PrimaryNavigationItems() {
 const BetaBadge = styled(FeatureBadge)`
   pointer-events: none;
   position: absolute;
-  top: 0px;
+  top: 4px;
   right: 6px;
   font-size: ${p => p.theme.font.size.xs};
   padding: 0 ${p => p.theme.space.xs};

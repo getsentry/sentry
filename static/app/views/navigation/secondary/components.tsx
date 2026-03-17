@@ -25,6 +25,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
+  PRIMARY_HEADER_HEIGHT,
   SECONDARY_SIDEBAR_MAX_WIDTH,
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
@@ -234,7 +235,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       columns="1fr auto"
       align="center"
       borderBottom="muted"
-      height={layout === 'mobile' ? undefined : '44px'}
+      height={layout === 'mobile' ? undefined : `${PRIMARY_HEADER_HEIGHT}px`}
       padding={layout === 'mobile' ? 'md xl' : '0 md 0 xl'}
     >
       <div>

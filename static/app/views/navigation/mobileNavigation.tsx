@@ -184,6 +184,7 @@ function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
       ref={ref}
       as="nav"
       aria-label={props.label}
+      justify="between"
       direction="column"
       background="tertiary"
       position="fixed"
