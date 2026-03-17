@@ -24,7 +24,7 @@ class AsyncSlackResponseTest(TestCase):
     factory = RequestFactory()
     us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
     eu = Cell("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
-    region_config = (us, eu)
+    cell_config = (us, eu)
 
     def setUp(self) -> None:
         super().setUp()
@@ -35,7 +35,7 @@ class AsyncSlackResponseTest(TestCase):
         self.payload = create_async_request_payload(action_request)
 
     @responses.activate
-    @override_regions(region_config)
+    @override_regions(cell_config)
     def test_convert_to_async_slack_response_all_success(self) -> None:
         responses.add(
             responses.POST,
@@ -62,7 +62,7 @@ class AsyncSlackResponseTest(TestCase):
         assert slack_response.call_count == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_regions(cell_config)
     def test_convert_to_async_slack_response_mixed_success(self) -> None:
         responses.add(
             responses.POST,
@@ -91,7 +91,7 @@ class AsyncSlackResponseTest(TestCase):
         assert slack_response.call_count == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_regions(cell_config)
     def test_convert_to_async_slack_response_no_success(self) -> None:
         responses.add(
             responses.POST,
@@ -118,7 +118,7 @@ class AsyncSlackResponseTest(TestCase):
         assert slack_response.call_count == 0
 
     @responses.activate
-    @override_regions(region_config)
+    @override_regions(cell_config)
     @patch("sentry.middleware.integrations.tasks.logger.info")
     def test_empty_request_bdoy(self, mock_logger_info: MagicMock) -> None:
         responses.add(
@@ -150,7 +150,7 @@ class AsyncDiscordResponseTest(TestCase):
     factory = RequestFactory()
     us = Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
     eu = Cell("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
-    region_config = (us, eu)
+    cell_config = (us, eu)
 
     def setUp(self) -> None:
         super().setUp()
@@ -174,7 +174,7 @@ class AsyncDiscordResponseTest(TestCase):
         self.payload = create_async_request_payload(action_request)
 
     @responses.activate
-    @override_regions(region_config)
+    @override_regions(cell_config)
     def test_convert_to_async_discord_response_all_success(self) -> None:
         responses.add(
             responses.POST,
@@ -201,7 +201,7 @@ class AsyncDiscordResponseTest(TestCase):
         assert discord_response.call_count == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_regions(cell_config)
     def test_convert_to_async_discord_response_mixed_success(self) -> None:
         responses.add(
             responses.POST,
@@ -230,7 +230,7 @@ class AsyncDiscordResponseTest(TestCase):
         assert discord_response.call_count == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_regions(cell_config)
     def test_convert_to_async_discord_response_no_success(self) -> None:
         responses.add(
             responses.POST,
