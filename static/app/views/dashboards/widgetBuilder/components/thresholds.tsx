@@ -18,7 +18,7 @@ type ThresholdsSectionProps = {
   setError?: (error: Record<string, any>) => void;
 };
 
-function ThresholdsSection({
+export function ThresholdsSection({
   dataType,
   dataUnit,
   error,
@@ -97,7 +97,10 @@ function ThresholdsSection({
               nextMaxValue => !defined(nextMaxValue)
             )
           ) {
-            newThresholds = null;
+            const {preferredPolarity} = newThresholds;
+            newThresholds = preferredPolarity
+              ? {max_values: {}, unit: null, preferredPolarity}
+              : null;
           }
 
           setError?.({...error, thresholds: {[maxKey]: ''}});
@@ -124,5 +127,3 @@ function ThresholdsSection({
     </Fragment>
   );
 }
-
-export default ThresholdsSection;

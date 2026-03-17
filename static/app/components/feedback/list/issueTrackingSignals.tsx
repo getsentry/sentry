@@ -1,6 +1,6 @@
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import useHasLinkedIssues from 'sentry/components/feedback/list/useHasLinkedIssues';
+import {useHasLinkedIssues} from 'sentry/components/feedback/list/useHasLinkedIssues';
 import type {
   IntegrationComponent,
   PluginActionComponent,
@@ -54,7 +54,7 @@ function getAppIntegrationNames(integrationIssue: SentryAppIssueComponent) {
   };
 }
 
-export default function IssueTrackingSignals({group}: Props) {
+export function IssueTrackingSignals({group}: Props) {
   const {linkedIssues} = useHasLinkedIssues({
     group,
     event: {} as Event,

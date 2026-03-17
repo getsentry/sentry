@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
 import * as analytics from 'sentry/utils/analytics';
 
-import AnomalyDetectionFeedbackBanner from './anomalyDetectionFeedbackBanner';
+import {AnomalyDetectionFeedbackBanner} from './anomalyDetectionFeedbackBanner';
 
 describe('AnomalyDetectionFeedbackBanner', () => {
   const initialData = initializeOrg({

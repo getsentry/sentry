@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
@@ -7,7 +8,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
@@ -29,20 +30,19 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {withoutMetricsSupport} from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ExploreBodySearch} from 'sentry/views/explore/components/styles';
@@ -113,6 +113,7 @@ const STEP_TITLES: Record<StepType, string> = {
 };
 
 function Onboarding({organization, project}: OnboardingProps) {
+  const theme = useTheme();
   const api = useApi();
   const location = useLocation();
   const navigate = useNavigate();
@@ -282,7 +283,10 @@ function Onboarding({organization, project}: OnboardingProps) {
               }
             >
               <StepIndexProvider index={index}>
-                <ContentBlocksRenderer spacing={space(1)} contentBlocks={step.content} />
+                <ContentBlocksRenderer
+                  spacing={theme.space.md}
+                  contentBlocks={step.content}
+                />
               </StepIndexProvider>
               {index === steps.length - 1 ? (
                 <GuidedSteps.ButtonWrapper>
@@ -303,7 +307,7 @@ function Onboarding({organization, project}: OnboardingProps) {
 }
 
 const SubTitle = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const Title = styled('div')`
@@ -314,9 +318,9 @@ const Title = styled('div')`
 const HeaderWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 `;
 
 const HeaderText = styled('div')`
@@ -328,7 +332,7 @@ const HeaderText = styled('div')`
 `;
 
 const Setup = styled('div')`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 
   &:after {
     content: '';
@@ -341,7 +345,7 @@ const Setup = styled('div')`
 `;
 
 const Preview = styled('div')<{isUnsupportedPlatform?: boolean}>`
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
 
   ${p =>
     p.isUnsupportedPlatform &&
@@ -393,7 +397,7 @@ const Divider = styled('hr')`
 const Arcade = styled('iframe')`
   width: 653px;
   max-width: 100%;
-  margin-top: ${space(3)};
+  margin-top: ${p => p.theme.space['2xl']};
   height: 375px;
   border: 0;
 `;

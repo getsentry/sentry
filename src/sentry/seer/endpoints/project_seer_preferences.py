@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.models.project import Project
@@ -21,7 +21,7 @@ from sentry.seer.autofix.utils import (
     make_set_project_preference_request,
 )
 from sentry.seer.models import PreferenceResponse, SeerApiError, SeerProjectPreference
-from sentry.seer.signed_seer_api import seer_autofix_default_connection_pool
+from sentry.seer.signed_seer_api import SeerViewerContext, seer_autofix_default_connection_pool
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -58,7 +58,7 @@ class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
         required=True,
     )
     target = serializers.ChoiceField(
-        choices=["cursor_background_agent"],
+        choices=["cursor_background_agent", "claude_code_agent"],
         required=True,
     )
     integration_id = serializers.IntegerField(required=True)
@@ -73,7 +73,7 @@ class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
     )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     permission_classes = (
         ProjectEventPermission,  # Anyone in the org should be able to set preferences, follows event permissions.
@@ -140,8 +140,13 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
                 }
             ).dict(),
         )
+        viewer_context = SeerViewerContext(
+            organization_id=project.organization.id, user_id=request.user.id
+        )
         response = make_set_project_preference_request(
-            body, connection_pool=seer_autofix_default_connection_pool
+            body,
+            connection_pool=seer_autofix_default_connection_pool,
+            viewer_context=viewer_context,
         )
 
         if response.status >= 400:
@@ -151,8 +156,13 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project) -> Response:
         body = GetProjectPreferenceRequest(project_id=project.id)
+        viewer_context = SeerViewerContext(
+            organization_id=project.organization.id, user_id=request.user.id
+        )
         response = make_get_project_preference_request(
-            body, connection_pool=seer_autofix_default_connection_pool
+            body,
+            connection_pool=seer_autofix_default_connection_pool,
+            viewer_context=viewer_context,
         )
 
         if response.status >= 400:

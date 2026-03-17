@@ -5,13 +5,12 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {parseSearch} from 'sentry/components/searchSyntax/parser';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   MEPConsumer,
   MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {DashboardsMEPConsumer} from './widgetCard/dashboardsMEPContext';
 import {WidgetType, type Widget} from './types';
@@ -88,5 +87,5 @@ export function IndexedEventsSelectionAlert({widget}: IndexedEventsSelectionAler
 }
 
 const StoredDataAlert = styled(Alert)`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;

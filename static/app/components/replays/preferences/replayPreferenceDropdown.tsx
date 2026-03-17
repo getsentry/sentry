@@ -13,7 +13,7 @@ import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPref
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-export default function ReplayPreferenceDropdown({
+export function ReplayPreferenceDropdown({
   speedOptions,
   hideFastForward = false,
   isLoading,
@@ -95,7 +95,7 @@ export default function ReplayPreferenceDropdown({
         value={prefs.timestampType}
         onChange={opt => setPrefs({timestampType: opt.value})}
         options={REPLAY_TIMESTAMP_OPTIONS.map(option => ({
-          label: `${toTitleCase(option)}`,
+          label: toTitleCase(option),
           value: option,
         }))}
       />

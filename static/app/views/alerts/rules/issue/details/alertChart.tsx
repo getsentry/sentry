@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -6,17 +7,16 @@ import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelFooter from 'sentry/components/panels/panelFooter';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import RouteError from 'sentry/views/routeError';
 
 interface IssueAlertDetailsProps extends DateTimeObject {
@@ -32,6 +32,7 @@ export function IssueAlertDetailsChart({
   utc,
   rule,
 }: IssueAlertDetailsProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {
     data: ruleFireHistory,
@@ -82,9 +83,9 @@ export function IssueAlertDetailsChart({
                 isGroupedByDate
                 showTimeInTooltip
                 grid={{
-                  left: space(0.25),
-                  right: space(2),
-                  top: space(3),
+                  left: theme.space['2xs'],
+                  right: theme.space.xl,
+                  top: theme.space['2xl'],
                   bottom: 0,
                 }}
                 yAxis={{
@@ -123,13 +124,13 @@ export function IssueAlertDetailsChart({
 }
 
 const ChartHeader = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const ChartFooter = styled(PanelFooter)`
   display: flex;
   align-items: center;
-  padding: ${space(1)} 20px;
+  padding: ${p => p.theme.space.md} 20px;
 `;
 
 const FooterHeader = styled('h4')`

@@ -9,8 +9,8 @@ import {
   replaceHeadersWithBold,
 } from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
-import CodingAgentCard from 'sentry/components/events/autofix/codingAgentCard';
-import AutofixInsightCards from 'sentry/components/events/autofix/insights/autofixInsightCards';
+import {CodingAgentCard} from 'sentry/components/events/autofix/codingAgentCard';
+import {AutofixInsightCards} from 'sentry/components/events/autofix/insights/autofixInsightCards';
 import {
   AutofixStepType,
   type AutofixData,
@@ -21,10 +21,9 @@ import {
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
-import testableTransition from 'sentry/utils/testableTransition';
-import useOrganization from 'sentry/utils/useOrganization';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
@@ -188,7 +187,7 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
   }
 
   const lastStep = steps[steps.length - 1];
-  const logs: AutofixProgressItem[] = lastStep!.progress?.filter(isProgressLog) ?? [];
+  const logs = lastStep!.progress?.filter(isProgressLog) ?? [];
   const activeLog =
     lastStep!.completedMessage ??
     replaceHeadersWithBold(logs.at(-1)?.message ?? '') ??
@@ -312,7 +311,7 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
 
 const StepMessage = styled('div')`
   overflow: hidden;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
   justify-content: flex-start;
@@ -343,7 +342,7 @@ const ContentWrapper = styled(motion.div)`
 const AnimationWrapper = styled(motion.div)``;
 
 const StandaloneErrorMessage = styled('div')`
-  margin: ${space(1)} 0;
-  padding: ${space(2)};
+  margin: ${p => p.theme.space.md} 0;
+  padding: ${p => p.theme.space.xl};
   color: ${p => p.theme.tokens.content.secondary};
 `;

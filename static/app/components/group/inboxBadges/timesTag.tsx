@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 /**
  * Used in new inbox
@@ -16,7 +15,7 @@ type Props = {
   lastSeen: string;
 };
 
-function TimesTag({lastSeen, firstSeen}: Props) {
+export function TimesTag({lastSeen, firstSeen}: Props) {
   return (
     <Wrapper>
       <StyledIconClock size="xs" variant="muted" />
@@ -55,7 +54,5 @@ const Separator = styled('span')`
 `;
 
 const StyledIconClock = styled(IconClock)`
-  margin-right: ${space(0.5)};
+  margin-right: ${p => p.theme.space.xs};
 `;
-
-export default TimesTag;

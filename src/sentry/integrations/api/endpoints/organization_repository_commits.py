@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
@@ -22,7 +22,7 @@ from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS

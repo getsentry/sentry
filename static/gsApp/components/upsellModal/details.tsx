@@ -14,17 +14,16 @@ import ssoImg from 'getsentry-images/features/sso.svg';
 import userMiseryImg from 'getsentry-images/features/user-misery.svg';
 
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength, hasPerformance, isTrialPlan} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
-import FeatureList from './featureList';
-import Footer from './footer';
-import HighlightedFeature from './highlightedFeature';
+import {FeatureList} from './featureList';
+import {Footer} from './footer';
+import {HighlightedFeature} from './highlightedFeature';
 import type {Feature} from './types';
 
 /**
@@ -456,11 +455,11 @@ class Body extends Component<Props, State> {
 const MainUpsell = styled('div')`
   display: grid;
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 200px;
-    gap: ${space(4)};
+    gap: ${p => p.theme.space['3xl']};
   }
 `;
 

@@ -9,22 +9,21 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import Card from 'sentry/components/card';
-import Carousel from 'sentry/components/carousel';
+import {Card} from 'sentry/components/card';
+import {Carousel} from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 const MAX_MEMBERS_TO_SHOW = 5;
 
@@ -303,8 +302,8 @@ function MemberCards({
 
 const StyledCard = styled(Card)`
   display: flex;
-  padding: ${space(2)};
-  padding-bottom: ${space(1.5)};
+  padding: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space.lg};
   overflow: hidden;
 `;
 
@@ -321,7 +320,7 @@ const Subtitle = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const MemberEmail = styled('div')`
@@ -339,8 +338,8 @@ const MemberCard = styled(Card)`
   flex-direction: row;
   flex-wrap: wrap;
   min-width: 30%;
-  margin: ${space(1)} ${space(0.5)} 0 0;
-  padding: ${space(2)} 18px;
+  margin: ${p => p.theme.space.md} ${p => p.theme.space.xs} 0 0;
+  padding: ${p => p.theme.space.xl} 18px;
   justify-content: center;
   align-items: center;
 `;
@@ -348,9 +347,9 @@ const MemberCard = styled(Card)`
 const MemberCardContentRow = styled('div')`
   display: flex;
   align-items: center;
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
   font-size: ${p => p.theme.font.size.sm};
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 `;
 
 export const StyledExternalLink = styled(ExternalLink)`

@@ -8,20 +8,19 @@ import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DateTime} from 'sentry/components/dateTime';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {IconReleases} from 'sentry/icons/iconReleases';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ReleasesSort,
   SORT_BY_OPTIONS,
@@ -313,7 +312,7 @@ const StyledPageSelector = styled(PageFilterBar)`
     &:last-child {
       min-width: auto;
       > button[aria-haspopup] {
-        padding-right: ${space(1.5)};
+        padding-right: ${p => p.theme.space.lg};
       }
     }
   }

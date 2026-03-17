@@ -4,17 +4,16 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 
 import type {Client} from 'sentry/api';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Redirect from 'sentry/components/redirect';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Redirect} from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 type DetailsProps = {
   api: Client;
@@ -113,7 +112,7 @@ type RedirectOptions = {
 
 type RedirectCallback = (options: RedirectOptions) => string;
 
-const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback) =>
+export const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback) =>
   function RedirectDeprecatedProjectRoute() {
     const params = useParams<{orgId: string; projectId: string}>();
     const location = useLocation();
@@ -172,9 +171,7 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
     );
   };
 
-export default redirectDeprecatedProjectRoute;
-
 const Wrapper = styled('div')`
   flex: 1;
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
 `;

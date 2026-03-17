@@ -23,12 +23,10 @@ type Props = React.PropsWithChildren<{
 }> &
   React.ComponentProps<typeof LinkButton>;
 
-function LearnMoreButton({organization, source, children, ...props}: Props) {
+export function LearnMoreButton({organization, source, children, ...props}: Props) {
   return (
     <LinkButton onClick={() => learnMoreClicked({source, organization})} {...props}>
       {children || t('Learn More')}
     </LinkButton>
   );
 }
-
-export default LearnMoreButton;

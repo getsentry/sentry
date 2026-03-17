@@ -38,10 +38,12 @@ from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import (
+    SeerViewerContext,
     SummarizeIssueRequest,
     make_signed_seer_api_request,
     make_summarize_issue_request,
 )
+from sentry.seer.supergroups.lightweight_rca import trigger_lightweight_rca
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -168,6 +170,14 @@ def _trigger_autofix_task(
             logger.warning("_trigger_autofix_task.group_not_found", extra={"group_id": group_id})
             return
 
+        sentry_sdk.set_tags(
+            {
+                "group_id": group_id,
+                "org_id": group.organization.id,
+                "project_id": group.project_id,
+            }
+        )
+
         user: User | AnonymousUser | RpcUser | None = None
         if user_id:
             user = user_service.get_user(user_id=user_id)
@@ -191,6 +201,13 @@ def _trigger_autofix_task(
                 run_id=None,
                 stopping_point=stopping_point,
             )
+            try:
+                trigger_lightweight_rca(group)
+            except Exception:
+                logger.exception(
+                    "lightweight_rca.trigger_error_in_trigger_autofix_task",
+                    extra={"group_id": group_id},
+                )
         else:
             response = trigger_autofix(
                 group=group,
@@ -256,7 +273,8 @@ def _call_seer(
         organization_id=group.organization.id,
         project_id=group.project.id,
     )
-    response = make_summarize_issue_request(body, timeout=30)
+    viewer_context = SeerViewerContext(organization_id=group.organization.id)
+    response = make_summarize_issue_request(body, timeout=30, viewer_context=viewer_context)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -281,12 +299,14 @@ class FixabilityScoreRequest(TypedDict):
 def make_fixability_score_request(
     body: FixabilityScoreRequest,
     timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         fixability_connection_pool_gpu,
         "/v1/automation/summarize/fixability",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 
@@ -302,7 +322,10 @@ def _generate_fixability_score(
     )
     if summary is not None:
         body["summary"] = summary
-    response = make_fixability_score_request(body, timeout=settings.SEER_FIXABILITY_TIMEOUT)
+    viewer_context = SeerViewerContext(organization_id=group.organization.id)
+    response = make_fixability_score_request(
+        body, timeout=settings.SEER_FIXABILITY_TIMEOUT, viewer_context=viewer_context
+    )
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)

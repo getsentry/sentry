@@ -1,3 +1,4 @@
+import type {Project} from 'sentry/types/project';
 import {type DashboardDetails} from 'sentry/views/dashboards/types';
 import {AI_AGENTS_MODELS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsModels';
 import {AI_AGENTS_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/aiAgentsOverview';
@@ -7,6 +8,7 @@ import {MCP_PROMPTS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuil
 import {MCP_RESOURCES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpResources';
 import {MCP_TOOLS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/mcpTools';
 import {BACKEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
+import {CACHES_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/caches';
 import {FRONTEND_ASSETS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssets';
 import {FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendAssets/frontendAssetsSummary';
 import {FRONTEND_OVERVIEW_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/frontendOverview/frontendOverview';
@@ -26,6 +28,7 @@ import {QUEUE_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebu
 import {SESSION_HEALTH_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/sessionHealth';
 import {WEB_VITALS_SUMMARY_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageSummary';
 import {WEB_VITALS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
+import type {ModulesWithOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 
 export enum PrebuiltDashboardId {
   FRONTEND_SESSION_HEALTH = 1,
@@ -55,9 +58,39 @@ export enum PrebuiltDashboardId {
   FRONTEND_ASSETS_SUMMARY = 25,
   BACKEND_QUEUES = 26,
   BACKEND_QUEUE_SUMMARY = 27,
+  BACKEND_CACHES = 28,
 }
 
-export type PrebuiltDashboard = Omit<DashboardDetails, 'id'>;
+/** Boolean flags on Project that indicate whether telemetry data has been received. */
+type ProjectTelemetryFlag = Extract<
+  keyof Project,
+  `hasInsights${string}` | 'hasSessions'
+>;
+
+export type OnboardingConfig =
+  | {
+      moduleName: ModulesWithOnboarding;
+      // Single-module onboarding: shows ModulesOnboardingPanel
+      type: 'module';
+      requiredProjectFlags?: ProjectTelemetryFlag[];
+    }
+  | {
+      componentId: 'agent-monitoring' | 'mcp';
+      requiredProjectFlags: ProjectTelemetryFlag[];
+      // Custom onboarding component (AI Agents, MCP)
+      type: 'custom';
+    }
+  | {
+      description: string;
+      requiredProjectFlags: ProjectTelemetryFlag[];
+      // Overview dashboard onboarding: shows a generic onboarding panel
+      // when NONE of the listed project flags are set
+      type: 'overview';
+    };
+
+export type PrebuiltDashboard = Omit<DashboardDetails, 'id'> & {
+  onboarding?: OnboardingConfig;
+};
 
 // NOTE: These configs must be in sync with the prebuilt dashboards declared in
 // the backend in the `PREBUILT_DASHBOARDS` constant.
@@ -93,4 +126,5 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
   [PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY]: FRONTEND_ASSETS_SUMMARY_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_QUEUES]: QUEUES_PREBUILT_CONFIG,
   [PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY]: QUEUE_SUMMARY_PREBUILT_CONFIG,
+  [PrebuiltDashboardId.BACKEND_CACHES]: CACHES_PREBUILT_CONFIG,
 };

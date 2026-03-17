@@ -1,13 +1,12 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {KeyValueData} from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -98,15 +97,15 @@ const Column = styled('div')`
   grid-template-columns: fit-content(65%) 1fr;
   font-size: ${p => p.theme.font.size.sm};
   &:first-child {
-    margin-left: -${space(1)};
+    margin-left: -${p => p.theme.space.md};
   }
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-left: ${space(2)};
+    padding-left: ${p => p.theme.space.xl};
     margin-left: -1px;
   }
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-right: ${space(2)};
+    padding-right: ${p => p.theme.space.xl};
   }
 `;

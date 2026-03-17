@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
 
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   EntrySpans,
   Event,
@@ -69,7 +68,11 @@ function addFingerprintInfo(
   }
 }
 
-function GroupingVariant({event, variant, showNonContributing}: GroupingVariantProps) {
+export function GroupingVariant({
+  event,
+  variant,
+  showNonContributing,
+}: GroupingVariantProps) {
   const getVariantData = (): [VariantData, EventGroupComponent | undefined] => {
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
@@ -188,14 +191,14 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
 }
 
 const VariantWrapper = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
 `;
 
 const Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
@@ -222,7 +225,7 @@ const ContributionIcon = styled(({isContributing, ...p}: any) =>
     <IconClose size="sm" variant="danger" {...p} />
   )
 )`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const GroupingTree = styled('div')`
@@ -233,7 +236,7 @@ const TextWithQuestionTooltip = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: auto 1fr;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const Hash = styled('span')`
@@ -245,5 +248,3 @@ const Hash = styled('span')`
     width: 210px;
   }
 `;
-
-export default GroupingVariant;

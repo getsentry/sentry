@@ -2,7 +2,7 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import IntegrationExternalMappingForm from './integrationExternalMappingForm';
+import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 
 describe('IntegrationExternalMappingForm', () => {
   const dataEndpoint = '/test/dataEndpoint/';

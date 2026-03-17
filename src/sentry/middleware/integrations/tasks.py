@@ -12,18 +12,18 @@ from rest_framework import status
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import SiloMode
-from sentry.silo.client import RegionSiloClient
+from sentry.silo.client import CellSiloClient
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.taskworker.retry import Retry
-from sentry.types.region import Region, get_region_by_name
+from sentry.types.region import Cell, get_cell_by_name
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
 class _AsyncResult:
-    region: Region
+    region: Cell
     response: Response
 
     def was_successful(self) -> bool:
@@ -67,8 +67,8 @@ class _AsyncRegionDispatcher(ABC):
         raise NotImplementedError
 
     def _dispatch_to_region(self, region_name: str) -> _AsyncResult:
-        region = get_region_by_name(region_name)
-        client = RegionSiloClient(region=region)
+        cell = get_cell_by_name(region_name)
+        client = CellSiloClient(cell=cell)
         response = client.request(
             method=self.request_payload["method"],
             path=self.request_payload["path"],
@@ -77,7 +77,7 @@ class _AsyncRegionDispatcher(ABC):
             json=False,
             raw_response=True,
         )
-        return _AsyncResult(region, cast(Response, response))
+        return _AsyncResult(cell, cast(Response, response))
 
     def _forward_response(self, result: _AsyncResult) -> Response | None:
         if not result.was_successful():

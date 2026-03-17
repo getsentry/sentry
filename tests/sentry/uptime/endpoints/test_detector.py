@@ -1,11 +1,16 @@
+from unittest import mock
+
 from django.utils import timezone
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
+from sentry.uptime.subscriptions.subscriptions import update_uptime_detector
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -44,6 +49,10 @@ class UptimeDetectorBaseTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
+        self.mock_invoke_checker_validator_ctx = mock.patch(
+            "sentry.uptime.checker_api.invoke_checker_validator", return_value=None
+        )
+        self.mock_invoke_checker_validator = self.mock_invoke_checker_validator_ctx.__enter__()
         self.environment = self.create_environment(
             organization_id=self.organization.id, name="production"
         )
@@ -65,6 +74,10 @@ class UptimeDetectorBaseTest(APITestCase):
             uptime_subscription=self.uptime_subscription,
             name="Test Detector",
         )
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        self.mock_invoke_checker_validator_ctx.__exit__(None, None, None)
 
 
 class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
@@ -297,6 +310,14 @@ class OrganizationDetectorIndexPostTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
+        self.mock_invoke_checker_validator_ctx = mock.patch(
+            "sentry.uptime.checker_api.invoke_checker_validator", return_value=None
+        )
+        self.mock_invoke_checker_validator = self.mock_invoke_checker_validator_ctx.__enter__()
+
+    def tearDown(self):
+        super().tearDown()
+        self.mock_invoke_checker_validator_ctx.__exit__(None, None, None)
 
     def test_create_detector_validation_error(self):
         invalid_data = _get_valid_data(
@@ -535,3 +556,26 @@ class OrganizationDetectorDetailsGetFilterTest(UptimeDetectorBaseTest):
         # Verify we got the correct detector
         assert response.data["id"] == str(active_detector.id)
         assert response.data["name"] == "Active Auto Detector"
+
+
+class UptimeDetectorUpdateCacheInvalidationTest(UptimeDetectorBaseTest):
+    """Tests that updating detectors correctly invalidates the cache."""
+
+    @with_feature("organizations:cache-detectors-by-data-source")
+    def test_update_detector_invalidates_cache(self) -> None:
+        data_source = self.detector.data_sources.first()
+        assert data_source is not None
+
+        # Warm the cache
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 1
+        assert cached_detectors[0].id == self.detector.id
+        original_name = cached_detectors[0].name
+
+        update_uptime_detector(self.detector, name="Updated Detector Name")
+
+        # Cache should have been invalidated and refreshed with new data
+        cached_detectors = bulk_fetch_enabled_detectors(data_source.source_id, data_source.type)
+        assert len(cached_detectors) == 1
+        assert cached_detectors[0].name == "Updated Detector Name"
+        assert cached_detectors[0].name != original_name

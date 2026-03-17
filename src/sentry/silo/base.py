@@ -12,7 +12,7 @@ from typing import Any, ParamSpec, TypeVar
 from sentry.utils.env import in_test_environment
 
 if typing.TYPE_CHECKING:
-    from sentry.types.region import Region
+    from sentry.types.region import Cell
 
 
 P = ParamSpec("P")
@@ -28,7 +28,7 @@ class SiloMode(Enum):
 
     MONOLITH = "MONOLITH"
     CONTROL = "CONTROL"
-    REGION = "REGION"
+    CELL = "REGION"
 
     @classmethod
     def resolve(cls, mode: str | SiloMode | None) -> SiloMode:
@@ -36,7 +36,7 @@ class SiloMode(Enum):
             return SiloMode.MONOLITH
         if isinstance(mode, SiloMode):
             return mode
-        return cls[mode]
+        return cls(mode)
 
     def __str__(self) -> str:
         return str(self.value)
@@ -70,7 +70,7 @@ class SingleProcessSiloModeState(threading.local):
 
     @staticmethod
     @contextlib.contextmanager
-    def enter(mode: SiloMode, region: Region | None = None) -> Generator[None]:
+    def enter(mode: SiloMode, region: Cell | None = None) -> Generator[None]:
         """
         Prevents re-entrant cases unless the exit_single_process_silo_context is
         explicitly embedded, ensuring that this single process silo mode simulates
@@ -96,7 +96,7 @@ class SingleProcessSiloModeState(threading.local):
         return None
 
     @staticmethod
-    def get_region() -> Region | None:
+    def get_region() -> Cell | None:
         return None
 
 
@@ -196,6 +196,6 @@ class FunctionSiloLimit(SiloLimit):
         return self.create_override(decorated_obj)
 
 
-region_silo_function = FunctionSiloLimit(SiloMode.REGION)
+cell_silo_function = FunctionSiloLimit(SiloMode.CELL)
 control_silo_function = FunctionSiloLimit(SiloMode.CONTROL)
-all_silo_function = FunctionSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
+all_silo_function = FunctionSiloLimit(SiloMode.CELL, SiloMode.CONTROL)

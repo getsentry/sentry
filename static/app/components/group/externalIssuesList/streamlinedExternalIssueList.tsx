@@ -9,15 +9,14 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
-import useGroupExternalIssues from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
+import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function getActionLabelAndTextValue({
   action,
@@ -216,14 +215,14 @@ export function StreamlinedExternalIssueList({
 const IssueActionWrapper = styled('span')`
   display: flex;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   line-height: 1.2;
 `;
 
 const LinkedIssue = styled(LinkButton)`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   border: none;
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
@@ -232,7 +231,7 @@ const LinkedIssue = styled(LinkButton)`
 const IssueActionButton = styled(Button)`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
@@ -241,7 +240,7 @@ const IssueActionButton = styled(Button)`
 const IssueActionLinkButton = styled(LinkButton)`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
@@ -250,7 +249,7 @@ const IssueActionLinkButton = styled(LinkButton)`
 const IssueActionDropdownMenu = styled(DropdownButton)`
   display: flex;
   align-items: center;
-  padding: ${space(0.5)} ${space(0.75)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   font-weight: normal;
@@ -272,7 +271,7 @@ const IssueActionName = styled('div')`
 const LinkedIssueTooltipWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   white-space: nowrap;
 `;
 
@@ -282,7 +281,7 @@ const LinkedIssueName = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
 `;
 
 const HorizontalSeparator = styled('div')`

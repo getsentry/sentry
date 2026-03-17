@@ -17,15 +17,14 @@ import type {
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import type {UsageSeries} from './types';
 import type {TableStat} from './usageTable';
@@ -144,7 +143,7 @@ export function UsageStatsProjects({
       };
     }
 
-    let key: string = parentTableSort;
+    let key = parentTableSort;
     let direction = -1;
 
     if (parentTableSort.charAt(0) === '-') {
@@ -513,7 +512,7 @@ export function UsageStatsProjects({
 }
 
 const Container = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Title = styled('div')`

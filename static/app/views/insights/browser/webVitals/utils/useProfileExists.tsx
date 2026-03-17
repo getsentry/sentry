@@ -3,7 +3,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 /**
  * Query results for whether a given replayId exists in the database (not deleted, etc)
  */
-export default function useProfileExists(ids: string[]) {
+export function useProfileExists(ids: string[]) {
   const result = useSpans(
     {
       search: `profile.id:[${ids.join(',')}]`,

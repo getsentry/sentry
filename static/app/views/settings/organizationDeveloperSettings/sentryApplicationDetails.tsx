@@ -15,21 +15,21 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
-import AvatarChooser from 'sentry/components/avatarChooser';
+import {AvatarChooser} from 'sentry/components/avatarChooser';
 import Confirm from 'sentry/components/confirm';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
-import FormModel from 'sentry/components/forms/model';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {FormModel} from 'sentry/components/forms/model';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {
   internalIntegrationForms,
@@ -37,7 +37,6 @@ import {
 } from 'sentry/data/forms/sentryApplication';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
@@ -48,16 +47,16 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
+import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
 
@@ -533,7 +532,7 @@ const ClientSecret = styled('div')`
 `;
 
 const AddTokenHeader = styled('div')`
-  margin: -${space(1)} 0;
+  margin: -${p => p.theme.space.md} 0;
   display: flex;
   justify-content: flex-end;
 `;

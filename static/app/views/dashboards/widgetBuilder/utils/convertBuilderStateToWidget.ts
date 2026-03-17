@@ -11,13 +11,11 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {
   serializeSorts,
   type WidgetBuilderState,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 /**
@@ -34,6 +32,19 @@ export function getSelectedAggregateIndex(
 }
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
+  if (state.displayType === DisplayType.TEXT) {
+    return {
+      title: state.title ?? '',
+      description: state.textContent,
+      displayType: state.displayType,
+      interval: '',
+      queries: [],
+      widgetType: undefined,
+      limit: undefined,
+      thresholds: undefined,
+      axisRange: undefined,
+    };
+  }
   const datasetConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
   const defaultQuery = datasetConfig.defaultWidgetQuery;
 
@@ -44,24 +55,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const fieldAliases = state.fields?.map(field => field.alias ?? '');
   let aggregates: string[];
 
-  if (
-    state.dataset === WidgetType.TRACEMETRICS &&
-    (state.displayType === DisplayType.BIG_NUMBER ||
-      usesTimeSeriesData(state.displayType))
-  ) {
-    // HACK: Inject the trace metric name and type into the aggregate function
-    // prior to making the request because the current types for y-axes do not support
-    // the correct number of arguments required for trace metrics
-    const aggregateSource = state.yAxis?.length ? state.yAxis : state.fields;
-    aggregates =
-      aggregateSource?.map(axis => {
-        const traceMetric = state.traceMetric ?? {name: '', type: ''};
-        if (axis.kind === 'function') {
-          return generateMetricAggregate(traceMetric, axis);
-        }
-        return axis.field;
-      }) ?? [];
-  } else if (state.yAxis?.length) {
+  if (state.yAxis?.length) {
     aggregates =
       state.yAxis
         ?.map(generateFieldAsString)
@@ -87,15 +81,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     state.displayType === DisplayType.TABLE ||
     state.displayType === DisplayType.DETAILS ||
     state.displayType === DisplayType.BIG_NUMBER
-      ? state.dataset === WidgetType.TRACEMETRICS
-        ? state.fields?.map(field => {
-            const traceMetric = state.traceMetric ?? {name: '', type: ''};
-            if (field.kind === 'function') {
-              return generateMetricAggregate(traceMetric, field);
-            }
-            return generateFieldAsString(field);
-          })
-        : state.fields?.map(generateFieldAsString)
+      ? state.fields?.map(generateFieldAsString)
       : [...(columns ?? []), ...(aggregates ?? [])];
 
   // If there's no sort, use a sensible default based on display type

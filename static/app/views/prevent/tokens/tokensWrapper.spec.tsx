@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import TokensPageWrapper from 'sentry/views/prevent/tokens/tokensWrapper';
+import {TokensPageWrapper} from 'sentry/views/prevent/tokens/tokensWrapper';
 
 const COVERAGE_FEATURE = 'prevent-test-analytics';
 

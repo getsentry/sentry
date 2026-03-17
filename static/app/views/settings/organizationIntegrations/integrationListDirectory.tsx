@@ -10,14 +10,13 @@ import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AppOrProviderOrPlugin,
   DocIntegration,
@@ -45,12 +44,12 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
-import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
-import IntegrationRow from 'sentry/views/settings/organizationIntegrations/integrationRow';
-import ReinstallAlert from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
+import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
+import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
+import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
@@ -269,7 +268,6 @@ export default function IntegrationListDirectory() {
     ({value: newCategory}: SelectOption<string>) => {
       navigate(
         {
-          ...location,
           query: {...location.query, category: newCategory ? newCategory : undefined},
         },
         {replace: true}
@@ -289,7 +287,6 @@ export default function IntegrationListDirectory() {
     (newSearch: string) => {
       navigate(
         {
-          ...location,
           query: {...location.query, search: newSearch ? newSearch : undefined},
         },
         {replace: true}
@@ -568,14 +565,14 @@ function IntegrationResultsEmpty({searchTerm}: {searchTerm: string}) {
 const ActionContainer = styled('div')`
   display: grid;
   grid-template-columns: 240px auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const EmptyResultsBody = styled('div')`
   font-size: 16px;
   line-height: 28px;
   color: ${p => p.theme.tokens.content.secondary};
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const EmptyResultsBodyBold = styled(EmptyResultsBody)`

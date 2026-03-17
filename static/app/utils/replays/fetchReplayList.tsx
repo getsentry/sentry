@@ -28,7 +28,7 @@ type Props = {
   queryReferrer?: ReplayListQueryReferrer;
 };
 
-async function fetchReplayList({
+export async function fetchReplayList({
   api,
   organization,
   location,
@@ -92,5 +92,3 @@ async function fetchReplayList({
     };
   }
 }
-
-export default fetchReplayList;

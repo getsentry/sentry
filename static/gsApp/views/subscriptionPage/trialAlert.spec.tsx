@@ -4,7 +4,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import TrialAlert from 'getsentry/views/subscriptionPage/trialAlert';
+import {TrialAlert} from 'getsentry/views/subscriptionPage/trialAlert';
 
 describe('Subscription > TrialAlert', () => {
   const organization = OrganizationFixture();

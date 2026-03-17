@@ -7,17 +7,16 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   Integration,
   Repository,
@@ -33,15 +32,15 @@ import {
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useApi from 'sentry/utils/useApi';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-import RepositoryProjectPathConfigForm from './repositoryProjectPathConfigForm';
+import {RepositoryProjectPathConfigModal} from './repositoryProjectPathConfigForm';
 import RepositoryProjectPathConfigRow, {
   ButtonWrapper,
   InputPathColumn,
@@ -129,11 +128,7 @@ function useDeletePathConfig() {
   });
 }
 
-export default function IntegrationCodeMappings({
-  integration,
-}: {
-  integration: Integration;
-}) {
+export function IntegrationCodeMappings({integration}: {integration: Integration}) {
   const queryClient = useQueryClient();
   useRouteAnalyticsEventNames(
     'integrations.code_mappings_viewed',
@@ -214,33 +209,15 @@ export default function IntegrationCodeMappings({
       });
 
       openModal(
-        ({Body, Header, closeModal}) => (
-          <Fragment>
-            <Header closeButton>
-              <h4>{t('Configure code path mapping')}</h4>
-            </Header>
-            <Body>
-              <RepositoryProjectPathConfigForm
-                organization={organization}
-                integration={integration}
-                projects={projects}
-                repos={repos}
-                onSubmitSuccess={() => {
-                  trackAnalytics('integrations.stacktrace_complete_setup', {
-                    setup_type: 'manual',
-                    view: 'integration_configuration_detail',
-                    provider: integration.provider.key,
-                    organization,
-                  });
-                  closeModal();
-                }}
-                existingConfig={pathConfig}
-                onCancel={() => {
-                  closeModal();
-                }}
-              />
-            </Body>
-          </Fragment>
+        modalProps => (
+          <RepositoryProjectPathConfigModal
+            {...modalProps}
+            organization={organization}
+            integration={integration}
+            projects={projects}
+            repos={repos}
+            existingConfig={pathConfig}
+          />
         ),
         {
           onClose: () => {
@@ -364,7 +341,7 @@ export default function IntegrationCodeMappings({
 
 const Layout = styled('div')`
   display: grid;
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
   width: 100%;
   align-items: center;
   grid-template-columns: 4.5fr 2.5fr 2.5fr max-content;
@@ -373,5 +350,5 @@ const Layout = styled('div')`
 
 const HeaderLayout = styled(Layout)`
   align-items: center;
-  margin: 0 ${space(1)} 0 ${space(2)};
+  margin: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.xl};
 `;

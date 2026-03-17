@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models.deploy import Deploy
 from sentry.models.group import Group
@@ -13,7 +13,7 @@ from sentry.models.repository import Repository
 from sentry.utils.hashlib import hash_values
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,

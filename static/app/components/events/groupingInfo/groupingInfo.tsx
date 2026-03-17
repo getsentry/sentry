@@ -7,14 +7,14 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
 import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import GroupingVariant from './groupingVariant';
+import {GroupingVariant} from './groupingVariant';
 
 interface GroupingSummaryProps {
   event: Event;

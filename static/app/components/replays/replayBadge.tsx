@@ -13,7 +13,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import * as events from 'sentry/utils/events';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -21,7 +21,7 @@ interface Props {
   replay: ReplayListRecord | ReplayListRecordWithTx;
 }
 
-export default function ReplayBadge({replay}: Props) {
+export function ReplayBadge({replay}: Props) {
   const project = useProjectFromId({project_id: replay.project_id ?? undefined});
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
@@ -93,7 +93,9 @@ export default function ReplayBadge({replay}: Props) {
           <Text size="sm" variant="muted">
             {events.getShortEventId(replay.id)}
           </Text>
-          <Flex gap="xs" align="center">
+          {/* z-index lifts the timestamp above the row's ::before click target
+             (from SimpleTable.rowLinkStyle) so the TimeSince tooltip can trigger */}
+          <Flex gap="xs" align="center" position="relative" style={{zIndex: 1}}>
             <IconCalendar variant="muted" size="xs" />
             <Text size="sm" variant="muted">
               {timestampType === 'absolute' ? (

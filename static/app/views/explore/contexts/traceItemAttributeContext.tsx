@@ -1,11 +1,11 @@
-import type React from 'react';
-import {createContext, useContext, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {FieldKind} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  DASHBOARD_ONLY_SPAN_ATTRIBUTES,
   SENTRY_LOG_BOOLEAN_TAGS,
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
@@ -49,58 +49,28 @@ type TraceItemAttributeResult = {
   secondaryAliases: TagCollection;
 };
 
-const TraceItemAttributeContext = createContext<
-  TypedTraceItemAttributesResult | undefined
->(undefined);
+const EMPTY_STRING_SET = new Set<string>();
 
-type TraceItemAttributeConfig = {
+export type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
-  projects?: Project[];
+  projects?: Project[] | Array<string | number>;
   query?: string;
   search?: string;
 };
 
-const DISABLED_CONFIG: TraceItemAttributeConfig = {
-  enabled: false,
-  traceItemType: TraceItemDataset.SPANS,
-};
+type TraceItemAttributeOptions = Partial<Omit<TraceItemAttributeConfig, 'traceItemType'>>;
 
-type TraceItemAttributeProviderProps = {
-  children: React.ReactNode;
-} & TraceItemAttributeConfig;
-
-/**
- * @deprecated Use `useTraceItemAttributes` with a config argument instead
- * of wrapping children in a provider.
- */
-export function TraceItemAttributeProvider({
-  children,
-  traceItemType,
-  enabled,
-  projects,
-  search,
-  query,
-}: TraceItemAttributeProviderProps) {
-  const typedAttributesResult = useTraceItemAttributeConfig({
-    traceItemType,
-    enabled,
-    projects,
-    search,
-    query,
-  });
-
-  return (
-    <TraceItemAttributeContext value={typedAttributesResult}>
-      {children}
-    </TraceItemAttributeContext>
-  );
+function isProjectArray(
+  projects: Project[] | Array<string | number>
+): projects is Project[] {
+  return projects.length > 0 && typeof projects[0] === 'object';
 }
 
 function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
-  projects,
+  projects: rawProjects,
   search,
   query,
 }: TraceItemAttributeConfig): TypedTraceItemAttributesResult {
@@ -109,11 +79,16 @@ function useTraceItemAttributeConfig({
     'search-query-builder-explicit-boolean-filters'
   );
 
+  const projects = rawProjects && isProjectArray(rawProjects) ? rawProjects : undefined;
+  const projectIds =
+    rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
+
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
       enabled,
       type: 'number',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,
@@ -124,6 +99,7 @@ function useTraceItemAttributeConfig({
       enabled,
       type: 'string',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,
@@ -134,28 +110,62 @@ function useTraceItemAttributeConfig({
       enabled: enabled && hasBooleanFilters,
       type: 'boolean',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,
     });
 
+  const booleanBaseKeys = useMemo(() => {
+    if (!hasBooleanFilters) {
+      return EMPTY_STRING_SET;
+    }
+
+    const keys = new Set(getDefaultBooleanAttributes(traceItemType));
+    for (const key of Object.keys(booleanAttributes ?? {})) {
+      keys.add(extractBaseKey(key));
+    }
+
+    return keys;
+  }, [booleanAttributes, hasBooleanFilters, traceItemType]);
+
   const allNumberAttributes = useMemo(() => {
-    const measurements = getDefaultNumberAttributes(traceItemType).map(measurement => [
-      measurement,
-      {key: measurement, name: measurement, kind: FieldKind.MEASUREMENT},
-    ]);
+    const shouldRemove = hasBooleanFilters && booleanBaseKeys.size > 0;
+    const attributes: TagCollection = {};
+    const secondaryAliases: TagCollection = {};
 
-    const secondaryAliases: TagCollection = Object.fromEntries(
-      Object.values(numberAttributes ?? {})
-        .flatMap(value => value.secondaryAliases ?? [])
-        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.MEASUREMENT}])
-    );
+    for (const [key, value] of Object.entries(numberAttributes ?? {})) {
+      if (!shouldRemove || !shouldRemoveAttributeKey(key, booleanBaseKeys)) {
+        attributes[key] = value;
+      }
 
-    return {
-      attributes: {...numberAttributes, ...Object.fromEntries(measurements)},
-      secondaryAliases,
-    };
-  }, [numberAttributes, traceItemType]);
+      for (const alias of value.secondaryAliases ?? []) {
+        if (shouldRemove && shouldRemoveAttributeKey(alias, booleanBaseKeys)) {
+          continue;
+        }
+
+        secondaryAliases[alias] = {
+          key: alias,
+          name: alias,
+          kind: FieldKind.MEASUREMENT,
+        };
+      }
+    }
+
+    for (const measurement of getDefaultNumberAttributes(traceItemType)) {
+      if (shouldRemove && shouldRemoveAttributeKey(measurement, booleanBaseKeys)) {
+        continue;
+      }
+
+      attributes[measurement] = {
+        key: measurement,
+        name: measurement,
+        kind: FieldKind.MEASUREMENT,
+      };
+    }
+
+    return {attributes, secondaryAliases};
+  }, [numberAttributes, traceItemType, booleanBaseKeys, hasBooleanFilters]);
 
   const allStringAttributes = useMemo(() => {
     const tags = getDefaultStringAttributes(traceItemType).map(tag => [
@@ -259,93 +269,111 @@ function processTraceItemAttributes(
   };
 }
 
-function isTraceItemAttributeConfig(
-  value: TraceItemAttributeConfig | TraceItemAttributeType | undefined
-): value is TraceItemAttributeConfig {
-  return typeof value === 'object' && value !== null;
-}
-
-function isTraceItemAttributeType(
-  value: TraceItemAttributeType | string[] | undefined
-): value is TraceItemAttributeType {
-  return value === 'boolean' || value === 'number' || value === 'string';
-}
-
-function resolveTraceItemAttributeArgs(
-  configOrType: TraceItemAttributeConfig | TraceItemAttributeType | undefined,
-  typeOrHiddenKeys: TraceItemAttributeType | string[] | undefined,
-  maybeHiddenKeys: string[] | undefined
-) {
-  if (isTraceItemAttributeConfig(configOrType)) {
-    return {
-      isConfigMode: true,
-      config: configOrType,
-      type: isTraceItemAttributeType(typeOrHiddenKeys) ? typeOrHiddenKeys : undefined,
-      hiddenKeys: maybeHiddenKeys,
-    };
-  }
-
-  return {
-    isConfigMode: false,
-    config: DISABLED_CONFIG,
-    type: configOrType,
-    hiddenKeys: Array.isArray(typeOrHiddenKeys) ? typeOrHiddenKeys : undefined,
-  };
-}
-
 export function useTraceItemAttributes(
   config: TraceItemAttributeConfig,
   type?: TraceItemAttributeType,
   hiddenKeys?: string[]
-): TraceItemAttributeResult;
-
-/**
- * @deprecated Pass a `TraceItemAttributeConfig` as the first argument instead
- * of relying on `TraceItemAttributeProvider` context.
- */
-export function useTraceItemAttributes(
-  type?: TraceItemAttributeType,
-  hiddenKeys?: string[]
-): TraceItemAttributeResult;
-
-export function useTraceItemAttributes(
-  configOrType?: TraceItemAttributeConfig | TraceItemAttributeType,
-  typeOrHiddenKeys?: TraceItemAttributeType | string[],
-  maybeHiddenKeys?: string[]
 ): TraceItemAttributeResult {
-  const args = resolveTraceItemAttributeArgs(
-    configOrType,
-    typeOrHiddenKeys,
-    maybeHiddenKeys
-  );
-
-  // Always call both to satisfy React hooks rules of unconditional calls.
-  // When in context mode, useTraceItemAttributeConfig runs with enabled: false (no API calls).
-  // When in config mode, useContext just returns undefined harmlessly.
-  const contextResult = useContext(TraceItemAttributeContext);
-  const configResult = useTraceItemAttributeConfig(args.config);
-
-  const typedAttributesResult = args.isConfigMode ? configResult : contextResult;
-
-  if (typedAttributesResult === undefined) {
-    throw new Error(
-      'useTraceItemAttributes must be used within a TraceItemAttributeProvider or called with a config'
-    );
-  }
-
-  return processTraceItemAttributes(typedAttributesResult, args.type, args.hiddenKeys);
-}
-
-/**
- * @deprecated Use `useTraceItemAttributes` with a config argument instead.
- */
-export function useTraceItemAttributesWithConfig(
-  config: TraceItemAttributeConfig,
-  type?: TraceItemAttributeType,
-  hiddenKeys?: string[]
-) {
   const typedAttributesResult = useTraceItemAttributeConfig(config);
   return processTraceItemAttributes(typedAttributesResult, type, hiddenKeys);
+}
+
+export function useTraceItemDatasetAttributes(
+  traceItemType: TraceItemDataset,
+  {enabled, ...rest}: TraceItemAttributeOptions = {},
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemAttributes(
+    {
+      traceItemType,
+      enabled: enabled ?? true,
+      ...rest,
+    },
+    type,
+    hiddenKeys
+  );
+}
+
+export function useSpanItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  const mergedHiddenKeys = useMemo(() => {
+    if (!hiddenKeys?.length) {
+      return DASHBOARD_ONLY_SPAN_ATTRIBUTES;
+    }
+    return [...hiddenKeys, ...DASHBOARD_ONLY_SPAN_ATTRIBUTES];
+  }, [hiddenKeys]);
+
+  return useTraceItemDatasetAttributes(
+    TraceItemDataset.SPANS,
+    options,
+    type,
+    mergedHiddenKeys
+  );
+}
+
+export function useLogItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemDatasetAttributes(TraceItemDataset.LOGS, options, type, hiddenKeys);
+}
+
+export function useTraceMetricItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemDatasetAttributes(
+    TraceItemDataset.TRACEMETRICS,
+    options,
+    type,
+    hiddenKeys
+  );
+}
+
+export function usePreprodItemAttributes(
+  options?: TraceItemAttributeOptions,
+  type?: TraceItemAttributeType,
+  hiddenKeys?: string[]
+): TraceItemAttributeResult {
+  return useTraceItemDatasetAttributes(
+    TraceItemDataset.PREPROD,
+    options,
+    type,
+    hiddenKeys
+  );
+}
+
+const TAGS_REGEX =
+  /^tags\[(?<tagKey>[a-zA-Z0-9_.:-]+),(?<attributeType>boolean|number|string)\]$/;
+
+/**
+ * Extracts the base key from a tag key, handling both plain keys and
+ * explicit format like `tags[key,type]`.
+ */
+export function extractBaseKey(key: string): string {
+  const match = TAGS_REGEX.exec(key);
+  if (!match?.groups) {
+    return key;
+  }
+
+  return match.groups.tagKey ?? key;
+}
+
+/**
+ * Returns true if an attribute key should be removed because an attribute with the same
+ * base key exists.
+ */
+export function shouldRemoveAttributeKey(
+  key: string,
+  booleanBaseKeys: Set<string>
+): boolean {
+  return booleanBaseKeys.has(extractBaseKey(key));
 }
 
 function getDefaultStringAttributes(itemType: TraceItemDataset) {

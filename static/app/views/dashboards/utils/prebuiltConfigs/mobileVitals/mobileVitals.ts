@@ -3,7 +3,8 @@ import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {SpanFields} from 'sentry/views/insights/types';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
 
@@ -328,7 +329,7 @@ const APP_START_TABLE: Widget = {
     x: 0,
     y: 2,
     w: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -378,7 +379,7 @@ const SCREEN_RENDERING_TABLE: Widget = {
     x: 0,
     y: 8,
     w: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -422,7 +423,7 @@ const SCREEN_LOAD_TABLE: Widget = {
     x: 0,
     y: 5,
     w: 6,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -442,7 +443,7 @@ const SECOND_ROW_WIDGETS: Widget[] = [
 
 export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
-  title: t('Mobile Vitals as a Dashboard'),
+  title: t('Mobile Vitals'),
   projects: [],
   widgets: [
     ...FIRST_ROW_WIDGETS,
@@ -473,4 +474,5 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
+  onboarding: {type: 'module', moduleName: ModuleName.MOBILE_VITALS},
 };

@@ -7,30 +7,29 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackFilters from 'sentry/components/feedback/feedbackFilters';
-import FeedbackItemLoader from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
-import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
-import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
-import FeedbackList from 'sentry/components/feedback/list/feedbackList';
-import FeedbackSummaryCategories from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
-import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
-import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
-import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
+import {FeedbackFilters} from 'sentry/components/feedback/feedbackFilters';
+import {FeedbackItemLoader} from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
+import {FeedbackSearch} from 'sentry/components/feedback/feedbackSearch';
+import {FeedbackSetupPanel} from 'sentry/components/feedback/feedbackSetupPanel';
+import {FeedbackList} from 'sentry/components/feedback/list/feedbackList';
+import {FeedbackSummaryCategories} from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
+import {useCurrentFeedbackId} from 'sentry/components/feedback/useCurrentFeedbackId';
+import {useCurrentFeedbackProject} from 'sentry/components/feedback/useCurrentFeedbackProject';
+import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
-import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import FullViewport from 'sentry/components/layouts/fullViewport';
+import {useRedirectToFeedbackFromEvent} from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {FullViewport} from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 export default function FeedbackListPage() {
@@ -229,13 +228,13 @@ const LayoutGrid = styled('div')<{hideTop?: boolean}>`
   flex-grow: 1;
 
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   place-items: stretch;
 
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    padding: ${space(2)} ${space(4)};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
   }
 
   grid-template-rows: max-content 1fr;

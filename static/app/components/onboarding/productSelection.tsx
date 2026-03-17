@@ -13,8 +13,7 @@ import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
@@ -609,9 +608,7 @@ export function ProductSelection({
     [params.product]
   );
 
-  const products: ProductSolution[] | undefined = platform
-    ? platformProductAvailability[platform]
-    : undefined;
+  const products = platform ? platformProductAvailability[platform] : undefined;
 
   const disabledProducts = useMemo(
     () => disabledProductsProp ?? getDisabledProducts(organization),
@@ -746,6 +743,6 @@ const ProductButton = Button;
 const ProductButtonInner = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;

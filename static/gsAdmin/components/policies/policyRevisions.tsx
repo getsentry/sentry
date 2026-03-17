@@ -5,8 +5,6 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {space} from 'sentry/styles/space';
-
 import ResultGrid from 'admin/components/resultGrid';
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
@@ -54,7 +52,7 @@ const getRow = ({row, policy, onUpdate}: RowProps) => {
   ];
 };
 
-function PolicyRevisions({policy, onUpdate}: Props) {
+export function PolicyRevisions({policy, onUpdate}: Props) {
   return (
     <ResultGrid
       inPanel
@@ -79,12 +77,10 @@ function PolicyRevisions({policy, onUpdate}: Props) {
 }
 
 const CurrentTag = styled(Tag)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const FileName = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
 `;
-
-export default PolicyRevisions;

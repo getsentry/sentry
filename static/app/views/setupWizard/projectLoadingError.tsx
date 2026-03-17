@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import type RequestError from 'sentry/utils/requestError/requestError';
 

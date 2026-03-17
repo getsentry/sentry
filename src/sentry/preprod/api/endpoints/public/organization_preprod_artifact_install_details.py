@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
@@ -19,15 +19,24 @@ from sentry.preprod.api.models.public.installable_builds import (
     create_install_info_dict,
 )
 from sentry.preprod.models import PreprodArtifact
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @extend_schema(tags=["Mobile Builds"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationPreprodArtifactPublicInstallDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=60),
+            }
+        }
+    )
 
     @extend_schema(
         operation_id="Retrieve install info for a given artifact",

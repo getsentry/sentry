@@ -543,7 +543,7 @@ def test_schedulerunner_silo_limited_task_has_task_properties() -> None:
         namespace=namespace,
         at_most_once=True,
         wait_for_delivery=True,
-        silo_mode=SiloMode.REGION,
+        silo_mode=SiloMode.CELL,
     )
     def region_task() -> None:
         pass

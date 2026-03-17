@@ -27,7 +27,7 @@ const defaultProps = {
  * use core components with built-in interaction states
  * @deprecated
  */
-const InteractionStateLayer = styled(
+export const InteractionStateLayer = styled(
   (props: StateLayerProps) => {
     // Prevent type checking of `rest` as it has hundreds of properties and is slow
     const {children, as: Element = 'span', ...rest} = props as any;
@@ -102,5 +102,3 @@ const InteractionStateLayer = styled(
     opacity: 0;
   }
 `;
-
-export default InteractionStateLayer;

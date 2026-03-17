@@ -9,20 +9,19 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import CommitLink from 'sentry/components/commitLink';
+import {CommitLink} from 'sentry/components/commitLink';
 import {Hovercard} from 'sentry/components/hovercard';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TextOverflow from 'sentry/components/textOverflow';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -251,7 +250,7 @@ function CommitRow({
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const AvatarWrapper = styled('div')`
@@ -293,7 +292,7 @@ const CommitMessage = styled('div')`
   flex: 1;
   flex-direction: column;
   min-width: 0;
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 `;
 
 const Message = styled(TextOverflow)`
@@ -321,10 +320,10 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
 const MetaWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
-  padding-top: ${space(0.25)};
+  padding-top: ${p => p.theme.space['2xs']};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
@@ -340,7 +339,7 @@ const StyledExternalLink = styled(ExternalLink)`
 const AuthorWrapper = styled('span')`
   display: inline-flex;
   align-items: center;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.secondary};
 
   & svg {

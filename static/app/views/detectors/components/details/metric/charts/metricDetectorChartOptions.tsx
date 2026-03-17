@@ -5,10 +5,9 @@ import type {YAXisComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {SessionApiResponse} from 'sentry/types/organization';
@@ -421,9 +420,9 @@ export function getMetricDetectorChartOption(
       yAxis,
       series,
       grid: {
-        left: space(0.25),
-        right: space(2),
-        top: space(3),
+        left: theme.space['2xs'],
+        right: theme.space.xl,
+        top: theme.space['2xl'],
         bottom: 0,
       },
     },

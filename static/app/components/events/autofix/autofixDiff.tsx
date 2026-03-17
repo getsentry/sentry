@@ -19,11 +19,10 @@ import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {getPrismLanguage} from 'sentry/utils/prism';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 type AutofixDiffProps = {
@@ -701,9 +700,9 @@ const FileHeader = styled('div')`
   display: grid;
   align-items: center;
   grid-template-columns: minmax(60px, auto) 1fr auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   background-color: ${p => p.theme.tokens.background.secondary};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   cursor: pointer;
 `;
 
@@ -740,13 +739,14 @@ const HunkHeaderContent = styled('div')`
   grid-column: 3 / -1;
   background-color: ${p => p.theme.tokens.background.secondary};
   color: ${p => p.theme.tokens.content.secondary};
-  padding: ${space(0.75)} ${space(1)} ${space(0.75)} ${space(4)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm}
+    ${p => p.theme.space['3xl']};
   white-space: pre-wrap;
 `;
 
 const LineNumber = styled('div')<{lineType: DiffLineType}>`
   display: flex;
-  padding: ${space(0.25)} ${space(1)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   user-select: none;
 
   background-color: ${p => p.theme.tokens.background.secondary};
@@ -766,8 +766,8 @@ const LineNumber = styled('div')<{lineType: DiffLineType}>`
 
 const DiffContent = styled('div')<{lineType: DiffLineType}>`
   position: relative;
-  padding-left: ${space(4)};
-  padding-right: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
+  padding-right: ${p => p.theme.space['3xl']};
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
@@ -789,7 +789,7 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
           : "''"};
     position: absolute;
     top: 1px;
-    left: ${space(1)};
+    left: ${p => p.theme.space.md};
   }
 `;
 
@@ -802,12 +802,12 @@ const CodeDiff = styled('span')<{added?: boolean; removed?: boolean}>`
 const ButtonGroup = styled('div')`
   position: absolute;
   top: 0;
-  right: ${space(0.5)};
+  right: ${p => p.theme.space.xs};
   display: flex;
 `;
 
 const ActionButton = styled(Button)<{isHovered: boolean}>`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
   font-family: ${p => p.theme.font.family.sans};
   background-color: ${p => p.theme.tokens.background.primary};
   color: ${p => (p.isHovered ? p.theme.colors.pink500 : p.theme.tokens.content.primary)};
@@ -823,9 +823,9 @@ const ActionButton = styled(Button)<{isHovered: boolean}>`
 
 const EditOverlay = styled('div')`
   position: fixed;
-  bottom: ${space(2)};
+  bottom: ${p => p.theme.space.xl};
   left: 50%;
-  right: ${space(2)};
+  right: ${p => p.theme.space.xl};
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
@@ -836,34 +836,34 @@ const EditOverlay = styled('div')`
   max-height: calc(100vh - 18rem);
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    left: ${space(2)};
+    left: ${p => p.theme.space.xl};
   }
 `;
 
 const OverlayHeader = styled('div')`
-  padding: ${space(2)} ${space(2)} 0;
+  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayContent = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  padding: 0 ${p => p.theme.space.xl} ${p => p.theme.space.xl} ${p => p.theme.space.xl};
   overflow-y: auto;
 `;
 
 const OverlayFooter = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
 `;
 
 const OverlayButtonGroup = styled('div')`
   display: flex;
   justify-content: flex-end;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-family: ${p => p.theme.font.family.sans};
 `;
 
 const RemovedLines = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-family: ${p => p.theme.font.family.mono};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
@@ -872,7 +872,7 @@ const RemovedLines = styled('div')`
 const RemovedLine = styled('div')`
   background-color: ${DIFF_COLORS.removedRow};
   color: ${p => p.theme.tokens.content.primary};
-  padding: ${space(0.25)} ${space(0.5)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
   white-space: pre-wrap;
 `;
 
@@ -891,8 +891,8 @@ const StyledTextArea = styled(TextArea)`
 
 const ClearButton = styled(Button)`
   position: absolute;
-  top: -${space(1)};
-  right: -${space(1)};
+  top: -${p => p.theme.space.md};
+  right: -${p => p.theme.space.md};
   z-index: 1;
 `;
 
@@ -901,7 +901,7 @@ const TextAreaWrapper = styled('div')`
 `;
 
 const SectionTitle = styled('p')`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
   font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
   color: ${p => p.theme.tokens.content.primary};
@@ -909,13 +909,13 @@ const SectionTitle = styled('p')`
 `;
 
 const NoChangesMessage = styled('p')`
-  margin: ${space(1)} 0;
+  margin: ${p => p.theme.space.md} 0;
   color: ${p => p.theme.tokens.content.secondary};
   font-family: ${p => p.theme.font.family.sans};
 `;
 
 const OverlayTitle = styled('h3')`
-  margin: 0 0 ${space(2)} 0;
+  margin: 0 0 ${p => p.theme.space.xl} 0;
   font-size: ${p => p.theme.font.size.md};
   font-weight: bold;
   color: ${p => p.theme.tokens.content.primary};

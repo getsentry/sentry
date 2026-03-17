@@ -171,7 +171,7 @@ class NotificationService[T: NotificationData]:
     name="src.sentry.notifications.platform.service.notify_target_async",
     namespace=notifications_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def notify_target_async(
     *,

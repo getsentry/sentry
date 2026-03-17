@@ -10,13 +10,12 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconCheckmark, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   CodeOwner,
   CodeownersFile,
@@ -47,7 +46,7 @@ type TCodeownersError = RequestError;
 type TCodeownersVariables = [TCodeownersPayload];
 type TCodeownersContext = unknown;
 
-export default function AddCodeOwnerModal({
+export function AddCodeOwnerModal({
   organization,
   Header,
   Body,
@@ -363,9 +362,9 @@ const SourceFileBody = styled(PanelBody)`
 
 const IntegrationsList = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   justify-items: center;
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const IntegrationName = styled('p')`

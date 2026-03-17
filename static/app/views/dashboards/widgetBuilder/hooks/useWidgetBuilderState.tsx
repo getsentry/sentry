@@ -19,6 +19,7 @@ import {
   decodeSorts,
 } from 'sentry/utils/queryString';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DEFAULT_CATEGORICAL_BAR_LIMIT,
@@ -40,11 +41,8 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-import {generateMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/generateMetricAggregate';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {SpanFields} from 'sentry/views/insights/types';
 
 // For issues dataset, events and users are sorted descending and do not use '-'
@@ -61,6 +59,12 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 
 export const MAX_NUM_Y_AXES = 3;
 
+export const stateParamsNotInUrl: Array<keyof WidgetBuilderStateParams> = ['textContent'];
+
+const SESSION_STORAGE_CONTENT_KEY_MAP = {
+  textContent: 'dashboard:widget-builder:text-content',
+};
+
 export type WidgetBuilderStateQueryParams = {
   axisRange?: AxisRange;
   dataset?: WidgetType;
@@ -74,8 +78,16 @@ export type WidgetBuilderStateQueryParams = {
   sort?: string[];
   thresholds?: string;
   title?: string;
-  traceMetric?: string;
   yAxis?: string[];
+};
+
+/**
+ * Extends the URL query params shape with `textContent` for text widgets.
+ * Used as the payload type for SET_STATE actions, where text widget content
+ * must be carried in-memory without being written to the URL.
+ */
+export type WidgetBuilderStateParams = WidgetBuilderStateQueryParams & {
+  textContent?: string;
 };
 
 export const BuilderStateAction = {
@@ -92,8 +104,8 @@ export const BuilderStateAction = {
   SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
   SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
   SET_STATE: 'SET_STATE',
+  SET_TEXT_CONTENT: 'SET_TEXT_CONTENT',
   SET_THRESHOLDS: 'SET_THRESHOLDS',
-  SET_TRACE_METRIC: 'SET_TRACE_METRIC',
   // Categorical bar chart specific actions
   SET_CATEGORICAL_X_AXIS: 'SET_CATEGORICAL_X_AXIS',
   SET_CATEGORICAL_AGGREGATE: 'SET_CATEGORICAL_AGGREGATE',
@@ -114,14 +126,10 @@ type WidgetAction =
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
   | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
   | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
-  | {payload: WidgetBuilderStateQueryParams; type: typeof BuilderStateAction.SET_STATE}
+  | {payload: WidgetBuilderStateParams; type: typeof BuilderStateAction.SET_STATE}
   | {
       payload: ThresholdsConfig | null | undefined;
       type: typeof BuilderStateAction.SET_THRESHOLDS;
-    }
-  | {
-      payload: TraceMetric | undefined;
-      type: typeof BuilderStateAction.SET_TRACE_METRIC;
     }
   | {
       payload: string;
@@ -138,7 +146,8 @@ type WidgetAction =
   | {
       payload: AxisRange | undefined;
       type: typeof BuilderStateAction.SET_AXIS_RANGE;
-    };
+    }
+  | {payload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT};
 type WidgetBuilderStateActionOptions = {
   updateUrl?: boolean;
 };
@@ -162,9 +171,9 @@ export interface WidgetBuilderState {
   query?: string[];
   selectedAggregate?: number;
   sort?: Sort[];
+  textContent?: string;
   thresholds?: ThresholdsConfig | null;
   title?: string;
-  traceMetric?: TraceMetric;
   /**
    * Y-axis aggregates for time-series charts (area, bar, line).
    * Not used by tables, big numbers, or categorical bar widgets.
@@ -272,7 +281,7 @@ function fixupTableSortOnRemoval(
     : [];
 }
 
-function useWidgetBuilderState(): {
+export function useWidgetBuilderState(): {
   dispatch: (action: WidgetAction, options?: WidgetBuilderStateActionOptions) => void;
   state: WidgetBuilderState;
 } {
@@ -337,24 +346,20 @@ function useWidgetBuilderState(): {
     deserializer: deserializeLinkedDashboards,
     serializer: serializeLinkedDashboards,
   });
-  // TraceMetric widgets only support a single metric at this time. All aggregates
-  // must be in reference to this metric.
-  const [traceMetric, setTraceMetric] = useQueryParamState<TraceMetric | undefined>({
-    fieldName: 'traceMetric',
-    decoder: decodeScalar,
-    deserializer: deserializeTraceMetric,
-    serializer: serializeTraceMetric,
-  });
   const [axisRange, setAxisRange] = useQueryParamState<AxisRange | undefined>({
     fieldName: 'axisRange',
     decoder: decodeScalar,
     deserializer: getAxisRange,
   });
+  const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
+    string | undefined
+  >(SESSION_STORAGE_CONTENT_KEY_MAP.textContent, undefined);
 
   const state = useMemo(
     () => ({
       title,
       description,
+      textContent,
       displayType,
       dataset,
       fields,
@@ -365,7 +370,6 @@ function useWidgetBuilderState(): {
       legendAlias,
       thresholds,
       linkedDashboards,
-      traceMetric,
       axisRange,
       // The selected aggregate is the last aggregate for big number and categorical bar widgets
       // if it hasn't been explicitly set.
@@ -388,8 +392,9 @@ function useWidgetBuilderState(): {
     }),
     [
       title,
-      description,
       displayType,
+      textContent,
+      description,
       dataset,
       fields,
       yAxis,
@@ -397,11 +402,10 @@ function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
-      selectedAggregate,
       thresholds,
       linkedDashboards,
-      traceMetric,
       axisRange,
+      selectedAggregate,
     ]
   );
 
@@ -417,6 +421,10 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE: {
           setDisplayType(action.payload, options);
+          // When leaving the text widget type, clear local text content
+          if (displayType === DisplayType.TEXT && action.payload !== DisplayType.TEXT) {
+            setTextContent(undefined);
+          }
           const [aggregates, columns] = partition(fields, field => {
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
@@ -424,12 +432,11 @@ function useWidgetBuilderState(): {
           const columnsWithoutAlias = columns.map(column => {
             return {...column, alias: undefined};
           });
-          const aggregatesWithoutAlias = aggregates.map(aggregate => {
-            return {...aggregate, alias: undefined};
-          });
-          const yAxisWithoutAlias = yAxis?.map(axis => {
-            return {...axis, alias: undefined};
-          });
+          const aggregatesWithoutAlias = aggregates.map(aggregate => ({
+            ...aggregate,
+            alias: undefined,
+          }));
+          const yAxisWithoutAlias = yAxis?.map(axis => ({...axis, alias: undefined}));
           if (action.payload === DisplayType.TABLE) {
             setLinkedDashboards([], options);
             setLimit(undefined, options);
@@ -543,6 +550,23 @@ function useWidgetBuilderState(): {
             setQuery(query?.slice(0, 1), options);
             // Categorical bars show more categories than time-series groupings
             setLimit(DEFAULT_CATEGORICAL_BAR_LIMIT, options);
+          } else if (action.payload === DisplayType.TEXT) {
+            // Text widgets don't need any data fields, just title and description.
+            // Move any existing URL description into local state and clear the URL param
+            // to prevent excessively long URLs when the user types content.
+            setTextContent(description ?? '');
+            setDescription(undefined, options);
+            setFields([], options);
+            setYAxis([], options);
+            setQuery([''], options);
+            setSort([], options);
+            setLimit(undefined, options);
+            setLegendAlias([], options);
+            setDataset(undefined, options);
+            setLinkedDashboards([], options);
+            setThresholds(undefined, options);
+            setAxisRange(undefined, options);
+            setSelectedAggregate(undefined, options);
           } else {
             setFields(columnsWithoutAlias, options);
             const nextAggregates = [
@@ -748,7 +772,7 @@ function useWidgetBuilderState(): {
                 );
               } else {
                 // At this point, we can assume the fields are the same length so
-                // using the changedFieldIndex in action.payload is safe.
+                // using the changedFieldIndex in fieldsPayload is safe.
                 setSort(
                   [
                     {
@@ -778,14 +802,7 @@ function useWidgetBuilderState(): {
 
             // Adding a grouping, so default the sort to the first aggregate if possible
             let sortField: string | undefined;
-            if (dataset === WidgetType.TRACEMETRICS) {
-              sortField = firstYAxisNotEquation
-                ? generateMetricAggregate(
-                    traceMetric ?? {name: '', type: ''},
-                    firstYAxisNotEquation
-                  )
-                : undefined;
-            } else if (firstYAxisNotEquation) {
+            if (firstYAxisNotEquation) {
               sortField = generateFieldAsString(firstYAxisNotEquation);
             } else if (firstActionPayloadNotEquation) {
               sortField = generateFieldAsString(firstActionPayloadNotEquation);
@@ -816,7 +833,7 @@ function useWidgetBuilderState(): {
           }
           break;
         }
-        case BuilderStateAction.SET_Y_AXIS:
+        case BuilderStateAction.SET_Y_AXIS: {
           setYAxis(action.payload, options);
 
           if (fields?.length && fields.length > 0) {
@@ -833,21 +850,21 @@ function useWidgetBuilderState(): {
           } else if (
             action.payload.length > 0 &&
             dataset === WidgetType.TRACEMETRICS &&
-            traceMetric &&
             sort?.length &&
-            !checkTraceMetricSortUsed(sort, traceMetric, action.payload, fields)
+            !checkTraceMetricSortUsed(sort, action.payload, fields)
           ) {
             setSort(
               [
                 {
                   kind: 'desc',
-                  field: generateMetricAggregate(traceMetric, action.payload[0]!),
+                  field: generateFieldAsString(action.payload[0]!),
                 },
               ],
               options
             );
           }
           break;
+        }
         case BuilderStateAction.SET_QUERY:
           setQuery(action.payload, options);
           break;
@@ -908,8 +925,15 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_STATE:
           setDataset(action.payload.dataset, options);
-          setDescription(action.payload.description, options);
           setDisplayType(action.payload.displayType, options);
+          if (action.payload.displayType === DisplayType.TEXT) {
+            setTextContent(action.payload.textContent);
+            setDescription(undefined, options);
+          } else {
+            setDescription(action.payload.description, options);
+            setTextContent(undefined);
+          }
+
           if (action.payload.field) {
             setFields(deserializeFields(action.payload.field), options);
           }
@@ -922,9 +946,6 @@ function useWidgetBuilderState(): {
           if (action.payload.yAxis) {
             setYAxis(deserializeFields(action.payload.yAxis), options);
           }
-          if (action.payload.traceMetric) {
-            setTraceMetric(deserializeTraceMetric(action.payload.traceMetric), options);
-          }
           setAxisRange(getAxisRange(action.payload.axisRange), options);
           break;
         case BuilderStateAction.SET_THRESHOLDS:
@@ -932,86 +953,6 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_AXIS_RANGE:
           setAxisRange(action.payload, options);
-          break;
-        case BuilderStateAction.SET_TRACE_METRIC:
-          if (dataset === WidgetType.TRACEMETRICS) {
-            setTraceMetric(action.payload, options);
-
-            if (!action.payload) {
-              break;
-            }
-
-            // Check the validity of the aggregates against the new trace metric and
-            // set fields and sorting accordingly
-            let updatedAggregates: Column[] = [];
-            const aggregateSource = usesTimeSeriesData(displayType) ? yAxis : fields;
-            const validAggregateOptions = OPTIONS_BY_TYPE[action.payload.type] ?? [];
-
-            if (aggregateSource && validAggregateOptions.length > 0) {
-              updatedAggregates = aggregateSource.map(field => {
-                if (field.kind === 'function' && field.function?.[0]) {
-                  const aggregate = field.function[0];
-                  const isValid = validAggregateOptions.some(
-                    opt => opt.value === aggregate
-                  );
-
-                  if (!isValid) {
-                    // Replace with first valid aggregate
-                    return {
-                      function: [
-                        validAggregateOptions[0]?.value ?? '',
-                        'value',
-                        undefined,
-                        undefined,
-                      ],
-                      alias: undefined,
-                      kind: 'function',
-                    } as QueryFieldValue;
-                  }
-                }
-                return field;
-              });
-
-              // Update the appropriate source
-              if (usesTimeSeriesData(displayType)) {
-                setYAxis(updatedAggregates, options);
-              } else {
-                setFields(updatedAggregates, options);
-              }
-            }
-
-            // Update the sort if the current sort is not used in
-            // any of the current fields
-            if (
-              sort &&
-              sort.length > 0 &&
-              !checkTraceMetricSortUsed(
-                sort,
-                action.payload,
-                // Depending on the display type, the updated aggregates can be either
-                // the yAxis or the fields
-                usesTimeSeriesData(displayType) ? updatedAggregates : yAxis,
-                usesTimeSeriesData(displayType) ? fields : updatedAggregates
-              )
-            ) {
-              if (updatedAggregates.length > 0) {
-                setSort(
-                  [
-                    {
-                      field: generateMetricAggregate(
-                        action.payload,
-                        updatedAggregates[0]!
-                      ),
-                      kind: 'desc',
-                    },
-                  ],
-                  options
-                );
-              } else {
-                setSort([], options);
-              }
-            }
-          }
           break;
         case BuilderStateAction.SET_CATEGORICAL_X_AXIS:
           // Only applies to categorical bar charts
@@ -1135,15 +1076,14 @@ function useWidgetBuilderState(): {
             } else if (
               newYAxis.length > 0 &&
               dataset === WidgetType.TRACEMETRICS &&
-              traceMetric &&
               sort?.length &&
-              !checkTraceMetricSortUsed(sort, traceMetric, newYAxis, fields)
+              !checkTraceMetricSortUsed(sort, newYAxis, fields)
             ) {
               setSort(
                 [
                   {
                     kind: 'desc',
-                    field: generateMetricAggregate(traceMetric, newYAxis[0]!),
+                    field: generateFieldAsString(newYAxis[0]!),
                   },
                 ],
                 options
@@ -1188,36 +1128,40 @@ function useWidgetBuilderState(): {
           }
           break;
         }
+        case BuilderStateAction.SET_TEXT_CONTENT: {
+          setTextContent(action.payload);
+          break;
+        }
         default:
           break;
       }
     },
     [
+      dataset,
       setTitle,
       setDescription,
-      setDisplayType,
-      setDataset,
-      setFields,
-      setYAxis,
       setQuery,
-      setSort,
+      displayType,
       setLimit,
       setLegendAlias,
       setSelectedAggregate,
-      setThresholds,
-      setAxisRange,
-      setLinkedDashboards,
       fields,
+      setDataset,
+      setDisplayType,
+      setSort,
+      setAxisRange,
+      setThresholds,
       yAxis,
-      displayType,
-      linkedDashboards,
-      query,
+      setLinkedDashboards,
+      setTextContent,
+      setYAxis,
+      setFields,
       sort,
-      dataset,
+      query,
+      description,
       limit,
+      linkedDashboards,
       selectedAggregate,
-      setTraceMetric,
-      traceMetric,
     ]
   );
 
@@ -1232,6 +1176,9 @@ function useWidgetBuilderState(): {
  * Returns the default display type if the value is not a valid display type
  */
 function deserializeDisplayType(value: string): DisplayType {
+  if (value === DisplayType.TOP_N) {
+    return DisplayType.AREA;
+  }
   if (Object.values(DisplayType).includes(value as DisplayType)) {
     return value as DisplayType;
   }
@@ -1369,33 +1316,13 @@ export function serializeThresholds(thresholds: ThresholdsConfig | null): string
   return JSON.stringify(thresholds);
 }
 
-export function serializeTraceMetric(traceMetric: TraceMetric | undefined): string {
-  return JSON.stringify(traceMetric);
-}
-
-function deserializeTraceMetric(traceMetric: string): TraceMetric | undefined {
-  if (traceMetric === '') {
-    return undefined;
-  }
-  return JSON.parse(traceMetric);
-}
-
 function checkTraceMetricSortUsed(
   sort: Sort[],
-  traceMetric: TraceMetric,
   yAxis: Column[] = [],
   fields: Column[] = []
 ): boolean {
   const sortValue = sort[0]?.field;
-  const sortInFields = fields?.some(
-    field =>
-      generateFieldAsString(field) === sortValue ||
-      generateMetricAggregate(traceMetric, field) === sortValue
-  );
-  const sortInYAxis = yAxis?.some(
-    field => generateMetricAggregate(traceMetric, field) === sortValue
-  );
+  const sortInFields = fields?.some(field => generateFieldAsString(field) === sortValue);
+  const sortInYAxis = yAxis?.some(field => generateFieldAsString(field) === sortValue);
   return sortInFields || sortInYAxis;
 }
-
-export default useWidgetBuilderState;

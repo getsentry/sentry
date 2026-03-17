@@ -5,12 +5,12 @@ from django.conf import settings
 from urllib3 import BaseHTTPResponse, Retry
 
 from sentry.net.http import connection_from_url
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 
-# Shared connection pool for replay AI usecases. No timeout or retries by default, but requests can override these params.
+# Shared connection pool for replay AI usecases. Requests can override the default timeout and retries.
 seer_summarization_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
-    timeout=None,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
     retries=0,
     maxsize=20,  # Max persisted connections. If the number of concurrent requests exceeds this, temporary connections are created.
 )
@@ -42,6 +42,7 @@ def make_replay_summary_start_request(
     body: ReplaySummaryStartRequest,
     timeout: int | float | None = None,
     retries: int | None | Retry = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_summarization_connection_pool,
@@ -49,6 +50,7 @@ def make_replay_summary_start_request(
         body=orjson.dumps(body),
         timeout=timeout,
         retries=retries,
+        viewer_context=viewer_context,
     )
 
 
@@ -56,6 +58,7 @@ def make_replay_summary_state_request(
     body: ReplaySummaryStateRequest,
     timeout: int | float | None = None,
     retries: int | None | Retry = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_summarization_connection_pool,
@@ -63,6 +66,7 @@ def make_replay_summary_state_request(
         body=orjson.dumps(body),
         timeout=timeout,
         retries=retries,
+        viewer_context=viewer_context,
     )
 
 
@@ -70,6 +74,7 @@ def make_replay_delete_request(
     body: ReplayDeleteSeerDataRequest,
     timeout: int | float | None = None,
     retries: int | None | Retry = None,
+    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_summarization_connection_pool,
@@ -77,4 +82,5 @@ def make_replay_delete_request(
         body=orjson.dumps(body),
         timeout=timeout,
         retries=retries,
+        viewer_context=viewer_context,
     )

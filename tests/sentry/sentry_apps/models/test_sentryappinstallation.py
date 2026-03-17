@@ -7,7 +7,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import get_region_for_organization
+from sentry.types.region import get_cell_for_organization
 
 
 @control_silo_test
@@ -58,9 +58,9 @@ class SentryAppInstallationTest(TestCase):
         )
 
     def test_handle_async_replication_clears_region_cache(self) -> None:
-        with mock.patch.object(caching_module, "region_caching_service") as mock_caching_service:
+        with mock.patch.object(caching_module, "cell_caching_service") as mock_caching_service:
             self.install.save()
-            region = get_region_for_organization(self.org.slug)
+            cell = get_cell_for_organization(self.org.slug)
             mock_caching_service.clear_key.assert_any_call(
-                key=f"app_service.get_installation:{self.install.id}", region_name=region.name
+                key=f"app_service.get_installation:{self.install.id}", region_name=cell.name
             )

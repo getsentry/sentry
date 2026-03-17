@@ -7,7 +7,9 @@ const DEFAULT = '';
 
 type RetryCount = (typeof OPTIONS)[number];
 
-export default function decode(value: string | string[] | undefined | null): RetryCount {
+export function decodeRetryCount(
+  value: string | string[] | undefined | null
+): RetryCount {
   const decodedValue = decodeScalar(value, DEFAULT);
 
   if (isAValidOption(decodedValue)) {

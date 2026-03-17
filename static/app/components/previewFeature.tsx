@@ -6,7 +6,7 @@ type Props = {
   variant?: AlertProps['variant'];
 };
 
-function PreviewFeature({variant = 'info'}: Props) {
+export function PreviewFeature({variant = 'info'}: Props) {
   return (
     <Alert.Container>
       <Alert variant={variant}>
@@ -17,5 +17,3 @@ function PreviewFeature({variant = 'info'}: Props) {
     </Alert.Container>
   );
 }
-
-export default PreviewFeature;

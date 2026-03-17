@@ -4,7 +4,7 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
 import {SUMMARY_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const SPAN_OP_FILTER = `${SpanFields.SPAN_OP}:[queue.process,queue.publish]`;
 
@@ -79,11 +79,11 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
-          aggregates: [`count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
+          fields: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
+          aggregates: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
           columns: [],
           conditions: SPAN_OP_FILTER,
-          orderby: `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+          orderby: `equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
         },
       ],
     },
@@ -96,11 +96,11 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
-          aggregates: [`count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
+          fields: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
+          aggregates: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
           columns: [],
           conditions: SPAN_OP_FILTER,
-          orderby: `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+          orderby: `equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
         },
       ],
     },
@@ -128,9 +128,9 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
 
 const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow([...QUEUE_CHARTS], 1);
 
-const TRANSACTIONS_TABLE: Widget = {
-  id: 'transactions-table',
-  title: t('Transactions Interacting with Destination'),
+const PRODUCER_TABLE: Widget = {
+  id: 'producer-table',
+  title: t('Producer Transactions'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '5m',
@@ -139,30 +139,61 @@ const TRANSACTIONS_TABLE: Widget = {
       name: '',
       fields: [
         SpanFields.TRANSACTION,
-        SpanFields.SPAN_OP,
-        `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
-        `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+        `sum(${SpanFields.SPAN_DURATION})`,
+      ],
+      aggregates: [
+        `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
+        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+        `sum(${SpanFields.SPAN_DURATION})`,
+      ],
+      columns: [SpanFields.TRANSACTION],
+      fieldAliases: [t('Transaction'), t('Error rate'), t('Published'), t('Time spent')],
+      fieldMeta: [null, {valueType: 'percentage', valueUnit: null}, null, null],
+      conditions: `${SpanFields.SPAN_OP}:queue.publish`,
+      orderby: `-sum(${SpanFields.SPAN_DURATION})`,
+    },
+  ],
+  layout: {
+    x: 0,
+    y: 7,
+    w: 6,
+    h: 3,
+    minH: 3,
+  },
+};
+
+const CONSUMER_TABLE: Widget = {
+  id: 'consumer-table',
+  title: t('Consumer Transactions'),
+  displayType: DisplayType.TABLE,
+  widgetType: WidgetType.SPANS,
+  interval: '5m',
+  queries: [
+    {
+      name: '',
+      fields: [
+        SpanFields.TRANSACTION,
+        `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
+        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
+        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
-        `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
-      columns: [SpanFields.TRANSACTION, SpanFields.SPAN_OP],
+      columns: [SpanFields.TRANSACTION],
       fieldAliases: [
         t('Transaction'),
-        t('Type'),
         t('Avg time in queue'),
         t('Avg processing time'),
         t('Error rate'),
-        t('Published'),
         t('Processed'),
         t('Time spent'),
       ],
@@ -170,13 +201,11 @@ const TRANSACTIONS_TABLE: Widget = {
         null,
         null,
         null,
-        null,
         {valueType: 'percentage', valueUnit: null},
         null,
         null,
-        null,
       ],
-      conditions: SPAN_OP_FILTER,
+      conditions: `${SpanFields.SPAN_OP}:queue.process`,
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
   ],
@@ -184,8 +213,8 @@ const TRANSACTIONS_TABLE: Widget = {
     x: 0,
     y: 4,
     w: 6,
-    h: 6,
-    minH: 6,
+    h: 3,
+    minH: 3,
   },
 };
 
@@ -194,5 +223,6 @@ export const QUEUE_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   projects: [],
   title: SUMMARY_DASHBOARD_TITLE,
   filters: {},
-  widgets: [...FIRST_ROW_WIDGTS, ...SECOND_ROW_WIDGETS, TRANSACTIONS_TABLE],
+  widgets: [...FIRST_ROW_WIDGTS, ...SECOND_ROW_WIDGETS, CONSUMER_TABLE, PRODUCER_TABLE],
+  onboarding: {type: 'module', moduleName: ModuleName.QUEUE},
 };

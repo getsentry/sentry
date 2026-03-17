@@ -76,6 +76,8 @@ export enum TermOperator {
   LESS_THAN = '<',
   EQUAL = '=',
   NOT_EQUAL = '!=',
+  // NOTE: These wildcard operators are internal implementation details and
+  // should not be included in product docs. Users should use `*` instead.
   CONTAINS = '\uf00dContains\uf00d',
   DOES_NOT_CONTAIN = '\uf00dDoesNotContain\uf00d',
   STARTS_WITH = '\uf00dStartsWith\uf00d',

@@ -10,26 +10,25 @@ import {Text} from '@sentry/scraps/text';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
+import {SentryMemberTeamSelectorField} from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {FormModel} from 'sentry/components/forms/model';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import slugify from 'sentry/utils/slugify';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {slugify} from 'sentry/utils/slugify';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {
   IntervalConfig,
@@ -581,17 +580,17 @@ const LabelText = styled(Text)`
 `;
 
 const ListItemSubText = styled(Text)`
-  padding-left: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const InputGroup = styled('div')<{noPadding?: boolean}>`
-  padding-left: ${space(4)};
-  margin-top: ${space(1)};
-  margin-bottom: ${space(4)};
+  padding-left: ${p => p.theme.space['3xl']};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['3xl']};
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 
   ${FieldWrapper} {
     ${p => p.noPadding && `padding: 0;`};
@@ -601,7 +600,7 @@ const InputGroup = styled('div')<{noPadding?: boolean}>`
 const MultiColumnInput = styled('div')<{columns?: string}>`
   display: grid;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-template-columns: ${p => p.columns};
 `;
 

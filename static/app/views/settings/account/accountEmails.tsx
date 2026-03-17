@@ -12,28 +12,27 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
 import Confirm from 'sentry/components/confirm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDelete, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {UserEmail} from 'sentry/types/user';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useApi} from 'sentry/utils/useApi';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}});
 
 const schema = z.object({
-  email: z.string().email(t('Enter a valid email address')),
+  email: z.email(t('Enter a valid email address')),
 });
 
 function AccountEmails() {
@@ -275,7 +274,7 @@ function EmailRow({
 const EmailTags = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;
 

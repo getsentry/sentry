@@ -1,5 +1,4 @@
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +9,7 @@ import {
   ModalBody,
   ModalFooter,
 } from 'sentry/components/globalModal/components';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
@@ -54,6 +53,11 @@ describe('CreateIssueViewModal', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issue-view-title/generate/',
+      method: 'POST',
+      body: {},
     });
     const mockCreateViewEndpoint = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/',
@@ -113,10 +117,6 @@ describe('CreateIssueViewModal', () => {
   }, 10_000);
 
   describe('AI name streaming animation', () => {
-    const aiOrganization = OrganizationFixture({
-      features: ['issue-view-ai-title'],
-    });
-
     beforeEach(() => {
       jest.useFakeTimers();
     });
@@ -132,9 +132,7 @@ describe('CreateIssueViewModal', () => {
         body: {title: 'Generated View Title'},
       });
 
-      render(<CreateIssueViewModal {...defaultProps} />, {
-        organization: aiOrganization,
-      });
+      render(<CreateIssueViewModal {...defaultProps} />);
 
       const nameInput = screen.getByRole('textbox', {name: 'Name'});
 
@@ -162,9 +160,7 @@ describe('CreateIssueViewModal', () => {
         body: {title: 'Generated View Title'},
       });
 
-      render(<CreateIssueViewModal {...defaultProps} name="My Custom Name" />, {
-        organization: aiOrganization,
-      });
+      render(<CreateIssueViewModal {...defaultProps} name="My Custom Name" />);
 
       const nameInput = screen.getByRole('textbox', {name: 'Name'});
 
@@ -183,9 +179,7 @@ describe('CreateIssueViewModal', () => {
         body: {title: 'Generated View Title'},
       });
 
-      render(<CreateIssueViewModal {...defaultProps} />, {
-        organization: aiOrganization,
-      });
+      render(<CreateIssueViewModal {...defaultProps} />);
 
       const nameInput = screen.getByRole('textbox', {name: 'Name'});
       const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});

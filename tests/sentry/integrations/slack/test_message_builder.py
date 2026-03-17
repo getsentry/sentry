@@ -1318,9 +1318,7 @@ class BuildGroupAttachmentReplaysTest(TestCase):
         )
         assert event.group is not None
 
-        with self.feature(
-            ["organizations:session-replay", "organizations:session-replay-slack-new-issue"]
-        ):
+        with self.feature(["organizations:session-replay"]):
             blocks = SlackIssuesMessageBuilder(event.group, event.for_group(event.group)).build()
         assert isinstance(blocks, dict)
         assert (

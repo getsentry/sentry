@@ -6,7 +6,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
-import RepositoryStore from 'sentry/stores/repositoryStore';
+import {RepositoryStore} from 'sentry/stores/repositoryStore';
 import type {
   Integration,
   IntegrationRepository,
@@ -14,9 +14,9 @@ import type {
 } from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IntegrationReposAddRepositoryProps {
   currentRepositories: Repository[];

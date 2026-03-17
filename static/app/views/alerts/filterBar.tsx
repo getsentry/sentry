@@ -9,9 +9,8 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import SearchBar from 'sentry/components/searchBar';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
-import TeamFilter from './list/rules/teamFilter';
+import {TeamFilter} from './list/rules/teamFilter';
 import {CombinedAlertType} from './types';
 import {getQueryAlertType, getQueryStatus, getTeamParams} from './utils';
 
@@ -25,7 +24,7 @@ interface Props {
   onChangeStatus?: (status: string) => void;
 }
 
-function FilterBar({
+export function FilterBar({
   location,
   onChangeSearch,
   onChangeFilter,
@@ -116,12 +115,10 @@ function FilterBar({
   );
 }
 
-export default FilterBar;
-
 const Wrapper = styled('div')`
   display: grid;
-  gap: ${space(1.5)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: min-content 1fr;
@@ -135,7 +132,7 @@ const FilterButtons = styled((props: GridProps) => (
     display: flex;
     align-items: flex-start;
     flex-wrap: wrap;
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space.lg};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {

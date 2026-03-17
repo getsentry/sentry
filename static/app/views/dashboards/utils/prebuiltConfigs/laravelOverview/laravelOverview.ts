@@ -7,6 +7,7 @@ import {
   BACKEND_OVERVIEW_SECOND_ROW_WIDGETS,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/backendOverview';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/laravelOverview/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const PATHS_TABLE: Widget = {
@@ -55,8 +56,8 @@ const PATHS_TABLE: Widget = {
     x: 0,
     y: 7,
     w: 6,
-    h: 2,
-    minH: 2,
+    h: 3,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -99,10 +100,10 @@ const COMMANDS_TABLE: Widget = {
   ],
   layout: {
     x: 0,
-    y: 9,
+    y: 10,
     w: 6,
-    h: 2,
-    minH: 2,
+    h: 3,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -122,7 +123,7 @@ const JOBS_TABLE: Widget = {
         'count()',
         'failure_rate()',
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME, 'transaction'],
@@ -130,7 +131,7 @@ const JOBS_TABLE: Widget = {
         'count()',
         'failure_rate()',
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       fieldAliases: [
@@ -147,10 +148,10 @@ const JOBS_TABLE: Widget = {
   ],
   layout: {
     x: 0,
-    y: 11,
+    y: 13,
     w: 6,
-    h: 2,
-    minH: 2,
+    h: 3,
+    minH: TABLE_MIN_HEIGHT,
   },
 };
 
@@ -178,4 +179,9 @@ export const LARAVEL_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     COMMANDS_TABLE,
     JOBS_TABLE,
   ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['hasInsightsDb', 'hasInsightsHttp'],
+    description: 'Get started with Laravel tracing',
+  },
 };

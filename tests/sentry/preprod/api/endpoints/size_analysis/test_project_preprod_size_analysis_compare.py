@@ -14,7 +14,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
-    endpoint = "sentry-api-0-project-preprod-artifact-size-analysis-compare"
+    endpoint = "sentry-api-0-organization-preprod-artifact-size-analysis-compare"
     method = "get"
 
     def setUp(self):
@@ -81,8 +81,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         head_artifact_id = head_artifact_id or self.head_artifact.id
         base_artifact_id = base_artifact_id or self.base_artifact.id
         return reverse(
-            "sentry-api-0-project-preprod-artifact-size-analysis-compare",
-            args=[self.organization.slug, self.project.slug, head_artifact_id, base_artifact_id],
+            "sentry-api-0-organization-preprod-artifact-size-analysis-compare",
+            args=[self.organization.slug, head_artifact_id, base_artifact_id],
         )
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
@@ -99,7 +99,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
         )
@@ -137,7 +136,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
         )
@@ -161,7 +159,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
         )
@@ -186,7 +183,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
         )
@@ -202,7 +198,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         """Test GET endpoint returns no comparison when no comparison exists yet"""
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
         )
@@ -233,7 +228,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
         )
@@ -254,7 +248,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         """Test GET endpoint returns 404 when head artifact doesn't exist"""
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             999999,
             self.base_artifact.id,
             status_code=404,
@@ -266,7 +259,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         """Test GET endpoint returns 404 when base artifact doesn't exist"""
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             999999,
             status_code=404,
@@ -274,8 +266,8 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         assert "The requested base preprod artifact does not exist" in response.data["detail"]
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
-    def test_get_comparison_head_artifact_wrong_project(self):
-        """Test GET endpoint returns 404 when head artifact belongs to different project"""
+    def test_get_comparison_artifacts_different_projects(self):
+        """Test GET endpoint returns 404 when head and base artifacts belong to different projects"""
         other_project = self.create_project(organization=self.organization)
         other_artifact = self.create_preprod_artifact(
             project=other_project,
@@ -287,12 +279,11 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             other_artifact.id,
             self.base_artifact.id,
             status_code=404,
         )
-        assert response.data["detail"] == "The requested head preprod artifact does not exist"
+        assert response.data["detail"] == "The requested base preprod artifact does not exist"
 
     @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
     def test_get_comparison_base_artifact_wrong_project(self):
@@ -308,7 +299,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             other_artifact.id,
             status_code=404,
@@ -329,7 +319,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             artifact_no_metrics.id,
             self.base_artifact.id,
             status_code=404,
@@ -353,7 +342,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             artifact_no_metrics.id,
             status_code=404,
@@ -368,7 +356,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         """Test GET endpoint returns 403 when feature flag is disabled"""
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
             status_code=403,
@@ -417,7 +404,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
         )
@@ -445,7 +431,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         """Test POST endpoint successfully triggers comparison and creates PENDING records"""
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
             method="post",
@@ -487,7 +472,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         """Test POST endpoint returns 404 when head artifact doesn't exist"""
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             999999,
             self.base_artifact.id,
             method="post",
@@ -500,7 +484,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         """Test POST endpoint returns 404 when base artifact doesn't exist"""
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             999999,
             method="post",
@@ -781,7 +764,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
         # Head artifact will have None/default, base will have debug config
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
             method="post",
@@ -800,7 +782,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
         )
@@ -818,7 +799,6 @@ class ProjectPreprodSizeAnalysisCompareTest(APITestCase):
 
         response = self.get_response(
             self.organization.slug,
-            self.project.slug,
             self.head_artifact.id,
             self.base_artifact.id,
         )

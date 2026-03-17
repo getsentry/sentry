@@ -149,7 +149,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
 
         prompt = generate_autofix_handoff_prompt(state, short_id="AIML-2301")
 
-        assert "Include 'Fixes AIML-2301' in the pull request description" in prompt
+        assert "Include 'Fixes AIML-2301' in the commit message" in prompt
 
     def test_prompt_without_short_id(self):
         """Test that 'Fixes' is not in prompt when short_id is None."""
@@ -177,7 +177,7 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
             state, instruction="Focus on performance", short_id="PROJ-123"
         )
 
-        assert "Include 'Fixes PROJ-123' in the pull request description" in prompt
+        assert "Include 'Fixes PROJ-123' in the commit message" in prompt
         assert "Focus on performance" in prompt
 
 
@@ -431,9 +431,12 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert len(result["successes"]) == 1
         mock_client.get_run.assert_called_once_with(123)
         mock_client.launch_coding_agents.assert_called_once()
-        # Verify repos came from preferences
+        # Verify repos came from preferences (as SeerRepoDefinition objects)
         call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
-        assert call_kwargs["repos"] == ["owner/repo"]
+        repos = call_kwargs["repos"]
+        assert len(repos) == 1
+        assert repos[0].owner == "owner"
+        assert repos[0].name == "repo"
 
     @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")

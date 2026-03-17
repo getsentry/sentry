@@ -5,14 +5,13 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
+import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
+import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
 import {GroupSummary} from 'sentry/components/stream/group';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
@@ -23,8 +22,8 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
-import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
-import useRecentIssues from 'sentry/views/insights/sessions/queries/useRecentIssues';
+import {useProjectHasSessions} from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
+import {useRecentIssues} from 'sentry/views/insights/sessions/queries/useRecentIssues';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
 interface Props extends WidgetTitleProps, Partial<LoadableChartWidgetProps> {
@@ -38,7 +37,7 @@ interface Props extends WidgetTitleProps, Partial<LoadableChartWidgetProps> {
   legendSelection?: LegendSelection | undefined;
 }
 
-export default function ChartWithIssues(props: Props) {
+export function ChartWithIssues(props: Props) {
   const {
     description,
     error,
@@ -169,8 +168,9 @@ export default function ChartWithIssues(props: Props) {
 
 const GroupWrapper = styled(GroupSummary)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(1)} ${space(0.5)} ${space(1.5)} ${space(0.5)};
-  margin-inline: ${space(1)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xs} ${p => p.theme.space.lg}
+    ${p => p.theme.space.xs};
+  margin-inline: ${p => p.theme.space.md};
 
   &:first-child {
     border-top: none;

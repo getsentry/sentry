@@ -1,15 +1,15 @@
-import ApiForm from 'sentry/components/forms/apiForm';
-import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import {ApiForm} from 'sentry/components/forms/apiForm';
+import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import TextField from 'sentry/components/forms/fields/textField';
 import FormField from 'sentry/components/forms/formField';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {ServiceHook} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 const EVENT_CHOICES = ['event.alert', 'event.created'];
@@ -21,7 +21,7 @@ type Props = {
   hookId?: string;
 };
 
-export default function ServiceHookSettingsForm({
+export function ServiceHookSettingsForm({
   initialData,
   organization,
   projectId,

@@ -18,10 +18,10 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Cell, RegionCategory
 
 
-def error_regions(region: Region, invalid_region_names: Iterable[str]) -> HttpResponse:
+def error_regions(region: Cell, invalid_region_names: Iterable[str]) -> HttpResponse:
     if region.name in invalid_region_names:
         raise SiloLimit.AvailabilityError("Region is offline!")
     return HttpResponse(region.name, status=200)
@@ -35,8 +35,8 @@ class ExampleRequestParser(BaseRequestParser):
 class BaseRequestParserTest(TestCase):
     response_handler = MagicMock()
     region_config = [
-        Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
-        Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
+        Cell("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT),
+        Cell("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
     ]
     factory = RequestFactory()
 
@@ -51,7 +51,7 @@ class BaseRequestParserTest(TestCase):
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_responses_from_region_silos(regions=self.region_config)
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
+    @override_settings(SILO_MODE=SiloMode.CELL)
     def test_fails_in_region_mode(self) -> None:
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_response_from_control_silo()
@@ -124,7 +124,7 @@ class BaseRequestParserTest(TestCase):
         payloads = WebhookPayload.objects.all()
         assert len(payloads) == 2
         for payload in payloads:
-            assert payload.region_name in ["us", "eu"]
+            assert payload.cell_name in ["us", "eu"]
             assert payload.mailbox_name == "slack:0"
             assert payload.request_path
             assert payload.request_method
@@ -143,7 +143,7 @@ class BaseRequestParserTest(TestCase):
         payloads = WebhookPayload.objects.all()
         assert len(payloads) == 1
         for payload in payloads:
-            assert payload.region_name is None
+            assert payload.cell_name is None
             assert payload.mailbox_name == "github:codecov:1"
             assert payload.request_path
             assert payload.request_method

@@ -5,30 +5,29 @@ import {Link} from '@sentry/scraps/link';
 
 import {analyzeFramesForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
-import NoStackTraceMessage from 'sentry/components/events/interfaces/noStackTraceMessage';
-import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
+import {NoStackTraceMessage} from 'sentry/components/events/interfaces/noStackTraceMessage';
+import {getThreadStacktrace} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {
   getEventTimestampInSeconds,
   getThreadById,
   inferPlatform,
 } from 'sentry/components/events/interfaces/utils';
-import ShortId from 'sentry/components/group/inboxBadges/shortId';
+import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
+import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
 
 enum AnrRootCauseAllowlist {
   PERFORMANCE_FILE_IO_MAIN_THREAD_GROUP_TYPE = 1008,
@@ -86,9 +85,12 @@ export function AnrRootCause({event, organization}: Props) {
     return null;
   }
 
-  const potentialAnrRootCause = occurrences.filter(issue =>
-    Object.values(AnrRootCauseAllowlist).includes(issue.type as AnrRootCauseAllowlist)
-  );
+  const potentialAnrRootCause = occurrences.filter(issue => {
+    const issueType = 'type' in issue ? issue.type : issue.issue_type;
+    return Object.values(AnrRootCauseAllowlist).includes(
+      issueType as AnrRootCauseAllowlist
+    );
+  });
 
   const helpText =
     !potentialAnrRootCause || potentialAnrRootCause.length === 0
@@ -184,7 +186,7 @@ export function AnrRootCause({event, organization}: Props) {
 }
 
 const IssueSummary = styled('div')`
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 /**
@@ -209,9 +211,9 @@ const TitleWithLink = styled(Link)`
 
 const Title = styled('div')`
   line-height: 1;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
 `;
 
 const StackTraceWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;

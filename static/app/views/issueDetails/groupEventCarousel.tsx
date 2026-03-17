@@ -23,7 +23,6 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -35,17 +34,17 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
+import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 type GroupEventCarouselProps = {
@@ -466,7 +465,7 @@ const EventHeading = styled('div')`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.lg};
 
   @media (max-width: 600px) {
@@ -505,7 +504,7 @@ const NavButtons = styled('div')`
 const EventIdAndTimeContainer = styled('div')`
   display: flex;
   align-items: center;
-  column-gap: ${space(0.75)};
+  column-gap: ${p => p.theme.space.sm};
   row-gap: 0;
   flex-wrap: wrap;
 `;
@@ -513,7 +512,7 @@ const EventIdAndTimeContainer = styled('div')`
 const EventIdContainer = styled('div')`
   display: flex;
   align-items: center;
-  column-gap: ${space(0.25)};
+  column-gap: ${p => p.theme.space['2xs']};
 `;
 
 const EventTimeLabel = styled('span')`
@@ -521,7 +520,7 @@ const EventTimeLabel = styled('span')`
 `;
 
 const StyledIconWarning = styled(IconWarning)`
-  margin-left: ${space(0.25)};
+  margin-left: ${p => p.theme.space['2xs']};
   position: relative;
   top: 1px;
 `;
@@ -543,7 +542,7 @@ const EventId = styled('span')`
 const CopyIconContainer = styled('span')`
   display: none;
   align-items: center;
-  padding: ${space(0.25)};
+  padding: ${p => p.theme.space['2xs']};
   background: ${p => p.theme.tokens.background.primary};
   position: absolute;
   right: 0;

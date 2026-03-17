@@ -4,9 +4,9 @@ import {useTheme} from '@emotion/react';
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
@@ -16,11 +16,11 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import useAttributeBreakdowns from 'sentry/views/explore/hooks/useAttributeBreakdowns';
+import {useAttributeBreakdowns} from 'sentry/views/explore/hooks/useAttributeBreakdowns';
 import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
@@ -99,7 +99,7 @@ export function AttributeDistribution() {
     }
   );
 
-  const cohortCount: number = cohortCountResponse?.data?.[0]?.['count()'] ?? 0;
+  const cohortCount = cohortCountResponse?.data?.[0]?.['count()'] ?? 0;
 
   // Debouncing the search query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
   // query here to ensure smooth typing, by delaying the re-mounts a little as the user types.
@@ -133,7 +133,7 @@ export function AttributeDistribution() {
     getAttributeBreakdownsResponseHeader?.('Link') ?? null
   );
 
-  const uniqueAttributeDistribution: AttributeDistribution = useMemo(() => {
+  const uniqueAttributeDistribution = useMemo(() => {
     if (!attributeBreakdownsData) return [];
 
     const seen = new Set<string>();

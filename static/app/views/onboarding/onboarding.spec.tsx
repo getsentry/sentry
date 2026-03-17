@@ -14,9 +14,9 @@ import {
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import OnboardingDrawerStore from 'sentry/stores/onboardingDrawerStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
-import type {PlatformKey, Project} from 'sentry/types/project';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
+import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {OnboardingWithoutContext} from 'sentry/views/onboarding/onboarding';
 
@@ -302,7 +302,7 @@ describe('Onboarding', () => {
 
   it('renders the setup docs step', async () => {
     const organization = OrganizationFixture();
-    const nextJsProject: Project = ProjectFixture({
+    const nextJsProject = ProjectFixture({
       platform: 'javascript-nextjs',
       id: '2',
       slug: 'javascript-nextjs-slug',
@@ -373,7 +373,7 @@ describe('Onboarding', () => {
 
   it('does not render SDK data removal modal when going back', async () => {
     const organization = OrganizationFixture();
-    const reactProject: Project = ProjectFixture({
+    const reactProject = ProjectFixture({
       platform: 'javascript-react',
       id: '2',
       slug: 'javascript-react-slug',
@@ -474,7 +474,7 @@ describe('Onboarding', () => {
 
   it('no longer display SDK data removal modal when going back', async () => {
     const organization = OrganizationFixture();
-    const reactProject: Project = ProjectFixture({
+    const reactProject = ProjectFixture({
       platform: 'javascript-react',
       id: '2',
       slug: 'javascript-react-slug',
@@ -549,9 +549,182 @@ describe('Onboarding', () => {
     ).not.toBeInTheDocument();
   });
 
+  describe('SCM onboarding flow', () => {
+    const scmOrganization = OrganizationFixture({
+      features: ['onboarding-scm'],
+    });
+
+    function renderOnboarding(step: string) {
+      return render(
+        <OnboardingContextProvider>
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: scmOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${scmOrganization.slug}/${step}/`,
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+    }
+
+    it('navigates from welcome to scm-connect', async () => {
+      const {router} = renderOnboarding('welcome');
+
+      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/scm-connect/`
+        );
+      });
+    });
+
+    it('renders scm-connect step and advances to scm-platform-features', async () => {
+      const {router} = renderOnboarding('scm-connect');
+
+      expect(screen.getByText('Connect your repository')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/scm-platform-features/`
+        );
+      });
+    });
+
+    it('renders scm-platform-features step and advances to scm-project-details', async () => {
+      const {router} = renderOnboarding('scm-platform-features');
+
+      expect(screen.getByText('Platform & features')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/scm-project-details/`
+        );
+      });
+    });
+
+    it('renders scm-project-details step and advances to setup-docs when platform is set', async () => {
+      const nextJsProject = ProjectFixture({
+        platform: 'javascript-nextjs',
+        id: '2',
+        slug: 'javascript-nextjs',
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/sdks/`,
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/keys/`,
+        method: 'GET',
+        body: [ProjectKeysFixture()[0]],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/issues/`,
+        body: [],
+      });
+
+      jest
+        .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+        .mockImplementation(() => ({
+          project: nextJsProject,
+          isProjectActive: false,
+        }));
+
+      const {router} = render(
+        <OnboardingContextProvider
+          value={{
+            selectedPlatform: {
+              key: nextJsProject.slug as PlatformKey,
+              type: 'framework',
+              language: 'javascript',
+              category: 'browser',
+              name: 'Next.js',
+              link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+            },
+          }}
+        >
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: scmOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${scmOrganization.slug}/scm-project-details/`,
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      expect(screen.getByText('Project details')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/setup-docs/`
+        );
+      });
+    });
+
+    it('does not advance to setup-docs without a platform selected', async () => {
+      const {router} = renderOnboarding('scm-project-details');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      // Should stay on the same step
+      expect(router.location.pathname).toBe(
+        `/onboarding/${scmOrganization.slug}/scm-project-details/`
+      );
+    });
+
+    it('navigates back from scm-connect to welcome', async () => {
+      const {router} = renderOnboarding('scm-connect');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/welcome/`
+        );
+      });
+    });
+
+    it('redirects invalid step to welcome', () => {
+      const {router} = render(
+        <OnboardingContextProvider>
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: scmOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${scmOrganization.slug}/select-platform/`,
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      // select-platform doesn't exist in SCM flow, should redirect to welcome
+      expect(router.location.pathname).toBe(
+        `/onboarding/${scmOrganization.slug}/welcome/`
+      );
+    });
+  });
+
   it('loads doc on platform click', async () => {
     const organization = OrganizationFixture();
-    const nextJsProject: Project = ProjectFixture({
+    const nextJsProject = ProjectFixture({
       platform: 'javascript-nextjs',
       id: '2',
       slug: 'javascript-nextjs',

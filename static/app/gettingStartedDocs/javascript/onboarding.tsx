@@ -8,6 +8,7 @@ import {
 } from './utils';
 
 export const onboarding: OnboardingConfig<PlatformOptions> = {
+  hideInstructionsCopy: true,
   introduction: params =>
     isAutoInstall(params)
       ? loaderScriptOnboarding.introduction?.(params)

@@ -23,16 +23,15 @@ import {
   getArbitraryRelativePeriod,
 } from 'sentry/components/timeRangeSelector/utils';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types/core';
 import type {AuditLog, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {getInternalDate} from 'sentry/utils/dates';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {
   projectDetectorSettingsId,
   retentionPrioritiesLabels,
@@ -264,7 +263,7 @@ type Props = {
   utc?: boolean;
 };
 
-function AuditLogList({
+export function AuditLogList({
   entries,
   eventType,
   eventTypes,
@@ -406,7 +405,7 @@ function AuditLogList({
 }
 
 const SentryAvatar = styled(ActivityAvatar)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Name = styled('strong')`
@@ -428,7 +427,7 @@ const UserInfo = styled('div')`
 const Note = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const IpAddressOverflow = styled('div')`
@@ -448,8 +447,6 @@ const MonoDetail = styled('code')`
 const TimestampInfo = styled('div')`
   display: grid;
   grid-template-rows: auto auto;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.md};
 `;
-
-export default AuditLogList;

@@ -12,9 +12,9 @@ import * as echarts from 'echarts';
 import type EChartsReact from 'echarts-for-react';
 import type {EChartsInstance} from 'echarts-for-react';
 
-import ToolBox from 'sentry/components/charts/components/toolBox';
+import {ToolBox} from 'sentry/components/charts/components/toolBox';
 import type {EChartBrushEndHandler, EChartBrushStartHandler} from 'sentry/types/echarts';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 export type Selection = {
   /**
@@ -443,7 +443,7 @@ export function useChartXRangeSelection({
     syncSelectionStates,
   ]);
 
-  const brush: BrushComponentOption | undefined = useMemo(() => {
+  const brush = useMemo(() => {
     return disabled ? undefined : CHART_X_RANGE_BRUSH_OPTION;
   }, [disabled]);
 

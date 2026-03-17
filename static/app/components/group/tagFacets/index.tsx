@@ -4,25 +4,24 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import keyBy from 'lodash/keyBy';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import LoadingError from 'sentry/components/loadingError';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {LoadingError} from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {generateQueryWithTag} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   useGroupTagsReadable,
   type GroupTag,
 } from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
+import {TagFacetsDistributionMeter} from './tagFacetsDistributionMeter';
 
 export const MOBILE_TAGS = [
   'device',
@@ -263,21 +262,21 @@ function TagFacetsDistributionMeterWrapper({
 
 const TagPlaceholders = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-auto-flow: row;
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const Content = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const NoTagsFoundContainer = styled('p')`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 export const TagFacetsList = styled('ol')`
   list-style: none;
   padding: 0;
-  margin: 0 0 ${space(2)};
+  margin: 0 0 ${p => p.theme.space.xl};
 `;

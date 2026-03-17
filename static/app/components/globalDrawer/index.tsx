@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
 export interface DrawerOptions {
   /**
@@ -120,7 +120,7 @@ export function GlobalDrawer({children}: any) {
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const scrollLock = useScrollLock(document.documentElement);
+  const scrollLock = useScrollLock(document.body);
   const openDrawer = useCallback<DrawerContextType['openDrawer']>(
     (renderer, options) => {
       scrollLock.acquire();
@@ -249,6 +249,6 @@ export function GlobalDrawer({children}: any) {
  * openDrawer(() => <button onClick={closeDrawer}>Close!</button>)
  * ```
  */
-export default function useDrawer() {
+export function useDrawer() {
   return useContext(DrawerContext);
 }

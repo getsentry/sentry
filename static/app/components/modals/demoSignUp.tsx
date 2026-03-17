@@ -7,10 +7,9 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
+import {HighlightCornerContainer} from 'sentry/components/highlightCornerModal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {extraQueryParameter, urlAttachQueryParams} from 'sentry/utils/demoMode';
 
@@ -82,7 +81,7 @@ function DemoSignUpModal({closeModal}: Props) {
 }
 
 const TrialCheckInfo = styled('div')`
-  padding: ${space(3)} 0;
+  padding: ${p => p.theme.space['2xl']} 0;
   p {
     font-size: ${p => p.theme.font.size.lg};
     margin: 0;
@@ -105,7 +104,7 @@ export const modalCss = css`
 `;
 
 const Subheader = styled('h4')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   text-transform: uppercase;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
@@ -115,7 +114,7 @@ const Subheader = styled('h4')`
 const StyledButtonBar = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />
 ))`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
   max-width: 250px;
 `;
 

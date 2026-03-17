@@ -5,7 +5,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
@@ -86,7 +86,7 @@ export function GroupBySelector({traceMetric}: GroupBySelectorProps) {
     );
   }, [booleanTags]);
 
-  const enabledOptions: Array<SelectOption<string>> = useGroupByFields({
+  const enabledOptions = useGroupByFields({
     groupBys,
     numberTags: visibleNumberTags ?? {},
     stringTags: visibleStringTags ?? {},

@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -13,19 +12,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useNavContext} from 'sentry/views/nav/context';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/views/nav/primary/components';
-import {
-  PrimaryButtonOverlay,
-  usePrimaryButtonOverlay,
-} from 'sentry/views/nav/primary/primaryButtonOverlay';
-import {NavLayout} from 'sentry/views/nav/types';
+  PrimaryNavigation,
+  usePrimaryNavigationButtonOverlay,
+} from 'sentry/views/navigation/primary/components';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {useSeerOnboardingStep} from 'getsentry/views/seerAutomation/onboarding/hooks/useSeerOnboardingStep';
 import {Steps} from 'getsentry/views/seerAutomation/onboarding/types';
 
@@ -57,16 +50,15 @@ function useScmIntegrations() {
   );
 
   // Filter to only SCM integrations
-  const scmIntegrations = data?.filter(integration =>
-    SCM_PROVIDER_KEYS.includes(integration.provider.key)
-  );
+  const scmIntegrations =
+    data?.filter(integration => SCM_PROVIDER_KEYS.includes(integration.provider.key)) ??
+    [];
 
-  const hasGithub = scmIntegrations?.some(integration =>
+  const hasGithub = scmIntegrations.some(integration =>
     ['github', 'github_enterprise'].includes(integration.provider.key)
   );
 
   const hasOnlyNonGithubScm =
-    scmIntegrations &&
     scmIntegrations.length > 0 &&
     !hasGithub &&
     scmIntegrations.every(integration =>
@@ -180,16 +172,14 @@ function useReminderCopywriting() {
   return descriptionByStep[Steps.SETUP_ROOT_CAUSE_ANALYSIS];
 }
 
-export default function PrimaryNavSeerConfigReminder() {
+export function PrimaryNavSeerConfigReminder() {
   const organization = useOrganization();
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
     state,
-  } = usePrimaryButtonOverlay();
-
-  const {layout} = useNavContext();
+  } = usePrimaryNavigationButtonOverlay();
 
   const {canSeeReminder, analyticsParams} = useCanSeeReminder(organization);
   const copy = useReminderCopywriting();
@@ -210,24 +200,22 @@ export default function PrimaryNavSeerConfigReminder() {
 
   return (
     <Fragment>
-      <SeerButton
+      <PrimaryNavigation.Button
         analyticsKey="seer-config-reminder"
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
-        buttonProps={overlayTriggerProps}
-      >
-        <IconSeer />
-        <SidebarItemUnreadIndicator
-          data-test-id="seer-config-reminder-indicator"
-          isMobile={layout === NavLayout.MOBILE}
-        />
-      </SeerButton>
+        indicator="accent"
+        buttonProps={{
+          ...overlayTriggerProps,
+          icon: <IconSeer />,
+        }}
+      />
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <Stack gap="lg" padding="xl">
             <Heading as="h3">{copy.title}</Heading>
             <Text>{copy.description}</Text>
-            <Flex justify="end">
+            <Flex justify="start">
               <LinkButton
                 to={copy.pathname}
                 priority="primary"
@@ -239,17 +227,8 @@ export default function PrimaryNavSeerConfigReminder() {
               </LinkButton>
             </Flex>
           </Stack>
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );
 }
-
-const SeerButton = styled(SidebarButton)`
-  display: none;
-
-  /* TODO(ryan953): Make this shorter once showPreventNav() is removed from PrimaryNavigationItems */
-  @media (min-height: 724px) {
-    display: flex;
-  }
-`;

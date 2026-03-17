@@ -14,13 +14,12 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
@@ -29,9 +28,10 @@ import {
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from 'sentry/views/dashboards/manage/settings';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
-import DashboardCard from './dashboardCard';
-import GridPreview from './gridPreview';
+import {DashboardCard} from './dashboardCard';
+import {GridPreview} from './gridPreview';
 
 type Props = {
   api: Client;
@@ -120,7 +120,9 @@ function DashboardGrid({
         },
         disabled: disableDuplicate,
         tooltip: shouldDisablePrebuiltControls
-          ? t('Prebuilt dashboards cannot be duplicated')
+          ? tct('[label] dashboards cannot be duplicated', {
+              label: PREBUILT_DASHBOARD_LABEL,
+            })
           : limitMessage,
         tooltipOptions: {
           isHoverable: true,
@@ -139,7 +141,7 @@ function DashboardGrid({
         },
         disabled: disableDelete,
         tooltip: shouldDisablePrebuiltControls
-          ? t('Prebuilt dashboards cannot be deleted')
+          ? tct('[label] dashboards cannot be deleted', {label: PREBUILT_DASHBOARD_LABEL})
           : undefined,
       },
     ];
@@ -181,10 +183,9 @@ function DashboardGrid({
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
+  const {query: _searchQuery, ...queryWithoutSearch} = location.query;
   const queryLocation = {
-    ...(location.query && Object.keys(location.query).length > 0
-      ? {query: location.query}
-      : {}),
+    ...(Object.keys(queryWithoutSearch).length > 0 ? {query: queryWithoutSearch} : {}),
   };
 
   function renderMiniDashboards() {
@@ -270,7 +271,7 @@ const DashboardGridContainer = styled('div')<{columns: number; rows: number}>`
 `;
 
 const DropdownTrigger = styled(Button)`
-  transform: translateX(${space(1)});
+  transform: translateX(${p => p.theme.space.md});
 `;
 
 export default withApi(DashboardGrid);

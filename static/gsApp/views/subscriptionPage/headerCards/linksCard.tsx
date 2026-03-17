@@ -7,10 +7,10 @@ import {IconList, IconSubscribed, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 import {hasSpendVisibilityNotificationsFeature} from 'getsentry/views/subscriptionPage/utils';
 
-function LinksCard({organization}: {organization: Organization}) {
+export function LinksCard({organization}: {organization: Organization}) {
   const hasBillingPerms = organization.access?.includes('org:billing');
   const hasSpendNotifications = hasSpendVisibilityNotificationsFeature(organization);
 
@@ -63,5 +63,3 @@ function LinksCard({organization}: {organization: Organization}) {
     />
   );
 }
-
-export default LinksCard;

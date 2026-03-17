@@ -4,7 +4,7 @@ import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import type {Organization} from 'sentry/types/organization';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
-import HookStore from './hookStore';
+import {HookStore} from './hookStore';
 import type {StrictStoreDefinition} from './types';
 
 type State = {
@@ -111,5 +111,4 @@ const storeConfig: OrganizationStoreDefinition = {
   },
 };
 
-const OrganizationStore = createStore(storeConfig);
-export default OrganizationStore;
+export const OrganizationStore = createStore(storeConfig);

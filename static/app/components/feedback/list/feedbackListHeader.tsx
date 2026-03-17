@@ -4,15 +4,14 @@ import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
-import FeedbackListBulkSelection from 'sentry/components/feedback/list/feedbackListBulkSelection';
-import MailboxPicker from 'sentry/components/feedback/list/mailboxPicker';
-import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
-import useFeedbackHasNewItems from 'sentry/components/feedback/useFeedbackHasNewItems';
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {FeedbackListBulkSelection} from 'sentry/components/feedback/list/feedbackListBulkSelection';
+import {MailboxPicker} from 'sentry/components/feedback/list/mailboxPicker';
+import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
+import {useFeedbackHasNewItems} from 'sentry/components/feedback/useFeedbackHasNewItems';
+import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {useMailbox} from 'sentry/components/feedback/useMailbox';
 import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 
 interface Props extends Pick<
@@ -25,7 +24,7 @@ interface Props extends Pick<
   | 'selectedIds'
 > {}
 
-export default function FeedbackListHeader({
+export function FeedbackListHeader({
   countSelected,
   deselectAll,
   isAllSelected,
@@ -90,9 +89,10 @@ const HeaderPanel = styled('div')`
 `;
 
 const HeaderPanelItem = styled('div')`
-  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.md}
+    ${p => p.theme.space.xl};
   display: flex;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   border: 1px solid transparent;
   border-bottom-color: ${p => p.theme.tokens.border.secondary};

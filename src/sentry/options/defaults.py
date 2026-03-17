@@ -711,10 +711,10 @@ register(
 
 # Coding Workflows
 register(
-    "coding_workflows.code_review.github.check_run.rerun.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    "seer.code-review.excluded-pr-author-logins",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Codecov Integration
@@ -731,6 +731,7 @@ register(
     default=["getsentry"],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register("codecov.forward-webhooks.disabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # GitHub Integration
@@ -748,11 +749,6 @@ register(
 )
 register(
     "github.webhook.mailbox-bucketing.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github.webhook.drop-unprocessed-events.enabled",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1356,13 +1352,11 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
-# {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
 register(
-    "ai-agent-monitoring.custom-model-mapping",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    "seer.explorer.context-engine-rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # ## sentry.killswitches
@@ -1577,8 +1571,27 @@ register(
 
 # The poll limit for the tempest service.
 #
-# 348 every 5 min ~ 100k per day
-register("tempest.poll-limit", default=348, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# 25 every 1 min ~ 36k per day
+register("tempest.poll-limit", default=25, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Timeout in seconds for fetching the latest crash ID from Tempest.
+# This should be less than the task processing_deadline_duration (60s).
+register("tempest.latest-id-timeout", default=55, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Timeout in seconds for fetching crashes from Tempest.
+# This should be less than the task processing_deadline_duration (60s).
+register("tempest.crashes-timeout", default=55, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Task processing deadline in seconds (for documentation/monitoring reference).
+# Note: The actual @instrumented_task decorator requires compile-time constants,
+# so changing this option won't affect running tasks. This documents the expected
+# value and can be used for configuring monitoring alerts.
+register("tempest.task-deadline-seconds", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Extra buffer time (in seconds) added to task deadline for lock duration.
+# Lock duration = task-deadline-seconds + lock-buffer-seconds
+# This ensures the lock outlives the task to prevent race conditions.
+register("tempest.lock-buffer-seconds", default=30, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # BEGIN ABUSE QUOTAS
 
@@ -2472,12 +2485,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "hybridcloud.deliver_webhooks.delivery_time_exclude_mailboxes",
+    "hybridcloud.webhookpayload.push_drain_trigger",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.webhookpayload.skip_on_failure_providers",
     type=Sequence,
-    default=[],
+    default=["github"],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",
@@ -2620,6 +2637,16 @@ register(
 register(
     "sentry-apps.webhook.timeout.sec",
     default=1.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Hard timeout for webhook requests to prevent indefinite hangs.
+# Must be strictly less than the shortest task processing_deadline_duration that
+# calls send_and_save_webhook_request (currently 8s for send_alert_webhook_v2 and
+# send_resource_change_webhook), otherwise timeout_alarm raises ValueError.
+register(
+    "sentry-apps.webhook.hard-timeout.sec",
+    default=5.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3109,32 +3136,11 @@ register(
 # grouphashes we want to use ones which are already there but not create new ones, so we track the
 # boolean result of their `.exists()` check. For all existing grouphashes, secondary or not, we know
 # that if they already have a group assigned they won't be modified, so in that case we also cache
-# the full `GroupHash` object. The killswitch below controls both caches, but they have separate
-# expiry times because the secondary grouphash existence cache is used less frequently and has a
-# lighter memory footprint, so we can afford to cache things there for longer.
-#
-# TODO: Check hit/miss rates for both caches and adjust the two expiry options accordingly.
+# the full `GroupHash` object.
 register(
     "grouping.use_ingest_grouphash_caching",
     type=Bool,
     default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# How long to cache a boolean indicating whether or not a grouphash exists for a given secondary
-# hash value
-register(
-    "grouping.ingest_grouphash_existence_cache_expiry",
-    type=Int,
-    default=60,  # seconds
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# How long to cache actual `GroupHash` objects
-register(
-    "grouping.ingest_grouphash_object_cache_expiry",
-    type=Int,
-    default=60,  # seconds
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3243,16 +3249,6 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Threshold in bytes for out-of-band storage of large compressed span payloads.
-# Payloads larger than this are stored in separate Redis string keys instead of
-# inline in sets, avoiding expensive SUNIONSTORE memcpy. Set to 0 to disable.
-# Only applies when compression is enabled (compression.level >= 0).
-register(
-    "spans.buffer.oob-threshold-bytes",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Maximum number of subsegments to process in each Redis pipeline. Each
 # subsegment triggers an EVALSHA call which can be slow. Set to 0 for unlimited.
 register(
@@ -3265,15 +3261,6 @@ register(
 # chunks to avoid Lua unpack() limits. Set to 0 for unlimited.
 register(
     "spans.buffer.max-spans-per-evalsha",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set
-# exceeds this many bytes (via MEMORY USAGE). This avoids the expensive
-# re-serialisation of the entire destination set during SUNIONSTORE.
-register(
-    "spans.buffer.zero-copy-dest-threshold-bytes",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3296,6 +3283,27 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Write payload sets to per-span distributed keys AND merged keys.
+# Flusher reads merged keys as before.
+register(
+    "spans.buffer.write-distributed-payloads",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Switch flusher to read from distributed keys instead of merged.
+register(
+    "spans.buffer.read-distributed-payloads",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Set to False to stop writing merged keys and skip set merges.
+# Disable after read-distributed-payloads is stable. Rollback: re-enable
+# this flag to resume merged writes before reverting read-distributed-payloads.
+register(
+    "spans.buffer.write-merged-payloads",
+    default=True,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # List of trace_ids to enable debug logging for. Empty = debug off.
 # When set, logs detailed metrics about zunionstore set sizes, key existence, and trace structure.
 register(
@@ -3303,6 +3311,11 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.done-flush-conditional-zrem",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Segments consumer
@@ -3323,6 +3336,12 @@ register(
 )
 register(
     "spans.process-segments.drop-segments",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.process-segments.skip-enrichment-projects",
     type=Sequence,
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -3897,13 +3916,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Fraction of attachments that are double-written to the new objectstore alongside the existing attachments store.
-# This is mutually exclusive with the below setting.
-register("objectstore.double_write.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Fraction of attachments that are being stored exclusively in the new objectstore.
 register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Fraction of attachments that are being stored on objectstore for processing and long-term storage.
-register("objectstore.enable_for.cached_attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # option used to enable/disable tracking
@@ -4129,6 +4143,15 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# SCM
+
+register(
+    "sentry.scm.stream.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics

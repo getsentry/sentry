@@ -58,8 +58,8 @@ class GithubRequestParser(BaseRequestParser):
         """Override to gate bucketing on an options flag for safe rollout and revert.
 
         When disabled (default), all webhooks route to a single mailbox per integration.
-        When enabled, webhooks are distributed across sub-mailboxes by repository ID,
-        bypassing the rate-limit auto-switch used by the base class.
+        When enabled, webhooks are distributed across sub-mailboxes by repository ID and
+        event type, bypassing the rate-limit auto-switch used by the base class.
         """
         if not options.get("github.webhook.mailbox-bucketing.enabled"):
             metrics.incr(
@@ -68,7 +68,11 @@ class GithubRequestParser(BaseRequestParser):
             )
             return str(integration.id)
 
-        return self._build_bucketed_identifier(integration, data)
+        base = self._build_bucketed_identifier(integration, data)
+        event_type = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
+        if event_type:
+            return f"{base}:{event_type}"
+        return base
 
     def should_route_to_control_silo(
         self, parsed_event: Mapping[str, Any], request: HttpRequest
@@ -89,6 +93,8 @@ class GithubRequestParser(BaseRequestParser):
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def try_forward_to_codecov(self, event: Mapping[str, Any]) -> None:
+        if options.get("codecov.forward-webhooks.disabled"):
+            return
         try:
             self.forward_to_codecov(external_id=self._get_external_id(event=event))
         except Exception:
@@ -140,11 +146,7 @@ class GithubRequestParser(BaseRequestParser):
         # Only drop when we have a known unprocessed event type. Missing or empty
         # X-GitHub-Event is malformed; let the request be forwarded so the region
         # returns 400 and GitHub is notified of the delivery failure.
-        if (
-            github_event
-            and github_event not in REGION_PROCESSED_GITHUB_EVENTS
-            and options.get("github.webhook.drop-unprocessed-events.enabled")
-        ):
+        if github_event and github_event not in REGION_PROCESSED_GITHUB_EVENTS:
             metrics.incr(
                 "github.webhook.drop_unprocessed_event",
                 tags={"event_type": github_event or "unknown"},

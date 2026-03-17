@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanOp} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -34,11 +34,14 @@ interface ConversationApiSpan {
   'span.status': string;
   span_id: string;
   trace: string;
+  'gen_ai.agent.name'?: string;
   'gen_ai.cost.total_tokens'?: number;
   'gen_ai.input.messages'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
   'gen_ai.request.messages'?: string;
+  'gen_ai.request.model'?: string;
+  'gen_ai.response.model'?: string;
   'gen_ai.response.object'?: string;
   'gen_ai.response.text'?: string;
   'gen_ai.tool.name'?: string;
@@ -106,6 +109,9 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_REQUEST_MESSAGES]: apiSpan['gen_ai.request.messages'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_TEXT]: apiSpan['gen_ai.response.text'] ?? '',
+      [SpanFields.GEN_AI_REQUEST_MODEL]: apiSpan['gen_ai.request.model'] ?? '',
+      [SpanFields.GEN_AI_RESPONSE_MODEL]: apiSpan['gen_ai.response.model'] ?? '',
+      [SpanFields.GEN_AI_AGENT_NAME]: apiSpan['gen_ai.agent.name'] ?? '',
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
       [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,
@@ -223,7 +229,7 @@ export function useConversation(
       return node;
     });
 
-    transformedNodes.sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
+    transformedNodes.sort((a, b) => (a.endTimestamp ?? 0) - (b.endTimestamp ?? 0));
 
     return {nodes: transformedNodes, nodeTraceMap: traceMap};
   }, [conversationQuery.data]);

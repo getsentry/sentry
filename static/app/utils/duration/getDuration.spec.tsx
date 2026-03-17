@@ -1,4 +1,4 @@
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MICROSECOND, MINUTE, MONTH} from 'sentry/utils/formatters';
 
 describe('getDuration()', () => {

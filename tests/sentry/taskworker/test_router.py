@@ -15,7 +15,7 @@ def test_default_router_topic() -> None:
 
 @pytest.mark.django_db
 def test_default_router_topic_region_silo() -> None:
-    with override_settings(SILO_MODE=SiloMode.REGION):
+    with override_settings(SILO_MODE=SiloMode.CELL):
         router = DefaultRouter()
         topic = router.route_namespace("test.tasks.test_router.region")
         assert topic == Topic.TASKWORKER

@@ -7,13 +7,13 @@ import {
   EventDrawerBody,
   EventDrawerContainer,
 } from 'sentry/components/events/eventDrawer';
-import LoadingError from 'sentry/components/loadingError';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {LoadingError} from 'sentry/components/loadingError';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
 

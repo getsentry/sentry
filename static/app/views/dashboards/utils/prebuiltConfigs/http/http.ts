@@ -16,13 +16,14 @@ import {
   RESPONSE_CODES_TEXT,
   THROUGHPUT_TEXT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
-const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
+const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'throughput-chart',
@@ -66,31 +67,17 @@ const FIRST_ROW_WIDGETS: Widget[] = spaceWidgetsEquallyOnRow(
       interval: '5m',
       queries: [
         {
-          name: '3XX',
+          name: '',
           conditions: FILTER_STRING,
-          fields: [PERCENTAGE_3XX],
-          aggregates: [PERCENTAGE_3XX],
+          fields: [PERCENTAGE_3XX, PERCENTAGE_4XX, PERCENTAGE_5XX],
+          aggregates: [PERCENTAGE_3XX, PERCENTAGE_4XX, PERCENTAGE_5XX],
           columns: [],
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
+          fieldMeta: [
+            {valueType: 'percentage', valueUnit: null},
+            {valueType: 'percentage', valueUnit: null},
+            {valueType: 'percentage', valueUnit: null},
+          ],
           orderby: PERCENTAGE_3XX,
-        },
-        {
-          name: '4XX',
-          conditions: FILTER_STRING,
-          fields: [PERCENTAGE_4XX],
-          aggregates: [PERCENTAGE_4XX],
-          columns: [],
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
-          orderby: PERCENTAGE_4XX,
-        },
-        {
-          name: '5XX',
-          conditions: FILTER_STRING,
-          fields: [PERCENTAGE_5XX],
-          aggregates: [PERCENTAGE_5XX],
-          columns: [],
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
-          orderby: PERCENTAGE_5XX,
         },
       ],
     },
@@ -158,7 +145,7 @@ const DOMAIN_TABLE: Widget = {
   layout: {
     x: 0,
     y: 2,
-    minH: 2,
+    minH: TABLE_MIN_HEIGHT,
     h: 4,
     w: 6,
   },
@@ -191,4 +178,5 @@ export const HTTP_PREBUILT_CONFIG: PrebuiltDashboard = {
     ],
   },
   widgets: [...FIRST_ROW_WIDGETS, DOMAIN_TABLE],
+  onboarding: {type: 'module', moduleName: ModuleName.HTTP},
 };

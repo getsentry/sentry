@@ -1,4 +1,4 @@
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -41,7 +41,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {usePreprodItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -196,11 +196,11 @@ function useMobileAppSizeSearchBarDataProvider(
   } = usePageFilters();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string', HIDDEN_PREPROD_ATTRIBUTES);
+    usePreprodItemAttributes({enabled: true}, 'string', HIDDEN_PREPROD_ATTRIBUTES);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number', HIDDEN_PREPROD_ATTRIBUTES);
+    usePreprodItemAttributes({enabled: true}, 'number', HIDDEN_PREPROD_ATTRIBUTES);
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceItemAttributes('boolean', HIDDEN_PREPROD_ATTRIBUTES);
+    usePreprodItemAttributes({enabled: true}, 'boolean', HIDDEN_PREPROD_ATTRIBUTES);
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
