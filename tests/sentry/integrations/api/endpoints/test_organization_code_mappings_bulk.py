@@ -361,13 +361,14 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         assert repo.integration_id == self.integration.id
 
     def test_skip_post_save_does_not_leak_to_fetched_instances(self) -> None:
+        """The endpoint sets _skip_post_save on in-memory instances to batch
+        side-effects. Verify that freshly fetched instances from the DB don't
+        carry the suppressed flag, so normal post_save signals fire for them."""
         self.make_post()
         config = RepositoryProjectPathConfig.objects.get(
             project=self.project1, stack_root="com/example/maps"
         )
         assert config._skip_post_save is False
-
-    # --- Permissions ---
 
     def test_org_ci_scope_allows_post(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -381,6 +382,9 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
                 date_last_used=None,
             )
 
+        # Logout the session user so the request authenticates via the Bearer
+        # token alone; otherwise session auth succeeds first and the test
+        # doesn't actually validate org:ci token access.
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.client.logout()
         response = self.make_post(HTTP_AUTHORIZATION=f"Bearer {token_str}")
@@ -416,8 +420,6 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         response = self.make_post()
         assert response.status_code == 200, response.content
 
-    # --- IDOR / Security ---
-
     def test_project_from_other_org_returns_404(self) -> None:
         other_org = self.create_organization(name="other-org", owner=self.user)
         other_project = self.create_project(organization=other_org, name="other-project")
@@ -437,8 +439,6 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         )
         response = self.make_post({"repository": "other-org/other-repo"})
         assert response.status_code == 404
-
-    # --- Edge cases ---
 
     def test_duplicate_stack_roots_in_request_last_wins(self) -> None:
         response = self.make_post(
