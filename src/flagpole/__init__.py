@@ -67,6 +67,7 @@ from __future__ import annotations
 import dataclasses
 import functools
 import os
+from enum import StrEnum
 from typing import Any
 
 import jsonschema
@@ -75,6 +76,11 @@ import yaml
 
 from flagpole.conditions import ConditionBase, Segment
 from flagpole.evaluation_context import ContextBuilder, EvaluationContext
+
+
+class ExperimentMode(StrEnum):
+    SIMPLE = "simple"
+    """Simple experiment mode: flag on = active, flag off = control."""
 
 
 class InvalidFeatureFlagConfiguration(Exception):
@@ -115,7 +121,7 @@ class Feature:
     created_at: str | None = None
     "The datetime when this feature was created."
 
-    experiment_mode: str | None = None
+    experiment_mode: ExperimentMode | None = None
     "The experiment mode for this feature. When set, the flag is treated as an experiment."
 
     def match(self, context: EvaluationContext) -> bool:
@@ -162,7 +168,7 @@ class Feature:
                 enabled=bool(config_dict.get("enabled", True)),
                 created_at=str(config_dict.get("created_at")),
                 segments=segments,
-                experiment_mode=str(raw_experiment_mode)
+                experiment_mode=ExperimentMode(raw_experiment_mode)
                 if raw_experiment_mode is not None
                 else None,
             )
@@ -223,6 +229,7 @@ class Feature:
 
 
 __all__ = [
+    "ExperimentMode",
     "Feature",
     "OwnerInfo",
     "InvalidFeatureFlagConfiguration",
