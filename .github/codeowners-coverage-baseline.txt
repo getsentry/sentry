@@ -21,6 +21,11 @@ src/sentry/locale/**
 .agents/skills/lint-new/references/schema-patterns.md
 .agents/skills/lint-new/references/style-collector-guide.md
 .agents/skills/migrate-frontend-forms/SKILL.md
+.agents/skills/notification-platform/SKILL.md
+.agents/skills/notification-platform/references/custom-renderers.md
+.agents/skills/notification-platform/references/data-and-templates.md
+.agents/skills/notification-platform/references/provider-template.md
+.agents/skills/notification-platform/references/targets-and-sending.md
 .agents/skills/react-component-documentation/SKILL.md
 .agents/skills/setup-dev/SKILL.md
 .agents/skills/setup-dev/references/orbstack-fix.md
@@ -42,7 +47,6 @@ Brewfile
 CHANGES
 CLAUDE.md
 README.md
-SSH
 agents.toml
 bin/__init__.py
 bin/benchmark_codeowners/benchmark
@@ -1065,11 +1069,13 @@ static/app/components/replaysOnboarding/sidebar.tsx
 static/app/components/replaysOnboarding/utils.tsx
 static/app/components/repositories/getRepoStatusLabel.tsx
 static/app/components/repositories/repoProviderIcon.tsx
+static/app/components/repositories/scmIntegrationTree/providerConfigLink.tsx
 static/app/components/repositories/scmIntegrationTree/scmIntegrationTree.tsx
 static/app/components/repositories/scmIntegrationTree/scmIntegrationTreeNodes.ts
 static/app/components/repositories/scmIntegrationTree/scmIntegrationTreeRow.tsx
 static/app/components/repositories/scmIntegrationTree/scmTreeFilters.tsx
 static/app/components/repositories/scmIntegrationTree/types.ts
+static/app/components/repositories/scmIntegrationTree/useScmIntegrationTreeData.spec.tsx
 static/app/components/repositories/scmIntegrationTree/useScmIntegrationTreeData.ts
 static/app/components/repositories/scmIntegrationTree/useScmTreeFilters.tsx
 static/app/components/repositories/scmRepoTreeModal.tsx
@@ -2087,6 +2093,8 @@ tests/sentry/explore/endpoints/test_explore_saved_queries.py
 tests/sentry/explore/endpoints/test_explore_saved_query_detail.py
 tests/sentry/explore/endpoints/test_explore_saved_query_starred.py
 tests/sentry/explore/endpoints/test_explore_saved_query_starred_order.py
+tests/sentry/explore/migrations/__init__.py
+tests/sentry/explore/migrations/test_0007_update_numeric_attrs_to_bools.py
 tests/sentry/explore/translation/test_alerts_translation.py
 tests/sentry/explore/translation/test_dashboards_translation.py
 tests/sentry/explore/translation/test_discover_translation.py
@@ -2593,7 +2601,7 @@ tests/sentry/tsdb/test_redissnuba.py
 tests/sentry/tsdb/test_snuba.py
 tests/sentry/types/__init__.py
 tests/sentry/types/test_actor.py
-tests/sentry/types/test_region.py
+tests/sentry/types/test_cell.py
 tests/sentry/usage_accountant/__init__.py
 tests/sentry/usage_accountant/test_accountant.py
 tests/sentry/users/__init__.py
