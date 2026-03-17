@@ -103,7 +103,7 @@ export function SeerAutomationSettings() {
                   },
                   {
                     name: 'autoOpenPrs',
-                    label: t('Allow Root Cause Analysis to create PRs by Default'),
+                    label: t('Allow Autofix to create PRs by Default'),
                     help: (
                       <Stack gap="sm">
                         {t(
