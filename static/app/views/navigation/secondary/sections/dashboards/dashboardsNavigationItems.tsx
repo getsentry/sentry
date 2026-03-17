@@ -39,17 +39,17 @@ export function DashboardsNavigationItems({
       {dashboard => {
         const dashboardProjects = new Set((dashboard?.projects ?? []).map(String));
         if (!defined(dashboard?.projects)) {
-          Sentry.setTag('organization', organization.id);
-          Sentry.setTag('dashboard.id', dashboard.id);
-          Sentry.setTag('user.id', user.id);
-          Sentry.captureMessage('dashboard.projects is undefined in starred sidebar', {
-            level: 'warning',
+          SentryLogDashboardProjectsUndefined(dashboard, {
+            organizationId: organization.id,
+            userId: user.id,
           });
         }
+
         const dashboardProjectPlatforms = projects
           .filter(p => dashboardProjects.has(p.id))
           .map(p => p.platform)
           .filter(defined);
+
         return (
           <SecondaryNavigation.ReorderableLink
             to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
@@ -79,4 +79,16 @@ export function DashboardsNavigationItems({
       }}
     </SecondaryNavigation.ReorderableList>
   );
+}
+
+function SentryLogDashboardProjectsUndefined(
+  dashboard: DashboardListItem,
+  {organizationId, userId}: {organizationId: string; userId: string}
+) {
+  Sentry.setTag('organization', organizationId);
+  Sentry.setTag('dashboard.id', dashboard.id);
+  Sentry.setTag('user.id', userId);
+  Sentry.captureMessage('dashboard.projects is undefined in starred sidebar', {
+    level: 'warning',
+  });
 }

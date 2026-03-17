@@ -2,6 +2,7 @@ import {
   createContext,
   Fragment,
   useContext,
+  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -667,28 +668,29 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   props: SecondaryNavigationReorderableListProps<T>
 ) {
   const groupRef = useRef<HTMLElement>(null);
-  const [items, setItems] = useState<T[]>(props.items);
-  const orderedItemsRef = useRef<T[]>(props.items);
+  const [localItems, setLocalItems] = useState(props.items);
+
+  useEffect(() => {
+    // This will be removed in a future PR
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setLocalItems(props.items);
+  }, [props.items]);
 
   return (
     <LayoutGroup>
       <ReorderableGroupList
-        {...props}
         axis="y"
         ref={groupRef}
-        values={items}
-        onReorder={newOrder => {
-          orderedItemsRef.current = newOrder;
-          setItems(newOrder);
-        }}
         initial={false}
+        values={localItems}
+        onReorder={setLocalItems}
       >
-        {items.map(item => (
+        {localItems.map(item => (
           <ReorderableListItem
             key={item.id}
             item={item}
             groupRef={groupRef}
-            onDragEnd={() => props.onDragEnd(orderedItemsRef.current)}
+            onDragEnd={() => props.onDragEnd(localItems)}
           >
             {props.children(item)}
           </ReorderableListItem>
@@ -796,7 +798,7 @@ type GroupProps<T> = Omit<
 
 function ReorderableGroupList<T extends {id: string | number}>(props: GroupProps<T>) {
   return (
-    <Stack direction="column" padding="0" width="100%">
+    <Stack direction="column" padding="0" width="100%" margin="0">
       {/* MergeProps is not working here due to the type signature, but it's not actually
       needed anyway because p will only ever be a className prop */}
       {p => <Reorder.Group {...p} {...props} />}
