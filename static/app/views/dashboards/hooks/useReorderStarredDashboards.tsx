@@ -1,14 +1,14 @@
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useStarredDashboardsQuerykey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
+import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 export function useReorderStarredDashboards() {
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
-  const queryKey = useStarredDashboardsQuerykey(organization);
+  const queryKey = getStarredDashboardsQueryKey(organization);
 
   const {mutate} = useMutation({
     mutationFn: (dashboards: DashboardListItem[]) =>
