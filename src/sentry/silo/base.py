@@ -96,7 +96,7 @@ class SingleProcessSiloModeState(threading.local):
         return None
 
     @staticmethod
-    def get_region() -> Cell | None:
+    def get_cell() -> Cell | None:
         return None
 
 

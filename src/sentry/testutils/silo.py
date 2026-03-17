@@ -73,13 +73,13 @@ def monkey_patch_single_process_silo_mode_state():
     def get_mode() -> SiloMode | None:
         return state.mode
 
-    def get_region() -> Cell | None:
-        return state.region
+    def get_cell() -> Cell | None:
+        return state.cell
 
     SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
     SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
     SingleProcessSiloModeState.get_mode = staticmethod(get_mode)  # type: ignore[method-assign]
-    SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_cell = staticmethod(get_cell)  # type: ignore[method-assign]
 
 
 def create_test_cells(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Cell, ...]:
