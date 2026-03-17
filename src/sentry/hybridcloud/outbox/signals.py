@@ -5,4 +5,4 @@ process_control_outbox = Signal()  # ["payload", "region_name", "object_identifi
 
 
 # TODO(cells): Remove alias once getsentry is updated
-process_cell_outbox = process_cell_outbox
+process_region_outbox = process_cell_outbox
