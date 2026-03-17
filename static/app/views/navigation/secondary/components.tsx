@@ -792,7 +792,7 @@ function SecondaryNavigationReorderableLink({
     }
     closeCollapsedNavigationHovercard();
     onNavigate?.();
-    navigate(to as string, {state: {source: SIDEBAR_NAVIGATION_SOURCE}});
+    navigate(to, {state: {source: SIDEBAR_NAVIGATION_SOURCE}});
   }
 
   return (
