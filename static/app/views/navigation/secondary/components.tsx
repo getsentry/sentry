@@ -943,7 +943,7 @@ const StyledReorderableFakeLink = styled(NavigationFakeLink)<{isDragging: boolea
     }
   }
 
-  :is(:hover, :has(:focus-visible)) {
+  :hover {
     [data-reorderable-handle-slot] {
       ${p => p.theme.visuallyHidden}
     }
