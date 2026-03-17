@@ -754,9 +754,10 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
 
 interface SecondaryNavigationReorderableLinkProps extends Omit<
   SecondaryNavigationItemProps,
-  'leadingItems'
+  'leadingItems' | 'onClick'
 > {
   icon: ReactNode;
+  onNavigate?: () => void;
 }
 
 function SecondaryNavigationReorderableLink({
@@ -768,6 +769,7 @@ function SecondaryNavigationReorderableLink({
   end = false,
   icon,
   trailingItems,
+  onNavigate,
 }: SecondaryNavigationReorderableLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -789,6 +791,7 @@ function SecondaryNavigationReorderableLink({
       });
     }
     closeCollapsedNavigationHovercard();
+    onNavigate?.();
     navigate(to as string, {state: {source: SIDEBAR_NAVIGATION_SOURCE}});
   }
 

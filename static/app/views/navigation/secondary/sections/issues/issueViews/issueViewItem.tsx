@@ -51,7 +51,7 @@ export function IssueViewItem({view, isActive}: IssueViewItemProps) {
           <IssueViewQueryCount view={view} isActive={isActive} />
         </Flex>
       }
-      onClick={() => {
+      onNavigate={() => {
         trackAnalytics('issue_views.switched_views', {
           leftNav: true,
           organization: organization.slug,
