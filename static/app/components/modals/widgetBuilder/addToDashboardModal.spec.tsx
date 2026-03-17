@@ -858,6 +858,136 @@ describe('add to dashboard modal', () => {
     });
   });
 
+  describe('text widgets', () => {
+    let textWidget: Widget;
+
+    beforeEach(() => {
+      textWidget = {
+        title: 'My Note',
+        description: 'this is a text widget description',
+        displayType: DisplayType.TEXT,
+        interval: '5m',
+        widgetType: undefined,
+        queries: [],
+      };
+    });
+
+    it('renders without making an events-stats request', async () => {
+      render(
+        <AddToDashboardModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widgets={[textWidget]}
+          selection={defaultSelection}
+          location={LocationFixture()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Select Dashboard')).toBeEnabled();
+      });
+
+      expect(eventsStatsMock).not.toHaveBeenCalled();
+    });
+
+    it('adds a text widget to an existing dashboard without modifying queries', async () => {
+      const dashboardDetailGetMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        body: {id: '1', widgets: []},
+      });
+      const dashboardDetailPutMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/',
+        method: 'PUT',
+        body: {},
+      });
+
+      render(
+        <AddToDashboardModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widgets={[textWidget]}
+          selection={defaultSelection}
+          location={LocationFixture()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Select Dashboard')).toBeEnabled();
+      });
+      await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+      await userEvent.click(screen.getByText('Add + Stay on this Page'));
+
+      expect(dashboardDetailGetMock).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(dashboardDetailPutMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              widgets: [
+                expect.objectContaining({
+                  title: 'My Note',
+                  description: 'this is a text widget description',
+                  displayType: DisplayType.TEXT,
+                  queries: [],
+                  layout: expect.any(Object),
+                }),
+              ],
+            }),
+          })
+        );
+      });
+    });
+
+    it('navigates to new dashboard with text widget in location state', async () => {
+      const {router} = render(
+        <AddToDashboardModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widgets={[textWidget]}
+          selection={defaultSelection}
+          actions={['add-and-open-dashboard']}
+          location={LocationFixture()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Select Dashboard')).toBeEnabled();
+      });
+      await selectEvent.select(
+        screen.getByText('Select Dashboard'),
+        '+ Create New Dashboard'
+      );
+      await userEvent.click(screen.getByText('Add + Open Dashboard'));
+
+      expect(router.location.pathname).toBe('/organizations/org-slug/dashboards/new/');
+      expect(router.location.state?.widgets).toHaveLength(1);
+      expect(router.location.state?.widgets[0]).toMatchObject({
+        title: 'My Note',
+        displayType: DisplayType.TEXT,
+        queries: [],
+      });
+      expect(router.location.state?.widgets[0]?.layout).toMatchObject({
+        x: expect.any(Number),
+        y: expect.any(Number),
+        w: expect.any(Number),
+        h: expect.any(Number),
+        minH: expect.any(Number),
+      });
+    });
+  });
+
   describe('multiple widgets', () => {
     let multipleWidgets: [Widget, Widget];
 

@@ -49,6 +49,7 @@ import type {
 } from 'sentry/views/dashboards/types';
 import {
   DEFAULT_WIDGET_NAME,
+  DisplayType,
   MAX_WIDGETS,
   WidgetType,
 } from 'sentry/views/dashboards/types';
@@ -61,7 +62,10 @@ import {
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {
+  addWidgetBuilderSessionStorageParams,
+  NEW_DASHBOARD_ID,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
@@ -214,6 +218,8 @@ function AddToDashboardModal({
 
     const widgetAsQueryParams = convertWidgetToQueryParams(widget);
 
+    addWidgetBuilderSessionStorageParams(widget);
+
     navigate(
       normalizeUrl({
         pathname,
@@ -242,6 +248,13 @@ function AddToDashboardModal({
 
   function normalizeWidgets(widgetsToNormalize: Widget[]): Widget[] {
     return widgetsToNormalize.map(w => {
+      if (w.displayType === DisplayType.TEXT) {
+        return {
+          ...w,
+          title: hasMultipleWidgets ? (w.title ?? DEFAULT_WIDGET_NAME) : newWidgetTitle,
+        };
+      }
+
       let newOrderBy = orderBy ?? w.queries[0]!.orderby;
       if (!(usesTimeSeriesData(w.displayType) && w.queries[0]!.columns.length)) {
         newOrderBy = ''; // Clear orderby if its not a top n visualization.
@@ -469,7 +482,16 @@ function AddToDashboardModal({
               organization={organization}
               eventView={eventViewFromWidget(
                 newWidgetTitle,
-                widget.queries[0]!,
+                widget.displayType === DisplayType.TEXT
+                  ? {
+                      name: '',
+                      fields: [],
+                      aggregates: [],
+                      columns: [],
+                      orderby: '',
+                      conditions: '',
+                    }
+                  : widget.queries[0]!,
                 selection
               )}
               location={location}
