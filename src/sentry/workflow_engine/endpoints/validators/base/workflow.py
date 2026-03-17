@@ -50,6 +50,7 @@ class WorkflowInput(TypedDict):
     enabled: NotRequired[bool]
     config: NotRequired[dict[str, Any]]
     environment: NotRequired[str | None]
+    owner: NotRequired[str | int | None]
     triggers: NotRequired[DataConditionGroupInput]
     actionFilters: NotRequired[list[ActionFilterInput]]
     owner: NotRequired[str | int | None]

@@ -34,6 +34,10 @@ from sentry.workflow_engine.models.data_condition import is_slow_condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
 from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.typings.notification_action import (
+    ActionTargetType,
+    FallthroughChoiceType,
+)
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 # Check for unsupported conditions which exist in Workflows, but are unsupported in Rules
@@ -444,6 +448,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         ) -> dict[str, Any]:
             from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
                 BaseEventFrequencyQueryHandler,
+                PercentSessionsQueryHandler,
                 slow_condition_query_handler_registry,
             )
             from sentry.workflow_engine.types import DataConditionHandler
@@ -462,7 +467,12 @@ class WorkflowEngineRuleSerializer(Serializer):
                 except NoRegistrationExistsError:
                     raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
 
-            condition_data["name"] = handler.render_label(condition_data)
+            # PercentSessionsQueryHandler.render_label converts float values to int (e.g. 100.0 → 100),
+            # but the legacy format preserves the float. Use label_template directly to match legacy output.
+            if is_slow_condition and issubclass(handler, PercentSessionsQueryHandler):
+                condition_data["name"] = handler.label_template.format(**condition_data)
+            else:
+                condition_data["name"] = handler.render_label(condition_data)
             return condition_data
 
         def generate_condition_filters(conditions: list[DataCondition], is_filter: bool):
@@ -636,12 +646,32 @@ class WorkflowEngineRuleSerializer(Serializer):
                     action_data["fallthroughType"] = action_data.get("fallthrough_type")
                     del action_data["fallthrough_type"]
 
+                # XXX: add default fallthroughType for email Team/Member actions
+                if (
+                    action.type == Action.Type.EMAIL.value
+                    and "fallthroughType" not in action_data
+                    and action_data.get("targetType")
+                    in (ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value)
+                ):
+                    action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+
                 # XXX: add a targetIdentifier empty string for email only
                 if (
                     action.type == Action.Type.EMAIL.value
                     and action_data.get("targetIdentifier") is None
                 ):
                     action_data["targetIdentifier"] = ""
+
+                # XXX: convert targetIdentifier from string to int for email Team/Member actions
+                if (
+                    action.type == Action.Type.EMAIL.value
+                    and isinstance(action_data.get("targetIdentifier"), str)
+                    and action_data["targetIdentifier"] != ""
+                ):
+                    try:
+                        action_data["targetIdentifier"] = int(action_data["targetIdentifier"])
+                    except (ValueError, TypeError):
+                        pass
 
                 # XXX: remove notes unless it actually has content
                 if action.data.get("notes") == "":

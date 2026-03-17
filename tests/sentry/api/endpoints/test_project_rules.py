@@ -57,6 +57,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from tests.sentry.api.endpoints.test_project_rule_details import assert_serializer_results_match
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -397,6 +398,21 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 )
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()
+
+        # Verify that the workflow engine serializer returns the same response shape.
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.project.organization.slug,
+                self.project.slug,
+                name=name,
+                owner=owner,
+                actionMatch=action_match,
+                frequency=frequency,
+                status_code=status.HTTP_201_CREATED,
+                **query_args,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
+
         return response
 
     def test_simple(self) -> None:

@@ -755,6 +755,7 @@ def format_request_data(
         "enabled": data.get("status", "active") == "active",
         "environment": data.get("environment"),
         "config": {"frequency": data.get("frequency")},
+        "owner": data.get("owner"),  # XXX: this is a placeholder and will need to be rebased
     }
     owner = data.get("owner", "")
     if owner:
@@ -808,7 +809,7 @@ def format_request_data(
             action["config"]["target_type"] = ActionTarget.get_name(target_type)
         translated_actions.append(action)
 
-    filter_match = data.get("filterMatch", "any-short")
+    filter_match = data.get("filterMatch") or Rule.DEFAULT_FILTER_MATCH
     if filter_match == "any":
         filter_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
 
