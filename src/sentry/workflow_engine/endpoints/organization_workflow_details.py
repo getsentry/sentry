@@ -19,7 +19,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import GlobalParams, WorkflowParams
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.organization_workflow_index import (
@@ -159,7 +159,7 @@ class OrganizationWorkflowDetailsEndpoint(OrganizationWorkflowEndpoint):
 
         Deletes an alert.
         """
-        RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
+        CellScheduledDeletion.schedule(workflow, days=0, actor=request.user)
         workflow.update(status=ObjectStatus.PENDING_DELETION)
         create_audit_entry(
             request=request,

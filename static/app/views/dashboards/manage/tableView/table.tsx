@@ -19,6 +19,7 @@ import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboa
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {useResetDashboardLists} from 'sentry/views/dashboards/hooks/useResetDashboardLists';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 export interface DashboardTableProps {
   cursorKey: string;
@@ -136,7 +137,7 @@ export function DashboardTable({
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="created-by">
               {dashboard.createdBy === null ? (
-                <Tooltip title="Sentry">
+                <Tooltip title={PREBUILT_DASHBOARD_LABEL}>
                   <ActivityAvatar type="system" size={20} />
                 </Tooltip>
               ) : dashboard.createdBy ? (

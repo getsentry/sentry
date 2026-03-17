@@ -28,6 +28,7 @@ def fetch_repository(oid, rid) -> Repository:
         "name": "test",
         "organization_id": 1,
         "is_active": True,
+        "external_id": None,
     }
 
 
@@ -75,6 +76,7 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
     # Commit operations
     ("get_commit", {"sha": "abc123"}),
     ("get_commits", {}),
+    ("get_commits_by_path", {"path": "src/main.py"}),
     ("compare_commits", {"start_sha": "aaa", "end_sha": "bbb"}),
     # Git data operations
     ("get_tree", {"tree_sha": "tree123"}),
@@ -87,6 +89,7 @@ ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
     ("get_pull_request_diff", {"pull_request_id": "1"}),
     ("get_pull_requests", {}),
     ("create_pull_request", {"title": "T", "body": "B", "head": "h", "base": "b"}),
+    ("create_pull_request_draft", {"title": "T", "body": "B", "head": "h", "base": "b"}),
     ("update_pull_request", {"pull_request_id": "1"}),
     ("request_review", {"pull_request_id": "1", "reviewers": ["user1"]}),
     # Review operations
@@ -157,6 +160,7 @@ def test_repository_inactive():
                 "name": "test",
                 "organization_id": 1,
                 "is_active": False,
+                "external_id": None,
             },
         )
 
@@ -501,6 +505,7 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (SourceCodeManager.get_file_content, {"path": "README.md"}, _check_file_content),
     (SourceCodeManager.get_commit, {"sha": "abc123"}, _check_get_commit),
     (SourceCodeManager.get_commits, {}, _check_get_commits),
+    (SourceCodeManager.get_commits_by_path, {"path": "src/main.py"}, _check_get_commits),
     (
         SourceCodeManager.compare_commits,
         {"start_sha": "aaa", "end_sha": "bbb"},
@@ -524,6 +529,11 @@ ACTION_TESTS: tuple[tuple[Callable[..., Any], dict[str, Any], Callable[..., Any]
     (SourceCodeManager.get_pull_requests, {}, _check_list_pull_requests),
     (
         SourceCodeManager.create_pull_request,
+        {"title": "T", "body": "B", "head": "h", "base": "b"},
+        _check_create_pull_request,
+    ),
+    (
+        SourceCodeManager.create_pull_request_draft,
         {"title": "T", "body": "B", "head": "h", "base": "b"},
         _check_create_pull_request,
     ),
@@ -626,6 +636,7 @@ class MinimalProvider:
         "name": "test",
         "organization_id": 1,
         "is_active": True,
+        "external_id": None,
     }
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
@@ -734,6 +745,7 @@ class TestCan:
                 "name": "test",
                 "organization_id": 1,
                 "is_active": True,
+                "external_id": None,
             }
 
             def is_rate_limited(self, referrer: Referrer) -> bool:

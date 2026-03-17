@@ -229,7 +229,7 @@ export function useConversation(
       return node;
     });
 
-    transformedNodes.sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
+    transformedNodes.sort((a, b) => (a.endTimestamp ?? 0) - (b.endTimestamp ?? 0));
 
     return {nodes: transformedNodes, nodeTraceMap: traceMap};
   }, [conversationQuery.data]);

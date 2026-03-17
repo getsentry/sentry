@@ -1,9 +1,11 @@
+import omit from 'lodash/omit';
+
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {
   serializeFields,
   serializeSorts,
   serializeThresholds,
-  serializeTraceMetric,
+  stateParamsNotInUrl,
   type WidgetBuilderState,
   type WidgetBuilderStateQueryParams,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -11,16 +13,13 @@ import {
 export function convertBuilderStateToStateQueryParams(
   state: WidgetBuilderState
 ): WidgetBuilderStateQueryParams {
-  const {fields, yAxis, sort, thresholds, traceMetric, ...rest} = state;
+  const {fields, yAxis, sort, thresholds, ...rest} = state;
+  const allowedRemainingParams = omit(rest, stateParamsNotInUrl);
   return {
-    ...rest,
+    ...allowedRemainingParams,
     field: serializeFields(fields ?? []),
     yAxis: serializeFields(yAxis ?? []),
     sort: serializeSorts(WidgetType.SPANS)(sort ?? []),
     thresholds: thresholds ? serializeThresholds(thresholds) : undefined,
-    traceMetric:
-      traceMetric?.name && traceMetric?.type
-        ? serializeTraceMetric(traceMetric)
-        : undefined,
   };
 }

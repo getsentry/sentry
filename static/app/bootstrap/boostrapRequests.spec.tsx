@@ -13,7 +13,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {
   DEFAULT_QUERY_CLIENT_CONFIG,
   QueryClient,
