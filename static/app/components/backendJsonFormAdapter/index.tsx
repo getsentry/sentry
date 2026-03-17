@@ -5,6 +5,8 @@ import {z} from 'zod';
 import {AutoSaveForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 
+import {unreachable} from 'sentry/utils/unreachable';
+
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
 import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
@@ -25,8 +27,12 @@ function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
       return z.number();
     case 'select':
     case 'choice':
+    case 'choice_mapper':
+    case 'table':
+    case 'project_mapper':
       return z.any();
     default:
+      unreachable(fieldType);
       return z.any();
   }
 }
@@ -40,8 +46,8 @@ function transformChoices(
   return choices.map(([value, label]) => ({value, label}));
 }
 
-function getDefaultForType(field: JsonFormAdapterFieldConfig): unknown {
-  switch (field.type) {
+function getDefaultForType(fieldType: JsonFormAdapterFieldConfig['type']): unknown {
+  switch (fieldType) {
     case 'boolean':
       return false;
     case 'string':
@@ -55,8 +61,12 @@ function getDefaultForType(field: JsonFormAdapterFieldConfig): unknown {
       return 0;
     case 'select':
     case 'choice':
+    case 'choice_mapper':
+    case 'table':
+    case 'project_mapper':
       return null;
     default:
+      unreachable(fieldType);
       return '';
   }
 }
@@ -212,7 +222,7 @@ export function BackendJsonFormAdapter<
     initialValue !== undefined && initialValue !== null
       ? initialValue
       : field.default === undefined
-        ? getDefaultForType(field)
+        ? getDefaultForType(field.type)
         : field.default;
 
   return (
@@ -283,7 +293,6 @@ export function BackendJsonFormAdapter<
           case 'text':
           case 'url':
           case 'email':
-          default:
             return (
               <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                 <fieldApi.Input
@@ -294,6 +303,9 @@ export function BackendJsonFormAdapter<
                 />
               </fieldApi.Layout.Row>
             );
+          default:
+            unreachable(field);
+            return null;
         }
       }}
     </AutoSaveForm>
