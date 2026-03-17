@@ -671,13 +671,12 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert event_data["tags"]["head.artifact_type"] == "apk"
         assert event_data["tags"]["head.artifact_id"] == str(head_artifact.id)
         assert event_data["tags"]["base.artifact_id"] == str(base_artifact.id)
-        assert event_data["tags"]["head.sha"] == "a" * 40
-        assert event_data["tags"]["head.branch"] == "feature/test-branch"
-        assert event_data["tags"]["head.repo"] == "owner/repo"
-        assert event_data["tags"]["head.base_sha"] == "b" * 40
-        assert event_data["tags"]["head.base_branch"] == "main"
-        assert event_data["tags"]["head.pr_number"] == "42"
-        assert "base.sha" not in event_data["tags"]
+        assert event_data["tags"]["git.sha"] == "a" * 40
+        assert event_data["tags"]["git.branch"] == "feature/test-branch"
+        assert event_data["tags"]["git.repo"] == "owner/repo"
+        assert event_data["tags"]["git.base_sha"] == "b" * 40
+        assert event_data["tags"]["git.base_branch"] == "main"
+        assert event_data["tags"]["git.pr_number"] == "42"
         assert occurrence.evidence_data["head_artifact_id"] == head_artifact.id
         assert occurrence.evidence_data["base_artifact_id"] == base_artifact.id
         assert occurrence.evidence_data["head_size_metric_id"] == 100
@@ -730,9 +729,9 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
         assert event_data["tags"]["regression_kind"] == "download"
         assert event_data["tags"]["head.app_name"] == "MyApp"
         assert event_data["tags"]["head.artifact_id"] == str(head_artifact.id)
-        assert event_data["tags"]["head.sha"] == "c" * 40
-        assert event_data["tags"]["head.branch"] == "feature/download-test"
-        assert event_data["tags"]["head.repo"] == "owner/repo"
+        assert event_data["tags"]["git.sha"] == "c" * 40
+        assert event_data["tags"]["git.branch"] == "feature/download-test"
+        assert event_data["tags"]["git.repo"] == "owner/repo"
         assert occurrence.evidence_data["head_artifact_id"] == head_artifact.id
 
     def test_create_occurrence_with_metadata_no_commit_comparison(self):
@@ -769,9 +768,9 @@ class PreprodSizeAnalysisOccurrenceContentTest(TestCase):
 
         assert event_data["tags"]["head.artifact_id"] == str(head_artifact.id)
         assert event_data["tags"]["base.artifact_id"] == str(base_artifact.id)
-        assert "head.sha" not in event_data["tags"]
-        assert "head.branch" not in event_data["tags"]
-        assert "head.repo" not in event_data["tags"]
+        assert "git.sha" not in event_data["tags"]
+        assert "git.branch" not in event_data["tags"]
+        assert "git.repo" not in event_data["tags"]
 
     def test_create_occurrence_without_metadata(self):
         detector = self.create_detector(
