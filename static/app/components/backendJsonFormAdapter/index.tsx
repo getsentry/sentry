@@ -12,10 +12,7 @@ import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {FieldValue, JsonFormAdapterFieldConfig} from './types';
 
-function getZodType(
-  fieldType: JsonFormAdapterFieldConfig['type'],
-  fieldName: JsonFormAdapterFieldConfig['name']
-) {
+function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
   switch (fieldType) {
     case 'boolean':
       return z.boolean();
@@ -29,10 +26,8 @@ function getZodType(
     case 'number':
       return z.number();
     case 'choice_mapper':
+      return z.object({});
     case 'project_mapper':
-      return z.object({
-        [fieldName]: z.any(),
-      });
     case 'table':
       return z.array(z.any());
     case 'select':
@@ -67,8 +62,8 @@ function getDefaultForType(fieldType: JsonFormAdapterFieldConfig['type']): unkno
     case 'number':
       return 0;
     case 'choice_mapper':
-    case 'project_mapper':
       return {};
+    case 'project_mapper':
     case 'table':
       return [];
     case 'select':
@@ -102,7 +97,7 @@ export function BackendJsonFormAdapter<
   const fieldName = field.name;
 
   const schema = useMemo(
-    () => z.object({[fieldName]: getZodType(field.type, fieldName)}),
+    () => z.object({[fieldName]: getZodType(field.type)}),
     [fieldName, field.type]
   );
 
