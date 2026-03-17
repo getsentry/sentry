@@ -26,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
   isArtifact,
+  isExplorerCodingAgentState,
   isExplorerFilePatch,
   isRepoPRState,
   type Artifact,
@@ -137,8 +138,14 @@ export function isCodeChangesArtifact(value: unknown): value is ExplorerFilePatc
   return isArrayOf(value, isExplorerFilePatch) && value.length > 0;
 }
 
-export function isPullRequestArtifact(value: unknown): value is RepoPRState[] {
+export function isPullRequestsArtifact(value: unknown): value is RepoPRState[] {
   return isArrayOf(value, isRepoPRState) && value.length > 0;
+}
+
+export function isCodingAgentsArtifact(
+  value: unknown
+): value is ExplorerCodingAgentState[] {
+  return isArrayOf(value, isExplorerCodingAgentState) && value.length > 0;
 }
 
 /**
@@ -393,13 +400,30 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   finalizeSection();
 
   // If there are any PR states, append a synthetic "pull_request" section.
-  const artifact = Object.values(runState?.repo_pr_states ?? {});
-  if (artifact.length) {
+  const pullRequests = Object.values(runState?.repo_pr_states ?? {});
+  if (pullRequests.length) {
     sections.push({
       step: 'pull_request',
-      artifacts: [artifact],
+      artifacts: [pullRequests],
       messages: [],
-      status: artifact.some(pullRequest => pullRequest.pr_creation_status === 'creating')
+      status: pullRequests.some(
+        pullRequest => pullRequest.pr_creation_status === 'creating'
+      )
+        ? 'processing'
+        : 'completed',
+    });
+  }
+
+  const codingAgents = Object.values(runState?.coding_agents ?? {});
+  if (codingAgents.length) {
+    sections.push({
+      step: 'coding_agents',
+      artifacts: [codingAgents],
+      messages: [],
+      status: codingAgents.some(
+        codingAgent =>
+          codingAgent.status === 'pending' || codingAgent.status === 'running'
+      )
         ? 'processing'
         : 'completed',
     });
@@ -424,7 +448,15 @@ export function isPullRequestSection(section: AutofixSection): boolean {
   return section.step === 'pull_request';
 }
 
-export type AutofixArtifact = Artifact<unknown> | ExplorerFilePatch[] | RepoPRState[];
+export function isCodingAgentsSection(section: AutofixSection): boolean {
+  return section.step === 'coding_agents';
+}
+
+export type AutofixArtifact =
+  | Artifact<unknown>
+  | ExplorerFilePatch[]
+  | RepoPRState[]
+  | ExplorerCodingAgentState[];
 
 export function getOrderedAutofixArtifacts(
   runState: ExplorerAutofixState | null
@@ -441,7 +473,10 @@ export function getOrderedAutofixArtifacts(
         return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
       }
       if (isPullRequestSection(section)) {
-        return section.artifacts.findLast(isPullRequestArtifact) ?? null;
+        return section.artifacts.findLast(isPullRequestsArtifact) ?? null;
+      }
+      if (isCodingAgentsSection(section)) {
+        return section.artifacts.findLast(isCodingAgentsArtifact) ?? null;
       }
       return null;
     })

@@ -1,15 +1,14 @@
 import {
+  isCodeChangesArtifact,
+  isPullRequestsArtifact,
   isRootCauseArtifact,
   isSolutionArtifact,
   type AutofixArtifact,
   type RootCauseArtifact,
   type SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {isArrayOf} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {
-  isExplorerFilePatch,
-  isRepoPRState,
   type Artifact,
   type ExplorerFilePatch,
   type RepoPRState,
@@ -24,11 +23,11 @@ export function artifactToMarkdown(artifact: AutofixArtifact): string | null {
     return solutionArtifactToMarkdown(artifact);
   }
 
-  if (isArrayOf(artifact, isExplorerFilePatch) && artifact.length) {
+  if (isCodeChangesArtifact(artifact)) {
     return filePatchesToMarkdown(artifact);
   }
 
-  if (isArrayOf(artifact, isRepoPRState) && artifact.length) {
+  if (isPullRequestsArtifact(artifact)) {
     return repoPRStatesToMarkdown(artifact);
   }
 
