@@ -7,7 +7,7 @@ import {IconContract, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 
-export interface Expando {
+interface Expando {
   button: React.ReactNode;
   expanded: boolean;
 }
