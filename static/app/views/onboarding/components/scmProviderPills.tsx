@@ -88,10 +88,7 @@ export function ProviderPills({
       {hasExistingIntegrations && (
         <Text size="sm" variant="muted">
           {t('Need a different provider? ')}
-          <Link
-            to={normalizeUrl(`/settings/${organization.slug}/integrations/`)}
-            size="sm"
-          >
+          <Link to={normalizeUrl(`/settings/${organization.slug}/integrations/`)}>
             {t('Manage in Settings')}
           </Link>
         </Text>

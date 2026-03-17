@@ -32,7 +32,7 @@ export function ConnectedView({
             {t('Connected to %s', integration.domainName ?? integration.provider.name)}
           </Text>
         </Flex>
-        <Link to={normalizeUrl(`/settings/${organization.slug}/integrations/`)} size="sm">
+        <Link to={normalizeUrl(`/settings/${organization.slug}/integrations/`)}>
           {t('Manage in Settings')}
         </Link>
       </Flex>
