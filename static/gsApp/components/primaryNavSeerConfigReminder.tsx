@@ -50,16 +50,15 @@ function useScmIntegrations() {
   );
 
   // Filter to only SCM integrations
-  const scmIntegrations = data?.filter(integration =>
-    SCM_PROVIDER_KEYS.includes(integration.provider.key)
-  );
+  const scmIntegrations =
+    data?.filter(integration => SCM_PROVIDER_KEYS.includes(integration.provider.key)) ??
+    [];
 
-  const hasGithub = scmIntegrations?.some(integration =>
+  const hasGithub = scmIntegrations.some(integration =>
     ['github', 'github_enterprise'].includes(integration.provider.key)
   );
 
   const hasOnlyNonGithubScm =
-    scmIntegrations &&
     scmIntegrations.length > 0 &&
     !hasGithub &&
     scmIntegrations.every(integration =>
