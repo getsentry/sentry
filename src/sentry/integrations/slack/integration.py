@@ -204,15 +204,19 @@ class SlackIntegrationProvider(IntegrationProvider):
     setup_dialog_config = {"width": 600, "height": 900}
 
     def _identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
+        nested_config: dict[str, Any] = {
+            "oauth_scopes": self.identity_oauth_scopes,
+            "user_scopes": self.user_scopes,
+            "redirect_url": absolute_uri("/extensions/slack/setup/"),
+        }
+        if self.config.get("use_staging"):
+            nested_config["use_staging"] = True
+
         return NestedPipelineView(
             bind_key="identity",
             provider_key=IntegrationProviderSlug.SLACK.value,
             pipeline_cls=IdentityPipeline,
-            config={
-                "oauth_scopes": self.identity_oauth_scopes,
-                "user_scopes": self.user_scopes,
-                "redirect_url": absolute_uri("/extensions/slack/setup/"),
-            },
+            config=nested_config,
         )
 
     def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:

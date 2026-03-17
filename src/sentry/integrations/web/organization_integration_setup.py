@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import sentry_sdk
 from django.http import Http404, HttpRequest
@@ -24,8 +25,24 @@ class OrganizationIntegrationSetupView(ControlSiloOrganizationView):
         scope = sentry_sdk.get_current_scope()
         scope.set_transaction_name(f"integration.{provider_id}", source=TransactionSource.VIEW)
 
+        config: dict[str, Any] = {}
+        use_staging = request.GET.get("use_staging") == "1" and provider_id == "slack"
+
+        if use_staging:
+            if not features.has("organizations:slack-staging-app", organization):
+                pipeline = IntegrationPipeline(
+                    request=request, organization=organization, provider_key=provider_id
+                )
+                return pipeline.render_warning(
+                    "The Slack staging app feature is not enabled for this organization."
+                )
+            config["use_staging"] = True
+
         pipeline = IntegrationPipeline(
-            request=request, organization=organization, provider_key=provider_id
+            request=request,
+            organization=organization,
+            provider_key=provider_id,
+            config=config,
         )
 
         is_feature_enabled = {}

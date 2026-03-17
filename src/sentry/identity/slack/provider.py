@@ -29,9 +29,13 @@ class SlackIdentityProvider(OAuth2Provider):
         return "https://slack.com/api/oauth.v2.access"
 
     def get_oauth_client_id(self):
+        if self.config.get("use_staging"):
+            return options.get("slack-staging.client-id")
         return options.get("slack.client-id")
 
     def get_oauth_client_secret(self):
+        if self.config.get("use_staging"):
+            return options.get("slack-staging.client-secret")
         return options.get("slack.client-secret")
 
     def get_user_scopes(self):
