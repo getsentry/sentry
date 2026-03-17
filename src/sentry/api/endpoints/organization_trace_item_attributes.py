@@ -286,7 +286,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         substring_match = serialized.get("substring_match", "")
         query_string = serialized.get("query")
         attribute_types = serialized.get("attribute_type")
-        if len(attribute_types) == 0 or attribute_types is None:
+        # When not passed the user wants all types
+        if attribute_types is None or len(attribute_types) == 0:
             attribute_types = POSSIBLE_ATTRIBUTE_TYPES
         # Deprecating this so we're using the same param name as the events endpoints
         item_type = serialized.get("item_type")
