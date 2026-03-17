@@ -1,9 +1,11 @@
 name: CODEOWNERS Coverage
 
 on:
-  push:
-    branches:
-      - master
+  # TODO: We don't want master builds to fail when we merge this in.
+  #       We can turn it on once every PR has enforced it for a couple days.
+  # push:
+  #   branches:
+  #     - master
   pull_request:
 
 # Cancel in progress workflows on pull_requests.
