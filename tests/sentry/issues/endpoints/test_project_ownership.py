@@ -169,8 +169,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                 {
                     "matcher": {"type": "path", "pattern": "*.js"},
                     "owners": [
-                        {"type": "user", "identifier": "admin@localhost", "id": self.user.id},
-                        {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                        {"type": "user", "identifier": "admin@localhost", "id": str(self.user.id)},
+                        {"type": "team", "identifier": "tiger-team", "id": str(self.team.id)},
                     ],
                 }
             ],
@@ -186,8 +186,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                 {
                     "matcher": {"type": "path", "pattern": "*.js"},
                     "owners": [
-                        {"type": "user", "id": self.user.id, "name": "admin@localhost"},
-                        {"type": "team", "id": self.team.id, "name": "tiger-team"},
+                        {"type": "user", "id": str(self.user.id), "name": "admin@localhost"},
+                        {"type": "team", "id": str(self.team.id), "name": "tiger-team"},
                     ],
                 }
             ],
@@ -200,8 +200,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             {
                 "matcher": {"type": "path", "pattern": "*.js"},
                 "owners": [
-                    {"type": "user", "identifier": "admin@localhost", "id": self.user.id},
-                    {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                    {"type": "user", "identifier": "admin@localhost", "id": str(self.user.id)},
+                    {"type": "team", "identifier": "tiger-team", "id": str(self.team.id)},
                 ],
             }
         ]
@@ -258,7 +258,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             "rules": [
                 {
                     "matcher": {"type": "path", "pattern": "*.js"},
-                    "owners": [{"type": "team", "name": "tiger-team", "id": self.team.id}],
+                    "owners": [{"type": "team", "name": "tiger-team", "id": str(self.team.id)}],
                 }
             ],
         }
