@@ -11,7 +11,7 @@ import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 describe('PageFiltersContainer', () => {
   const organization = OrganizationFixture();

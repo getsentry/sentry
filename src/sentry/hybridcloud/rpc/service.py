@@ -200,10 +200,6 @@ def cell_rpc_method(
     return decorator
 
 
-# TODO(cells): remove once getsentry updated
-regional_rpc_method = cell_rpc_method
-
-
 _global_service_registry: dict[str, DelegatingRpcService] = {}
 
 

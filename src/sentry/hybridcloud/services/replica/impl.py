@@ -1,7 +1,8 @@
+import logging
 from collections.abc import Iterator, Mapping
 from typing import Any
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 
 from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, RpcAuthProvider
@@ -15,12 +16,13 @@ from sentry.hybridcloud.models import (
     ExternalActorReplica,
     OrgAuthTokenReplica,
 )
-from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
-from sentry.hybridcloud.services.replica.service import ControlReplicaService, RegionReplicaService
+from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
+from sentry.hybridcloud.services.replica.service import CellReplicaService, ControlReplicaService
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.models.apikey import ApiKey
@@ -34,11 +36,14 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.projectkeymapping import ProjectKeyMapping
 from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
 from sentry.notifications.services import RpcExternalActor
 from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.users.models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 def get_foreign_key_columns(
@@ -115,7 +120,7 @@ def get_conflicting_unique_columns(
 
 
 def handle_replication(
-    source_model: type[ReplicatedControlModel] | type[ReplicatedRegionModel],
+    source_model: type[ReplicatedControlModel] | type[ReplicatedCellModel],
     destination: BaseModel,
     fk: str | None = None,
 ) -> None:
@@ -141,7 +146,7 @@ def handle_replication(
             destination.save()
 
 
-class DatabaseBackedRegionReplicaService(RegionReplicaService):
+class DatabaseBackedCellReplicaService(CellReplicaService):
     def upsert_replicated_api_token(
         self,
         *,
@@ -368,3 +373,24 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
         )
 
         handle_replication(Team, destination)
+
+    def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
+        try:
+            with transaction.atomic(router.db_for_write(ProjectKeyMapping)):
+                ProjectKeyMapping.objects.update_or_create(
+                    project_key_id=project_key.id,
+                    cell_name=project_key.cell_name,
+                    defaults={"public_key": project_key.public_key},
+                )
+        except IntegrityError:
+            logger.error(
+                "project_key_mapping.conflict",
+                extra={"project_key_id": project_key.id, "cell_name": project_key.cell_name},
+            )
+            return False
+        return True
+
+    def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
+        ProjectKeyMapping.objects.filter(
+            project_key_id=project_key_id, cell_name=cell_name
+        ).delete()

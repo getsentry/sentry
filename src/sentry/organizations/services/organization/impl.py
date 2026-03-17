@@ -310,7 +310,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 return serialize_member(org_member)
             except OrganizationMember.DoesNotExist:
                 try:
-                    org_member = OrganizationMember.objects.get(
+                    org_member = OrganizationMember.objects.select_for_update().get(
                         id=organization_member_id, organization_id=organization_id
                     )
                     org_member.set_user(user_id)

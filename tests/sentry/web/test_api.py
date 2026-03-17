@@ -16,7 +16,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_regions
 from sentry.utils import json
 
 
@@ -86,7 +86,7 @@ Disallow: /
         assert response["Content-Type"] == "text/plain"
 
 
-@region_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)
+@cell_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)
 class ClientConfigViewTest(TestCase):
     @cached_property
     def path(self) -> str:

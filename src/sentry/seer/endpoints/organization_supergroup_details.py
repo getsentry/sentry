@@ -12,7 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
-from sentry.seer.signed_seer_api import make_supergroups_get_request
+from sentry.seer.signed_seer_api import SeerViewerContext, make_supergroups_get_request
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +36,8 @@ class OrganizationSupergroupDetailsEndpoint(OrganizationEndpoint):
             return Response({"detail": "Feature not available"}, status=403)
 
         response = make_supergroups_get_request(
-            body={
-                "organization_id": organization.id,
-                "supergroup_id": supergroup_id,
-            },
+            {"organization_id": organization.id, "supergroup_id": supergroup_id},
+            SeerViewerContext(organization_id=organization.id, user_id=request.user.id),
             timeout=10,
         )
 

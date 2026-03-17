@@ -14,10 +14,10 @@ processing:
   kafka_config:
     - {name: 'bootstrap.servers', value: '${KAFKA_HOST}:9093'}
   topics:
-    events: ingest-events
-    attachments: ingest-events
-    transactions: ingest-events
-    outcomes: outcomes
+    events: ${KAFKA_TOPIC_EVENTS}
+    attachments: ${KAFKA_TOPIC_EVENTS}
+    transactions: ${KAFKA_TOPIC_EVENTS}
+    outcomes: ${KAFKA_TOPIC_OUTCOMES}
   redis: redis://${REDIS_HOST}:6379/${REDIS_DB}
 aggregator:
   bucket_interval: 1 # Use shortest possible interval to speed up tests

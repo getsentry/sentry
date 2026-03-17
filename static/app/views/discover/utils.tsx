@@ -54,7 +54,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {
   getAllViews,
   getTransactionViews,
@@ -888,7 +888,7 @@ export function constructAddQueryToDashboardLink({
       start: eventView.start,
       end: eventView.end,
       statsPeriod: eventView.statsPeriod,
-      ...convertWidgetToBuilderStateParams(widget),
+      ...convertWidgetToQueryParams(widget),
       source,
     },
   };

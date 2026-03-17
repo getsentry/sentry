@@ -89,9 +89,9 @@ def get_buffer_requests_from_cells(
 ) -> list[BufferedRequest]:
     requests: list[RpcSentryAppRequest] = []
     for cell_name in find_all_cell_names():
-        buffer_requests = app_request_service.get_buffer_requests_for_region(
+        buffer_requests = app_request_service.get_buffer_requests_for_cell(
             sentry_app_id=sentry_app_id,
-            region_name=cell_name,
+            cell_name=cell_name,
             filter=filter,
         )
         if buffer_requests:

@@ -33,7 +33,7 @@ from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
 from sentry.exceptions import RestrictedIPAddress
-from sentry.hybridcloud.rpc.caching import region_caching_service
+from sentry.hybridcloud.rpc.caching import cell_caching_service
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -173,7 +173,7 @@ def _webhook_issue_data(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
-    processing_deadline_duration=5,
+    processing_deadline_duration=8,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator
@@ -518,7 +518,7 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
         install_map[install_row["organization_id"]].append(install_row["id"])
 
     # Clear application_id cache
-    region_caching_service.clear_key(
+    cell_caching_service.clear_key(
         key=get_by_application_id.key_from(sentry_app.application_id), region_name=region_name
     )
 
@@ -528,13 +528,13 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
         organization_id__in=list(install_map.keys()), cell_name=region_name
     ).values("organization_id")
     for region_row in region_query:
-        region_caching_service.clear_key(
+        cell_caching_service.clear_key(
             key=get_installations_for_organization.key_from(region_row["organization_id"]),
             region_name=region_name,
         )
         installs = install_map[region_row["organization_id"]]
         for install_id in installs:
-            region_caching_service.clear_key(
+            cell_caching_service.clear_key(
                 key=get_installation.key_from(install_id), region_name=region_name
             )
 
@@ -697,7 +697,7 @@ def get_webhook_data(
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
     compression_type=CompressionType.ZSTD,
-    processing_deadline_duration=5,
+    processing_deadline_duration=8,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator
