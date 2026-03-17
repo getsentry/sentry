@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useState, type ReactNode} from 'react';
 import type {UseMutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -95,6 +95,7 @@ export function BackendJsonFormAdapter<
   mutationOptions,
 }: BackendJsonFormAdapterProps<TField, TData, TContext>) {
   const fieldName = field.name;
+  const [labels, setLabels] = useState<Record<string, ReactNode>>({});
 
   const schema = useMemo(
     () => z.object({[fieldName]: getZodType(field.type)}),
@@ -196,6 +197,9 @@ export function BackendJsonFormAdapter<
                   <ChoiceMapperDropdown
                     config={field}
                     value={fieldApi.state.value}
+                    onLabelAdd={(key, label) => {
+                      setLabels(prev => ({...prev, [key]: label}));
+                    }}
                     onChange={fieldApi.handleChange}
                     indicator={indicator}
                   />
@@ -203,6 +207,7 @@ export function BackendJsonFormAdapter<
                 <ChoiceMapperTable
                   config={field}
                   value={fieldApi.state.value}
+                  labels={labels}
                   onUpdate={fieldApi.handleChange}
                   onSave={() => baseProps.onBlur()}
                   disabled={field.disabled || baseProps.disabled}

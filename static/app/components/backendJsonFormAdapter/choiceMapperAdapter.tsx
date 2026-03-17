@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState, type ReactNode} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import type {DistributedPick} from 'type-fest';
 
@@ -26,12 +26,14 @@ type ChoiceMapperConfig = Extract<JsonFormAdapterFieldConfig, {type: 'choice_map
 interface ChoiceMapperDropdownProps {
   config: ChoiceMapperConfig;
   onChange: (value: Record<string, Record<string, unknown>>) => void;
+  onLabelAdd: (value: string, label: ReactNode) => void;
   value: Record<string, Record<string, unknown>>;
   indicator?: React.ReactNode;
 }
 
 interface ChoiceMapperTableProps {
   config: ChoiceMapperConfig;
+  labels: Record<string, ReactNode>;
   onSave: (value: Record<string, Record<string, unknown>>) => void;
   onUpdate: (value: Record<string, Record<string, unknown>>) => void;
   value: Record<string, Record<string, unknown>>;
@@ -111,22 +113,29 @@ export function ChoiceMapperDropdown({
   config,
   value,
   onChange,
+  onLabelAdd,
   indicator,
 }: ChoiceMapperDropdownProps) {
   const {columnLabels = {}} = config;
-  const mappedKeys = Object.keys(columnLabels);
-  const emptyValue = mappedKeys.reduce<Record<string, null>>(
-    (a, v) => ({...a, [v]: null}),
-    {}
-  );
 
   const asyncUrl = config.addDropdown?.url;
   const selectableValues =
     config.addDropdown?.items?.filter(i => !value.hasOwnProperty(i.value)) ?? [];
 
   const addRow = (item: SelectOption<string>) => {
-    const newValue = asyncUrl ? {...emptyValue, __label: item.label} : emptyValue;
-    onChange({...value, [item.value]: newValue});
+    const emptyValue = Object.keys(columnLabels).reduce<Record<string, null>>(
+      (acc, key) => {
+        acc[key] = null;
+        return acc;
+      },
+      {}
+    );
+
+    if (asyncUrl) {
+      // using item.value as label because it's what we display for saved values too
+      onLabelAdd(item.value, item.value);
+    }
+    onChange({...value, [item.value]: emptyValue});
   };
 
   if (asyncUrl) {
@@ -185,6 +194,7 @@ export function ChoiceMapperDropdown({
  */
 export function ChoiceMapperTable({
   config,
+  labels,
   value,
   onUpdate,
   onSave,
@@ -201,11 +211,14 @@ export function ChoiceMapperTable({
     return config.mappedSelectors?.[fieldKey];
   };
 
-  const valueMap =
-    addDropdown?.items?.reduce<Record<string, string>>((map, item) => {
-      map[item.value] = item.label;
-      return map;
-    }, {}) ?? {};
+  const labelMap =
+    addDropdown?.items?.reduce(
+      (map, item) => {
+        map[item.value] = item.label;
+        return map;
+      },
+      {...labels}
+    ) ?? {};
 
   const allColumnsFilled = (val: Record<string, Record<string, unknown>>) =>
     Object.values(val).every(row =>
@@ -259,9 +272,7 @@ export function ChoiceMapperTable({
       </Flex>
       {Object.keys(value).map(itemKey => (
         <Flex align="center" gap="md" key={itemKey}>
-          <Flex flex="0 0 200px">
-            {(value[itemKey]?.__label as string) ?? valueMap[itemKey]}
-          </Flex>
+          <Flex flex="0 0 200px">{labelMap[itemKey]}</Flex>
           {mappedKeys.map((fieldKey, i) => (
             <Flex align="center" flex="1 0 0" gap="md" key={fieldKey}>
               <Flex flex="1" direction="column">

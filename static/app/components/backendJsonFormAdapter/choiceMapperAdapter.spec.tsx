@@ -396,6 +396,58 @@ describe('ChoiceMapperAdapter', () => {
     expect(await screen.findByText('my-org/cool-repo')).toBeInTheDocument();
   });
 
+  it('choice_mapper async search displays item value as row label', async () => {
+    const searchUrl = '/extensions/github/search/my-org/123/';
+
+    MockApiClient.addMockResponse({
+      url: searchUrl,
+      body: [{value: 'my-org/cool-repo', label: 'Cool Repo (friendly name)'}],
+    });
+
+    render(
+      <BackendJsonFormAdapter
+        field={{
+          name: 'status_mapping',
+          type: 'choice_mapper',
+          label: 'Status Mapping',
+          addButtonText: 'Add GitHub Project',
+          addDropdown: {
+            items: [],
+            url: searchUrl,
+            searchField: 'repo',
+          },
+          columnLabels: {on_resolve: 'When Resolved'},
+          mappedColumnLabel: 'Repository',
+          mappedSelectors: {
+            on_resolve: {
+              choices: [
+                ['closed', 'Closed'],
+                ['open', 'Open'],
+              ],
+            },
+          },
+        }}
+        initialValue={{}}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
+
+    // Search and add a row
+    await userEvent.click(
+      await screen.findByRole('button', {name: /Add GitHub Project/i})
+    );
+    await userEvent.type(screen.getByRole('textbox'), 'cool');
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Cool Repo (friendly name)'})
+    );
+
+    // Row label should display the item value (key), not the friendly label,
+    // because saved entries from the server only have the value as the key
+    expect(await screen.findByText('my-org/cool-repo')).toBeInTheDocument();
+    expect(screen.queryByText('Cool Repo (friendly name)')).not.toBeInTheDocument();
+  });
+
   it('choice_mapper disables controls while mutation is in flight', async () => {
     let resolveMutation!: () => void;
     const pendingMutationOptions = {
