@@ -50,7 +50,7 @@ def create_async_request_payload(request: HttpRequest) -> dict[str, Any]:
     }
 
 
-class RegionResult:
+class CellResult:
     def __init__(
         self,
         response: HttpResponseBase | None = None,
@@ -124,9 +124,9 @@ class BaseRequestParser(ABC):
         ):
             cell_client = CellSiloClient(cell, retry=True)
             with MiddlewareOperationEvent(
-                operation_type=MiddlewareOperationType.GET_REGION_RESPONSE,
+                operation_type=MiddlewareOperationType.GET_CELL_RESPONSE,
                 integration_name=self.provider,
-                region=cell.name,
+                cell=cell.name,
             ).capture() as lifecycle:
                 lifecycle.add_extras(
                     {
@@ -142,7 +142,7 @@ class BaseRequestParser(ABC):
     def get_response_from_region_silo(self, region: Cell) -> HttpResponseBase:
         return self.get_response_from_cell_silo(cell=region)
 
-    def get_responses_from_cell_silos(self, cells: list[Cell]) -> dict[str, RegionResult]:
+    def get_responses_from_cell_silos(self, cells: list[Cell]) -> dict[str, CellResult]:
         """
         Used to handle the requests on a given list of cells (synchronously).
         Returns a dict of cell name to response/exception.
@@ -160,9 +160,9 @@ class BaseRequestParser(ABC):
                 try:
                     cell_response = future.result()
                 except Exception as e:
-                    cell_to_response_map[cell.name] = RegionResult(error=e)
+                    cell_to_response_map[cell.name] = CellResult(error=e)
                 else:
-                    cell_to_response_map[cell.name] = RegionResult(response=cell_response)
+                    cell_to_response_map[cell.name] = CellResult(response=cell_response)
 
         return cell_to_response_map
 
@@ -263,9 +263,9 @@ class BaseRequestParser(ABC):
         response_map = self.get_responses_from_cell_silos(cells=[first_cell])
         cell_result = response_map[first_cell.name]
         with MiddlewareOperationEvent(
-            operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_FIRST_REGION,
+            operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_FIRST_CELL,
             integration_name=self.provider,
-            region=first_cell.name,
+            cell=first_cell.name,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
@@ -285,7 +285,7 @@ class BaseRequestParser(ABC):
             result for result in response_map.values() if result.response is not None
         ]
         with MiddlewareOperationEvent(
-            operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_ALL_REGIONS,
+            operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_ALL_CELLS,
             integration_name=self.provider,
         ).capture() as lifecycle:
             lifecycle.add_extra("path", self.request.path)

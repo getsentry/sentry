@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class _AsyncResult:
-    region: Cell
+    cell: Cell
     response: Response
 
     def was_successful(self) -> bool:
@@ -31,7 +31,7 @@ class _AsyncResult:
 
 
 @dataclass(frozen=True)
-class _AsyncRegionDispatcher(ABC):
+class _AsyncCellDispatcher(ABC):
     request_payload: dict[str, Any]
     response_url: str
 
@@ -103,7 +103,7 @@ class _AsyncRegionDispatcher(ABC):
             return integration_response
 
 
-class _AsyncSlackDispatcher(_AsyncRegionDispatcher):
+class _AsyncSlackDispatcher(_AsyncCellDispatcher):
     @property
     def log_code(self) -> str:
         return IntegrationProviderSlug.SLACK.value
@@ -128,7 +128,7 @@ def convert_to_async_slack_response(
     _AsyncSlackDispatcher(payload, response_url).dispatch(region_names)
 
 
-class _AsyncDiscordDispatcher(_AsyncRegionDispatcher):
+class _AsyncDiscordDispatcher(_AsyncCellDispatcher):
     @property
     def log_code(self) -> str:
         return IntegrationProviderSlug.DISCORD.value
