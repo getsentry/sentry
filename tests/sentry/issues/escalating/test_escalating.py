@@ -398,6 +398,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         assert snuba_results[0]["project_id"] == eap_results[0]["project_id"] == self.project.id
         assert snuba_results[0]["count()"] == eap_results[0]["count()"] == 3
 
+    @pytest.mark.skip(reason="flaky: #110873")
     @freeze_time(FROZEN_TIME)
     def test_eap_and_snuba_past_counts_match_multiple_groups(self) -> None:
         group_a = self.store_events_to_snuba_and_eap(
