@@ -8,13 +8,13 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import Count from 'sentry/components/count';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
+import {Count} from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import NotAvailable from 'sentry/components/notAvailable';
+import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -75,7 +75,7 @@ type Props = {
   adoptionStages?: Release['adoptionStages'];
 };
 
-function ReleaseCardProjectRow({
+export function ReleaseCardProjectRow({
   activeDisplay,
   adoptionStages,
   getHealthData,
@@ -259,8 +259,6 @@ function ReleaseCardProjectRow({
     </ProjectRow>
   );
 }
-
-export default ReleaseCardProjectRow;
 
 const ProjectRow = styled(PanelItem)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};

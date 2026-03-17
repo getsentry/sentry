@@ -6,7 +6,7 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {DataCategory} from 'sentry/types/core';
 
 import {useProductBillingAccess} from 'getsentry/hooks/useProductBillingAccess';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 
 describe('useProductBillingAccess', () => {

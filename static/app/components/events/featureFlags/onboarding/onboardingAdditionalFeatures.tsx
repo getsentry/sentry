@@ -5,7 +5,7 @@ import {Link} from '@sentry/scraps/link';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-export default function OnboardingAdditionalFeatures({
+export function OnboardingAdditionalFeatures({
   organization,
 }: {
   organization: Organization;

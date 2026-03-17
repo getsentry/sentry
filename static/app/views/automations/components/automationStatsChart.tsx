@@ -7,17 +7,17 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import LoadingError from 'sentry/components/loadingError';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelFooter from 'sentry/components/panels/panelFooter';
+import {LoadingError} from 'sentry/components/loadingError';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Automation, AutomationStats} from 'sentry/types/workflowEngine/automations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IssueAlertDetailsProps extends DateTimeObject {
   automationId: Automation['id'];

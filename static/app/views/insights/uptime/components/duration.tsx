@@ -1,7 +1,7 @@
 import {Text} from '@sentry/scraps/text';
 import type {TextProps} from '@sentry/scraps/text';
 
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import type {UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
 
 type UptimeDurationProps = {

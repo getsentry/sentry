@@ -6,10 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -27,14 +27,14 @@ import {MessageType} from 'sentry/views/settings/project/tempest/types';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 import {CredentialRow} from './CredentialRow';
-import EmptyState from './EmptyState';
+import {EmptyState} from './EmptyState';
 
 interface Props {
   organization: Organization;
   project: Project;
 }
 
-export default function PlayStationSettings({organization, project}: Props) {
+export function PlayStationSettings({organization, project}: Props) {
   const hasWriteAccess = useHasTempestWriteAccess();
   const navigate = useNavigate();
   const location = useLocation();

@@ -15,11 +15,11 @@ import {
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {FieldKey} from 'sentry/utils/fields';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
+import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 
 import type {TableColumn} from './types';
 

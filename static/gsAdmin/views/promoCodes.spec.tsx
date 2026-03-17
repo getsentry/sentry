@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {PromoCode as PromoCodeType} from 'admin/types';
-import PromoCodes from 'admin/views/promoCodes';
+import {PromoCodes} from 'admin/views/promoCodes';
 
 function PromoCodeFixture(params: Partial<PromoCodeType>): PromoCodeType {
   return {

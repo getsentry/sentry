@@ -268,7 +268,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
     # run in monolith mode by default, but began failing during CI for unclear reasons
     # when the global default was switched to region mode. (See
     # get_default_silo_mode_for_test_cases in sentry/testutils/pytest/sentry.py.) Note
-    # that this case was marked as @region_silo_test when it was passing, so there was
+    # that this case was marked as @cell_silo_test when it was passing, so there was
     # no change in the silo mode in which *this* case is run. The probable explanation
     # is that the test is sensitive to side effects (possibly in Redis?) of other test
     # cases, which *did* have their silo mode changed.

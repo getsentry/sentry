@@ -2,7 +2,7 @@ import type {LineSeriesOption} from 'echarts';
 
 import type {Series} from 'sentry/types/echarts';
 
-import LineSeries from './series/lineSeries';
+import {LineSeries} from './series/lineSeries';
 import type {BaseChartProps} from './baseChart';
 import BaseChart from './baseChart';
 

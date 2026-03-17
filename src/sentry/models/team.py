@@ -14,13 +14,13 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
-from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.locks import locks
 from sentry.utils.retries import TimedRetryPolicy
@@ -108,8 +108,8 @@ class TeamStatus:
 
 
 @snowflake_id_model
-@region_silo_model
-class Team(ReplicatedRegionModel):
+@cell_silo_model
+class Team(ReplicatedCellModel):
     """
     A team represents a group of individuals which maintain ownership of projects.
     """

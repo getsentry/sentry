@@ -16,7 +16,7 @@ type Props = {
   onSuccess?: (data: Payload) => void;
 };
 
-export default function AddTempestCredentialsForm({
+export function AddTempestCredentialsForm({
   organization,
   project,
   formProps,

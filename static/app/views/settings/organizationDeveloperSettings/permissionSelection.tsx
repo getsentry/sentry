@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 
 import SelectField from 'sentry/components/forms/fields/selectField';
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {SENTRY_APP_PERMISSIONS, type PermissionObj} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {
@@ -113,7 +113,7 @@ function permissionStateToList(permissions: Permissions) {
   );
 }
 
-export default class PermissionSelection extends Component<Props, State> {
+export class PermissionSelection extends Component<Props, State> {
   state: State = {
     permissions: this.props.permissions,
   };

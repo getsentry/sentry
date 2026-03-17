@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Input} from '@sentry/scraps/input';
 import {Text} from '@sentry/scraps/text';
 
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubbing/types';
@@ -14,7 +14,7 @@ import {
   unarySuggestions,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
-import SourceSuggestionExamples from './sourceSuggestionExamples';
+import {SourceSuggestionExamples} from './sourceSuggestionExamples';
 
 type FieldProps = {
   'aria-describedby': string;

@@ -9,7 +9,7 @@ from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import OrgAuthTokenAuthentication, UserAuthTokenAuthentication
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.constants import DataCategory
 from sentry.models.organization import Organization
@@ -41,7 +41,7 @@ class LaunchpadServiceOrOrganizationPermission(OrganizationPermission):
         return super().has_object_permission(request, view, organization)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationPreprodRetentionEndpoint(OrganizationEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {

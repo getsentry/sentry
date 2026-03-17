@@ -1010,6 +1010,28 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]
         assert call_args == kwargs
 
+    def test_condition_with_zero_value(self) -> None:
+        condition = {
+            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+            "interval": "1h",
+            "value": 0,
+        }
+        actions: list[dict[str, object]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
+        ]
+        self.run_test(
+            actions=actions,
+            conditions=[condition],
+            expected_conditions=[
+                {
+                    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                    "interval": "1h",
+                    "value": 0,
+                    "comparisonType": "count",
+                }
+            ],
+        )
+
     def test_comparison_condition(self) -> None:
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -1406,7 +1428,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             ],
             "actionMatch": "any",
             "filterMatch": "all",
-            "owner": "team:74234",
+            "owner": f"team:{self.team.id}",
             "projects": [self.project.slug],
         }
         responses.add(

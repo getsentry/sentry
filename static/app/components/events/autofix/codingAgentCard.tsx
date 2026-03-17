@@ -16,11 +16,11 @@ import {
   type CodingAgentState,
   type SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
@@ -34,7 +34,7 @@ interface CodingAgentCardProps {
   repo?: SeerRepoDefinition;
 }
 
-function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
+export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
   const getTagVariant = (status: CodingAgentStatus): TagProps['variant'] => {
     switch (status) {
       case CodingAgentStatus.COMPLETED:
@@ -200,8 +200,6 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
     </React.Fragment>
   );
 }
-
-export default CodingAgentCard;
 
 const VerticalLine = styled('div')`
   width: 0;

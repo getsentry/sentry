@@ -2,14 +2,14 @@ import {Alert} from '@sentry/scraps/alert';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
-import GroupReplays from './groupReplays';
+import {GroupReplays} from './groupReplays';
 
 function renderNoAccess() {
   return (

@@ -11,7 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import InvoiceDetails from 'getsentry/views/invoiceDetails';
 
 describe('InvoiceDetails', () => {

@@ -5,7 +5,7 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
+import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
 import type {ApiQueryKey, QueryClient} from 'sentry/utils/queryClient';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 

@@ -23,8 +23,8 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     Model,
+    cell_silo_model,
     control_silo_model,
-    region_silo_model,
     sane_repr,
 )
 from sentry.db.postgres.transactions import (
@@ -412,8 +412,8 @@ class OutboxBase(Model):
         return cls.objects.count()
 
 
-# Outboxes bound from region silo -> control silo
-class RegionOutboxBase(OutboxBase):
+# Outboxes bound from cell silo -> control silo
+class CellOutboxBase(OutboxBase):
     def send_signal(self) -> None:
         process_region_outbox.send(
             sender=OutboxCategory(self.category),
@@ -432,8 +432,8 @@ class RegionOutboxBase(OutboxBase):
     __repr__ = sane_repr("payload", *coalesced_columns)
 
 
-@region_silo_model
-class RegionOutbox(RegionOutboxBase):
+@cell_silo_model
+class CellOutbox(CellOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
@@ -459,23 +459,22 @@ class RegionOutbox(RegionOutboxBase):
 
 # Outboxes bound from control silo -> region silo
 class ControlOutboxBase(OutboxBase):
-    sharding_columns = ("region_name", "shard_scope", "shard_identifier")
+    sharding_columns = ("cell_name", "shard_scope", "shard_identifier")
     coalesced_columns = (
-        "region_name",
+        "cell_name",
         "shard_scope",
         "shard_identifier",
         "category",
         "object_identifier",
     )
 
-    # TODO(cells): rename to cell_name
-    region_name = models.CharField(max_length=REGION_NAME_LENGTH)
+    cell_name = models.CharField(max_length=REGION_NAME_LENGTH, db_column="region_name")
 
     def send_signal(self) -> None:
         process_control_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,
-            region_name=self.region_name,
+            region_name=self.cell_name,
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
             shard_scope=self.shard_scope,
@@ -497,7 +496,7 @@ class ControlOutbox(ControlOutboxBase):
         indexes = (
             models.Index(
                 fields=(
-                    "region_name",
+                    "cell_name",
                     "shard_scope",
                     "shard_identifier",
                     "category",
@@ -506,23 +505,23 @@ class ControlOutbox(ControlOutboxBase):
             ),
             models.Index(
                 fields=(
-                    "region_name",
+                    "cell_name",
                     "shard_scope",
                     "shard_identifier",
                     "scheduled_for",
                 )
             ),
-            models.Index(fields=("region_name", "shard_scope", "shard_identifier", "id")),
+            models.Index(fields=("cell_name", "shard_scope", "shard_identifier", "id")),
         )
 
 
 def outbox_silo_modes() -> list[SiloMode]:
     cur = SiloMode.get_current_mode()
     result: list[SiloMode] = []
-    if cur != SiloMode.REGION:
+    if cur != SiloMode.CELL:
         result.append(SiloMode.CONTROL)
     if cur != SiloMode.CONTROL:
-        result.append(SiloMode.REGION)
+        result.append(SiloMode.CELL)
     return result
 
 

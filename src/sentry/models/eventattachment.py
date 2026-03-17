@@ -14,7 +14,7 @@ from django.utils import timezone
 
 from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
@@ -67,7 +67,7 @@ def can_store_inline(data: bytes) -> bool:
     return len(data) < 192 and all(byte > 0x00 and byte < 0x7F for byte in data)
 
 
-@region_silo_model
+@cell_silo_model
 class EventAttachment(Model):
     """
     Attachment Metadata and Storage

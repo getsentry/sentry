@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 // e.g. app/views/settings/metric/triggers/chart/
 const HEADER_Z_INDEX_OFFSET = 5;
 
-const SettingsHeader = styled('div')`
+export const SettingsHeader = styled('div')`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.header + HEADER_Z_INDEX_OFFSET};
@@ -14,5 +14,3 @@ const SettingsHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.tokens.background.primary};
 `;
-
-export default SettingsHeader;

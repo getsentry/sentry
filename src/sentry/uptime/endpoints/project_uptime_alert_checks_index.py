@@ -27,7 +27,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
@@ -43,7 +43,7 @@ from sentry.workflow_engine.models import Detector
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
     owner = ApiOwner.CRONS
 

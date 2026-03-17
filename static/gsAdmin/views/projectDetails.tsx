@@ -3,32 +3,32 @@ import moment from 'moment-timezone';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ConfigStore from 'sentry/stores/configStore';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
 import {CustomerStats} from 'admin/components/customers/customerStats';
 import {CustomerStatsFilters} from 'admin/components/customers/customerStatsFilters';
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
-import DetailsPage from 'admin/components/detailsPage';
-import EventUsers from 'admin/components/eventUsers';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
+import {DetailsPage} from 'admin/components/detailsPage';
+import {EventUsers} from 'admin/components/eventUsers';
 import {getLogQuery} from 'admin/utils';
 
 import {DynamicSamplingPanel} from './dynamicSamplingPanel';
 
-function ProjectDetails() {
+export function ProjectDetails() {
   const {projectId, orgId} = useParams<{
     orgId: string;
     projectId: string;
@@ -193,5 +193,3 @@ function ProjectDetails() {
     </div>
   );
 }
-
-export default ProjectDetails;

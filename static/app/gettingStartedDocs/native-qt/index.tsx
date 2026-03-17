@@ -3,9 +3,7 @@ import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingS
 
 import {onboarding} from './onboarding';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   crashReportOnboarding: CrashReportWebApiOnboarding,
 };
-
-export default docs;

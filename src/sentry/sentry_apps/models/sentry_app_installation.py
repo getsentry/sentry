@@ -27,7 +27,7 @@ from sentry.sentry_apps.utils.errors import (
     SentryAppIntegratorError,
     SentryAppSentryError,
 )
-from sentry.types.region import find_all_cell_names, find_regions_for_orgs
+from sentry.types.cell import find_all_cell_names, find_cells_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -148,8 +148,8 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         except SentryApp.DoesNotExist:
             return None
 
-    def outbox_region_names(self) -> Collection[str]:
-        return find_regions_for_orgs([self.organization_id])
+    def outbox_cell_names(self) -> Collection[str]:
+        return find_cells_for_orgs([self.organization_id])
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         # Use 0 in case of bad relations from api_application_id -- the replication ordering for
@@ -163,13 +163,13 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                 shard_identifier=self.api_application_id or 0,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_INSTALLATION_DELETE,
-                region_name=region_name,
+                cell_name=cell_name,
                 payload={
                     "sentry_app_id": self.sentry_app_id,
                     "organization_id": self.organization_id,
                 },
             )
-            for region_name in find_all_cell_names()
+            for cell_name in find_all_cell_names()
         ]
 
     def prepare_ui_component(
@@ -182,8 +182,8 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
             self, component, project_slug=project.slug if project else None, values=values
         )
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.hybridcloud.rpc.caching import region_caching_service
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.rpc.caching import cell_caching_service
         from sentry.sentry_apps.services.app.service import get_installation
 
         if self.api_token is not None:
@@ -191,15 +191,15 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
             with outbox_context(flush=False):
                 for ob in self.api_token.outboxes_for_update():
                     ob.save()
-        region_caching_service.clear_key(
-            key=get_installation.key_from(self.id), region_name=region_name
+        cell_caching_service.clear_key(
+            key=get_installation.key_from(self.id), region_name=cell_name
         )
 
     @classmethod
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:

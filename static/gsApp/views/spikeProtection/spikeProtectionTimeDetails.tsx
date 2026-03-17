@@ -9,7 +9,7 @@ import {IncidentStatus} from 'sentry/views/alerts/types';
 
 import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 
-function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
+export function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
   const {start, end} = spike;
   const format = getFormat({timeOnly: true});
   const formattedTime = end
@@ -38,8 +38,6 @@ function SpikeProtectionTimeDetails({spike}: {spike: SpikeDetails}) {
     </SpikeTimeDetailsWrapper>
   );
 }
-
-export default SpikeProtectionTimeDetails;
 
 const SpikeTimeDetailsWrapper = styled('div')`
   display: grid;

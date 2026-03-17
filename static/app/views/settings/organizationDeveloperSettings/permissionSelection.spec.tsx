@@ -1,9 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {FormModel} from 'sentry/components/forms/model';
+import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 describe('PermissionSelection', () => {
   let onChange: jest.Mock;

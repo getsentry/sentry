@@ -60,7 +60,7 @@ function computeAxisMax(data: Series[]) {
   return Math.round(Math.ceil(maxValue / step) * step);
 }
 
-function Chart({
+export function Chart({
   data,
   previousData,
   statsPeriod,
@@ -264,5 +264,3 @@ function Chart({
     </ChartZoom>
   );
 }
-
-export default Chart;

@@ -5,8 +5,8 @@ import {motion} from 'framer-motion';
 
 import {Prose} from '@sentry/scraps/text';
 
-import Panel from 'sentry/components/panels/panel';
-import testableTransition from 'sentry/utils/testableTransition';
+import {Panel} from 'sentry/components/panels/panel';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 /**
  * The default wrapper for the detail text.
@@ -122,7 +122,7 @@ const defaultPositioning = ({mainRect, anchorRect}: PositioningStrategyOpts) => 
  * wrapper to a safe space in the background to aid in alignment of the wrapper
  * to a safe space in the background.
  */
-function PageOverlay({
+export function PageOverlay({
   positioningStrategy = defaultPositioning,
   text,
   animateDelay,
@@ -266,5 +266,3 @@ const PageOverlayProse = styled(Prose)`
     }
   }
 `;
-
-export default PageOverlay;

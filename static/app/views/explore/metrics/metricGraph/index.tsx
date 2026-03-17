@@ -3,7 +3,6 @@ import {Fragment, useMemo} from 'react';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -11,7 +10,7 @@ import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -24,7 +23,7 @@ import {
   useMetricName,
   useMetricVisualize,
   useMetricVisualizes,
-  useSetMetricVisualize,
+  useSetMetricVisualizes,
   useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
@@ -70,7 +69,7 @@ export function MetricsGraph({
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
-  const setVisualize = useSetMetricVisualize();
+  const setVisualizes = useSetMetricVisualizes();
 
   const hasMultiVisualize = canUseMetricsMultiAggregateUI(organization);
 
@@ -81,7 +80,7 @@ export function MetricsGraph({
   );
 
   function handleChartTypeChange(newChartType: ChartType) {
-    setVisualize(visualize.replace({chartType: newChartType}));
+    setVisualizes(visualizes.map(v => v.replace({chartType: newChartType})));
   }
 
   return (
@@ -204,40 +203,42 @@ function Graph({
 
   const Actions = (
     <Fragment>
-      <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
-        <CompactSelect
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              icon={<IconGraph type={chartIcon} />}
-              priority="transparent"
-              showChevron={false}
-              size="xs"
-            />
-          )}
-          value={visualize.chartType}
-          menuTitle="Type"
-          options={EXPLORE_CHART_TYPE_OPTIONS}
-          onChange={option => onChartTypeChange(option.value)}
-        />
-      </Tooltip>
-      <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
-        <CompactSelect
-          value={interval}
-          onChange={({value}) => setInterval(value)}
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              icon={<IconClock />}
-              priority="transparent"
-              showChevron={false}
-              size="xs"
-            />
-          )}
-          menuTitle="Interval"
-          options={intervalOptions}
-        />
-      </Tooltip>
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            tooltipProps={{
+              title: t('Type of chart displayed in this visualization (ex. line)'),
+            }}
+            icon={<IconGraph type={chartIcon} />}
+            priority="transparent"
+            showChevron={false}
+            size="xs"
+          />
+        )}
+        value={visualize.chartType}
+        menuTitle="Type"
+        options={EXPLORE_CHART_TYPE_OPTIONS}
+        onChange={option => onChartTypeChange(option.value)}
+      />
+      <CompactSelect
+        value={interval}
+        onChange={({value}) => setInterval(value)}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            tooltipProps={{
+              title: t('Time interval displayed in this visualization (ex. 5m)'),
+            }}
+            {...triggerProps}
+            icon={<IconClock />}
+            priority="transparent"
+            showChevron={false}
+            size="xs"
+          />
+        )}
+        menuTitle="Interval"
+        options={intervalOptions}
+      />
       {additionalActions}
     </Fragment>
   );

@@ -8,7 +8,7 @@ import {Heading} from '@sentry/scraps/text';
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
@@ -18,16 +18,20 @@ import {
   getActiveProductTrial,
 } from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import UsageOverviewActions from 'getsentry/views/subscriptionPage/usageOverview/components/actions';
-import ProductBreakdownPanel from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
-import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
+import {UsageOverviewActions} from 'getsentry/views/subscriptionPage/usageOverview/components/actions';
+import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
+import {UsageOverviewTable} from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 import {
   SIDE_PANEL_MIN_SCREEN_BREAKPOINT,
   USAGE_OVERVIEW_PANEL_HEADER_HEIGHT,
 } from 'getsentry/views/subscriptionPage/usageOverview/constants';
 import type {UsageOverviewProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
-function UsageOverview({subscription, organization, usageData}: UsageOverviewProps) {
+export function UsageOverview({
+  subscription,
+  organization,
+  usageData,
+}: UsageOverviewProps) {
   const [selectedProduct, setSelectedProduct] = useState<DataCategory | AddOnCategory>(
     DataCategory.ERRORS
   );
@@ -159,5 +163,3 @@ function UsageOverview({subscription, organization, usageData}: UsageOverviewPro
     </Grid>
   );
 }
-
-export default UsageOverview;

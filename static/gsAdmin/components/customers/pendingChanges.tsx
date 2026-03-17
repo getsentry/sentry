@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {IconArrow} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
@@ -369,7 +369,7 @@ function getChanges(subscription: Subscription, planMigrations: PlanMigration[])
   return changeSet;
 }
 
-function PendingChanges({subscription}: any) {
+export function PendingChanges({subscription}: any) {
   const {pendingChanges} = subscription;
   const {planMigrations, isLoading} = usePlanMigrations();
   if (isLoading) {
@@ -409,5 +409,3 @@ function PendingChanges({subscription}: any) {
     </Fragment>
   );
 }
-
-export default PendingChanges;

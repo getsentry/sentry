@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
     namespace=preprod_tasks,
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def compare_preprod_artifact_size_analysis(
     project_id: int,
@@ -105,7 +105,11 @@ def compare_preprod_artifact_size_analysis(
             preprod_artifact_id__in=[artifact_id],
             preprod_artifact__project__organization_id=org_id,
             preprod_artifact__project_id=project_id,
-        ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")
+        ).select_related(
+            "preprod_artifact",
+            "preprod_artifact__mobile_app_info",
+            "preprod_artifact__commit_comparison",
+        )
         head_size_metrics = list(head_size_metrics_qs)
 
         validation_result = can_compare_size_metrics(head_size_metrics, base_size_metrics)
@@ -155,7 +159,11 @@ def compare_preprod_artifact_size_analysis(
             preprod_artifact_id__in=[head_artifact.id],
             preprod_artifact__project__organization_id=org_id,
             preprod_artifact__project_id=project_id,
-        ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")
+        ).select_related(
+            "preprod_artifact",
+            "preprod_artifact__mobile_app_info",
+            "preprod_artifact__commit_comparison",
+        )
         head_size_metrics = list(head_size_metrics_qs)
 
         base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
@@ -254,7 +262,7 @@ def compare_preprod_artifact_size_analysis(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
     namespace=preprod_tasks,
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def manual_size_analysis_comparison(
     project_id: int,
@@ -310,6 +318,7 @@ def manual_size_analysis_comparison(
         )
         .select_related("preprod_artifact")
         .select_related("preprod_artifact__mobile_app_info")
+        .select_related("preprod_artifact__commit_comparison")
     )
     head_size_metrics = list(head_size_metrics_qs)
 

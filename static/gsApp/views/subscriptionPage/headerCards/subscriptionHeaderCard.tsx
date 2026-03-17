@@ -11,7 +11,7 @@ interface SubscriptionHeaderCardProps {
   title?: React.ReactNode;
 }
 
-function SubscriptionHeaderCard({
+export function SubscriptionHeaderCard({
   title,
   sections,
   isMainCard = false,
@@ -44,5 +44,3 @@ function SubscriptionHeaderCard({
     </Flex>
   );
 }
-
-export default SubscriptionHeaderCard;

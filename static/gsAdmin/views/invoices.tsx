@@ -1,12 +1,12 @@
 import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconDownload} from 'sentry/icons';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 import ResultGrid, {type State as ResultGridState} from 'admin/components/resultGrid';
 import {prettyDate} from 'admin/utils';
 
@@ -65,7 +65,7 @@ const getRow = (row: any, _rows: any[], state: ResultGridState) => [
   </td>,
 ];
 
-export default function Invoices() {
+export function Invoices() {
   return (
     <div>
       <PageHeader title="Invoices" />

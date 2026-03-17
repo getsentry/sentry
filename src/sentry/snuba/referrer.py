@@ -25,10 +25,16 @@ class Referrer(StrEnum):
         "api.auth-token.events.metrics-enhanced.primary"
     )
     API_AUTH_TOKEN_EVENTS = "api.auth-token.events"
+
+    # ** Dashboards **
+
+    API_DASHBOARDS_RELEASE_SELECTOR = "api.dashboards-release-selector"
+    API_DASHBOARDS_DETAILS_WIDGET_DOMAIN_STATUS = "api.dashboards.details-widget.domain-status"
     API_DASHBOARDS_BIGNUMBERWIDGET_METRICS_ENHANCED_PRIMARY = (
         "api.dashboards.bignumberwidget.metrics-enhanced.primary"
     )
     API_DASHBOARDS_BIGNUMBERWIDGET = "api.dashboards.bignumberwidget"
+    API_DASHBOARDS_BIGNUMBERWIDGET_ROW = "api.dashboards.bignumberwidget.row"
     API_DASHBOARDS_TABLEWIDGET_METRICS_ENHANCED_PRIMARY = (
         "api.dashboards.tablewidget.metrics-enhanced.primary"
     )
@@ -36,6 +42,7 @@ class Referrer(StrEnum):
         "api.dashboards.tablewidget.metrics-enhanced.secondary"
     )
     API_DASHBOARDS_TABLEWIDGET = "api.dashboards.tablewidget"
+    API_DASHBOARDS_TABLEWIDGET_ROW = "api.dashboards.tablewidget.row"
     API_DASHBOARDS_TOP_EVENTS = "api.dashboards.top-events"
     API_DASHBOARDS_WIDGET_AREA_CHART_FIND_TOPN = "api.dashboards.widget.area-chart.find-topn"
     API_DASHBOARDS_WIDGET_AREA_CHART_METRICS_ENHANCED = (
@@ -48,6 +55,7 @@ class Referrer(StrEnum):
         "api.dashboards.widget.area-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_AREA_CHART = "api.dashboards.widget.area-chart"
+    API_DASHBOARDS_WIDGET_AREA_CHART_ROW = "api.dashboards.widget.area-chart.row"
     API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN = "api.dashboards.widget.bar-chart.find-topn"
     API_DASHBOARDS_WIDGET_BAR_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.bar-chart.metrics-enhanced"
@@ -59,6 +67,7 @@ class Referrer(StrEnum):
         "api.dashboards.widget.bar-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_BAR_CHART = "api.dashboards.widget.bar-chart"
+    API_DASHBOARDS_WIDGET_BAR_CHART_ROW = "api.dashboards.widget.bar-chart.row"
     API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN = "api.dashboards.widget.line-chart.find-topn"
     API_DASHBOARDS_WIDGET_LINE_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.line-chart.metrics-enhanced"
@@ -70,6 +79,7 @@ class Referrer(StrEnum):
         "api.dashboards.widget.line-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
+    API_DASHBOARDS_WIDGET_LINE_CHART_ROW = "api.dashboards.widget.line-chart.row"
 
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_SPANS_TOTAL_COUNT_FIELD = "api.spans.total-events-field"
@@ -458,7 +468,6 @@ class Referrer(StrEnum):
         "api.organization-events.metrics-enhanced.secondary"
     )
     API_ORGANIZATION_EVENTS_SPAN_OPS = "api.organization-events-span-ops"
-    API_ORGANIZATION_EVENTS_SPANS_HISTOGRAM = "api.organization-events-spans-histogram"
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_EXAMPLES = (
         "api.organization-events-spans-performance-examples"
     )
@@ -479,7 +488,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
-    API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"
@@ -782,12 +790,6 @@ class Referrer(StrEnum):
     REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
-    DAILY_SUMMARY_KEY_ERRORS = "daily_summary.key_errors"
-    DAILY_SUMMARY_KEY_PERFORMANCE_ISSUES = "daily_summary.key_performance_issues"
-    DAILY_SUMMARY_KEY_TRANSACTIONS_P95 = "daily_summary.key_transactions.p95"
-    DAILY_SUMMARY_KEY_TRANSACTIONS = "daily_summary.key_transactions"
-    DAILY_SUMMARY_OUTCOME_SERIES = "daily_summary.outcome_series"
-    DAILY_SUMMARY_OUTCOMES = "daily_summary.outcomes"
     REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"
     REPROCESSING2_START_GROUP_REPROCESSING = "reprocessing2.start_group_reprocessing"
     SEARCH_SAMPLE = "search_sample"

@@ -7,7 +7,7 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 
 describe('IssueWidgetQueries', () => {
   const selection = {

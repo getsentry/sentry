@@ -2,7 +2,7 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 // Computed using SVGGeometryElement.getTotalLength()
 const STROKE_LENGTH = 4445;
@@ -135,7 +135,7 @@ const landBeforeTimeAnimation = {
   }),
 };
 
-function DiscoverBackground({anchorRef}: Props) {
+export function DiscoverBackground({anchorRef}: Props) {
   return (
     <motion.svg
       initial="init"
@@ -624,5 +624,3 @@ function DiscoverBackground({anchorRef}: Props) {
     </motion.svg>
   );
 }
-
-export default DiscoverBackground;

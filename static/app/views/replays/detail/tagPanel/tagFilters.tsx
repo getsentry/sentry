@@ -1,13 +1,13 @@
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
-import type useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
+import {FiltersGrid} from 'sentry/views/replays/detail/filtersGrid';
+import type {useTagFilters} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
 type Props = {
   tags: undefined | Record<string, string[]>;
 } & ReturnType<typeof useTagFilters>;
 
-function TagFilters({tags, searchTerm, setSearchTerm}: Props) {
+export function TagFilters({tags, searchTerm, setSearchTerm}: Props) {
   return (
     <FiltersGrid>
       <SearchBar
@@ -20,5 +20,3 @@ function TagFilters({tags, searchTerm, setSearchTerm}: Props) {
     </FiltersGrid>
   );
 }
-
-export default TagFilters;

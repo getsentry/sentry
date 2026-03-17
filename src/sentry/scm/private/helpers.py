@@ -11,6 +11,7 @@ from sentry.scm.errors import SCMCodedError, SCMError, SCMUnhandledException
 from sentry.scm.private.ipc import record_count_metric
 from sentry.scm.private.provider import Provider
 from sentry.scm.private.providers.github import GitHubProvider
+from sentry.scm.private.providers.gitlab import GitLabProvider
 from sentry.scm.types import ExternalId, ProviderName, Referrer, Repository, RepositoryId
 
 
@@ -67,6 +68,8 @@ def map_integration_to_provider(
 
     if integration.provider == "github":
         return GitHubProvider(client, organization_id, repository)
+    elif integration.provider == "gitlab":
+        return GitLabProvider(client, organization_id, repository)
     else:
         raise SCMCodedError(integration.provider, code="unsupported_integration")
 
@@ -77,6 +80,7 @@ def map_repository_model_to_repository(repository: RepositoryModel) -> Repositor
         "name": repository.name,
         "organization_id": repository.organization_id,
         "is_active": repository.status == ObjectStatus.ACTIVE,
+        "external_id": repository.external_id,
     }
 
 

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-import PanelBody from 'sentry/components/panels/panelBody';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 
 export const SubscriptionBody = styled(PanelBody)`
   display: grid;

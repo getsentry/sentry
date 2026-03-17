@@ -5,19 +5,20 @@ import {parseAsBoolean, useQueryState} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import parseApiError from 'sentry/utils/parseApiError';
+import {parseApiError} from 'sentry/utils/parseApiError';
 import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildComparisonMetricCards} from 'sentry/views/preprod/buildComparison/main/buildComparisonMetricCards';
 import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
@@ -296,12 +297,19 @@ export function SizeCompareMainContent() {
       {/* Insights Section */}
       {comparisonDataQuery.data?.insight_diff_items &&
         comparisonDataQuery.data.insight_diff_items.length > 0 && (
-          <InsightComparisonSection
-            totalInstallSizeBytes={
-              comparisonDataQuery.data?.size_metric_diff_item.head_install_size
-            }
-            insightDiffItems={comparisonDataQuery.data.insight_diff_items}
-          />
+          <Stack gap="xl">
+            <Separator orientation="horizontal" border="primary" />
+            <Stack gap="md">
+              <Heading as="h2">{t('Insight Diff')}</Heading>
+              <InsightComparisonSection
+                totalInstallSizeBytes={
+                  comparisonDataQuery.data?.size_metric_diff_item.head_install_size
+                }
+                insightDiffItems={comparisonDataQuery.data.insight_diff_items}
+              />
+            </Stack>
+            <Separator orientation="horizontal" border="primary" />
+          </Stack>
         )}
 
       {/* Items Changed Section */}
@@ -376,7 +384,13 @@ export function SizeCompareMainContent() {
       {/* Treemap Diff Section */}
       {comparisonDataQuery.data?.diff_items &&
         comparisonDataQuery.data.diff_items.length > 0 && (
-          <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />
+          <Stack gap="xl">
+            <Separator orientation="horizontal" border="primary" />
+            <Stack gap="md">
+              <Heading as="h2">{t('X-Ray Diff')}</Heading>
+              <TreemapDiffSection diffItems={comparisonDataQuery.data.diff_items} />
+            </Stack>
+          </Stack>
         )}
     </Flex>
   );
