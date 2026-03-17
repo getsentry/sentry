@@ -6,7 +6,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+import {
+  CodingAgentStatus,
+  getCodingAgentName,
+} from 'sentry/components/events/autofix/types';
 import type {
   RootCauseArtifact,
   SolutionArtifact,
@@ -126,28 +129,17 @@ interface CodingAgentPreviewProps {
 export function CodingAgentPreview({artifact}: CodingAgentPreviewProps) {
   const provider = artifact[0]?.provider;
 
-  const title = useMemo(() => {
-    switch (provider) {
-      case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
-        return t('Cursor Cloud Agent');
-      case CodingAgentProvider.CLAUDE_CODE_AGENT:
-        return t('Claude Agent');
-      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
-        return t('GitHub Copilot');
-      default:
-        return t('Coding Agent');
-    }
-  }, [provider]);
+  const agentName = useMemo(() => getCodingAgentName(provider), [provider]);
 
   return (
-    <ArtifactCard icon={<IconBot />} title={title}>
+    <ArtifactCard icon={<IconBot />} title={agentName}>
       {artifact.map(codingAgent => {
         const statusVariant =
-          codingAgent.status === 'pending'
+          codingAgent.status === CodingAgentStatus.PENDING
             ? ('muted' as const)
-            : codingAgent.status === 'running'
+            : codingAgent.status === CodingAgentStatus.RUNNING
               ? ('info' as const)
-              : codingAgent.status === 'failed'
+              : codingAgent.status === CodingAgentStatus.FAILED
                 ? ('danger' as const)
                 : ('success' as const);
 

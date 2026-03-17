@@ -7,6 +7,7 @@ import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
+  CodingAgentStatus,
   getCodingAgentName,
   getResultButtonLabel,
 } from 'sentry/components/events/autofix/types';
@@ -309,11 +310,11 @@ export function CodingAgentCard({section}: AutofixCardProps) {
     <ArtifactCard icon={<IconBot />} title={agentName}>
       {artifact?.map(codingAgent => {
         const statusVariant =
-          codingAgent.status === 'pending'
+          codingAgent.status === CodingAgentStatus.PENDING
             ? ('muted' as const)
-            : codingAgent.status === 'running'
+            : codingAgent.status === CodingAgentStatus.RUNNING
               ? ('info' as const)
-              : codingAgent.status === 'failed'
+              : codingAgent.status === CodingAgentStatus.FAILED
                 ? ('danger' as const)
                 : ('success' as const);
 

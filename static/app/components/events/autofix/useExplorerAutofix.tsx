@@ -5,6 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
 import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
+import {CodingAgentStatus} from 'sentry/components/events/autofix/types';
 import {
   needsGitHubAuth,
   type CodingAgentIntegration,
@@ -422,7 +423,8 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
       messages: [],
       status: codingAgents.some(
         codingAgent =>
-          codingAgent.status === 'pending' || codingAgent.status === 'running'
+          codingAgent.status === CodingAgentStatus.PENDING ||
+          codingAgent.status === CodingAgentStatus.RUNNING
       )
         ? 'processing'
         : 'completed',
