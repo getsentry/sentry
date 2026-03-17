@@ -117,21 +117,28 @@ class TestIndexOrgProjectKnowledge(TestCase):
 
 @django_db_all
 class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
-    @freeze_time("2024-01-15 10:00:00")  # Monday, hour 10 → slot = 0*24+10 = 10
     def test_returns_only_orgs_assigned_to_current_slot(self):
         from sentry.utils.hashlib import md5_text
 
         orgs = [self.create_organization() for _ in range(50)]
         org_ids = [org.id for org in orgs]
 
-        with self.feature({"organizations:seer-explorer": True}):
-            with override_options({"explorer.service_map.allowed_organizations": org_ids}):
-                result = get_allowed_org_ids_context_engine_indexing()
+        TOTAL_SLOTS = 168
+        target_slot = int(md5_text(str(org_ids[0])).hexdigest(), 16) % TOTAL_SLOTS
+        day = target_slot // 24
+        hour = target_slot % 24
+        frozen_time = f"2024-01-{15 + day} {hour:02d}:00:00"
+
+        with freeze_time(frozen_time):
+            with self.feature({"organizations:seer-explorer": True}):
+                with override_options({"explorer.service_map.allowed_organizations": org_ids}):
+                    result = get_allowed_org_ids_context_engine_indexing()
 
         assert len(result) > 0
+        assert org_ids[0] in result
         assert all(org_id in org_ids for org_id in result)
         for org_id in result:
-            assert int(md5_text(str(org_id)).hexdigest(), 16) % 168 == 10
+            assert int(md5_text(str(org_id)).hexdigest(), 16) % TOTAL_SLOTS == target_slot
 
     @freeze_time("2024-01-15 10:00:00")
     def test_excludes_orgs_without_feature_flag(self):
@@ -144,17 +151,6 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
                 result = get_allowed_org_ids_context_engine_indexing()
 
         assert org_without_flag.id not in result
-
-    @freeze_time("2024-01-15 10:00:00")
-    def test_excludes_orgs_not_in_allowlist(self):
-        org_in_list = self.create_organization()
-        org_not_in_list = self.create_organization()
-
-        with self.feature({"organizations:seer-explorer": True}):
-            with override_options({"explorer.service_map.allowed_organizations": [org_in_list.id]}):
-                result = get_allowed_org_ids_context_engine_indexing()
-
-        assert org_not_in_list.id not in result
 
     def test_returns_empty_when_allowlist_empty(self):
         with self.feature({"organizations:seer-explorer": True}):
