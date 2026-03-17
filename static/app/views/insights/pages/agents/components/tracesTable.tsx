@@ -183,6 +183,8 @@ export function TracesTable({
       fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
+      extrapolationMode: 'none',
     },
     Referrer.TRACES_TABLE
   );
