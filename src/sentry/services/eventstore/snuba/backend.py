@@ -524,7 +524,7 @@ class SnubaEventStorage(EventStorage):
                 eap_group_id = eap_result.get("group_id") if eap_result else None
                 control_group_id = result["data"][0]["group_id"]
 
-                EAPOccurrencesComparator.check_and_choose(
+                chosen_group_id = EAPOccurrencesComparator.check_and_choose(
                     control_data=control_group_id,
                     experimental_data=eap_group_id,
                     callsite=callsite,
@@ -538,6 +538,7 @@ class SnubaEventStorage(EventStorage):
                         "dataset": dataset.value,
                     },
                 )
+                event.group_id = chosen_group_id
 
         # Set passed group_id if not a transaction
         if event.get_event_type() == "transaction" and not skip_transaction_groupevent and group_id:
