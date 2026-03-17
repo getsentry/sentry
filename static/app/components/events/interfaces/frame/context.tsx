@@ -175,16 +175,10 @@ export function Context({
     fileExtension,
   });
 
-  if (shouldFetchSourceContext && isLoadingSourceContext) {
-    return (
-      <EmptyContext>
-        <LoadingIndicator mini size={16} />
-        {t('Loading source context…')}
-      </EmptyContext>
-    );
-  }
+  const isLoadingScmContext = shouldFetchSourceContext && isLoadingSourceContext;
 
   if (
+    !isLoadingScmContext &&
     !effectiveHasContextSource &&
     !hasContextVars &&
     !hasContextRegisters &&
@@ -209,7 +203,12 @@ export function Context({
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
       data-test-id="frame-context"
     >
-      {effectiveContext && lines.length > 0 ? (
+      {isLoadingScmContext ? (
+        <EmptyContext>
+          <LoadingIndicator mini size={16} />
+          {t('Loading source context…')}
+        </EmptyContext>
+      ) : effectiveContext && lines.length > 0 ? (
         <CodeWrapper className={prismClassName}>
           <pre className={prismClassName}>
             <code className={prismClassName}>
