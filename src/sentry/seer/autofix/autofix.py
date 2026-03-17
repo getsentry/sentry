@@ -185,13 +185,7 @@ def _pre_resolve_stacktrace_frames(
 ) -> None:
     """
     Pre-resolve stacktrace frame repo_name and filename using Sentry's code mappings
-    and platform-specific frame munging before sending to Seer.
-
-    This uses the same logic as Sentry's convert_stacktrace_frame_path_to_source_path
-    (in sentry/issues/auto_source_code_config/code_mapping.py) including platform-specific
-    munging for Java, Cocoa, Flutter etc.
-
-    By pre-resolving frames, Seer can skip its expensive git tree fetch for large repos.
+    before sending to Seer, so Seer can skip its expensive git tree fetch for large repos.
     """
     if not code_mappings:
         return
