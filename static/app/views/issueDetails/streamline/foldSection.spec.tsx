@@ -6,7 +6,7 @@ import {setWindowLocation} from 'sentry-test/utils';
 import {Button} from '@sentry/scraps/button';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {
   FoldSection,
