@@ -234,7 +234,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         )
         self.login_as(user=self.staff_superuser, staff=True)
 
-        with assume_test_silo_mode(SiloMode.CELL, region_name=EXPORTING_TEST_REGION):
+        with assume_test_silo_mode(SiloMode.CELL, cell_name=EXPORTING_TEST_REGION):
             self.requested_org_slug = "testing"
             self.existing_org_owner = self.create_user(
                 email="existing_org_owner@example.com",
@@ -246,7 +246,7 @@ class UploadingStartTest(RelocationTaskTestCase):
                 name=self.requested_org_slug, owner=self.existing_org_owner
             )
 
-        with assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION):
+        with assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION):
             self.relocation: Relocation = Relocation.objects.create(
                 creator_id=self.staff_superuser.id,
                 owner_id=self.owner.id,
@@ -274,7 +274,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
         with (
             self.tasks(),
-            assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION),
+            assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
         ):
             uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
@@ -308,7 +308,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
         with (
             self.tasks(),
-            assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION),
+            assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
         ):
             uploading_start(self.uuid, None, None)
 
@@ -336,7 +336,7 @@ class UploadingStartTest(RelocationTaskTestCase):
             fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
             with (
                 self.tasks(),
-                assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION),
+                assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
             ):
                 uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
@@ -368,7 +368,7 @@ class UploadingStartTest(RelocationTaskTestCase):
             fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
             with (
                 self.tasks(),
-                assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION),
+                assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
             ):
                 uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
@@ -401,7 +401,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
         with (
             self.tasks(),
-            assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION),
+            assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
         ):
             # Will fail, because we do not supply an `org_slug` argument for a `SAAS_TO_SAAS`
             # relocation.
@@ -430,7 +430,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
         with (
             self.tasks(),
-            assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION),
+            assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION),
         ):
             uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
