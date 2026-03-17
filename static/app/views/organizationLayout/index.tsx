@@ -6,7 +6,6 @@ import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import {Footer} from 'sentry/components/footer';
-import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboarding/sidebar';
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
@@ -41,9 +40,7 @@ export function OrganizationLayout() {
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <GlobalAnalytics />
       <OrganizationContainer>
-        <GlobalDrawer>
-          <AppLayout organization={organization} />
-        </GlobalDrawer>
+        <AppLayout organization={organization} />
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />
     </SentryDocumentTitle>

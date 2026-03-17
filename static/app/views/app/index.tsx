@@ -10,6 +10,7 @@ import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
@@ -243,16 +244,18 @@ export function App() {
             {renderOrganizationContextProvider(
               <AsyncSDKIntegrationContextProvider>
                 <GlobalFeedbackForm>
-                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
-                    <DemoToursProvider>
-                      <ExplorerPanelProvider>
-                        <GlobalModal onClose={handleModalClose} />
-                        <ExplorerPanel />
-                        <Indicators className="indicators-container" />
-                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                      </ExplorerPanelProvider>
-                    </DemoToursProvider>
-                  </MainContainer>
+                  <GlobalDrawer>
+                    <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                      <DemoToursProvider>
+                        <ExplorerPanelProvider>
+                          <GlobalModal onClose={handleModalClose} />
+                          <ExplorerPanel />
+                          <Indicators className="indicators-container" />
+                          <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                        </ExplorerPanelProvider>
+                      </DemoToursProvider>
+                    </MainContainer>
+                  </GlobalDrawer>
                 </GlobalFeedbackForm>
               </AsyncSDKIntegrationContextProvider>
             )}
