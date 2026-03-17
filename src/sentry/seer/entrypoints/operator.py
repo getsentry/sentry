@@ -58,14 +58,15 @@ PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
 AUTOFIX_FALLBACK_CAUSE_ID = 0
 
 
-def has_seer_entrypoint_access(
+def has_seer_autofix_entrypoint_access(
     *,
     organization: Organization,
     entrypoint_key: SeerEntrypointKey | None = None,
 ) -> bool:
     """
-    Checks if the organization has access to Seer, and at least one entrypoint.
-    If an entrypoint_key is provided, ensures the organization has access to that entrypoint.
+    Checks if the organization has access to Seer and at least one autofix entrypoint.
+    If an entrypoint_key is provided, ensures the organization has access to that specific
+    autofix entrypoint.
     """
     if not has_seer_access(organization):
         return False
@@ -105,7 +106,9 @@ class SeerAutofixOperator[CachePayloadT]:
         organization: Organization,
         entrypoint_key: SeerEntrypointKey | None = None,
     ) -> bool:
-        return has_seer_entrypoint_access(organization=organization, entrypoint_key=entrypoint_key)
+        return has_seer_autofix_entrypoint_access(
+            organization=organization, entrypoint_key=entrypoint_key
+        )
 
     @classmethod
     def can_trigger_autofix(cls, *, group: Group) -> bool:
