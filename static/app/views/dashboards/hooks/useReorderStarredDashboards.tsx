@@ -1,25 +1,18 @@
-import {useCallback} from 'react';
-
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
-import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
+import {useStarredDashboardsQuerykey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 export function useReorderStarredDashboards() {
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
-  const invalidateStarredDashboards = useInvalidateStarredDashboards();
-  const reorderStarredDashboards = useCallback(
-    async (dashboards: DashboardListItem[]) => {
-      setApiQueryData<DashboardListItem[]>(
-        queryClient,
-        getQueryKey(organization),
-        dashboards
-      );
-      await api.requestPromise(
+  const queryKey = useStarredDashboardsQuerykey(organization);
+
+  const {mutate} = useMutation({
+    mutationFn: (dashboards: DashboardListItem[]) =>
+      api.requestPromise(
         `/organizations/${organization.slug}/dashboards/starred/order/`,
         {
           method: 'PUT',
@@ -27,11 +20,14 @@ export function useReorderStarredDashboards() {
             dashboard_ids: dashboards.map(dashboard => dashboard.id),
           },
         }
-      );
-      invalidateStarredDashboards();
+      ),
+    onMutate: (dashboards: DashboardListItem[]) => {
+      setApiQueryData<DashboardListItem[]>(queryClient, queryKey, dashboards);
     },
-    [api, organization, queryClient, invalidateStarredDashboards]
-  );
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey});
+    },
+  });
 
-  return reorderStarredDashboards;
+  return mutate;
 }
