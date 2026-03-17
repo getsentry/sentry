@@ -1,4 +1,3 @@
-import copy
 from datetime import datetime
 from typing import NotRequired, TypedDict
 
@@ -63,12 +62,11 @@ class ProjectOwnershipSerializer(Serializer):
             "autoAssignment": assignment,
             "codeownersAutoSync": obj.codeowners_auto_sync,
         }
-        schema = copy.deepcopy(obj.schema)
-        if schema and schema.get("rules"):
-            for rule in schema["rules"]:
+        if obj.schema and obj.schema.get("rules"):
+            for rule in obj.schema["rules"]:
                 for owner in rule["owners"]:
                     if "id" in owner:
                         owner["id"] = str(owner["id"])
-        project_ownership_data["schema"] = schema
+        project_ownership_data["schema"] = obj.schema
 
         return project_ownership_data

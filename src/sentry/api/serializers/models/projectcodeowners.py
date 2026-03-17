@@ -1,4 +1,3 @@
-import copy
 import logging
 from typing import Any
 
@@ -103,23 +102,16 @@ class ProjectCodeOwnersSerializer(Serializer):
             _, errors = build_codeowners_associations(obj.raw, obj.project)
             data["errors"] = errors
 
-        renamed_schema = None
         if "renameIdentifier" in self.expand and hasattr(obj, "schema") and obj.schema:
-            renamed_schema = copy.deepcopy(obj.schema)
-            self.rename_schema_identifier_for_parsing(renamed_schema)
+            self.rename_schema_identifier_for_parsing(obj.schema)
 
         if "hasTargetingContext" in self.expand:
-            if renamed_schema is not None:
-                # Already renamed and IDs stringified by rename_schema_identifier_for_parsing
-                schema = renamed_schema
-            else:
-                schema = copy.deepcopy(obj.schema)
-                if schema and schema.get("rules"):
-                    for rule in schema["rules"]:
-                        for rule_owner in rule["owners"]:
-                            if "id" in rule_owner:
-                                rule_owner["id"] = str(rule_owner["id"])
-            data["schema"] = schema
+            if obj.schema and obj.schema.get("rules"):
+                for rule in obj.schema["rules"]:
+                    for rule_owner in rule["owners"]:
+                        if "id" in rule_owner:
+                            rule_owner["id"] = str(rule_owner["id"])
+            data["schema"] = obj.schema
             data["codeOwnersUrl"] = attrs.get("codeOwnersUrl", "unknown")
 
         return data
