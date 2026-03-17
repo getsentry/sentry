@@ -9,7 +9,7 @@ type ScmProvidersData = {
   isError: boolean;
   isPending: boolean;
   refetchIntegrations: () => void;
-  scmIntegrations: Integration[];
+  scmIntegrationsByProviderKey: Map<string, Integration>;
   scmProviders: IntegrationProvider[];
 };
 
@@ -37,9 +37,10 @@ export function useScmProviders(): ScmProvidersData {
 
   const scmProviders = useMemo(
     () =>
-      (providersQuery.data?.providers ?? [])
-        .filter(p => p.metadata.features.some(f => f.featureGate.includes('commits')))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+      (providersQuery.data?.providers ?? []).filter(p =>
+        p.metadata.features.some(f => f.featureGate.includes('commits'))
+      ),
+    // .sort((a, b) => a.name.localeCompare(b.name)),
     [providersQuery.data]
   );
 
@@ -66,9 +67,14 @@ export function useScmProviders(): ScmProvidersData {
     [integrationsQuery.data, scmProviderKeys]
   );
 
+  const scmIntegrationsByProviderKey = useMemo(
+    () => new Map(scmIntegrations.map(i => [i.provider.key, i])),
+    [scmIntegrations]
+  );
+
   return {
     scmProviders,
-    scmIntegrations,
+    scmIntegrationsByProviderKey,
     isPending: providersQuery.isPending || integrationsQuery.isPending,
     isError: providersQuery.isError || integrationsQuery.isError,
     refetchIntegrations: integrationsQuery.refetch,

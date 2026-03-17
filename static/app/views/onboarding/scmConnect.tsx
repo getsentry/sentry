@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -16,7 +16,7 @@ import {useScmProviders} from './useScmProviders';
 
 export function ScmConnect({onComplete}: StepProps) {
   const onboardingContext = useOnboardingContext();
-  const {scmProviders, scmIntegrations, isPending, refetchIntegrations} =
+  const {scmProviders, scmIntegrationsByProviderKey, isPending, refetchIntegrations} =
     useScmProviders();
 
   const [activeIntegration, setActiveIntegration] = useState<Integration | null>(
@@ -25,14 +25,6 @@ export function ScmConnect({onComplete}: StepProps) {
   const [selectedRepo, setSelectedRepo] = useState<IntegrationRepository | null>(
     () => onboardingContext.selectedRepository ?? null
   );
-
-  // Auto-select an existing SCM integration so returning users see the
-  // connected view instead of the provider pills.
-  useEffect(() => {
-    if (!isPending && scmIntegrations.length > 0 && !activeIntegration) {
-      setActiveIntegration(scmIntegrations[0]!);
-    }
-  }, [isPending, scmIntegrations, activeIntegration]);
 
   const handleInstall = useCallback(
     (data: Integration) => {
@@ -91,7 +83,7 @@ export function ScmConnect({onComplete}: StepProps) {
         ) : (
           <ProviderPills
             providers={scmProviders}
-            integrations={scmIntegrations}
+            integrationsByProviderKey={scmIntegrationsByProviderKey}
             onInstall={handleInstall}
             onSelect={handleSelectProvider}
           />
