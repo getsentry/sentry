@@ -60,16 +60,27 @@ class OAuthDeviceView(AuthLoginView):
     """
     Device verification page for OAuth 2.0 Device Flow (RFC 8628 §3.3).
 
-    This view handles the user-facing part of the device authorization flow,
-    where users enter the user_code displayed by their device and approve
-    or deny the authorization request.
+    Purpose
+    - Handles the user-facing verification step where the user enters the
+      `user_code` shown on their device and then explicitly approves or denies
+      the authorization request (RFC 8628 §3.3).
+    - Supports `verification_uri_complete` by accepting `user_code` on GET as a
+      prefill hint, but does not validate or advance the flow until the user
+      submits the form. This preserves the explicit interaction at the
+      verification endpoint described in RFC 8628 §3.3/§3.3.1 and aligns with
+      the phishing mitigation guidance in §5.4.
 
     Flow:
-    1. GET /oauth/device - Show form to enter user_code (or prefilled with ?user_code=XXX)
-    2. POST /oauth/device - Verify code and show approval form
+    1. GET /oauth/device - Show the entry form, optionally prefilled from
+       `verification_uri_complete` (`?user_code=...`)
+    2. POST /oauth/device - Validate the code and show the approval form
     3. POST /oauth/device (op=approve/deny) - Complete verification
 
-    Reference: https://datatracker.ietf.org/doc/html/rfc8628#section-3.3
+    References:
+    - Verification endpoint: https://datatracker.ietf.org/doc/html/rfc8628#section-3.3
+    - Non-textual verification URI optimization:
+      https://datatracker.ietf.org/doc/html/rfc8628#section-3.3.1
+    - Remote phishing mitigation: https://datatracker.ietf.org/doc/html/rfc8628#section-5.4
     """
 
     auth_required = False
@@ -145,8 +156,10 @@ class OAuthDeviceView(AuthLoginView):
         return device_code, None
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
-        # Treat user_code in the query string as a prefill hint from verification_uri_complete.
-        # Validation only happens on POST after the user explicitly submits the form.
+        # RFC 8628 §3.3.1 allows `verification_uri_complete` to carry the user code.
+        # We intentionally treat it as a prefill hint only, and keep validation on
+        # POST so the user still explicitly continues the verification flow per
+        # §3.3 and the confirmation guidance in §5.4.
         user_code = request.GET.get("user_code", "").upper().strip()
 
         if not request.user.is_authenticated:
