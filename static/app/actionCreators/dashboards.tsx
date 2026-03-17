@@ -11,7 +11,7 @@ import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {TOP_N} from 'sentry/utils/discover/types';
 import type {QueryClient} from 'sentry/utils/queryClient';
-import {getQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
+import {useStarredDashboardsQuerykey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
   DisplayType,
   type DashboardDetails,
@@ -121,7 +121,8 @@ export async function updateDashboardFavorite(
       }
     );
     queryClient.invalidateQueries({
-      queryKey: getQueryKey(organization),
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      queryKey: useStarredDashboardsQuerykey(organization),
     });
     addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
   } catch (response: any) {
@@ -230,7 +231,7 @@ export function deleteDashboard(
 
   promise.then(() => {
     queryClient.invalidateQueries({
-      queryKey: getQueryKey(organization),
+      queryKey: useStarredDashboardsQuerykey(organization),
     });
   });
 
