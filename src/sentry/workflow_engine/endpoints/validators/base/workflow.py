@@ -52,7 +52,7 @@ class WorkflowInput(TypedDict):
     environment: NotRequired[str | None]
     triggers: NotRequired[DataConditionGroupInput]
     actionFilters: NotRequired[list[ActionFilterInput]]
-    owner: NotRequired[str | int]
+    owner: NotRequired[str | int | None]
 
 
 class WorkflowValidator(CamelSnakeSerializer[Any]):
