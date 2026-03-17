@@ -2,6 +2,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Text} from '@sentry/scraps/text';
+
 import type {PageFilters} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -69,15 +72,16 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
     : (queryCount?.[view.query] ?? queryCount?.[defaultQuery ?? ''] ?? 0);
 
   return (
-    <QueryCountBubble
+    <AnimatedTag
+      variant="muted"
       animate={{
         backgroundColor: isFetching
           ? [
               theme.tokens.background.primary,
-              theme.colors.surface200,
+              theme.tokens.background.secondary,
               theme.tokens.background.primary,
             ]
-          : `#00000000`,
+          : undefined,
       }}
       transition={{
         default: {
@@ -94,24 +98,18 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
         initial={{opacity: isLoading ? 0 : 1}}
         animate={{opacity: isFetching ? 0 : 1}}
       >
-        {count > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : count}
+        <Text variant="muted" size="xs">
+          {count > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : count}
+        </Text>
       </motion.span>
-    </QueryCountBubble>
+    </AnimatedTag>
   );
 }
-
-const QueryCountBubble = styled(motion.span)`
-  line-height: 20px;
-  font-size: ${p => p.theme.font.size.xs};
+const StyledTag = styled(Tag)`
+  border: 1px solid ${p => p.theme.tokens.border.neutral.muted};
+  background-color: ${p => p.theme.tokens.background.primary};
   padding: 0 ${p => p.theme.space.xs};
-  min-width: 20px;
-  display: flex;
-  height: 18px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  color: ${p => p.theme.tokens.content.secondary};
-  margin-left: 0;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
+  min-width: 4ch;
 `;
+
+const AnimatedTag = motion.create(StyledTag);
