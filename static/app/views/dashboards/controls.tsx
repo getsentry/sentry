@@ -18,6 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -94,7 +95,11 @@ export function Controls({
   const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
     useDuplicatePrebuiltDashboard({
       onSuccess: (newDashboard: DashboardDetails) => {
-        navigate(`/organizations/${organization.slug}/dashboard/${newDashboard.id}/`);
+        navigate(
+          normalizeUrl(
+            `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`
+          )
+        );
       },
     });
 
