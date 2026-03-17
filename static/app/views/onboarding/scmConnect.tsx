@@ -64,7 +64,7 @@ export function ScmConnect({onComplete}: StepProps) {
         </Text>
       </Stack>
 
-      <Stack gap="lg" style={{width: '100%', maxWidth: 600}}>
+      <Stack gap="lg" width="100%" maxWidth="600px">
         {effectiveIntegration ? (
           <ConnectedView
             integration={effectiveIntegration}
