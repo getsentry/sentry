@@ -46,11 +46,11 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.issue_detection.grouptype import (
+from sentry.issues.grouptype import (
+    GroupCategory,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
-from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit

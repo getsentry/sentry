@@ -380,7 +380,7 @@ class TracesExecutor:
                 snuba_params=snuba_params,
                 trace_ids=trace_ids,
                 referrer=Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
-                occurrence_category=OccurrenceCategory.GENERIC,
+                occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
             )
             traces_occurrences = EAPOccurrencesComparator.check_and_choose(
                 traces_occurrences,

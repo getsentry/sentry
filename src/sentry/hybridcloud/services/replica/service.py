@@ -60,7 +60,7 @@ class ControlReplicaService(RpcService):
         return DatabaseBackedControlReplicaService()
 
 
-class RegionReplicaService(RpcService):
+class CellReplicaService(RpcService):
     key = "region_replica"
     local_mode = SiloMode.CELL
 
@@ -153,10 +153,10 @@ class RegionReplicaService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from .impl import DatabaseBackedRegionReplicaService
+        from .impl import DatabaseBackedCellReplicaService
 
-        return DatabaseBackedRegionReplicaService()
+        return DatabaseBackedCellReplicaService()
 
 
-region_replica_service = RegionReplicaService.create_delegation()
+cell_replica_service = CellReplicaService.create_delegation()
 control_replica_service = ControlReplicaService.create_delegation()

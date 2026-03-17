@@ -25,7 +25,7 @@ import GridEditable, {
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -41,6 +41,7 @@ import type {
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 type Props = {
   api: Client;
@@ -305,7 +306,9 @@ function DashboardTable({
                     title:
                       defined(dataRow.prebuiltId) &&
                       !organization.features.includes('dashboards-prebuilt-controls')
-                        ? t('Prebuilt dashboards cannot be duplicated')
+                        ? tct('[label] dashboards cannot be duplicated', {
+                            label: PREBUILT_DASHBOARD_LABEL,
+                          })
                         : limitMessage,
                   }}
                 />
@@ -330,7 +333,9 @@ function DashboardTable({
               }
               tooltipProps={{
                 title: defined(dataRow.prebuiltId)
-                  ? t('Prebuilt dashboards cannot be deleted')
+                  ? tct('[label] dashboards cannot be deleted', {
+                      label: PREBUILT_DASHBOARD_LABEL,
+                    })
                   : undefined,
               }}
             />

@@ -2,7 +2,7 @@ import {cloneElement, Component, Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 
@@ -41,8 +41,11 @@ function SettingsSecondaryNavigation({
     <Fragment>
       <SecondaryNavigation.Header>{t('Settings')}</SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
-        {navWithHooks.map(config => (
-          <SettingsNavigationGroup key={config.name} {...otherProps} {...config} />
+        {navWithHooks.map((config, index) => (
+          <Fragment key={config.name}>
+            {index > 0 && <SecondaryNavigation.Separator />}
+            <SettingsNavigationGroup {...otherProps} {...config} />
+          </Fragment>
         ))}
         {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
       </SecondaryNavigation.Body>

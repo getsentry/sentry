@@ -87,13 +87,13 @@ from sentry.eventstream.item_helpers import (
     _gather_attribute_data_from_event_data,
 )
 from sentry.eventstream.snuba import SnubaEventStream
-from sentry.issue_detection.grouptype import (
+from sentry.issue_detection.performance_detection import detect_performance_problems
+from sentry.issues.grouptype import (
+    NoiseConfig,
     PerformanceFileIOMainThreadGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
 )
-from sentry.issue_detection.performance_detection import detect_performance_problems
-from sentry.issues.grouptype import NoiseConfig
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.mail import mail_adapter
 from sentry.models.apitoken import ApiToken
@@ -3205,16 +3205,21 @@ class UptimeTestCaseMixin:
             return_value="https://fake.com/",
         )
         self.mock_requests_get_ctx = mock.patch("sentry.uptime.rdap.query.requests.get")
+        self.mock_invoke_checker_validator_ctx = mock.patch(
+            "sentry.uptime.checker_api.invoke_checker_validator", return_value=None
+        )
         self.mock_resolve_hostname = self.mock_resolve_hostname_ctx.__enter__()
         self.mock_resolve_rdap_provider = self.mock_resolve_rdap_provider_ctx.__enter__()
         self.mock_requests_get = self.mock_requests_get_ctx.__enter__()
         self.mock_requests_get.return_value.json.return_value = {"entities": [{"handle": "hi"}]}
+        self.mock_invoke_checker_validator = self.mock_invoke_checker_validator_ctx.__enter__()
 
     def tearDown(self):
         super().tearDown()
         self.mock_resolve_hostname_ctx.__exit__(None, None, None)
         self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
         self.mock_requests_get_ctx.__exit__(None, None, None)
+        self.mock_invoke_checker_validator_ctx.__exit__(None, None, None)
 
     def create_uptime_result(
         self,
@@ -3555,7 +3560,7 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         environment: str | None = None,
         title: str = "some error",
         transaction: str | None = None,
-        occurrence_type: str = "error",
+        issue_occurrence_id: str | None = None,
         tags: dict[str, str] | None = None,
         attributes: dict[str, Any] | None = None,
         retention_days: int = 90,
@@ -3577,11 +3582,12 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         data: dict[str, Any] = {
             "level": level,
             "title": title,
-            "type": occurrence_type,
         }
         preprocessed: dict[str, Any] = {}
         if group_id is not None:
             preprocessed["group_id"] = group_id
+        if issue_occurrence_id is not None:
+            preprocessed["issue_occurrence_id"] = issue_occurrence_id
         if environment is not None:
             data["environment"] = environment
         if transaction is not None:

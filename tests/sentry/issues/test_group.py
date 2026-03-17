@@ -3,8 +3,8 @@ from hashlib import md5
 
 import pytest
 
-from sentry.issue_detection.grouptype import ProfileFileIOGroupType
 from sentry.issues.group import get_group_by_occurrence_fingerprint
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import hash_fingerprint
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka

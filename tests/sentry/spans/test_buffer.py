@@ -39,7 +39,6 @@ DEFAULT_OPTIONS = {
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.process-segments.schema-validation": 1.0,
-    "spans.buffer.zero-copy-dest-threshold-bytes": 0,
     "spans.buffer.done-flush-conditional-zrem": False,
     "spans.buffer.write-distributed-payloads": False,
     "spans.buffer.read-distributed-payloads": False,
@@ -183,7 +182,6 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("d" * 16),
@@ -192,7 +190,6 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("c" * 16),
@@ -201,7 +198,6 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("b" * 16),
@@ -211,7 +207,6 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     segment_id=None,
                     is_segment_span=True,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
             ]
         )
@@ -259,7 +254,6 @@ def test_observability_metrics(
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("d" * 16),
@@ -268,7 +262,6 @@ def test_observability_metrics(
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("c" * 16),
@@ -277,7 +270,6 @@ def test_observability_metrics(
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -287,7 +279,6 @@ def test_observability_metrics(
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(spans, buffer, now=0)
@@ -342,7 +333,6 @@ def test_observability_metrics_parent_span_already_oversized(
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -352,7 +342,6 @@ def test_observability_metrics_parent_span_already_oversized(
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         _SplitBatch(),
         Span(
@@ -362,7 +351,6 @@ def test_observability_metrics_parent_span_already_oversized(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
 
@@ -396,7 +384,6 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
 
@@ -419,7 +406,6 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 _SplitBatch(),
                 Span(
@@ -429,7 +415,6 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
                     parent_span_id="a" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("a" * 16),
@@ -439,7 +424,6 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
                     is_segment_span=True,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("c" * 16),
@@ -448,7 +432,6 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
                     parent_span_id="a" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
             ]
         )
@@ -496,7 +479,6 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="d" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("d" * 16),
@@ -505,7 +487,6 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("b" * 16),
@@ -514,7 +495,6 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="c" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("c" * 16),
@@ -523,7 +503,6 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="a" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("a" * 16),
@@ -533,7 +512,6 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
                     is_segment_span=True,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
             ]
         )
@@ -582,7 +560,6 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("d" * 16),
@@ -591,7 +568,6 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("e" * 16),
@@ -600,7 +576,6 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("b" * 16),
@@ -610,7 +585,6 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
                     is_segment_span=True,
                     segment_id=None,
                     project_id=2,
-                    end_timestamp=1700000000.0,
                 ),
             ]
         )
@@ -670,7 +644,6 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
                 project_id=1,
                 segment_id=None,
                 is_segment_span=True,
-                end_timestamp=1700000000.0,
             ),
             Span(
                 payload=_payload("d" * 16),
@@ -679,7 +652,6 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
                 parent_span_id="b" * 16,
                 segment_id=None,
                 project_id=1,
-                end_timestamp=1700000000.0,
             ),
             Span(
                 payload=_payload("e" * 16),
@@ -688,7 +660,6 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
                 parent_span_id="b" * 16,
                 segment_id=None,
                 project_id=1,
-                end_timestamp=1700000000.0,
             ),
             Span(
                 payload=_payload("b" * 16),
@@ -698,7 +669,6 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
                 is_segment_span=True,
                 segment_id=None,
                 project_id=2,
-                end_timestamp=1700000000.0,
             ),
         ]
     ),
@@ -764,7 +734,6 @@ def test_flush_rebalance(buffer: SpansBuffer) -> None:
             segment_id=None,
             project_id=1,
             is_segment_span=True,
-            end_timestamp=1700000000.0,
         )
     ]
 
@@ -818,7 +787,6 @@ def test_compression_functionality(compression_level) -> None:
                 project_id=1,
                 segment_id=None,
                 is_segment_span=True,
-                end_timestamp=1700000000.0,
             ),
             Span(
                 payload=make_payload("a" * 16),
@@ -827,7 +795,6 @@ def test_compression_functionality(compression_level) -> None:
                 parent_span_id="b" * 16,
                 segment_id=None,
                 project_id=1,
-                end_timestamp=1700000000.0,
             ),
             Span(
                 payload=make_payload("c" * 16),
@@ -836,7 +803,6 @@ def test_compression_functionality(compression_level) -> None:
                 parent_span_id="b" * 16,
                 segment_id=None,
                 project_id=1,
-                end_timestamp=1700000000.0,
             ),
         ]
 
@@ -883,7 +849,6 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000001.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -892,7 +857,6 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000002.0,
         ),
     ]
     batch2 = [
@@ -903,7 +867,6 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000003.0,
         ),
         Span(
             payload=_payload("e" * 16),
@@ -912,7 +875,6 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000004.0,
         ),
         Span(
             payload=_payload("a" * 16),
@@ -922,7 +884,6 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
             project_id=1,
             segment_id=None,
             is_segment_span=True,
-            end_timestamp=1700000005.0,
         ),
     ]
 
@@ -968,7 +929,6 @@ def test_dropped_spans_emit_outcomes(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=payload_c,
@@ -977,7 +937,6 @@ def test_dropped_spans_emit_outcomes(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000001.0,
         ),
         Span(
             payload=payload_d,
@@ -986,7 +945,6 @@ def test_dropped_spans_emit_outcomes(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000002.0,
         ),
     ]
     batch2 = [
@@ -997,7 +955,6 @@ def test_dropped_spans_emit_outcomes(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000003.0,
         ),
         Span(
             payload=payload_f,
@@ -1006,7 +963,6 @@ def test_dropped_spans_emit_outcomes(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000004.0,
         ),
         Span(
             payload=payload_a,
@@ -1016,7 +972,6 @@ def test_dropped_spans_emit_outcomes(
             project_id=1,
             segment_id=None,
             is_segment_span=True,
-            end_timestamp=1700000005.0,
         ),
     ]
 
@@ -1084,7 +1039,6 @@ def test_kafka_slice_id(buffer: SpansBuffer) -> None:
                 project_id=1,
                 segment_id=None,
                 is_segment_span=True,
-                end_timestamp=1700000000.0,
             )
         ]
 
@@ -1110,7 +1064,6 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
             parent_span_id="c" * 16,  # does not exist in this segment
             project_id=1,
             segment_id="a" * 16,  # refers to the correct span below
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("a" * 16),
@@ -1120,7 +1073,6 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
             project_id=1,
             segment_id="a" * 16,
             is_segment_span=True,
-            end_timestamp=1700000001.0,
         ),
     ]
 
@@ -1151,104 +1103,6 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
     assert_clean(buffer.client)
 
 
-@mock.patch("sentry.spans.buffer.emit_observability_metrics")
-def test_zero_copy(emit_observability_metrics: mock.MagicMock) -> None:
-    """
-    Test that zero-copy mode (SMEMBERS+SADD instead of SUNIONSTORE) produces
-    identical results. Uses a threshold of 1 byte so that every merge triggers
-    the zero-copy path.
-    """
-    with override_options(
-        {
-            **DEFAULT_OPTIONS,
-            "spans.buffer.zero-copy-dest-threshold-bytes": 1,
-            "spans.buffer.max-spans-per-evalsha": 1,
-        }
-    ):
-        buf = SpansBuffer(assigned_shards=list(range(32)))
-        buf.client.flushdb()
-
-        spans = [
-            Span(
-                payload=_payload("a" * 16),
-                trace_id="a" * 32,
-                span_id="a" * 16,
-                parent_span_id="b" * 16,
-                segment_id=None,
-                project_id=1,
-                end_timestamp=1700000000.0,
-            ),
-            Span(
-                payload=_payload("d" * 16),
-                trace_id="a" * 32,
-                span_id="d" * 16,
-                parent_span_id="b" * 16,
-                segment_id=None,
-                project_id=1,
-                end_timestamp=1700000000.0,
-            ),
-            Span(
-                payload=_payload("c" * 16),
-                trace_id="a" * 32,
-                span_id="c" * 16,
-                parent_span_id="b" * 16,
-                segment_id=None,
-                project_id=1,
-                end_timestamp=1700000000.0,
-            ),
-            Span(
-                payload=_payload("b" * 16),
-                trace_id="a" * 32,
-                span_id="b" * 16,
-                parent_span_id=None,
-                segment_id=None,
-                is_segment_span=True,
-                project_id=1,
-                end_timestamp=1700000000.0,
-            ),
-        ]
-
-        process_spans(spans, buf, now=0)
-
-        assert_ttls(buf.client)
-
-        assert buf.flush_segments(now=5) == {}
-        rv = buf.flush_segments(now=11)
-        _normalize_output(rv)
-        assert rv == {
-            _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
-                queue_key=mock.ANY,
-                score=mock.ANY,
-                ingested_count=mock.ANY,
-                project_id=1,
-                spans=[
-                    _output_segment(b"a" * 16, b"b" * 16, False),
-                    _output_segment(b"b" * 16, b"b" * 16, True),
-                    _output_segment(b"c" * 16, b"b" * 16, False),
-                    _output_segment(b"d" * 16, b"b" * 16, False),
-                ],
-            )
-        }
-        buf.done_flush_segments(rv)
-        assert buf.flush_segments(now=30) == {}
-
-        assert_clean(buf.client)
-
-        # Verify used_zero_copy_dest metric was emitted
-        emit_observability_metrics.assert_called()
-        args, _ = emit_observability_metrics.call_args
-        gauge_metrics = args[1]
-        zero_copy_values = [
-            value
-            for evalsha_metrics in gauge_metrics
-            for metric_name, value in evalsha_metrics
-            if metric_name == b"used_zero_copy_dest"
-        ]
-        assert any(v == 1 for v in zero_copy_values), (
-            f"Expected at least one evalsha call to use zero-copy, got {zero_copy_values}"
-        )
-
-
 def test_partition_routing_stable_across_rebalance() -> None:
     """
     Verify that spans are routed to the queue matching their source Kafka
@@ -1268,7 +1122,6 @@ def test_partition_routing_stable_across_rebalance() -> None:
                 parent_span_id="b" * 16,
                 segment_id=None,
                 project_id=1,
-                end_timestamp=1700000000.0,
                 partition=partition,
             ),
         ]
@@ -1286,7 +1139,6 @@ def test_partition_routing_stable_across_rebalance() -> None:
                 segment_id=None,
                 project_id=1,
                 is_segment_span=True,
-                end_timestamp=1700000000.0,
                 partition=partition,
             ),
         ]
@@ -1324,7 +1176,6 @@ def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> 
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -1334,7 +1185,6 @@ def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> 
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(initial_spans, buffer, now=0)
@@ -1354,7 +1204,6 @@ def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> 
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(new_spans, buffer, now=20)
@@ -1393,7 +1242,6 @@ def test_done_flush_cleans_up_when_no_new_spans(buffer: SpansBuffer) -> None:
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -1403,7 +1251,6 @@ def test_done_flush_cleans_up_when_no_new_spans(buffer: SpansBuffer) -> None:
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(spans, buffer, now=0)
@@ -1437,7 +1284,6 @@ def test_done_flush_phase2_catches_race_after_zrem(buffer: SpansBuffer) -> None:
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -1447,7 +1293,6 @@ def test_done_flush_phase2_catches_race_after_zrem(buffer: SpansBuffer) -> None:
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(initial_spans, buffer, now=0)
@@ -1466,7 +1311,6 @@ def test_done_flush_phase2_catches_race_after_zrem(buffer: SpansBuffer) -> None:
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(new_spans, buffer, now=20)
@@ -1533,7 +1377,6 @@ def _dspan(
         segment_id=None,
         is_segment_span=is_root,
         project_id=1,
-        end_timestamp=1700000000.0 + ts_offset,
     )
 
 
@@ -1682,7 +1525,6 @@ def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
         segment_id=segment_id,
         project_id=example["project_id"],
         payload=payload,
-        end_timestamp=cast(float, example["end_timestamp"]),
         is_segment_span=bool(example.get("parent_span_id") is None or example.get("is_segment")),
     )
 
