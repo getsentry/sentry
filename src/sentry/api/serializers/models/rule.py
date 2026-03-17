@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict
 
 from django.db.models import Max, Prefetch, Q, prefetch_related_objects
 from rest_framework import serializers
@@ -563,7 +563,7 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             # Check if workflow has at least one WorkflowDataConditionGroup
             # prefetched_wdcgs is set by Prefetch(to_attr="prefetched_wdcgs") in _fetch_workflows
-            prefetched_wdcgs = cast("list[WorkflowDataConditionGroup]", workflow.prefetched_wdcgs)
+            prefetched_wdcgs: list[WorkflowDataConditionGroup] = workflow.prefetched_wdcgs  # type: ignore[attr-defined]
             if not prefetched_wdcgs:
                 # Workflow has no WorkflowDataConditionGroups - set defaults
                 result[workflow]["filter_match"] = None
@@ -687,9 +687,9 @@ class WorkflowEngineRuleSerializer(Serializer):
                 if condition.type in UNSUPPORTED_CONDITIONS:
                     errors.append({"detail": f"Condition not supported: {condition.type}"})
 
-            for f in filter_conditions:
-                if f.type in UNSUPPORTED_CONDITIONS:
-                    errors.append({"detail": f"Filter not supported: {f.type}"})
+            for filter_condition in filter_conditions:
+                if filter_condition.type in UNSUPPORTED_CONDITIONS:
+                    errors.append({"detail": f"Filter not supported: {filter_condition.type}"})
 
             if len(errors):
                 result[workflow]["errors"] = errors
