@@ -5,7 +5,7 @@ from contextlib import contextmanager
 
 from django.test import override_settings
 
-from sentry.types.region import Cell, CellDirectory, Locality, get_global_directory
+from sentry.types.cell import Cell, CellDirectory, Locality, get_global_directory
 
 
 class TestEnvCellDirectory(CellDirectory):
@@ -88,7 +88,7 @@ def override_cells(cells: Sequence[Cell], local_cell: Cell | None = None) -> Gen
     """Override the global set of existing cells.
 
     The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and
-    changes the behavior of the module-level functions in `sentry.types.region`. This
+    changes the behavior of the module-level functions in `sentry.types.cell`. This
     is preferable to overriding the `SENTRY_REGION_CONFIG` setting value directly
     because the cell mapping may already be cached.
     """
