@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -22,6 +22,13 @@ export function useReorderStarredSavedQueries() {
           },
         }
       ),
+    onMutate: (queries: SavedQuery[]) => {
+      setApiQueryData<SavedQuery[]>(
+        queryClient,
+        getStarredSavedQueriesQueryKey(organization),
+        queries
+      );
+    },
     onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: getStarredSavedQueriesQueryKey(organization),

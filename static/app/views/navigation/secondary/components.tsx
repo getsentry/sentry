@@ -625,7 +625,12 @@ interface ReorderableListItemProps<T> {
   onDragEnd: () => void;
 }
 
-function ReorderableListItem<T>(props: ReorderableListItemProps<T>) {
+function ReorderableListItem<T>({
+  item,
+  groupRef,
+  onDragEnd,
+  children,
+}: ReorderableListItemProps<T>) {
   const controls = useDragControls();
   const [grabbing, setGrabbing] = useState(false);
   const {setInteraction} = useSecondaryNavigation();
@@ -633,12 +638,11 @@ function ReorderableListItem<T>(props: ReorderableListItemProps<T>) {
   return (
     <ReorderableItemContext.Provider value={{controls, grabbing}}>
       <ReorderableItemContainer
-        {...props}
         grabbing={grabbing}
-        value={props.item}
+        value={item}
         dragListener={false}
         dragControls={controls}
-        dragConstraints={props.groupRef}
+        dragConstraints={groupRef}
         dragElastic={0.03}
         dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
         style={grabbing ? {} : {originY: '0px'}}
@@ -649,10 +653,10 @@ function ReorderableListItem<T>(props: ReorderableListItemProps<T>) {
         onDragEnd={() => {
           setGrabbing(false);
           setInteraction(null);
-          props.onDragEnd();
+          onDragEnd();
         }}
       >
-        {props.children}
+        {children}
       </ReorderableItemContainer>
     </ReorderableItemContext.Provider>
   );
