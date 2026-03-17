@@ -8,7 +8,7 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import GenericField from 'sentry/components/deprecatedforms/genericField';
+import {GenericField} from 'sentry/components/deprecatedforms/genericField';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 

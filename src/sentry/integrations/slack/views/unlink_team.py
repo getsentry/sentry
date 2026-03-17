@@ -6,7 +6,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.views.linkage import SlackLinkageView
 from sentry.silo.base import SiloMode
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import cell_silo_view
 
 from . import build_linking_url as base_build_linking_url
 
@@ -35,12 +35,12 @@ def build_team_unlinking_url(
         response_url=response_url,
         # The team-linking view is region-specific, so skip the middleware proxy if necessary.
         url_prefix=(
-            generate_locality_url() if SiloMode.get_current_mode() == SiloMode.REGION else None
+            generate_locality_url() if SiloMode.get_current_mode() == SiloMode.CELL else None
         ),
     )
 
 
-@region_silo_view
+@cell_silo_view
 class SlackUnlinkTeamView(SlackLinkageView, UnlinkTeamView):
     """
     Django view for unlinking team from slack channel. Deletes from ExternalActor table.

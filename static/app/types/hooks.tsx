@@ -4,8 +4,8 @@ import type {SelectKey} from '@sentry/scraps/compactSelect';
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
-import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
-import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
+import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
+import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
 import type {DataCategory} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
@@ -61,6 +61,7 @@ export type HookName = keyof Hooks;
  */
 type RouteHooks = {
   'routes:legacy-organization-redirects': RouteObjectHook;
+  'routes:org-settings': RouteObjectHook;
   'routes:root': RouteObjectHook;
   'routes:subscription-settings': RouteObjectHook;
 };

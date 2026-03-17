@@ -8,13 +8,12 @@ from uuid import UUID
 
 from django.utils.encoding import force_bytes
 
-from sentry.grouping.parameterization import Parameterizer
-from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.grouping.component import ExceptionGroupingComponent
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 
@@ -56,35 +55,48 @@ def bool_from_string(value: str) -> bool | None:
 # lines.
 @metrics.wraps("grouping.normalize_message_for_grouping")
 def normalize_message_for_grouping(
-    message: str, event: Event, *, reason: str, trim_message: bool
+    message: str, context: GroupingContext, *, reason: str, trim_message: bool
 ) -> str:
     """
     Replace values from a event's message with placeholders (in order to improve grouping). If
     `trim_message` is True, trim the message to at most 2 lines.
     """
-    parameterizer = Parameterizer(
-        use_experimental_regexes=in_rollout_group(
-            "grouping.experimental_parameterization", event.project_id
-        ),
-    )
+    # Since we very often use event messages multiple times during grouping (in some combo of app
+    # and system variants, message components, and fingerprints), and always use them at least once,
+    # we prepopulate a parameterized message cache when we initialize the context. Thus we always
+    # expect to find the message here.
+    if message in context.message_parameterization_map:
+        parameterized = context.message_parameterization_map[message]
 
-    if trim_message:
-        # If there are multiple lines, grab the first two non-empty ones
-        trimmed = _trim_extra_lines(message)
-        normalized = parameterizer.parameterize(trimmed)
-    else:
-        normalized = parameterizer.parameterize(message)
+        # Before we mark the message as having been seen, check if it's already marked that way. If
+        # so, that means our use of the parameterized value here is at least the second use, thus
+        # proving the caching worthwhile.
+        if message in context.messages_seen:
+            # This represents a saved call to `parameterizer.parameterize`
+            metrics.incr("grouping.cached_param_result_used")
 
-    parameterization_counts = parameterizer.matches_counter.items()
-    if parameterization_counts:
-        metrics.incr("grouping.message_parameterized", tags={"source": reason})
+        context.messages_seen.add(message)
 
-        for key, value in parameterization_counts:
-            # `key` can only be one of the keys from `_parameterization_regex`, thus, not a large
-            # cardinality. Tracking the key helps distinguish what kinds of replacements are happening.
-            metrics.incr("grouping.value_trimmed_from_message", amount=value, tags={"key": key})
+    else:  # Fallback - should no longer land here
+        parameterized = context.parameterizer.parameterize(message)
 
-    return normalized
+        # TODO: Now that we're caching parameterizations for all event messages (and therefore
+        # shouldn't ever land in this branch), we could probably get rid of this metric, as well as
+        # `context.cached_parameterizer_used`.
+        #
+        # Before we mark the parameterizer as having been used, check if it's already marked that
+        # way. If so, that means our use of it here is at least the second use, thus proving the
+        # caching worthwhile.
+        if context.cached_parameterizer_used:
+            # This represents a saved call to `in_rollout_group` on the project vis-à-vis
+            # experimental parameterization
+            metrics.incr("grouping.cached_parameterizer_used")
+
+        context.cached_parameterizer_used = True
+
+    metrics.incr("grouping.message_used", tags={"reason": reason})
+
+    return _trim_extra_lines(parameterized) if trim_message else parameterized
 
 
 def _trim_extra_lines(input_str: str) -> str:
@@ -115,3 +127,19 @@ def get_canonical_message_from_event(event: Event) -> str:
         or get_path(event.data, "exception", "values", -1, "value")
         or ""
     )
+
+
+def get_all_messages_from_event(event: Event) -> set[str]:
+    """
+    Get all messages contained in the event. Looks at log messages and exceptions, including
+    exception chains.
+    """
+    exceptions = get_path(event.data, "exception", "values", filter=True) or []
+    messages = {
+        get_canonical_message_from_event(event),  # This will grab a log message if available
+        *(exc.get("value") for exc in exceptions),
+    }
+    messages.discard("")  # In case `get_canonical_message_from_event` came up empty
+    messages.discard(None)  # In case any of the `get` calls came up empty
+
+    return messages

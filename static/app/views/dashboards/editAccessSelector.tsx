@@ -14,13 +14,13 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import UserBadge from 'sentry/components/idBadge/userBadge';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
@@ -29,6 +29,7 @@ import type {
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 interface EditAccessSelectorProps {
   dashboard: DashboardDetails | DashboardListItem;
@@ -41,7 +42,7 @@ interface EditAccessSelectorProps {
  * Dropdown multiselect button to enable selective Dashboard editing access to
  * specific users and teams
  */
-function EditAccessSelector({
+export function EditAccessSelector({
   dashboard,
   onChangeEditAccess,
   listOnly = false,
@@ -374,7 +375,7 @@ function EditAccessSelector({
   );
 
   const tooltipTitle = disabled
-    ? t('Prebuilt dashboards cannot be edited')
+    ? tct('[label] dashboards cannot be edited', {label: PREBUILT_DASHBOARD_LABEL})
     : t('Only the creator of this dashboard can manage editor access');
 
   return (
@@ -389,8 +390,6 @@ function EditAccessSelector({
     </Tooltip>
   );
 }
-
-export default EditAccessSelector;
 
 const StyledCompactSelect = styled(CompactSelect)`
   ${InnerWrap} {

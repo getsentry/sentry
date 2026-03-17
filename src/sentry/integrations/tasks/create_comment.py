@@ -20,7 +20,7 @@ from sentry.types.activity import ActivityType
     name="sentry.integrations.tasks.create_comment",
     namespace=integrations_tasks,
     retry=Retry(times=5, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(exclude=(Integration.DoesNotExist))
 def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> None:

@@ -2,7 +2,7 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
 interface AiConfigResult {

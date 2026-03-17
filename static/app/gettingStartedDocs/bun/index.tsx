@@ -8,7 +8,7 @@ import {getNodeLogsOnboarding} from 'sentry/gettingStartedDocs/node/utils';
 import {crashReport} from './crashReport';
 import {onboarding} from './onboarding';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
@@ -18,5 +18,3 @@ const docs: Docs = {
     packageName: '@sentry/bun',
   }),
 };
-
-export default docs;

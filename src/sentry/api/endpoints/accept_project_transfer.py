@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.permissions import SentryIsAuthenticated
@@ -34,7 +34,7 @@ class InvalidPayload(Exception):
     pass
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class AcceptProjectTransferEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

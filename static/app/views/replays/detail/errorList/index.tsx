@@ -4,24 +4,25 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import Placeholder from 'sentry/components/placeholder';
-import JumpButtons from 'sentry/components/replays/jumpButtons';
+import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useJumpButtons, {
+import {
+  useJumpButtons,
   type VisibleRange,
 } from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import ErrorFilters from 'sentry/views/replays/detail/errorList/errorFilters';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {ErrorFilters} from 'sentry/views/replays/detail/errorList/errorFilters';
 import ErrorHeaderCell, {
   COLUMN_COUNT,
 } from 'sentry/views/replays/detail/errorList/errorHeaderCell';
-import ErrorTableCell from 'sentry/views/replays/detail/errorList/errorTableCell';
-import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
-import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
-import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
-import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
+import {ErrorTableCell} from 'sentry/views/replays/detail/errorList/errorTableCell';
+import {useErrorFilters} from 'sentry/views/replays/detail/errorList/useErrorFilters';
+import {useSortErrors} from 'sentry/views/replays/detail/errorList/useSortErrors';
+import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
+import {useVirtualizedGrid} from 'sentry/views/replays/detail/useVirtualizedGrid';
 import {VirtualTable} from 'sentry/views/replays/detail/virtualizedTableLayout';
 import {
   getTimelineRowClassName,
@@ -36,7 +37,7 @@ const MIN_DYNAMIC_COLUMN_WIDTH = 200;
 const OVERSCAN = 20;
 const STATIC_COLUMN_WIDTHS = [100, 0, 140, 96, 116];
 
-export default function ErrorList() {
+export function ErrorList() {
   const replay = useReplayReader();
   const {currentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();

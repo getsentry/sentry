@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
@@ -80,7 +80,7 @@ def null_zero(value: float) -> float | None:
 
 
 @extend_schema(tags=["Explore"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,

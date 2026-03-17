@@ -15,7 +15,7 @@ from sentry.middleware.integrations.tasks import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils import json
 
 

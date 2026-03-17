@@ -10,7 +10,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import TeamMisery from 'sentry/views/organizationStats/teamInsights/teamMisery';
+import {TeamMiseryWrapper as TeamMisery} from 'sentry/views/organizationStats/teamInsights/teamMisery';
 
 describe('TeamMisery', () => {
   const {routerProps} = initializeOrg();

@@ -19,9 +19,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/compactSelect';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/compactSelect');
 
 `<CompactSelect>` is a general-purpose dropdown select component designed for use outside of forms. It's highly capable, supporting features like sections, search, multi-select, custom triggers, virtualization, and more.
 
@@ -153,33 +151,41 @@ export function SectionsDemo() {
 
 `<CompactSelect>` supports three sizes: `md` (default), `sm`, and `xs`.
 
+export function SizesDemo() {
+  const [value, setValue] = useState('1');
+  const options = [
+    {value: '1', label: 'Option 1'},
+    {value: '2', label: 'Option 2'},
+  ];
+  return (
+    <Storybook.Grid>
+      <CompactSelect
+        size="md"
+        value={value}
+        onChange={opt => setValue(opt.value)}
+        trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
+        options={options}
+      />
+      <CompactSelect
+        size="sm"
+        value={value}
+        onChange={opt => setValue(opt.value)}
+        trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
+        options={options}
+      />
+      <CompactSelect
+        size="xs"
+        value={value}
+        onChange={opt => setValue(opt.value)}
+        trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
+        options={options}
+      />
+    </Storybook.Grid>
+  );
+}
+
 <Storybook.Demo minHeight="400px" align="start">
-  <Storybook.Grid>
-    <CompactSelect
-      size="md"
-      trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
-      options={[
-        {value: '1', label: 'Medium (default)'},
-        {value: '2', label: 'Option 2'},
-      ]}
-    />
-    <CompactSelect
-      size="sm"
-      trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
-      options={[
-        {value: '1', label: 'Small'},
-        {value: '2', label: 'Option 2'},
-      ]}
-    />
-    <CompactSelect
-      size="xs"
-      trigger={props => <OverlayTrigger.Button {...props} prefix="Size" />}
-      options={[
-        {value: '1', label: 'Extra Small'},
-        {value: '2', label: 'Option 2'},
-      ]}
-    />
-  </Storybook.Grid>
+  <SizesDemo />
 </Storybook.Demo>
 
 ```jsx
@@ -229,25 +235,34 @@ const [values, setValues] = useState(['2', '4']);
 
 ## Searchable
 
-Enable `searchable` to allow users to filter options by typing. Essential for lists with many options.
+Enable `search` to allow users to filter options by typing. Essential for lists with many options. Pass `true` for default behavior, or a `SearchConfig` object to customize placeholder, filtering, or the onChange callback.
+
+export function SearchDemo() {
+  const [value, setValue] = useState('US');
+  return (
+    <CompactSelect
+      search
+      value={value}
+      onChange={opt => setValue(opt.value)}
+      trigger={props => <OverlayTrigger.Button {...props} prefix="Country" />}
+      options={[
+        {value: 'US', label: 'United States'},
+        {value: 'CA', label: 'Canada'},
+        {value: 'MX', label: 'Mexico'},
+        {value: 'UK', label: 'United Kingdom'},
+        {value: 'FR', label: 'France'},
+        {value: 'DE', label: 'Germany'},
+      ]}
+    />
+  );
+}
 
 <Storybook.Demo minHeight="400px" align="start">
-  <CompactSelect
-    searchable
-    trigger={props => <OverlayTrigger.Button {...props} prefix="Country" />}
-    options={[
-      {value: 'US', label: 'United States'},
-      {value: 'CA', label: 'Canada'},
-      {value: 'MX', label: 'Mexico'},
-      {value: 'UK', label: 'United Kingdom'},
-      {value: 'FR', label: 'France'},
-      {value: 'DE', label: 'Germany'},
-    ]}
-  />
+  <SearchDemo />
 </Storybook.Demo>
 
 ```jsx
-<CompactSelect searchable options={manyOptions} />
+<CompactSelect search options={options} />
 ```
 
 ## Clearable
@@ -343,7 +358,7 @@ export function CombinedDemo() {
       <CompactSelect
         size="md"
         multiple
-        searchable
+        search
         clearable
         trigger={props => <OverlayTrigger.Button {...props} prefix="Environment" />}
         value={values}
@@ -353,7 +368,7 @@ export function CombinedDemo() {
       <CompactSelect
         size="sm"
         multiple
-        searchable
+        search
         clearable
         trigger={props => <OverlayTrigger.Button {...props} prefix="Environment" />}
         value={values}
@@ -363,7 +378,7 @@ export function CombinedDemo() {
       <CompactSelect
         size="xs"
         multiple
-        searchable
+        search
         clearable
         trigger={props => <OverlayTrigger.Button {...props} prefix="Environment" />}
         value={values}
@@ -381,7 +396,7 @@ export function CombinedDemo() {
 ```jsx
 <CompactSelect
   multiple
-  searchable
+  search
   clearable
   trigger={props => <OverlayTrigger.Button {...props} prefix="Environment" />}
   value={values}
@@ -415,7 +430,7 @@ function MyComponent() {
 
   return (
     <CompactSelect
-      searchable
+      search
       options={projectOptions}
       value={selectedProject}
       onChange={handleChange}
@@ -432,7 +447,7 @@ This hook prevents unnecessary re-renders and option recomputations when the par
 
 ```jsx
 <CompactSelect
-  searchable
+  search
   multiple
   clearable
   trigger={props => <OverlayTrigger.Button {...props} prefix="Projects" />}
@@ -459,7 +474,7 @@ This hook prevents unnecessary re-renders and option recomputations when the par
 
 ```jsx
 <CompactSelect
-  searchable
+  search
   clearable
   trigger={props => <OverlayTrigger.Button {...props} prefix="Filter" />}
   options={[

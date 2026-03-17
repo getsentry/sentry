@@ -9,7 +9,7 @@ type Props = {
   onAction: (effectiveAt: string) => void;
 };
 
-const openChangeEffectiveAtModal = ({onAction}: Props) =>
+export const openChangeEffectiveAtModal = ({onAction}: Props) =>
   openModal(({Header, Body, closeModal}) => (
     <Fragment>
       <Header closeButton>Change Effective At Date</Header>
@@ -38,5 +38,3 @@ const openChangeEffectiveAtModal = ({onAction}: Props) =>
 const DateField = styled(InputField)`
   padding-left: 0px;
 `;
-
-export default openChangeEffectiveAtModal;

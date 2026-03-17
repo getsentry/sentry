@@ -14,7 +14,7 @@ import {
   type SubTimingInfo,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
-import FileSize from 'sentry/components/fileSize';
+import {FileSize} from 'sentry/components/fileSize';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';

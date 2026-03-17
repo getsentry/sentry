@@ -7,14 +7,14 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
-import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
+import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {decodeList} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const statusToButtonLabel: Record<string, string> = {
   resolved: t('Resolve'),
@@ -33,7 +33,7 @@ interface Props extends Pick<
   'deselectAll' | 'selectedIds'
 > {}
 
-export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
+export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
   const organization = useOrganization();
   const queryView = useLocationQuery({
     fields: {

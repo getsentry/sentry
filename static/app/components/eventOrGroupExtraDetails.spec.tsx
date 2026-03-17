@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
+import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
 import type {Group} from 'sentry/types/group';
 
 describe('EventOrGroupExtraDetails', () => {

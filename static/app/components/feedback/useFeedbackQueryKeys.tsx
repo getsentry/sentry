@@ -1,9 +1,10 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useRef, useState} from 'react';
 
-import getFeedbackItemQueryKey from 'sentry/components/feedback/getFeedbackItemQueryKey';
-import useFeedbackListQueryKey from 'sentry/components/feedback/useFeedbackListQueryKey';
+import {getFeedbackItemQueryKey} from 'sentry/components/feedback/getFeedbackItemQueryKey';
+import {useFeedbackListQueryKey} from 'sentry/components/feedback/useFeedbackListQueryKey';
 import type {Organization} from 'sentry/types/organization';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -78,7 +79,7 @@ export function FeedbackQueryKeys({children, organization}: Props) {
         getItemQueryKeys,
         listHeadTime,
         listPrefetchQueryKey,
-        listQueryKey: listQueryKey ? ['infinite', ...listQueryKey] : undefined,
+        listQueryKey: getInfiniteListQueryKey(listQueryKey),
         resetListHeadTime,
       }}
     >
@@ -87,6 +88,14 @@ export function FeedbackQueryKeys({children, organization}: Props) {
   );
 }
 
-export default function useFeedbackQueryKeys() {
+function getInfiniteListQueryKey(listQueryKey: ApiQueryKey | undefined) {
+  if (!listQueryKey) {
+    return undefined;
+  }
+  const {url, options} = parseQueryKey(listQueryKey);
+  return [{infinite: true, version: 'v1'}, url, options] as InfiniteApiQueryKey;
+}
+
+export function useFeedbackQueryKeys() {
   return useContext(FeedbackQueryKeysProvider);
 }

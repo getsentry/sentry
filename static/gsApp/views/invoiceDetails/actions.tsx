@@ -13,7 +13,7 @@ import {
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {openInvoicePaymentModal} from 'getsentry/actionCreators/modal';
@@ -26,7 +26,7 @@ type Props = {
   reloadInvoice: () => void;
 };
 
-function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
+export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
   const api = useApi();
   const location = useLocation();
 
@@ -115,8 +115,6 @@ function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
     </Fragment>
   );
 }
-
-export default InvoiceDetailsActions;
 
 const EmailForm = styled('form')`
   display: grid;

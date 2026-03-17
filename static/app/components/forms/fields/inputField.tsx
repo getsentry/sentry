@@ -3,8 +3,8 @@ import {InputGroup} from '@sentry/scraps/input';
 
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
-import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import type FormModel from 'sentry/components/forms/model';
+import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
+import type {FormModel} from 'sentry/components/forms/model';
 
 export interface InputFieldProps
   extends

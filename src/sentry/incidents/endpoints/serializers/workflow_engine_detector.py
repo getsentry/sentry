@@ -1,12 +1,20 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+
+if TYPE_CHECKING:
+    from sentry.incidents.endpoints.serializers.alert_rule import (
+        AlertRuleSerializerResponse,
+        DetailedAlertRuleSerializerResponse,
+    )
+
 from sentry.incidents.endpoints.serializers.utils import (
     get_fake_id_from_object_id,
     get_object_id_from_fake_id,
@@ -411,11 +419,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "id": str(alert_rule_id),
             "name": obj.name,
             "organizationId": str(obj.project.organization_id),
-            "status": (
-                AlertRuleStatus.PENDING.value
-                if obj.enabled is True
-                else AlertRuleStatus.DISABLED.value
-            ),
+            "status": AlertRuleStatus.PENDING.value,
             "queryType": attrs.get("queryType"),
             "dataset": attrs.get("dataset"),
             "query": attrs.get("query"),
@@ -440,6 +444,9 @@ class WorkflowEngineDetectorSerializer(Serializer):
             "detectionType": obj.config.get("detection_type"),
         }
 
+        if not obj.enabled:
+            data["snooze"] = True
+
         if "latestIncident" in self.expand:
             data["latestIncident"] = attrs.get("latestIncident", None)
 
@@ -452,4 +459,42 @@ class WorkflowEngineDetectorSerializer(Serializer):
         if "eventTypes" in self.expand:
             data["eventTypes"] = attrs.get("event_types", [])
 
+        return data
+
+
+class DetailedWorkflowEngineDetectorSerializer(Serializer):
+    """
+    Detailed serializer for detector detail endpoints.
+    Always includes eventTypes and snooze fields to match DetailedAlertRuleSerializer.
+
+    Known differences from DetailedAlertRuleSerializer:
+    - snooze/snoozeForEveryone: Derived from Detector.enabled instead of querying RuleSnooze
+    - snoozeCreatedBy: Not included (RuleSnooze model tracks this, but workflow engine doesn't)
+    - Detector.enabled=False is treated as snoozed for everyone
+    """
+
+    def __init__(self, expand: list[str] | None = None, prepare_component_fields: bool = False):
+        # Force eventTypes to always be in expand for detail views
+        expand = expand or []
+        if "eventTypes" not in expand:
+            expand = list(expand) + ["eventTypes"]
+        self.base_serializer = WorkflowEngineDetectorSerializer(
+            expand=expand, prepare_component_fields=prepare_component_fields
+        )
+
+    def get_attrs(
+        self, item_list: Sequence[Detector], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> defaultdict[Detector, dict[str, Any]]:
+        return self.base_serializer.get_attrs(item_list, user, **kwargs)
+
+    def serialize(
+        self, obj: Detector, attrs, user, **kwargs
+    ) -> DetailedAlertRuleSerializerResponse:
+        base_data = self.base_serializer.serialize(obj, attrs, user, **kwargs)
+        data: DetailedAlertRuleSerializerResponse = {
+            **base_data,
+            "snooze": not obj.enabled,
+        }
+        if not obj.enabled:
+            data["snoozeForEveryone"] = True
         return data

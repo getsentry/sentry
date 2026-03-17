@@ -3,6 +3,8 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 
+from sentry.utils import metrics
+
 
 @dataclasses.dataclass
 class ParameterizationRegex:
@@ -263,11 +265,16 @@ class Parameterizer:
         # pattern will fall back to the standard pattern.)
         use_experimental_regexes: bool = False,
     ):
-        self._experimental = use_experimental_regexes
+        self._experimental = (
+            use_experimental_regexes
+            # Only mark the parameterizer as experimental if there are actually any experiments
+            # running. If there aren't, then both parameterizers use the default regex patterns, so
+            # the "experimental" parameterizer isn't actually experimental.
+            and EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP != DEFAULT_PARAMETERIZATION_REGEXES_MAP
+        )
         self._parameterization_regex = self._make_regex_from_patterns(
             regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
         )
-        self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
     def _make_regex_from_patterns(self, pattern_keys: Iterable[str]) -> re.Pattern[str]:
         """
@@ -297,14 +304,30 @@ class Parameterizer:
         For example, turn "Error with order #1231" into "Error with order #<int>".
         """
 
+        matches_counter: defaultdict[str, int] = defaultdict(int)
+
         def _handle_regex_match(match: re.Match[str]) -> str:
             # Find the first (should be only) non-None match entry, and sub in the placeholder. For
             # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
             # replacement for the original value in the string.
             for key, value in match.groupdict().items():
                 if value is not None:
-                    self.matches_counter[key] += 1
+                    matches_counter[key] += 1
                     return f"<{key}>"
             return ""
 
-        return self._parameterization_regex.sub(_handle_regex_match, input_str)
+        with metrics.timer(
+            "grouping.parameterize", tags={"experimental": self._experimental}
+        ) as metric_tags:
+            parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
+            metric_tags["changed"] = parameterized != input_str
+
+        for key, value in matches_counter.items():
+            # Track the kinds of replacements being made
+            metrics.incr("grouping.value_parameterized", amount=value, tags={"key": key})
+
+        return parameterized
+
+
+parameterizer = Parameterizer(use_experimental_regexes=False)
+experimental_parameterizer = Parameterizer(use_experimental_regexes=True)

@@ -7,7 +7,7 @@ import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Tag} from 'sentry/types/group';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   MATCH_CHOICES,

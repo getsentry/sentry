@@ -526,7 +526,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             }
         )
 
-        with assume_test_silo_mode(SiloMode.REGION), override_settings(SILO_MODE=SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL), override_settings(SILO_MODE=SiloMode.CELL):
             serializer = AlertRuleSerializer(context=self.context, data=base_params)
             assert serializer.is_valid()
 

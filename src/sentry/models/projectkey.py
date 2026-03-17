@@ -23,7 +23,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
@@ -76,7 +76,7 @@ class UseCase(enum.Enum):
     DEMO = "demo"
 
 
-@region_silo_model
+@cell_silo_model
 class ProjectKey(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -298,7 +298,7 @@ class ProjectKey(Model):
 
         endpoint = settings.SENTRY_ENDPOINT
         if not endpoint:
-            if SiloMode.get_current_mode() == SiloMode.REGION:
+            if SiloMode.get_current_mode() == SiloMode.CELL:
                 endpoint = generate_locality_url()
             else:
                 endpoint = options.get("system.url-prefix")

@@ -13,7 +13,7 @@ interface Props<Key extends string> {
   sortableColumns: Array<GridColumnOrder<string>>;
 }
 
-export default function renderSortableHeaderCell<Key extends string>({
+export function renderSortableHeaderCell<Key extends string>({
   currentSort,
   onClick,
   rightAlignedColumns,

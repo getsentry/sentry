@@ -11,7 +11,7 @@ from sentry import analytics
 from sentry.analytics.events.relocation_forked import RelocationForkedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -22,7 +22,7 @@ from sentry.relocation.api.endpoints.index import (
 )
 from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.tasks.process import uploading_start
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 from sentry.utils.db import atomic_transaction
 
 ERR_DUPLICATE_ORGANIZATION_FORK = Template(
@@ -45,7 +45,7 @@ CANNOT_FORK_FROM_REGION = {"de"}
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationForkEndpoint(Endpoint):
     owner = ApiOwner.HYBRID_CLOUD
     publish_status = {

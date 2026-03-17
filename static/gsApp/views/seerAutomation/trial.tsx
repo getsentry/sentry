@@ -16,11 +16,11 @@ import {Heading, Text} from '@sentry/scraps/text';
 import AnalyticsArea from 'sentry/components/analyticsArea';
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import showNewSeer from 'sentry/utils/seer/showNewSeer';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 
 const BUTTONS = [

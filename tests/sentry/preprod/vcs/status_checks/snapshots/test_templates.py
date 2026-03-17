@@ -12,7 +12,7 @@ from sentry.preprod.vcs.status_checks.snapshots.templates import (
     format_snapshot_status_check_messages,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
 class SnapshotStatusCheckTestBase(TestCase):
@@ -72,14 +72,14 @@ class SnapshotStatusCheckTestBase(TestCase):
         )
 
 
-@region_silo_test
+@cell_silo_test
 class SnapshotEmptyArtifactsTest(SnapshotStatusCheckTestBase):
     def test_empty_artifacts_raises_error(self):
         with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
             format_snapshot_status_check_messages([], {}, {}, StatusCheckStatus.SUCCESS, {})
 
 
-@region_silo_test
+@cell_silo_test
 class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
     def test_artifact_without_metrics_shows_processing(self):
         artifact = self.create_preprod_artifact(
@@ -157,7 +157,7 @@ class SnapshotProcessingStateFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "Comparing snapshots..."
 
 
-@region_silo_test
+@cell_silo_test
 class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
     def test_all_images_match_shows_success(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics(
@@ -243,7 +243,7 @@ class SnapshotSuccessStateFormattingTest(SnapshotStatusCheckTestBase):
             assert f"com.example.app{i}" in summary
 
 
-@region_silo_test
+@cell_silo_test
 class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
     def test_images_changed_shows_failure_subtitle(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -376,7 +376,7 @@ class SnapshotChangesFormattingTest(SnapshotStatusCheckTestBase):
         assert "⏳ Needs approval" in summary
 
 
-@region_silo_test
+@cell_silo_test
 class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
     def test_failed_comparison_returns_error_message(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -447,7 +447,7 @@ class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
         assert summary == ""
 
 
-@region_silo_test
+@cell_silo_test
 class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
     def test_mixed_success_and_processing(self):
         head1, head1_metrics = self._create_artifact_with_metrics(
@@ -491,7 +491,7 @@ class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
         assert "Processing" in summary
 
 
-@region_silo_test
+@cell_silo_test
 class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
     def test_summary_table_has_correct_headers(self):
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -560,7 +560,7 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             base_artifact_map,
         )
 
-        expected_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/compare/{head_artifact.id}/{base_artifact.id}"
+        expected_url = f"http://testserver/organizations/{self.organization.slug}/preprod/snapshots/{head_artifact.id}"
         assert expected_url in summary
 
     def test_summary_uses_artifact_url_when_no_base(self):
@@ -616,7 +616,10 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         expected = (
             "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
-            f"| [My App]({artifact_url})<br>`com.example.app` | 0 | 0 | 0 | 0 | 15 | ✅ Unchanged |"
+            f"| [My App]({artifact_url})<br>`com.example.app`"
+            f" | 0 | 0 | 0 | 0"
+            f" | [{15}]({artifact_url}?section=unchanged)"
+            f" | ✅ Unchanged |"
         )
         assert summary == expected
 
@@ -654,12 +657,18 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         expected = (
             "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
             "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
-            f"| [My App]({artifact_url})<br>`com.example.app` | 1 | 2 | 3 | 1 | 4 | ⏳ Needs approval |"
+            f"| [My App]({artifact_url})<br>`com.example.app`"
+            f" | [{1}]({artifact_url}?section=added)"
+            f" | [{2}]({artifact_url}?section=removed)"
+            f" | [{3}]({artifact_url}?section=changed)"
+            f" | [{1}]({artifact_url}?section=renamed)"
+            f" | [{4}]({artifact_url}?section=unchanged)"
+            f" | ⏳ Needs approval |"
         )
         assert summary == expected
 
 
-@region_silo_test
+@cell_silo_test
 class SnapshotFirstUploadFormattingTest(SnapshotStatusCheckTestBase):
     def test_first_upload_single_artifact(self):
         artifact, metrics = self._create_artifact_with_metrics(
@@ -743,7 +752,7 @@ class SnapshotFirstUploadFormattingTest(SnapshotStatusCheckTestBase):
         assert summary == expected
 
 
-@region_silo_test
+@cell_silo_test
 class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
     def test_missing_base_single_artifact(self):
         artifact, metrics = self._create_artifact_with_metrics(

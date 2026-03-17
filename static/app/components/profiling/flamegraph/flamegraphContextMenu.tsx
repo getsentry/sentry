@@ -7,7 +7,7 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   ProfilingContextMenu,
   ProfilingContextMenuGroup,
@@ -40,8 +40,8 @@ import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useSourceCodeLink} from 'sentry/utils/profiling/hooks/useSourceLink';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
   'by system vs application frame',

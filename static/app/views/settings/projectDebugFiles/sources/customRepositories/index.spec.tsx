@@ -8,7 +8,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
 import type {CustomRepo, CustomRepoHttp} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';
-import CustomRepositories from 'sentry/views/settings/projectDebugFiles/sources/customRepositories';
+import {CustomRepositories} from 'sentry/views/settings/projectDebugFiles/sources/customRepositories';
 
 function TestComponent({
   organization,

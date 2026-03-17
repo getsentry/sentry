@@ -4,10 +4,10 @@ import omit from 'lodash/omit';
 
 import PlatformPicker from 'sentry/components/platformPicker';
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
-import useOrganization from 'sentry/utils/useOrganization';
-import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
-import StepHeading from 'sentry/views/onboarding/components/stepHeading';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
+import {StepHeading} from 'sentry/views/onboarding/components/stepHeading';
 import {useConfigureSdk} from 'sentry/views/onboarding/useConfigureSdk';
 
 import type {StepProps} from './types';

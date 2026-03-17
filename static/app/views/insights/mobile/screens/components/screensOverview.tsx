@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import ScreensOverviewTable from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {DEFAULT_SORT} from 'sentry/views/insights/mobile/screens/settings';

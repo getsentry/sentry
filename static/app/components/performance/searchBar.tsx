@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import BaseSearchBar from 'sentry/components/searchBar';
-import SearchDropdown from 'sentry/components/searchBar/searchDropdown';
+import {SearchDropdown} from 'sentry/components/searchBar/searchDropdown';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {ItemType} from 'sentry/components/searchBar/types';
 import {getSearchGroupWithItemMarkedActive} from 'sentry/components/searchBar/utils';
@@ -15,9 +15,9 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const TRANSACTION_SEARCH_PERIOD = '14d';

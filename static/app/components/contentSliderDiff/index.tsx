@@ -1,7 +1,7 @@
 import {useRef, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {IconGrabbable} from 'sentry/icons';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';

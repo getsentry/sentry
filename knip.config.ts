@@ -16,11 +16,6 @@ const productionEntryPoints = [
   // --- we should be able to get rid of those: ---
   // Only used in stories (so far)
   'static/app/components/core/quote/*.tsx',
-  // Prevent exception until we build out coverage
-  'static/app/components/prevent/virtualRenderers/**/*.{js,ts,tsx}',
-  // Temporary Prevent TA exceptions until the code is removed
-  'static/app/views/nav/secondary/sections/prevent/**/*.{js,ts,tsx}',
-  'static/app/views/prevent/**/*.{js,ts,tsx}',
   // todo we currently keep all icons
   'static/app/icons/**/*.{js,ts,tsx}',
   // todo find out how chartcuterie works
@@ -41,6 +36,7 @@ const storyBookEntryPoints = [
   'static/app/stories/playground/*.tsx',
   'static/**/*.stories.{js,ts,tsx}',
   'static/**/*.mdx',
+  'build-utils/mdx-plugins.ts',
 ];
 
 const config: KnipConfig = {

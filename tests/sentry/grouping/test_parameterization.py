@@ -1,21 +1,21 @@
+from unittest.mock import patch
+
 import pytest
 
+from sentry.grouping.api import _get_variants_from_strategies
+from sentry.grouping.component import MessageGroupingComponent
+from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
     DEFAULT_PARAMETERIZATION_REGEXES_MAP,
     EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP,
-    Parameterizer,
+    experimental_parameterizer,
+    parameterizer,
 )
-
-
-@pytest.fixture
-def parameterizer() -> Parameterizer:
-    return Parameterizer(use_experimental_regexes=False)
-
-
-@pytest.fixture
-def experimental_parameterizer() -> Parameterizer:
-    return Parameterizer(use_experimental_regexes=True)
-
+from sentry.grouping.variants import ComponentVariant, CustomFingerprintVariant
+from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.mocking import count_matching_calls
 
 standard_cases = [
     ("email", "test@email.com", "<email>"),
@@ -169,9 +169,7 @@ experimental_cases: list[tuple[str, str, str]] = [
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases)
-def test_default_parameterization(
-    name: str, input: str, expected: str, parameterizer: Parameterizer
-) -> None:
+def test_default_parameterization(name: str, input: str, expected: str) -> None:
     assert parameterizer.parameterize(input) == expected
     assert parameterizer.parameterize(f"prefix {input}") == f"prefix {expected}"
     assert parameterizer.parameterize(f"{input} suffix") == f"{expected} suffix"
@@ -180,7 +178,7 @@ def test_default_parameterization(
 
 @pytest.mark.parametrize(("name", "input", "expected"), experimental_cases)
 def test_default_parameterizer_misses_experimental_cases(
-    name: str, input: str, expected: str, parameterizer: Parameterizer
+    name: str, input: str, expected: str
 ) -> None:
     assert parameterizer.parameterize(input) != expected
     assert parameterizer.parameterize(f"prefix {input}") != f"prefix {expected}"
@@ -193,9 +191,7 @@ def test_default_parameterizer_misses_experimental_cases(
     reason="no experimental regexes to test",
 )
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
-def test_experimental_parameterization(
-    name: str, input: str, expected: str, experimental_parameterizer: Parameterizer
-) -> None:
+def test_experimental_parameterization(name: str, input: str, expected: str) -> None:
     assert experimental_parameterizer.parameterize(input) == expected
     assert experimental_parameterizer.parameterize(f"prefix {input}") == f"prefix {expected}"
     assert experimental_parameterizer.parameterize(f"{input} suffix") == f"{expected} suffix"
@@ -255,8 +251,139 @@ incorrect_cases = [
 
 
 @pytest.mark.parametrize(("name", "input", "desired", "actual"), incorrect_cases)
-def test_incorrect_parameterization(
-    name: str, input: str, desired: str, actual: str, parameterizer: Parameterizer
-) -> None:
+def test_incorrect_parameterization(name: str, input: str, desired: str, actual: str) -> None:
     assert parameterizer.parameterize(input) != desired
     assert parameterizer.parameterize(input) == actual
+
+
+@django_db_all
+def test_parameterized_message_stored_on_context(default_project: Project) -> None:
+    with patch(
+        "sentry.grouping.api._get_variants_from_strategies", wraps=_get_variants_from_strategies
+    ) as mock_get_variants:
+        event = Event(default_project.id, "11211231", data={"message": "Dog number 1, #1 dog"})
+        event.get_grouping_variants()
+
+        context = mock_get_variants.call_args.args[1]
+
+        assert isinstance(context, GroupingContext)
+        assert len(context.message_parameterization_map) == 1
+        assert (
+            context.message_parameterization_map["Dog number 1, #1 dog"]
+            == "Dog number <int>, #<int> dog"
+        )
+
+
+@django_db_all
+def test_parameterized_error_message_stored_on_context(default_project: Project) -> None:
+    with patch(
+        "sentry.grouping.api._get_variants_from_strategies", wraps=_get_variants_from_strategies
+    ) as mock_get_variants:
+        event = Event(
+            default_project.id,
+            "11211231",
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "FailedToFetchError",
+                            "value": "That's ball number 6 that Charlie hasn't brought back!",
+                        }
+                    ]
+                },
+            },
+        )
+        event.get_grouping_variants()
+
+        context = mock_get_variants.call_args.args[1]
+
+        assert isinstance(context, GroupingContext)
+        assert len(context.message_parameterization_map) == 1
+        assert (
+            context.message_parameterization_map[
+                "That's ball number 6 that Charlie hasn't brought back!"
+            ]
+            == "That's ball number <int> that Charlie hasn't brought back!"
+        )
+
+
+@django_db_all
+def test_parameterized_chained_error_messages_stored_on_context(default_project: Project) -> None:
+    with patch(
+        "sentry.grouping.api._get_variants_from_strategies", wraps=_get_variants_from_strategies
+    ) as mock_get_variants:
+        event = Event(
+            default_project.id,
+            "11211231",
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "DogSourcingError",
+                            "value": "Adopt don't shop!",
+                        },
+                        {
+                            "type": "FailedToFetchError",
+                            "value": "That's ball number 6 that Charlie hasn't brought back!",
+                        },
+                        {
+                            "type": "DestroyedShoeError",
+                            "value": "Oh, no! Maisey ate Dad's slippers!",
+                        },
+                    ]
+                },
+            },
+        )
+        event.get_grouping_variants()
+
+        context = mock_get_variants.call_args.args[1]
+
+        assert isinstance(context, GroupingContext)
+        assert len(context.message_parameterization_map) == 3
+        assert context.message_parameterization_map["Adopt don't shop!"] == "Adopt don't shop!"
+        assert (
+            context.message_parameterization_map[
+                "That's ball number 6 that Charlie hasn't brought back!"
+            ]
+            == "That's ball number <int> that Charlie hasn't brought back!"
+        )
+        assert (
+            context.message_parameterization_map["Oh, no! Maisey ate Dad's slippers!"]
+            == "Oh, no! Maisey ate Dad's slippers!"
+        )
+
+
+@django_db_all
+def test_stored_parameterized_message_used(default_project: Project) -> None:
+    with (
+        patch("sentry.grouping.utils.metrics.incr") as mock_metrics_incr,
+        patch(
+            "sentry.grouping.parameterization.parameterizer.parameterize",
+            wraps=parameterizer.parameterize,
+        ) as parameterize_spy,
+    ):
+        event = Event(
+            default_project.id,
+            "11211231",
+            data={
+                "message": "Dog number 1, #1 dog",
+                "fingerprint": ["{{ message }}"],
+            },
+        )
+        variants = event.get_grouping_variants()
+
+        assert len(variants) == 2
+        message_variant = variants["default"]
+        fingerprint_variant = variants["custom_client_fingerprint"]
+
+        assert isinstance(message_variant, ComponentVariant)
+        assert isinstance(message_variant.contributing_component, MessageGroupingComponent)
+        assert message_variant.contributing_component.values == ["Dog number <int>, #<int> dog"]
+
+        assert isinstance(fingerprint_variant, CustomFingerprintVariant)
+        assert fingerprint_variant.values == ["Dog number <int>, #<int> dog"]
+
+        # Even though the parameterized message was used in two places, the parameterizer only ran
+        # once, meaning the stored value must have been used
+        assert parameterize_spy.call_count == 1
+        assert count_matching_calls(mock_metrics_incr, "grouping.cached_param_result_used") == 1

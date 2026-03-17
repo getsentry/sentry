@@ -12,7 +12,7 @@ type Props = {
   onAction: (data: any) => void;
 };
 
-function ChangeARRAction(props: Props) {
+export function ChangeARRAction(props: Props) {
   return (
     <Button
       priority="link"
@@ -88,5 +88,3 @@ class ChangeARRModal extends Component<ModalProps, ModalState> {
     );
   }
 }
-
-export default ChangeARRAction;

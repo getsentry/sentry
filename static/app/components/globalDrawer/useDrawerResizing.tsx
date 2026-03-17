@@ -1,7 +1,7 @@
 import {useCallback, useLayoutEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 const MIN_WIDTH_PERCENT = 20;
@@ -77,9 +77,9 @@ export function useDrawerResizing({
       panelRef.current?.style.setProperty('--drawer-min-width', '100%');
       panelRef.current?.style.setProperty('--drawer-max-width', '100%');
     } else if (!enabled && drawerWidth) {
-      panelRef.current?.style.setProperty('--drawer-width', `${drawerWidth}`);
-      panelRef.current?.style.setProperty('--drawer-min-width', `${drawerWidth}`);
-      panelRef.current?.style.setProperty('--drawer-max-width', `${drawerWidth}`);
+      panelRef.current?.style.setProperty('--drawer-width', drawerWidth);
+      panelRef.current?.style.setProperty('--drawer-min-width', drawerWidth);
+      panelRef.current?.style.setProperty('--drawer-max-width', drawerWidth);
     } else {
       panelRef.current?.style.setProperty('--drawer-width', `${persistedWidthPercent}%`);
       panelRef.current?.style.setProperty('--drawer-min-width', `${MIN_WIDTH_PERCENT}%`);

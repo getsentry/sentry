@@ -6,7 +6,7 @@ import {
 } from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
-import IndicatorStore from 'sentry/stores/indicatorStore';
+import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import type {Organization} from 'sentry/types/organization';
 
 import TrialStarter from 'getsentry/components/trialStarter';
@@ -22,7 +22,7 @@ type StartTrialButtonProps = React.PropsWithChildren<{
 }> &
   (Omit<ButtonProps, 'children'> | Omit<LinkButtonProps, 'children'>);
 
-export default function StartTrialButton({
+export function StartTrialButton({
   children,
   organization,
   source,

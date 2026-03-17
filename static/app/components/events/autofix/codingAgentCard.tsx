@@ -12,15 +12,16 @@ import {DateTime} from 'sentry/components/dateTime';
 import {
   CodingAgentProvider,
   CodingAgentStatus,
+  getCodingAgentName,
   getResultButtonLabel,
   type CodingAgentState,
   type SeerRepoDefinition,
 } from 'sentry/components/events/autofix/types';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
@@ -34,7 +35,7 @@ interface CodingAgentCardProps {
   repo?: SeerRepoDefinition;
 }
 
-function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
+export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
   const getTagVariant = (status: CodingAgentStatus): TagProps['variant'] => {
     switch (status) {
       case CodingAgentStatus.COMPLETED:
@@ -67,19 +68,6 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
     return status === CodingAgentStatus.PENDING || status === CodingAgentStatus.RUNNING;
   };
 
-  const getProviderName = (provider: CodingAgentProvider) => {
-    switch (provider) {
-      case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:
-        return t('Cursor Cloud Agent');
-      case CodingAgentProvider.GITHUB_COPILOT_AGENT:
-        return t('GitHub Copilot');
-      case CodingAgentProvider.CLAUDE_CODE_AGENT:
-        return t('Claude Agent');
-      default:
-        return t('Coding Agent');
-    }
-  };
-
   const hasButtons = Boolean(
     codingAgentState.agent_url || codingAgentState.results?.some(result => result.pr_url)
   );
@@ -99,7 +87,7 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
                     ) : (
                       <IconCode size="md" variant="accent" />
                     )}
-                    {getProviderName(codingAgentState.provider)}
+                    {getCodingAgentName(codingAgentState.provider)}
                   </HeaderText>
                 </HeaderWrapper>
 
@@ -200,8 +188,6 @@ function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) {
     </React.Fragment>
   );
 }
-
-export default CodingAgentCard;
 
 const VerticalLine = styled('div')`
   width: 0;

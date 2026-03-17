@@ -7,7 +7,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -27,7 +27,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
@@ -67,7 +67,7 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
         )
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
     def test_simple(self) -> None:
         detector = self.create_detector(
@@ -754,7 +754,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert {d["name"] for d in response.data} == {self.detector.name, self.detector_2.name}
 
 
-@region_silo_test
+@cell_silo_test
 @with_feature("organizations:incidents")
 class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
     method = "POST"
@@ -1374,7 +1374,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
         assert detector.owner_team_id == other_team.id
 
 
-@region_silo_test
+@cell_silo_test
 @with_feature("organizations:incidents")
 class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
     method = "PUT"
@@ -1664,7 +1664,7 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert self.error_detector.enabled is True
 
 
-@region_silo_test
+@cell_silo_test
 class ConvertAssigneeValuesTest(APITestCase):
     """Test the convert_assignee_values function"""
 
@@ -1730,7 +1730,7 @@ class ConvertAssigneeValuesTest(APITestCase):
         self.assertEqual(str(result), str(expected))
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
     method = "DELETE"
 
@@ -1765,11 +1765,11 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         self.detector_two.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         assert self.detector_two.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector",
             object_id=self.detector.id,
         ).exists()
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector",
             object_id=self.detector_two.id,
         ).exists()
@@ -1796,7 +1796,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         # Ensure the detector is scheduled for deletion
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector",
             object_id=self.detector.id,
         ).exists()
@@ -1817,7 +1817,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         )
 
         assert self.error_detector.status != ObjectStatus.PENDING_DELETION
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.error_detector.id
         ).exists()
 
@@ -1878,7 +1878,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         # Ensure the detector is scheduled for deletion
         self.detector_two.refresh_from_db()
         assert self.detector_two.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector",
             object_id=self.detector_two.id,
         ).exists()

@@ -9,15 +9,15 @@ import {Input} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import ProgressBar from 'sentry/components/progressBar';
+import {ProgressBar} from 'sentry/components/progressBar';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {openOnDemandBudgetEditModal} from 'getsentry/actionCreators/modal';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {
   OnDemandBudgetMode,
   type OnDemandBudgets,
@@ -32,9 +32,9 @@ import {
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/spendLimits/utils';
-import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
-function PaygCard({
+export function PaygCard({
   subscription,
   organization,
 }: {
@@ -255,8 +255,6 @@ function UsageBar({totalBudget, totalSpend}: {totalBudget: number; totalSpend: n
 
   return <ProgressBar value={percentUsed} variant="small" />;
 }
-
-export default PaygCard;
 
 const Currency = styled('div')`
   &::before {

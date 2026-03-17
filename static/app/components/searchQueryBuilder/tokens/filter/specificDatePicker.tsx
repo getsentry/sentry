@@ -61,7 +61,7 @@ function createDateStringFromSelection({
   return dateWithTimeString + moment().format('Z');
 }
 
-function SpecificDatePicker({
+export function SpecificDatePicker({
   popoverRef,
   dateString,
   handleSelectDateTime,
@@ -309,5 +309,3 @@ const ButtonsFooter = styled(ControlsWrapper)`
   display: flex;
   justify-content: flex-end;
 `;
-
-export default SpecificDatePicker;

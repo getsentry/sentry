@@ -13,7 +13,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {EventListTable} from 'sentry/views/issueDetails/streamline/eventListTable';
