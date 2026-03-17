@@ -45,6 +45,13 @@ class SafeRenderer extends marked.Renderer {
   }
 }
 
+class NoHeadingRenderer extends SafeRenderer {
+  heading(tokens: Tokens.Heading) {
+    // Render headings as bold text instead of h1-h6 elements
+    return `<strong>${this.parser.parseInline(tokens.tokens)}</strong>`;
+  }
+}
+
 class NoParagraphRenderer extends SafeRenderer {
   paragraph(tokens: Tokens.Paragraph) {
     // Do not render the paragraph but still render sub-tokens
@@ -134,6 +141,13 @@ export const sanitizedMarked = (src: string): string => {
  * Renders a single line of markdown not wrapped in a paragraph tag.
  * WARNING: Does not apply any syntax highlighting.
  */
+export const sanitizedMarkedNoHeadings = (src: string): string => {
+  return noHighlightingMarked.parse(src, {
+    async: false,
+    renderer: new NoHeadingRenderer(),
+  });
+};
+
 export const singleLineRenderer = (text: string): string => {
   // https://marked.js.org/using_advanced#inline
   return noHighlightingMarked.parse(text, {

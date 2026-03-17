@@ -19,7 +19,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCode, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
+import {sanitizedMarkedNoHeadings} from 'sentry/utils/marked/marked';
 import {testableTransition} from 'sentry/utils/testableTransition';
 
 const animationProps: MotionNodeAnimationOptions = {
@@ -126,7 +126,7 @@ export function CodingAgentCard({codingAgentState, repo}: CodingAgentCardProps) 
                               <ResultDescription
                                 status={codingAgentState.status}
                                 dangerouslySetInnerHTML={{
-                                  __html: singleLineRenderer(result.description),
+                                  __html: sanitizedMarkedNoHeadings(result.description),
                                 }}
                               />
                             </Text>
