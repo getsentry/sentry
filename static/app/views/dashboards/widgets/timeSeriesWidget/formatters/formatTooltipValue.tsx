@@ -12,6 +12,7 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
+import {NUMBER_MAX_FRACTION_DIGITS} from 'sentry/views/dashboards/widgets/common/settings';
 import {
   isADurationUnit,
   isASizeUnit,
@@ -37,7 +38,7 @@ export function formatTooltipValue(
     case 'integer':
     case 'number':
       return value.toLocaleString(undefined, {
-        maximumFractionDigits: 4,
+        maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
       });
     case 'percentage':
       return formatPercentage(value, 2);
