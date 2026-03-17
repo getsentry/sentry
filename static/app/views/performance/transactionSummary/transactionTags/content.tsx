@@ -10,11 +10,11 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -47,7 +47,7 @@ type Props = {
 
 type TagOption = string;
 
-function TagsPageContent() {
+export function TagsPageContent() {
   const props = useTransactionSummaryContext();
   const {eventView, organization, projects} = props;
   const location = useLocation();
@@ -376,5 +376,3 @@ const FilterActions = styled('div')`
     grid-template-columns: auto 1fr auto;
   }
 `;
-
-export default TagsPageContent;

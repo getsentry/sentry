@@ -204,7 +204,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         assert integration.name == "octocat"
         assert integration.status == ObjectStatus.DISABLED
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
             assert repo.status == ObjectStatus.DISABLED
 

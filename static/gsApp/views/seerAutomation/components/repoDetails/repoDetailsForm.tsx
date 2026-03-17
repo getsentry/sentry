@@ -7,7 +7,7 @@ import {t, tct} from 'sentry/locale';
 import {type RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 import {type RepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
 interface Props {
@@ -15,7 +15,7 @@ interface Props {
   repoWithSettings: RepositoryWithSettings;
 }
 
-export default function RepoDetailsForm({organization, repoWithSettings}: Props) {
+export function RepoDetailsForm({organization, repoWithSettings}: Props) {
   const canWrite = useCanWriteSettings();
 
   return (

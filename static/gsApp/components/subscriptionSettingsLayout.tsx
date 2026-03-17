@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import SettingsBreadcrumb from 'sentry/views/settings/components/settingsBreadcrumb';
 import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
-import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
-import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
+import {SettingsHeader} from 'sentry/views/settings/components/settingsHeader';
+import {SettingsSearch} from 'sentry/views/settings/components/settingsSearch';
 
 export default function SubscriptionSettingsLayout() {
   const location = useLocation();

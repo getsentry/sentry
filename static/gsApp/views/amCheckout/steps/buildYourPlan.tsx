@@ -15,9 +15,9 @@ import {
   isNewPayingCustomer,
   isTrialPlan,
 } from 'getsentry/utils/billing';
-import PlanFeatures from 'getsentry/views/amCheckout/components/planFeatures';
-import PlanSelectCard from 'getsentry/views/amCheckout/components/planSelectCard';
-import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
+import {PlanFeatures} from 'getsentry/views/amCheckout/components/planFeatures';
+import {PlanSelectCard} from 'getsentry/views/amCheckout/components/planSelectCard';
+import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
 import type {CheckoutFormData, StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -145,7 +145,7 @@ function AdditionalProductsSubstep({
   );
 }
 
-function BuildYourPlan({
+export function BuildYourPlan({
   activePlan,
   billingConfig,
   organization,
@@ -176,5 +176,3 @@ function BuildYourPlan({
     </Stack>
   );
 }
-
-export default BuildYourPlan;

@@ -6,10 +6,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import DiscoverButton from 'sentry/components/discoverButton';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DiscoverButton} from 'sentry/components/discoverButton';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSettings} from 'sentry/icons';
@@ -21,16 +21,16 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {
   formatUsageWithUnits,
   getFormatUsageOptions,
 } from 'sentry/views/organizationStats/utils';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import trackSpendVisibilityAnaltyics, {
   SpendVisibilityEvents,
@@ -39,7 +39,7 @@ import {
   SPIKE_PROTECTION_DOCS_LINK,
   SPIKE_PROTECTION_ERROR_MESSAGE,
 } from 'getsentry/views/spikeProtection/constants';
-import SpikeProtectionTimeDetails from 'getsentry/views/spikeProtection/spikeProtectionTimeDetails';
+import {SpikeProtectionTimeDetails} from 'getsentry/views/spikeProtection/spikeProtectionTimeDetails';
 import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 
 import {isSpikeProtectionEnabled} from './spikeProtectionProjectToggle';

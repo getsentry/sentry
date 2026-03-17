@@ -8,7 +8,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 @all_silo_test
 class TombstoneTest(TransactionTestCase):
     def test_writing_control_models(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert RegionTombstone.objects.count() == 0
 
         user_id = self.user.id
@@ -17,7 +17,7 @@ class TombstoneTest(TransactionTestCase):
         with outbox_runner(), assume_test_silo_mode(SiloMode.CONTROL):
             self.user.delete()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert RegionTombstone.objects.count() == 1
             assert RegionTombstone.objects.filter(
                 table_name="auth_user", object_identifier=user_id
@@ -28,7 +28,7 @@ class TombstoneTest(TransactionTestCase):
             assert ControlTombstone.objects.count() == 0
         org_id = self.organization.id
 
-        with outbox_runner(), assume_test_silo_mode(SiloMode.REGION):
+        with outbox_runner(), assume_test_silo_mode(SiloMode.CELL):
             self.organization.delete()
 
         with assume_test_silo_mode(SiloMode.CONTROL):

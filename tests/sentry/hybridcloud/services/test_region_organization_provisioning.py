@@ -46,7 +46,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
     def organization_matches_provisioning_args(
         self, organization_id: int, provisioning_options: OrganizationProvisioningOptions
     ) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org: Organization = Organization.objects.get(id=organization_id)
             assert org.slug == provisioning_options.provision_options.slug
             assert org.name == provisioning_options.provision_options.name
@@ -56,7 +56,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         assert org.is_test == provisioning_options.provision_options.is_test
 
     def assert_has_default_team_and_membership(self, organization_id: int, user_id: int) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org_membership = OrganizationMember.objects.get(
                 organization_id=organization_id, user_id=user_id
             )
@@ -69,8 +69,8 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user)
         organization_id = 42
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert result
@@ -83,8 +83,8 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user, create_default_team=False)
         organization_id = 42
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert result
@@ -92,7 +92,7 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             organization_id=organization_id, provisioning_options=provision_options
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not Team.objects.filter(organization_id=organization_id).exists()
 
     def test_provisions_when_fully_conflicting_org_has_matching_owner(self) -> None:
@@ -104,8 +104,8 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         assert existing_org.id == organization_id
 
         provision_options = self.get_provisioning_args(user, create_default_team=False)
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert result
@@ -125,13 +125,13 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
         provisioning_user = self.create_user()
         provision_options = self.get_provisioning_args(provisioning_user, create_default_team=False)
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert not result
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # Ensure that the user has not been added to any orgs since provisioning failed
             provisioning_user_memberships = OrganizationMember.objects.filter(
                 user_id=provisioning_user.id
@@ -142,12 +142,12 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user)
         provision_options.provision_options.name = "a" * 128
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=42, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=42, provision_payload=provision_options, cell_name="us"
         )
 
         assert result is True
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org: Organization = Organization.objects.get(id=42)
             assert org.name == "a" * 64
 
@@ -161,13 +161,13 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
 
         provisioning_user = self.create_user()
         provision_options = self.get_provisioning_args(provisioning_user)
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert not result
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             provisioning_user_memberships = OrganizationMember.objects.filter(
                 user_id=provisioning_user.id
             )
@@ -183,12 +183,12 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         )
 
         provision_options = self.get_provisioning_args(user)
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert not result
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not Organization.objects.filter(
                 slug=provision_options.provision_options.slug
             ).exists()
@@ -201,13 +201,13 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         self.create_organization(slug="santry", name="Santry", owner=user)
 
         provision_options = self.get_provisioning_args(user)
-        result = region_organization_provisioning_rpc_service.create_organization_in_region(
-            organization_id=organization_id, provision_payload=provision_options, region_name="us"
+        result = region_organization_provisioning_rpc_service.create_organization_in_cell(
+            organization_id=organization_id, provision_payload=provision_options, cell_name="us"
         )
 
         assert not result
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not Organization.objects.filter(id=organization_id).exists()
 
     def test_streamline_only_is_true(self) -> None:
@@ -217,12 +217,12 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         user = self.create_user()
         provision_options = self.get_provisioning_args(user)
         organization_id = 42
-        region_organization_provisioning_rpc_service.create_organization_in_region(
+        region_organization_provisioning_rpc_service.create_organization_in_cell(
             organization_id=organization_id,
             provision_payload=provision_options,
-            region_name="us",
+            cell_name="us",
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org: Organization = Organization.objects.get(id=organization_id)
             assert OrganizationOption.objects.get_value(org, "sentry:streamline_ui_only")
 
@@ -266,7 +266,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         )
         result = (
             region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-                region_name="us",
+                cell_name="us",
                 org_slug_temporary_alias_res=self.create_rpc_organization_slug_reservation(
                     desired_slug
                 ),
@@ -274,14 +274,14 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         )
 
         assert result
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             updated_org = Organization.objects.get(id=self.provisioned_org.id)
         assert updated_org.slug == desired_slug
 
     def test_returns_true_if_organization_slug_already_updated(self) -> None:
         result = (
             region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-                region_name="us",
+                cell_name="us",
                 org_slug_temporary_alias_res=self.create_rpc_organization_slug_reservation(
                     self.provisioned_org.slug
                 ),
@@ -289,24 +289,24 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         )
 
         assert result
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             updated_org = Organization.objects.get(id=self.provisioned_org.id)
         assert updated_org.slug == self.provisioned_org.slug
 
     def test_fails_if_organization_not_found(self) -> None:
         rpc_org_slug_res = self.create_rpc_organization_slug_reservation("new-santry")
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.provisioned_org.delete()
 
         result = (
             region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-                region_name="us",
+                cell_name="us",
                 org_slug_temporary_alias_res=rpc_org_slug_res,
             )
         )
 
         assert not result
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not Organization.objects.filter(slug="new-santry").exists()
 
     def test_does_not_update_slug_when_conflict_exists(self) -> None:
@@ -314,7 +314,7 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         self.create_organization(slug=desired_slug, name="conflicted org", owner=self.create_user())
         result = (
             region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-                region_name="us",
+                cell_name="us",
                 org_slug_temporary_alias_res=self.create_rpc_organization_slug_reservation(
                     desired_slug
                 ),
@@ -322,6 +322,6 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         )
 
         assert not result
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org = Organization.objects.get(id=self.provisioned_org.id)
         assert org.slug == self.provisioned_org.slug

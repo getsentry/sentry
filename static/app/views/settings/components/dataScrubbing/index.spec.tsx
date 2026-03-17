@@ -133,7 +133,7 @@ describe('Data Scrubbing', () => {
       ).toBeInTheDocument();
     });
 
-    it('OrganizationRules has content', () => {
+    it('OrganizationRules has content', async () => {
       const organization = OrganizationFixture({
         relayPiiConfig,
       });
@@ -153,7 +153,7 @@ describe('Data Scrubbing', () => {
       );
 
       // Organization Rules
-      expect(screen.getByText('Organization Rules')).toBeInTheDocument();
+      expect(await screen.findByText('Organization Rules')).toBeInTheDocument();
     });
 
     it('Delete rule successfully', async () => {

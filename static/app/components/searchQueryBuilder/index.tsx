@@ -28,7 +28,7 @@ import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {FieldKind} from 'sentry/utils/fields';
-import PanelProvider from 'sentry/utils/panelProvider';
+import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 export type GetTagValues = (

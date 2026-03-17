@@ -9,7 +9,7 @@ from snuba_sdk import Column, Condition, Function, Op
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -91,7 +91,7 @@ def add_comparison_to_event(event, average_columns, request: Request):
                     span["span.averageResults"] = average_results
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

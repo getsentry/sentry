@@ -13,7 +13,7 @@ type Props = {
   showNonContributing: boolean;
 };
 
-function GroupingComponentChildren({component, showNonContributing}: Props) {
+export function GroupingComponentChildren({component, showNonContributing}: Props) {
   return (
     <Fragment>
       {component.values
@@ -66,5 +66,3 @@ const GroupingValue = styled('code')<{
         : theme.tokens.content.secondary};
     `}
 `;
-
-export default GroupingComponentChildren;

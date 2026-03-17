@@ -10,11 +10,7 @@ interface Props {
   projectSlug: string;
 }
 
-export default function useFetchCrashReport({
-  crashReportId,
-  organization,
-  projectSlug,
-}: Props) {
+export function useFetchCrashReport({crashReportId, organization, projectSlug}: Props) {
   const {data: eventData, isFetching: isEventFetching} = useApiQuery<Event>(
     [
       getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/', {

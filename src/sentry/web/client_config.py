@@ -123,8 +123,8 @@ def _get_public_dsn() -> str | None:
 
     result = cache.get(cache_key)
     if result is None:
-        key = project_key_service.get_project_key_by_region(
-            region_name=settings.SENTRY_MONOLITH_REGION,
+        key = project_key_service.get_project_key_by_cell(
+            cell_name=settings.SENTRY_MONOLITH_REGION,
             project_id=project_id,
             role=ProjectKeyRole.store,
         )

@@ -2,12 +2,12 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import {t, tct} from 'sentry/locale';
 import ModalManager from 'sentry/views/settings/organizationRelay/modals/modalManager';
 
-import Item from './item';
-import Terminal from './terminal';
+import {Item} from './item';
+import {Terminal} from './terminal';
 
 class Add extends ModalManager {
   getTitle() {

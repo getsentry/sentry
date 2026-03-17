@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectDistributionPermission, ProjectEndpoint
 from sentry.models.project import Project
 from sentry.preprod.build_distribution_utils import (
@@ -66,7 +66,7 @@ def _build_details_from_artifact(artifact: PreprodArtifact) -> InstallableBuildD
 # Deprecated: This experimental endpoint is superseded by the public
 # ProjectPreprodBuildDistributionLatestEndpoint at
 # /api/0/{org}/{project}/preprodartifacts/build-distribution/latest/
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {

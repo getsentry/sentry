@@ -14,7 +14,7 @@ import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {GithubButton} from 'getsentry/views/seerAutomation/onboarding/githubButton';
 import {SeerOnboardingProvider} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 
-export default function SeerConnectGitHubBanner() {
+export function SeerConnectGitHubBanner() {
   const theme = useInvertedTheme();
 
   const {data, isFetched, isError} = useSeerOnboardingCheck();

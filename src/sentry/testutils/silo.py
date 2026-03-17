@@ -334,7 +334,7 @@ Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to CONTROL.
 """
 
-region_silo_test = SiloModeTestDecorator(SiloMode.REGION)
+cell_silo_test = SiloModeTestDecorator(SiloMode.CELL)
 """
 Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to REGION.
@@ -369,7 +369,7 @@ def assume_test_silo_mode(
         desired_silo = SiloMode.MONOLITH
 
     with override_settings(SILO_MODE=desired_silo):
-        if desired_silo == SiloMode.REGION:
+        if desired_silo == SiloMode.CELL:
             region_dir = get_test_env_directory()
             if region_name is None:
                 with region_dir.swap_to_default_region():
@@ -388,7 +388,7 @@ def assume_test_silo_mode_of(*models: type[BaseModel], can_be_monolith: bool = T
 
     The argument should be one or more model classes that are scoped to exactly one
     non-monolith mode. That is, they must be tagged with `control_silo_model` or
-    `region_silo_model`. The enclosed context is swapped into the appropriate
+    `cell_silo_model`. The enclosed context is swapped into the appropriate
     mode, allowing the model to be accessed.
 
     If no silo-scoped models are provided, no mode swap is performed.
@@ -436,7 +436,7 @@ _protected_operations: list[re.Pattern] = []
 
 def get_protected_operations() -> list[re.Pattern]:
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
+    from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 
     if len(_protected_operations):
         return _protected_operations
@@ -455,9 +455,7 @@ def get_protected_operations() -> list[re.Pattern]:
                     continue
                 seen_models.add(fk_model)
                 _protected_operations.append(protected_table(fk_model._meta.db_table, "delete"))
-            if issubclass(model, ReplicatedControlModel) or issubclass(
-                model, ReplicatedRegionModel
-            ):
+            if issubclass(model, ReplicatedControlModel) or issubclass(model, ReplicatedCellModel):
                 _protected_operations.append(protected_table(model._meta.db_table, "insert"))
                 _protected_operations.append(protected_table(model._meta.db_table, "update"))
                 _protected_operations.append(protected_table(model._meta.db_table, "delete"))
@@ -554,7 +552,7 @@ def validate_models_have_silos(exemptions: set[type[Model]], app_name: str | Non
         if model in exemptions:
             continue
         silo_limit = _model_silo_limit(model)
-        if SiloMode.REGION not in silo_limit.modes and SiloMode.CONTROL not in silo_limit.modes:
+        if SiloMode.CELL not in silo_limit.modes and SiloMode.CONTROL not in silo_limit.modes:
             raise ValueError(
                 f"{model!r} is marked as a pending model, but either needs a placement or an exemption in this test."
             )
@@ -632,9 +630,9 @@ def validate_hcfk_has_global_id(model: type[Model], related_model: type[Model]):
         return
 
     # but they cannot point to region models otherwise.
-    if SiloMode.REGION in _model_silo_limit(related_model).modes:
+    if SiloMode.CELL in _model_silo_limit(related_model).modes:
         raise ValueError(
-            f"{related_model!r} runs in {SiloMode.REGION}, but is related to {model!r} via a HybridCloudForeignKey! Region model ids are not global, unless you use a snowflake id."
+            f"{related_model!r} runs in {SiloMode.CELL}, but is related to {model!r} via a HybridCloudForeignKey! Region model ids are not global, unless you use a snowflake id."
         )
 
 

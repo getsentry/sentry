@@ -43,7 +43,7 @@ class RetryTask(Exception):
         times=MAX_RETRIES,
         delay=60 * 5,
     ),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(exclude=(DeleteAborted,))
 @track_group_async_operation

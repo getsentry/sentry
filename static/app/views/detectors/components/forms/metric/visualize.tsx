@@ -8,7 +8,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
@@ -21,8 +21,8 @@ import {
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {unreachable} from 'sentry/utils/unreachable';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTags from 'sentry/utils/useTags';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTags} from 'sentry/utils/useTags';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
@@ -32,14 +32,10 @@ import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCustomMeasurements';
-import {
-  useTraceItemBooleanAttributes,
-  useTraceItemNumberAttributes,
-  useTraceItemStringAttributes,
-} from 'sentry/views/detectors/datasetConfig/useTraceItemAttributes';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 /**
@@ -244,18 +240,21 @@ function GenericVisualize() {
 
   const traceItemType =
     dataset === DetectorDataset.SPANS ? TraceItemDataset.SPANS : TraceItemDataset.LOGS;
-  const {attributes: numericSpanTags} = useTraceItemNumberAttributes({
+  const {attributes: numericSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    projectIds: [Number(projectId)],
-  });
-  const {attributes: stringSpanTags} = useTraceItemStringAttributes({
+    {projects: [projectId]},
+    'number'
+  );
+  const {attributes: stringSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    projectIds: [Number(projectId)],
-  });
-  const {attributes: booleanSpanTags} = useTraceItemBooleanAttributes({
+    {projects: [projectId]},
+    'string'
+  );
+  const {attributes: booleanSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    projectIds: [Number(projectId)],
-  });
+    {projects: [projectId]},
+    'boolean'
+  );
   const formContext = useContext(FormContext);
 
   const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;

@@ -1,6 +1,6 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openExternalIssueModal} from 'sentry/components/externalIssues/externalIssueForm';
-import useFetchIntegrations from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
+import {useFetchIntegrations} from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {GroupIntegration} from 'sentry/types/integrations';
@@ -8,8 +8,8 @@ import {
   getIntegrationDisplayName,
   getIntegrationIcon,
 } from 'sentry/utils/integrationUtil';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ExternalIssueAction, GroupIntegrationIssueResult} from './types';
 

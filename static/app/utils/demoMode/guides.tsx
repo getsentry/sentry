@@ -1,6 +1,6 @@
 import type {GuidesContent} from 'sentry/components/assistant/types';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {
   OnboardingTaskKey,
   type OnboardingTaskStatus,

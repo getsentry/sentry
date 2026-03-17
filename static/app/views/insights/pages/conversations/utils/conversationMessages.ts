@@ -168,6 +168,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       seenAssistantContent.add(turn.assistantContent);
 
       // Duration: from start of generation span to end of last span (generation or tool)
+      const startTs = getNodeStartTimestamp(turn.generation);
       const genEnd = getNodeEndTimestamp(turn.generation);
       const toolSpanNodes = turn.toolSpanNodes ?? [];
       const lastToolEnd =
@@ -175,7 +176,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
           ? Math.max(...toolSpanNodes.map(getNodeEndTimestamp))
           : 0;
       const endTs = Math.max(genEnd, lastToolEnd);
-      const duration = endTs > timestamp ? endTs - timestamp : undefined;
+      const duration = endTs > startTs ? endTs - startTs : undefined;
 
       messages.push({
         id: `assistant-${turn.generation.id}`,
@@ -257,6 +258,16 @@ export function parseAssistantContent(node: AITraceSpanNode): string | null {
 }
 
 export function getNodeTimestamp(node: AITraceSpanNode): number {
+  if ('end_timestamp' in node.value && typeof node.value.end_timestamp === 'number') {
+    return node.value.end_timestamp;
+  }
+  if ('timestamp' in node.value && typeof node.value.timestamp === 'number') {
+    return node.value.timestamp;
+  }
+  return 0;
+}
+
+function getNodeStartTimestamp(node: AITraceSpanNode): number {
   return 'start_timestamp' in node.value ? node.value.start_timestamp : 0;
 }
 

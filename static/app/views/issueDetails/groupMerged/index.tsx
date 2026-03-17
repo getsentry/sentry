@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
 import * as qs from 'query-string';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import QueryCount from 'sentry/components/queryCount';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {QueryCount} from 'sentry/components/queryCount';
 import {t, tct} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
@@ -13,9 +13,9 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import MergedList from './mergedList';
+import {MergedList} from './mergedList';
 
 type Props = {
   groupId: Group['id'];
@@ -23,7 +23,7 @@ type Props = {
   project: Project;
 };
 
-function GroupMergedView(props: Props) {
+export function GroupMergedView(props: Props) {
   const organization = useOrganization();
   const [mergedItems, setMergedItems] = useState<Fingerprint[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -134,8 +134,6 @@ function GroupMergedView(props: Props) {
     </Fragment>
   );
 }
-
-export default GroupMergedView;
 
 const Title = styled('h4')`
   font-size: ${p => p.theme.font.size.lg};

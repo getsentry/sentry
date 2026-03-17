@@ -11,7 +11,7 @@ import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
@@ -37,7 +37,7 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import withProjects from 'sentry/utils/withProjects';
+import {withProjects} from 'sentry/utils/withProjects';
 import Tags from 'sentry/views/discover/results/tags';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
@@ -73,13 +73,13 @@ import {
   isSummaryViewFrontendPageLoad,
 } from 'sentry/views/performance/utils';
 
-import TransactionSummaryCharts from './charts';
+import {TransactionSummaryCharts} from './charts';
 import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
-import RelatedIssues from './relatedIssues';
-import SidebarCharts from './sidebarCharts';
-import StatusBreakdown from './statusBreakdown';
+import {RelatedIssues} from './relatedIssues';
+import {SidebarChartsContainer as SidebarCharts} from './sidebarCharts';
+import {StatusBreakdown} from './statusBreakdown';
 import {TagExplorer} from './tagExplorer';
-import UserStats from './userStats';
+import {UserStats} from './userStats';
 
 type Props = {
   error: QueryError | null;

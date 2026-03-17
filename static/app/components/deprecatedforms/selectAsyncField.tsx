@@ -4,7 +4,7 @@ import {
   SelectField,
   type SelectFieldProps,
 } from 'sentry/components/deprecatedforms/selectField';
-import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
+import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext';
 
 interface SelectAsyncFieldProps
   extends

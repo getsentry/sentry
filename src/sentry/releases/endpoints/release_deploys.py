@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
@@ -135,7 +135,7 @@ def create_deploy(
 
 
 @extend_schema(tags=["Releases"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {

@@ -4,7 +4,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getMessage} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 

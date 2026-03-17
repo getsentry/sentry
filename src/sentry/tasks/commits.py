@@ -77,7 +77,7 @@ def handle_invalid_identity(identity, commit_failure=False):
     namespace=issues_tasks,
     processing_deadline_duration=60 * 15 + 5,
     retry=Retry(times=5, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist))
 def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **kwargs):

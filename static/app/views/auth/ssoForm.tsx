@@ -12,7 +12,7 @@ type Props = {
   authConfig: AuthConfig;
 };
 
-function SsoForm({authConfig}: Props) {
+export function SsoForm({authConfig}: Props) {
   const navigate = useNavigate();
   const [error, setError] = useState('');
 
@@ -72,5 +72,3 @@ function SlugExample({hostname, slug}: SlugExampleProps) {
     </code>
   );
 }
-
-export default SsoForm;

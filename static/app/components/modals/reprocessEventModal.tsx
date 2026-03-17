@@ -8,7 +8,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import Form from 'sentry/components/forms/form';
-import List from 'sentry/components/list';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';

@@ -23,7 +23,7 @@ const getPadding = ({disablePadding, hasButtons, theme}: Props & {theme: Theme})
     ${disablePadding ? 0 : theme.space.xl};
 `;
 
-const PanelHeader = styled('div')<Props>`
+export const PanelHeader = styled('div')<Props>`
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -46,5 +46,3 @@ const PanelHeader = styled('div')<Props>`
   position: relative;
   ${getPadding};
 `;
-
-export default PanelHeader;

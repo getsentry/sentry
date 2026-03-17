@@ -1,4 +1,4 @@
-function AreaPreview() {
+export function AreaPreview() {
   return (
     <svg
       viewBox="0 0 141 54"
@@ -12,5 +12,3 @@ function AreaPreview() {
     </svg>
   );
 }
-
-export default AreaPreview;

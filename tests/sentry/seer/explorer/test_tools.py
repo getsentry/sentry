@@ -1445,6 +1445,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert isinstance(result["timeseries_interval"], str | None)
         assert isinstance(result["tags_overview"], dict | None)
         assert isinstance(result["user_activity"], list | None)
+        assert isinstance(result["project_id"], int)
+        assert isinstance(result["project_slug"], str)
 
     # --- basic shape and group lookup ---
 
@@ -1468,6 +1470,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
         assert result["issue"]["issueTypeDescription"] == group.issue_type.description
+        assert result["project_id"] == group.project_id
+        assert result["project_slug"] == group.project.slug
 
     @patch("sentry.seer.explorer.tools._get_issue_event_timeseries")
     @patch("sentry.seer.explorer.tools.get_all_tags_overview")
@@ -1488,6 +1492,8 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert isinstance(result, dict)
         self._assert_issue_response_shape(result)
         assert result["issue"]["id"] == str(group.id)
+        assert result["project_id"] == group.project_id
+        assert result["project_slug"] == group.project.slug
 
     # --- timeseries ---
 
@@ -2966,7 +2972,7 @@ class TestLogsQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         result = execute_table_query(
             org_id=self.organization.id,
@@ -3038,11 +3044,11 @@ class TestLogsTraceQuery(APITransactionTestCase, SnubaTestCase, OurLogTestCase):
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(self.logs)
+        self.store_eap_items(self.logs)
 
     @staticmethod
     def get_id_str(item: TraceItem) -> str:
-        return item.item_id[::-1].hex()
+        return item.item_id.hex()
 
     def test_get_log_attributes_for_trace_basic(self) -> None:
         result = get_log_attributes_for_trace(
@@ -3187,11 +3193,11 @@ class TestMetricsTraceQuery(APITransactionTestCase, SnubaTestCase, TraceMetricsT
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_trace_metrics(self.metrics)
+        self.store_eap_items(self.metrics)
 
     @staticmethod
     def get_id_str(item: TraceItem) -> str:
-        return item.item_id[::-1].hex()
+        return item.item_id.hex()
 
     def test_get_metric_attributes_for_trace_basic(self) -> None:
         result = get_metric_attributes_for_trace(

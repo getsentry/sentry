@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import type {Event, EventEvidenceDisplay} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDetectorDetails} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 
 enum KnownEvidence {
@@ -145,7 +145,11 @@ export function OccurrenceSummary({group, event, className}: OccurrenceSummaryPr
 
   return items.length > 0 ? (
     <div>
-      <ScrollCarousel gap={3} aria-label={t('Occurrence summary')} className={className}>
+      <ScrollCarousel
+        gap="2xl"
+        aria-label={t('Occurrence summary')}
+        className={className}
+      >
         {items.map((item, i) => (
           <div key={i}>{item}</div>
         ))}

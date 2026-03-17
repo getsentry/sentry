@@ -82,6 +82,7 @@ describe('CodeChangesPreview', () => {
   function makePatch(repoName: string, path: string): ExplorerFilePatch {
     return {
       repo_name: repoName,
+      diff: '',
       patch: {
         path,
         added: 1,
@@ -133,7 +134,7 @@ describe('CodeChangesPreview', () => {
     render(<CodeChangesPreview artifact={[]} />);
 
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
-    expect(screen.queryByText(/file/)).not.toBeInTheDocument();
+    expect(screen.getByText('No files changed')).toBeInTheDocument();
   });
 });
 
