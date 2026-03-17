@@ -309,9 +309,7 @@ function DashboardTable({
                         ? tct('[label] dashboards cannot be duplicated', {
                             label: PREBUILT_DASHBOARD_LABEL,
                           })
-                        : hasReachedDashboardLimit
-                          ? limitMessage
-                          : undefined,
+                        : limitMessage,
                   }}
                 />
               )}
