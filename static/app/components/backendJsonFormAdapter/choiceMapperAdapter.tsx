@@ -49,9 +49,9 @@ function AsyncSearchCompactSelect({
   onChange,
   ...triggerProps
 }: {
+  defaultOptions: Array<SelectOption<string>>;
   onChange: (option: SelectOption<string>) => void;
   url: string;
-  defaultOptions?: Array<SelectOption<string>>;
   noResultsMessage?: string;
   searchField?: string;
 } & DistributedPick<SelectProps<string>, 'trigger'>) {
@@ -60,19 +60,17 @@ function AsyncSearchCompactSelect({
   const [apiClient] = useState(() => new Client({baseUrl: ''}));
   const api = useApi({api: apiClient});
 
-  const {data, isFetching} = useQuery<Array<SelectOption<string>>>({
+  const {data: options = defaultOptions, isFetching} = useQuery({
     queryKey: [url, {field: searchField, query: debouncedSearch}],
-    queryFn: () =>
+    queryFn: (): Promise<Array<SelectOption<string>>> =>
       api.requestPromise(url, {
         query: {field: searchField, query: debouncedSearch},
       }),
     enabled: !!debouncedSearch,
     staleTime: 30_000,
     placeholderData: previousData => (debouncedSearch ? previousData : undefined),
+    select: data => data.map(item => ({value: item.value, label: item.label})),
   });
-
-  const options =
-    data?.map(item => ({value: item.value, label: item.label})) ?? defaultOptions ?? [];
 
   return (
     <CompactSelect
