@@ -7,7 +7,7 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 discover: 0003_discover_json_field
 
-explore: 0006_add_changed_reason_field_explore
+explore: 0007_update_numeric_attrs_to_bools
 
 feedback: 0007_cleanup_failed_safe_deletes
 
