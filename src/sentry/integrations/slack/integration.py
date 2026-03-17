@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import copy
-import functools
 import logging
 from collections import namedtuple
-from collections.abc import Callable, Mapping, Sequence
-from typing import Any, TypeVar
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
@@ -39,8 +37,6 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
 _logger = logging.getLogger("sentry.integrations.slack")
-
-F = TypeVar("F", bound=Callable[..., Any])
 
 Channel = namedtuple("Channel", ["name", "id"])
 
@@ -174,29 +170,19 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         except SlackApiError as e:
             translate_slack_api_error(e)
 
-    @staticmethod
-    def requires_scope(scope: SlackScope, *, default: Any = None) -> Callable[[F], F]:
-        """Decorator that gates a method on a required OAuth scope.
+    def has_scope(self, scope: SlackScope) -> bool:
+        """Check whether this integration was granted the given OAuth scope.
 
-        If the scope is missing, logs a warning and returns ``default``.
+        Logs a warning and returns ``False`` when the scope is missing.
         """
+        if scope not in self.model.metadata.get("scopes", []):
+            _logger.warning(
+                "slack.missing_scope",
+                extra={"integration_id": self.model.id, "scope": scope},
+            )
+            return False
+        return True
 
-        def decorator(fn: F) -> F:
-            @functools.wraps(fn)
-            def wrapper(self: SlackIntegration, *args: Any, **kwargs: Any) -> Any:
-                if scope not in self.model.metadata.get("scopes", []):
-                    _logger.warning(
-                        "slack.missing_scope",
-                        extra={"integration_id": self.model.id, "scope": scope},
-                    )
-                    return default if default is None else copy.copy(default)
-                return fn(self, *args, **kwargs)
-
-            return wrapper  # type: ignore[return-value]
-
-        return decorator
-
-    @requires_scope(SlackScope.CHANNELS_HISTORY, default=[])
     def get_thread_history(
         self,
         *,
@@ -207,6 +193,9 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         Fetch thread replies using the conversations.replies API.
         Returns a list of message dicts, or an empty list on error.
         """
+        if not self.has_scope(SlackScope.CHANNELS_HISTORY):
+            return []
+
         client = self.get_client()
         try:
             response = client.conversations_replies(
