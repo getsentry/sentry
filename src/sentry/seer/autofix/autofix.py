@@ -16,6 +16,7 @@ from sentry.api.endpoints.organization_trace import OrganizationTraceEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.auto_source_code_config.code_mapping import (
     convert_stacktrace_frame_path_to_source_path,
@@ -199,14 +200,13 @@ def _pre_resolve_stacktrace_frames(
     platform = serialized_event.get("platform")
     sdk_name = serialized_event.get("sdk", {}).get("name") if serialized_event.get("sdk") else None
 
-    # Build a lookup: repo full_name -> list of code mappings for that repo
-    repo_mappings: dict[str, list] = {}
+    # Build ordered list of (repo_full_name, code_mapping) preserving global priority
+    ordered_mappings: list[tuple[str, RepositoryProjectPathConfig]] = []
     for cm in code_mappings:
         repo = cm.repository
         repo_name_sections = repo.name.split("/")
         if len(repo_name_sections) > 1 and repo.provider:
-            full_name = repo.name
-            repo_mappings.setdefault(full_name, []).append(cm)
+            ordered_mappings.append((repo.name, cm))
 
     for entry in serialized_event.get("entries", []):
         frames = None
@@ -214,21 +214,21 @@ def _pre_resolve_stacktrace_frames(
             for exception in entry.get("data", {}).get("values", []):
                 frames = (exception.get("stacktrace") or {}).get("frames")
                 if frames:
-                    _resolve_frames(frames, repo_mappings, platform, sdk_name)
+                    _resolve_frames(frames, ordered_mappings, platform, sdk_name)
         elif entry.get("type") == "threads":
             for thread in entry.get("data", {}).get("values", []):
                 frames = (thread.get("stacktrace") or {}).get("frames")
                 if frames:
-                    _resolve_frames(frames, repo_mappings, platform, sdk_name)
+                    _resolve_frames(frames, ordered_mappings, platform, sdk_name)
 
 
 def _resolve_frames(
     frames: list[dict[str, Any]],
-    repo_mappings: dict[str, list],
+    ordered_mappings: list[tuple[str, RepositoryProjectPathConfig]],
     platform: str | None,
     sdk_name: str | None,
 ) -> None:
-    """Resolve each frame's repo_name using code mappings with platform munging."""
+    """Resolve each frame's repo_name using code mappings in global priority order."""
 
     for frame in frames:
         if not frame.get("inApp"):
@@ -245,18 +245,13 @@ def _resolve_frames(
             lineno=frame.get("lineNo"),
         )
 
-        for repo_full_name, mappings in repo_mappings.items():
-            resolved = False
-            for cm in mappings:
-                source_path = convert_stacktrace_frame_path_to_source_path(
-                    event_frame, cm, platform, sdk_name
-                )
-                if source_path:
-                    frame["repo_name"] = repo_full_name
-                    frame["filename"] = source_path
-                    resolved = True
-                    break
-            if resolved:
+        for repo_full_name, cm in ordered_mappings:
+            source_path = convert_stacktrace_frame_path_to_source_path(
+                event_frame, cm, platform, sdk_name
+            )
+            if source_path:
+                frame["repo_name"] = repo_full_name
+                frame["filename"] = source_path
                 break
 
 
