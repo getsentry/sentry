@@ -200,9 +200,9 @@ export function formatTraceMetricsFunction(
 }
 
 export function useGlobalFilterTraceMetricsSearchBarDataProvider(
-  props: SearchBarDataProviderProps
+  props: Pick<SearchBarDataProviderProps, 'pageFilters'>
 ): SearchBarData {
-  const {pageFilters, widgetQuery} = props;
+  const {pageFilters} = props;
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes({}, 'string', HiddenTraceMetricSearchFields);
@@ -221,7 +221,7 @@ export function useGlobalFilterTraceMetricsSearchBarDataProvider(
       numberSecondaryAliases,
       stringSecondaryAliases,
       searchSource: 'dashboards',
-      initialQuery: widgetQuery?.conditions ?? '',
+      initialQuery: '',
       projects: pageFilters.projects,
     });
 
