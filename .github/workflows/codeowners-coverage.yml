@@ -30,8 +30,5 @@ jobs:
       - name: Install codeowners-coverage
         run: pip install codeowners-coverage==0.2.1
 
-      - name: print codeowners-coverage version
-        run: codeowners-coverage --version
-
       - name: Run CODEOWNERS coverage check
         run: codeowners-coverage check
