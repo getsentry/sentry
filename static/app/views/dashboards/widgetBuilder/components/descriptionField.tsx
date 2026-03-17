@@ -12,9 +12,6 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 
 interface WidgetBuilderDescriptionFieldProps {
   autosize?: boolean;
-  builderStateAction?:
-    | typeof BuilderStateAction.SET_DESCRIPTION
-    | typeof BuilderStateAction.SET_TEXT_CONTENT;
   placeholder?: string;
   rows?: number;
 }
@@ -23,13 +20,16 @@ export function WidgetBuilderDescriptionField({
   rows = 4,
   placeholder = t('Description'),
   autosize = true,
-  builderStateAction = BuilderStateAction.SET_DESCRIPTION,
 }: WidgetBuilderDescriptionFieldProps) {
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
   const isEditing = useIsEditingWidget();
   const source = useDashboardWidgetSource();
   const isTextWidget = state.displayType === DisplayType.TEXT;
+  const textValue = isTextWidget ? state.textContent : state.description;
+  const builderStateAction = isTextWidget
+    ? BuilderStateAction.SET_TEXT_CONTENT
+    : BuilderStateAction.SET_DESCRIPTION;
 
   return (
     <TextArea
@@ -38,7 +38,7 @@ export function WidgetBuilderDescriptionField({
       aria-label={placeholder}
       autosize={autosize}
       rows={rows}
-      value={isTextWidget ? state.textContent : state.description}
+      value={textValue}
       onChange={e => {
         dispatch({type: builderStateAction, payload: e.target.value}, {updateUrl: false});
       }}

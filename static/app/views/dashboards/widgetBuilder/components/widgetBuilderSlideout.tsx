@@ -64,7 +64,6 @@ import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/ho
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
@@ -411,7 +410,6 @@ export function WidgetBuilderSlideout({
                           rows={12}
                           placeholder={t('Write your markdown here...')}
                           autosize={false}
-                          builderStateAction={BuilderStateAction.SET_TEXT_CONTENT}
                         />
                       </Section>
                     )}
