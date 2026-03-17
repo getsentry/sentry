@@ -115,16 +115,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
             logger.exception("bulk_code_mappings.auto_create_repo.get_repositories_error")
             return None, None
 
-        repo_info = None
-        for r in repositories:
-            if r.get("identifier") == repo_name:
-                repo_info = r
-                break
-        if not repo_info:
-            for r in repositories:
-                if r.get("name") == repo_name:
-                    repo_info = r
-                    break
+        repo_info = RepositoryIntegration.find_repo_info(repositories, repo_name)
 
         if not repo_info:
             return None, None  # Repo doesn't exist on provider, fall through to 404
