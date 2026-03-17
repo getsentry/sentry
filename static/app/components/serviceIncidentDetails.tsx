@@ -215,7 +215,8 @@ function getIndicatorBackground({
     case 'resolved':
       return theme.tokens.graphics.success.vibrant;
     default:
-      return theme.tokens.graphics.neutral.vibrant;
+      unreachable(status);
+      throw new TypeError(`Invalid status, got ${status}`);
   }
 }
 
