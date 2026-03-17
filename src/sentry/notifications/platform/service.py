@@ -249,7 +249,7 @@ class NotificationService[T: NotificationData]:
         else:
             logger.error(
                 "notifications.platform.service.invalid_threading_result",
-                extra={"result": result, "thread": thread, "target": target},
+                extra={"result": result, "notification_thread": thread, "target": target},
             )
             raise NotificationServiceError(
                 "Failed to store threading result due to malformed result"
