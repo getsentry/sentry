@@ -12,7 +12,7 @@ import {
 } from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -86,12 +86,16 @@ function MobileVitalsBanner() {
   return (
     <ModuleLayout.Full>
       <Alert variant="info" showIcon>
-        {t(
-          'This page is no longer being updated. For more detailed mobile performance metrics, visit the '
+        {tct(
+          'This page is no longer being updated. For more detailed mobile performance metrics, visit the [link:Mobile Vitals Dashboard].',
+          {
+            link: (
+              <Link
+                to={`/organizations/${organization.slug}/dashboards/${dashboard.id}/`}
+              />
+            ),
+          }
         )}
-        <Link to={`/organizations/${organization.slug}/dashboards/${dashboard.id}/`}>
-          {t('Mobile Vitals Dashboard')}
-        </Link>
       </Alert>
     </ModuleLayout.Full>
   );
