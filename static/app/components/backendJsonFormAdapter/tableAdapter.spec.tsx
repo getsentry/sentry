@@ -197,6 +197,53 @@ describe('TableAdapter', () => {
     ).toBeInTheDocument();
   });
 
+  it('pressing Enter in a cell triggers save when all fields are filled', async () => {
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
+
+    const inputs = screen.getAllByRole('textbox');
+    await userEvent.clear(inputs[0]!);
+    await userEvent.type(inputs[0]!, 'Updated Service');
+
+    // No save yet
+    expect(mutationOptions.mutationFn).not.toHaveBeenCalled();
+
+    // Press Enter to submit
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(mutationOptions.mutationFn).toHaveBeenCalledWith({
+        service_table: [{id: '1', service: 'Updated Service', integration_key: 'abc123'}],
+      });
+    });
+  });
+
+  it('pressing Enter in a cell does NOT save when a field is empty', async () => {
+    render(
+      <BackendJsonFormAdapter
+        field={makeConfig()}
+        initialValue={[{id: '1', service: 'My Service', integration_key: 'abc123'}]}
+        mutationOptions={mutationOptions}
+      />,
+      {organization: org}
+    );
+
+    const inputs = screen.getAllByRole('textbox');
+    // Clear the field so it's empty
+    await userEvent.clear(inputs[0]!);
+
+    // Press Enter — should NOT save because service is empty
+    await userEvent.keyboard('{Enter}');
+
+    expect(mutationOptions.mutationFn).not.toHaveBeenCalled();
+  });
+
   it('controls disabled during in-flight mutation', async () => {
     let resolveMutation!: () => void;
     const pendingMutationOptions = {

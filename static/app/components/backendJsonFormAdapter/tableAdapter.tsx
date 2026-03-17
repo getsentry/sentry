@@ -118,6 +118,11 @@ export function TableBody({config, value, onUpdate, onSave, disabled}: TableBody
                 value={(row[key] as string) ?? ''}
                 onChange={e => handleCellChange(rowIndex, key, e.currentTarget.value)}
                 onBlur={handleCellBlur}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    handleCellBlur();
+                  }
+                }}
                 disabled={disabled}
               />
             </Flex>
