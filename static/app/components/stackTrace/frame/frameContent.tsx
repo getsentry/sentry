@@ -79,7 +79,6 @@ export function FrameContent({sourceLineCoverage = []}: FrameContentProps) {
     <Activity mode={isExpanded ? 'visible' : 'hidden'}>
       <Container
         id={frameContextId}
-        borderTop="primary"
         background="primary"
         overflowX="hidden"
         data-test-id="core-stacktrace-frame-context"

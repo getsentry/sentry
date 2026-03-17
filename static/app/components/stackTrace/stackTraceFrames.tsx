@@ -117,6 +117,10 @@ const FramesPanel = styled(Panel)<{borderless: boolean}>`
     border: 0;
     border-radius: 0;
   `}
+
+  > * + * {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  }
 `;
 
 const OmittedRow = styled(Container)`

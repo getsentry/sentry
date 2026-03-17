@@ -110,11 +110,4 @@ export const StackTraceFrameRow = Object.assign(StackTraceFrameRowRoot, {
   Actions: FrameRowActions,
 });
 
-const FrameRowContainer = styled('div')`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding-left: 0;
-
-  &:first-of-type {
-    border-top: 0;
-  }
-`;
+const FrameRowContainer = styled('div')``;
