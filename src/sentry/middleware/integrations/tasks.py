@@ -95,7 +95,7 @@ class _AsyncCellDispatcher(ABC):
                 "integration.async_integration_response",
                 extra={
                     "path": self.request_payload["path"],
-                    "cell": result.region.name,
+                    "cell": result.cell.name,
                     "cell_status_code": result.response.status_code,
                     "integration_status_code": integration_response.status_code,
                 },
