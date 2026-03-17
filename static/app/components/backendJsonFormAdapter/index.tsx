@@ -36,7 +36,7 @@ function getZodType(
     case 'select':
     case 'choice':
     case 'table':
-      return z.any();
+      return z.array(z.any());
     default:
       unreachable(fieldType);
       return z.any();
@@ -65,11 +65,13 @@ function getDefaultForType(fieldType: JsonFormAdapterFieldConfig['type']): unkno
       return '';
     case 'number':
       return 0;
+    case 'choice_mapper':
+    case 'project_mapper':
+      return {};
+    case 'table':
+      return [];
     case 'select':
     case 'choice':
-    case 'choice_mapper':
-    case 'table':
-    case 'project_mapper':
       return null;
     default:
       unreachable(fieldType);
@@ -103,12 +105,14 @@ export function BackendJsonFormAdapter<
     [fieldName, field.type]
   );
 
+  const value = initialValue ?? field.default ?? getDefaultForType(field.type);
+
   if (field.type === 'table') {
     return (
       <AutoSaveForm
         name={fieldName}
         schema={schema}
-        initialValue={initialValue ?? field.default ?? []}
+        initialValue={value}
         mutationOptions={mutationOptions}
       >
         {fieldApi => (
@@ -146,7 +150,7 @@ export function BackendJsonFormAdapter<
       <AutoSaveForm
         name={fieldName}
         schema={schema}
-        initialValue={initialValue ?? field.default ?? []}
+        initialValue={value}
         mutationOptions={mutationOptions}
       >
         {fieldApi => (
@@ -185,7 +189,7 @@ export function BackendJsonFormAdapter<
       <AutoSaveForm
         name={fieldName}
         schema={schema}
-        initialValue={initialValue ?? field.default ?? {}}
+        initialValue={value}
         mutationOptions={mutationOptions}
       >
         {fieldApi => (
@@ -214,13 +218,6 @@ export function BackendJsonFormAdapter<
       </AutoSaveForm>
     );
   }
-
-  const value =
-    initialValue !== undefined && initialValue !== null
-      ? initialValue
-      : field.default === undefined
-        ? getDefaultForType(field.type)
-        : field.default;
 
   return (
     <AutoSaveForm
