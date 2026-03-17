@@ -1,4 +1,3 @@
-import {mutationOptions} from '@tanstack/react-query';
 /**
  * Demo components for form .mdx documentation.
  *
@@ -6,6 +5,9 @@ import {mutationOptions} from '@tanstack/react-query';
  * indentation inside exported functions when dotted component names are used
  * (e.g. form.AppForm, field.Layout.Row).
  */
+
+import {useState} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {
@@ -257,7 +259,7 @@ const basicSchema = z.object({
 
 export function BasicAutoSaveDemo() {
   // Simulated server state for demonstration
-  const [serverState, setServerState] = React.useState({displayName: 'Jane Doe'});
+  const [serverState, setServerState] = useState({displayName: 'Jane Doe'});
 
   const basicMutationOptions = mutationOptions({
     mutationFn: async (data: {displayName: string}) => {
