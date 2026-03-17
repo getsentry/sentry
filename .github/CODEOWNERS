@@ -722,7 +722,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/audit_log/                                  @getsentry/revenue
 
 ## gsApp
-/static/gsApp/*                               @getsentry/revenue
+/static/gsApp/**                              @getsentry/revenue
 /static/app/views/admin/                      @getsentry/revenue
 /static/gsApp/components/gsBanner.tsx         @getsentry/revenue
 /static/gsApp/hooks/useAM2*                   @getsentry/revenue
