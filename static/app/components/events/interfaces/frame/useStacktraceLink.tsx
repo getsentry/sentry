@@ -30,7 +30,7 @@ export function buildStacktraceLinkQuery(
   frame: UseStacktraceLinkProps['frame']
 ): StacktraceLinkQuery {
   const query = {
-    file: frame.filename!,
+    file: (frame.filename || frame.absPath)!,
     platform: event.platform!,
     lineNo: frame.lineNo!,
     groupId: event.groupID,
