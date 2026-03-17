@@ -1,19 +1,31 @@
-import {useCallback, useState, type ReactNode} from 'react';
+import {useCallback, useMemo, useState, type ReactNode} from 'react';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
+  organizationIntegrationsCodingAgents,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
+import {
+  isCodeChangesArtifact,
   isCodeChangesSection,
+  isRootCauseArtifact,
   isRootCauseSection,
+  isSolutionArtifact,
   isSolutionSection,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {defined} from 'sentry/utils';
+import {useQuery} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SeerDrawerNextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -22,22 +34,22 @@ interface SeerDrawerNextStepProps {
 
 export function SeerDrawerNextStep({sections, autofix}: SeerDrawerNextStepProps) {
   const runId = autofix.runState?.run_id;
-  const lastSection = sections[sections.length - 1];
+  const section = sections[sections.length - 1];
 
-  if (!defined(runId) || !defined(lastSection)) {
+  if (!defined(runId) || !defined(section)) {
     return null;
   }
 
-  if (isRootCauseSection(lastSection)) {
-    return <RootCauseNextStep autofix={autofix} runId={runId} />;
+  if (isRootCauseSection(section)) {
+    return <RootCauseNextStep autofix={autofix} runId={runId} section={section} />;
   }
 
-  if (isSolutionSection(lastSection)) {
-    return <SolutionNextStep autofix={autofix} runId={runId} />;
+  if (isSolutionSection(section)) {
+    return <SolutionNextStep autofix={autofix} runId={runId} section={section} />;
   }
 
-  if (isCodeChangesSection(lastSection)) {
-    return <CodeChangesNextStep autofix={autofix} runId={runId} />;
+  if (isCodeChangesSection(section)) {
+    return <CodeChangesNextStep autofix={autofix} runId={runId} section={section} />;
   }
 
   return null;
@@ -46,9 +58,10 @@ export function SeerDrawerNextStep({sections, autofix}: SeerDrawerNextStepProps)
 interface NextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   runId: number;
+  section: AutofixSection;
 }
 
-function RootCauseNextStep({autofix, runId}: NextStepProps) {
+function RootCauseNextStep({autofix, runId, section}: NextStepProps) {
   const {startStep} = autofix;
 
   const handleYesClick = useCallback(() => {
@@ -61,6 +74,15 @@ function RootCauseNextStep({autofix, runId}: NextStepProps) {
     },
     [startStep, runId]
   );
+
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isRootCauseArtifact),
+    [section.artifacts]
+  );
+
+  if (!defined(artifact)) {
+    return null;
+  }
 
   return (
     <NextStepTemplate
@@ -77,8 +99,30 @@ function RootCauseNextStep({autofix, runId}: NextStepProps) {
   );
 }
 
-function SolutionNextStep({autofix, runId}: NextStepProps) {
-  const {startStep} = autofix;
+function SolutionNextStep({autofix, runId, section}: NextStepProps) {
+  const organization = useOrganization();
+  const {startStep, triggerCodingAgentHandoff} = autofix;
+
+  const {data: codingAgentResponse} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
+  const codingAgentIntegrations = useMemo(
+    () => codingAgentResponse?.integrations,
+    [codingAgentResponse?.integrations]
+  );
+
+  const handleCodingAgentHandoff = useCallback(
+    (integration: CodingAgentIntegration) => {
+      // OAuth redirect for integrations without identity
+      if (integration.requires_identity && !integration.has_identity) {
+        const currentUrl = window.location.href;
+        window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+        return;
+      }
+      triggerCodingAgentHandoff(runId, integration);
+    },
+    [triggerCodingAgentHandoff, runId]
+  );
 
   const handleYesClick = useCallback(() => {
     startStep('code_changes', runId);
@@ -90,6 +134,15 @@ function SolutionNextStep({autofix, runId}: NextStepProps) {
     },
     [startStep, runId]
   );
+
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isSolutionArtifact),
+    [section.artifacts]
+  );
+
+  if (!defined(artifact)) {
+    return null;
+  }
 
   return (
     <NextStepTemplate
@@ -104,11 +157,13 @@ function SolutionNextStep({autofix, runId}: NextStepProps) {
       rethinkPrompt={t('How can this implementation plan be improved?')}
       labelNevermind={t('Nevermind, write a code fix')}
       labelRethink={t('Rethink implementation plan')}
+      codingAgentIntegrations={codingAgentIntegrations}
+      onCodingAgentHandoff={handleCodingAgentHandoff}
     />
   );
 }
 
-function CodeChangesNextStep({autofix, runId}: NextStepProps) {
+function CodeChangesNextStep({autofix, runId, section}: NextStepProps) {
   const {createPR, startStep} = autofix;
 
   const handleYesClick = useCallback(() => {
@@ -121,6 +176,15 @@ function CodeChangesNextStep({autofix, runId}: NextStepProps) {
     },
     [startStep, runId]
   );
+
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isCodeChangesArtifact),
+    [section.artifacts]
+  );
+
+  if (!defined(artifact)) {
+    return null;
+  }
 
   return (
     <NextStepTemplate
@@ -147,6 +211,8 @@ interface NextStepTemplateProps {
   placeholderPrompt: string;
   prompt: ReactNode;
   rethinkPrompt: ReactNode;
+  codingAgentIntegrations?: CodingAgentIntegration[];
+  onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
 }
 
 function NextStepTemplate({
@@ -159,7 +225,29 @@ function NextStepTemplate({
   rethinkPrompt,
   labelNevermind,
   labelRethink,
+  codingAgentIntegrations,
+  onCodingAgentHandoff,
 }: NextStepTemplateProps) {
+  const codingAgentOptions = useMemo(() => {
+    return (codingAgentIntegrations ?? []).map(integration => {
+      const actionLabel =
+        integration.requires_identity && !integration.has_identity
+          ? t('Setup %s', integration.name)
+          : t('Send to %s', integration.name);
+
+      return {
+        key: `agent:${integration.id ?? integration.provider}`,
+        label: (
+          <Flex gap="md" align="center">
+            <PluginIcon pluginId={integration.provider} size={16} />
+            <span>{actionLabel}</span>
+          </Flex>
+        ),
+        onAction: () => onCodingAgentHandoff?.(integration),
+      };
+    });
+  }, [codingAgentIntegrations, onCodingAgentHandoff]);
+
   const [clickedNo, handleClickedNo] = useState(false);
   const [userContext, setUserContext] = useState('');
 
@@ -189,9 +277,26 @@ function NextStepTemplate({
       <Text>{prompt}</Text>
       <Flex gap="md">
         <Button onClick={() => handleClickedNo(true)}>{labelNo}</Button>
-        <Button priority="primary" onClick={onClickYes}>
-          {labelYes}
-        </Button>
+        <ButtonBar>
+          <Button priority="primary" onClick={onClickYes}>
+            {labelYes}
+          </Button>
+          {codingAgentOptions?.length ? (
+            <DropdownMenu
+              items={codingAgentOptions}
+              trigger={(triggerProps, isOpen) => (
+                <Button
+                  {...triggerProps}
+                  disabled={codingAgentOptions.length <= 0}
+                  priority="primary"
+                  icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+                  aria-label={t('More code fix options')}
+                />
+              )}
+              position="bottom-end"
+            />
+          ) : null}
+        </ButtonBar>
       </Flex>
     </Flex>
   );

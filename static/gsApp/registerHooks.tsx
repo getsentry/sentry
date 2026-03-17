@@ -109,7 +109,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * Additional routes to be inserted into sentrys route tree
    */
   'routes:root': rootRoutes,
-  'routes:settings': seerSettingsRoutes,
+  'routes:org-settings': seerSettingsRoutes,
   'routes:legacy-organization-redirects': legacyOrganizationRedirectRoutes,
 
   /**

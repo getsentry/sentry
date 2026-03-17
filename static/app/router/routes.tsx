@@ -825,7 +825,7 @@ function buildRoutes(): RouteObject[] {
   };
 
   const orgSettingsChildren: SentryRouteObject[] = [
-    routeHook('routes:settings'),
+    routeHook('routes:org-settings'),
     {
       index: true,
       name: t('General'),

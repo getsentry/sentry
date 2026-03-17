@@ -1,13 +1,21 @@
 import {useMemo, type ReactNode} from 'react';
 
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {
+  CodingAgentStatus,
+  getCodingAgentName,
+} from 'sentry/components/events/autofix/types';
 import type {
   RootCauseArtifact,
   SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {IconOpen} from 'sentry/icons';
+import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
@@ -15,6 +23,7 @@ import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tn} from 'sentry/locale';
 import {
   type Artifact,
+  type ExplorerCodingAgentState,
   type ExplorerFilePatch,
   type RepoPRState,
 } from 'sentry/views/seerExplorer/types';
@@ -107,6 +116,51 @@ export function PullRequestsPreview({artifact}: PullRequestsPreviewProps) {
           <ExternalLink key={label} href={pullRequest.pr_url}>
             {label}
           </ExternalLink>
+        );
+      })}
+    </ArtifactCard>
+  );
+}
+
+interface CodingAgentPreviewProps {
+  artifact: ExplorerCodingAgentState[];
+}
+
+export function CodingAgentPreview({artifact}: CodingAgentPreviewProps) {
+  const provider = artifact[0]?.provider;
+
+  const agentName = useMemo(() => getCodingAgentName(provider), [provider]);
+
+  return (
+    <ArtifactCard icon={<IconBot />} title={agentName}>
+      {artifact.map(codingAgent => {
+        const statusVariant =
+          codingAgent.status === CodingAgentStatus.PENDING
+            ? ('muted' as const)
+            : codingAgent.status === CodingAgentStatus.RUNNING
+              ? ('info' as const)
+              : codingAgent.status === CodingAgentStatus.FAILED
+                ? ('danger' as const)
+                : ('success' as const);
+
+        return (
+          <Flex key={codingAgent.id} direction="column" gap="md">
+            <Text>{codingAgent.name}</Text>
+            <Flex direction="row-reverse" align="center" justify="between">
+              <Tag variant={statusVariant}>{codingAgent.status}</Tag>
+              {codingAgent.agent_url ? (
+                <LinkButton
+                  priority="transparent"
+                  size="xs"
+                  icon={<IconOpen />}
+                  href={codingAgent.agent_url}
+                  external
+                >
+                  {t('Open in Agent')}
+                </LinkButton>
+              ) : null}
+            </Flex>
+          </Flex>
         );
       })}
     </ArtifactCard>

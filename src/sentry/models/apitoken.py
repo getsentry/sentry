@@ -30,7 +30,7 @@ from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apiscopes import HasApiScopes
 from sentry.silo.safety import unguarded_write
-from sentry.types.region import find_all_cell_names
+from sentry.types.cell import find_all_cell_names
 from sentry.types.token import AuthTokenType
 from sentry.utils.locking import UnableToAcquireLock
 

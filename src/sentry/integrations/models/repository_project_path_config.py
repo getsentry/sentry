@@ -93,4 +93,5 @@ post_save.connect(
     lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=RepositoryProjectPathConfig,
     weak=False,
+    dispatch_uid="repository_project_path_config_post_save",
 )
