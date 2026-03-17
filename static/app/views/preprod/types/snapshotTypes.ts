@@ -4,6 +4,7 @@ import type {BuildDetailsVcsInfo} from './buildDetailsTypes';
 export interface SnapshotImage {
   display_name: string | null;
   image_file_name: string;
+  group?: string | null;
   height: number;
   key: string;
   width: number;
@@ -66,10 +67,14 @@ export function getImageName(image: SnapshotImage): string {
   return image.display_name ?? image.image_file_name;
 }
 
+export function getImageGroup(image: SnapshotImage): string {
+  return image.group ?? getImageName(image);
+}
+
 export type SidebarItem =
   | {type: 'solo'; name: string; images: SnapshotImage[]}
-  | {type: 'changed'; name: string; pair: SnapshotDiffPair}
-  | {type: 'added'; name: string; image: SnapshotImage}
-  | {type: 'removed'; name: string; image: SnapshotImage}
-  | {type: 'renamed'; name: string; image: SnapshotImage}
-  | {type: 'unchanged'; name: string; image: SnapshotImage};
+  | {type: 'changed'; name: string; pairs: SnapshotDiffPair[]}
+  | {type: 'added'; name: string; images: SnapshotImage[]}
+  | {type: 'removed'; name: string; images: SnapshotImage[]}
+  | {type: 'renamed'; name: string; images: SnapshotImage[]}
+  | {type: 'unchanged'; name: string; images: SnapshotImage[]};

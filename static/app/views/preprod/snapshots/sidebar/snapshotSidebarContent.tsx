@@ -212,11 +212,7 @@ export function SnapshotSidebarContent({
                             {item.name}
                           </Text>
                         </Flex>
-                        {item.type === 'changed' && item.pair.diff !== null && (
-                          <Text variant="muted" size="xs">
-                            {`${(item.pair.diff * 100).toFixed(1)}%`}
-                          </Text>
-                        )}
+                        <DiffItemBadge item={item} />
                       </SidebarItemRow>
                     ))}
                   </SidebarSectionContent>
@@ -263,6 +259,28 @@ export function SnapshotSidebarContent({
       </Stack>
     </Stack>
   );
+}
+
+function DiffItemBadge({item}: {item: SidebarItem}) {
+  const count = item.type === 'changed' ? item.pairs.length : item.images.length;
+
+  if (count === 1 && item.type === 'changed' && item.pairs[0]!.diff !== null) {
+    return (
+      <Text variant="muted" size="xs">
+        {`${(item.pairs[0]!.diff * 100).toFixed(1)}%`}
+      </Text>
+    );
+  }
+
+  if (count > 1) {
+    return (
+      <Text variant="muted" size="xs">
+        {count}
+      </Text>
+    );
+  }
+
+  return null;
 }
 
 const SidebarSectionTitle = styled(Button)`

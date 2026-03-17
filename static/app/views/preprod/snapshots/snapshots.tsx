@@ -15,10 +15,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
+  SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
 
@@ -87,33 +88,55 @@ export default function SnapshotsPage() {
     if (comparisonType === 'diff') {
       const items: SidebarItem[] = [];
 
+      const changedGroups = new Map<string, SnapshotDiffPair[]>();
       for (const pair of data.changed) {
-        items.push({type: 'changed', name: getImageName(pair.head_image), pair});
+        const group = getImageGroup(pair.head_image);
+        const existing = changedGroups.get(group);
+        if (existing) {
+          existing.push(pair);
+        } else {
+          changedGroups.set(group, [pair]);
+        }
       }
-      for (const img of data.added) {
-        items.push({type: 'added', name: getImageName(img), image: img});
+      for (const [name, pairs] of changedGroups) {
+        items.push({type: 'changed', name, pairs});
       }
-      for (const img of data.removed) {
-        items.push({type: 'removed', name: getImageName(img), image: img});
-      }
-      for (const img of data.renamed ?? []) {
-        items.push({type: 'renamed', name: getImageName(img), image: img});
-      }
-      for (const img of data.unchanged) {
-        items.push({type: 'unchanged', name: getImageName(img), image: img});
-      }
+
+      const groupImages = (
+        imgs: SnapshotImage[],
+        type: 'added' | 'removed' | 'renamed' | 'unchanged'
+      ) => {
+        const groups = new Map<string, SnapshotImage[]>();
+        for (const img of imgs) {
+          const group = getImageGroup(img);
+          const existing = groups.get(group);
+          if (existing) {
+            existing.push(img);
+          } else {
+            groups.set(group, [img]);
+          }
+        }
+        for (const [name, images] of groups) {
+          items.push({type, name, images});
+        }
+      };
+
+      groupImages(data.added, 'added');
+      groupImages(data.removed, 'removed');
+      groupImages(data.renamed ?? [], 'renamed');
+      groupImages(data.unchanged, 'unchanged');
 
       return items;
     }
 
     const groups = new Map<string, SnapshotImage[]>();
     for (const image of data.images) {
-      const name = getImageName(image);
-      const existing = groups.get(name);
+      const group = getImageGroup(image);
+      const existing = groups.get(group);
       if (existing) {
         existing.push(image);
       } else {
-        groups.set(name, [image]);
+        groups.set(group, [image]);
       }
     }
 
@@ -138,10 +161,13 @@ export default function SnapshotsPage() {
 
   // Clamp variantIndex to valid range when the selected item changes implicitly
   // (e.g. search filtering selects a new item with fewer variants)
+  const variantCount = currentItem
+    ? currentItem.type === 'changed'
+      ? currentItem.pairs.length
+      : currentItem.images.length
+    : 0;
   const safeVariantIndex =
-    currentItem?.type === 'solo'
-      ? Math.min(variantIndex, currentItem.images.length - 1)
-      : variantIndex;
+    variantCount > 0 ? Math.min(variantIndex, variantCount - 1) : 0;
 
   const handleSelectItem = (name: string) => {
     setSelectedItemName(name);
