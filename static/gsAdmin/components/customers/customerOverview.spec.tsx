@@ -696,7 +696,7 @@ describe('CustomerOverview', () => {
     await waitFor(() => {
       const term = screen.getByText('Sample Rate (24h):');
       const definition = term.nextElementSibling;
-      expect(definition).toHaveTextContent('75%');
+      expect(definition).toHaveTextContent('75.00%');
     });
   });
 
@@ -725,7 +725,7 @@ describe('CustomerOverview', () => {
     await waitFor(() => {
       const term = screen.getByText('Sample Rate (24h):');
       const definition = term.nextElementSibling;
-      expect(definition).toHaveTextContent('100%');
+      expect(definition).toHaveTextContent('100.00%');
       expect(definition).not.toHaveTextContent('instead of');
     });
   });
@@ -756,7 +756,7 @@ describe('CustomerOverview', () => {
     await waitFor(() => {
       const term = screen.getByText('Sample Rate (24h):');
       const definition = term.nextElementSibling;
-      expect(definition).toHaveTextContent('60%');
+      expect(definition).toHaveTextContent('60.00%');
       expect(definition).not.toHaveTextContent('instead of');
     });
   });
@@ -782,7 +782,7 @@ describe('CustomerOverview', () => {
         organization={organization}
       />
     );
-    await screen.findByText('54% instead of 60% (~6%)');
+    await screen.findByText('54.00% instead of 60.00% (~6.00%)');
   });
 
   it('renders decimal sample rates preserving trailing zeros', async () => {
@@ -806,7 +806,7 @@ describe('CustomerOverview', () => {
         organization={organization}
       />
     );
-    await screen.findByText('50.10% instead of 60% (~9.90%)');
+    await screen.findByText('50.10% instead of 60.00% (~9.90%)');
   });
 
   it('renders n/a when effective sample rate is missing', async () => {
