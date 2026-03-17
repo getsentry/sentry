@@ -616,8 +616,7 @@ describe('Onboarding', () => {
       });
     });
 
-    it('renders scm-connect step and advances to scm-platform-features', async () => {
-      // Mock an active integration so Continue is enabled
+    it('auto-selects existing integration and shows connected view', async () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/config/integrations/`,
@@ -671,9 +670,27 @@ describe('Onboarding', () => {
 
       const {router} = renderOnboarding('scm-connect');
 
-      expect(await screen.findByText('Connect a repository')).toBeInTheDocument();
+      // Should auto-select the existing integration and show connected view
+      expect(
+        await screen.findByText('Connected to github.com/getsentry')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Disconnect'})).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/scm-platform-features/`
+        );
+      });
+    });
+
+    it('skip for now advances to next step without skipping onboarding', async () => {
+      const {router} = renderOnboarding('scm-connect');
+
+      expect(await screen.findByText('Connect a repository')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Skip for now'}));
 
       await waitFor(() => {
         expect(router.location.pathname).toBe(

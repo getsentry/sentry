@@ -32,13 +32,26 @@ interface RepoSearchResult {
   repos: IntegrationRepository[];
 }
 
-export function ScmConnect({onComplete, genSkipOnboardingLink}: StepProps) {
+export function ScmConnect({onComplete}: StepProps) {
   const onboardingContext = useOnboardingContext();
   const {scmProviders, scmIntegrations, isPending, refetchIntegrations} =
     useScmProviders();
 
   const [activeIntegration, setActiveIntegration] = useState<Integration | null>(null);
   const [selectedRepos, setSelectedRepos] = useState<IntegrationRepository[]>([]);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+
+  // Auto-select an existing SCM integration so returning users see the
+  // connected view instead of the provider pills.
+  if (
+    !hasAutoSelected &&
+    !isPending &&
+    scmIntegrations.length > 0 &&
+    !activeIntegration
+  ) {
+    setActiveIntegration(scmIntegrations[0]!);
+    setHasAutoSelected(true);
+  }
 
   const handleInstall = useCallback(
     (data: Integration) => {
@@ -134,7 +147,7 @@ export function ScmConnect({onComplete, genSkipOnboardingLink}: StepProps) {
       </Stack>
 
       <Flex gap="md" align="center">
-        {genSkipOnboardingLink()}
+        <Button onClick={() => onComplete()}>{t('Skip for now')}</Button>
         <Button priority="primary" onClick={handleContinue}>
           {t('Continue')}
         </Button>
