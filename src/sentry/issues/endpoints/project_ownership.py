@@ -1,4 +1,3 @@
-import copy
 from typing import Any
 
 from django.utils import timezone
@@ -272,12 +271,10 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         `ownership`: The ownership containing the schema with the rules that will be renamed
         """
         if hasattr(ownership, "schema") and ownership.schema and ownership.schema.get("rules"):
-            schema = copy.deepcopy(ownership.schema)
-            for rule in schema["rules"]:
+            for rule in ownership.schema["rules"]:
                 for rule_owner in rule["owners"]:
                     rule_owner["name"] = rule_owner.pop("identifier")
-            self._stringify_schema_owner_ids(schema)
-            ownership.schema = schema
+            self._stringify_schema_owner_ids(ownership.schema)
 
     @extend_schema(
         operation_id="Retrieve Ownership Configuration for a Project",
