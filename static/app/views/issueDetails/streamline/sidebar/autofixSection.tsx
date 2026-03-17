@@ -10,6 +10,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {
   getOrderedAutofixArtifacts,
+  isCodeChangesArtifact,
+  isCodingAgentsArtifact,
+  isPullRequestsArtifact,
   isRootCauseArtifact,
   isSolutionArtifact,
   useExplorerAutofix,
@@ -17,6 +20,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesPreview,
+  CodingAgentPreview,
   PullRequestsPreview,
   RootCausePreview,
   SolutionPreview,
@@ -28,14 +32,12 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {isArrayOf} from 'sentry/types/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {Resources} from 'sentry/views/issueDetails/streamline/sidebar/resources';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
-import {isExplorerFilePatch, isRepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface AutofixSectionProps {
   group: Group;
@@ -219,12 +221,16 @@ function AutofixPreviews({artifacts, event, group, project}: AutofixPreviewsProp
           return <SolutionPreview key="solution" artifact={artifact} />;
         }
 
-        if (isArrayOf(artifact, isExplorerFilePatch) && artifact.length) {
+        if (isCodeChangesArtifact(artifact)) {
           return <CodeChangesPreview key="code-changes" artifact={artifact} />;
         }
 
-        if (isArrayOf(artifact, isRepoPRState) && artifact.length) {
+        if (isPullRequestsArtifact(artifact)) {
           return <PullRequestsPreview key="pull-requests" artifact={artifact} />;
+        }
+
+        if (isCodingAgentsArtifact(artifact)) {
+          return <CodingAgentPreview key="coding-agent" artifact={artifact} />;
         }
 
         // TODO: maybe send a log?
