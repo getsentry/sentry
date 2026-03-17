@@ -141,11 +141,13 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
 
 @django_db_all
 class TestScheduleContextEngineIndexingTasks(TestCase):
+    @mock.patch("sentry.tasks.context_engine_index.get_allowed_org_ids_context_engine_indexing")
     @mock.patch("sentry.tasks.context_engine_index.build_service_map.apply_async")
     @mock.patch("sentry.tasks.context_engine_index.index_org_project_knowledge.apply_async")
-    def test_dispatches_for_allowed_orgs(self, mock_index, mock_build):
+    def test_dispatches_for_allowed_orgs(self, mock_index, mock_build, mock_allowed_org_ids):
         org1 = self.create_organization()
         org2 = self.create_organization()
+        mock_allowed_org_ids.return_value = [org1.id, org2.id]
 
         with override_options(
             {
