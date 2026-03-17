@@ -34,6 +34,7 @@ export function OrganizationRules({organization}: Props) {
     },
     networkMode: 'always',
     retry: 0,
+    staleTime: 'static',
   });
 
   const handleToggleCollapsed = useCallback(() => {
