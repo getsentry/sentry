@@ -6,7 +6,7 @@ import pytest
 from django.db import router
 from django.test import RequestFactory, override_settings
 
-from sentry.conf.types.region_config import CellConfig
+from sentry.conf.types.cell_config import CellConfig
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloLimit, SiloMode
