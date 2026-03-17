@@ -26,7 +26,10 @@ describe('useExpando', () => {
     await userEvent.click(screen.getByText('Expand'));
 
     expect(screen.getByText('Collapse')).toBeInTheDocument();
-    expect(mockScrollIntoView.mock.calls).toEqual([[{block: 'start'}]]);
+    expect(mockScrollIntoView.mock.calls).toEqual([
+      [{block: 'start'}],
+      [{block: 'start'}],
+    ]);
   });
 
   it('contracts when the button is clicked a second time', async () => {
@@ -36,6 +39,9 @@ describe('useExpando', () => {
     await userEvent.click(screen.getByText('Collapse'));
 
     expect(screen.getByText('Expand')).toBeInTheDocument();
-    expect(mockScrollIntoView.mock.calls).toEqual([[{block: 'start'}]]);
+    expect(mockScrollIntoView.mock.calls).toEqual([
+      [{block: 'start'}],
+      [{block: 'start'}],
+    ]);
   });
 });
