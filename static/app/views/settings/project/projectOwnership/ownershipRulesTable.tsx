@@ -166,18 +166,16 @@ export function OwnershipRulesTable({
         emptyMessage={t('No ownership rules found')}
       >
         {chunkedRules[page]?.map((rule, index) => {
-          let name: string | undefined = 'unknown';
-          // ID might not be a string, so we need to convert it
-          const owners = rule.owners.map(owner => ({...owner, id: owner.id}));
-          if (owners[0]?.type === 'team') {
-            const team = TeamStore.getById(owners[0].id);
-            if (team?.slug) {
-              name = `#${team.slug}`;
+          const ownerNames = rule.owners.map(owner => {
+            if (owner.type === 'team') {
+              const team = TeamStore.getById(owner.id);
+              return team?.slug ? `#${team.slug}` : owner.name;
             }
-          } else if (owners[0]?.type === 'user') {
-            const firstUser = MemberListStore.getById(owners[0].id);
-            name = firstUser?.name;
-          }
+            const memberUser = MemberListStore.getById(owner.id);
+            return memberUser?.name ?? owner.name;
+          });
+
+          const name = ownerNames[0] ?? 'unknown';
 
           return (
             <Fragment key={`${rule.matcher.type}:${rule.matcher.pattern}-${index}`}>
@@ -186,16 +184,17 @@ export function OwnershipRulesTable({
               </Flex>
               <RowRule>{rule.matcher.pattern}</RowRule>
               <Flex align="center" gap="md">
-                <AvatarContainer numAvatars={Math.min(owners.length, 3)}>
+                <AvatarContainer numAvatars={Math.min(rule.owners.length, 3)}>
                   <SuggestedAvatarStack
-                    owners={owners}
+                    owners={rule.owners}
                     suggested={false}
                     reverse={false}
+                    tooltip={ownerNames.join(', ')}
                   />
                 </AvatarContainer>
                 {name}
-                {owners.length > 1 &&
-                  tn(' and %s other', ' and %s others', owners.length - 1)}
+                {rule.owners.length > 1 &&
+                  tn(' and %s other', ' and %s others', rule.owners.length - 1)}
               </Flex>
             </Fragment>
           );
