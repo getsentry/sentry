@@ -4,9 +4,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Integration} from 'sentry/types/integrations';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
 
-function getProviderConfigUrl(integration: Integration): string | null {
+function getProviderConfigUrl(integration: OrganizationIntegration): string | null {
   const {externalId, provider, domainName, accountType} = integration;
   if (!externalId) {
     return null;
@@ -35,7 +35,11 @@ function getProviderConfigUrl(integration: Integration): string | null {
   return null;
 }
 
-export function ProviderConfigLink({integration}: {integration: Integration}) {
+export function ProviderConfigLink({
+  integration,
+}: {
+  integration: OrganizationIntegration;
+}) {
   const externalConfigUrl = getProviderConfigUrl(integration);
 
   if (!externalConfigUrl) {

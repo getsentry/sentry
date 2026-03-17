@@ -431,7 +431,6 @@ export interface Integration extends CommonIntegration {
       uninstallationUrl?: string;
     };
   };
-  externalId?: string;
   scopes?: string[];
 }
 
