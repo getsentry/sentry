@@ -252,18 +252,15 @@ export function TracesTable({
     agentsRequest.isLoading,
   ]);
 
-  const renderHeadCell = useCallback(
-    (column: GridColumnHeader<string>) => {
-      return (
-        <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
-          {column.name}
-          {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
-          {column.key === 'agents' && !frameless && <CellExpander />}
-        </HeadCell>
-      );
-    },
-    [frameless]
-  );
+  const renderHeadCell = useCallback((column: GridColumnHeader<string>) => {
+    return (
+      <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
+        {column.name}
+        {column.key === 'timestamp' && <IconArrow direction="down" size="xs" />}
+        {column.key === 'agents' && <CellExpander />}
+      </HeadCell>
+    );
+  }, []);
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<string>, dataRow: TableData) => {
