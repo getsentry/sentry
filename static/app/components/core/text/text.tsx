@@ -165,12 +165,6 @@ export type TextPropsWithRenderFunction<T extends TextPrimitive = 'span'> =
       htmlFor?: never;
       ref?: never;
       size?: Responsive<TextSize>;
-      /**
-       * Deprecated in favor of the Text component API.
-       * If you have an is an unsupported use-case, please contact design engineering for support.
-       * @deprecated
-       */
-      style?: React.CSSProperties;
     } & Partial<
       Record<
         // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.

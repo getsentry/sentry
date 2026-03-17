@@ -40,12 +40,6 @@ export type HeadingPropsWithRenderFunction = BaseHeadingProps &
     as?: never;
     ref?: never;
     size?: Responsive<HeadingSize>;
-    /**
-     * Deprecated in favor of the Heading component API.
-     * If you have an is an unsupported use-case, please contact design engineering for support.
-     * @deprecated
-     */
-    style?: React.CSSProperties;
   } & Partial<
     Record<
       // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
