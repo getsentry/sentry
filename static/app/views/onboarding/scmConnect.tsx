@@ -93,7 +93,7 @@ export function ScmConnect({onComplete}: StepProps) {
 
       <Flex gap="md" align="center">
         <Button onClick={() => onComplete()}>{t('Skip for now')}</Button>
-        <Button priority="primary" onClick={handleContinue}>
+        <Button priority="primary" onClick={handleContinue} disabled={!selectedRepo}>
           {t('Continue')}
         </Button>
       </Flex>
