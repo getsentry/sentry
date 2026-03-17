@@ -5,9 +5,9 @@ import type {
   TreeNode,
 } from 'sentry/components/repositories/scmIntegrationTree/types';
 import type {
-  Integration,
   IntegrationProvider,
   IntegrationRepository,
+  OrganizationIntegration,
 } from 'sentry/types/integrations';
 
 type Props = {
@@ -18,7 +18,7 @@ type Props = {
   repoFilter: RepoFilter;
   reposByIntegrationId: Record<string, IntegrationRepository[]>;
   reposPendingByIntegrationId: Record<string, boolean>;
-  scmIntegrations: Integration[];
+  scmIntegrations: OrganizationIntegration[];
   scmProviders: IntegrationProvider[];
   search: string;
   togglingRepos: Set<string>;
@@ -106,8 +106,6 @@ export function buildIntegrationTreeNodes({
           }
         }
       }
-
-      // nodes.push({type: 'add-config', provider});
     }
   }
 

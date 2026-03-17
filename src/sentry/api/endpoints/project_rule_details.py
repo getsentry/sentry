@@ -33,7 +33,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
@@ -409,7 +409,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         if isinstance(rule, Workflow):
             with transaction.atomic(router.db_for_write(Workflow)):
                 rule.update(status=ObjectStatus.PENDING_DELETION)
-                scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
+                scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
@@ -428,7 +428,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                     RuleActivity.objects.create(
                         rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
                     )
-                    scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
+                    scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
                 self.create_audit_entry(
                     request=request,
                     organization=project.organization,
@@ -447,7 +447,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 RuleActivity.objects.create(
                     rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
                 )
-                scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
+                scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
 
             self.create_audit_entry(
                 request=request,

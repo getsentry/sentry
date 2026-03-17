@@ -16,15 +16,15 @@ GET_PROJECT_OWNERSHIP = [
                 "rules": [
                     {
                         "matcher": {"type": "path", "pattern": "src/views/checkout"},
-                        "owners": [{"type": "user", "id": 2621754, "name": "jane.smith@org.com"}],
+                        "owners": [{"type": "user", "id": "2621754", "name": "jane.smith@org.com"}],
                     },
                     {
                         "matcher": {"type": "url", "pattern": "https://example.com/checkout"},
-                        "owners": [{"type": "user", "id": 2621754, "name": "jane.smith@org.com"}],
+                        "owners": [{"type": "user", "id": "2621754", "name": "jane.smith@org.com"}],
                     },
                     {
                         "matcher": {"type": "tags.transaction", "pattern": "/checkout/:page"},
-                        "owners": [{"type": "user", "id": 2621754, "name": "jane.smith@org.com"}],
+                        "owners": [{"type": "user", "id": "2621754", "name": "jane.smith@org.com"}],
                     },
                 ],
             },
@@ -50,15 +50,15 @@ UPDATE_PROJECT_OWNERSHIP = [
                 "rules": [
                     {
                         "matcher": {"type": "path", "pattern": "src/views/checkout"},
-                        "owners": [{"type": "user", "id": 2621754, "name": "jane.smith@org.com"}],
+                        "owners": [{"type": "user", "id": "2621754", "name": "jane.smith@org.com"}],
                     },
                     {
                         "matcher": {"type": "url", "pattern": "https://example.com/checkout"},
-                        "owners": [{"type": "user", "id": 2621754, "name": "jane.smith@org.com"}],
+                        "owners": [{"type": "user", "id": "2621754", "name": "jane.smith@org.com"}],
                     },
                     {
                         "matcher": {"type": "tags.transaction", "pattern": "/checkout/:page"},
-                        "owners": [{"type": "user", "id": 2621754, "name": "jane.smith@org.com"}],
+                        "owners": [{"type": "user", "id": "2621754", "name": "jane.smith@org.com"}],
                     },
                 ],
             },

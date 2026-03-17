@@ -81,6 +81,7 @@ class Topic(Enum):
     TASKWORKER_CUTOVER = "taskworker-cutover"
     TASKWORKER_EMAIL = "taskworker-email"
     TASKWORKER_EMAIL_DLQ = "taskworker-email-dlq"
+    TASKWORKER_EXAMPLE = "taskworker-example"
     TASKWORKER_INGEST = "taskworker-ingest"
     TASKWORKER_INGEST_DLQ = "taskworker-ingest-dlq"
     TASKWORKER_INGEST_ERRORS = "taskworker-ingest-errors"

@@ -16,7 +16,12 @@ from sentry.models.organization import Organization
 
 class DatabaseBackedIssueService(IssueService):
     def get_external_issue_groups(
-        self, *, region_name: str, external_issue_key: str, integration_id: int
+        self,
+        *,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        external_issue_key: str,
+        integration_id: int,
     ) -> list[RpcExternalIssueGroupMetadata] | None:
         from sentry.integrations.services.integration import integration_service
 
@@ -95,12 +100,6 @@ class DatabaseBackedIssueService(IssueService):
             return None
 
         return RpcGroupShareMetadata(title=group.title, message=group.message)
-
-    # TODO(cells): Deprecated in favor of get_shared_for_cell
-    def get_shared_for_region(
-        self, *, region_name: str, share_id: str
-    ) -> RpcGroupShareMetadata | None:
-        return self.get_shared_for_cell(cell_name=region_name, share_id=share_id)
 
     def upsert_issue_email_reply(
         self, *, organization_id: int, group_id: int, from_email: str, text: str

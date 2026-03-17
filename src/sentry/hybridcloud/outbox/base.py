@@ -14,7 +14,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
-from sentry.types.region import find_cells_for_orgs, find_cells_for_user
+from sentry.types.cell import find_cells_for_orgs, find_cells_for_user
 from sentry.utils.env import in_test_environment
 from sentry.utils.snowflake import uses_snowflake_id
 
@@ -377,9 +377,9 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
     class Meta:
         abstract = True
 
-    def outbox_region_names(self) -> Collection[str]:
+    def outbox_cell_names(self) -> Collection[str]:
         """
-        Subclasses should override this with logic for inferring the regions that need to be contacted for this resource.
+        Subclasses should override this with logic for inferring the cells that need to be contacted for this resource.
         """
         if hasattr(self, "organization_id"):
             return find_cells_for_orgs([self.organization_id])
@@ -401,11 +401,11 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         """
         Returns outboxes that result from this model's creation, update, or deletion.
-        Subclasses generally should override outbox_region_names or payload_for_update to customize
+        Subclasses generally should override outbox_cell_names or payload_for_update to customize
         this behavior.
         """
         return self.category.as_control_outboxes(
-            cell_names=self.outbox_region_names(),
+            cell_names=self.outbox_cell_names(),
             model=self,
             payload=self.payload_for_update(),
             shard_identifier=shard_identifier,

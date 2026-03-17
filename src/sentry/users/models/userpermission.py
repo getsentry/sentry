@@ -10,7 +10,7 @@ from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.hybridcloud.models.outbox import ControlOutboxBase
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.types.region import find_cells_for_user
+from sentry.types.cell import find_cells_for_user
 
 
 @control_silo_model
