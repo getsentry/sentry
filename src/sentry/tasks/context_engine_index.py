@@ -221,29 +221,26 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     # TODO: Remove allowlist check once fully rolled out
     allowed_org_ids: set[int] = set(options.get("explorer.service_map.allowed_organizations"))
 
+    now = datetime.now(UTC)
+    current_slot = now.weekday() * 24 + now.hour
+    TOTAL_HOURLY_SLOTS = 24 * 7  # 168 slots across every hour of the week
+
     eligible_org_ids: list[int] = []
     for org in RangeQuerySetWrapper(
         Organization.objects.filter(status=ObjectStatus.ACTIVE),
         result_value_getter=lambda o: o.id,
     ):
         if features.has("organizations:seer-explorer", org) and org.id in allowed_org_ids:
-            eligible_org_ids.append(org.id)
+            if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == current_slot:
+                eligible_org_ids.append(org.id)
 
-    now = datetime.now(UTC)
-    current_slot = now.weekday() * 24 + now.hour
-
-    TOTAL_HOURLY_SLOTS = 24 * 7  # 168 slots across every hour of the week
-    return [
-        org_id
-        for org_id in eligible_org_ids
-        if int(md5_text(str(org_id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == current_slot
-    ]
+    return eligible_org_ids
 
 
 @instrumented_task(
     name="sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
     namespace=seer_tasks,
-    processing_deadline_duration=30 * 60,
+    processing_deadline_duration=15 * 60,
 )
 def schedule_context_engine_indexing_tasks() -> None:
     """
