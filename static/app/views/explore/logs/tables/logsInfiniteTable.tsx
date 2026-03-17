@@ -544,7 +544,6 @@ export function LogsInfiniteTable({
       {expanded && (
         <FloatingBackToTopContainer
           inReplay={!!embeddedOptions?.replay}
-          tableLeft={tableRef.current?.getBoundingClientRect().left ?? 0}
           tableWidth={tableRef.current?.getBoundingClientRect().width ?? 0}
         >
           {!embeddedOptions?.replay && (

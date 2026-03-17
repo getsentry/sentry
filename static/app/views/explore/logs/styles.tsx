@@ -435,7 +435,6 @@ export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
 
 export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;
-  tableLeft?: number;
   tableWidth?: number;
 }>`
   --floatingWidth: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
