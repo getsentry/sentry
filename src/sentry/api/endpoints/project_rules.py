@@ -756,18 +756,19 @@ def format_request_data(
         "environment": data.get("environment"),
         "config": {"frequency": data.get("frequency")},
     }
+    owner = data.get("owner", "")
+    if owner:
+        actor = parse_and_validate_actor(str(owner), project.organization_id)
+        if actor is not None:
+            workflow_payload["owner"] = actor.identifier
+    elif owner is None:  # user has expliticly passed None so as to clear the owner field
+        workflow_payload["owner"] = None
 
     triggers: DataConditionGroupInput = {"logicType": "any-short", "conditions": []}
     translated_filter_list: list[DataConditionInput] = []
     fake_dcg = DataConditionGroup()
     # XXX: In order to avoid making bigger changes to translate_to_data_condition in issue_alert_conditions.py
     # we pass in a dummy DCG and then pop it off since we just need the formatted data
-
-    owner = data.get("owner")
-    if owner:
-        actor = parse_and_validate_actor(str(owner), project.organization_id)
-        if actor is not None:
-            workflow_payload["owner"] = actor.identifier
 
     for condition in data.get("conditions", []):
         try:
