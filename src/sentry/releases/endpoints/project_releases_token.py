@@ -11,7 +11,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.models.options.project_option import ProjectOption
-from sentry.types.region import get_local_locality
+from sentry.types.cell import get_local_locality
 
 
 def _get_webhook_url(project, plugin_id, token):

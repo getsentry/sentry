@@ -40,7 +40,7 @@ from sentry.testutils.helpers.backups import BackupTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.types.region import Cell, RegionCategory, find_cells_for_user
+from sentry.types.cell import Cell, RegionCategory, find_cells_for_user
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail

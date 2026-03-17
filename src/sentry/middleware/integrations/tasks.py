@@ -16,7 +16,7 @@ from sentry.silo.client import CellSiloClient
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.taskworker.retry import Retry
-from sentry.types.region import Cell, get_cell_by_name
+from sentry.types.cell import Cell, get_cell_by_name
 
 logger = logging.getLogger(__name__)
 
