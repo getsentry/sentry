@@ -326,6 +326,7 @@ def manual_size_analysis_comparison(
         )
         .select_related("preprod_artifact")
         .select_related("preprod_artifact__mobile_app_info")
+        .select_related("preprod_artifact__commit_comparison")
     )
     head_size_metrics = list(head_size_metrics_qs)
 
@@ -337,6 +338,7 @@ def manual_size_analysis_comparison(
         )
         .select_related("preprod_artifact")
         .select_related("preprod_artifact__mobile_app_info")
+        .select_related("preprod_artifact__commit_comparison")
     )
     base_size_metrics = list(base_size_metrics_qs)
 
