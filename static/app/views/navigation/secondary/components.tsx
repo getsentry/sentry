@@ -13,6 +13,7 @@ import styled from '@emotion/styled';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {
   AnimatePresence,
+  LayoutGroup,
   motion,
   Reorder,
   useDragControls,
@@ -631,9 +632,9 @@ function ReorderableListItem<T>(props: ReorderableListItemProps<T>) {
   return (
     <ReorderableItemContext.Provider value={{controls, grabbing}}>
       <ReorderableItemContainer
+        {...props}
         grabbing={grabbing}
         value={props.item}
-        layout="position"
         dragListener={false}
         dragControls={controls}
         dragConstraints={props.groupRef}
@@ -670,27 +671,30 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   const orderedItemsRef = useRef<T[]>(props.items);
 
   return (
-    <ReorderableGroupList
-      axis="y"
-      ref={groupRef}
-      values={items}
-      onReorder={newOrder => {
-        orderedItemsRef.current = newOrder;
-        setItems(newOrder);
-      }}
-      initial={false}
-    >
-      {items.map(item => (
-        <ReorderableListItem
-          key={item.id}
-          item={item}
-          groupRef={groupRef}
-          onDragEnd={() => props.onDragEnd(orderedItemsRef.current)}
-        >
-          {props.children(item)}
-        </ReorderableListItem>
-      ))}
-    </ReorderableGroupList>
+    <LayoutGroup>
+      <ReorderableGroupList
+        {...props}
+        axis="y"
+        ref={groupRef}
+        values={items}
+        onReorder={newOrder => {
+          orderedItemsRef.current = newOrder;
+          setItems(newOrder);
+        }}
+        initial={false}
+      >
+        {items.map(item => (
+          <ReorderableListItem
+            key={item.id}
+            item={item}
+            groupRef={groupRef}
+            onDragEnd={() => props.onDragEnd(orderedItemsRef.current)}
+          >
+            {props.children(item)}
+          </ReorderableListItem>
+        ))}
+      </ReorderableGroupList>
+    </LayoutGroup>
   );
 }
 
