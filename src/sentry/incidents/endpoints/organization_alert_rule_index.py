@@ -341,6 +341,42 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    def _get_uptime_rules_base_queryset(self, projects: Sequence[Project]) -> BaseQuerySet:
+        return (
+            Detector.objects.filter(
+                type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+                project__in=projects,
+                config__mode__in=(
+                    UptimeMonitorMode.MANUAL.value,
+                    UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
+                ),
+                data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+                status=ObjectStatus.ACTIVE,
+            )
+            .select_related("project")
+            .prefetch_related("data_sources")
+        )
+
+    def _get_cron_rules_base_queryset(self, projects: Sequence[Project]) -> BaseQuerySet:
+        return (
+            Monitor.objects.filter(project_id__in=[p.id for p in projects])
+            .exclude(
+                status__in=[
+                    ObjectStatus.PENDING_DELETION,
+                    ObjectStatus.DELETION_IN_PROGRESS,
+                ]
+            )
+            .annotate(
+                # Since monitors have multiple environment's which can each have
+                # their own status, find the 'worst' status among all of the
+                # environments and use that as the status of this monitor.
+                resolved_status=MonitorEnvironment.objects.filter(monitor_id=OuterRef("pk"))
+                .annotate(ordering=MONITOR_ENVIRONMENT_ORDERING)
+                .order_by("ordering")
+                .values("status")[:1]
+            )
+        )
+
     def _get_workflow_engine(
         self,
         request: Request,
@@ -373,38 +409,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             .distinct()
         )
 
-        # Uptime monitors: No change from legacy
-        uptime_rules = (
-            Detector.objects.filter(
-                type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-                project__in=projects,
-                config__mode__in=(
-                    UptimeMonitorMode.MANUAL.value,
-                    UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
-                ),
-                data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-                status=ObjectStatus.ACTIVE,
-            )
-            .select_related("project")
-            .prefetch_related("data_sources")
-        )
-
-        # Cron monitors: No change from legacy
-        crons_rules = (
-            Monitor.objects.filter(project_id__in=[p.id for p in projects])
-            .exclude(
-                status__in=[
-                    ObjectStatus.PENDING_DELETION,
-                    ObjectStatus.DELETION_IN_PROGRESS,
-                ]
-            )
-            .annotate(
-                resolved_status=MonitorEnvironment.objects.filter(monitor_id=OuterRef("pk"))
-                .annotate(ordering=MONITOR_ENVIRONMENT_ORDERING)
-                .order_by("ordering")
-                .values("status")[:1]
-            )
-        )
+        uptime_rules = self._get_uptime_rules_base_queryset(projects)
+        crons_rules = self._get_cron_rules_base_queryset(projects)
 
         if teams_query is not None:
             team_ids = list(teams_query.values_list("id", flat=True))
@@ -622,38 +628,8 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             project__in=projects,
         )
 
-        uptime_rules = (
-            Detector.objects.filter(
-                type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
-                project__in=projects,
-                config__mode__in=(
-                    UptimeMonitorMode.MANUAL.value,
-                    UptimeMonitorMode.AUTO_DETECTED_ACTIVE.value,
-                ),
-                data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
-                status=ObjectStatus.ACTIVE,
-            )
-            .select_related("project")
-            .prefetch_related("data_sources")
-        )
-        crons_rules = (
-            Monitor.objects.filter(project_id__in=[p.id for p in projects])
-            .exclude(
-                status__in=[
-                    ObjectStatus.PENDING_DELETION,
-                    ObjectStatus.DELETION_IN_PROGRESS,
-                ]
-            )
-            .annotate(
-                # Since monitors have multiple environment's which can each have
-                # their own status, find the 'worst' status among all of the
-                # environments and use that as the status of this monitor.
-                resolved_status=MonitorEnvironment.objects.filter(monitor_id=OuterRef("pk"))
-                .annotate(ordering=MONITOR_ENVIRONMENT_ORDERING)
-                .order_by("ordering")
-                .values("status")[:1]
-            )
-        )
+        uptime_rules = self._get_uptime_rules_base_queryset(projects)
+        crons_rules = self._get_cron_rules_base_queryset(projects)
 
         if not features.has("organizations:performance-view", organization):
             # Filter to only error alert rules
