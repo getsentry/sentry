@@ -234,7 +234,16 @@ def _resolve_frames(
         if not frame.get("inApp"):
             continue
 
-        event_frame = EventFrame.from_dict(frame)
+        # Serialized events use camelCase keys but EventFrame expects snake_case
+        event_frame = EventFrame(
+            filename=frame.get("filename"),
+            abs_path=frame.get("absPath"),
+            module=frame.get("module"),
+            package=frame.get("package"),
+            function=frame.get("function"),
+            in_app=frame.get("inApp"),
+            lineno=frame.get("lineNo"),
+        )
 
         for repo_full_name, mappings in repo_mappings.items():
             resolved = False
