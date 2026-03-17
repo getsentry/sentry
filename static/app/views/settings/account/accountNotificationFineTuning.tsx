@@ -158,6 +158,8 @@ export function AccountNotificationFineTuning() {
   );
 
   const field = ACCOUNT_NOTIFICATION_FIELDS.email!;
+  const isPending = isPendingProjects || isPendingEmailsByProject || isPendingEmails;
+  const isError = isErrorProjects || isErrorEmails || isErrorEmailsByProject;
 
   // Verified email addresses
   const emailChoices: EmailSelectOption[] = emails
@@ -173,32 +175,31 @@ export function AccountNotificationFineTuning() {
     })
     .map(({email}) => ({value: email, label: email}));
 
-  if (isErrorProjects || isErrorEmails || isErrorEmailsByProject) {
+  if (isError) {
     return <LoadingError />;
   }
 
-  if (!emailsByProject) {
+  if (!emailsByProject && !isPending) {
     return null;
   }
 
   const hasProjects = !!projects?.length;
-  const mainContent =
-    isPendingProjects || isPendingEmailsByProject || isPendingEmails ? (
-      <LoadingIndicator />
-    ) : (
-      <Fragment>
-        {hasProjects ? (
-          <AccountNotificationsByProject
-            projects={projects}
-            emailChoices={emailChoices}
-            emailsByProject={emailsByProject}
-            refetchEmailsByProject={refetchEmailsByProject}
-          />
-        ) : (
-          <EmptyMessage>{t('No projects found')}</EmptyMessage>
-        )}
-      </Fragment>
-    );
+  const mainContent = isPending ? (
+    <LoadingIndicator />
+  ) : (
+    <Fragment>
+      {hasProjects ? (
+        <AccountNotificationsByProject
+          projects={projects}
+          emailChoices={emailChoices}
+          emailsByProject={emailsByProject}
+          refetchEmailsByProject={refetchEmailsByProject}
+        />
+      ) : (
+        <EmptyMessage>{t('No projects found')}</EmptyMessage>
+      )}
+    </Fragment>
+  );
 
   return (
     <div>
@@ -223,7 +224,7 @@ export function AccountNotificationFineTuning() {
             />
           </Flex>
         </PanelHeader>
-        <Stack gap="0">
+        <Stack>
           {organizationId ? (
             mainContent
           ) : (
