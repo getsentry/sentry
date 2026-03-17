@@ -1630,10 +1630,10 @@ class TestWorkflowNotification(TestCase):
         assert not safe_urlopen.called
 
         # SLO assertions
-        assert_failure_metric(
-            mock_record, SentryAppSentryError(SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
+        assert_halt_metric(
+            mock_record, SentryAppWebhookFailureReason.MISSING_SERVICEHOOK
         )
-        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> send_webhook (error)
+        # APP_CREATE (success) -> UPDATE_WEBHOOK (success) -> GRANT_EXCHANGER (success) -> PREPARE_WEBHOOK (success) -> send_webhook (halt)
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
         )
@@ -1641,7 +1641,28 @@ class TestWorkflowNotification(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_does_not_send_if_installation_deleted(
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        # Simulate a race condition where the installation is deleted before the task runs
+        workflow_notification(999, self.issue.id, "assigned", self.user.id)
+        assert not safe_urlopen.called
+
+        # SLO assertions - should halt, not fail
+        assert_halt_metric(
+            mock_record,
+            f"workflow_notification.{SentryAppWebhookHaltReason.MISSING_INSTALLATION}",
+        )
+        # PREPARE_WEBHOOK (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

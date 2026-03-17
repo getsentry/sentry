@@ -553,8 +553,14 @@ def workflow_notification(
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=event,
-    ).capture():
+    ).capture() as lifecycle:
         webhook_data = get_webhook_data(installation_id, issue_id, user_id)
+
+        if webhook_data is None:
+            lifecycle.record_halt(
+                halt_reason=f"workflow_notification.{SentryAppWebhookHaltReason.MISSING_INSTALLATION}",
+            )
+            return
 
         install, issue, user = webhook_data
         data = kwargs.get("data", {})
@@ -617,8 +623,15 @@ def build_comment_webhook(
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=event,
-    ).capture():
+    ).capture() as lifecycle:
         webhook_data = get_webhook_data(installation_id, issue_id, user_id)
+
+        if webhook_data is None:
+            lifecycle.record_halt(
+                halt_reason=f"build_comment_webhook.{SentryAppWebhookHaltReason.MISSING_INSTALLATION}",
+            )
+            return
+
         install, _, user = webhook_data
 
         project_slug = data.get("project_slug")
@@ -665,13 +678,15 @@ def build_comment_webhook(
 
 def get_webhook_data(
     installation_id: int, issue_id: int, user_id: int | None
-) -> tuple[RpcSentryAppInstallation, Group, RpcUser | None]:
+) -> tuple[RpcSentryAppInstallation, Group, RpcUser | None] | None:
     extra = {"installation_id": installation_id, "issue_id": issue_id}
     install = app_service.installation_by_id(id=installation_id)
     if not install:
-        raise SentryAppSentryError(
-            message=f"workflow_notification.{SentryAppWebhookFailureReason.MISSING_INSTALLATION}",
+        logger.info(
+            "get_webhook_data.missing_installation",
+            extra=extra,
         )
+        return None
 
     try:
         issue = Group.objects.get(id=issue_id)
@@ -706,12 +721,17 @@ def send_resource_change_webhook(
 ) -> None:
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=SentryAppEventType(event)
-    ).capture():
+    ).capture() as lifecycle:
         installation = app_service.installation_by_id(id=installation_id)
         if not installation:
-            raise SentryAppSentryError(
-                message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
+            logger.info(
+                "send_resource_change_webhook.missing_installation",
+                extra={"installation_id": installation_id, "event": event},
             )
+            lifecycle.record_halt(
+                halt_reason=f"send_resource_change_webhook.{SentryAppWebhookHaltReason.MISSING_INSTALLATION}",
+            )
+            return
 
     send_webhooks(installation, event, data=data)
 
@@ -770,7 +790,6 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
             installation.organization_id, installation.id
         )
         if not servicehook:
-            lifecycle.add_extra("events", installation.sentry_app.events)
             lifecycle.add_extras(
                 {
                     "installation_uuid": installation.uuid,
@@ -781,7 +800,14 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                     "webhook_url": installation.sentry_app.webhook_url or "",
                 }
             )
-            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
+            logger.info(
+                "send_webhooks.missing_servicehook",
+                extra={"installation_id": installation.id},
+            )
+            lifecycle.record_halt(
+                halt_reason=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK,
+            )
+            return
         if event not in servicehook.events:
             lifecycle.add_extras(
                 {
