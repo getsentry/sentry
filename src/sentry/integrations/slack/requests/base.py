@@ -9,7 +9,7 @@ from rest_framework import status as status_
 from rest_framework.request import Request
 from slack_sdk.signature import SignatureVerifier
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.identity.services.identity.model import RpcIdentityProvider
@@ -206,40 +206,16 @@ class SlackRequest:
         elif verification_token and self._check_verification_token(verification_token):
             return
 
-        # If production credentials failed, try the staging app credentials
-        if self._authorize_staging():
+        # If production credentials failed, try the staging app's signing secret.
+        # The feature flag is already checked during the OAuth installation flow,
+        # and this must work without an integration (e.g. challenge verification).
+        staging_signing_secret = options.get("slack-staging.signing-secret")
+        if staging_signing_secret and self._check_signing_secret(staging_signing_secret):
             return
 
         # unfortunately, we can't know which auth was supposed to succeed
         self._error("slack.action.auth")
         raise SlackRequestError(status=status_.HTTP_401_UNAUTHORIZED)
-
-    def _authorize_staging(self) -> bool:
-        """Check if the request is from the staging Slack app and authorized."""
-        staging_signing_secret = options.get("slack-staging.signing-secret")
-        if not staging_signing_secret or not self._check_signing_secret(staging_signing_secret):
-            return False
-
-        # Verify the feature flag is enabled for at least one organization
-        # associated with this integration
-        if not self._integration:
-            return False
-
-        from sentry.organizations.services.organization import organization_service
-
-        org_integrations = integration_service.get_organization_integrations(
-            integration_id=self._integration.id,
-        )
-        for oi in org_integrations:
-            org_context = organization_service.get_organization_by_id(
-                id=oi.organization_id, include_projects=False, include_teams=False
-            )
-            if org_context and features.has(
-                "organizations:slack-staging-app", org_context.organization
-            ):
-                return True
-
-        return False
 
     def _check_signing_secret(self, signing_secret: str) -> bool:
         signature = self.request.META.get("HTTP_X_SLACK_SIGNATURE")
