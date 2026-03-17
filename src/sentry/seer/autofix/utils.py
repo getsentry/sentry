@@ -425,6 +425,7 @@ def resolve_repository_ids(
     providers: set[str] = set()
     for pref in preferences:
         for repo in pref.repositories:
+            # We can't resolve repos with None providers or external IDs.
             if repo.repository_id is not None or not repo.external_id or not repo.provider:
                 continue
 
