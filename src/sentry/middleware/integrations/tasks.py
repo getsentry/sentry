@@ -43,15 +43,15 @@ class _AsyncCellDispatcher(ABC):
     def log_message(self, tag: str) -> str:
         return f"{self.log_code}.{tag}"
 
-    def dispatch(self, region_names: Iterable[str]) -> Response | None:
-        results = [self._dispatch_to_cell(name) for name in region_names]
+    def dispatch(self, cell_names: Iterable[str]) -> Response | None:
+        results = [self._dispatch_to_cell(name) for name in cell_names]
         successes = [r for r in results if r.was_successful()]
 
         logger.info(
-            self.log_message("async_region_response"),
+            self.log_message("async_cell_response"),
             extra={
-                "regions": [r.region.name for r in successes],
-                "response_map": {r.region.name: r.response.status_code for r in results},
+                "regions": [r.cell.name for r in successes],
+                "response_map": {r.cell.name: r.response.status_code for r in results},
             },
         )
 
@@ -134,7 +134,7 @@ class _AsyncDiscordDispatcher(_AsyncCellDispatcher):
         return IntegrationProviderSlug.DISCORD.value
 
     def unpack_payload(self, response: Response) -> Any:
-        # Region will return a response assuming it's meant to go directly to Discord. Since we're
+        # Cell will return a response assuming it's meant to go directly to Discord. Since we're
         # handling the request asynchronously, we extract only the data, and post it to the webhook
         # that discord provides.
         # https://discord.com/developers/docs/interactions/receiving-and-responding#followup-messages
@@ -153,7 +153,7 @@ def convert_to_async_discord_response(
     response_url: str,
 ) -> None:
     """
-    This task asks relevant region silos for response data to send asynchronously to Discord. It
+    This task asks relevant cell silos for response data to send asynchronously to Discord. It
     assumes Discord has received a callback of type:5 (DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE).
     (See https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)
 
