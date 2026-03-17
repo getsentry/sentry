@@ -41,30 +41,44 @@ describe('incremental trace fetch', () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 3',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 4'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'a',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          op: 'txn 3',
+          children: [
+            makeEAPSpan({
+              event_id: 'b',
+              start_timestamp: 1,
+              parent_span_id: 'a',
+              end_timestamp: 2,
+              op: 'txn 4',
+            }),
+          ],
+        }),
+      ]),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 5',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'c',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          op: 'txn 5',
+          children: [
+            makeEAPSpan({
+              event_id: 'd',
+              start_timestamp: 1,
+              parent_span_id: 'c',
+              end_timestamp: 2,
+              op: 'txn 6',
+            }),
+          ],
+        }),
+      ]),
     });
 
     tree.build();
