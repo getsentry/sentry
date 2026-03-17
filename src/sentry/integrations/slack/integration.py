@@ -210,6 +210,50 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
             )
             return []
 
+    def set_thread_status(
+        self,
+        *,
+        channel_id: str,
+        thread_ts: str,
+        status: str,
+    ) -> None:
+        """
+        Set a status indicator in a Slack assistant thread (e.g. "Thinking...").
+        The status auto-clears when the bot sends a reply, or after 2 minutes.
+        """
+        client = self.get_client()
+        try:
+            client.assistant_threads_setStatus(
+                channel_id=channel_id,
+                thread_ts=thread_ts,
+                status=status,
+            )
+        except SlackApiError:
+            _logger.warning(
+                "slack.set_thread_status.error",
+                extra={"channel_id": channel_id, "thread_ts": thread_ts},
+            )
+
+    def clear_thread_status(
+        self,
+        *,
+        channel_id: str,
+        thread_ts: str,
+    ) -> None:
+        """Clear a status indicator in a Slack assistant thread."""
+        client = self.get_client()
+        try:
+            client.assistant_threads_setStatus(
+                channel_id=channel_id,
+                thread_ts=thread_ts,
+                status="",
+            )
+        except SlackApiError:
+            _logger.warning(
+                "slack.clear_thread_status.error",
+                extra={"channel_id": channel_id, "thread_ts": thread_ts},
+            )
+
 
 class SlackIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.SLACK.value
