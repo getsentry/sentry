@@ -807,8 +807,8 @@ function ReorderableGroupList<T extends {id: string | number}>(props: GroupProps
 function ReorderableItemContainer(props: React.ComponentProps<typeof Reorder.Item>) {
   return (
     <Container
-      position="relative"
       radius="md"
+      position="relative"
       background={props.grabbing ? 'secondary' : undefined}
     >
       {p => <Reorder.Item {...p} {...props} />}

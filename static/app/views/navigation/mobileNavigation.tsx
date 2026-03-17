@@ -3,7 +3,7 @@ import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import Hook from 'sentry/components/hook';
@@ -112,30 +112,30 @@ export function MobileNavigation() {
           {view === 'primary' ? (
             <PrimaryNavigationItems />
           ) : view === 'secondary' ? (
-            <Stack height="100%">
-              <Flex
-                position="fixed"
-                bottom={theme.space.md}
-                right={theme.space.md}
-                padding="sm"
-              >
-                {p => (
-                  <Button
-                    {...p}
-                    size="xs"
-                    priority="transparent"
-                    onClick={() => setView('primary')}
-                    icon={<IconChevron direction="left" />}
-                    aria-label={t('Back to primary navigation')}
-                  >
-                    {t('Back')}
-                  </Button>
-                )}
+            <Grid
+              position="relative"
+              height="100%"
+              areas={`
+              "header"
+              "content"`}
+              columns="1fr"
+              rows="auto 1fr"
+            >
+              <Flex as="header" area="header" position="sticky" top={0} padding="md">
+                <Button
+                  size="xs"
+                  priority="transparent"
+                  onClick={() => setView('primary')}
+                  icon={<IconChevron direction="left" />}
+                  aria-label={t('Back to primary navigation')}
+                >
+                  {t('Back')}
+                </Button>
               </Flex>
               <Stack justify="start" align="stretch" overflowY="auto" area="content">
                 <SecondaryNavigationContent />
               </Stack>
-            </Stack>
+            </Grid>
           ) : null}
         </NavigationOverlayPortal>
       )}
