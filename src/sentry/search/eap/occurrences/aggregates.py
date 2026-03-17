@@ -11,8 +11,12 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.validator import literal_validator, number_validator
 
+OCCURRENCE_GROUP_ID_KEY = AttributeKey(
+    name="group_id",
+    type=AttributeKey.Type.TYPE_INT,
+)
 OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES = [
-    AttributeKey(name="group_id", type=AttributeKey.Type.TYPE_INT),
+    OCCURRENCE_GROUP_ID_KEY,
 ]
 
 OCCURRENCE_AGGREGATE_DEFINITIONS = {

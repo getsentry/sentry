@@ -17,7 +17,7 @@ const defaultProps = {
   size: 14,
 };
 
-const CircleIndicator = styled('div')<Props>`
+export const CircleIndicator = styled('div')<Props>`
   display: inline-block;
   position: relative;
   border-radius: 50%;
@@ -29,5 +29,3 @@ const CircleIndicator = styled('div')<Props>`
       ? p.theme.tokens.background.success.vibrant
       : p.theme.tokens.background.danger.vibrant)};
 `;
-
-export default CircleIndicator;

@@ -14,7 +14,7 @@ type Props = {
   btnSaveLabel?: string;
 } & ModalRenderProps;
 
-function Modal({
+export function Modal({
   title,
   onSave,
   content,
@@ -49,5 +49,3 @@ function Modal({
     </Fragment>
   );
 }
-
-export default Modal;

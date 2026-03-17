@@ -136,7 +136,7 @@ const CLIENT_TRANSACTIONS_TABLE_FIELDS = [
   'failure_rate()',
   `avg(${SpanFields.SPAN_DURATION})`,
   `p95(${SpanFields.SPAN_DURATION})`,
-  `performance_score(${SpanFields.TOTAL_SCORE})`,
+  `equation|performance_score(${SpanFields.TOTAL_SCORE})`,
 ];
 
 const CLIENT_TRANSACTIONS_TABLE: Widget = {
@@ -155,7 +155,7 @@ const CLIENT_TRANSACTIONS_TABLE: Widget = {
         'failure_rate()',
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
-        `performance_score(${SpanFields.TOTAL_SCORE})`,
+        `equation|performance_score(${SpanFields.TOTAL_SCORE})`,
       ],
       columns: [SpanFields.TRANSACTION, SpanFields.SPAN_OP, SpanFields.PROJECT],
       fields: CLIENT_TRANSACTIONS_TABLE_FIELDS,
@@ -267,4 +267,9 @@ export const NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     SERVER_TRANSACTIONS_TABLE,
     SERVER_TREE_WIDGET,
   ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['hasInsightsVitals', 'hasInsightsAssets'],
+    description: 'Get started with Next.js tracing',
+  },
 };

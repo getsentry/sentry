@@ -198,7 +198,7 @@ def compute_projectkey_config(key):
     name="sentry.tasks.relay.invalidate_project_config",
     namespace=relay_tasks,
     processing_deadline_duration=25 * 60 + 5,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def invalidate_project_config(
     organization_id=None,

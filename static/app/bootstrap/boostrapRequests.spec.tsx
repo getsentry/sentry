@@ -8,12 +8,12 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResult} from 'sentry/api';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
-import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {
   DEFAULT_QUERY_CLIENT_CONFIG,
   QueryClient,

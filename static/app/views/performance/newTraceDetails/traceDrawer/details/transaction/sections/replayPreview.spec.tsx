@@ -4,10 +4,10 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {EventTransaction} from 'sentry/types/event';
 
-import ReplayPreview from './replayPreview';
+import {ReplayPreview} from './replayPreview';
 
 jest.mock('sentry/components/events/eventReplay/replayClipPreview', () => {
   return function MockReplayClipPreview() {
@@ -43,7 +43,7 @@ describe('ReplayPreview', () => {
 
   it('should hide replay preview when user does not have granular replay permissions', () => {
     const orgWithGranularPermissions = OrganizationFixture({
-      features: ['session-replay', 'granular-replay-permissions'],
+      features: ['session-replay'],
       hasGranularReplayPermissions: true,
       replayAccessMembers: [999], // User ID 1 is not in this list
     });

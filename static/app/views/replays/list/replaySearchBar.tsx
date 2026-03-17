@@ -23,7 +23,7 @@ import {
   REPLAY_TAP_FIELDS,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const getReplayFieldDefinition = (key: string) => getFieldDefinition(key, 'replay');
@@ -123,7 +123,7 @@ type Props = Omit<
   searchSource?: string;
 };
 
-function ReplaySearchBar(props: Props) {
+export function ReplaySearchBar(props: Props) {
   const {organization, pageFilters} = props;
   const api = useApi();
   const projectIds = pageFilters.projects;
@@ -239,5 +239,3 @@ function ReplaySearchBar(props: Props) {
     />
   );
 }
-
-export default ReplaySearchBar;

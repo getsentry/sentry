@@ -17,7 +17,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Extrap
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
 from sentry.api.utils import handle_query_errors
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 PARALLELIZATION_FACTOR = 2
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

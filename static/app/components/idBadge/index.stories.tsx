@@ -1,14 +1,14 @@
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import * as Storybook from 'sentry/stories';
 import type {Actor} from 'sentry/types/core';
 import type {Member} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 
 import type {OrganizationBadgeProps} from './organizationBadge';
-import IdBadge from '.';
+import {IdBadge} from '.';
 
 export default Storybook.story('IdBadge', story => {
   story('Props', () => {

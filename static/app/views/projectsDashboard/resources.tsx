@@ -5,7 +5,7 @@ import docsImg from 'sentry-images/spot/code-arguments-tags-mirrored.svg';
 import releasesImg from 'sentry-images/spot/releases.svg';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import ResourceCard from 'sentry/components/resourceCard';
+import {ResourceCard} from 'sentry/components/resourceCard';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -13,7 +13,7 @@ type Props = {
   organization: Organization;
 };
 
-function Resources(_props: Props) {
+export function Resources(_props: Props) {
   return (
     <ResourcesWrapper data-test-id="resources">
       <Layout.Title withMargins>{t('Resources')}</Layout.Title>
@@ -33,8 +33,6 @@ function Resources(_props: Props) {
     </ResourcesWrapper>
   );
 }
-
-export default Resources;
 
 const ResourcesWrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};

@@ -437,7 +437,7 @@ def validate_options(settings: Any) -> None:
 
 
 def validate_regions(settings: Any) -> None:
-    from sentry.types.region import load_from_config
+    from sentry.types.cell import load_from_config
 
     if not settings.SENTRY_REGION_CONFIG:
         return
@@ -672,13 +672,13 @@ See: https://github.com/getsentry/snuba#sentry--snuba"""
 
 
 def validate_outbox_config() -> None:
-    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
+    from sentry.hybridcloud.models.outbox import CellOutboxBase, ControlOutboxBase
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
         ControlOutboxBase.from_outbox_name(outbox_name)
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["REGION"]:
-        RegionOutboxBase.from_outbox_name(outbox_name)
+        CellOutboxBase.from_outbox_name(outbox_name)
 
 
 def import_grouptype() -> None:

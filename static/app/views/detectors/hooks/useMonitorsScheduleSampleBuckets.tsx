@@ -1,7 +1,7 @@
 import type {CheckInBucket} from 'sentry/components/checkInTimeline/types';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 import type {UseMonitorsScheduleSamplesOptions} from './useMonitorsScheduleSamples';

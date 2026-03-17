@@ -7,13 +7,13 @@ import {Button} from '@sentry/scraps/button';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TimeSince from 'sentry/components/timeSince';
 import {IconDelete} from 'sentry/icons';
@@ -23,9 +23,9 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface GroupTombstoneRowProps {
   data: GroupTombstone;
@@ -108,7 +108,7 @@ interface GroupTombstonesProps {
   project: Project;
 }
 
-function GroupTombstones({project}: GroupTombstonesProps) {
+export function GroupTombstones({project}: GroupTombstonesProps) {
   const api = useApi();
   const location = useLocation();
   const organization = useOrganization();
@@ -224,5 +224,3 @@ const LeftAlignedColumn = styled(Column)`
 const CenteredAlignedColumn = styled(Column)`
   justify-content: center;
 `;
-
-export default GroupTombstones;

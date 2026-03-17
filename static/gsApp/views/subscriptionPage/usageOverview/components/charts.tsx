@@ -1,6 +1,6 @@
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {ChartControls, InlineContainer} from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -21,7 +21,7 @@ import {
   selectedTransform,
 } from 'getsentry/views/subscriptionPage/reservedUsageChart';
 import type {BreakdownPanelProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
-import UsageTotalsTable from 'getsentry/views/subscriptionPage/usageTotalsTable';
+import {UsageTotalsTable} from 'getsentry/views/subscriptionPage/usageTotalsTable';
 
 const EMPTY_STAT_TOTAL = {
   accepted: 0,
@@ -33,7 +33,7 @@ const EMPTY_STAT_TOTAL = {
   projected: 0,
 };
 
-function UsageCharts({
+export function UsageCharts({
   selectedProduct,
   usageData,
   subscription,
@@ -153,4 +153,3 @@ function UsageCharts({
     </Container>
   );
 }
-export default UsageCharts;

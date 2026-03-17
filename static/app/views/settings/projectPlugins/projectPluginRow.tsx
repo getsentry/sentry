@@ -14,8 +14,8 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import recreateRoute from 'sentry/utils/recreateRoute';
-import withOrganization from 'sentry/utils/withOrganization';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 const grayText = css`
   color: #979ba0;

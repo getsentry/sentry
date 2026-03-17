@@ -6,7 +6,7 @@ import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';

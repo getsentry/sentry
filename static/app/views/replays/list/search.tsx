@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 import {parseAsString, useQueryStates} from 'nuqs';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import useOrganization from 'sentry/utils/useOrganization';
-import ReplaySearchBar from 'sentry/views/replays/list/replaySearchBar';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {ReplaySearchBar} from 'sentry/views/replays/list/replaySearchBar';
 
-export default function ReplaysSearch() {
+export function ReplaysSearch() {
   const {selection} = usePageFilters();
   const organization = useOrganization();
 

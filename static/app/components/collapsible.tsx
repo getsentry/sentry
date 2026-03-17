@@ -23,7 +23,7 @@ type Props = {
 /**
  * This component is used to show first X items and collapse the rest
  */
-function Collapsible({
+export function Collapsible({
   collapseButton,
   expandButton,
   maxVisibleItems = 5,
@@ -64,5 +64,3 @@ function Collapsible({
     </Fragment>
   );
 }
-
-export default Collapsible;

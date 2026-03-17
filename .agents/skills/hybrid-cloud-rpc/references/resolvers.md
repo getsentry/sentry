@@ -1,6 +1,6 @@
 # Region Resolution Strategies
 
-Region-silo services (`local_mode = SiloMode.REGION`) require every RPC method to declare how to resolve the target region from the method's arguments. This is done via the `resolve` parameter on `@regional_rpc_method`.
+Region-silo services (`local_mode = SiloMode.CELL`) require every RPC method to declare how to resolve the target region from the method's arguments. This is done via the `resolve` parameter on `@cell_rpc_method`.
 
 All resolvers are defined in `src/sentry/hybridcloud/rpc/resolvers.py`.
 
@@ -20,13 +20,13 @@ All resolvers are defined in `src/sentry/hybridcloud/rpc/resolvers.py`.
 
 ```python
 # Uses default parameter_name="organization_id"
-@regional_rpc_method(resolve=ByOrganizationId())
+@cell_rpc_method(resolve=ByOrganizationId())
 @abstractmethod
 def get_thing(self, *, organization_id: int, id: int) -> RpcThing | None:
     pass
 
 # Custom parameter name
-@regional_rpc_method(resolve=ByOrganizationId("id"))
+@cell_rpc_method(resolve=ByOrganizationId("id"))
 @abstractmethod
 def serialize_organization(self, *, id: int) -> Any | None:
     pass
@@ -36,7 +36,7 @@ def serialize_organization(self, *, id: int) -> Any | None:
 
 ```python
 # Uses default parameter_name="slug"
-@regional_rpc_method(resolve=ByOrganizationSlug())
+@cell_rpc_method(resolve=ByOrganizationSlug())
 @abstractmethod
 def get_org_by_slug(self, *, slug: str) -> RpcOrgSummary | None:
     pass
@@ -49,7 +49,7 @@ Resolves the region from an attribute of an RpcModel parameter. Useful when the 
 ```python
 # parameter_name is required — it names the method parameter
 # attribute_name defaults to "organization_id"
-@regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
+@cell_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
 @abstractmethod
 def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
     pass
@@ -60,7 +60,7 @@ In this example, the framework calls `arguments["organization_member"].organizat
 To use a different attribute:
 
 ```python
-@regional_rpc_method(
+@cell_rpc_method(
     resolve=ByOrganizationIdAttribute("request", attribute_name="org_id")
 )
 @abstractmethod
@@ -72,7 +72,7 @@ def process_request(self, *, request: RpcMyRequest) -> None:
 
 ```python
 # Uses default parameter_name="region_name"
-@regional_rpc_method(resolve=ByRegionName())
+@cell_rpc_method(resolve=ByRegionName())
 @abstractmethod
 def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
     pass
@@ -81,7 +81,7 @@ def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
 ### RequireSingleOrganization
 
 ```python
-@regional_rpc_method(resolve=RequireSingleOrganization())
+@cell_rpc_method(resolve=RequireSingleOrganization())
 @abstractmethod
 def get_default_organization(self) -> RpcOrganization:
     pass
@@ -94,7 +94,7 @@ This resolver raises `RegionResolutionError` if the environment is not configure
 When a method has an `Optional` return type and a missing organization mapping means "not found" rather than an error, set this flag:
 
 ```python
-@regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
+@cell_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
 @abstractmethod
 def get_organization_by_id(self, *, id: int) -> RpcOrganization | None:
     pass
