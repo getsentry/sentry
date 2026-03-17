@@ -5,10 +5,10 @@ import styled from '@emotion/styled';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
+import type {HeadingProps} from '@sentry/scraps/text';
 
 import {IconLink} from 'sentry/icons';
 import {useStory} from 'sentry/stories/view/useStory';
-import type {HeadingProps} from 'sentry/components/core/text/heading';
 import {slugify} from 'sentry/utils/slugify';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
