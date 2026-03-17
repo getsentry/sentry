@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useReducer, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -19,7 +19,7 @@ type Props = {
 };
 
 export function OrganizationRules({organization}: Props) {
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, toggleIsCollapsed] = useReducer(prev => !prev, true);
   const [contentHeight, setContentHeight] = useState<string | undefined>();
 
   const {data: rules} = useQuery({
@@ -36,10 +36,6 @@ export function OrganizationRules({organization}: Props) {
     retry: 0,
     staleTime: 'static',
   });
-
-  const handleToggleCollapsed = useCallback(() => {
-    setIsCollapsed(previousIsCollapsed => !previousIsCollapsed);
-  }, []);
 
   const measureRulesRef = useCallback(
     (node: HTMLUListElement | null) => {
@@ -60,7 +56,7 @@ export function OrganizationRules({organization}: Props) {
 
   return (
     <Wrapper isCollapsed={isCollapsed} contentHeight={contentHeight}>
-      <Header onClick={handleToggleCollapsed}>
+      <Header onClick={toggleIsCollapsed}>
         <div>{t('Organization Rules')}</div>
         <Button
           tooltipProps={{
