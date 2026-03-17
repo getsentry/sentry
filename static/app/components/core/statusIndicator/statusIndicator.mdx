@@ -1,21 +1,21 @@
 ---
-title: DotIndicator
-description: A small circular dot that communicates status or severity via color.
+title: StatusIndicator
+description: A small circular indicator that communicates status or severity via color.
 category: utilities
-source: '@sentry/scraps/dotIndicator'
+source: '@sentry/scraps/statusIndicator'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/dotIndicator/dotIndicator.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/statusIndicator/statusIndicator.tsx
 ---
 
-import {DotIndicator} from '@sentry/scraps/dotIndicator';
 import {Flex} from '@sentry/scraps/layout';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation = import('!!type-loader!@sentry/scraps/dotIndicator');
+export const documentation = import('!!type-loader!@sentry/scraps/statusIndicator');
 
-The `DotIndicator` is a small circular dot that communicates status or severity. It supports three semantic variants mapped to design tokens.
+The `StatusIndicator` is a small circular indicator that communicates status or severity. It supports three semantic variants mapped to design tokens.
 
 Placement is the caller's responsibility — the component renders as an inline element with no positioning of its own.
 
@@ -24,24 +24,24 @@ Placement is the caller's responsibility — the component renders as an inline 
 <Storybook.Demo>
   <Flex gap="md" align="center">
     <Flex align="center" gap="xs">
-      <DotIndicator variant="info" aria-label="Info" />
+      <StatusIndicator variant="info" aria-label="Info" />
       <Text>Info</Text>
     </Flex>
     <Flex align="center" gap="xs">
-      <DotIndicator variant="warning" aria-label="Warning" />
+      <StatusIndicator variant="warning" aria-label="Warning" />
       <Text>Warning</Text>
     </Flex>
     <Flex align="center" gap="xs">
-      <DotIndicator variant="danger" aria-label="Danger" />
+      <StatusIndicator variant="danger" aria-label="Danger" />
       <Text>Danger</Text>
     </Flex>
   </Flex>
 </Storybook.Demo>
 
 ```jsx
-<DotIndicator variant="info" />
-<DotIndicator variant="warning" />
-<DotIndicator variant="danger" />
+<StatusIndicator variant="info" />
+<StatusIndicator variant="warning" />
+<StatusIndicator variant="danger" />
 ```
 
 ## Accessibility
@@ -54,18 +54,18 @@ The component handles three patterns based on the props provided:
 | `aria-label` only     | `role="img"` + `aria-label` — standalone meaningful indicator   |
 | `role` + `aria-label` | Explicit role respected (e.g. `role="status"` for live updates) |
 
-Omit `aria-label` when the dot accompanies visible text that already conveys the same meaning.
+Omit `aria-label` when the indicator accompanies visible text that already conveys the same meaning.
 
 ```jsx
 // Decorative — the adjacent text already communicates the status
 <Flex align="center" gap="xs">
-  <DotIndicator variant="danger" />
+  <StatusIndicator variant="danger" />
   <Text>Critical error</Text>
 </Flex>
 
-// Meaningful — the dot is the only indicator
-<DotIndicator variant="warning" aria-label="Warnings present" />
+// Meaningful — the indicator is the only signal
+<StatusIndicator variant="warning" aria-label="Warnings present" />
 
 // Live region — updates are announced to screen readers
-<DotIndicator variant="danger" role="status" aria-label="2 new errors" />
+<StatusIndicator variant="danger" role="status" aria-label="2 new errors" />
 ```
