@@ -6,6 +6,7 @@ import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ScmProvidersData = {
+  activeIntegrationExisting: Integration | null;
   isError: boolean;
   isPending: boolean;
   refetchIntegrations: () => void;
@@ -73,6 +74,7 @@ export function useScmProviders(): ScmProvidersData {
   );
 
   return {
+    activeIntegrationExisting: scmIntegrations[0] ?? null,
     scmProviders,
     scmIntegrationsByProviderKey,
     isPending: providersQuery.isPending || integrationsQuery.isPending,

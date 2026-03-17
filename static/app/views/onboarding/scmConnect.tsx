@@ -16,8 +16,13 @@ import {useScmProviders} from './useScmProviders';
 
 export function ScmConnect({onComplete}: StepProps) {
   const onboardingContext = useOnboardingContext();
-  const {scmProviders, scmIntegrationsByProviderKey, isPending, refetchIntegrations} =
-    useScmProviders();
+  const {
+    scmProviders,
+    scmIntegrationsByProviderKey,
+    isPending,
+    refetchIntegrations,
+    activeIntegrationExisting,
+  } = useScmProviders();
 
   const [activeIntegration, setActiveIntegration] = useState<Integration | null>(
     () => onboardingContext.selectedIntegration ?? null
@@ -25,6 +30,8 @@ export function ScmConnect({onComplete}: StepProps) {
   const [selectedRepo, setSelectedRepo] = useState<IntegrationRepository | null>(
     () => onboardingContext.selectedRepository ?? null
   );
+
+  const effectiveIntegration = activeIntegration ?? activeIntegrationExisting;
 
   const handleInstall = useCallback(
     (data: Integration) => {
@@ -35,25 +42,20 @@ export function ScmConnect({onComplete}: StepProps) {
     [refetchIntegrations]
   );
 
-  const handleDisconnect = useCallback(() => {
-    setActiveIntegration(null);
-    setSelectedRepo(null);
-  }, []);
-
   const handleSelectProvider = useCallback((installation: Integration) => {
     setActiveIntegration(installation);
     setSelectedRepo(null);
   }, []);
 
   const handleContinue = useCallback(() => {
-    if (activeIntegration) {
-      onboardingContext.setSelectedIntegration(activeIntegration);
+    if (effectiveIntegration) {
+      onboardingContext.setSelectedIntegration(effectiveIntegration);
       if (selectedRepo) {
         onboardingContext.setSelectedRepository(selectedRepo);
       }
     }
     onComplete();
-  }, [activeIntegration, selectedRepo, onboardingContext, onComplete]);
+  }, [effectiveIntegration, selectedRepo, onboardingContext, onComplete]);
 
   if (isPending) {
     return (
@@ -73,11 +75,10 @@ export function ScmConnect({onComplete}: StepProps) {
       </Stack>
 
       <Stack gap="lg" style={{width: '100%', maxWidth: 600}}>
-        {activeIntegration ? (
+        {effectiveIntegration ? (
           <ConnectedView
-            integration={activeIntegration}
+            integration={effectiveIntegration}
             selectedRepo={selectedRepo}
-            onDisconnect={handleDisconnect}
             onSelectRepo={setSelectedRepo}
           />
         ) : (

@@ -616,7 +616,7 @@ describe('Onboarding', () => {
       });
     });
 
-    it('shows existing integration as a provider pill and transitions to connected view on click', async () => {
+    it('auto-selects existing integration and shows connected view', async () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/config/integrations/`,
@@ -670,16 +670,11 @@ describe('Onboarding', () => {
 
       renderOnboarding('scm-connect');
 
-      // Already-connected provider should appear as a pill button
-      const githubPill = await screen.findByRole('button', {name: 'GitHub'});
-      expect(githubPill).toBeInTheDocument();
-
-      // Clicking it should transition to the connected view
-      await userEvent.click(githubPill);
+      // Should auto-select the existing integration and show connected view
       expect(
         await screen.findByText('Connected to github.com/getsentry')
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Disconnect'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Manage in Settings'})).toBeInTheDocument();
     });
 
     it('skip for now advances to next step without skipping onboarding', async () => {

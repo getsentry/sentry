@@ -1,16 +1,17 @@
-import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {IconCheckmark, IconClose} from 'sentry/icons';
+import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {RepoSelector} from './scmRepoSelector';
 
 interface ConnectedViewProps {
   integration: Integration;
-  onDisconnect: () => void;
   onSelectRepo: (repo: IntegrationRepository | null) => void;
   selectedRepo: IntegrationRepository | null;
 }
@@ -18,9 +19,10 @@ interface ConnectedViewProps {
 export function ConnectedView({
   integration,
   selectedRepo,
-  onDisconnect,
   onSelectRepo,
 }: ConnectedViewProps) {
+  const organization = useOrganization();
+
   return (
     <Stack gap="lg">
       <Flex align="center" justify="between">
@@ -30,14 +32,9 @@ export function ConnectedView({
             {t('Connected to %s', integration.domainName ?? integration.provider.name)}
           </Text>
         </Flex>
-        <Button
-          size="sm"
-          priority="link"
-          icon={<IconClose size="xs" />}
-          onClick={onDisconnect}
-        >
-          {t('Disconnect')}
-        </Button>
+        <Link to={normalizeUrl(`/settings/${organization.slug}/integrations/`)} size="sm">
+          {t('Manage in Settings')}
+        </Link>
       </Flex>
       <RepoSelector
         integration={integration}
