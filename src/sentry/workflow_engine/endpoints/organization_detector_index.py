@@ -34,7 +34,7 @@ from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamp
 from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues import grouptype
@@ -524,7 +524,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         for detector in queryset:
             with transaction.atomic(router.db_for_write(Detector)):
-                RegionScheduledDeletion.schedule(detector, days=0, actor=request.user)
+                CellScheduledDeletion.schedule(detector, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
                     organization=organization,

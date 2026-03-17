@@ -230,7 +230,7 @@ class ItemHelpersTest(TestCase):
         assert out == {
             "http_url": "sentry.io",
             "http_method": "GET",
-            "http_referrer": "bestswetoolsofalltime.com",
+            "http_referer": "bestswetoolsofalltime.com",
         }
 
     def test_extract_modules(

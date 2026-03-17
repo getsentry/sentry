@@ -2,7 +2,6 @@ import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/uti
 import {getParserServices} from '@typescript-eslint/utils/eslint-utils';
 import ts from 'typescript';
 
-import {isReactComponentLike} from './utils/isReactComponentLike';
 import {lazy} from './utils/lazy';
 
 function unwrapParenthesized(node: ts.Node): ts.Node {
@@ -90,12 +89,11 @@ function findTopLevelVariableDeclaration(
 
 const allowedFilesLazy = lazy(collectResolvedImportFiles);
 
-export const noDefaultExportComponents = ESLintUtils.RuleCreator.withoutDocs({
+export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'problem',
     docs: {
-      description:
-        'Disallow default exports of React components that are not lazy-imported',
+      description: 'Disallow default exports in files that are not lazy-imported',
     },
     fixable: 'code',
     schema: [],
@@ -112,7 +110,7 @@ export const noDefaultExportComponents = ESLintUtils.RuleCreator.withoutDocs({
 
     if (
       allowedFiles.has(currentFileName) ||
-      // TODO: Eventually, it'd be nice to fully ban all default exports of components...
+      // TODO: Eventually, it'd be nice to fully ban all default exports...
       context.sourceCode.ast.body.some(
         statement => statement.type === AST_NODE_TYPES.ExportNamedDeclaration
       )
@@ -126,10 +124,7 @@ export const noDefaultExportComponents = ESLintUtils.RuleCreator.withoutDocs({
           node.declaration.type === AST_NODE_TYPES.ClassDeclaration ||
           node.declaration.type === AST_NODE_TYPES.FunctionDeclaration
         ) {
-          if (
-            !node.declaration.id ||
-            !isReactComponentLike(node.declaration, context.sourceCode)
-          ) {
+          if (!node.declaration.id) {
             return;
           }
 
@@ -157,19 +152,8 @@ export const noDefaultExportComponents = ESLintUtils.RuleCreator.withoutDocs({
             exportedName
           );
 
-          const declarator = variableDeclaration?.declarations.find(
-            decl =>
-              decl.id.type === AST_NODE_TYPES.Identifier && decl.id.name === exportedName
-          );
-
-          const isComponent = functionDeclaration
-            ? isReactComponentLike(functionDeclaration, context.sourceCode)
-            : declarator
-              ? isReactComponentLike(declarator, context.sourceCode)
-              : false;
-
           const declarationToExport = functionDeclaration ?? variableDeclaration;
-          if (!declarationToExport || !isComponent) {
+          if (!declarationToExport) {
             return;
           }
 

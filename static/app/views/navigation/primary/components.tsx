@@ -560,8 +560,9 @@ function ScrollableOverlay(props: OverlayProps) {
       overscrollBehavior="none"
       maxHeight={layout === 'mobile' ? '80vh' : '60vh'}
       width={layout === 'mobile' ? `calc(100vw - ${theme.space['3xl']})` : '400px'}
+      padding="lg"
     >
-      <Overlay {...props} />
+      {p => <Overlay {...mergeProps(p, props)} />}
     </Container>
   );
 }

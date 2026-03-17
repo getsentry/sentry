@@ -9,7 +9,7 @@ from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
 
 
-class RegionOrganizationProvisioningRpcService(RpcService):
+class CellOrganizationProvisioningRpcService(RpcService):
     """
     RPC Service class containing methods for provisioning an organization that
     has already reserved a global slug in the control silo. This is only
@@ -19,18 +19,6 @@ class RegionOrganizationProvisioningRpcService(RpcService):
 
     key = "region_organization_provisioning"
     local_mode = SiloMode.CELL
-
-    @cell_rpc_method(resolve=ByCellName())
-    @abstractmethod
-    def create_organization_in_region(
-        self,
-        region_name: str,
-        organization_id: int,
-        provision_payload: OrganizationProvisioningOptions,
-    ) -> bool:
-        """
-        TODO(cells): Deprecated, remove method when all callers are updated to use create_organization_in_cell
-        """
 
     @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
@@ -57,15 +45,14 @@ class RegionOrganizationProvisioningRpcService(RpcService):
     def update_organization_slug_from_reservation(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         org_slug_temporary_alias_res: RpcOrganizationSlugReservation,
     ) -> bool:
         """
         CAUTION: THIS IS ONLY INTENDED TO BE USED BY THE `organization_provisioning` RPC SERVICE.
         DO NOT USE FOR LOCAL CHANGES.
 
-        An RPC method for processing a slug change on the region, after it has been reserved
+        An RPC method for processing a slug change on the cell, after it has been reserved
         as a temporary alias in the control silo.
 
         :param cell_name: The cell where the organization resides.
@@ -75,13 +62,13 @@ class RegionOrganizationProvisioningRpcService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.hybridcloud.services.region_organization_provisioning.impl import (
-            DatabaseBackedRegionOrganizationProvisioningRpcService,
+        from sentry.hybridcloud.services.cell_organization_provisioning.impl import (
+            DatabaseBackedCellOrganizationProvisioningRpcService,
         )
 
-        return DatabaseBackedRegionOrganizationProvisioningRpcService()
+        return DatabaseBackedCellOrganizationProvisioningRpcService()
 
 
-region_organization_provisioning_rpc_service = (
-    RegionOrganizationProvisioningRpcService.create_delegation()
+cell_organization_provisioning_rpc_service = (
+    CellOrganizationProvisioningRpcService.create_delegation()
 )

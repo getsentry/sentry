@@ -1243,7 +1243,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert resp.data[0]["lastTriggered"] == datetime.now(UTC)
 
     def test_project_deleted(self) -> None:
-        from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+        from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
         from sentry.deletions.tasks.scheduled import run_deletion
 
         org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -1251,7 +1251,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         delete_project = self.create_project(organization=org, teams=[team], name="Bengal")
         self.create_project_rule(project=delete_project)
 
-        deletion = RegionScheduledDeletion.schedule(delete_project, days=0)
+        deletion = CellScheduledDeletion.schedule(delete_project, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():
