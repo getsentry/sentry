@@ -141,6 +141,10 @@ class CircuitBreakerTest(TestCase):
             "primary_quota": ANY,
             "recovery_quota": ANY,
             "redis_pipeline": ANY,
+            # Rate-based fields default to disabled
+            "error_rate_threshold": None,
+            "error_floor": None,
+            "total_requests_quota": None,
         }
         assert isinstance(breaker.limiter, RedisSlidingWindowRateLimiter)
         assert isinstance(breaker.primary_quota, Quota)
@@ -184,6 +188,32 @@ class CircuitBreakerTest(TestCase):
                 20,
             )
             assert breaker.recovery_error_limit == 20
+
+    @patch("sentry.utils.circuit_breaker2.logger")
+    def test_rejects_partial_rate_config(self, mock_logger: MagicMock) -> None:
+        for settings_debug_value, expected_log_function in [
+            (True, mock_logger.error),
+            (False, mock_logger.warning),
+        ]:
+            settings.DEBUG = settings_debug_value
+
+            partial_config: CircuitBreakerConfig = {
+                **DEFAULT_CONFIG,
+                "error_floor": 100,
+            }  # missing error_rate_threshold
+            breaker = MockCircuitBreaker("dogs_are_great", partial_config)
+
+            expected_log_function.assert_called_with(
+                "Circuit breaker '%s' requires both 'error_rate_threshold' and 'error_floor' to "
+                "enable rate-based mode, but only one was provided. Falling back to count-based "
+                "tripping.",
+                "dogs_are_great",
+            )
+            assert breaker.error_rate_threshold is None
+            assert breaker.error_floor is None
+            assert breaker.total_requests_quota is None
+            assert breaker._rate_based is False
+            expected_log_function.reset_mock()
 
     @patch("sentry.utils.circuit_breaker2.logger")
     def test_fixes_mismatched_state_durations(self, mock_logger: MagicMock) -> None:
@@ -452,3 +482,175 @@ class ShouldAllowRequestTest(TestCase):
             mock_logger.exception.assert_called_with(
                 "Couldn't get state from redis for circuit breaker '%s'", breaker.key
             )
+
+
+# --- Rate-based circuit breaker tests ---
+
+DEFAULT_RATE_CONFIG: CircuitBreakerConfig = {
+    "error_limit": 10000,
+    "error_limit_window": 3600,  # 1 hr
+    "broken_state_duration": 120,  # 2 min
+    "error_floor": 100,
+    "error_rate_threshold": 0.5,
+}
+
+
+@freeze_time()
+class RateBasedCircuitBreakerTest(TestCase):
+    def setUp(self) -> None:
+        self.config = DEFAULT_RATE_CONFIG
+        self.breaker = MockCircuitBreaker("test_rate_breaker", self.config)
+
+        # Clear all existing keys from redis
+        self.breaker.redis_pipeline.flushall()
+        self.breaker.redis_pipeline.execute()
+
+    def test_sets_rate_based_defaults(self) -> None:
+        breaker = self.breaker
+        assert breaker._rate_based is True  # derived from total_requests_quota being set
+        assert breaker.error_rate_threshold == 0.5
+        assert breaker.error_floor == 100
+        assert breaker.total_requests_quota is not None
+        assert breaker.total_requests_quota.__dict__ == {
+            "window_seconds": 3600,
+            "granularity_seconds": 180,
+            "limit": 2_000_000_000,
+            "prefix_override": "test_rate_breaker.circuit_breaker.total_requests",
+        }
+
+    def test_low_error_count_below_floor_does_not_trip(self) -> None:
+        """Even at 100% error rate, if error count < floor, don't trip."""
+        for _ in range(50):
+            self.breaker.record_error()
+
+        assert self.breaker.should_allow_request() is True
+        state, _ = self.breaker._get_state_and_remaining_time()
+        assert state == CircuitBreakerState.OK
+
+    def test_high_error_count_low_rate_does_not_trip(self) -> None:
+        """If error count >= floor but rate < threshold, don't trip."""
+        for _ in range(900):
+            self.breaker.record_success()
+        for _ in range(100):
+            self.breaker.record_error()
+
+        assert self.breaker.should_allow_request() is True
+        state, _ = self.breaker._get_state_and_remaining_time()
+        assert state == CircuitBreakerState.OK
+
+    def test_both_conditions_met_trips_to_broken(self) -> None:
+        """When error_count >= floor AND error_rate >= threshold, trip to BROKEN."""
+        for _ in range(100):
+            self.breaker.record_success()
+        for _ in range(200):
+            self.breaker.record_error()
+
+        state, _ = self.breaker._get_state_and_remaining_time()
+        assert state == CircuitBreakerState.BROKEN
+        assert self.breaker.should_allow_request() is False
+
+    def test_broken_to_recovery_to_ok_lifecycle(self) -> None:
+        """Test the full BROKEN -> RECOVERY -> OK lifecycle."""
+        self.breaker._set_breaker_state(CircuitBreakerState.BROKEN)
+        assert self.breaker.should_allow_request() is False
+
+        self.breaker._set_breaker_state(CircuitBreakerState.RECOVERY)
+        assert self.breaker.should_allow_request() is True
+
+        self.breaker._set_breaker_state(CircuitBreakerState.OK)
+        assert self.breaker.should_allow_request() is True
+
+    def test_recovery_to_broken_on_recovery_errors(self) -> None:
+        """During RECOVERY, exceeding recovery_error_limit re-trips to BROKEN."""
+        self.breaker._set_breaker_state(CircuitBreakerState.RECOVERY)
+        state, _ = self.breaker._get_state_and_remaining_time()
+        assert state == CircuitBreakerState.RECOVERY
+
+        recovery_limit = self.breaker.recovery_error_limit
+        for _ in range(recovery_limit + 1):
+            self.breaker.record_error()
+
+        state, _ = self.breaker._get_state_and_remaining_time()
+        assert state == CircuitBreakerState.BROKEN
+
+    def test_record_success_increments_total_count(self) -> None:
+        """record_success() should increment total request count."""
+        self.breaker.record_success()
+
+        now = int(time.time())
+        assert self.breaker.total_requests_quota is not None
+        _, grants = self.breaker.limiter.check_within_quotas(
+            [
+                RequestedQuota(
+                    self.breaker.key,
+                    self.breaker.total_requests_quota.limit,
+                    [self.breaker.total_requests_quota],
+                )
+            ],
+            now,
+        )
+        total_used = self.breaker.total_requests_quota.limit - grants[0].granted
+        assert total_used == 1
+
+    def test_record_error_increments_both_counts(self) -> None:
+        """record_error() should increment both error and total request counts."""
+        self.breaker.record_error()
+
+        now = int(time.time())
+        # Check total requests
+        assert self.breaker.total_requests_quota is not None
+        _, total_grants = self.breaker.limiter.check_within_quotas(
+            [
+                RequestedQuota(
+                    self.breaker.key,
+                    self.breaker.total_requests_quota.limit,
+                    [self.breaker.total_requests_quota],
+                )
+            ],
+            now,
+        )
+        total_used = self.breaker.total_requests_quota.limit - total_grants[0].granted
+        assert total_used == 1
+
+        # Check error count
+        _, error_grants = self.breaker.limiter.check_within_quotas(
+            [
+                RequestedQuota(
+                    self.breaker.key,
+                    self.breaker.primary_quota.limit,
+                    [self.breaker.primary_quota],
+                )
+            ],
+            now,
+        )
+        errors_used = self.breaker.primary_quota.limit - error_grants[0].granted
+        assert errors_used == 1
+
+    def test_record_success_noop_when_broken(self) -> None:
+        """record_success() should return early when BROKEN."""
+        self.breaker._set_breaker_state(CircuitBreakerState.BROKEN)
+        self.breaker.record_success()
+
+        now = int(time.time())
+        assert self.breaker.total_requests_quota is not None
+        _, grants = self.breaker.limiter.check_within_quotas(
+            [
+                RequestedQuota(
+                    self.breaker.key,
+                    self.breaker.total_requests_quota.limit,
+                    [self.breaker.total_requests_quota],
+                )
+            ],
+            now,
+        )
+        total_used = self.breaker.total_requests_quota.limit - grants[0].granted
+        assert total_used == 0
+
+    def test_record_success_noop_when_not_rate_based(self) -> None:
+        """record_success() should be a no-op for count-based breakers."""
+        count_breaker = MockCircuitBreaker("count_only", DEFAULT_CONFIG)
+        count_breaker.redis_pipeline.flushall()
+        count_breaker.redis_pipeline.execute()
+
+        count_breaker.record_success()
+        assert count_breaker.total_requests_quota is None

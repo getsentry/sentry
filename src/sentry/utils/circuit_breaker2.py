@@ -55,6 +55,18 @@ class CircuitBreakerConfig(TypedDict):
     # error limit) before returning to normal operation. Will be set to twice `error_limit_window`
     # if not provided.
     recovery_duration: NotRequired[int]
+    # Rate-based mode (optional — when both are set, enables rate-based tripping instead of
+    # count-based tripping)
+    # Error rate (0.0 to 1.0) — trips when error_count/total_requests >= this
+    error_rate_threshold: NotRequired[float]
+    # Minimum absolute error count before the rate check applies
+    error_floor: NotRequired[int]
+
+
+# A limit to be used in rate-based mode to track total requests. Should not be used in count-based mode.
+# The actual trip decision is made by rate logic, not by exhausting this quota. We need it since we can't trip on error count alone.
+# Note: Somewhat hacky as this is a very large number that should never be reached in practice.
+_COUNTER_QUOTA_LIMIT = 2_000_000_000
 
 
 class CircuitBreaker:
@@ -196,6 +208,99 @@ class CircuitBreaker:
             )
             self.recovery_duration = default_recovery_duration
 
+        # Begin rate-based mode configuration
+        self.error_rate_threshold = config.get("error_rate_threshold")
+        self.error_floor = config.get("error_floor")
+
+        _has_rate_threshold = self.error_rate_threshold is not None
+        _has_error_floor = self.error_floor is not None
+        if _has_rate_threshold != _has_error_floor:
+            log(
+                "Circuit breaker '%s' requires both 'error_rate_threshold' and 'error_floor' to "
+                "enable rate-based mode, but only one was provided. Falling back to count-based "
+                "tripping.",
+                key,
+            )
+            self.error_rate_threshold = None
+            self.error_floor = None
+
+        self.total_requests_quota = None
+        if self.error_rate_threshold is not None and self.error_floor is not None:
+            self.total_requests_quota = Quota(
+                self.window,
+                self.window_granularity,
+                _COUNTER_QUOTA_LIMIT,
+                f"{key}.circuit_breaker.total_requests",
+            )
+
+    @property
+    def _rate_based(self) -> bool:
+        return (
+            self.total_requests_quota is not None
+            and self.error_rate_threshold is not None
+            and self.error_floor is not None
+        )
+
+    def record_success(self) -> None:
+        """Record a successful request. Only meaningful in rate-based mode."""
+        if not self._rate_based or self.total_requests_quota is None:
+            return
+
+        now = int(time.time())
+        state, _ = self._get_state_and_remaining_time()
+        if state == CircuitBreakerState.BROKEN:
+            return
+
+        self.limiter.use_quotas(
+            [RequestedQuota(self.key, 1, [self.total_requests_quota])],
+            # GrantedQuota with quotas=[] bypasses limit enforcement — we always want to record
+            # total request counts unconditionally, so we pre-authorize the increment.
+            [GrantedQuota(self.key, 1, [])],
+            now,
+        )
+
+    def _should_trip(self, controlling_quota: Quota, window_end: int | None = None) -> bool:
+        """Whether the current error count/rate warrants tripping to BROKEN."""
+        if self._rate_based:
+            return self._rate_trip_condition_met(controlling_quota, window_end)
+        return self._count_trip_condition_met(controlling_quota, window_end)
+
+    def _count_trip_condition_met(self, quota: Quota, window_end: int | None = None) -> bool:
+        """Trip if the error quota has been exhausted."""
+        return self._get_remaining_error_quota(quota, window_end) == 0
+
+    def _rate_trip_condition_met(self, quota: Quota, window_end: int | None = None) -> bool:
+        """Trip if error count >= floor AND error rate >= threshold."""
+        if (
+            not self._rate_based
+            or self.error_floor is None
+            or self.error_rate_threshold is None
+            or self.total_requests_quota is None
+        ):
+            raise ValueError("Rate-based mode is not enabled")
+
+        remaining = self._get_remaining_error_quota(quota, window_end)
+        error_count = quota.limit - remaining
+
+        if self.error_floor is None or error_count < self.error_floor:
+            return False
+
+        now = int(time.time())
+        window_end_time = window_end or now
+
+        _, total_grants = self.limiter.check_within_quotas(
+            [RequestedQuota(self.key, _COUNTER_QUOTA_LIMIT, [self.total_requests_quota])],
+            window_end_time,
+        )
+
+        total_requests_counted = _COUNTER_QUOTA_LIMIT - total_grants[0].granted
+        # Guard against division by zero but this should never happen because granted represents the number of requests so far
+        # and if we'd only hit 0 if there were no requests in the window.
+        if total_requests_counted == 0:
+            return False
+
+        return (error_count / total_requests_counted) >= self.error_rate_threshold
+
     def record_error(self) -> None:
         """
         Record a single error towards the breaker's quota, and handle the case where that error puts
@@ -227,14 +332,22 @@ class CircuitBreaker:
             if state == CircuitBreakerState.RECOVERY
             else [self.primary_quota]
         )
+
+        if self._rate_based:
+            assert self.total_requests_quota is not None, "Rate-based mode is not enabled"
+            quotas = [*quotas, self.total_requests_quota]
+
         self.limiter.use_quotas(
-            [RequestedQuota(self.key, 1, quotas)], [GrantedQuota(self.key, 1, [])], now
+            [RequestedQuota(self.key, 1, quotas)],
+            # GrantedQuota with quotas=[] bypasses limit enforcement — errors should always be
+            # recorded unconditionally, so we pre-authorize the increment.
+            [GrantedQuota(self.key, 1, [])],
+            now,
         )
 
         # If incrementing has made us hit the current limit, switch to the BROKEN state
         controlling_quota = self._get_controlling_quota(state)
-        remaining_errors_allowed = self._get_remaining_error_quota(controlling_quota)
-        if remaining_errors_allowed == 0:
+        if self._should_trip(controlling_quota):
             logger.warning(
                 "Circuit breaker '%s' error limit hit",
                 self.key,
@@ -283,16 +396,17 @@ class CircuitBreaker:
         remaining, whether requests should be allowed through.
         """
         state, _ = self._get_state_and_remaining_time()
+
+        if state == CircuitBreakerState.BROKEN:
+            metrics.incr(f"circuit_breaker.{self.key}.request_blocked")
+            return False
+
         controlling_quota = self._get_controlling_quota(state)
 
-        if (
-            state == CircuitBreakerState.BROKEN
-            or
-            # If there's no remaining quota, in theory we should already be in a broken state. That
-            # said, it's possible we could be in a race condition and hit this just as the state is
-            # being changed, so just to be safe we also check qouta here.
-            self._get_remaining_error_quota(controlling_quota) <= 0
-        ):
+        # If there's no remaining quota, in theory we should already be in a broken state. That
+        # said, it's possible we could be in a race condition and hit this just as the state is
+        # being changed, so just to be safe we also check here.
+        if self._should_trip(controlling_quota):
             metrics.incr(f"circuit_breaker.{self.key}.request_blocked")
             return False
 
