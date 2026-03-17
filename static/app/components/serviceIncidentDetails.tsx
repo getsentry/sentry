@@ -29,6 +29,7 @@ import type {
 } from 'sentry/types/system';
 import {sanitizedMarked} from 'sentry/utils/marked/marked';
 import type {Theme} from 'sentry/utils/theme';
+import {unreachable} from 'sentry/utils/unreachable';
 
 interface Props {
   incident: StatuspageIncident;
@@ -235,7 +236,8 @@ function getIndicatorBorder({
     case 'resolved':
       return theme.tokens.border.success.muted;
     default:
-      return theme.tokens.border.neutral.muted;
+      unreachable(status);
+      throw new TypeError(`Invalid status, got ${status}`);
   }
 }
 
