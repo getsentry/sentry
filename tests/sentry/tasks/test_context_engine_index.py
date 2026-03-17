@@ -139,13 +139,23 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         for org_id in result:
             assert int(md5_text(str(org_id)).hexdigest(), 16) % TOTAL_SLOTS == target_slot
 
-    @freeze_time("2024-01-15 10:00:00")
     def test_excludes_orgs_without_feature_flag(self):
+        from sentry.utils.hashlib import md5_text
+
         org_with_flag = self.create_organization()
         org_without_flag = self.create_organization()
 
-        with self.feature({"organizations:seer-explorer-context-engine": [org_with_flag.slug]}):
-            result = get_allowed_org_ids_context_engine_indexing()
+        # Freeze to org_without_flag's own slot so we know it would appear
+        # if it had the flag — proving exclusion is due to the flag check.
+        TOTAL_SLOTS = 168
+        target_slot = int(md5_text(str(org_without_flag.id)).hexdigest(), 16) % TOTAL_SLOTS
+        day = target_slot // 24
+        hour = target_slot % 24
+        frozen_time = f"2024-01-{15 + day} {hour:02d}:00:00"
+
+        with freeze_time(frozen_time):
+            with self.feature({"organizations:seer-explorer-context-engine": [org_with_flag.slug]}):
+                result = get_allowed_org_ids_context_engine_indexing()
 
         assert org_without_flag.id not in result
 
