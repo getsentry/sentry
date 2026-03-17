@@ -1,4 +1,4 @@
-from sentry.models.tombstone import ControlTombstone, RegionTombstone
+from sentry.models.tombstone import CellTombstone, ControlTombstone
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.outbox import outbox_runner
@@ -9,7 +9,7 @@ from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 class TombstoneTest(TransactionTestCase):
     def test_writing_control_models(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
-            assert RegionTombstone.objects.count() == 0
+            assert CellTombstone.objects.count() == 0
 
         user_id = self.user.id
         self.organization
@@ -18,8 +18,8 @@ class TombstoneTest(TransactionTestCase):
             self.user.delete()
 
         with assume_test_silo_mode(SiloMode.CELL):
-            assert RegionTombstone.objects.count() == 1
-            assert RegionTombstone.objects.filter(
+            assert CellTombstone.objects.count() == 1
+            assert CellTombstone.objects.filter(
                 table_name="auth_user", object_identifier=user_id
             ).exists()
 
