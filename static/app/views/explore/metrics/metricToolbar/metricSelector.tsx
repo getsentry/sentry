@@ -293,6 +293,7 @@ export function MetricSelector({
     selectionMode: 'single',
     selectedKeys: traceMetric.name ? [traceMetricSelectValue] : [],
     allowDuplicateSelectionEvents: true,
+    disallowEmptySelection: true,
     onSelectionChange: selection => {
       if (selection === 'all') {
         return;
