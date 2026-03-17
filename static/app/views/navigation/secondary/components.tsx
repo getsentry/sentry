@@ -17,7 +17,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import {restrictToVerticalAxis} from '@dnd-kit/modifiers';
+import {restrictToParentElement, restrictToVerticalAxis} from '@dnd-kit/modifiers';
 import {
   arrayMove,
   SortableContext,
@@ -478,7 +478,7 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
     default:
       icons = (
         <Fragment>
-          <Container position="absolute" top="0" left="0" width="14px" height="14px">
+          <Container position="absolute" top="0" right="7px" width="14px" height="14px">
             {p => <PlatformIcon {...p} platform={props.projectPlatforms[0]!} size={12} />}
           </Container>
           <Container position="absolute" bottom="0" right="0" width="14px" height="14px">
@@ -730,7 +730,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      modifiers={[restrictToVerticalAxis]}
+      modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
@@ -791,10 +791,14 @@ function SecondaryNavigationReorderableLink({
       role="link"
       tabIndex={0}
       layout={layout}
+      isDragging={isDragging}
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
       onClick={handleNavigate}
       onKeyDown={(e: React.KeyboardEvent) => {
+        if ((e.target as HTMLElement).closest('[data-drag-icon]')) {
+          return;
+        }
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           handleNavigate();
@@ -819,12 +823,14 @@ function GrabHandle(props: FlexProps<'div'>) {
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
   return (
-    <Flex
+    <StyledGrabHandle
       {...props}
       data-drag-icon
       ref={setActivatorNodeRef}
       {...listeners}
       {...attributes}
+      radius="xs"
+      aria-label={t('Drag to reorder')}
       width="18px"
       height="18px"
       justify="center"
@@ -832,9 +838,15 @@ function GrabHandle(props: FlexProps<'div'>) {
       style={{cursor: isDragging ? 'grabbing' : 'grab'}}
     >
       <IconGrabbable variant="muted" />
-    </Flex>
+    </StyledGrabHandle>
   );
 }
+
+const StyledGrabHandle = styled(Flex)`
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
+  }
+`;
 
 interface SecondaryNavigationIndicatorProps {
   variant: 'accent' | 'danger' | 'warning';
@@ -917,14 +929,14 @@ const NavigationFakeLink = styled('div')<NavigationFakeLinkProps>`
   }
 
   &:focus-visible {
-    outline: ${p => p.theme.focusRing()};
+    ${p => p.theme.focusRing()}
   }
 `;
 
-const StyledReorderableFakeLink = styled(NavigationFakeLink)`
-  :not(:hover) {
+const StyledReorderableFakeLink = styled(NavigationFakeLink)<{isDragging: boolean}>`
+  :not(:hover):not(:focus-within) {
     [data-drag-icon] {
-      ${p => p.theme.visuallyHidden}
+      ${p => !p.isDragging && p.theme.visuallyHidden}
     }
   }
 
@@ -932,6 +944,10 @@ const StyledReorderableFakeLink = styled(NavigationFakeLink)`
     [data-reorderable-handle-slot] {
       ${p => p.theme.visuallyHidden}
     }
+  }
+
+  [data-reorderable-handle-slot] {
+    ${p => p.isDragging && p.theme.visuallyHidden}
   }
 `;
 
