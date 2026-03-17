@@ -8,8 +8,8 @@
 # Example: docs/** or *.txt
 #
 
-src/sentry/data/error-*
-src/sentry/locale/*
+src/sentry/data/error-**
+src/sentry/locale/**
 
 .agents/skills/design-system/SKILL.md
 .agents/skills/generate-frontend-forms/SKILL.md
