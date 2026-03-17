@@ -34,9 +34,40 @@ export type HeadingProps = BaseHeadingProps & {
   > &
   ExclusiveTextEllipsisProps;
 
+export type HeadingPropsWithRenderFunction = BaseHeadingProps &
+  ExclusiveTextEllipsisProps & {
+    children: (props: {className: string}) => React.ReactNode | undefined;
+    as?: never;
+    ref?: never;
+    size?: Responsive<HeadingSize>;
+    /**
+     * Deprecated in favor of the Heading component API.
+     * If you have an is an unsupported use-case, please contact design engineering for support.
+     * @deprecated
+     */
+    style?: React.CSSProperties;
+  } & Partial<
+    Record<
+      // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
+      // Therefore, we need to exclude it from the map, or the children will produce a never type.
+      Exclude<
+        keyof React.DetailedHTMLProps<
+          React.HTMLAttributes<HTMLHeadingElement>,
+          HTMLHeadingElement
+        >,
+        'children'
+      >,
+      never
+    >
+  >;
+
 export const Heading = styled(
-  (props: HeadingProps) => {
-    const {children, as, ...rest} = props;
+  (props: HeadingProps | HeadingPropsWithRenderFunction) => {
+    if (typeof props.children === 'function') {
+      // When using render prop, only pass className to the child function
+      return props.children({className: (props as any).className});
+    }
+    const {children, as, ...rest} = props as HeadingProps;
     const HeadingComponent = as;
 
     return <HeadingComponent {...rest}>{children}</HeadingComponent>;
@@ -46,9 +77,14 @@ export const Heading = styled(
   }
 )`
   ${p =>
-    rc('font-size', p.size ?? getDefaultHeadingFontSize(p.as), p.theme, v => {
-      return getFontSize(v, p.theme);
-    })};
+    rc(
+      'font-size',
+      p.size ?? (p.as ? getDefaultHeadingFontSize(p.as) : undefined),
+      p.theme,
+      v => {
+        return getFontSize(v, p.theme);
+      }
+    )};
   ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
   ${p => rc('text-align', p.align, p.theme)};
 

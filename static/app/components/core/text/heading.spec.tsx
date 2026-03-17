@@ -1,8 +1,9 @@
 import {createRef} from 'react';
+import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Heading} from './';
+import {Heading, type HeadingProps, type HeadingPropsWithRenderFunction} from './';
 
 describe('Heading', () => {
   it('renders with correct HTML element', () => {
@@ -47,5 +48,60 @@ describe('Heading', () => {
       </Heading>
     );
     expect(ref.current?.tagName).toBe('H6');
+  });
+
+  it('implements render prop', () => {
+    render(
+      <section>
+        <Heading variant="muted">{props => <h2 {...props}>Title</h2>}</Heading>
+      </section>
+    );
+
+    expect(screen.getByText('Title')?.tagName).toBe('H2');
+    expect(screen.getByText('Title').parentElement?.tagName).toBe('SECTION');
+
+    expect(screen.getByText('Title')).not.toHaveAttribute('variant', 'muted');
+  });
+
+  it('render prop guards against invalid attributes', () => {
+    render(
+      // @ts-expect-error - aria-activedescendant should be set on the child element
+      <Heading variant="muted" aria-activedescendant="what">
+        {/* @ts-expect-error - this should be a React.ElementType */}
+        {props => <h2 {...props}>Title</h2>}
+      </Heading>
+    );
+
+    expect(screen.getByText('Title')).not.toHaveAttribute('aria-activedescendant');
+  });
+
+  it('render prop type is correctly inferred', () => {
+    // Incompatible className type - should be string
+    function Child({className}: {className: 'invalid'}) {
+      return <h2 className={className}>Title</h2>;
+    }
+
+    render(
+      <Heading variant="muted">
+        {/* @ts-expect-error - className is incompatible */}
+        {props => <Child {...props} />}
+      </Heading>
+    );
+  });
+
+  describe('types', () => {
+    it('default signature requires as and limits children to React.ReactNode', () => {
+      const props: HeadingProps = {as: 'h1', children: 'Title'};
+      expectTypeOf(props.children).toEqualTypeOf<React.ReactNode>();
+    });
+
+    it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
+      const props: HeadingPropsWithRenderFunction = {
+        children: () => undefined,
+      };
+      expectTypeOf(props.children).toEqualTypeOf<
+        (props: {className: string}) => React.ReactNode | undefined
+      >();
+    });
   });
 });
