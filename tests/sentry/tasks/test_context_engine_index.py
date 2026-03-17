@@ -143,14 +143,15 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
 class TestScheduleContextEngineIndexingTasks(TestCase):
     @mock.patch("sentry.tasks.context_engine_index.build_service_map.apply_async")
     @mock.patch("sentry.tasks.context_engine_index.index_org_project_knowledge.apply_async")
-    def test_dispatches_for_allowed_orgs(self, mock_index, mock_build):
+    @mock.patch("sentry.tasks.context_engine_index.get_allowed_org_ids_context_engine_indexing")
+    def test_dispatches_for_allowed_orgs(self, mock_get_orgs, mock_index, mock_build):
         org1 = self.create_organization()
         org2 = self.create_organization()
+        mock_get_orgs.return_value = [org1.id, org2.id]
 
         with override_options(
             {
                 "explorer.context_engine_indexing.enable": True,
-                "explorer.service_map.allowed_organizations": [org1.id, org2.id],
             }
         ):
             schedule_context_engine_indexing_tasks()
