@@ -6,6 +6,7 @@ import orjson
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.seer.autofix.autofix import (
@@ -1556,7 +1557,7 @@ class TestPreResolveStacktraceFrames(TestCase):
             ]
         )
 
-        _pre_resolve_stacktrace_frames(event, project)
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
 
         frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
         assert frames[0]["repo_name"] == "getsentry/sentry"
@@ -1567,11 +1568,9 @@ class TestPreResolveStacktraceFrames(TestCase):
         assert "repo_name" not in frames[2]
 
     def test_no_code_mappings_is_noop(self):
-        project = self.create_project()
-
         event = self._make_serialized_event([{"filename": "src/utils.py", "inApp": True}])
 
-        _pre_resolve_stacktrace_frames(event, project)
+        _pre_resolve_stacktrace_frames(event, [])
 
         frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
         assert "repo_name" not in frames[0]
@@ -1592,7 +1591,7 @@ class TestPreResolveStacktraceFrames(TestCase):
             ]
         )
 
-        _pre_resolve_stacktrace_frames(event, project)
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
 
         frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
         assert frames[0]["repo_name"] == "getsentry/sentry"
@@ -1620,7 +1619,7 @@ class TestPreResolveStacktraceFrames(TestCase):
             ]
         )
 
-        _pre_resolve_stacktrace_frames(event, project)
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
 
         frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
         assert frames[0]["repo_name"] == "getsentry/sentry"
@@ -1657,7 +1656,7 @@ class TestPreResolveStacktraceFrames(TestCase):
             ],
         }
 
-        _pre_resolve_stacktrace_frames(event, project)
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
 
         entry: Any = event["entries"][0]
         frames = entry["data"]["values"][0]["stacktrace"]["frames"]

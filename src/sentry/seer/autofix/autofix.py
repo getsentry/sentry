@@ -181,8 +181,7 @@ def _get_serialized_event(
 
 def _pre_resolve_stacktrace_frames(
     serialized_event: dict[str, Any],
-    project: Project,
-    code_mappings: list[RepositoryProjectPathConfig] | None = None,
+    code_mappings: list[RepositoryProjectPathConfig],
 ) -> None:
     """
     Pre-resolve stacktrace frame repo_name and filename using Sentry's code mappings
@@ -194,8 +193,6 @@ def _pre_resolve_stacktrace_frames(
 
     By pre-resolving frames, Seer can skip its expensive git tree fetch for large repos.
     """
-    if code_mappings is None:
-        code_mappings = get_sorted_code_mapping_configs(project)
     if not code_mappings:
         return
 
@@ -723,9 +720,7 @@ def trigger_autofix(
     # expensive git tree fetches for large repos.
     if features.has("organizations:autofix-send-code-mappings", group.organization):
         try:
-            _pre_resolve_stacktrace_frames(
-                serialized_event, group.project, code_mappings=code_mappings
-            )
+            _pre_resolve_stacktrace_frames(serialized_event, code_mappings)
         except Exception:
             logger.exception("Failed to pre-resolve stacktrace frames")
 
