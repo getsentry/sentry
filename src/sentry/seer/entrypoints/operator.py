@@ -451,15 +451,6 @@ class SeerExplorerOperator[CachePayloadT]:
     def __init__(self, entrypoint: SeerExplorerEntrypoint[CachePayloadT]):
         self.entrypoint = entrypoint
 
-    @classmethod
-    def has_access(
-        cls,
-        *,
-        organization: Organization,
-        entrypoint_key: SeerEntrypointKey | None = None,
-    ) -> bool:
-        return has_seer_entrypoint_access(organization=organization, entrypoint_key=entrypoint_key)
-
     def trigger_explorer(
         self,
         *,
