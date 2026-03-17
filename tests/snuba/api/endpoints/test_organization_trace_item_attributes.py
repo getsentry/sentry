@@ -2424,6 +2424,36 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         assert tag2["valid"] is False
         assert "error" in tag2
 
+    def test_user_tags_same_name_different_types(self):
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            organization_id=self.organization.id,
+            parent_span_id=None,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+            tags={"foo": "hello"},
+        )
+
+        response = self.do_request(
+            payload={
+                "itemType": "spans",
+                "attributes": ["tags[foo,string]", "tags[foo,number]"],
+            },
+        )
+        assert response.status_code == 200
+
+        attrs = response.data["attributes"]
+        assert attrs["tags[foo,string]"]["valid"] is True
+        assert attrs["tags[foo,string]"]["type"] == "string"
+
+        assert attrs["tags[foo,number]"]["valid"] is False
+        assert "error" in attrs["tags[foo,number]"]
+
     def test_invalid_attributes(self):
         long_attr = "a" * 201
         response = self.do_request(

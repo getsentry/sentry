@@ -867,8 +867,8 @@ def _check_attribute_exists(
     meta: RequestMeta,
     attr_type: AttributeKey.Type.ValueType,
     name: str,
-) -> str | None:
-    """Check if a single attribute exists in storage. Returns the name if found, None otherwise."""
+) -> tuple[AttributeKey.Type.ValueType, str] | None:
+    """Check if a single typed attribute exists in storage."""
     rpc_request = TraceItemAttributeNamesRequest(
         meta=meta,
         limit=100,
@@ -878,7 +878,7 @@ def _check_attribute_exists(
     rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
     for attr in rpc_response.attributes:
         if attr.name == name:
-            return name
+            return (attr_type, name)
     return None
 
 
@@ -886,8 +886,8 @@ def _check_attributes_exist(
     resolver: SearchResolver,
     item_type: SupportedTraceItemType,
     attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]],
-) -> set[str]:
-    """Check which attribute internal names exist in storage, querying only the relevant type for each."""
+) -> set[tuple[AttributeKey.Type.ValueType, str]]:
+    """Check which typed attribute internal names exist in storage."""
     if not attrs_by_type:
         return set()
 
@@ -898,7 +898,7 @@ def _check_attributes_exist(
 
     all_checks = [(attr_type, name) for attr_type, names in attrs_by_type.items() for name in names]
 
-    found: set[str] = set()
+    found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
     with ThreadPoolExecutor(
         thread_name_prefix="attr_validate",
         max_workers=len(all_checks),
@@ -979,7 +979,7 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
                 existing = _check_attributes_exist(resolver, item_type, attrs_by_type)
 
             for attr_name, resolved in unknown_attrs:
-                if resolved.internal_name in existing:
+                if (resolved.proto_type, resolved.internal_name) in existing:
                     results[attr_name] = {
                         "valid": True,
                         "type": serialize_type(resolved.search_type),
