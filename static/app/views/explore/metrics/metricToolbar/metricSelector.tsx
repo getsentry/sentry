@@ -483,80 +483,6 @@ export function MetricSelector({
   );
 }
 
-function MetricAttributesSection({
-  metricName,
-  metricType,
-}: {
-  metricName: string;
-  metricType: string;
-}) {
-  const traceMetricFilter = createTraceMetricFilter({name: metricName, type: metricType});
-
-  const {attributes: stringAttrs, isLoading: stringLoading} =
-    useTraceMetricItemAttributes(
-      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
-      'string'
-    );
-  const {attributes: numberAttrs, isLoading: numberLoading} =
-    useTraceMetricItemAttributes(
-      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
-      'number'
-    );
-  const {attributes: booleanAttrs, isLoading: booleanLoading} =
-    useTraceMetricItemAttributes(
-      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
-      'boolean'
-    );
-
-  const isLoading = stringLoading || numberLoading || booleanLoading;
-
-  const attributeKeys = useMemo(() => {
-    const keys = new Set([
-      ...Object.keys(stringAttrs ?? {}),
-      ...Object.keys(numberAttrs ?? {}),
-      ...Object.keys(booleanAttrs ?? {}),
-    ]);
-    return [...keys]
-      .filter(key => !HiddenTraceMetricGroupByFields.includes(key))
-      .sort((a, b) => prettifyTagKey(a).localeCompare(prettifyTagKey(b)));
-  }, [stringAttrs, numberAttrs, booleanAttrs]);
-
-  if (isLoading) {
-    return (
-      <Stack gap="xs">
-        <Text size="md">{t('Attributes')}:</Text>
-        <Flex gap="xs">
-          <LoadingIndicator size={16} />
-        </Flex>
-      </Stack>
-    );
-  }
-
-  if (attributeKeys.length === 0) {
-    return (
-      <Stack gap="xs">
-        <Text size="md">{t('Attributes')}:</Text>
-        <Flex gap="xs">
-          <Text size="md">{t('No attributes found')}</Text>
-        </Flex>
-      </Stack>
-    );
-  }
-
-  return (
-    <Stack gap="xs">
-      <Text size="md">{t('Attributes')}:</Text>
-      <Flex wrap="wrap" gap="xs">
-        {attributeKeys.map(key => (
-          <Tag key={key} variant="muted">
-            {prettifyTagKey(key)}
-          </Tag>
-        ))}
-      </Flex>
-    </Stack>
-  );
-}
-
 function MetricDetailPanel({
   metric,
   hasMetricUnitsUI,
@@ -617,4 +543,76 @@ function MetricDetailPanel({
 
 function makeMetricSelectValue(metric: TraceMetric): string {
   return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
+}
+
+function MetricAttributesSection({
+  metricName,
+  metricType,
+}: {
+  metricName: string;
+  metricType: string;
+}) {
+  const traceMetricFilter = createTraceMetricFilter({name: metricName, type: metricType});
+
+  const {attributes: stringAttrs, isLoading: stringLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'string'
+    );
+  const {attributes: numberAttrs, isLoading: numberLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'number'
+    );
+  const {attributes: booleanAttrs, isLoading: booleanLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'boolean'
+    );
+
+  const attributeKeys = useMemo(() => {
+    const keys = new Set([
+      ...Object.keys(stringAttrs ?? {}),
+      ...Object.keys(numberAttrs ?? {}),
+      ...Object.keys(booleanAttrs ?? {}),
+    ]);
+    return [...keys]
+      .filter(key => !HiddenTraceMetricGroupByFields.includes(key))
+      .sort((a, b) => prettifyTagKey(a).localeCompare(prettifyTagKey(b)));
+  }, [stringAttrs, numberAttrs, booleanAttrs]);
+
+  if (stringLoading || numberLoading || booleanLoading) {
+    return (
+      <Stack gap="xs">
+        <Text size="md">{t('Attributes')}:</Text>
+        <Flex gap="xs">
+          <LoadingIndicator size={16} />
+        </Flex>
+      </Stack>
+    );
+  }
+
+  if (attributeKeys.length === 0) {
+    return (
+      <Stack gap="xs">
+        <Text size="md">{t('Attributes')}:</Text>
+        <Flex gap="xs">
+          <Text size="md">{t('No attributes found')}</Text>
+        </Flex>
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack gap="xs">
+      <Text size="md">{t('Attributes')}:</Text>
+      <Flex wrap="wrap" gap="xs">
+        {attributeKeys.map(key => (
+          <Tag key={key} variant="muted">
+            {prettifyTagKey(key)}
+          </Tag>
+        ))}
+      </Flex>
+    </Stack>
+  );
 }
