@@ -9,8 +9,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Count} from 'sentry/components/count';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
-import {GroupTitleRow} from 'sentry/components/groupTitleRow';
 import {Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {ScoreBar} from 'sentry/components/scoreBar';
@@ -113,7 +113,7 @@ export function SimilarStackTraceItem(props: Props) {
       <Details>
         <Checkbox id={issue.id} value={issue.id} checked={checked} onChange={() => {}} />
         <EventDetails>
-          <GroupTitleRow data={issue} source="similar-issues" />
+          <GroupHeaderRow data={issue} source="similar-issues" />
           <GroupMetaRow data={{...issue, lastSeen: ''}} showAssignee />
         </EventDetails>
 

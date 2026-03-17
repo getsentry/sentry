@@ -13,7 +13,7 @@ import {
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
 import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
-import {GroupTitleRow} from 'sentry/components/groupTitleRow';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -198,7 +198,7 @@ function LatestGroupWithOpenPeriods({
 
       <SimpleTable.Row>
         <EventOrGroupCell>
-          <GroupTitleRow data={group} />
+          <GroupHeaderRow data={group} />
         </EventOrGroupCell>
         <SimpleTable.RowCell>
           <GroupStatusTag fontSize="md">{group.substatus ?? group.status}</GroupStatusTag>

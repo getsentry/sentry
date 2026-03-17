@@ -20,7 +20,7 @@ import {createIssueLink} from 'sentry/views/issueList/utils';
 
 import {EventTitleError} from './eventTitleError';
 
-interface GroupTitleRowProps {
+interface GroupHeaderRowProps {
   data: Group | GroupTombstoneHelper;
   eventId?: string;
   hideIcons?: boolean;
@@ -72,14 +72,14 @@ function usePreloadGroupOnHover({
 /**
  * Displays a group/issue title row (i.e. in Stream)
  */
-export function GroupTitleRow({
+export function GroupHeaderRow({
   data,
   query,
   onClick,
   hideIcons,
   eventId,
   source,
-}: GroupTitleRowProps) {
+}: GroupHeaderRowProps) {
   const location = useLocation();
   const organization = useOrganization();
 

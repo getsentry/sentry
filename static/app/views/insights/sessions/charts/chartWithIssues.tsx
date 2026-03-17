@@ -5,8 +5,8 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
-import {GroupTitleRow} from 'sentry/components/groupTitleRow';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {GroupSummary} from 'sentry/components/stream/group';
@@ -102,7 +102,7 @@ export function ChartWithIssues(props: Props) {
     <Stack>
       {recentIssues.map(group => (
         <GroupWrapper canSelect key={group.id}>
-          <GroupTitleRow data={group} source="session-health" />
+          <GroupHeaderRow data={group} source="session-health" />
           <GroupMetaRow data={group} showLifetime={false} />
         </GroupWrapper>
       ))}

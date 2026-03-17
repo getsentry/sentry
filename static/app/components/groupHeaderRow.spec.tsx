@@ -4,7 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {GroupTitleRow} from 'sentry/components/groupTitleRow';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {EventOrGroupType} from 'sentry/types/event';
 
 const organization = OrganizationFixture();
@@ -23,20 +23,20 @@ const group = GroupFixture({
 
 const baseIssuesPath = `/organizations/${organization.slug}/issues/`;
 
-describe('GroupTitleRow', () => {
+describe('GroupHeaderRow', () => {
   beforeEach(() => {
     jest.useRealTimers();
   });
 
   it('renders with `type = error`', () => {
-    render(<GroupTitleRow data={group} />);
+    render(<GroupHeaderRow data={group} />);
 
     expect(screen.getByText('metadata type')).toBeInTheDocument();
   });
 
   it('renders with `type = csp`', () => {
     render(
-      <GroupTitleRow
+      <GroupHeaderRow
         data={{
           ...group,
           type: EventOrGroupType.CSP,
@@ -49,7 +49,7 @@ describe('GroupTitleRow', () => {
 
   it('renders with `type = default`', () => {
     render(
-      <GroupTitleRow
+      <GroupHeaderRow
         data={{
           ...group,
           type: EventOrGroupType.DEFAULT,
@@ -66,7 +66,7 @@ describe('GroupTitleRow', () => {
 
   it('renders metadata values in message for error events', () => {
     render(
-      <GroupTitleRow
+      <GroupHeaderRow
         data={{
           ...group,
           type: EventOrGroupType.ERROR,
@@ -84,7 +84,7 @@ describe('GroupTitleRow', () => {
       body: group,
     });
 
-    render(<GroupTitleRow data={group} />);
+    render(<GroupHeaderRow data={group} />);
 
     const groupLink = screen.getByRole('link');
 
@@ -99,7 +99,7 @@ describe('GroupTitleRow', () => {
 
   it('hides level tag', () => {
     render(
-      <GroupTitleRow
+      <GroupHeaderRow
         hideLevel
         data={{
           ...group,
@@ -121,7 +121,7 @@ describe('GroupTitleRow', () => {
       type: EventOrGroupType.DEFAULT,
     });
 
-    render(<GroupTitleRow data={groupDefault} />, {
+    render(<GroupHeaderRow data={groupDefault} />, {
       initialRouterConfig: {
         location: {
           pathname: baseIssuesPath,
@@ -146,7 +146,7 @@ describe('GroupTitleRow', () => {
       type: EventOrGroupType.DEFAULT,
     });
 
-    render(<GroupTitleRow data={groupDefault} />);
+    render(<GroupHeaderRow data={groupDefault} />);
 
     const href = screen.getByRole('link').getAttribute('href');
     expect(href).toBeTruthy();
@@ -159,7 +159,7 @@ describe('GroupTitleRow', () => {
 
   it('renders group tombstone without link to group', () => {
     render(
-      <GroupTitleRow
+      <GroupHeaderRow
         data={{
           id: '123',
           level: 'error',

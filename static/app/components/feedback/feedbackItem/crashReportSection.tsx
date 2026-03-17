@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Alert} from '@sentry/scraps/alert';
 
 import {useFetchCrashReport} from 'sentry/components/feedback/feedbackItem/useFetchCrashReport';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
-import {GroupTitleRow} from 'sentry/components/groupTitleRow';
 import Placeholder from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -50,7 +50,7 @@ export function CrashReportSection({crashReportId, organization, projectSlug}: P
 
   return (
     <IssueDetailsContainer>
-      <GroupTitleRow eventId={crashReportId} data={groupData} />
+      <GroupHeaderRow eventId={crashReportId} data={groupData} />
       <GroupMetaRow data={groupData} />
     </IssueDetailsContainer>
   );

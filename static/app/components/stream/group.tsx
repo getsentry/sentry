@@ -15,8 +15,8 @@ import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
-import {GroupTitleRow} from 'sentry/components/groupTitleRow';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PanelItem} from 'sentry/components/panels/panelItem';
@@ -635,7 +635,7 @@ function StreamGroup({
           />
         )}
         <GroupSummary canSelect={selectionEnabled}>
-          <GroupTitleRow data={group} query={query} source={referrer} />
+          <GroupHeaderRow data={group} query={query} source={referrer} />
           <GroupMetaRow data={group} showLifetime={false} />
         </GroupSummary>
       </Fragment>

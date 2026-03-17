@@ -9,7 +9,7 @@ import Access from 'sentry/components/acl/access';
 import Confirm from 'sentry/components/confirm';
 import {Count} from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {GroupTitleRow} from 'sentry/components/groupTitleRow';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -39,7 +39,7 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
   return (
     <Fragment>
       <StyledBox>
-        <GroupTitleRow
+        <GroupHeaderRow
           hideIcons
           data={{...data, isTombstone: true}}
           source="group-tombstome"
