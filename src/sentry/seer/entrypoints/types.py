@@ -9,10 +9,10 @@ class SeerEntrypointKey(StrEnum):
     SLACK = "slack"
 
 
-class SeerEntrypointCore(Protocol):
+class SeerAutofixEntrypoint[CachePayloadT](Protocol):
     """
-    Base protocol for all Seer entrypoints. Contains only the fields and methods
-    shared across all entrypoint types (autofix, explorer, etc.).
+    Protocol for entrypoints that support autofix workflows.
+    Implement this to trigger autofix operations and receive updates via the operator.
     """
 
     key: SeerEntrypointKey
@@ -20,18 +20,11 @@ class SeerEntrypointCore(Protocol):
     @staticmethod
     def has_access(organization: Organization) -> bool:
         """
-        Used by the operator (SeerOperator.has_access) to gate access prevent a workflow unless
+        Used by the operator (SeerAutofixOperator.has_access) to gate access unless
         the organization has access to at least one entrypoint. The operator will check for
         seer-access prior to this check, so no need to repeat that check on the entrypoint.
         """
         ...
-
-
-class SeerAutofixEntrypoint[CachePayloadT](SeerEntrypointCore, Protocol):
-    """
-    Protocol for entrypoints that support autofix workflows.
-    Implement this to trigger autofix operations and receive updates via the operator.
-    """
 
     def on_trigger_autofix_already_exists(self, *, run_id: int, has_complete_stage: bool) -> None:
         """
@@ -85,13 +78,22 @@ class SeerAutofixEntrypoint[CachePayloadT](SeerEntrypointCore, Protocol):
         ...
 
 
-class SeerExplorerEntrypoint[CachePayloadT](SeerEntrypointCore, Protocol):
+class SeerExplorerEntrypoint[CachePayloadT](Protocol):
     """
     Protocol for entrypoints that support explorer workflows.
     Explorer-specific methods will be added in later PRs.
     """
 
-    ...
+    key: SeerEntrypointKey
+
+    @staticmethod
+    def has_access(organization: Organization) -> bool:
+        """
+        Used to gate access unless the organization has access to at least one entrypoint.
+        The caller will check for seer-access prior to this check, so no need to repeat
+        that check on the entrypoint.
+        """
+        ...
 
 
 class SeerOperatorCacheResult[CachePayloadT](TypedDict):
