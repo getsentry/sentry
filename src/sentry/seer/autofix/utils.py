@@ -509,19 +509,19 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
 
         # We expect a repository name to be in the format of "owner/name" for now.
         if len(repo_name_sections) > 1 and repo.provider:
-            repo_key = (repo.provider, repo_name_sections[0], "/".join(repo_name_sections[1:]))
+            repo_dict = {
+                "organization_id": repo.organization_id,
+                "integration_id": (
+                    str(repo.integration_id) if repo.integration_id is not None else None
+                ),
+                "provider": repo.provider,
+                "owner": repo_name_sections[0],
+                "name": "/".join(repo_name_sections[1:]),
+                "external_id": repo.external_id,
+            }
+            repo_key = (repo_dict["provider"], repo_dict["owner"], repo_dict["name"])
 
-            if repo_key not in repos:
-                repos[repo_key] = {
-                    "organization_id": repo.organization_id,
-                    "integration_id": (
-                        str(repo.integration_id) if repo.integration_id is not None else None
-                    ),
-                    "provider": repo.provider,
-                    "owner": repo_name_sections[0],
-                    "name": "/".join(repo_name_sections[1:]),
-                    "external_id": repo.external_id,
-                }
+            repos[repo_key] = repo_dict
 
     return list(repos.values())
 
