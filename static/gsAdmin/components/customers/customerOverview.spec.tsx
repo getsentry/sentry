@@ -754,6 +754,30 @@ describe('CustomerOverview', () => {
     await screen.findByText('54% instead of 60% (~6%)');
   });
 
+  it('renders decimal sample rates preserving trailing zeros', async () => {
+    const organization = OrganizationFixture({
+      features: ['dynamic-sampling'],
+      desiredSampleRate: 0.6,
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
+      body: {effectiveSampleRate: 0.501},
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+    await screen.findByText('50.10% instead of 60% (~9.90%)');
+  });
+
   it('renders n/a when effective sample rate is missing', async () => {
     const organization = OrganizationFixture({
       features: ['dynamic-sampling'],
