@@ -1,6 +1,6 @@
 import {UserFixture} from 'sentry-fixture/user';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {getTimeFormat, setDateToTime, shouldUse24Hours} from 'sentry/utils/dates';
 
 describe('utils.dates', () => {

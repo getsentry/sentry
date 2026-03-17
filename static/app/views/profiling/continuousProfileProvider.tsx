@@ -7,7 +7,7 @@ import type {EventTransaction} from 'sentry/types/event';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {ContinuousProfileProvider, ProfileTransactionContext} from './profilesProvider';

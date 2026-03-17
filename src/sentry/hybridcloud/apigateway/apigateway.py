@@ -14,7 +14,7 @@ from sentry.hybridcloud.apigateway.proxy import (
     proxy_request,
 )
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.types.region import get_cell_by_name
+from sentry.types.cell import get_cell_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

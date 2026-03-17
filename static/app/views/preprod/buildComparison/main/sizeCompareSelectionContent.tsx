@@ -9,7 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {
@@ -25,21 +25,20 @@ import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import parseApiError from 'sentry/utils/parseApiError';
+import {parseApiError} from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useApi from 'sentry/utils/useApi';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   BuildDetailsState,
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
 import {
   getCompareApiUrl,
   getCompareBuildPath,
@@ -75,19 +74,30 @@ export function SizeCompareSelectionContent({
   >(baseBuildDetails);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const searchFilters: string[] = [`state:${BuildDetailsState.PROCESSED}`];
+  if (headBuildDetails.app_info?.app_id) {
+    searchFilters.push(`app_id:"${headBuildDetails.app_info.app_id}"`);
+  }
+  if (headBuildDetails.app_info?.build_configuration) {
+    searchFilters.push(
+      `build_configuration_name:"${headBuildDetails.app_info.build_configuration}"`
+    );
+  }
+  if (searchQuery) {
+    searchFilters.push(searchQuery);
+  }
+  const fullQuery = searchFilters.join(' ');
+
   const queryParams: Record<string, any> = {
     per_page: 25,
-    state: BuildDetailsState.PROCESSED,
-    app_id: headBuildDetails.app_info?.app_id,
-    build_configuration: headBuildDetails.app_info?.build_configuration,
     project: headBuildDetails.project_id,
+    query: fullQuery,
     ...(cursor && {cursor}),
-    ...(searchQuery && {query: searchQuery}),
   };
 
-  const buildsQuery = useApiQuery<ListBuildsApiResponse>(
+  const buildsQuery = useApiQuery<BuildDetailsApiResponse[]>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
+      getApiUrl(`/organizations/$organizationIdOrSlug/builds/`, {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {query: queryParams},
@@ -186,7 +196,7 @@ export function SizeCompareSelectionContent({
       )}
       {buildsQuery.data && (
         <Stack gap="md">
-          {buildsQuery.data.builds.map(build => {
+          {buildsQuery.data?.map(build => {
             if (build.id === headBuildDetails.id) {
               return null;
             }

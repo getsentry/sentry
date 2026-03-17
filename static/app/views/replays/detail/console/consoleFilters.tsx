@@ -3,14 +3,14 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import type useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
-import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
+import {type useConsoleFilters} from 'sentry/views/replays/detail/console/useConsoleFilters';
+import {FiltersGrid} from 'sentry/views/replays/detail/filtersGrid';
 
 type Props = {
   frames: undefined | unknown[];
 } & ReturnType<typeof useConsoleFilters>;
 
-function Filters({
+export function Filters({
   frames,
   getLogLevels,
   logLevel,
@@ -44,5 +44,3 @@ function Filters({
     </FiltersGrid>
   );
 }
-
-export default Filters;

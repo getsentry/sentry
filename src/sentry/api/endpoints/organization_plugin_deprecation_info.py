@@ -2,7 +2,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -12,7 +12,7 @@ from sentry.models.rule import Rule
 from sentry.organizations.absolute_url import generate_organization_url
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationPluginDeprecationInfoEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

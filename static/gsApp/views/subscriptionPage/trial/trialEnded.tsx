@@ -9,7 +9,7 @@ type Props = {
   subscription: Subscription;
 };
 
-function TrialEnded({subscription}: Props) {
+export function TrialEnded({subscription}: Props) {
   const canRequestTrial =
     subscription.canSelfServe && subscription.planDetails?.trialPlan;
 
@@ -28,5 +28,3 @@ function TrialEnded({subscription}: Props) {
     </Alert>
   );
 }
-
-export default TrialEnded;

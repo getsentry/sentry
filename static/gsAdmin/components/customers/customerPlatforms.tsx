@@ -9,7 +9,7 @@ type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
 };
 
-function CustomerPlatforms({orgId, ...props}: Props) {
+export function CustomerPlatforms({orgId, ...props}: Props) {
   return (
     <ResultGrid
       path={`/_admin/customers/${orgId}/`}
@@ -40,5 +40,3 @@ function CustomerPlatforms({orgId, ...props}: Props) {
     />
   );
 }
-
-export default CustomerPlatforms;

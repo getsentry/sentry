@@ -356,6 +356,57 @@ def test_verify_compatibility():
 
 
 @exclude_experimental_detectors
+class TestSkipEnrichmentKillswitch(TestCase):
+    def setUp(self) -> None:
+        self.project = self.create_project()
+
+    @mock.patch(
+        "sentry.spans.consumers.process_segments.message.TreeEnricher.enrich_spans",
+        wraps=None,
+    )
+    def test_skip_enrichment_by_project_id(self, mock_enrich: mock.MagicMock) -> None:
+        """Test that enrichment is skipped and spans are still returned when project_id matches killswitch."""
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        with override_options(
+            {"spans.process-segments.skip-enrichment-projects": [self.project.id]}
+        ):
+            processed_spans = process_segment([child_span, segment_span])
+
+        mock_enrich.assert_not_called()
+        assert len(processed_spans) == 2
+
+    @mock.patch(
+        "sentry.spans.consumers.process_segments.message.TreeEnricher.enrich_spans",
+    )
+    def test_no_skip_enrichment_for_other_project(self, mock_enrich: mock.MagicMock) -> None:
+        """Test that enrichment is not skipped when project_id does not match the option."""
+        mock_enrich.return_value = (None, [])
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            parent_span_id=segment_span["span_id"],
+        )
+
+        with override_options(
+            {"spans.process-segments.skip-enrichment-projects": [self.project.id + 1]}
+        ):
+            process_segment([child_span, segment_span])
+
+        mock_enrich.assert_called_once()
+
+
+@exclude_experimental_detectors
 class TestSegmentDropKillswitch(TestCase):
     def setUp(self) -> None:
         self.project = self.create_project()

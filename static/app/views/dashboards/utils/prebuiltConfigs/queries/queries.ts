@@ -150,4 +150,5 @@ export const QUERIES_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     },
   ],
+  onboarding: {type: 'module', moduleName: ModuleName.DB},
 };

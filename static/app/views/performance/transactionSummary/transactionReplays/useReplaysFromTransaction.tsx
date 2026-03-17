@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
@@ -41,7 +41,7 @@ type Return = {
   pageLinks: null | string;
 };
 
-function useReplaysFromTransaction({
+export function useReplaysFromTransaction({
   location,
   organization,
   replayIdsEventView,
@@ -110,5 +110,3 @@ function useReplaysFromTransaction({
     pageLinks: response.pageLinks,
   };
 }
-
-export default useReplaysFromTransaction;

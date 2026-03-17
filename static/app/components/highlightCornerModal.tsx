@@ -7,7 +7,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-export default function HighlightCornerContainer({children}: Props) {
+export function HighlightCornerContainer({children}: Props) {
   return (
     <Fragment>
       <PositionTopRight src={TopRight} />

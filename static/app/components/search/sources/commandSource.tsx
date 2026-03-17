@@ -6,7 +6,7 @@ import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {Client} from 'sentry/api';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {ProjectKey} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
@@ -162,7 +162,7 @@ type Props = {
 /**
  * This source is a hardcoded list of action creators and/or routes maybe
  */
-function CommandSource({searchOptions, query, children}: Props) {
+export function CommandSource({searchOptions, query, children}: Props) {
   const {isSuperuser} = useUser();
   const [fuzzy, setFuzzy] = useState<Fuse<Action> | null>(null);
   const params = useParams();
@@ -200,5 +200,3 @@ function CommandSource({searchOptions, query, children}: Props) {
 
   return children({isLoading: fuzzy === null, results});
 }
-
-export default CommandSource;

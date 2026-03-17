@@ -11,7 +11,7 @@ import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {DetailsTimelineLegend} from 'sentry/views/alerts/rules/uptime/detailsTimelineLegend';
 import {type UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';

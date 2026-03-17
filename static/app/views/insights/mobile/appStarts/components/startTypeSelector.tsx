@@ -6,7 +6,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {SpanFields} from 'sentry/views/insights/types';
 

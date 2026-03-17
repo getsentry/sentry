@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE, DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -101,7 +101,7 @@ def get_repos_and_access(project: Project, group_id: int) -> list[dict]:
     return repos_and_access
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupAutofixSetupCheck(GroupAiEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

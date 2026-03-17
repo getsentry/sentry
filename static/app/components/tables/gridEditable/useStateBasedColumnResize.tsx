@@ -6,7 +6,7 @@ interface Props<Col extends GridColumnOrder<unknown>> {
   columns: Col[] | (() => Col[]);
 }
 
-export default function useStateBasedColumnResize<Col extends GridColumnOrder<unknown>>({
+export function useStateBasedColumnResize<Col extends GridColumnOrder<unknown>>({
   columns,
 }: Props<Col>) {
   const [columnsWithDynamicWidths, setColumns] = useState(columns);

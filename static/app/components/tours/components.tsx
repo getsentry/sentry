@@ -23,8 +23,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-import useOrganization from 'sentry/utils/useOrganization';
-import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
   /**

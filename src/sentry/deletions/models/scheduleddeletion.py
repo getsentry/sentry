@@ -10,7 +10,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, control_silo_model, region_silo_model
+from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, control_silo_model
 from sentry.deletions import RELOCATED_MODELS
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.users.services.user import RpcUser
@@ -150,13 +150,13 @@ class ScheduledDeletion(BaseScheduledDeletion):
         db_table = "sentry_scheduleddeletion"
 
 
-@region_silo_model
-class RegionScheduledDeletion(BaseScheduledDeletion):
+@cell_silo_model
+class CellScheduledDeletion(BaseScheduledDeletion):
     """
-    This model schedules deletions to be processed in region and monolith silo modes.  As new region silo test coverage
+    This model schedules deletions to be processed in cell and monolith silo modes.  As new cell silo test coverage
     increases, new scheduled deletions will begin to occur in this table.  Monolith (current saas) will continue
     processing them alongside the original scheduleddeletions table, but in the future this table will only be
-    processed by region silos.
+    processed by cell silos.
     """
 
     class Meta:
@@ -165,7 +165,11 @@ class RegionScheduledDeletion(BaseScheduledDeletion):
         db_table = "sentry_regionscheduleddeletion"
 
 
+# TODO(cells): Clean up alias once no longer used by getsentry
+RegionScheduledDeletion = CellScheduledDeletion
+
+
 def get_regional_scheduled_deletion(mode: SiloMode) -> type[BaseScheduledDeletion]:
     if mode != SiloMode.CONTROL:
-        return RegionScheduledDeletion
+        return CellScheduledDeletion
     return ScheduledDeletion

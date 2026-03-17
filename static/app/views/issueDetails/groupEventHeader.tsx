@@ -12,7 +12,7 @@ type GroupEventHeaderProps = {
   project: Project;
 };
 
-function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
+export function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
   return (
     <StyledDataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
@@ -27,5 +27,3 @@ const StyledDataSection = styled(DataSection)`
     padding: ${p => p.theme.space.lg} ${p => p.theme.space['3xl']} 0;
   }
 `;
-
-export default GroupEventHeader;

@@ -5,6 +5,7 @@ from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
 from sentry import options
+from sentry.models.activity import Activity
 from sentry.models.groupemailthread import GroupEmailThread
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -257,6 +258,31 @@ class MessageBuilderTest(TestCase):
         assert GroupEmailThread.objects.order_by("id")[0].msgid == "abc123", (
             "msgid should not have changed"
         )
+
+    @patch("sentry.utils.email.message_builder.make_msgid")
+    def test_group_less_activity_reference_does_not_prefix_subject(
+        self, make_msgid: MagicMock
+    ) -> None:
+        make_msgid.return_value = "abc123"
+
+        msg = MessageBuilder(
+            subject="Test",
+            body="hello world",
+            html_body="<b>hello world</b>",
+            reference=Activity(project=self.project),
+        )
+        msg.send(["foo@example.com"])
+
+        assert len(mail.outbox) == 1
+
+        out = mail.outbox[0]
+        assert isinstance(out, EmailMultiAlternatives)
+        assert out.to == ["foo@example.com"]
+        assert out.subject == "Test"
+        assert out.extra_headers["Message-Id"] == "abc123"
+        assert "In-Reply-To" not in out.extra_headers
+        assert "References" not in out.extra_headers
+        assert GroupEmailThread.objects.count() == 0
 
     def test_get_built_messages(self) -> None:
         msg = MessageBuilder(

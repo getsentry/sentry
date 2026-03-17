@@ -1,6 +1,6 @@
 import {useQueryState} from 'nuqs';
 
-import parseAsSort from 'sentry/utils/url/parseAsSort';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 
 export function useDetectorListSort() {
   return useQueryState(

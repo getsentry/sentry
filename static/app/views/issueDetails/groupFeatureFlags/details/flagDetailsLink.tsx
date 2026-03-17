@@ -13,7 +13,7 @@ interface Props {
   flag: GroupTag;
 }
 
-export default function FlagDetailsLink({flag, children}: Props) {
+export function FlagDetailsLink({flag, children}: Props) {
   const location = useLocation();
   const {baseUrl} = useGroupDetailsRoute();
 

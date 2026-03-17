@@ -14,7 +14,7 @@ type Props = {
   withOnlyFormattedText?: boolean;
 };
 
-function EventTagsValue({
+export function EventTagsValue({
   tag: {key, value},
   meta,
   streamPath,
@@ -37,5 +37,3 @@ function EventTagsValue({
 
   return content;
 }
-
-export default EventTagsValue;

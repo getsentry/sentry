@@ -5,10 +5,10 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useApi from 'sentry/utils/useApi';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface DeleteButtonProps {
@@ -16,7 +16,7 @@ interface DeleteButtonProps {
   replayId: string | undefined;
 }
 
-export default function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
+export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
   const api = useApi();
   const navigate = useNavigate();
   const organization = useOrganization();
