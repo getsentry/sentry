@@ -781,7 +781,8 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                     "webhook_url": installation.sentry_app.webhook_url or "",
                 }
             )
-            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.MISSING_SERVICEHOOK)
+            return
         if event not in servicehook.events:
             lifecycle.add_extras(
                 {
