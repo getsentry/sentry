@@ -219,7 +219,7 @@ class TraceEvent:
             elif snuba_params is not None:
                 self.load_performance_issues(light, snuba_params)
             else:
-                logger.exception(
+                logger.error(
                     "Expected either span_serialized or snuba_params to be set",
                     extra={
                         "event_id": self.event["id"],
