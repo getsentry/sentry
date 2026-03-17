@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Select} from '@sentry/scraps/select';
 
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import SelectMembers from 'sentry/components/selectMembers';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import type {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';

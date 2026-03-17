@@ -10,7 +10,7 @@ import type {
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
@@ -53,7 +53,7 @@ type LogsWidgetQueriesImplProps = LogsWidgetQueriesProps & {
   };
 };
 
-function LogsWidgetQueries(props: LogsWidgetQueriesProps) {
+export function LogsWidgetQueries(props: LogsWidgetQueriesProps) {
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
       let seriesConfidence: Confidence | null;
@@ -174,5 +174,3 @@ function LogsWidgetQueriesSingleRequestImpl({
     fixed: <div />,
   });
 }
-
-export default LogsWidgetQueries;

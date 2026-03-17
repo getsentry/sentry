@@ -6,11 +6,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import Count from 'sentry/components/count';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {Count} from 'sentry/components/count';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {
   getNumberAttr,

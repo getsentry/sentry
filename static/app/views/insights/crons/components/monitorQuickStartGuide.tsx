@@ -18,7 +18,7 @@ import {t, tct} from 'sentry/locale';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {QuickStartProps} from 'sentry/views/insights/crons/components/manualCheckInGuides';
 import {
   CLICronQuickStart,

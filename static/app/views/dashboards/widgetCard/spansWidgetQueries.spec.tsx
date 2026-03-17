@@ -7,7 +7,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
-import SpansWidgetQueries from './spansWidgetQueries';
+import {SpansWidgetQueries} from './spansWidgetQueries';
 
 describe('spansWidgetQueries', () => {
   const {organization} = initializeOrg();

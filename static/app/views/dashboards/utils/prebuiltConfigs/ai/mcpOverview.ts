@@ -176,14 +176,14 @@ const OVERVIEW_TABLE = {
         SpanFields.SPAN_DESCRIPTION,
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         'count()',
         `${SpanFunction.FAILURE_RATE}()`,
-        `count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
+        `equation|count_if(${SpanFields.SPAN_STATUS},equals,internal_error)`,
         `avg(${SpanFields.SPAN_DURATION})`,
         `p95(${SpanFields.SPAN_DURATION})`,
       ],
@@ -214,4 +214,9 @@ export const MCP_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: 'MCP Overview',
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, OVERVIEW_TABLE],
+  onboarding: {
+    type: 'custom',
+    componentId: 'mcp',
+    requiredProjectFlags: ['hasInsightsMCP'],
+  },
 };

@@ -17,7 +17,12 @@ interface ChartProps {
   percentileData: EventBreakpointChartData['percentileData'];
 }
 
-function LineChart({datetime, percentileData, evidenceData, chartType}: ChartProps) {
+export function LineChart({
+  datetime,
+  percentileData,
+  evidenceData,
+  chartType,
+}: ChartProps) {
   const theme = useTheme();
   const normalizedDateTime = {
     period: datetime.period,
@@ -44,5 +49,3 @@ function LineChart({datetime, percentileData, evidenceData, chartType}: ChartPro
     />
   );
 }
-
-export default LineChart;

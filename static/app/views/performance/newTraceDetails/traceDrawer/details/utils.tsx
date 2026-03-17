@@ -66,7 +66,7 @@ export function getSearchInExploreTarget(
   if (kind === TraceDrawerActionKind.INCLUDE) {
     search.setFilterValues(key, [value]);
   } else if (kind === TraceDrawerActionKind.EXCLUDE) {
-    search.setFilterValues(`!${key}`, [`${value}`]);
+    search.setFilterValues(`!${key}`, [value]);
   } else if (kind === TraceDrawerActionKind.GREATER_THAN) {
     search.setFilterValues(key, [`>${value}`]);
   } else {

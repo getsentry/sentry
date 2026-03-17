@@ -2,8 +2,8 @@ import {useCallback} from 'react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {defined} from 'sentry/utils';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export enum TabKey {
   AI = 'ai',
@@ -38,7 +38,7 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
   return Object.values<string>(TabKey).includes(tab);
 }
 
-function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
+export function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const organization = useOrganization();
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const hasMobileSummary = organization.features.includes('replay-ai-summaries-mobile');
@@ -73,5 +73,3 @@ function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) 
     ),
   };
 }
-
-export default useActiveReplayTab;

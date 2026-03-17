@@ -4,12 +4,12 @@ import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import ProgressRing from 'sentry/components/progressRing';
+import {ProgressRing} from 'sentry/components/progressRing';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
-import MoreFeaturesLink from 'getsentry/views/amCheckout/components/moreFeaturesLink';
+import {MoreFeaturesLink} from 'getsentry/views/amCheckout/components/moreFeaturesLink';
 
 import type {Feature} from './types';
 
@@ -22,7 +22,7 @@ type Props = {
   withCountdown?: number;
 };
 
-function FeatureList({
+export function FeatureList({
   features,
   selected,
   onClick,
@@ -123,9 +123,10 @@ const FeatureLink = styled(motion.div)`
   display: grid;
   grid-template-columns: max-content auto;
   gap: ${p => p.theme.space.md};
-  align-items: center;
+  align-items: flex-start;
   align-content: center;
   margin-bottom: ${p => p.theme.space.xs};
+  white-space: nowrap;
 
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
@@ -135,5 +136,3 @@ const FeatureLink = styled(motion.div)`
     font-weight: bold;
   }
 `;
-
-export default FeatureList;

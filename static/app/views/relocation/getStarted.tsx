@@ -7,11 +7,11 @@ import {Select} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import ContinueButton from 'sentry/views/relocation/components/continueButton';
-import StepHeading from 'sentry/views/relocation/components/stepHeading';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
+import {ContinueButton} from 'sentry/views/relocation/components/continueButton';
+import {StepHeading} from 'sentry/views/relocation/components/stepHeading';
 
 import type {StepProps} from './types';
 
@@ -30,7 +30,11 @@ function prettyRegionName(name: string): string {
   return name;
 }
 
-function GetStarted({relocationState, onUpdateRelocationState, onComplete}: StepProps) {
+export function GetStarted({
+  relocationState,
+  onUpdateRelocationState,
+  onComplete,
+}: StepProps) {
   const api = useApi();
   const {orgSlugs, regionUrl, promoCode} = relocationState;
   const [showPromoCode, setShowPromoCode] = useState(!!promoCode);
@@ -140,8 +144,6 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
     </Wrapper>
   );
 }
-
-export default GetStarted;
 
 const Wrapper = styled('div')`
   margin-left: auto;

@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {FilterType, TermOperator, Token} from 'sentry/components/searchSyntax/parser';
 
-import HighlightQuery from './renderer';
+import {HighlightQuery} from './renderer';
 
 const query: ParseResult = [
   {

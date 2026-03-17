@@ -66,31 +66,31 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         kwds.pop("unsafe_write")
         return super().update(*args, **kwds)
 
-    def outbox_region_names(self) -> Collection[str]:
+    def outbox_cell_names(self) -> Collection[str]:
         return [self.cell_name]
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.control_organization_provisioning.serial import (
             serialize_slug_reservation,
         )
-        from sentry.hybridcloud.services.replica import region_replica_service
+        from sentry.hybridcloud.services.replica import cell_replica_service
 
         serialized = serialize_slug_reservation(self)
-        region_replica_service.upsert_replicated_org_slug_reservation(
-            slug_reservation=serialized, region_name=self.cell_name
+        cell_replica_service.upsert_replicated_org_slug_reservation(
+            slug_reservation=serialized, cell_name=self.cell_name
         )
 
     @classmethod
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
-        from sentry.hybridcloud.services.replica import region_replica_service
+        from sentry.hybridcloud.services.replica import cell_replica_service
 
-        region_replica_service.delete_replicated_org_slug_reservation(
-            region_name=region_name,
+        cell_replica_service.delete_replicated_org_slug_reservation(
+            cell_name=cell_name,
             organization_slug_reservation_id=identifier,
         )

@@ -231,6 +231,7 @@ class SummarizeIssueRequest(TypedDict):
 class SupergroupsEmbeddingRequest(TypedDict):
     organization_id: int
     group_id: int
+    project_id: int
     artifact_data: dict[str, Any]
 
 
@@ -238,6 +239,7 @@ class SupergroupsListRequest(TypedDict):
     organization_id: int
     offset: NotRequired[int | None]
     limit: NotRequired[int | None]
+    project_ids: NotRequired[list[int] | None]
 
 
 class SupergroupsGetRequest(TypedDict):
@@ -346,6 +348,7 @@ def make_supergroups_embedding_request(
 
 def make_supergroups_list_request(
     body: SupergroupsListRequest,
+    viewer_context: SeerViewerContext,
     timeout: int | float | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
@@ -353,11 +356,13 @@ def make_supergroups_list_request(
         "/v0/issues/supergroups/list",
         body=orjson.dumps(body),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 
 def make_supergroups_get_request(
     body: SupergroupsGetRequest,
+    viewer_context: SeerViewerContext,
     timeout: int | float | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
@@ -365,6 +370,7 @@ def make_supergroups_get_request(
         "/v0/issues/supergroups/get",
         body=orjson.dumps(body),
         timeout=timeout,
+        viewer_context=viewer_context,
     )
 
 

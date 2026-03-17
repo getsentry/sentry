@@ -1,4 +1,5 @@
 .env
+/v10
 .cache/
 .code-workspace
 .coverage*

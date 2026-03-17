@@ -1,7 +1,7 @@
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import {useParams} from 'sentry/utils/useParams';
-import withOrganizations from 'sentry/utils/withOrganizations';
+import {withOrganizations} from 'sentry/utils/withOrganizations';
 import {NotificationSettingsByType} from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {getNotificationTypeFromPathname} from 'sentry/views/settings/account/notifications/utils';
 

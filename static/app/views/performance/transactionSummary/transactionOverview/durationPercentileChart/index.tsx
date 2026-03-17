@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import type {Location} from 'history';
 
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {
@@ -12,7 +12,7 @@ import {
 import {getPercentiles} from 'sentry/views/performance/transactionSummary/transactionOverview/durationPercentileChart/utils';
 import type {ViewProps} from 'sentry/views/performance/types';
 
-import Content from './content';
+import {Content} from './content';
 
 type Props = ViewProps & {
   currentFilter: SpanOperationBreakdownFilter;
@@ -21,7 +21,7 @@ type Props = ViewProps & {
   queryExtras?: Record<string, string>;
 };
 
-function DurationPercentileChart({currentFilter, ...props}: Props) {
+export function DurationPercentileChart({currentFilter, ...props}: Props) {
   const percentiles = getPercentiles(props.organization as Organization);
   const header = (
     <HeaderTitleLegend>
@@ -62,5 +62,3 @@ function DurationPercentileChart({currentFilter, ...props}: Props) {
     </Fragment>
   );
 }
-
-export default DurationPercentileChart;

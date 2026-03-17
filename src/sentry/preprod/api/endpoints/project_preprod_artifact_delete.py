@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry import analytics, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiDeleteEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
@@ -18,7 +18,7 @@ from sentry.preprod.models import PreprodArtifact
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodArtifactDeleteEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {

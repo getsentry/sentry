@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
+import {SentryAppComponentIcon} from 'sentry/components/sentryAppComponentIcon';
 import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,

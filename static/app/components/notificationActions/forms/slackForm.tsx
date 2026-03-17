@@ -32,7 +32,7 @@ type SlackFormProps = {
   onSave: () => void;
 };
 
-function SlackForm({
+export function SlackForm({
   action,
   availableActions,
   onChange,
@@ -124,5 +124,3 @@ function SlackForm({
 const StyledInput = styled(Input)`
   width: 100px;
 `;
-
-export default SlackForm;

@@ -9,8 +9,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import Confirm from 'sentry/components/confirm';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
-import PanelItem from 'sentry/components/panels/panelItem';
-import RoleSelectControl from 'sentry/components/roleSelectControl';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -26,7 +26,7 @@ type Props = {
   organization: Organization;
 };
 
-function InviteRequestRow({
+export function InviteRequestRow({
   inviteRequest,
   inviteRequestBusy,
   organization,
@@ -198,5 +198,3 @@ const ButtonGroup = styled('div')`
   grid-template-columns: repeat(2, max-content);
   gap: ${p => p.theme.space.md};
 `;
-
-export default InviteRequestRow;

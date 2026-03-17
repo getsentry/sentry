@@ -5,9 +5,9 @@ import StructuredEventData from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 import type {Team} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
+import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 
 export default Storybook.story('useAggregatedQueryKeys', story => {

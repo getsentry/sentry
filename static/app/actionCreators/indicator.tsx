@@ -1,10 +1,10 @@
 import {isValidElement} from 'react';
 import * as Sentry from '@sentry/react';
 
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import IndicatorStore from 'sentry/stores/indicatorStore';
+import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';

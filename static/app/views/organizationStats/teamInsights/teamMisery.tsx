@@ -9,7 +9,7 @@ import {Link} from '@sentry/scraps/link';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -194,7 +194,7 @@ type Props = {
   start?: string;
 } & DateTimeObject;
 
-function TeamMiseryWrapper({
+export function TeamMiseryWrapper({
   organization,
   teamId,
   projects,
@@ -276,8 +276,6 @@ function TeamMiseryWrapper({
     </DiscoverQuery>
   );
 }
-
-export default TeamMiseryWrapper;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1.25fr 0.5fr 112px 112px 0.25fr;

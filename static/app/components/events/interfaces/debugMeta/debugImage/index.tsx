@@ -7,12 +7,12 @@ import {
   getFileName,
   getImageAddress,
 } from 'sentry/components/events/interfaces/debugMeta/utils';
-import NotAvailable from 'sentry/components/notAvailable';
+import {NotAvailable} from 'sentry/components/notAvailable';
 import {t} from 'sentry/locale';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 
-import Processings from './processings';
-import Status from './status';
+import {Processings} from './processings';
+import {Status} from './status';
 
 type Props = {
   image: ImageWithCombinedStatus;
@@ -20,7 +20,7 @@ type Props = {
   onOpenImageDetailsModal: (image: ImageWithCombinedStatus) => void;
 };
 
-function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
+export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
   const {unwind_status, debug_status, debug_file, code_file, status} = image;
   const codeFilename = getFileName(code_file);
   const debugFilename = getFileName(debug_file);
@@ -74,5 +74,3 @@ function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
     </Grid>
   );
 }
-
-export default DebugImage;

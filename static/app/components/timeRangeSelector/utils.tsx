@@ -11,7 +11,7 @@ import {
   getFormattedDate,
 } from 'sentry/utils/dates';
 
-import TimeRangeItemLabel from './timeRangeItemLabel';
+import {TimeRangeItemLabel} from './timeRangeItemLabel';
 import type {TimeRangeItem} from './types';
 
 type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
@@ -202,7 +202,7 @@ function filterItems(items: TimeRangeItem[], inputValue: string): TimeRangeItem[
   return items.filter(item =>
     (typeof item.textValue === 'string' && item.textValue.length > 0
       ? item.textValue
-      : `${item.value}`
+      : item.value
     )
       .toLowerCase()
       .includes(inputValue.toLowerCase())

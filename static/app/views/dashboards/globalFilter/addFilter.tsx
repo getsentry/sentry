@@ -32,6 +32,7 @@ export const DATASET_CHOICES = new Map<WidgetType, string>([
   [WidgetType.ERRORS, t('Errors')],
   [WidgetType.SPANS, t('Spans')],
   [WidgetType.LOGS, t('Logs')],
+  [WidgetType.TRACEMETRICS, t('Metrics')],
   [WidgetType.RELEASE, t('Releases')],
   [WidgetType.ISSUE, t('Issues')],
 ]);

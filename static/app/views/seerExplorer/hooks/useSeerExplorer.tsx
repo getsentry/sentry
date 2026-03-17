@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {
   setApiQueryData,
   useApiQuery,
@@ -9,12 +10,12 @@ import {
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import useAsciiSnapshot from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
+import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 import {
@@ -109,6 +110,7 @@ export const useSeerExplorer = () => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
+  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useState<boolean>(true);
 
   const [runId, setRunId] = useSessionStorage<number | null>(
     'seer-explorer-run-id',
@@ -244,17 +246,16 @@ export const useSeerExplorer = () => {
       });
 
       try {
-        const response = (await api.requestPromise(
-          makeSeerExplorerQueryKey(orgSlug, effectiveRunId)[0],
-          {
-            method: 'POST',
-            data: {
-              query,
-              insert_index: calculatedInsertIndex,
-              on_page_context: screenshot,
-            },
-          }
-        )) as SeerExplorerChatResponse;
+        const {url} = parseQueryKey(makeSeerExplorerQueryKey(orgSlug, effectiveRunId));
+        const response = (await api.requestPromise(url, {
+          method: 'POST',
+          data: {
+            query,
+            insert_index: calculatedInsertIndex,
+            on_page_context: screenshot,
+            override_ce_enable: overrideCtxEngEnable,
+          },
+        })) as SeerExplorerChatResponse;
 
         // Set run ID if this is a new session
         if (!effectiveRunId) {
@@ -290,6 +291,7 @@ export const useSeerExplorer = () => {
       setRunId,
       getPageReferrer,
       organization,
+      overrideCtxEngEnable,
     ]
   );
 
@@ -582,5 +584,7 @@ export const useSeerExplorer = () => {
     clearWasJustInterrupted: useCallback(() => setWasJustInterrupted(false), []),
     respondToUserInput,
     createPR,
+    overrideCtxEngEnable,
+    setOverrideCtxEngEnable,
   };
 };

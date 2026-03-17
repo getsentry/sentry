@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import ErrorLevel from 'sentry/components/events/errorLevel';
-import ShortId from 'sentry/components/group/inboxBadges/shortId';
+import {ErrorLevel} from 'sentry/components/events/errorLevel';
+import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import Section from 'sentry/components/workflowEngine/ui/section';

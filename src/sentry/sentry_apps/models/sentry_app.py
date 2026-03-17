@@ -32,7 +32,7 @@ from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.apiscopes import HasApiScopes
 from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION
-from sentry.types.region import find_all_cell_names, find_regions_for_sentry_app
+from sentry.types.cell import find_all_cell_names, find_cells_for_sentry_app
 from sentry.utils import metrics
 
 REQUIRED_EVENT_PERMISSIONS = {
@@ -217,9 +217,9 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 shard_identifier=self.id,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_UPDATE,
-                region_name=region_name,
+                cell_name=cell_name,
             )
-            for region_name in find_all_cell_names()
+            for cell_name in find_all_cell_names()
         ]
 
     def outboxes_for_delete(self) -> list[ControlOutbox]:
@@ -229,14 +229,14 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
                 shard_identifier=self.id,
                 object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_DELETE,
-                region_name=region_name,
+                cell_name=cell_name,
                 payload={"slug": self.slug},
             )
-            for region_name in find_all_cell_names()
+            for cell_name in find_all_cell_names()
         ]
 
-    def regions_with_installations(self) -> set[str]:
-        return find_regions_for_sentry_app(self)
+    def cells_with_installations(self) -> set[str]:
+        return find_cells_for_sentry_app(self)
 
     def delete(self, *args, **kwargs):
         from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar

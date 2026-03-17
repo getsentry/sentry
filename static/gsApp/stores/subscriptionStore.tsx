@@ -117,6 +117,4 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
   },
 };
 
-const SubscriptionStore = createStore(subscriptionStoreConfig);
-
-export default SubscriptionStore;
+export const SubscriptionStore = createStore(subscriptionStoreConfig);

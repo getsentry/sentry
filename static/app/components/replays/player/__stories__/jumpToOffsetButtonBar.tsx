@@ -8,7 +8,7 @@ interface Props {
   intervals: string[];
 }
 
-export default function JumpToOffsetButtonBar({intervals}: Props) {
+export function JumpToOffsetButtonBar({intervals}: Props) {
   const userAction = useReplayUserAction();
 
   return (

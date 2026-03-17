@@ -4,7 +4,7 @@ import {escapeDoubleQuotes} from 'sentry/utils';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
 
 function prefixWithTransaction(query: string) {

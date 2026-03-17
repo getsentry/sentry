@@ -10,7 +10,7 @@ import type {
 } from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 export interface CreateTeamAccessRequestModalProps
   extends ModalRenderProps, TeamAccessRequestModalOptions {

@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconAdd, IconFix, IconSubtract} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
