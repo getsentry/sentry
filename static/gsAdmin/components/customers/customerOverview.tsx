@@ -445,6 +445,7 @@ function DynamicSampling({organization}: {organization: Organization}) {
 
   const getSampleRateValue = (): string => {
     if (effectiveSampleRate && desiredSampleRate) {
+      // When rates match, show just the rate instead of "X% instead of X% (~0%)"
       if (formatRate(effectiveSampleRate) === formatRate(desiredSampleRate)) {
         return formatRate(effectiveSampleRate);
       }
