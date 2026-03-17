@@ -4,7 +4,7 @@ import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibr
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import PageFiltersStore from 'sentry/components/pageFilters/store';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 
 describe('DatePageFilter', () => {
   const organization = OrganizationFixture();

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {AutoSaveField, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
@@ -14,7 +14,7 @@ import {
   ReplayAccessMembersField,
 } from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
-function OrganizationMembershipSettingsForm({
+export function OrganizationMembershipSettingsForm({
   organization,
   onSave,
 }: MembershipSettingsProps) {
@@ -57,7 +57,7 @@ function OrganizationMembershipSettingsForm({
         }
       </Feature>
       <FieldGroup title={t('Membership')}>
-        <AutoSaveField
+        <AutoSaveForm
           name="defaultRole"
           schema={membershipSchema}
           initialValue={organization.defaultRole ?? ''}
@@ -76,9 +76,9 @@ function OrganizationMembershipSettingsForm({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="openMembership"
           schema={membershipSchema}
           initialValue={organization.openMembership ?? false}
@@ -105,9 +105,9 @@ function OrganizationMembershipSettingsForm({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="allowMemberInvite"
           schema={membershipSchema}
           initialValue={organization.allowMemberInvite ?? false}
@@ -134,9 +134,9 @@ function OrganizationMembershipSettingsForm({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="allowMemberProjectCreation"
           schema={membershipSchema}
           initialValue={organization.allowMemberProjectCreation ?? false}
@@ -167,9 +167,9 @@ function OrganizationMembershipSettingsForm({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="eventsMemberAdmin"
           schema={membershipSchema}
           initialValue={organization.eventsMemberAdmin ?? false}
@@ -196,9 +196,9 @@ function OrganizationMembershipSettingsForm({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="alertsMemberWrite"
           schema={membershipSchema}
           initialValue={organization.alertsMemberWrite ?? false}
@@ -225,10 +225,10 @@ function OrganizationMembershipSettingsForm({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
         {features.has('event-attachments') && (
-          <AutoSaveField
+          <AutoSaveForm
             name="attachmentsRole"
             schema={membershipSchema}
             initialValue={organization.attachmentsRole ?? ''}
@@ -249,10 +249,10 @@ function OrganizationMembershipSettingsForm({
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         )}
 
-        <AutoSaveField
+        <AutoSaveForm
           name="debugFilesRole"
           schema={membershipSchema}
           initialValue={organization.debugFilesRole ?? ''}
@@ -273,40 +273,38 @@ function OrganizationMembershipSettingsForm({
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        {features.has('granular-replay-permissions') && (
-          <AutoSaveField
-            name="hasGranularReplayPermissions"
-            schema={membershipSchema}
-            initialValue={organization.hasGranularReplayPermissions ?? false}
-            mutationOptions={mutationOpts}
-            confirm={value =>
-              value
-                ? undefined
-                : t(
-                    'This will allow all members of your organization to access replay data. Do you want to continue?'
-                  )
-            }
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Restrict Replay Access')}
-                hintText={t(
-                  'Allow granular access to replay data by selecting specific members of your organization.'
-                )}
-              >
-                <field.Switch
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={baseDisabled}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveField>
-        )}
+        <AutoSaveForm
+          name="hasGranularReplayPermissions"
+          schema={membershipSchema}
+          initialValue={organization.hasGranularReplayPermissions ?? false}
+          mutationOptions={mutationOpts}
+          confirm={value =>
+            value
+              ? undefined
+              : t(
+                  'This will allow all members of your organization to access replay data. Do you want to continue?'
+                )
+          }
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Restrict Replay Access')}
+              hintText={t(
+                'Allow granular access to replay data by selecting specific members of your organization.'
+              )}
+            >
+              <field.Switch
+                checked={field.state.value}
+                onChange={field.handleChange}
+                disabled={baseDisabled}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
 
-        {features.has('granular-replay-permissions') && hasGranularReplay && (
+        {hasGranularReplay && (
           <ReplayAccessMembersField
             organization={organization}
             onSave={onSave}
@@ -317,5 +315,3 @@ function OrganizationMembershipSettingsForm({
     </Fragment>
   );
 }
-
-export default OrganizationMembershipSettingsForm;

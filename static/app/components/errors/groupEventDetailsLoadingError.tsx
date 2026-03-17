@@ -1,5 +1,5 @@
-import DetailedError from 'sentry/components/errors/detailedError';
-import List from 'sentry/components/list';
+import {DetailedError} from 'sentry/components/errors/detailedError';
+import {List} from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 
@@ -8,7 +8,7 @@ type Props = {
   onRetry?: (e: React.MouseEvent) => void;
 };
 
-function GroupEventDetailsLoadingError({onRetry, environments}: Props) {
+export function GroupEventDetailsLoadingError({onRetry, environments}: Props) {
   const reasons = [
     t('The events are still processing and are on their way'),
     t('The events have been deleted'),
@@ -43,5 +43,3 @@ function GroupEventDetailsLoadingError({onRetry, environments}: Props) {
     />
   );
 }
-
-export default GroupEventDetailsLoadingError;

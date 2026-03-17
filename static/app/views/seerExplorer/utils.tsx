@@ -6,7 +6,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {
@@ -67,7 +67,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
   },
 
-  telemetry_live_search: (args, isLoading, linkParams) => {
+  telemetry_live_search: (args, isLoading, resultMetadata) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
     const projectSlugs = args.project_slugs;
@@ -96,7 +96,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     // Default to spans dataset
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
-      : linkParams?.mode === 'traces'
+      : resultMetadata?.mode === 'traces'
         ? `Queried traces${projectInfo}: '${question}'...`
         : `Queried spans${projectInfo}: '${question}'`;
   },
@@ -114,28 +114,55 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
   },
 
-  get_issue_details: (args, isLoading) => {
-    const {issue_id, event_id, start, end} = args;
+  get_issue_details: (args, isLoading, resultMetadata) => {
+    const {issue_id, start, end, event_id} = args;
+
+    if (event_id) {
+      // For backwards compatibility. event_id arg only present in an older version (issue_and_event_details)
+      return isLoading
+        ? `Inspecting event ${event_id.slice(0, 8)}...`
+        : `Inspected event ${event_id.slice(0, 8)}`;
+    }
 
     if (issue_id) {
       if (start && end) {
         return isLoading
           ? `Inspecting issue ${issue_id} between ${start} to ${end}...`
-          : `Inspected issue ${issue_id} between ${start} to ${end}`;
+          : `Inspected issue ${resultMetadata?.short_id || issue_id} between ${start} to ${end}`;
       }
       return isLoading
         ? `Inspecting issue ${issue_id}...`
-        : `Inspected issue ${issue_id}`;
+        : `Inspected issue ${resultMetadata?.short_id || issue_id}`;
     }
 
+    // shouldn't happen (issue_id required)
+    return isLoading ? `Inspecting issue...` : `Inspected issue`;
+  },
+
+  get_event_details: (args, isLoading, resultMetadata) => {
+    const {event_id, issue_id, start, end} = args;
+
+    // event ID mode
     if (event_id) {
       return isLoading
         ? `Inspecting event ${event_id.slice(0, 8)}...`
         : `Inspected event ${event_id.slice(0, 8)}`;
     }
 
-    // Should not happen unless there's a bug.
-    return isLoading ? `Inspecting issue...` : `Inspected issue`;
+    // recommended event mode
+    if (issue_id) {
+      if (start && end) {
+        return isLoading
+          ? `Inspecting recommended event for issue ${issue_id} between ${start} to ${end}...`
+          : `Inspected recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`} between ${start} to ${end}`;
+      }
+      return isLoading
+        ? `Inspecting recommended event for issue ${issue_id}...`
+        : `Inspected recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}`;
+    }
+
+    // shouldn't happen (either event_id or issue_id required)
+    return isLoading ? `Inspecting event...` : `Inspected event`;
   },
 
   code_search: (args, isLoading) => {
@@ -469,6 +496,18 @@ export function toggleSeerExplorerPanel(): void {
 }
 
 /**
+ * Validate an ISO string and return it with 'Z' suffix stripped.
+ * Returns undefined if invalid.
+ */
+function validateIso(val: unknown): string | undefined {
+  if (!val || typeof val !== 'string') {
+    return undefined;
+  }
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? undefined : d.toISOString().replace(/Z$/, '');
+}
+
+/**
  * Build a URL/LocationDescriptor for a tool link based on its kind and params
  */
 export function buildToolLinkUrl(
@@ -634,10 +673,31 @@ export function buildToolLinkUrl(
       };
     }
     case 'get_issue_details': {
-      const {event_id, issue_id} = toolLink.params;
+      const {issue_id, start, end, event_id} = toolLink.params;
+      const query = {
+        start: validateIso(start),
+        end: validateIso(end),
+      };
+
+      if (issue_id) {
+        if (event_id) {
+          // Should only be present in older version (get_issue_and_event_details)
+          return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
+        }
+        return {pathname: `/issues/${issue_id}/`, query};
+      }
+
+      return null;
+    }
+    case 'get_event_details': {
+      const {event_id, issue_id, start, end} = toolLink.params;
 
       if (event_id && issue_id) {
-        return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+        const query = {
+          start: validateIso(start),
+          end: validateIso(end),
+        };
+        return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
       }
 
       return null;

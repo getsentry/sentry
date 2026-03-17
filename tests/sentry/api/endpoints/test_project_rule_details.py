@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -9,17 +9,13 @@ import responses
 from rest_framework import status
 from slack_sdk.web.slack_response import SlackResponse
 
-from sentry.analytics.events.rule_disable_opt_out import (
-    RuleDisableOptOutEdit,
-    RuleDisableOptOutExplicit,
-)
 from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models.environment import Environment
-from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
@@ -95,6 +91,54 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.UPDATED.value).exists()
 
 
+def assert_serializer_results_match(
+    rule_response: dict[str, Any], workflow_response: dict[str, Any]
+) -> None:
+    rule_conditions = sorted(rule_response.get("conditions", []), key=lambda t: t.get("id", ""))
+    workflow_conditions = sorted(
+        workflow_response.get("conditions", []), key=lambda t: t.get("id", "")
+    )
+
+    for rule_condition_data, workflow_condition_data in zip(rule_conditions, workflow_conditions):
+        assert rule_condition_data == workflow_condition_data
+
+    rule_filters = sorted(rule_response.get("filters", []), key=lambda t: t.get("id", ""))
+    workflow_filters = sorted(workflow_response.get("filters", []), key=lambda t: t.get("id", ""))
+    assert len(rule_filters) == len(workflow_filters)
+
+    for rule_filter_data, workflow_filter_data in zip(rule_filters, workflow_filters):
+        assert rule_filter_data == workflow_filter_data
+
+    rule_actions = sorted(rule_response.get("actions", []), key=lambda t: t.get("id", ""))
+    workflow_actions = sorted(workflow_response.get("actions", []), key=lambda t: t.get("id", ""))
+    assert len(rule_actions) == len(workflow_actions)
+
+    # this is not read by the front end
+    for rule_action in rule_actions:
+        if rule_action.get("hasSchemaFormConfig"):
+            del rule_action["hasSchemaFormConfig"]
+
+    for rule_action_data, workflow_action_data in zip(rule_actions, workflow_actions):
+        del rule_action_data["uuid"]
+        if rule_action_data.get("legacy_rule_id"):
+            del rule_action_data["legacy_rule_id"]
+        if rule_action_data.get("workflow_id"):
+            del rule_action_data["workflow_id"]
+        assert rule_action_data == workflow_action_data
+
+    # XXX: actionMatch is always coerced to 'any-short' for a Workflow as it is the only acceptable value
+    # which is then translated to 'any' in the serializer as 'any-short' can't be rendered in the old UI
+    # this may cause confusion if the old rule is changed to be 'all' but it can't be helped
+    assert rule_response.get("filterMatch") == workflow_response.get("filterMatch")
+    assert rule_response.get("frequency") == workflow_response.get("frequency")
+    assert rule_response.get("name") == workflow_response.get("name")
+    assert rule_response.get("environment") == workflow_response.get("environment")
+    assert rule_response.get("projects") == workflow_response.get("projects")
+    assert rule_response.get("status") == workflow_response.get("status")
+    assert rule_response.get("snooze") == workflow_response.get("snooze")
+    assert rule_response.get("owner") == workflow_response.get("owner")
+
+
 class ProjectRuleDetailsBaseTestCase(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-project-rule-details"
 
@@ -143,6 +187,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase, BaseWorkflowTest):
         self.workflow = self.create_workflow(
             when_condition_group=self.workflow_triggers,
             organization=self.detector.project.organization,
+            config={"frequency": 30},
         )
         self.detector_workflow = self.create_detector_workflow(
             detector=self.detector, workflow=self.workflow
@@ -165,6 +210,13 @@ class ProjectRuleDetailsBaseTestCase(APITestCase, BaseWorkflowTest):
         )
         self.action_group, self.action = self.create_workflow_action(self.workflow)
         self.fake_workflow_id = get_fake_id_from_object_id(self.workflow.id)
+
+        # fetch dual written workflow
+        arw = AlertRuleWorkflow.objects.get(rule_id=self.rule.id)
+        self.dual_written_workflow = arw.workflow
+        self.fake_dual_written_workflow_id = get_fake_id_from_object_id(
+            self.dual_written_workflow.id
+        )
 
 
 class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
@@ -293,29 +345,6 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert (
             response.data["filters"][0]["name"] == f"The issue is assigned to {self.user.username}"
         )
-
-    @responses.activate
-    def test_neglected_rule(self) -> None:
-        now = datetime.now(UTC)
-        NeglectedRule.objects.create(
-            rule=self.rule,
-            organization=self.organization,
-            opted_out=False,
-            sent_initial_email_date=now,
-            disable_date=now + timedelta(days=14),
-        )
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200
-        )
-        assert response.data["disableReason"] == "noisy"
-        assert response.data["disableDate"] == now + timedelta(days=14)
-
-        another_rule = self.create_project_rule(project=self.project)
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, another_rule.id, status_code=200
-        )
-        assert not response.data.get("disableReason")
-        assert not response.data.get("disableDate")
 
     @responses.activate
     def test_with_snooze_rule(self) -> None:
@@ -639,14 +668,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @patch("sentry.signals.alert_rule_edited.send_robust")
     def test_simple(self, send_robust: MagicMock) -> None:
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "key": "foo",
-                "match": "eq",
-                "value": "bar",
-            }
-        ]
+        conditions = [{"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}]
         payload = {
             "name": "hello world",
             "owner": self.user.id,
@@ -662,21 +684,18 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert_rule_from_payload(self.rule, payload)
         assert send_robust.called
 
-    @with_feature("organizations:workflow-engine-rule-serializers")
-    def test_workflow_passed(self) -> None:
-        self.get_error_response(
-            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=400
-        )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=200,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_no_owner(self) -> None:
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-                "key": "foo",
-                "match": "eq",
-                "value": "bar",
-            }
-        ]
+        conditions = [{"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}]
         payload = {
             "name": "hello world",
             "owner": None,
@@ -690,6 +709,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["id"] == str(self.rule.id)
         assert_rule_from_payload(self.rule, payload)
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=200,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_update_owner_type(self) -> None:
         team = self.create_team(organization=self.organization, members=[self.user])
@@ -710,6 +739,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
 
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=200,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
+
         payload = {
             "name": "hello world 2",
             "owner": f"user:{self.user.id}",
@@ -725,6 +764,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.owner_team_id is None
         assert rule.owner_user_id == self.user.id
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=200,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_team_owner_not_member(self) -> None:
         self.organization.flags.allow_joinleave = False
@@ -789,6 +838,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert rule.owner_team_id == team.id
         assert rule.owner_user_id is None
 
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=status.HTTP_200_OK,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
+
     def test_reassign_owner_from_own_team_to_any_team(self) -> None:
         """Test that a user can reassign rule ownership from their team to any other team"""
         member_team = self.create_team(organization=self.organization)
@@ -824,6 +883,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["owner"] == f"team:{target_team.id}"
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.owner_team_id == target_team.id
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=status.HTTP_200_OK,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_cannot_reassign_owner_from_other_team(self) -> None:
         """Test that a user cannot reassign rule ownership from a team they don't belong to"""
@@ -901,6 +970,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert_rule_from_payload(self.rule, payload)
 
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=status.HTTP_200_OK,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
+
     def test_remove_conditions(self) -> None:
         """Test that you can edit an alert rule to have no conditions (aka fire on every event)"""
         rule = self.create_project_rule(
@@ -919,10 +998,24 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "actions": self.notify_issue_owners_action,
         }
 
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
         )
         assert_rule_from_payload(rule, payload)
+
+        arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        dual_written_workflow = arw.workflow
+        fake_dual_written_workflow_id = get_fake_id_from_object_id(dual_written_workflow.id)
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                fake_dual_written_workflow_id,
+                status_code=status.HTTP_200_OK,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_update_duplicate_rule(self) -> None:
         """Test that if you edit a rule such that it's now the exact duplicate of another rule in the same project
@@ -1149,7 +1242,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "actions": self.notify_issue_owners_action,
             "conditions": self.first_seen_condition,
         }
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
         )
         # re-fetch rule after update
@@ -1165,77 +1258,18 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             ),
         )
 
-    @patch("sentry.analytics.record")
-    def test_rule_disable_opt_out_explicit(self, record_analytics: MagicMock) -> None:
-        """Test that if a user explicitly opts out of their neglected rule being migrated
-        to being disabled (by clicking a button on the front end), that we mark it as opted out.
-        """
-        rule = self.create_project_rule(
-            name="hello world", condition_data=self.first_seen_condition, action_data=[]
-        )
-        now = datetime.now(UTC)
-        NeglectedRule.objects.create(
-            rule=rule,
-            organization=self.organization,
-            opted_out=False,
-            disable_date=now + timedelta(days=14),
-        )
-        payload = {
-            "name": "hellooo world",
-            "actionMatch": "all",
-            "actions": self.notify_issue_owners_action,
-            "conditions": self.first_seen_condition,
-            "optOutExplicit": True,
-        }
-        self.get_success_response(
-            self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
-        )
-        assert_any_analytics_event(
-            record_analytics,
-            RuleDisableOptOutExplicit(
-                rule_id=rule.id,
-                user_id=self.user.id,
-                organization_id=self.organization.id,
-            ),
-        )
-        neglected_rule = NeglectedRule.objects.get(rule=rule)
-        assert neglected_rule.opted_out is True
-
-    @patch("sentry.analytics.record")
-    def test_rule_disable_opt_out_edit(self, record_analytics: MagicMock) -> None:
-        """Test that if a user passively opts out of their neglected rule being migrated
-        to being disabled (by editing the rule), that we mark it as opted out.
-        """
-        rule = self.create_project_rule(
-            name="hello world", condition_data=self.first_seen_condition, action_data=[]
-        )
-        now = datetime.now(UTC)
-        NeglectedRule.objects.create(
-            rule=rule,
-            organization=self.organization,
-            opted_out=False,
-            disable_date=now + timedelta(days=14),
-        )
-        payload = {
-            "name": "hellooo world",
-            "actionMatch": "all",
-            "actions": self.notify_issue_owners_action,
-            "conditions": self.first_seen_condition,
-            "optOutEdit": True,
-        }
-        self.get_success_response(
-            self.organization.slug, self.project.slug, rule.id, status_code=200, **payload
-        )
-        assert_any_analytics_event(
-            record_analytics,
-            RuleDisableOptOutEdit(
-                rule_id=rule.id,
-                user_id=self.user.id,
-                organization_id=self.organization.id,
-            ),
-        )
-        neglected_rule = NeglectedRule.objects.get(rule=rule)
-        assert neglected_rule.opted_out is True
+        arw = AlertRuleWorkflow.objects.get(rule_id=rule.id)
+        dual_written_workflow = arw.workflow
+        fake_dual_written_workflow_id = get_fake_id_from_object_id(dual_written_workflow.id)
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                fake_dual_written_workflow_id,
+                status_code=status.HTTP_200_OK,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_with_environment(self) -> None:
         payload = {
@@ -1254,6 +1288,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] == self.environment.name
         assert_rule_from_payload(self.rule, payload)
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=status.HTTP_200_OK,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_with_null_environment(self) -> None:
         self.rule.update(environment_id=self.environment.id)
@@ -1275,6 +1319,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["id"] == str(self.rule.id)
         assert response.data["environment"] is None
         assert_rule_from_payload(self.rule, payload)
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=status.HTTP_200_OK,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_update_channel_slack_workspace_fail_sdk(self) -> None:
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
@@ -1314,6 +1368,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                     status_code=400,
                     **payload,
                 )
+                with self.feature("organizations:workflow-engine-rule-serializers"):
+                    self.get_error_response(
+                        self.organization.slug,
+                        self.project.slug,
+                        self.fake_dual_written_workflow_id,
+                        status_code=400,
+                        **payload,
+                    )
 
     def test_slack_channel_id_saved_sdk(self) -> None:
         channel_id = "CSVK0921"
@@ -1344,6 +1406,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             assert response.data["id"] == str(self.rule.id)
             assert response.data["actions"][0]["channel_id"] == channel_id
 
+            with self.feature("organizations:workflow-engine-rule-serializers"):
+                workflow_response = self.get_success_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    self.fake_dual_written_workflow_id,
+                    status_code=status.HTTP_200_OK,
+                    **payload,
+                )
+            assert_serializer_results_match(response.data, workflow_response.data)
+
     def test_invalid_rule_node_type(self) -> None:
         payload = {
             "name": "hello world",
@@ -1355,6 +1427,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_error_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
 
     def test_invalid_rule_node(self) -> None:
         payload = {
@@ -1367,6 +1447,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_error_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
 
     def test_rule_form_not_valid(self) -> None:
         payload = {
@@ -1379,6 +1467,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         self.get_error_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload
         )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
 
     def test_rule_form_owner_perms(self) -> None:
         new_user = self.create_user()
@@ -1432,6 +1528,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
         assert_rule_from_payload(self.rule, payload)
 
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=status.HTTP_200_OK,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
+
     @responses.activate
     def test_update_sentry_app_action_success(self) -> None:
         responses.add(
@@ -1456,11 +1562,21 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "conditions": [],
             "filters": [],
         }
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
         assert_rule_from_payload(self.rule, payload)
         assert len(responses.calls) == 1
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=status.HTTP_200_OK,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     @responses.activate
     def test_update_sentry_app_action_failure(self) -> None:
@@ -1492,6 +1608,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
 
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
     def test_update_sentry_app_action_failure_with_public_context(self, result: MagicMock) -> None:
@@ -1525,6 +1650,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert error_message in response.json().get("actions")[0]
         assert response.json().get("context") == {"bruh": "bruhhhh"}
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
 
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
     def test_update_sentry_app_action_failure_sentry_error(self, result: MagicMock) -> None:
@@ -1565,6 +1699,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.json().get("context") == {"bruh": "bro!"}
         assert list(response.json().keys()) == ["context", "actions"]
 
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
+
     @patch("sentry.sentry_apps.services.app.app_service.trigger_sentry_app_action_creators")
     def test_update_sentry_app_action_failure_missing_error_type(self, result: MagicMock) -> None:
         error_message = "Something is totally broken :'("
@@ -1601,6 +1744,15 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         assert list(response.json().keys()) == ["actions"]
 
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=400,
+                **payload,
+            )
+
     def test_edit_condition_metric(self) -> None:
         payload = {
             "name": "name",
@@ -1610,9 +1762,18 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
             "conditions": self.first_seen_condition,
         }
-        self.get_success_response(
+        response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.fake_dual_written_workflow_id,
+                status_code=200,
+                **payload,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
 
     def test_edit_non_condition_metric(self) -> None:
         payload = {

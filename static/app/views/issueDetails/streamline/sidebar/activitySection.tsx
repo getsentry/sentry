@@ -9,13 +9,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
+import {useMutateActivity} from 'sentry/components/feedback/useMutateActivity';
 import {Timeline} from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
-import textStyles from 'sentry/styles/text';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {textStyles} from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
@@ -24,13 +24,13 @@ import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityIcons';
-import getGroupActivityItem from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
+import {getGroupActivityItem} from 'sentry/views/issueDetails/streamline/sidebar/groupActivityItem';
 import {NoteDropdown} from 'sentry/views/issueDetails/streamline/sidebar/noteDropdown';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -145,7 +145,7 @@ interface StreamlinedActivitySectionProps {
   isDrawer?: boolean;
 }
 
-export default function StreamlinedActivitySection({
+export function StreamlinedActivitySection({
   group,
   isDrawer,
   filterComments,

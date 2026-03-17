@@ -3,17 +3,16 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import useDrawer from 'sentry/components/globalDrawer';
+import {useDrawer} from 'sentry/components/globalDrawer';
 import {AssertionSuggestionsButton} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsButton';
 
-// Only mock the default export (useDrawer), keep GlobalDrawer real
+// Only mock the useDrawer hook, keep GlobalDrawer real
 // since the test render wrapper uses it to render children.
 jest.mock('sentry/components/globalDrawer', () => {
   const actual = jest.requireActual('sentry/components/globalDrawer');
   return {
     ...actual,
-    __esModule: true,
-    default: jest.fn(),
+    useDrawer: jest.fn(),
   };
 });
 

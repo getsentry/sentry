@@ -2,7 +2,7 @@ import {usePreventContext} from 'sentry/components/prevent/context/preventContex
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
 import {tct} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import SortableHeader from 'sentry/views/prevent/tests/testAnalyticsTable/sortableHeader';
+import {SortableHeader} from 'sentry/views/prevent/tests/testAnalyticsTable/sortableHeader';
 import type {Column} from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
 import {RIGHT_ALIGNED_FIELDS} from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
 

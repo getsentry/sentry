@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 type TextProps = {
   percent: number;
@@ -71,7 +71,7 @@ const animatedTextDefaultProps = {
   transition: testableTransition(),
 };
 
-function ProgressRing({
+export function ProgressRing({
   value,
   minValue = 0,
   maxValue = 100,
@@ -184,5 +184,3 @@ const RingBar = styled('circle')<{
 `;
 
 const MotionRingBar = motion.create(RingBar);
-
-export default ProgressRing;

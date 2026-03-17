@@ -21,12 +21,12 @@ import {
   ReactSelect,
   components as selectComponents,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
-import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
-import PanelProvider from 'sentry/utils/panelProvider';
+import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
+import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
 import {SelectOption} from './option';

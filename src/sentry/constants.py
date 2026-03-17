@@ -729,6 +729,7 @@ DEFAULT_CODE_REVIEW_TRIGGERS: list[str] = [
     "on_ready_for_review",
     "on_new_commit",
 ]
+SEER_DEFAULT_CODING_AGENT_DEFAULT = "seer"
 ENABLED_CONSOLE_PLATFORMS_DEFAULT: list[str] = []
 CONSOLE_SDK_INVITE_QUOTA_DEFAULT = 0
 ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT = False
@@ -796,6 +797,7 @@ DS_DENYLIST = frozenset(
 # Also it covers: livez, readyz
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
+    "*health-check*",
     "*heartbeat*",
     "*/health{/,}",
     "*/healthy{/,}",

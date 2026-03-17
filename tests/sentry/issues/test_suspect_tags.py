@@ -10,7 +10,7 @@ from sentry.issues.suspect_tags import (
     query_selection_set,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 class SuspectTagsTest(TestCase, SnubaTestCase):
@@ -73,7 +73,7 @@ class SuspectTagsTest(TestCase, SnubaTestCase):
 
 
 class TestEAPQueryErrorCounts(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime.datetime(2026, 2, 12, 6, 0, 0, tzinfo=datetime.UTC)
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0)
 
     def _query_both(self, group_id: int | None = None) -> tuple[int, int]:
         start = self.FROZEN_TIME - datetime.timedelta(hours=1)

@@ -19,7 +19,7 @@ import {
   UNLIMITED_ONDEMAND,
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import UsageHistory from 'getsentry/views/subscriptionPage/usageHistory';
 

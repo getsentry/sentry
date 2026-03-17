@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import type RRWebPlayer from '@sentry-internal/rrweb-player';
 import * as Sentry from '@sentry/react';
 
-import BaseRRWebReplayer from './baseRRWebReplayer';
+import {BaseRRWebReplayer} from './baseRRWebReplayer';
 
 type RRWebEvents = ConstructorParameters<typeof RRWebPlayer>[0]['props']['events'];
 interface Props {

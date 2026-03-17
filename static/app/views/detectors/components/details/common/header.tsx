@@ -1,9 +1,9 @@
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
+import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DisableDetectorAction,
   EditDetectorAction,

@@ -18,8 +18,8 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
@@ -34,7 +34,6 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
   const aiAutofix = useExplorerAutofix(group.id);
 
   const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix, group, event});
-  const handleReset = useHandleReset({aiAutofix});
 
   return (
     <Flex
@@ -49,7 +48,7 @@ export function SeerDrawer({event, group, project}: SeerDrawerProps) {
       <SeerDrawerNavigator
         project={project}
         onCopyMarkdown={handleCopyMarkdown}
-        onReset={handleReset}
+        onReset={aiAutofix.runState ? aiAutofix.reset : undefined}
       />
       <SeerDrawerBody>
         <InnerSeerDrawer
@@ -173,17 +172,4 @@ function useHandleCopyMarkdown({
       copy(markdownText, {successMessage: t('Analysis copied to clipboard.')});
     };
   }, [aiAutofix, group, event, copy]);
-}
-
-function useHandleReset({
-  aiAutofix,
-}: {
-  aiAutofix: ReturnType<typeof useExplorerAutofix>;
-}): (() => void) | undefined {
-  return useMemo(() => {
-    if (!aiAutofix.runState) {
-      return undefined;
-    }
-    return aiAutofix.reset;
-  }, [aiAutofix]);
 }

@@ -12,7 +12,7 @@ import {
   CronsBannerOnDemandCTA,
   CronsBannerUpgradeCTA,
 } from 'getsentry/components/crons/cronsBannerUpgradeCTA';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {
   BillingConfig,

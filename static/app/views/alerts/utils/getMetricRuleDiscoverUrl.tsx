@@ -73,7 +73,7 @@ export function getMetricRuleDiscoverQuery({
       : [
           'transaction',
           'project',
-          `${rule.aggregate}`,
+          rule.aggregate,
           'count_unique(user)',
           `user_misery(${DEFAULT_PROJECT_THRESHOLD})`,
         ];

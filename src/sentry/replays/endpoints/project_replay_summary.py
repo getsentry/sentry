@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.utils import default_start_end_dates
 from sentry.models.project import Project
@@ -46,7 +46,7 @@ class ReplaySummaryPermission(ProjectPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     owner = ApiOwner.REPLAY

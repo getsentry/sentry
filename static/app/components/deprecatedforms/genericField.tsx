@@ -56,7 +56,7 @@ type Props = {
   formErrors?: Record<PropertyKey, string>;
 };
 
-function GenericField({
+export function GenericField({
   config,
   formData = {},
   formErrors = {},
@@ -120,5 +120,3 @@ function GenericField({
       return null;
   }
 }
-
-export default GenericField;

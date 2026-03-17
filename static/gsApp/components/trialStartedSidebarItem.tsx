@@ -9,15 +9,15 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
-import withApi from 'sentry/utils/withApi';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
+import {withApi} from 'sentry/utils/withApi';
 
-import TrialRequestedActions from 'getsentry/actions/trialRequestedActions';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import TrialRequestedStore from 'getsentry/stores/trialRequestedStore';
+import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import {TrialRequestedStore} from 'getsentry/stores/trialRequestedStore';
 import type {Subscription} from 'getsentry/types';
 import {hasJustStartedPlanTrial} from 'getsentry/utils/billing';
-import TrialBadge from 'getsentry/views/subscriptionPage/trial/badge';
+import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
 type Props = {
   api: Client;

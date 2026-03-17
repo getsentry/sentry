@@ -80,7 +80,7 @@ function formatCategoryRowString(
   return `${reservedWithUnits} ${quantity === 1 ? displayName : plural}`;
 }
 
-function PlanMigrationRow(props: Props) {
+export function PlanMigrationRow(props: Props) {
   let currentValue: React.ReactNode;
   let nextValue: React.ReactNode;
   let discountPrice: string | undefined;
@@ -168,5 +168,3 @@ const DiscountedPrice = styled('span')`
   text-decoration: line-through;
   font-weight: 400;
 `;
-
-export default PlanMigrationRow;
