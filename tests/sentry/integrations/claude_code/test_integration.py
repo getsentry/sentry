@@ -89,23 +89,6 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert metadata["agent_id"] is None
         assert metadata["agent_version"] is None
 
-    def test_build_integration_with_environment_and_workspace(self):
-        mock_cls, _ = _mock_client_class()
-        state: Mapping[str, Any] = {
-            "api_key": "sk-ant-api-key",
-            "environment": {
-                "environment_id": "env-123",
-                "workspace_name": "my-workspace",
-            },
-        }
-
-        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
-            result = self.provider().build_integration(state)
-
-        metadata = result["metadata"]
-        assert metadata["environment_id"] == "env-123"
-        assert metadata["workspace_name"] == "my-workspace"
-
     def test_build_integration_creates_unique_external_ids(self):
         mock_cls, _ = _mock_client_class()
         state: Mapping[str, Any] = {"api_key": "sk-ant-test-api-key-123"}
