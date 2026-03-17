@@ -7,7 +7,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
-import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
+import type {Integration, Repository} from 'sentry/types/integrations';
 
 import {ConnectedView} from './components/scmConnectedView';
 import {ProviderPills} from './components/scmProviderPills';
@@ -22,7 +22,7 @@ export function ScmConnect({onComplete}: StepProps) {
   const [activeIntegration, setActiveIntegration] = useState<Integration | null>(
     () => onboardingContext.selectedIntegration ?? null
   );
-  const [selectedRepo, setSelectedRepo] = useState<IntegrationRepository | null>(
+  const [selectedRepo, setSelectedRepo] = useState<Repository | null>(
     () => onboardingContext.selectedRepository ?? null
   );
 

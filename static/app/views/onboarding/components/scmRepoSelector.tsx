@@ -6,11 +6,17 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {addRepository, hideRepository} from 'sentry/actionCreators/integrations';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
+import type {
+  Integration,
+  IntegrationRepository,
+  Repository,
+} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -20,13 +26,15 @@ interface RepoSearchResult {
 
 interface RepoSelectorProps {
   integration: Integration;
-  onSelect: (repo: IntegrationRepository | null) => void;
-  selectedRepo: IntegrationRepository | null;
+  onSelect: (repo: Repository | null) => void;
+  selectedRepo: Repository | null;
 }
 
 export function RepoSelector({integration, selectedRepo, onSelect}: RepoSelectorProps) {
+  const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const [search, setSearch] = useState<string>();
+  const [adding, setAdding] = useState(false);
   const debouncedSearch = useDebouncedValue(search, 200);
 
   const query = useQuery({
@@ -58,9 +66,9 @@ export function RepoSelector({integration, selectedRepo, onSelect}: RepoSelector
           acc.reposByIdentifier.set(repo.identifier, repo);
           acc.dropdownItems.push({
             value: repo.identifier,
-            label: repo.name,
+            label: repo.isInstalled ? `${repo.name} (Already Added)` : repo.name,
             textValue: repo.name,
-            disabled: repo.identifier === selectedRepo?.identifier,
+            disabled: repo.isInstalled || repo.identifier === selectedRepo?.externalSlug,
           });
           return acc;
         },
@@ -77,18 +85,46 @@ export function RepoSelector({integration, selectedRepo, onSelect}: RepoSelector
     [query.data, selectedRepo]
   );
 
+  const handleAdd = async (selection: {value: string}) => {
+    const repo = reposByIdentifier.get(selection.value);
+    if (!repo) {
+      return;
+    }
+    setAdding(true);
+    try {
+      const created = await addRepository(
+        api,
+        organization.slug,
+        repo.identifier,
+        integration
+      );
+      onSelect(created);
+    } catch {
+      // Error feedback is handled by addRepository
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!selectedRepo) {
+      return;
+    }
+    try {
+      await hideRepository(api, organization.slug, selectedRepo.id);
+      onSelect(null);
+    } catch {
+      // Error feedback is handled by hideRepository
+    }
+  };
+
   return (
     <Stack gap="md">
       <CompactSelect
         menuWidth="100%"
         disabled={false}
         options={dropdownItems}
-        onChange={selection => {
-          const repo = reposByIdentifier.get(selection.value);
-          if (repo) {
-            onSelect(repo);
-          }
-        }}
+        onChange={handleAdd}
         value={undefined}
         menuTitle={t('Repositories')}
         emptyMessage={
@@ -105,7 +141,7 @@ export function RepoSelector({integration, selectedRepo, onSelect}: RepoSelector
         }}
         loading={query.isFetching}
         trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps}>
+          <OverlayTrigger.Button {...triggerProps} busy={adding}>
             {selectedRepo ? selectedRepo.name : t('Search repositories')}
           </OverlayTrigger.Button>
         )}
@@ -120,7 +156,7 @@ export function RepoSelector({integration, selectedRepo, onSelect}: RepoSelector
             priority="link"
             icon={<IconClose size="xs" />}
             aria-label={t('Remove %s', selectedRepo.name)}
-            onClick={() => onSelect(null)}
+            onClick={handleRemove}
           />
         </Flex>
       )}
