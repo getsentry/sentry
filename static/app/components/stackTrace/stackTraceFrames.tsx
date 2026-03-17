@@ -25,10 +25,12 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
 
 interface StackTraceFramesProps {
   frameContextComponent: ComponentType;
+  borderless?: boolean;
   frameActionsComponent?: ComponentType<{isHovering: boolean}>;
 }
 
 export function StackTraceFrames({
+  borderless = false,
   frameContextComponent: FrameContextComponent,
   frameActionsComponent: FrameActionsComponent = StackTraceFrameRow.Actions.Default,
 }: StackTraceFramesProps) {
@@ -74,7 +76,7 @@ export function StackTraceFrames({
   }
 
   return (
-    <FramesPanel>
+    <FramesPanel borderless={borderless}>
       {allRows.map(row => {
         if (row.kind === 'omitted') {
           return (
@@ -106,8 +108,15 @@ export function StackTraceFrames({
   );
 }
 
-const FramesPanel = styled(Panel)`
+const FramesPanel = styled(Panel)<{borderless: boolean}>`
   overflow: hidden;
+  margin-bottom: 0;
+  ${p =>
+    p.borderless &&
+    `
+    border: 0;
+    border-radius: 0;
+  `}
 `;
 
 const OmittedRow = styled(Container)`
