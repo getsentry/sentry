@@ -17,6 +17,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 import {EventHydrationDiff} from 'sentry/components/events/eventHydrationDiff';
+import {EventInsightDiff} from 'sentry/components/events/eventInsightDiff';
 import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import {EventReplay} from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
@@ -443,6 +444,7 @@ export function EventDetailsContent({
       </ErrorBoundary>
       <EventExtraData event={event} />
       <EventViewHierarchy event={event} project={project} />
+      <EventInsightDiff event={event} project={project} />
       <EventXrayDiff event={event} project={project} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
