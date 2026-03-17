@@ -26,7 +26,7 @@ from sentry.integrations.web.discord_extension_configuration import (
     DiscordExtensionConfigurationView,
 )
 from sentry.middleware.integrations.tasks import convert_to_async_discord_response
-from sentry.types.region import Cell
+from sentry.types.cell import Cell
 
 logger = logging.getLogger(__name__)
 

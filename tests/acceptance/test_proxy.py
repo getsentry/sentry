@@ -18,7 +18,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
 from sentry.testutils.silo import cell_silo_test
-from sentry.types.region import Cell
+from sentry.types.cell import Cell
 from sentry.utils import json
 from tests.sentry.middleware.test_proxy import test_region
 

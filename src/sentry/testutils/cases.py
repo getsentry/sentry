@@ -3197,29 +3197,22 @@ class MonitorIngestTestCase(MonitorTestCase):
 class UptimeTestCaseMixin:
     def setUp(self):
         super().setUp()
-        self.mock_resolve_hostname_ctx = mock.patch(
+        patcher = mock.patch(
             "sentry.uptime.rdap.query.resolve_hostname", return_value="192.168.0.1"
         )
-        self.mock_resolve_rdap_provider_ctx = mock.patch(
-            "sentry.uptime.rdap.query.resolve_rdap_provider",
-            return_value="https://fake.com/",
-        )
-        self.mock_requests_get_ctx = mock.patch("sentry.uptime.rdap.query.requests.get")
-        self.mock_invoke_checker_validator_ctx = mock.patch(
-            "sentry.uptime.checker_api.invoke_checker_validator", return_value=None
-        )
-        self.mock_resolve_hostname = self.mock_resolve_hostname_ctx.__enter__()
-        self.mock_resolve_rdap_provider = self.mock_resolve_rdap_provider_ctx.__enter__()
-        self.mock_requests_get = self.mock_requests_get_ctx.__enter__()
-        self.mock_requests_get.return_value.json.return_value = {"entities": [{"handle": "hi"}]}
-        self.mock_invoke_checker_validator = self.mock_invoke_checker_validator_ctx.__enter__()
+        self.mock_resolve_hostname = patcher.start()
+        self.addCleanup(patcher.stop)
 
-    def tearDown(self):
-        super().tearDown()
-        self.mock_resolve_hostname_ctx.__exit__(None, None, None)
-        self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
-        self.mock_requests_get_ctx.__exit__(None, None, None)
-        self.mock_invoke_checker_validator_ctx.__exit__(None, None, None)
+        patcher = mock.patch(
+            "sentry.uptime.rdap.query.resolve_rdap_provider", return_value="https://fake.com/"
+        )
+        self.mock_resolve_rdap_provider = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = mock.patch("sentry.uptime.rdap.query.requests.get")
+        self.mock_requests_get = patcher.start()
+        self.mock_requests_get.return_value.json.return_value = {"entities": [{"handle": "hi"}]}
+        self.addCleanup(patcher.stop)
 
     def create_uptime_result(
         self,

@@ -31,7 +31,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json

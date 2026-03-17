@@ -296,20 +296,9 @@ function DashboardTable({
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
                   size="sm"
-                  disabled={
-                    hasReachedDashboardLimit ||
-                    isLoadingDashboardsLimit ||
-                    (defined(dataRow.prebuiltId) &&
-                      !organization.features.includes('dashboards-prebuilt-controls'))
-                  }
+                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
                   tooltipProps={{
-                    title:
-                      defined(dataRow.prebuiltId) &&
-                      !organization.features.includes('dashboards-prebuilt-controls')
-                        ? tct('[label] dashboards cannot be duplicated', {
-                            label: PREBUILT_DASHBOARD_LABEL,
-                          })
-                        : limitMessage,
+                    title: limitMessage,
                   }}
                 />
               )}

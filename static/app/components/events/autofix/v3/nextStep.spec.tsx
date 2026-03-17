@@ -18,6 +18,7 @@ function makeAutofix(
     createPR: jest.fn(),
     sendMessage: jest.fn(),
     reset: jest.fn(),
+    triggerCodingAgentHandoff: jest.fn(),
     isLoading: false,
     isReady: true,
     isStreaming: false,
@@ -185,6 +186,12 @@ describe('SeerDrawerNextStep', () => {
   });
 
   describe('SolutionNextStep', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {integrations: []},
+      });
+    });
     it('returns null when section has no artifacts', () => {
       const autofix = makeAutofix();
       const {container} = render(

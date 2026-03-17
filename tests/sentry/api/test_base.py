@@ -23,7 +23,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response, is_streaming_response
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
-from sentry.types.region import subdomain_is_locality
+from sentry.types.cell import subdomain_is_locality
 from sentry.utils.cursors import Cursor
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 

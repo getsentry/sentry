@@ -23,7 +23,7 @@ from sentry.testutils.silo import (
     control_silo_test,
     create_test_cells,
 )
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 
 
 def assert_matching_organization_mapping(

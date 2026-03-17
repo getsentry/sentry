@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import assert_webhook_payloads_for_mailbox, outbox_runner
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 
 
 @control_silo_test

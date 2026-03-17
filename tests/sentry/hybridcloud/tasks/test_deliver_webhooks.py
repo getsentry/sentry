@@ -25,7 +25,7 @@ from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, CellResolutionError, RegionCategory
+from sentry.types.cell import Cell, CellResolutionError, RegionCategory
 
 region_config = [Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)]
 

@@ -16,7 +16,7 @@ from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test, create_test_cells
 from sentry.testutils.skips import requires_objectstore
-from sentry.types.region import Cell
+from sentry.types.cell import Cell
 from sentry.utils import json
 
 

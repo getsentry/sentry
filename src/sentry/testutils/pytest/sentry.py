@@ -22,8 +22,8 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cell import TestEnvCellDirectory
 from sentry.testutils.pytest import xdist
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
-from sentry.types import region
-from sentry.types.region import Cell, RegionCategory
+from sentry.types import cell
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -91,7 +91,7 @@ def _configure_test_env_cells() -> None:
     # This not only populates the environment with the default cell, but also
     # ensures that a TestEnvCellDirectory instance is injected into global state.
     # See sentry.testutils.cell.get_test_env_directory, which relies on it.
-    region.set_global_directory(TestEnvCellDirectory([default_cell]))
+    cell.set_global_directory(TestEnvCellDirectory([default_cell]))
 
     settings.SENTRY_SUBNET_SECRET = "secret"
     settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"

@@ -32,7 +32,7 @@ from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.sentry_apps.services.app.service import app_service
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)

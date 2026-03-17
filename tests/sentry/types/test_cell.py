@@ -13,7 +13,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import get_test_env_directory
-from sentry.types.region import (
+from sentry.types.cell import (
     Cell,
     CellConfigurationError,
     CellDirectory,
@@ -150,7 +150,7 @@ class CellDirectoryTest(TestCase):
         with override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_REGION=""):
             assert locality.to_url("/avatar/abcdef/") == "http://testserver/avatar/abcdef/"
 
-    @patch("sentry.types.region.sentry_sdk")
+    @patch("sentry.types.cell.sentry_sdk")
     def test_invalid_config(self, sentry_sdk_mock: MagicMock) -> None:
         assert sentry_sdk_mock.capture_exception.call_count == 0
         with pytest.raises(CellConfigurationError):

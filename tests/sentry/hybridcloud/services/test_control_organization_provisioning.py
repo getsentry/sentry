@@ -24,7 +24,7 @@ from sentry.services.organization import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
