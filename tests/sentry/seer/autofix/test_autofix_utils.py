@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import Mock, patch
 
 import orjson
@@ -10,6 +11,7 @@ from sentry.seer.autofix.utils import (
     AutofixTriggerSource,
     CodingAgentStatus,
     bulk_write_preferences_to_sentry_db,
+    deduplicate_repositories,
     get_autofix_prompt,
     get_coding_agent_prompt,
     has_project_connected_repos,
@@ -794,6 +796,102 @@ class TestResolveRepositoryIds(TestCase):
         assert result[1].repositories[0].repository_id == repo2.id
 
 
+class TestDeduplicateRepositories(TestCase):
+    def test_keys_by_provider_and_external_id(self):
+        repositories: list[dict[str, Any]] = [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            },
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": 42,
+            },
+        ]
+
+        result = deduplicate_repositories(repositories)
+
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            }
+        ]
+
+    def test_also_keys_by_org_id(self):
+        repositories: list[dict[str, Any]] = [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            },
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": 42,
+            },
+        ]
+
+        result = deduplicate_repositories(repositories, key_by_org_id=True)
+
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": None,
+            },
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+                "organization_id": 42,
+            },
+        ]
+
+    def test_normalizes_provider_alias_in_key(self):
+        repositories: list[dict[str, Any]] = [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+            },
+            {
+                "provider": "integrations:github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+            },
+        ]
+
+        result = deduplicate_repositories(repositories)
+
+        assert result == [
+            {
+                "provider": "github",
+                "owner": "test-org",
+                "name": "test-repo",
+                "external_id": "ext123",
+            }
+        ]
+
+
 class TestWritePreferencesToSentryDb(TestCase):
     """Tests for _write_preferences_to_sentry_db via write_preference_to_sentry_db
     and bulk_write_preferences_to_sentry_db."""
@@ -997,50 +1095,6 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert repos[0].branch_name == "develop"
         assert repos[1].repository_id == repo2.id
         assert repos[1].instructions == "Deploy carefully"
-
-    def test_deduplicates_repos_by_project_and_repository_id(self):
-        """Duplicate (project_id, repository_id) entries should be deduplicated, last entry wins."""
-        preference = SeerProjectPreference(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            repositories=[
-                SeerRepoDefinition(
-                    repository_id=self.repo.id,
-                    provider="github",
-                    owner="test-org",
-                    name="test-repo",
-                    external_id="ext123",
-                    branch_name="first-branch",
-                    branch_overrides=[
-                        BranchOverride(
-                            tag_name="environment",
-                            tag_value="production",
-                            branch_name="main",
-                        ),
-                    ],
-                ),
-                SeerRepoDefinition(
-                    repository_id=self.repo.id,
-                    provider="github",
-                    owner="test-org",
-                    name="test-repo",
-                    external_id="ext123",
-                    branch_name="second-branch",
-                ),
-            ],
-        )
-
-        write_preference_to_sentry_db(self.project, preference)
-
-        repos = SeerProjectRepository.objects.filter(project=self.project)
-        assert len(repos) == 1
-        assert repos[0].branch_name == "second-branch"
-        assert (
-            SeerProjectRepositoryBranchOverride.objects.filter(
-                seer_project_repository__project=self.project
-            ).count()
-            == 0
-        )
 
     def test_bulk_write_multiple_projects(self):
         project2 = self.create_project(organization=self.organization)

@@ -17,6 +17,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import (
     GetProjectPreferenceRequest,
     SetProjectPreferenceRequest,
+    deduplicate_repositories,
     get_autofix_repos_from_project_code_mappings,
     make_get_project_preference_request,
     make_set_project_preference_request,
@@ -61,6 +62,9 @@ class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
     automation_handoff = SeerAutomationHandoffConfigurationSerializer(
         required=False, allow_null=True
     )
+
+    def validate_repositories(self, value):
+        return deduplicate_repositories(value)
 
 
 @cell_silo_endpoint

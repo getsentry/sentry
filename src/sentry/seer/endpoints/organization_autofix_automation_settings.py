@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from itertools import chain
 from typing import Any
 
 from django.db import router, transaction
@@ -26,6 +27,7 @@ from sentry.seer.autofix.utils import (
     bulk_get_project_preferences,
     bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
+    deduplicate_repositories,
     default_seer_project_preference,
     resolve_repository_ids,
 )
@@ -39,15 +41,7 @@ def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
     """
     Merge new repositories with existing ones, skipping duplicates by (org_id, provider, external_id).
     """
-    _unique_repo_key = lambda r: (r.get("organization_id"), r.get("provider"), r.get("external_id"))
-
-    existing_keys = {_unique_repo_key(repo) for repo in existing}
-    merged = list(existing)
-    for repo in new:
-        if _unique_repo_key(repo) not in existing_keys:
-            merged.append(repo)
-            existing_keys.add(_unique_repo_key(repo))
-    return merged
+    return deduplicate_repositories(chain(existing, new))
 
 
 class BranchOverrideSerializer(CamelSnakeSerializer):
@@ -115,7 +109,7 @@ class ProjectRepoMappingField(serializers.Field):
                     )
                 serialized_repos.append(repo_serializer.validated_data)
 
-            result[project_id] = serialized_repos
+            result[project_id] = deduplicate_repositories(serialized_repos)
 
         return result
 

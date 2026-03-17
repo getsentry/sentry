@@ -19,6 +19,7 @@ from sentry.seer.autofix.utils import (
     bulk_get_project_preferences,
     bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
+    deduplicate_repositories,
     get_autofix_repos_from_project_code_mappings,
     get_autofix_state,
     get_seer_seat_based_tier_cache_key,
@@ -251,6 +252,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             if existing_pref.get("automated_run_stopping_point") in ("open_pr", "code_changes"):
                 continue
             repositories = existing_pref.get("repositories") or []
+
+        repositories = deduplicate_repositories(repositories)
 
         # Preserve existing repositories and automation_handoff, only update the stopping point
         preferences_to_set.append(
