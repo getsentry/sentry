@@ -360,8 +360,8 @@ export function MetricSelector({
   });
 
   // The search input sits outside the listbox, so useListBox's shouldFocusWrap
-  // never sees these keystrokes. We manually bridge focus from the search field
-  // into the list here; once focus is inside the list, shouldFocusWrap takes over.
+  // never sees these keystrokes. Bridge ArrowDown from the search field into the
+  // list; once focus is inside the list, shouldFocusWrap takes over.
   const {keyboardProps: searchKeyboardProps} = useKeyboard({
     onKeyDown: e => {
       if (e.key === 'ArrowDown') {
@@ -372,16 +372,6 @@ export function MetricSelector({
           listState.selectionManager.setFocusedKey(firstKey);
         }
         overlayRef.current?.querySelector<HTMLLIElement>('li[role="option"]')?.focus();
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        const lastKey = listState.collection.getLastKey();
-        if (lastKey) {
-          listState.selectionManager.setFocused(true);
-          listState.selectionManager.setFocusedKey(lastKey);
-        }
-        const options =
-          overlayRef.current?.querySelectorAll<HTMLLIElement>('li[role="option"]');
-        options?.[options.length - 1]?.focus();
       }
 
       if (e.key === 'Enter') {
