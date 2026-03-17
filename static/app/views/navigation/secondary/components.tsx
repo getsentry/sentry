@@ -937,13 +937,13 @@ const NavigationFakeLink = styled('div')<NavigationFakeLinkProps>`
 `;
 
 const StyledReorderableFakeLink = styled(NavigationFakeLink)<{isDragging: boolean}>`
-  :not(:hover):not(:focus-within) {
+  :not(:hover):not(:has(:focus-visible)) {
     [data-drag-icon] {
       ${p => !p.isDragging && p.theme.visuallyHidden}
     }
   }
 
-  :hover {
+  :is(:hover, :has(:focus-visible)) {
     [data-reorderable-handle-slot] {
       ${p => p.theme.visuallyHidden}
     }
