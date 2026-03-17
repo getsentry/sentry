@@ -441,8 +441,7 @@ function DynamicSampling({organization}: {organization: Organization}) {
       ? Math.abs(effectiveSampleRate - desiredSampleRate)
       : null;
 
-  const formatRate = (rate: number) =>
-    rate % 1 === 0 ? `${rate}%` : `${rate.toFixed(2)}%`;
+  const formatRate = (rate: number) => `${rate.toFixed(2).replace(/\.00$/, '')}%`;
 
   const ratesMatch = effectiveSampleRate && desiredSampleRate && diffSampleRate === 0;
 
