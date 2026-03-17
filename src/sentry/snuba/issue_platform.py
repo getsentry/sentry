@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any
@@ -8,6 +9,7 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.occurrences.query_utils import (
     keyed_counts_subset_match,
+    normalize_eap_results_to_snuba_aliases,
     translate_issue_platform_column_from_eap,
     translate_issue_platform_column_to_eap,
     translate_issue_platform_orderby_to_eap,
@@ -24,29 +26,7 @@ from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
-
-def _table_subset_match(
-    control_rows: Sequence[Mapping[str, Any]],
-    experimental_rows: Sequence[Mapping[str, Any]],
-) -> bool:
-    if not experimental_rows:
-        return True
-
-    # Event-like rows: experimental event IDs must be a subset of control IDs
-    if all(row.get("id") is not None for row in experimental_rows):
-        control_ids = {row["id"] for row in control_rows if "id" in row}
-        return {row["id"] for row in experimental_rows}.issubset(control_ids)
-
-    # Aggregated rows with count(): enforce experimental_count <= control_count per group key
-    if all("count()" in row for row in experimental_rows):
-        return keyed_counts_subset_match(
-            control_rows,
-            experimental_rows,
-            key_fn=lambda row: tuple(sorted((k, str(v)) for k, v in row.items() if k != "count()")),
-        )
-
-    # Fallback: verify experimental didn't return more rows than control
-    return len(experimental_rows) <= len(control_rows)
+logger = logging.getLogger(__name__)
 
 
 def query(
@@ -156,10 +136,15 @@ def query(
                 config=SearchResolverConfig(),
                 occurrence_category=OccurrenceCategory.GENERIC,
             )
-            eap_data = [
-                {translate_issue_platform_column_from_eap(key): value for key, value in row.items()}
-                for row in eap_result.get("data", [])
-            ]
+            eap_data = normalize_eap_results_to_snuba_aliases(
+                [
+                    {
+                        translate_issue_platform_column_from_eap(key): value
+                        for key, value in row.items()
+                    }
+                    for row in eap_result.get("data", [])
+                ]
+            )
         except Exception:
             eap_data = []
 
@@ -306,6 +291,46 @@ def timeseries_query(
 
     result = base_builder.process_results(results[0])
 
+    callsite = "snuba.issue_platform.timeseries_query"
+    control_data = result.get("data", [])
+    # TODO: EAP RPC doesn't support equations - need to investigate this
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_data: list[dict[str, Any]] = []
+        try:
+            eap_data = _run_eap_timeseries(
+                snuba_params=snuba_params,
+                query_string=query,
+                y_axes=list(columns),
+                referrer=referrer,
+                rollup=rollup,
+                zerofill_results=zerofill_results,
+                comparison_delta=comparison_delta,
+            )
+        except Exception:
+            eap_data = []
+
+        result["data"] = EAPOccurrencesComparator.check_and_choose(
+            control_data,
+            eap_data,
+            callsite,
+            is_experimental_data_a_null_result=len(eap_data) == 0,
+            reasonable_match_comparator=_timeseries_subset_match,
+            debug_context={
+                "referrer": referrer,
+                "selected_columns": list(selected_columns),
+                "query": query,
+                "rollup": rollup,
+                "comparison_delta": str(comparison_delta) if comparison_delta else None,
+                "zerofill_results": zerofill_results,
+                "project_ids": [project.id for project in snuba_params.projects],
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization is not None else None
+                ),
+                "start": snuba_params.start.isoformat() if snuba_params.start else None,
+                "end": snuba_params.end.isoformat() if snuba_params.end else None,
+            },
+        )
+
     return SnubaTSResult(
         {
             "data": result["data"],
@@ -315,3 +340,130 @@ def timeseries_query(
         snuba_params.end_date,
         rollup,
     )
+
+
+def _table_subset_match(
+    control_rows: Sequence[Mapping[str, Any]],
+    experimental_rows: Sequence[Mapping[str, Any]],
+) -> bool:
+    if not experimental_rows:
+        return True
+
+    # Event-like rows: experimental event IDs must be a subset of control IDs
+    if all(row.get("id") is not None for row in experimental_rows):
+        control_ids = {row["id"] for row in control_rows if "id" in row}
+        return {row["id"] for row in experimental_rows}.issubset(control_ids)
+
+    # Aggregated rows with count(): enforce experimental_count <= control_count per group key.
+    # After normalization, both control and EAP use the Snuba alias "count" (not "count()").
+    count_alias = "count"
+    if all(count_alias in row for row in experimental_rows):
+        return keyed_counts_subset_match(
+            control_rows,
+            experimental_rows,
+            key_fn=lambda row: tuple(
+                sorted((k, str(v)) for k, v in row.items() if k != count_alias)
+            ),
+            count_field=count_alias,
+        )
+
+    # Fallback: verify experimental didn't return more rows than control
+    return len(experimental_rows) <= len(control_rows)
+
+
+def _timeseries_subset_match(
+    control_data: list[dict[str, Any]],
+    experimental_data: list[dict[str, Any]],
+) -> bool:
+    if not experimental_data:
+        return True
+
+    control_by_time: dict[int, dict[str, Any]] = {}
+    for row in control_data:
+        time_val = row.get("time")
+        if time_val is not None:
+            control_by_time[int(time_val)] = row
+
+    for row in experimental_data:
+        time_val = row.get("time")
+        if time_val is None:
+            continue
+        control_row = control_by_time.get(int(time_val))
+        if control_row is None:
+            return False
+        for key, eap_val in row.items():
+            if key == "time":
+                continue
+            if not isinstance(eap_val, (int, float)):
+                continue
+            control_val = control_row.get(key)
+            if control_val is None:
+                return False
+            if eap_val > control_val:
+                return False
+
+    return True
+
+
+def _run_eap_timeseries(
+    snuba_params: SnubaParams,
+    query_string: str,
+    y_axes: list[str],
+    referrer: str,
+    rollup: int,
+    zerofill_results: bool,
+    comparison_delta: timedelta | None = None,
+) -> list[dict[str, Any]]:
+    eap_rows = Occurrences.run_grouped_timeseries_query(
+        params=snuba_params,
+        query_string=query_string,
+        y_axes=y_axes,
+        groupby=[],
+        referrer=referrer,
+        config=SearchResolverConfig(),
+        occurrence_category=OccurrenceCategory.GENERIC,
+    )
+
+    # EAP returns time as epoch seconds; zerofill expects and outputs epoch seconds too,
+    # so no conversion needed — just apply zerofill for bucket parity.
+    if zerofill_results and snuba_params.start and snuba_params.end:
+        eap_rows = zerofill(
+            eap_rows,
+            snuba_params.start,
+            snuba_params.end,
+            rollup,
+            ["time"],
+        )
+
+    if comparison_delta and len(y_axes) == 1:
+        comp_params = snuba_params.copy()
+        assert comp_params.start is not None
+        assert comp_params.end is not None
+        comp_params.start -= comparison_delta
+        comp_params.end -= comparison_delta
+        comp_rows = Occurrences.run_grouped_timeseries_query(
+            params=comp_params,
+            query_string=query_string,
+            y_axes=y_axes,
+            groupby=[],
+            referrer=referrer,
+            config=SearchResolverConfig(),
+            occurrence_category=OccurrenceCategory.GENERIC,
+        )
+        if zerofill_results:
+            comp_rows = zerofill(
+                comp_rows,
+                comp_params.start,
+                comp_params.end,
+                rollup,
+                ["time"],
+            )
+        # Align positionally, matching the control path's zip-based approach.
+        col_name = y_axes[0]
+        for base_row, comp_row in zip(eap_rows, comp_rows):
+            base_row["comparisonCount"] = comp_row.get(col_name, 0)
+        # Handle any remaining base rows without a comparison counterpart.
+        for row in eap_rows[len(comp_rows) :]:
+            row["comparisonCount"] = 0
+
+    return normalize_eap_results_to_snuba_aliases(eap_rows)
