@@ -149,9 +149,9 @@ def pytest_configure(config: pytest.Config) -> None:
         # On the rare case we hit a PostgreSQL deadlock, fail fast and let
         # pytest --reruns retry it.
         for alias in settings.DATABASES:
-            settings.DATABASES[alias].setdefault("OPTIONS", {})["options"] = (
-                "-c lock_timeout=180000"  # type: ignore[index]
-            )
+            settings.DATABASES[alias].setdefault("OPTIONS", {})[  # type: ignore[index]
+                "options"
+            ] = "-c lock_timeout=180000"
 
     # Ensure we can test secure ssl settings
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
