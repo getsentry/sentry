@@ -82,9 +82,20 @@ class GitlabIdentityProvider(OAuth2Provider):
 
     def get_refresh_token_params(
         self, refresh_token: str, identity: Identity | RpcIdentity, **kwargs: Any
-    ) -> dict[str, str | None]:
+    ) -> dict[str, str]:
         client_id = identity.data.get("client_id")
         client_secret = identity.data.get("client_secret")
+
+        if not client_id or not client_secret:
+            logger.warning(
+                "gitlab.refresh-token-missing-credentials",
+                extra={
+                    "identity_id": identity.id,
+                    "has_client_id": bool(client_id),
+                    "has_client_secret": bool(client_secret),
+                },
+            )
+            raise IdentityNotValid("Missing client_id or client_secret for OAuth token refresh")
 
         return {
             "grant_type": "refresh_token",

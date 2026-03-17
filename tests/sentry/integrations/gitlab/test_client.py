@@ -151,6 +151,24 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         self.assert_identity_was_not_refreshed()
 
     @responses.activate
+    def test_refresh_auth_fails_with_missing_credentials(self) -> None:
+        """Test that refresh raises IdentityNotValid when client_id/client_secret are missing from identity data."""
+        self.add_get_user_response(success=False)
+
+        # Ensure client_id and client_secret are not in identity data
+        identity = Identity.objects.get(id=self.gitlab_client.identity.id)
+        identity.data.pop("client_id", None)
+        identity.data.pop("client_secret", None)
+        identity.save()
+
+        with pytest.raises(IdentityNotValid, match="Missing client_id or client_secret"):
+            self.make_users_request()
+
+        # Only the initial request should have been made, no refresh attempt to GitLab
+        assert len(responses.calls) == 1
+        self.assert_identity_was_not_refreshed()
+
+    @responses.activate
     def test_no_refresh_when_api_call_successful(self) -> None:
         self.add_get_user_response(success=True)
         resp = self.make_users_request()
