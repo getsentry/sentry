@@ -63,7 +63,7 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
             raise Http404
 
 
-class RegionOrganizationIntegrationBaseEndpoint(CellIntegrationEndpoint):
+class CellOrganizationIntegrationBaseEndpoint(CellIntegrationEndpoint):
     """
     OrganizationIntegrationBaseEndpoints expect both Integration and
     OrganizationIntegration DB entries to exist for a given organization and
