@@ -47,68 +47,6 @@ class TestGetRepoFromCodeMappings(TestCase):
         ]
         assert repos == expected_repos
 
-    def test_includes_code_mappings_when_feature_flag_enabled(self) -> None:
-        project = self.create_project()
-        repo = self.create_repo(
-            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
-        )
-        self.create_code_mapping(
-            project=project, repo=repo, stack_root="src/", source_root="sentry/"
-        )
-        self.create_code_mapping(
-            project=project, repo=repo, stack_root="tests/", source_root="tests/sentry/"
-        )
-
-        with self.feature("organizations:autofix-send-code-mappings"):
-            repos = get_autofix_repos_from_project_code_mappings(project)
-
-        assert len(repos) == 1
-        assert sorted(repos[0]["code_mappings"], key=lambda m: m["stack_root"]) == [
-            {"stack_root": "src/", "source_root": "sentry/"},
-            {"stack_root": "tests/", "source_root": "tests/sentry/"},
-        ]
-
-    def test_no_code_mappings_without_feature_flag(self) -> None:
-        project = self.create_project()
-        repo = self.create_repo(
-            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
-        )
-        self.create_code_mapping(
-            project=project, repo=repo, stack_root="src/", source_root="sentry/"
-        )
-
-        repos = get_autofix_repos_from_project_code_mappings(project)
-
-        assert len(repos) == 1
-        assert "code_mappings" not in repos[0]
-
-    def test_code_mappings_multiple_repos(self) -> None:
-        project = self.create_project()
-        repo1 = self.create_repo(
-            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
-        )
-        repo2 = self.create_repo(
-            name="getsentry/seer", provider="github", external_id="456", integration_id=234
-        )
-        self.create_code_mapping(
-            project=project, repo=repo1, stack_root="src/", source_root="sentry/"
-        )
-        self.create_code_mapping(
-            project=project, repo=repo2, stack_root="ml/", source_root="src/seer/"
-        )
-
-        with self.feature("organizations:autofix-send-code-mappings"):
-            repos = get_autofix_repos_from_project_code_mappings(project)
-
-        assert len(repos) == 2
-        repos_by_name = {r["name"]: r for r in repos}
-        assert repos_by_name["sentry"]["code_mappings"] == [
-            {"stack_root": "src/", "source_root": "sentry/"},
-        ]
-        assert repos_by_name["seer"]["code_mappings"] == [
-            {"stack_root": "ml/", "source_root": "src/seer/"},
-        ]
-
 
 class TestGetAutofixStateFromPrId(TestCase):
     @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")

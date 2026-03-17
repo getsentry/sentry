@@ -17,6 +17,10 @@ from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory, ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
+from sentry.issues.auto_source_code_config.code_mapping import (
+    convert_stacktrace_frame_path_to_source_path,
+    get_sorted_code_mapping_configs,
+)
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
@@ -45,6 +49,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.autofix import check_autofix_status
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.event_frames import EventFrame
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +176,79 @@ def _get_serialized_event(
 
     serialized_event = serialize(event, user, EventSerializer())
     return serialized_event, event
+
+
+def _pre_resolve_stacktrace_frames(
+    serialized_event: dict[str, Any],
+    project: Project,
+) -> None:
+    """
+    Pre-resolve stacktrace frame repo_name and filename using Sentry's code mappings
+    and platform-specific frame munging before sending to Seer.
+
+    This uses the same logic as Sentry's convert_stacktrace_frame_path_to_source_path
+    (in sentry/issues/auto_source_code_config/code_mapping.py) including platform-specific
+    munging for Java, Cocoa, Flutter etc.
+
+    By pre-resolving frames, Seer can skip its expensive git tree fetch for large repos.
+    """
+    code_mappings = get_sorted_code_mapping_configs(project)
+    if not code_mappings:
+        return
+
+    platform = serialized_event.get("platform")
+    sdk_name = serialized_event.get("sdk", {}).get("name") if serialized_event.get("sdk") else None
+
+    # Build a lookup: repo full_name -> list of code mappings for that repo
+    repo_mappings: dict[str, list] = {}
+    for cm in code_mappings:
+        repo = cm.repository
+        repo_name_sections = repo.name.split("/")
+        if len(repo_name_sections) > 1 and repo.provider:
+            full_name = repo.name
+            repo_mappings.setdefault(full_name, []).append(cm)
+
+    for entry in serialized_event.get("entries", []):
+        frames = None
+        if entry.get("type") == "exception":
+            for exception in entry.get("data", {}).get("values", []):
+                frames = (exception.get("stacktrace") or {}).get("frames")
+                if frames:
+                    _resolve_frames(frames, repo_mappings, platform, sdk_name)
+        elif entry.get("type") == "threads":
+            for thread in entry.get("data", {}).get("values", []):
+                frames = (thread.get("stacktrace") or {}).get("frames")
+                if frames:
+                    _resolve_frames(frames, repo_mappings, platform, sdk_name)
+
+
+def _resolve_frames(
+    frames: list[dict[str, Any]],
+    repo_mappings: dict[str, list],
+    platform: str | None,
+    sdk_name: str | None,
+) -> None:
+    """Resolve each frame's repo_name using code mappings with platform munging."""
+
+    for frame in frames:
+        if not frame.get("inApp"):
+            continue
+
+        event_frame = EventFrame.from_dict(frame)
+
+        for repo_full_name, mappings in repo_mappings.items():
+            resolved = False
+            for cm in mappings:
+                source_path = convert_stacktrace_frame_path_to_source_path(
+                    event_frame, cm, platform, sdk_name
+                )
+                if source_path:
+                    frame["repo_name"] = repo_full_name
+                    frame["filename"] = source_path
+                    resolved = True
+                    break
+            if resolved:
+                break
 
 
 def _get_trace_tree_for_event(
@@ -633,6 +711,14 @@ def trigger_autofix(
         return _respond_with_error("Cannot fix issues without an event.", 400)
 
     repos = get_autofix_repos_from_project_code_mappings(group.project)
+
+    # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
+    # expensive git tree fetches for large repos.
+    if features.has("organizations:autofix-send-code-mappings", group.organization):
+        try:
+            _pre_resolve_stacktrace_frames(serialized_event, group.project)
+        except Exception:
+            logger.exception("Failed to pre-resolve stacktrace frames")
 
     # get trace tree of transactions and errors for this event
     try:
