@@ -35,6 +35,7 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
 
 from .base import SlackDMEndpoint
 from .command import LINK_FROM_CHANNEL_MESSAGE
@@ -363,8 +364,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
             if not channel_id or not text:
                 lifecycle.record_halt(AppMentionHaltReason.MISSING_CHANNEL_OR_TEXT)
                 return self.respond()
-
-            from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
 
             process_mention_for_slack.apply_async(
                 kwargs={
