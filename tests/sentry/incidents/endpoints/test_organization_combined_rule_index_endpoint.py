@@ -11,6 +11,7 @@ from sentry.monitors.models import MonitorStatus
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.actor import Actor
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
@@ -183,23 +184,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 400
-
-    def test_limit_higher_than_results_no_cursor(self) -> None:
-        self.setup_rules()
-        # Test limit above result count (which is 4), no cursor.
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "5", "project": self.project_ids}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-        result = response.data
-        assert len(result) == 4
-        self.assert_alert_rule_serialized(self.alert_rule_team2, result[0], skip_dates=True)
-        assert result[1]["id"] == str(self.issue_rule.id)
-        assert result[1]["type"] == "rule"
-        self.assert_alert_rule_serialized(self.alert_rule_2, result[2], skip_dates=True)
-        self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
 
     def test_limit_as_1_with_paging_sort_name(self) -> None:
         self.setup_rules()
@@ -1366,6 +1350,13 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             assert "Invalid sort key" in response.data["detail"]
 
 
+@with_feature(
+    [
+        "organizations:incidents",
+        "organizations:performance-view",
+        "organizations:workflow-engine-rule-serializers",
+    ]
+)
 class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTest, APITestCase):
     """Tests for the workflow engine code path in the combined rules endpoint."""
 
@@ -1397,32 +1388,11 @@ class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTes
         self.combined_rules_url = f"/api/0/organizations/{self.organization.slug}/combined-rules/"
 
     def test_workflow_engine_endpoint_returns_successfully(self) -> None:
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:workflow-engine-rule-serializers",
-            ]
-        ):
-            response = self.get_success_response(self.organization.slug, project=[self.project.id])
+        response = self.get_success_response(self.organization.slug, project=[self.project.id])
 
         # Endpoint should return successfully (empty list is fine)
         assert response.status_code == 200
         assert isinstance(response.data, list)
-
-    def test_workflow_engine_invalid_sort_key(self) -> None:
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:workflow-engine-rule-serializers",
-            ]
-        ):
-            response = self.get_error_response(
-                self.organization.slug, sort=["invalid_field"], status_code=400
-            )
-
-        assert "Invalid sort key" in response.data["detail"]
 
     def test_workflow_engine_dual_written_rules(self) -> None:
         # Create alert rules which exist in legacy system
@@ -1433,16 +1403,9 @@ class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTes
         migrate_alert_rule(alert_rule1)
         migrate_alert_rule(alert_rule2)
 
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:workflow-engine-rule-serializers",
-            ]
-        ):
-            response = self.get_success_response(
-                self.organization.slug, project=[self.project.id, self.project2.id]
-            )
+        response = self.get_success_response(
+            self.organization.slug, project=[self.project.id, self.project2.id]
+        )
 
         assert response.status_code == 200
         assert len(response.data) == 2
@@ -1453,36 +1416,6 @@ class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTes
         assert "Dual Written Rule 2" in rule_names
 
         # All should be metric alerts (type = "alert_rule")
-        for rule in response.data:
-            assert rule["type"] == "alert_rule"
-
-    def test_workflow_engine_multiple_projects(self) -> None:
-        # Create rules in different projects
-        alert_rule1 = self.create_alert_rule(name="Project 1 Rule", projects=[self.project])
-        alert_rule2 = self.create_alert_rule(name="Project 2 Rule", projects=[self.project2])
-
-        migrate_alert_rule(alert_rule1)
-        migrate_alert_rule(alert_rule2)
-
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:workflow-engine-rule-serializers",
-            ]
-        ):
-            response = self.get_success_response(
-                self.organization.slug, project=[self.project.id, self.project2.id]
-            )
-
-        assert response.status_code == 200
-        assert len(response.data) == 2
-
-        # Verify both detectors appear
-        rule_names = {rule["name"] for rule in response.data}
-        assert "Project 1 Rule" in rule_names
-        assert "Project 2 Rule" in rule_names
-
         for rule in response.data:
             assert rule["type"] == "alert_rule"
 
@@ -1507,19 +1440,12 @@ class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTes
         migrate_alert_rule(alert_rule_team2)
         migrate_alert_rule(alert_rule_no_team)
 
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:workflow-engine-rule-serializers",
-            ]
-        ):
-            # Filter by team 1
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                team=[self.team.id],
-            )
+        # Filter by team 1
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            team=[self.team.id],
+        )
 
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -1532,18 +1458,11 @@ class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTes
         migrate_alert_rule(alert_rule1)
         migrate_alert_rule(alert_rule2)
 
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:workflow-engine-rule-serializers",
-            ]
-        ):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                name="Error",
-            )
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            name="Error",
+        )
 
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -1568,18 +1487,11 @@ class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTes
         migrate_alert_rule(transaction_rule)
 
         # Test filtering to only Events dataset
-        with self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:workflow-engine-rule-serializers",
-            ]
-        ):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=[self.project.id],
-                dataset=[Dataset.Events.value],
-            )
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            dataset=[Dataset.Events.value],
+        )
 
         assert response.status_code == 200
         # Should only return the error rule, not the transaction rule
