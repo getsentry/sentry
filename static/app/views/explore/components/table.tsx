@@ -25,10 +25,10 @@ interface TableProps extends React.ComponentProps<typeof _TableWrapper> {
   size?: number;
 }
 
-export function Table({ref, children, style, ...props}: TableProps) {
+export function Table({ref, children, height, style, ...props}: TableProps) {
   return (
     <_TableWrapper {...props}>
-      <_Table ref={ref} height={props.height} style={style}>
+      <_Table ref={ref} height={height} style={style}>
         {children}
       </_Table>
     </_TableWrapper>
