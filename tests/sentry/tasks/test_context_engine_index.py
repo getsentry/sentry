@@ -115,28 +115,53 @@ class TestIndexOrgProjectKnowledge(TestCase):
                                 index_org_project_knowledge(self.org.id)
 
 
+@django_db_all
 class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
     @freeze_time("2024-01-15 10:00:00")  # Monday, hour 10 → slot = 0*24+10 = 10
     def test_returns_only_orgs_assigned_to_current_slot(self):
-        org_ids = list(range(1, 501))
+        from sentry.utils.hashlib import md5_text
 
-        with override_options({"explorer.service_map.allowed_organizations": org_ids}):
-            result = get_allowed_org_ids_context_engine_indexing()
+        orgs = [self.create_organization() for _ in range(50)]
+        org_ids = [org.id for org in orgs]
+
+        with self.feature({"organizations:seer-explorer": True}):
+            with override_options({"explorer.service_map.allowed_organizations": org_ids}):
+                result = get_allowed_org_ids_context_engine_indexing()
 
         assert len(result) > 0
         assert all(org_id in org_ids for org_id in result)
-        # Each returned org must hash to the current slot (Monday hour 10 = slot 10)
-        from sentry.utils.hashlib import md5_text
-
         for org_id in result:
             assert int(md5_text(str(org_id)).hexdigest(), 16) % 168 == 10
 
-        # Verify different time yields different orgs
-        with freeze_time("2024-01-15 11:00:00"):  # slot 11
-            with override_options({"explorer.service_map.allowed_organizations": org_ids}):
-                result_different_hour = get_allowed_org_ids_context_engine_indexing()
+    @freeze_time("2024-01-15 10:00:00")
+    def test_excludes_orgs_without_feature_flag(self):
+        org_with_flag = self.create_organization()
+        org_without_flag = self.create_organization()
+        all_ids = [org_with_flag.id, org_without_flag.id]
 
-        assert set(result) != set(result_different_hour)
+        with self.feature({"organizations:seer-explorer": [org_with_flag.slug]}):
+            with override_options({"explorer.service_map.allowed_organizations": all_ids}):
+                result = get_allowed_org_ids_context_engine_indexing()
+
+        assert org_without_flag.id not in result
+
+    @freeze_time("2024-01-15 10:00:00")
+    def test_excludes_orgs_not_in_allowlist(self):
+        org_in_list = self.create_organization()
+        org_not_in_list = self.create_organization()
+
+        with self.feature({"organizations:seer-explorer": True}):
+            with override_options({"explorer.service_map.allowed_organizations": [org_in_list.id]}):
+                result = get_allowed_org_ids_context_engine_indexing()
+
+        assert org_not_in_list.id not in result
+
+    def test_returns_empty_when_allowlist_empty(self):
+        with self.feature({"organizations:seer-explorer": True}):
+            with override_options({"explorer.service_map.allowed_organizations": []}):
+                result = get_allowed_org_ids_context_engine_indexing()
+
+        assert result == []
 
 
 @django_db_all

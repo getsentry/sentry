@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta, timezone
 
 import sentry_sdk
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -35,6 +35,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils.hashlib import md5_text
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
@@ -211,11 +212,22 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     """
     Get the list of allowed organizations for context engine indexing.
 
-    Spreads orgs evenly across every hour of the day, every day of the week(168 slots total).
-    Each org is deterministically assigned a slot via md5 hash so it is indexed exactly once per week.
-    Using a hash rather than a simple modulo ensures stable, uniform distribution of orgs across all slots.
+    Only includes orgs that are both in the options allowlist AND have the
+    seer-explorer feature flag enabled. Spreads orgs evenly across every hour
+    of the day, every day of the week (168 slots total). Each org is
+    deterministically assigned a slot via md5 hash so it is indexed exactly
+    once per week.
     """
-    all_org_ids: list[int] = options.get("explorer.service_map.allowed_organizations")
+    # TODO: Remove allowlist check once fully rolled out
+    allowed_org_ids: set[int] = set(options.get("explorer.service_map.allowed_organizations"))
+
+    eligible_org_ids: list[int] = []
+    for org in RangeQuerySetWrapper(
+        Organization.objects.filter(status=ObjectStatus.ACTIVE),
+        result_value_getter=lambda o: o.id,
+    ):
+        if features.has("organizations:seer-explorer", org) and org.id in allowed_org_ids:
+            eligible_org_ids.append(org.id)
 
     now = datetime.now(UTC)
     current_slot = now.weekday() * 24 + now.hour
@@ -223,7 +235,7 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     TOTAL_HOURLY_SLOTS = 24 * 7  # 168 slots across every hour of the week
     return [
         org_id
-        for org_id in all_org_ids
+        for org_id in eligible_org_ids
         if int(md5_text(str(org_id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == current_slot
     ]
 
