@@ -77,7 +77,10 @@ jobs:
     uses: getsentry/getsentry/.github/workflows/select-sentry-tests.yml@master
     with:
       sentry-changed-files: ${{ needs.get-changed-files.outputs.sentry-changed-files }}
-    secrets: inherit
+    secrets:
+      SENTRY_INTERNAL_APP_PRIVATE_KEY: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+      SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+      COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
   calculate-shards:
     if: >-
