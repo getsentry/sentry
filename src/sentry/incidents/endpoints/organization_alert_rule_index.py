@@ -426,7 +426,13 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         if not features.has("organizations:performance-view", organization):
             metric_detectors = filter_detectors_by_datasets(metric_detectors, [Dataset.Events])
         elif len(datasets) > 0:
-            dataset_objs = [Dataset(d) for d in datasets]
+            try:
+                dataset_objs = [Dataset(d) for d in datasets]
+            except ValueError:
+                return Response(
+                    {"detail": "Invalid dataset parameter"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             metric_detectors = filter_detectors_by_datasets(metric_detectors, dataset_objs)
 
             if Dataset.Events.value not in datasets:
