@@ -5,10 +5,10 @@ import {Container} from '@sentry/scraps/layout';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
-type DotIndicatorVariant = 'danger' | 'warning' | 'info';
+type StatusIndicatorVariant = 'danger' | 'warning' | 'info';
 
-interface DotIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant: DotIndicatorVariant;
+interface StatusIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
+  variant: StatusIndicatorVariant;
 }
 
 /**
@@ -26,7 +26,7 @@ interface DotIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
  *
  * Placement is the caller's responsibility — no positioning props are provided.
  */
-export function DotIndicator(props: DotIndicatorProps) {
+export function StatusIndicator(props: StatusIndicatorProps) {
   const {variant, ...spanProps} = props;
   return (
     <Container flexShrink={0}>
@@ -44,7 +44,7 @@ export function DotIndicator(props: DotIndicatorProps) {
 }
 
 function getDotTokens(
-  variant: DotIndicatorVariant,
+  variant: StatusIndicatorVariant,
   theme: Theme
 ): {background: string; border: string} {
   switch (variant) {
@@ -65,11 +65,11 @@ function getDotTokens(
       };
     default:
       unreachable(variant);
-      throw new TypeError(`Unsupported DotIndicator variant: ${variant}`);
+      throw new TypeError(`Unsupported StatusIndicator variant: ${variant}`);
   }
 }
 
-const Dot = styled('span')<{variant: DotIndicatorVariant}>`
+const Dot = styled('span')<{variant: StatusIndicatorVariant}>`
   border-radius: 50%;
   width: 10px;
   height: 10px;

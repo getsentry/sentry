@@ -1,15 +1,15 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DotIndicator} from '@sentry/scraps/dotIndicator';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 
-describe('DotIndicator', () => {
+describe('StatusIndicator', () => {
   it('is hidden from the accessibility tree when no aria-label is provided', () => {
-    render(<DotIndicator variant="info" data-test-id="dot" />);
+    render(<StatusIndicator variant="info" data-test-id="dot" />);
     expect(screen.getByTestId('dot')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('has role="img" and aria-label when aria-label is provided', () => {
-    render(<DotIndicator variant="info" aria-label="Online" data-test-id="dot" />);
+    render(<StatusIndicator variant="info" aria-label="Online" data-test-id="dot" />);
     const dot = screen.getByRole('img', {name: 'Online'});
     expect(dot).toBeInTheDocument();
     expect(dot).not.toHaveAttribute('aria-hidden');
@@ -17,7 +17,7 @@ describe('DotIndicator', () => {
 
   it('respects an explicit role override alongside aria-label', () => {
     render(
-      <DotIndicator
+      <StatusIndicator
         variant="info"
         role="status"
         aria-label="Authentication Method Active"

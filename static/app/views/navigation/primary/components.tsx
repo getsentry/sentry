@@ -8,9 +8,9 @@ import type {LocationDescriptor} from 'history';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {DotIndicator} from '@sentry/scraps/dotIndicator';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -265,7 +265,7 @@ function PrimaryNavigationUnreadIndicator({
       left={layout === 'mobile' ? '11px' : 'auto'}
     >
       {p => (
-        <DotIndicator
+        <StatusIndicator
           {...mergeProps(p, props)}
           variant={variant === 'accent' ? 'info' : variant}
           data-unread-indicator

@@ -1,1 +1,0 @@
-export {DotIndicator} from './dotIndicator';
