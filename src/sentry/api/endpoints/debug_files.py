@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
 import jsonschema
 import orjson
 from django.db import IntegrityError, router
-from django.db.models import Case, Exists, IntegerField, Q, QuerySet, Value, When
+from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework import status
 from rest_framework.request import Request
@@ -515,7 +515,7 @@ def batch_assemble(project: Project, files: AssembleRequestPayload):
     )
 
     for debug_file in existing_debug_files:
-        checksum = debug_file.checksum
+        checksum = debug_file.nonnull_checksum
         file = files_to_check.pop(checksum)
         requested_debug_id = requested_debug_ids_by_checksum[checksum]
 
@@ -633,6 +633,7 @@ def _is_proguard_reupload_clone_request(
 
 
 class _DebugFileAnnotations(TypedDict):
+    nonnull_checksum: str
     requested_debug_id_match: int
     proguard_clone_source_match: int
 
@@ -677,8 +678,11 @@ def _find_existing_debug_files(
         ProjectDebugFile.objects.filter(
             project_id=project.id,
             checksum__in=checksums,
+            checksum__isnull=False,
         )
         .annotate(
+            # Mirror the filtered checksum into an annotated non-null field for type safety.
+            nonnull_checksum=F("checksum"),
             requested_debug_id_match=_build_requested_debug_id_match_annotation(
                 requested_debug_ids_by_checksum.items()
             ),
