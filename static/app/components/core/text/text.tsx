@@ -81,9 +81,11 @@ export interface BaseTextProps {
 
   /**
    * Variant determines the style of the text.
+   * - Use a semantic variant (e.g. `primary`, `muted`) to apply a token-based color.
+   * - Use `inherit` to explicitly inherit the color from the parent element.
    * @default primary
    */
-  variant?: ContentVariant | 'muted';
+  variant?: ContentVariant | 'muted' | 'inherit';
 
   /**
    * Determines where line breaks appear when wrapping the text.
@@ -174,10 +176,12 @@ export const Text = styled(
   cursor: ${p => p.cursor ?? undefined};
 
   color: ${p =>
-    p.variant
-      ? (p.theme.tokens.content[p.variant === 'muted' ? 'secondary' : p.variant] ??
-        p.theme.tokens.content.primary)
-      : p.theme.tokens.content.primary};
+    p.variant === 'inherit'
+      ? 'inherit'
+      : p.variant
+        ? (p.theme.tokens.content[p.variant === 'muted' ? 'secondary' : p.variant] ??
+          p.theme.tokens.content.primary)
+        : p.theme.tokens.content.primary};
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
