@@ -10,6 +10,7 @@ export function useReorderStarredSavedQueries() {
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();
+  const queryKey = getStarredSavedQueriesQueryKey(organization);
 
   const {mutate} = useMutation({
     mutationFn: (queries: SavedQuery[]) =>
@@ -23,16 +24,10 @@ export function useReorderStarredSavedQueries() {
         }
       ),
     onMutate: (queries: SavedQuery[]) => {
-      setApiQueryData<SavedQuery[]>(
-        queryClient,
-        getStarredSavedQueriesQueryKey(organization),
-        queries
-      );
+      setApiQueryData<SavedQuery[]>(queryClient, queryKey, queries);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: getStarredSavedQueriesQueryKey(organization),
-      });
+      queryClient.invalidateQueries({queryKey});
     },
   });
 
