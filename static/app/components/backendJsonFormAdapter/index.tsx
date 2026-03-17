@@ -33,10 +33,11 @@ function getZodType(
       return z.object({
         [fieldName]: z.any(),
       });
-    case 'select':
-    case 'choice':
     case 'table':
       return z.array(z.any());
+    case 'select':
+    case 'choice':
+      return z.any();
     default:
       unreachable(fieldType);
       return z.any();
