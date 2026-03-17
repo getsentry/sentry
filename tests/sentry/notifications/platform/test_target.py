@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.utils import timezone
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.integration import SlackIntegration
@@ -8,6 +9,7 @@ from sentry.notifications.platform.target import (
     IntegrationNotificationTarget,
     NotificationTargetError,
     PreparedIntegrationNotificationTarget,
+    serialize_target,
 )
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
@@ -44,6 +46,21 @@ class NotificationTargetTest(TestCase):
             prepared_integration_target.organization_integration.organization_id
             == self.organization.id
         )
+
+    def test_serialize_target_json_encodes_specific_data(self) -> None:
+        now = timezone.now()
+        target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.SLACK,
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id="C01234567890",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            specific_data={"sent_at": now},
+        )
+
+        serialized = serialize_target(target)
+
+        assert serialized["target"]["specific_data"] == {"sent_at": now.isoformat()}
 
 
 class PreparedIntegrationNotificationTargetTest(TestCase):

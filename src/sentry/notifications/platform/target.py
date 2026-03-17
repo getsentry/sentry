@@ -13,6 +13,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTarget,
 )
+from sentry.utils import json
 
 
 class NotificationTargetError(Exception):
@@ -85,8 +86,8 @@ class PreparedIntegrationNotificationTarget[IntegrationInstallationT: Integratio
 
 def serialize_target(target: NotificationTarget) -> dict[str, Any]:
     if isinstance(target, IntegrationNotificationTarget):
-        return {"type": NotificationTargetType.INTEGRATION, "target": target.dict()}
-    return {"type": NotificationTargetType.GENERIC, "target": target.dict()}
+        return {"type": NotificationTargetType.INTEGRATION, "target": json.loads(target.json())}
+    return {"type": NotificationTargetType.GENERIC, "target": json.loads(target.json())}
 
 
 def deserialize_target(data: dict[str, Any]) -> NotificationTarget:
