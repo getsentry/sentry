@@ -16,7 +16,7 @@ from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
-from sentry.types.region import find_all_cell_names
+from sentry.types.cell import find_all_cell_names
 
 MAX_USER_ROLE_NAME_LENGTH = 32
 

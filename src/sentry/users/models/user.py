@@ -44,7 +44,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcRegionUser, organization_service
-from sentry.types.region import find_all_cell_names, find_cells_for_user
+from sentry.types.cell import find_all_cell_names, find_cells_for_user
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user_avatar import UserAvatar

@@ -22,7 +22,7 @@ from sentry.relocation.api.endpoints.index import (
 )
 from sentry.relocation.models.relocation import Relocation
 from sentry.relocation.tasks.process import uploading_start
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 from sentry.utils.db import atomic_transaction
 
 ERR_DUPLICATE_ORGANIZATION_FORK = Template(

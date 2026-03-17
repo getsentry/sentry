@@ -338,7 +338,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?
             # Create actions and action filters, then associate them to the workflow
-            for action_filter in validated_value["action_filters"]:
+            for action_filter in validated_value.get("action_filters", []):
                 actions, condition_group = self._split_action_and_condition_group(action_filter)
                 new_condition_group = condition_group_validator.create(condition_group)
 

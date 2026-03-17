@@ -24,7 +24,17 @@ def trigger_lightweight_rca(group: Group) -> int | None:
     Returns:
         The run ID if successful, None if the feature flag is off or an error occurred
     """
-    if not features.has("projects:supergroup-lightweight-rca", group.project):
+    has_feature = features.has("projects:supergroup-lightweight-rca", group.project)
+    logger.info(
+        "lightweight_rca.feature_flag_check",
+        extra={
+            "group_id": group.id,
+            "project_id": group.project.id,
+            "organization_id": group.organization.id,
+            "flag_enabled": has_feature,
+        },
+    )
+    if not has_feature:
         return None
 
     try:
@@ -55,12 +65,31 @@ def trigger_lightweight_rca(group: Group) -> int | None:
             "- reproduction_steps: Steps that would reproduce this issue"
         )
 
+        logger.info(
+            "lightweight_rca.starting_run",
+            extra={
+                "group_id": group.id,
+                "project_id": group.project.id,
+                "organization_id": group.organization.id,
+            },
+        )
+
         run_id = client.start_run(
             prompt=prompt,
             prompt_metadata={"step": "root_cause"},
             artifact_key="root_cause",
             artifact_schema=RootCauseArtifact,
             metadata={"group_id": group.id},
+        )
+
+        logger.info(
+            "lightweight_rca.run_started",
+            extra={
+                "group_id": group.id,
+                "project_id": group.project.id,
+                "organization_id": group.organization.id,
+                "run_id": run_id,
+            },
         )
         return run_id
     except Exception:

@@ -156,6 +156,26 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.organization_id == self.organization.id
         assert workflow.created_by_id == self.user.id
 
+    def test_create__without_action_filters(self) -> None:
+        data_without_action_filters = {
+            "name": "test",
+            "enabled": True,
+            "config": {
+                "frequency": 30,
+            },
+            "triggers": {
+                "logicType": "any",
+                "conditions": [],
+            },
+        }
+        validator = WorkflowValidator(data=data_without_action_filters, context=self.context)
+        assert validator.is_valid() is True
+        workflow = validator.create(validator.validated_data)
+
+        # workflow is created successfully
+        assert workflow.id is not None
+        assert workflow.workflowdataconditiongroup_set.count() == 0
+
     def test_create__owner_user_id(self) -> None:
         self.valid_data["owner"] = f"user:{self.user.id}"
         validator = WorkflowValidator(data=self.valid_data, context=self.context)

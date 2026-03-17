@@ -1168,6 +1168,52 @@ describe('Customer Details', () => {
     expect(screen.getByRole('option', {name: /Add Legacy Soft Cap/})).toBeInTheDocument();
   });
 
+  it('shows limited events help text for free plan enterprise trial', async () => {
+    setUpMocks(organization, {plan: 'am1_f', isFree: true});
+
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: `/customers/:orgId`,
+      },
+      organization,
+    });
+
+    await screen.findByRole('heading', {name: 'Customers'});
+
+    await userEvent.click(
+      screen.getAllByRole('button', {
+        name: 'Customers Actions',
+      })[0]!
+    );
+
+    expect(screen.getByText(/capped event limits/)).toBeInTheDocument();
+    expect(screen.queryByText(/unlimited events/)).not.toBeInTheDocument();
+  });
+
+  it('shows unlimited events help text for paid plan enterprise trial', async () => {
+    setUpMocks(organization, {plan: 'am3_business', isFree: false});
+
+    render(<CustomerDetails />, {
+      initialRouterConfig: {
+        location: {pathname: `/customers/${organization.slug}`},
+        route: `/customers/:orgId`,
+      },
+      organization,
+    });
+
+    await screen.findByRole('heading', {name: 'Customers'});
+
+    await userEvent.click(
+      screen.getAllByRole('button', {
+        name: 'Customers Actions',
+      })[0]!
+    );
+
+    expect(screen.getByText(/unlimited events/)).toBeInTheDocument();
+    expect(screen.queryByText(/capped event limits/)).not.toBeInTheDocument();
+  });
+
   it('renders and hides generic confirmation modals', async () => {
     setUpMocks(organization);
 

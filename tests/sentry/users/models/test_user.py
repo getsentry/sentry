@@ -32,7 +32,7 @@ from sentry.models.recentsearch import RecentSearch
 from sentry.models.rule import Rule, RuleActivity
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
-from sentry.models.tombstone import RegionTombstone
+from sentry.models.tombstone import CellTombstone
 from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -40,7 +40,7 @@ from sentry.testutils.helpers.backups import BackupTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.types.region import Cell, RegionCategory, find_cells_for_user
+from sentry.types.cell import Cell, RegionCategory, find_cells_for_user
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
@@ -69,7 +69,7 @@ class UserHybridCloudDeletionTest(TestCase):
 
     @assume_test_silo_mode(SiloMode.CELL)
     def user_tombstone_exists(self, user_id: int) -> bool:
-        return RegionTombstone.objects.filter(
+        return CellTombstone.objects.filter(
             table_name="auth_user", object_identifier=user_id
         ).exists()
 
