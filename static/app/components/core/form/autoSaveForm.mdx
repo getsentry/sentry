@@ -41,7 +41,7 @@ const schema = z.object({
   schema={schema}
   initialValue={user.displayName}
   mutationOptions={{
-    mutationFn: data => fetchMutation({url: '/user/', method: 'PUT', data}),
+    mutationFn: (data: Partial<User>) => fetchMutation({url: '/user/', method: 'PUT', data}),
     onSuccess: data => {
       queryClient.setQueryData(['user'], old => ({...old, ...data}));
     },
