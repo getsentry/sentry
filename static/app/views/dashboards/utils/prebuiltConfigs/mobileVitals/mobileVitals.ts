@@ -324,6 +324,7 @@ const APP_START_TABLE: Widget = {
       ],
     },
   ],
+  heightMode: 'auto',
   layout: {
     h: 3,
     x: 0,
@@ -374,6 +375,7 @@ const SCREEN_RENDERING_TABLE: Widget = {
       ],
     },
   ],
+  heightMode: 'auto',
   layout: {
     h: 3,
     x: 0,
@@ -418,6 +420,7 @@ const SCREEN_LOAD_TABLE: Widget = {
       ],
     },
   ],
+  heightMode: 'auto',
   layout: {
     h: 3,
     x: 0,

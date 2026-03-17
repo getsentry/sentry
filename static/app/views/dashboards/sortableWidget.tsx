@@ -1,18 +1,21 @@
-import {useEffect, useRef, useState, type ComponentProps} from 'react';
+import {useCallback, useEffect, useRef, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {LazyRender} from 'sentry/components/lazyRender';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import {isWidgetEditable} from 'sentry/views/dashboards/utils';
 import {useWidgetSlideout} from 'sentry/views/dashboards/utils/useWidgetSlideout';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
+import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
@@ -29,6 +32,25 @@ import {
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
+
+// Height of the table header row in the GridEditable component
+const GRID_HEAD_ROW_HEIGHT = 45;
+// Widget frame header (title bar): 26px + 16px padding
+const WIDGET_HEADER_HEIGHT = 42;
+// Widget frame padding (top visualization padding + bottom padding + border)
+const WIDGET_FRAME_PADDING = 20;
+
+/**
+ * Calculates the pixel height needed for a table widget based on its row count.
+ */
+export function getTableContentHeight(rowCount: number): number {
+  return (
+    WIDGET_HEADER_HEIGHT +
+    GRID_HEAD_ROW_HEIGHT +
+    rowCount * GRID_BODY_ROW_HEIGHT +
+    WIDGET_FRAME_PADDING
+  );
+}
 
 type Props = {
   index: string;
@@ -48,6 +70,7 @@ type Props = {
   isPrebuiltDashboard?: boolean;
   isPreview?: boolean;
   newlyAddedWidget?: Widget;
+  onContentHeight?: (widgetKey: string, height: number) => void;
   onNewWidgetScrollComplete?: () => void;
   widgetInterval?: string;
   windowWidth?: number;
@@ -101,6 +124,25 @@ export function SortableWidget(props: Props) {
 
   const disableEdit = !isWidgetEditable(widget.displayType);
 
+  const isAutoHeight =
+    widget.heightMode === 'auto' &&
+    widget.displayType === DisplayType.TABLE &&
+    widget.layout?.w === NUM_DESKTOP_COLS;
+
+  const handleDataFetched = useCallback(
+    (data: OnDataFetchedParams) => {
+      if (!isAutoHeight || !props.onContentHeight) {
+        return;
+      }
+
+      const rowCount = data.tableResults?.[0]?.data?.length ?? 0;
+      if (rowCount > 0) {
+        props.onContentHeight(index, getTableContentHeight(rowCount));
+      }
+    },
+    [isAutoHeight, index, props.onContentHeight] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   useEffect(() => {
     const isMatchingWidget = isEditingDashboard
       ? widget.tempId === newlyAddedWidget?.tempId
@@ -153,6 +195,7 @@ export function SortableWidget(props: Props) {
         : (widget.limit ?? TABLE_ITEM_LIMIT),
     onWidgetTableSort,
     onWidgetTableResizeColumn,
+    onDataFetched: isAutoHeight ? handleDataFetched : undefined,
     widgetInterval: props.widgetInterval,
   };
 
