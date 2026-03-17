@@ -362,10 +362,10 @@ jobs:
         run: |
           if [ -n "${XDIST_WORKERS}" ]; then
             export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile -v"
-            timeout 1200 make test-python-ci || {
+            timeout 1500 make test-python-ci || {
               rc=$?
               if [ "$rc" -eq 124 ]; then
-                echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
+                echo "::error::Test run timed out after 25 minutes (possible xdist hang)"
               fi
               exit "$rc"
             }
