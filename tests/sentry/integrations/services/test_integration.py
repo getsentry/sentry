@@ -30,7 +30,7 @@ class BaseIntegrationServiceTest(TestCase):
     def setUp(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = self.create_user()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.organization = self.create_organization(owner=self.user)
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration1 = self.create_integration(
@@ -360,7 +360,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
 class StartGracePeriodForProviderTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.org1 = self.organization
             self.org2 = self.create_organization(name="Test Org 2")
             self.org3 = self.create_organization(name="Test Org 3")
@@ -412,7 +412,7 @@ class StartGracePeriodForProviderTest(TestCase):
     @freeze_time()
     def test_start_grace_period_for_provider_github_with_skip_oldest(self) -> None:
         grace_period_end = datetime.now(timezone.utc) + timedelta(days=7)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             grace_perioded_ois = integration_service.start_grace_period_for_provider(
                 organization_id=self.org1.id,
                 provider="github",

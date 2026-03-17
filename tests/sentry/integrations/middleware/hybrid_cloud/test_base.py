@@ -51,7 +51,7 @@ class BaseRequestParserTest(TestCase):
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_responses_from_region_silos(regions=self.region_config)
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
+    @override_settings(SILO_MODE=SiloMode.CELL)
     def test_fails_in_region_mode(self) -> None:
         with raises(SiloLimit.AvailabilityError):
             self.parser.get_response_from_control_silo()
@@ -124,7 +124,7 @@ class BaseRequestParserTest(TestCase):
         payloads = WebhookPayload.objects.all()
         assert len(payloads) == 2
         for payload in payloads:
-            assert payload.region_name in ["us", "eu"]
+            assert payload.cell_name in ["us", "eu"]
             assert payload.mailbox_name == "slack:0"
             assert payload.request_path
             assert payload.request_method
@@ -143,7 +143,7 @@ class BaseRequestParserTest(TestCase):
         payloads = WebhookPayload.objects.all()
         assert len(payloads) == 1
         for payload in payloads:
-            assert payload.region_name is None
+            assert payload.cell_name is None
             assert payload.mailbox_name == "github:codecov:1"
             assert payload.request_path
             assert payload.request_method

@@ -8,8 +8,8 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventGroupComponent} from 'sentry/types/event';
 
-import GroupingComponentChildren from './groupingComponentChildren';
-import GroupingComponentStacktrace from './groupingComponentStacktrace';
+import {GroupingComponentChildren} from './groupingComponentChildren';
+import {GroupingComponentStacktrace} from './groupingComponentStacktrace';
 import {shouldInlineComponentValue} from './utils';
 
 type Props = {

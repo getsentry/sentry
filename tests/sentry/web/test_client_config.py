@@ -282,7 +282,7 @@ def test_client_config_links_regionurl() -> None:
     request, user = make_user_request_from_org()
     request.user = user
 
-    with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+    with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us"):
         result = get_client_config(request)
         assert result["links"]
         assert result["links"]["regionUrl"] == "http://us.testserver"
@@ -332,7 +332,7 @@ def test_client_config_links_with_priority_org() -> None:
     # we want the org context to have priority over the active org
     assert request.session["activeorg"] != org.slug
 
-    with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us"):
+    with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us"):
         result = get_client_config(request, org_context)
         assert result["links"]
         assert result["links"]["regionUrl"] == "http://us.testserver"

@@ -1,8 +1,8 @@
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
@@ -29,7 +29,7 @@ type Props = {
   threadId?: number;
 };
 
-function StackTrace({
+export function StackTrace({
   stackView,
   stacktrace,
   chainedException,
@@ -111,5 +111,3 @@ function StackTrace({
     />
   );
 }
-
-export default StackTrace;

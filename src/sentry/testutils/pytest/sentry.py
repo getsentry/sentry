@@ -19,6 +19,7 @@ from django.conf import settings
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
+from sentry.testutils.pytest import xdist
 from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
@@ -31,8 +32,6 @@ V = TypeVar("V")
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
 )
-
-TEST_REDIS_DB = 9
 
 
 def _use_monolith_dbs() -> bool:
@@ -60,7 +59,7 @@ def configure_split_db() -> None:
 
 
 def get_default_silo_mode_for_test_cases() -> SiloMode:
-    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.REGION
+    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.CELL
 
 
 def _configure_test_env_regions() -> None:
@@ -69,10 +68,21 @@ def _configure_test_env_regions() -> None:
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
     # depends on region attributes, use `override_regions` in your test case.
-    region_name = "testregion" + "".join(random.choices(string.digits, k=6))
+    # Under xdist, seed deterministically so all workers generate the same name
+    # (divergent names break xdist's requirement for identical test collection).
+    xdist_uid = os.environ.get("PYTEST_XDIST_TESTRUNUID")
+    r = random.Random(xdist_uid) if xdist_uid else random
+    region_name = "testregion" + "".join(r.choices(string.digits, k=6))
+
+    # Under xdist, each worker gets a unique snowflake_id (1, 2, 3, ...) so
+    # concurrent model creation doesn't produce colliding IDs.
+    region_snowflake_id = xdist._worker_num + 1 if xdist._worker_num is not None else 0
 
     default_region = Cell(
-        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+        region_name,
+        region_snowflake_id,
+        settings.SENTRY_OPTIONS["system.url-prefix"],
+        RegionCategory.MULTI_TENANT,
     )
 
     settings.SENTRY_REGION = region_name
@@ -107,6 +117,7 @@ def pytest_configure(config: pytest.Config) -> None:
     )
 
     config.addinivalue_line("markers", "migrations: requires --migrations")
+    config.addinivalue_line("markers", "symbolicator: test requires access to symbolicator")
 
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
@@ -197,6 +208,9 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
     settings.SENTRY_RATELIMITER_OPTIONS = {}
 
+    if snuba_url := xdist.get_snuba_url():
+        settings.SENTRY_SNUBA = snuba_url
+
     settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 1
 
     if not hasattr(settings, "SENTRY_OPTIONS"):
@@ -204,7 +218,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
+            "redis.clusters": {"default": {"hosts": {0: {"db": xdist.get_redis_db()}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
@@ -338,23 +352,33 @@ def register_extensions() -> None:
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
+    from taskbroker_client.registry import TaskNamespace as TaskbrokerClientNamespace
+
     from sentry.taskworker.registry import TaskNamespace
 
     # Store original send_task so tests that need it can restore it
     TaskNamespace._original_send_task = TaskNamespace.send_task  # type: ignore[attr-defined]
+    TaskbrokerClientNamespace._original_send_task = TaskbrokerClientNamespace.send_task  # type: ignore[attr-defined]
 
     # Prevent tests from producing real Kafka messages via the taskworker pipeline.
     # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
     # (_signal_send hook) which both operate before send_task in the call chain.
     TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+    TaskbrokerClientNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    from taskbroker_client.registry import TaskNamespace as TaskbrokerClientNamespace
+
     from sentry.taskworker.registry import TaskNamespace
 
     if hasattr(TaskNamespace, "_original_send_task"):
         TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
         del TaskNamespace._original_send_task
+
+    if hasattr(TaskbrokerClientNamespace, "_original_send_task"):
+        TaskbrokerClientNamespace.send_task = TaskbrokerClientNamespace._original_send_task  # type: ignore[method-assign]
+        del TaskbrokerClientNamespace._original_send_task
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
@@ -425,6 +449,15 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     This enables selective testing while maintaining proper conftest loading order by
     invoking pytest with the tests/ directory instead of specific file paths.
     """
+
+    # Auto-add the `symbolicator` marker to any test using the _requires_symbolicator
+    # fixture so that `-m symbolicator` selects all symbolicator-dependent tests.
+    symbolicator_mark = pytest.mark.symbolicator
+    for item in items:
+        for marker in item.iter_markers("usefixtures"):
+            if "_requires_symbolicator" in marker.args:
+                item.add_marker(symbolicator_mark)
+                break
 
     keep, discard = [], []
 

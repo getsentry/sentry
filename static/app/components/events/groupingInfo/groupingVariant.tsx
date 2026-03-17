@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -68,7 +68,11 @@ function addFingerprintInfo(
   }
 }
 
-function GroupingVariant({event, variant, showNonContributing}: GroupingVariantProps) {
+export function GroupingVariant({
+  event,
+  variant,
+  showNonContributing,
+}: GroupingVariantProps) {
   const getVariantData = (): [VariantData, EventGroupComponent | undefined] => {
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
@@ -244,5 +248,3 @@ const Hash = styled('span')`
     width: 210px;
   }
 `;
-
-export default GroupingVariant;

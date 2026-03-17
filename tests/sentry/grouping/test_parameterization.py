@@ -1,21 +1,20 @@
+from unittest.mock import patch
+
 import pytest
 
+from sentry.grouping.api import _get_variants_from_strategies
+from sentry.grouping.component import MessageGroupingComponent
+from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
     DEFAULT_PARAMETERIZATION_REGEXES_MAP,
     EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP,
-    Parameterizer,
+    experimental_parameterizer,
+    parameterizer,
 )
-
-
-@pytest.fixture
-def parameterizer() -> Parameterizer:
-    return Parameterizer(experimental=False)
-
-
-@pytest.fixture
-def experimental_parameterizer() -> Parameterizer:
-    return Parameterizer(experimental=True)
-
+from sentry.grouping.variants import ComponentVariant, CustomFingerprintVariant
+from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
+from sentry.testutils.pytest.fixtures import django_db_all
 
 standard_cases = [
     ("email", "test@email.com", "<email>"),
@@ -169,23 +168,21 @@ experimental_cases: list[tuple[str, str, str]] = [
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases)
-def test_default_parameterization(
-    name: str, input: str, expected: str, parameterizer: Parameterizer
-) -> None:
-    assert parameterizer.parameterize_all(input) == expected
-    assert parameterizer.parameterize_all(f"prefix {input}") == f"prefix {expected}"
-    assert parameterizer.parameterize_all(f"{input} suffix") == f"{expected} suffix"
-    assert parameterizer.parameterize_all(f"prefix {input} suffix") == f"prefix {expected} suffix"
+def test_default_parameterization(name: str, input: str, expected: str) -> None:
+    assert parameterizer.parameterize(input) == expected
+    assert parameterizer.parameterize(f"prefix {input}") == f"prefix {expected}"
+    assert parameterizer.parameterize(f"{input} suffix") == f"{expected} suffix"
+    assert parameterizer.parameterize(f"prefix {input} suffix") == f"prefix {expected} suffix"
 
 
 @pytest.mark.parametrize(("name", "input", "expected"), experimental_cases)
 def test_default_parameterizer_misses_experimental_cases(
-    name: str, input: str, expected: str, parameterizer: Parameterizer
+    name: str, input: str, expected: str
 ) -> None:
-    assert parameterizer.parameterize_all(input) != expected
-    assert parameterizer.parameterize_all(f"prefix {input}") != f"prefix {expected}"
-    assert parameterizer.parameterize_all(f"{input} suffix") != f"{expected} suffix"
-    assert parameterizer.parameterize_all(f"prefix {input} suffix") != f"prefix {expected} suffix"
+    assert parameterizer.parameterize(input) != expected
+    assert parameterizer.parameterize(f"prefix {input}") != f"prefix {expected}"
+    assert parameterizer.parameterize(f"{input} suffix") != f"{expected} suffix"
+    assert parameterizer.parameterize(f"prefix {input} suffix") != f"prefix {expected} suffix"
 
 
 @pytest.mark.skipif(
@@ -193,14 +190,12 @@ def test_default_parameterizer_misses_experimental_cases(
     reason="no experimental regexes to test",
 )
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
-def test_experimental_parameterization(
-    name: str, input: str, expected: str, experimental_parameterizer: Parameterizer
-) -> None:
-    assert experimental_parameterizer.parameterize_all(input) == expected
-    assert experimental_parameterizer.parameterize_all(f"prefix {input}") == f"prefix {expected}"
-    assert experimental_parameterizer.parameterize_all(f"{input} suffix") == f"{expected} suffix"
+def test_experimental_parameterization(name: str, input: str, expected: str) -> None:
+    assert experimental_parameterizer.parameterize(input) == expected
+    assert experimental_parameterizer.parameterize(f"prefix {input}") == f"prefix {expected}"
+    assert experimental_parameterizer.parameterize(f"{input} suffix") == f"{expected} suffix"
     assert (
-        experimental_parameterizer.parameterize_all(f"prefix {input} suffix")
+        experimental_parameterizer.parameterize(f"prefix {input} suffix")
         == f"prefix {expected} suffix"
     )
 
@@ -255,8 +250,53 @@ incorrect_cases = [
 
 
 @pytest.mark.parametrize(("name", "input", "desired", "actual"), incorrect_cases)
-def test_incorrect_parameterization(
-    name: str, input: str, desired: str, actual: str, parameterizer: Parameterizer
-) -> None:
-    assert parameterizer.parameterize_all(input) != desired
-    assert parameterizer.parameterize_all(input) == actual
+def test_incorrect_parameterization(name: str, input: str, desired: str, actual: str) -> None:
+    assert parameterizer.parameterize(input) != desired
+    assert parameterizer.parameterize(input) == actual
+
+
+@django_db_all
+def test_parameterized_message_stored_on_context(default_project: Project) -> None:
+    with patch(
+        "sentry.grouping.api._get_variants_from_strategies", wraps=_get_variants_from_strategies
+    ) as mock_get_variants:
+        event = Event(default_project.id, "11211231", data={"message": "Dog number 1, #1 dog"})
+        event.get_grouping_variants()
+
+        context = mock_get_variants.call_args.args[1]
+
+        assert isinstance(context, GroupingContext)
+        assert context.canonical_event_message == "Dog number 1, #1 dog"
+        assert context.canonical_message_parameterized == "Dog number <int>, #<int> dog"
+
+
+@django_db_all
+def test_stored_parameterized_message_used(default_project: Project) -> None:
+    with patch(
+        "sentry.grouping.parameterization.parameterizer.parameterize",
+        wraps=parameterizer.parameterize,
+    ) as parameterize_spy:
+        event = Event(
+            default_project.id,
+            "11211231",
+            data={
+                "message": "Dog number 1, #1 dog",
+                "fingerprint": ["{{ message }}"],
+            },
+        )
+        variants = event.get_grouping_variants()
+
+        assert len(variants) == 2
+        message_variant = variants["default"]
+        fingerprint_variant = variants["custom_client_fingerprint"]
+
+        assert isinstance(message_variant, ComponentVariant)
+        assert isinstance(message_variant.contributing_component, MessageGroupingComponent)
+        assert message_variant.contributing_component.values == ["Dog number <int>, #<int> dog"]
+
+        assert isinstance(fingerprint_variant, CustomFingerprintVariant)
+        assert fingerprint_variant.values == ["Dog number <int>, #<int> dog"]
+
+        # Even though the parameterized message was used in two places, the parameterizer only ran
+        # once, meaning the stored value must have been used
+        assert parameterize_spy.call_count == 1

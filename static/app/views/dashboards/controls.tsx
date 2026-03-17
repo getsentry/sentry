@@ -7,33 +7,33 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import Confirm, {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconAdd, IconCopy, IconDownload, IconEdit, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {DASHBOARD_SAVING_MESSAGE} from 'sentry/views/dashboards/constants';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
-import exportDashboard from './exportDashboard';
+import {exportDashboard} from './exportDashboard';
 import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
-import {DashboardState, MAX_WIDGETS} from './types';
+import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
 
 type Props = {
   dashboard: DashboardDetails;
@@ -51,7 +51,7 @@ type Props = {
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
 
-function Controls({
+export function Controls({
   dashboardState,
   dashboard,
   dashboards,
@@ -221,7 +221,22 @@ function Controls({
       return null;
     }
     if (isPrebuiltDashboard) {
-      return null;
+      return (
+        <Button
+          data-test-id="dashboard-edit"
+          aria-label={t('edit-dashboard')}
+          icon={<IconEdit />}
+          disabled
+          tooltipProps={{
+            title: tct(
+              'This is a [label] dashboard and cannot be edited. Duplicate it to make changes.',
+              {label: PREBUILT_DASHBOARD_LABEL}
+            ),
+          }}
+          priority="default"
+          size="sm"
+        />
+      );
     }
     const isDisabled = !hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving;
     const toolTipMessage = isSaving
@@ -421,5 +436,3 @@ const StyledButtonBar = styled((props: GridProps) => (
     width: 100%;
   }
 `;
-
-export default Controls;

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
@@ -238,7 +238,7 @@ def issues_by_tag_validate(query_info: dict[str, Any]) -> None:
             raise serializers.ValidationError("Invalid group ID")
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class DataExportEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,

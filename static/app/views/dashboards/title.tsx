@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import EditableText from 'sentry/components/editableText';
+import {EditableText} from 'sentry/components/editableText';
 import {t} from 'sentry/locale';
 
 import type {DashboardDetails} from './types';
@@ -11,7 +11,7 @@ type Props = {
   onUpdate: (dashboard: DashboardDetails) => void;
 };
 
-function DashboardTitle({dashboard, isEditingDashboard, onUpdate}: Props) {
+export function DashboardTitle({dashboard, isEditingDashboard, onUpdate}: Props) {
   return (
     <Fragment>
       {dashboard ? (
@@ -28,5 +28,3 @@ function DashboardTitle({dashboard, isEditingDashboard, onUpdate}: Props) {
     </Fragment>
   );
 }
-
-export default DashboardTitle;

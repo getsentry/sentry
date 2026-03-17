@@ -27,7 +27,7 @@ type Props = {
   comparisonDelta?: number;
 };
 
-function ThresholdTypeForm({
+export function ThresholdTypeForm({
   alertType,
   organization,
   dataset,
@@ -149,5 +149,3 @@ const StyledRadioGroup = styled(RadioGroup)`
     height: 33px;
   }
 `;
-
-export default ThresholdTypeForm;

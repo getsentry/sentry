@@ -12,7 +12,7 @@ let replayRef: ReturnType<typeof replayIntegration> | null;
 /**
  * Load the Sentry Replay integration based on the feature flag.
  */
-export default function useReplayInit() {
+export function useReplayInit() {
   const user = useUser();
 
   useEffect(() => {

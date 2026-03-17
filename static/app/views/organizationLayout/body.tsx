@@ -6,10 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
-import AlertStore from 'sentry/stores/alertStore';
+import {AlertStore} from 'sentry/stores/alertStore';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type OrganizationProps = {
   organization: Organization;
@@ -103,7 +103,7 @@ function DeletionPending({organization}: OrganizationProps) {
   );
 }
 
-function OrganizationDetailsBody({children}: BodyProps) {
+export function OrganizationDetailsBody({children}: BodyProps) {
   // Organization may be null in account settings
   const organization = useOrganization({allowNull: true});
 
@@ -119,5 +119,3 @@ function OrganizationDetailsBody({children}: BodyProps) {
 
   return <ErrorBoundary>{children}</ErrorBoundary>;
 }
-
-export default OrganizationDetailsBody;

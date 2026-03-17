@@ -1,10 +1,10 @@
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model
 
 
-@region_silo_model
+@cell_silo_model
 class DetectorGroup(DefaultFieldsModel):
     """
     A model to represent the relationship between a detector and a group.

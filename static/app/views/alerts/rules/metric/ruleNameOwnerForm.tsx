@@ -14,7 +14,7 @@ type Props = {
   project: Project;
 };
 
-export default function RuleNameOwnerForm({disabled, project}: Props) {
+export function RuleNameOwnerForm({disabled, project}: Props) {
   const renderRuleName = () => (
     <StyledTextField
       data-test-id="alert-name"
@@ -91,5 +91,5 @@ const StyledFormField = styled(FormField)<{extraMargin?: boolean}>`
     width: 100%;
   }
 
-  margin-bottom: ${p => `${p.extraMargin ? '60px' : p.theme.space.md}`};
+  margin-bottom: ${p => (p.extraMargin ? '60px' : p.theme.space.md)};
 `;

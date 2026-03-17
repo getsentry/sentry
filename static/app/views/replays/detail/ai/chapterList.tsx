@@ -6,22 +6,22 @@ import {Alert} from '@sentry/scraps/alert';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeRanges} from 'sentry/views/replays/detail/ai/utils';
-import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
-import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import {BreadcrumbRow} from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
+import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 
 interface Props {
   timeRanges: TimeRanges;

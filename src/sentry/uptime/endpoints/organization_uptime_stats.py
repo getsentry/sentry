@@ -23,7 +23,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import StatsArgsDict, StatsMixin, region_silo_endpoint
+from sentry.api.base import StatsArgsDict, StatsMixin, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -37,7 +37,7 @@ from sentry.utils.snuba_rpc import timeseries_rpc
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Uptime Monitors"])
 class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
     publish_status = {

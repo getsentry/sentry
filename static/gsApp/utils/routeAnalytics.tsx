@@ -3,7 +3,7 @@ import capitalize from 'lodash/capitalize';
 import snakeCase from 'lodash/snakeCase';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 /**
  * This converts parameters in a route to be the upper version of it with a slight adjustment with IDs

@@ -16,7 +16,7 @@ interface RowProps {
   warningMessage?: React.ReactNode;
 }
 
-export default function AutomationBuilderRow({
+export function AutomationBuilderRow({
   onDelete,
   children,
   hasError,

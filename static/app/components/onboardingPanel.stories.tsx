@@ -6,7 +6,7 @@ import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 import {Button} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('OnboardingPanel', story => {

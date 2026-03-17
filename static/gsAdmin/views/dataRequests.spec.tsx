@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import DataRequests from 'admin/views/dataRequests';
+import {DataRequests} from 'admin/views/dataRequests';
 
 describe('DataRequests', () => {
   beforeEach(() => {

@@ -10,7 +10,7 @@ import type {Group} from 'sentry/types/group';
 import type {PlatformKey, Project} from 'sentry/types/project';
 
 import {StackTraceContent} from './crashContent/stackTrace';
-import NoStackTraceMessage from './noStackTraceMessage';
+import {NoStackTraceMessage} from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
 type Props = {

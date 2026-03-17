@@ -10,7 +10,7 @@ import {getChartSetting} from 'sentry/views/performance/landing/widgets/utils';
 import type {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
-import WidgetContainer from './widgetContainer';
+import {WidgetContainer} from './widgetContainer';
 
 export interface ChartRowProps {
   allowedCharts: PerformanceWidgetSetting[];

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ClippedBox} from 'sentry/components/clippedBox';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';

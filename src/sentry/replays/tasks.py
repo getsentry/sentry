@@ -37,7 +37,7 @@ logger = logging.getLogger()
     namespace=replays_tasks,
     processing_deadline_duration=120,
     retry=Retry(times=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def delete_replay(
     project_id: int,
@@ -64,7 +64,7 @@ def delete_replay(
     namespace=replays_tasks,
     processing_deadline_duration=120,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def delete_replays_script_async(
     retention_days: int,
@@ -102,7 +102,7 @@ def delete_replays_script_async(
     namespace=replays_tasks,
     processing_deadline_duration=120,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
     delete_replay_recording(project_id, replay_id)
@@ -163,7 +163,7 @@ def _delete_if_exists(filename: str) -> None:
     namespace=replays_tasks,
     retry=Retry(times=5),
     processing_deadline_duration=300,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_bulk_replay_delete_job(
     replay_delete_job_id: int, offset: int, limit: int = 100, has_seer_data: bool = False

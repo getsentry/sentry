@@ -85,8 +85,6 @@ jobs:
       - name: webpack
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          # should set value either as `true` or `false`
-          CODECOV_ENABLE_BA: ${{ needs.files-changed.outputs.frontend_all == 'true'}}
           GH_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           pnpm run build-acceptance

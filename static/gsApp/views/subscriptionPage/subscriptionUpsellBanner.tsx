@@ -18,7 +18,7 @@ import {
   hasPerformance,
   isBizPlanFamily,
 } from 'getsentry/utils/billing';
-import TrialBadge from 'getsentry/views/subscriptionPage/trial/badge';
+import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
 const getSubscriptionBannerText = (
   organization: Organization,

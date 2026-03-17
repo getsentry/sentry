@@ -16,7 +16,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_regions
 
 REQUESTING_TEST_REGION = "requesting"
 EXPORTING_TEST_REGION = "exporting"
@@ -25,7 +25,7 @@ SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTIN
 
 @patch("sentry.analytics.record")
 @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
-@region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
+@cell_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
 class OrganizationForkTest(APITestCase):
     endpoint = "sentry-api-0-organization-fork"
     method = "POST"
@@ -49,7 +49,7 @@ class OrganizationForkTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_good_simple(
         self,
         uploading_start_mock: Mock,
@@ -97,7 +97,7 @@ class OrganizationForkTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_good_simple_using_organization_id(
         self,
         uploading_start_mock: Mock,
@@ -144,7 +144,7 @@ class OrganizationForkTest(APITestCase):
             "relocation.autopause.saas-to-saas": "IMPORTING",
         }
     )
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_good_with_valid_autopause_option(
         self,
         uploading_start_mock: Mock,
@@ -184,7 +184,7 @@ class OrganizationForkTest(APITestCase):
             "relocation.autopause.self-hosted": "IMPORTING",
         }
     )
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_good_with_untriggered_autopause_option(
         self,
         uploading_start_mock: Mock,
@@ -220,7 +220,7 @@ class OrganizationForkTest(APITestCase):
     @override_options(
         {"relocation.enabled": False, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
     )
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_good_staff_when_feature_disabled(
         self,
         uploading_start_mock: Mock,
@@ -268,7 +268,7 @@ class OrganizationForkTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_good_superuser_when_feature_disabled(
         self,
         uploading_start_mock: Mock,
@@ -316,7 +316,7 @@ class OrganizationForkTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_bad_organization_not_found(
         self,
         uploading_start_mock: Mock,
@@ -337,7 +337,7 @@ class OrganizationForkTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_bad_organization_mapping_not_found(
         self,
         uploading_start_mock: Mock,
@@ -360,7 +360,7 @@ class OrganizationForkTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_bad_cannot_fork_deleted_organization(
         self,
         uploading_start_mock: Mock,
@@ -392,7 +392,7 @@ class OrganizationForkTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     @patch(
         "sentry.api.endpoints.organization_fork.CANNOT_FORK_FROM_REGION", {EXPORTING_TEST_REGION}
     )
@@ -418,7 +418,7 @@ class OrganizationForkTest(APITestCase):
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     # Note that for this test we've changed this to `EXPORTING_TEST_REGION`
-    @assume_test_silo_mode(SiloMode.REGION, region_name=EXPORTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=EXPORTING_TEST_REGION)
     def test_bad_organization_already_in_region(
         self,
         uploading_start_mock: Mock,
@@ -445,7 +445,7 @@ class OrganizationForkTest(APITestCase):
     ]:
 
         @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-        @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+        @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
         def test_good_completed_relocation_for_same_organization(
             self,
             uploading_start_mock: Mock,
@@ -502,7 +502,7 @@ class OrganizationForkTest(APITestCase):
     ]:
 
         @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-        @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+        @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
         def test_bad_active_relocation_for_same_organization(
             self,
             uploading_start_mock: Mock,
@@ -531,7 +531,7 @@ class OrganizationForkTest(APITestCase):
     @override_options(
         {"relocation.enabled": True, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
     )
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_good_no_throttle_for_staff(
         self,
         uploading_start_mock: Mock,
@@ -582,7 +582,7 @@ class OrganizationForkTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_good_no_throttle_for_superuser(
         self,
         uploading_start_mock: Mock,
@@ -632,7 +632,7 @@ class OrganizationForkTest(APITestCase):
             ),
         )
 
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_bad_without_superuser_or_staff(
         self,
         uploading_start_mock: Mock,
@@ -649,7 +649,7 @@ class OrganizationForkTest(APITestCase):
         assert Relocation.objects.count() == relocation_count
         assert RelocationFile.objects.count() == relocation_file_count
 
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_bad_superuser_not_active(
         self,
         uploading_start_mock: Mock,
@@ -667,7 +667,7 @@ class OrganizationForkTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
+    @assume_test_silo_mode(SiloMode.CELL, region_name=REQUESTING_TEST_REGION)
     def test_bad_no_auth(
         self,
         uploading_start_mock: Mock,

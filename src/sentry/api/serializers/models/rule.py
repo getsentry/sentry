@@ -635,12 +635,27 @@ class WorkflowEngineRuleSerializer(Serializer):
                 if action.data.get("notes") == "":
                     action_data.pop("notes", None)
 
+                # XXX: workspace needs to be returned as a string
+                if action_data.get("workspace"):
+                    action_data["workspace"] = str(action_data["workspace"])
+
                 serialized_actions.append(action_data)
 
             # Generate conditions and filters
             conditions, filters = self._generate_rule_conditions_filters(
                 workflow, result[workflow]["projects"][0], workflow_dcg
             )
+            for f in filters:
+                # IssueCategoryFilter stores numeric string choices and must stay as str
+                if (
+                    f.get("value")
+                    and f.get("id") != "sentry.rules.filters.issue_category.IssueCategoryFilter"
+                ):
+                    try:
+                        f["value"] = int(f["value"])
+                    except (ValueError, TypeError):
+                        continue
+
             result[workflow]["conditions"] = conditions
             result[workflow]["filters"] = filters
 
