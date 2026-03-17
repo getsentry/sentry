@@ -1,6 +1,6 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 
 describe('KeyValueList', () => {
   it('should render a definition list of key/value pairs', () => {

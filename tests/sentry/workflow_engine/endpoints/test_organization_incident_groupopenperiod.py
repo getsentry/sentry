@@ -3,7 +3,7 @@ from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
 class OrganizationIncidentGroupOpenPeriodAPITestCase(APITestCase):
@@ -47,7 +47,7 @@ class OrganizationIncidentGroupOpenPeriodAPITestCase(APITestCase):
         )
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationIncidentGroupOpenPeriodIndexGetTest(
     OrganizationIncidentGroupOpenPeriodAPITestCase
 ):

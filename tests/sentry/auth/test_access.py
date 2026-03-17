@@ -594,7 +594,7 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.scopes == set(member.get_scopes()).union(SUPERUSER_READONLY_SCOPES)
 
         # readonly scopes does not override owner scopes if passed in
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member.update(role="owner")
 
         result = self.from_request(request, self.org, scopes=member.get_scopes())
@@ -692,7 +692,7 @@ class FromRequestTest(AccessFactoryTestCase):
 
     def test_member_role_in_organization_closed_membership(self) -> None:
         # disable default allow_joinleave
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.org.update(flags=0)
         member_user = self.create_user(is_superuser=False)
         self.create_member(
@@ -716,7 +716,7 @@ class FromRequestTest(AccessFactoryTestCase):
         assert not result.has_project_access(self.project2)
 
     def test_member_role_in_organization_open_membership(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.org.flags.allow_joinleave = True
             self.org.save()
         member_user = self.create_user(is_superuser=False)

@@ -367,12 +367,27 @@ class GitHubProvider:
     @catch_provider_exception
     def get_commits(
         self,
-        sha: SHA | None = None,
-        path: str | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
-        raw_commits = self.client.get_commits(self.repository["name"], sha=sha, path=path)
+        raw_commits = self.client.get_commits(self.repository["name"], sha=ref)
+        return PaginatedActionResult(
+            data=[map_commit(c) for c in raw_commits],
+            type="github",
+            raw=raw_commits,
+            meta=_DEFAULT_PAGINATED_META,
+        )
+
+    @catch_provider_exception
+    def get_commits_by_path(
+        self,
+        path: str,
+        ref: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        raw_commits = self.client.get_commits(self.repository["name"], sha=ref, path=path)
         return PaginatedActionResult(
             data=[map_commit(c) for c in raw_commits],
             type="github",
@@ -510,14 +525,30 @@ class GitHubProvider:
         body: str,
         head: str,
         base: str,
-        draft: bool = False,
     ) -> ActionResult[PullRequest]:
         data: dict[str, Any] = {
             "title": title,
             "body": body,
             "head": head,
             "base": base,
-            "draft": draft,
+        }
+        raw = self.client.create_pull_request(self.repository["name"], data)
+        return map_action(raw, map_pull_request)
+
+    @catch_provider_exception
+    def create_pull_request_draft(
+        self,
+        title: str,
+        body: str,
+        head: str,
+        base: str,
+    ) -> ActionResult[PullRequest]:
+        data: dict[str, Any] = {
+            "title": title,
+            "body": body,
+            "head": head,
+            "base": base,
+            "draft": True,
         }
         raw = self.client.create_pull_request(self.repository["name"], data)
         return map_action(raw, map_pull_request)
@@ -570,6 +601,9 @@ class GitHubProvider:
             ),
             map_review_comment,
         )
+
+    # create_review_comment_line: not supported
+    # create_review_comment_multiline: not supported
 
     @catch_provider_exception
     def create_review_comment_reply(
@@ -671,6 +705,8 @@ class GitHubProvider:
     @catch_provider_exception
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
         self.client.minimize_comment(comment_node_id, reason)
+
+    # resolve_review_thread: not supported
 
 
 def map_author(raw_user: dict[str, Any] | None) -> Author | None:
@@ -834,12 +870,11 @@ def map_pull_request_commit(raw: dict[str, Any]) -> PullRequestCommit:
 def map_pull_request(raw: dict[str, Any]) -> PullRequest:
     return PullRequest(
         id=str(raw["id"]),
-        number=raw["number"],
+        number=str(raw["number"]),
         title=raw["title"],
         body=raw.get("body"),
         state=raw["state"],
-        merged=raw.get("merged", False),
-        url=raw.get("url", ""),
+        merged=raw.get("merged_at") is not None,
         html_url=raw.get("html_url", ""),
         head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
         base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),

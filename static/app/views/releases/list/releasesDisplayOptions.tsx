@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 
-import ReleasesDropdown from './releasesDropdown';
+import {ReleasesDropdown} from './releasesDropdown';
 
 export enum ReleasesDisplayOption {
   USERS = 'users',

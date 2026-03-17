@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
+import {ProjectEventRedirect} from 'sentry/views/projectEventRedirect';
 
 describe('ProjectEventRedirect', () => {
   const organization = OrganizationFixture();

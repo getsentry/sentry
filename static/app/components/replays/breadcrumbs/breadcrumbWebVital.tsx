@@ -10,7 +10,7 @@ import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isCLSFrame, isWebVitalFrame} from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;

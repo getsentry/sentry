@@ -484,7 +484,7 @@ fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_dela
     name="sentry.issues.tasks.post_process.post_process_group",
     namespace=ingest_errors_postprocess_tasks,
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def post_process_group(
     is_new,

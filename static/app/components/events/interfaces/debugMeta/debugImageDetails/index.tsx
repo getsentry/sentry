@@ -10,7 +10,7 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getFileName} from 'sentry/components/events/interfaces/debugMeta/utils';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {t} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {DebugFileFeature} from 'sentry/types/debugFiles';
@@ -22,13 +22,13 @@ import type {Project} from 'sentry/types/project';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getPrettyFileType} from 'sentry/views/settings/projectDebugFiles/utils';
 
 import Candidates from './candidates';
-import GeneralInfo from './generalInfo';
-import ReprocessAlert from './reprocessAlert';
+import {GeneralInfo} from './generalInfo';
+import {ReprocessAlert} from './reprocessAlert';
 import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
 type ImageCandidates = ImageCandidate[];

@@ -1,7 +1,7 @@
 import {useContext, useEffect} from 'react';
 import {autorun} from 'mobx';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {getAutomationName} from 'sentry/views/automations/components/forms/automationNameUtils';
 import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';

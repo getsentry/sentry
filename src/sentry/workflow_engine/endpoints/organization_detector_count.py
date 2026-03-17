@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_UNAUTHORIZED
@@ -24,7 +24,7 @@ class DetectorCountResponse(TypedDict):
     total: int
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Workflows"])
 class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
     publish_status = {

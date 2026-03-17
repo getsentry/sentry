@@ -2,7 +2,7 @@ import {createContext, useContext, useMemo, useState} from 'react';
 
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type DisplayOptions =
   | 'absolute-addresses'

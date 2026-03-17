@@ -9,10 +9,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
+import {usePollReplayRecord} from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTimeout from 'sentry/utils/useTimeout';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTimeout} from 'sentry/utils/useTimeout';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 

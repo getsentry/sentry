@@ -906,7 +906,7 @@ class TestAuthTokens(TestCase):
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
             at = app_install.api_token
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             atr = ApiTokenReplica.objects.get(apitoken_id=at.id)
 
         assert at.organization_id
@@ -926,7 +926,7 @@ class TestAuthTokens(TestCase):
 
     def test_api_keys(self) -> None:
         ak = self.create_api_key(organization=self.organization, scope_list=["projects:read"])
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             akr = ApiKeyReplica.objects.get(apikey_id=ak.id)
 
         for token in [ak, akr]:
@@ -951,7 +951,7 @@ class TestAuthTokens(TestCase):
             scope_list=["org:ci"],
             date_last_used=None,
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             oatr = OrgAuthTokenReplica.objects.get(orgauthtoken_id=oat.id)
 
         for token in (oat, oatr):

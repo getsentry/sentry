@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 type StepType = 'root_cause' | 'solution' | 'changes';

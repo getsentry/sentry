@@ -9,7 +9,7 @@ interface TransparentLoadingMaskProps extends LoadingMaskProps {
   className?: string;
 }
 
-const TransparentLoadingMask = styled(
+export const TransparentLoadingMask = styled(
   ({className, visible, children, ...props}: TransparentLoadingMaskProps) => {
     const other = visible ? {...props, 'data-test-id': 'loading-placeholder'} : props;
     return (
@@ -23,5 +23,3 @@ const TransparentLoadingMask = styled(
   opacity: 0.4;
   z-index: 1;
 `;
-
-export default TransparentLoadingMask;

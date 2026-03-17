@@ -1,5 +1,7 @@
 import {AST_NODE_TYPES, ESLintUtils, TSESTree} from '@typescript-eslint/utils';
 
+import {createImportTracker} from '../ast/tracker/imports';
+
 /**
  * ESLint rule: restrict-jsx-slot-children
  *
@@ -316,43 +318,46 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
       // null, false, string literals, identifiers, etc. — nothing to check
     }
 
-    return {
-      ImportDeclaration(node) {
-        const source = node.source.value;
+    const importTracker = createImportTracker();
 
-        for (const [, state] of slotState) {
-          for (const entry of state.processedAllowed) {
-            if (entry.source !== source) continue;
+    /**
+     * Lazily resolve allowed names from import tracker data.
+     * Called once before the first JSXAttribute check, after all imports are visited.
+     */
+    let allowedNamesResolved = false;
+    function resolveAllowedNames() {
+      if (allowedNamesResolved) return;
+      allowedNamesResolved = true;
 
-            for (const spec of node.specifiers) {
-              if (spec.type !== 'ImportSpecifier') continue;
-              if (spec.imported.type !== 'Identifier') continue;
-
-              const importedName = spec.imported.name;
-              const localName = spec.local.name;
-
-              for (const name of entry.names) {
-                const dot = name.indexOf('.');
-                if (dot === -1) {
-                  // plain identifier: e.g. "Flex"
-                  if (name === importedName) {
-                    state.allowedNames.add(localName);
-                  }
-                } else {
-                  // member expression: e.g. "MenuComponents.Alert"
-                  const obj = name.slice(0, dot);
-                  const member = name.slice(dot + 1);
-                  if (obj === importedName) {
-                    state.allowedNames.add(`${localName}.${member}`);
-                  }
-                }
+      for (const [, state] of slotState) {
+        for (const entry of state.processedAllowed) {
+          for (const name of entry.names) {
+            const dot = name.indexOf('.');
+            if (dot === -1) {
+              // plain identifier: e.g. "Flex"
+              for (const localName of importTracker.findLocalNames(entry.source, name)) {
+                state.allowedNames.add(localName);
+              }
+            } else {
+              // member expression: e.g. "MenuComponents.Alert"
+              const obj = name.slice(0, dot);
+              const member = name.slice(dot + 1);
+              for (const localName of importTracker.findLocalNames(entry.source, obj)) {
+                state.allowedNames.add(`${localName}.${member}`);
               }
             }
           }
         }
-      },
+      }
+    }
+
+    return {
+      ...importTracker.visitors,
 
       JSXAttribute(node) {
+        // Safe to resolve here: ESLint visits top-level ImportDeclarations before
+        // any JSXAttribute nodes, so importTracker has all imports recorded.
+        resolveAllowedNames();
         const propName = node.name.type === 'JSXIdentifier' ? node.name.name : null;
         if (!propName) return;
 

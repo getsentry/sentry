@@ -19,7 +19,7 @@ interface Props<T extends HTMLElement> extends ClickProps<T> {
 const MAX_DELTA_X = 10;
 const MAX_DELTA_Y = 10;
 
-function StrictClick<T extends HTMLElement>({onClick, children}: Props<T>) {
+export function StrictClick<T extends HTMLElement>({onClick, children}: Props<T>) {
   const mouseDownCoordinates = useRef<[number, number] | null>(null);
 
   const handleMouseDown = useCallback((event: React.MouseEvent<T>) => {
@@ -62,5 +62,3 @@ function StrictClick<T extends HTMLElement>({onClick, children}: Props<T>) {
     onClick: handleMouseClick,
   } as any);
 }
-
-export default StrictClick;

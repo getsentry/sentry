@@ -5,10 +5,10 @@ from sentry.models.groupmeta import GroupMeta
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import json
-from sentry.web.frontend.base import OrganizationView, region_silo_view
+from sentry.web.frontend.base import OrganizationView, cell_silo_view
 
 
-@region_silo_view
+@cell_silo_view
 class GroupEventJsonView(OrganizationView):
     required_scope = "event:read"
 

@@ -35,21 +35,19 @@ export function ToolbarVisualizeHeader() {
 
 interface ToolbarVisualizeDropdownProps {
   aggregateOptions: Array<SelectOption<SelectKey>>;
-  canDelete: boolean;
   fieldOptions: Array<SelectOption<SelectKey>>;
   onChangeAggregate: (option: SelectOption<SelectKey>) => void;
   onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
-  onDelete: () => void;
   parsedFunction: ParsedFunction | null;
   label?: ReactNode;
   loading?: boolean;
   onClose?: () => void;
+  onDelete?: () => void;
   onSearch?: (search: string) => void;
 }
 
 export function ToolbarVisualizeDropdown({
   aggregateOptions,
-  canDelete,
   fieldOptions,
   onChangeAggregate,
   onChangeArgument,
@@ -99,7 +97,7 @@ export function ToolbarVisualizeDropdown({
           loading={loading}
         />
       )}
-      {canDelete ? (
+      {onDelete ? (
         <Button
           priority="transparent"
           icon={<IconDelete />}

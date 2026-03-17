@@ -16,12 +16,13 @@ describe('formatTooltipValue', () => {
 
   describe('number', () => {
     it.each([
-      [0.000033452, '0.000033452'],
-      [0.00003, '0.00003'],
+      [0.000033452, '0'],
+      [0.00003, '0'],
+      [0.001234, '0.0012'],
       [17.1238, '17.1238'],
       [170, '170'],
       [1772313.1, '1,772,313.1'],
-      [1772313.11123, '1,772,313.11123'],
+      [1772313.11123, '1,772,313.1112'],
     ])('Formats %s as %s', (value, formattedValue) => {
       expect(formatTooltipValue(value, 'number')).toEqual(formattedValue);
     });

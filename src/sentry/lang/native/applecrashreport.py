@@ -300,11 +300,12 @@ class AppleCrashReport:
     def _convert_debug_meta_to_binary_image_row(self, debug_image):
         slide_value = debug_image.get("image_vmaddr", 0)
         image_addr = debug_image["image_addr"] + slide_value
+        image_size = debug_image.get("image_size")
         return "{} - {} {} {}  <{}> {}".format(
             hex(image_addr),
-            hex(image_addr + debug_image["image_size"] - 1),
+            hex(image_addr + image_size - 1) if image_size else NATIVE_UNKNOWN_STRING,
             image_name(debug_image.get("code_file") or NATIVE_UNKNOWN_STRING),
             get_path(self.context, "device", "arch") or NATIVE_UNKNOWN_STRING,
-            debug_image.get("debug_id").replace("-", "").lower(),
+            (debug_image.get("debug_id") or "").replace("-", "").lower() or NATIVE_UNKNOWN_STRING,
             debug_image.get("code_file") or NATIVE_UNKNOWN_STRING,
         )

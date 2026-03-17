@@ -20,13 +20,13 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
-import StacktraceLinkModal from './stacktraceLinkModal';
-import useStacktraceLink from './useStacktraceLink';
+import {StacktraceLinkModal} from './stacktraceLinkModal';
+import {useStacktraceLink} from './useStacktraceLink';
 
 const scmProviders = ['github', 'gitlab', 'bitbucket'];
 
@@ -237,7 +237,7 @@ export function StacktraceLink({frame, event, line, disableSetup}: StacktraceLin
         ) : coverage &&
           shouldShowCodecovFeatures(organization, match, coverage.status) ? (
           <CodecovLink
-            coverageUrl={`${frame.sourceLink}`}
+            coverageUrl={frame.sourceLink}
             status={coverage.status}
             organization={organization}
             event={event}

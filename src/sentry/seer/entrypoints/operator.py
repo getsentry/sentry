@@ -794,7 +794,9 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                 if not entrypoint_cls.has_access(organization=organization):
                     continue
 
-                cache_payload = SeerOperatorExplorerCache[Any].get(
+                from sentry.seer.entrypoints.slack.entrypoint import SlackExplorerCachePayload
+
+                cache_payload = SeerOperatorExplorerCache[SlackExplorerCachePayload].get(
                     entrypoint_key=str(entrypoint_key),
                     run_id=run_id,
                 )

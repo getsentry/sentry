@@ -1,5 +1,5 @@
-import IntervalSelector from 'sentry/components/charts/intervalSelector';
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {IntervalSelector} from 'sentry/components/charts/intervalSelector';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {
   ChartControls,
   InlineContainer,
@@ -25,7 +25,7 @@ type Props = {
   yAxisValue: string[];
 };
 
-export default function ChartFooter({
+export function ChartFooter({
   total,
   yAxisValue,
   yAxisOptions,

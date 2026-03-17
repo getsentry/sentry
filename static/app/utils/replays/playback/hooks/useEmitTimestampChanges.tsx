@@ -1,7 +1,7 @@
 import {useLayoutEffect} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 
 /**
@@ -10,7 +10,7 @@ import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTim
  * A better implementation would nest the consumer under the same
  * <ReplayCurrentTimeContextProvider> ancestor node.
  */
-export default function useEmitTimestampChanges() {
+export function useEmitTimestampChanges() {
   const {currentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
 

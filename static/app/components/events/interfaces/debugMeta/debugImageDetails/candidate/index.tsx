@@ -6,9 +6,9 @@ import type {ImageCandidate} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-import StatusTooltip from './status/statusTooltip';
-import Actions from './actions';
-import Information from './information';
+import {StatusTooltip} from './status/statusTooltip';
+import {Actions} from './actions';
+import {Information} from './information';
 
 type Props = {
   baseUrl: string;
@@ -21,7 +21,7 @@ type Props = {
   eventDateReceived?: string;
 };
 
-function Candidate({
+export function Candidate({
   candidate,
   organization,
   projSlug,
@@ -64,8 +64,6 @@ function Candidate({
     </Fragment>
   );
 }
-
-export default Candidate;
 
 const Column = styled('div')`
   display: flex;

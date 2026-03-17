@@ -26,7 +26,7 @@ CHILD_TASK_COUNT = 250
     name="sentry.tasks.schedule_auto_transition_to_ongoing",
     namespace=issues_tasks,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_auto_transition_to_ongoing() -> None:
     """
@@ -56,7 +56,7 @@ def schedule_auto_transition_to_ongoing() -> None:
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_auto_transition_issues_new_to_ongoing(
     first_seen_lte: int,
@@ -119,7 +119,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_auto_transition_issues_new_to_ongoing(
     group_ids: list[int],
@@ -144,7 +144,7 @@ def run_auto_transition_issues_new_to_ongoing(
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_auto_transition_issues_regressed_to_ongoing(
     date_added_lte: int,
@@ -214,7 +214,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_auto_transition_issues_regressed_to_ongoing(
     group_ids: list[int],
@@ -239,7 +239,7 @@ def run_auto_transition_issues_regressed_to_ongoing(
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def schedule_auto_transition_issues_escalating_to_ongoing(
     date_added_lte: int,
@@ -311,7 +311,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     namespace=issues_tasks,
     processing_deadline_duration=25 * 60,
     retry=Retry(times=3, delay=60),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def run_auto_transition_issues_escalating_to_ongoing(
     group_ids: list[int],

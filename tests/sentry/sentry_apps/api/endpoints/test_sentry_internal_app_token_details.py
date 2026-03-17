@@ -5,6 +5,7 @@ from sentry import audit_log
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
@@ -132,3 +133,32 @@ class SentryInternalAppTokenCreationTest(APITestCase):
             status_code=status.HTTP_204_NO_CONTENT,
         )
         assert not ApiToken.objects.filter(pk=self.api_token.id).exists()
+
+
+@control_silo_test
+class SentryInternalAppTokenDetailsImpersonationTest(APITestCase):
+    endpoint = "sentry-api-0-sentry-internal-app-token-details"
+    method = "delete"
+
+    def setUp(self) -> None:
+        self.user = self.create_user(email="boop@example.com")
+        self.org = self.create_organization(owner=self.user, name="My Org")
+        self.project = self.create_project(organization=self.org)
+        self.internal_sentry_app = self.create_internal_integration(
+            name="My Internal App", organization=self.org
+        )
+        self.api_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=self.internal_sentry_app
+        )
+        self.impersonator = self.create_user(is_superuser=True)
+
+    def test_impersonated_delete_blocked(self) -> None:
+        self.login_as(self.user)
+        with simulate_impersonation(self.impersonator):
+            response = self.get_error_response(
+                self.internal_sentry_app.slug,
+                self.api_token.id,
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert ApiToken.objects.filter(pk=self.api_token.id).exists()

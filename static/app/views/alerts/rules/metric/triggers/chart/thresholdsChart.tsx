@@ -6,13 +6,12 @@ import type {LineSeriesOption, TooltipComponentFormatterCallbackParams} from 'ec
 
 import {extrapolatedAreaStyle} from 'sentry/components/alerts/onDemandMetricAlert';
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -58,10 +57,10 @@ type Props = DefaultProps & {
 } & Partial<PageFilters['datetime']>;
 
 const CHART_GRID = {
-  left: space(2),
-  right: space(2),
-  top: space(4),
-  bottom: space(2),
+  left: '16px',
+  right: '16px',
+  top: '32px',
+  bottom: '16px',
 };
 
 // Colors to use for trigger thresholds
@@ -114,7 +113,7 @@ function getYAxisBounds(
  * This chart displays shaded regions that represent different Trigger thresholds in a
  * Metric Alert rule.
  */
-export default class ThresholdsChart extends PureComponent<Props> {
+export class ThresholdsChart extends PureComponent<Props> {
   static defaultProps: DefaultProps = {
     data: [],
     comparisonData: [],
