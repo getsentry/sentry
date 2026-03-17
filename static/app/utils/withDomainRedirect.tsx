@@ -6,7 +6,7 @@ import trimStart from 'lodash/trimStart';
 import {Redirect} from 'sentry/components/redirect';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {RouteComponent} from 'sentry/types/legacyReactRouter';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';

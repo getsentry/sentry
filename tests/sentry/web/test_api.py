@@ -8,7 +8,7 @@ from django.urls import reverse
 from sentry import options
 from sentry.api.utils import generate_locality_url
 from sentry.auth import superuser
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_deletion
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization, OrganizationStatus
@@ -510,10 +510,10 @@ class ClientConfigViewTest(TestCase):
 
         # Delete lastOrganization
         assert Organization.objects.filter(slug=self.organization.slug).count() == 1
-        assert RegionScheduledDeletion.objects.count() == 0
+        assert CellScheduledDeletion.objects.count() == 0
 
         self.organization.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = RegionScheduledDeletion.schedule(self.organization, days=0)
+        deletion = CellScheduledDeletion.schedule(self.organization, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():

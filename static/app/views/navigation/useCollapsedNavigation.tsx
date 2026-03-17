@@ -5,7 +5,7 @@ import {
   NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
   NAVIGATION_SIDEBAR_OPEN_DELAY_MS,
 } from 'sentry/views/navigation/constants';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const IGNORE_ELEMENTS = [
@@ -25,7 +25,7 @@ const IGNORE_ELEMENTS = [
  * Escape -> close
  */
 export function useCollapsedNavigation() {
-  const {setActiveGroup} = useNavigation();
+  const {setActiveGroup} = usePrimaryNavigation();
   const {view, setView, interaction, setInteraction} = useSecondaryNavigation();
 
   const isCollapsed = view !== 'expanded';

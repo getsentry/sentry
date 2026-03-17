@@ -207,6 +207,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/code-mappings/'
   | '/organizations/$organizationIdOrSlug/code-mappings/$configId/'
   | '/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/'
+  | '/organizations/$organizationIdOrSlug/code-mappings/bulk/'
   | '/organizations/$organizationIdOrSlug/codeowners-associations/'
   | '/organizations/$organizationIdOrSlug/combined-rules/'
   | '/organizations/$organizationIdOrSlug/conduit-demo/'

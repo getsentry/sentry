@@ -8,8 +8,8 @@ from typing import Any
 from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
-from sentry.issue_detection.grouptype import ProfileFileIOGroupType
 from sentry.issues.escalating.escalating import GroupsCountResponse
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence

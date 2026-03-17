@@ -1925,10 +1925,6 @@ describe('Visualize', () => {
               yAxis: ['sum(value,alpha_metric,counter,-)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
-              traceMetric: JSON.stringify({
-                name: 'alpha_metric',
-                type: 'counter',
-              }),
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,

@@ -14,7 +14,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,6 +28,7 @@ import {
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from 'sentry/views/dashboards/manage/settings';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 import {DashboardCard} from './dashboardCard';
 import {GridPreview} from './gridPreview';
@@ -119,7 +120,9 @@ function DashboardGrid({
         },
         disabled: disableDuplicate,
         tooltip: shouldDisablePrebuiltControls
-          ? t('Prebuilt dashboards cannot be duplicated')
+          ? tct('[label] dashboards cannot be duplicated', {
+              label: PREBUILT_DASHBOARD_LABEL,
+            })
           : limitMessage,
         tooltipOptions: {
           isHoverable: true,
@@ -138,7 +141,7 @@ function DashboardGrid({
         },
         disabled: disableDelete,
         tooltip: shouldDisablePrebuiltControls
-          ? t('Prebuilt dashboards cannot be deleted')
+          ? tct('[label] dashboards cannot be deleted', {label: PREBUILT_DASHBOARD_LABEL})
           : undefined,
       },
     ];

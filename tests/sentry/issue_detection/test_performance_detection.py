@@ -8,11 +8,6 @@ from sentry import projectoptions
 from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from sentry.issue_detection.detectors.utils import total_span_time
-from sentry.issue_detection.grouptype import (
-    PerformanceConsecutiveHTTPQueriesGroupType,
-    PerformanceNPlusOneGroupType,
-    PerformanceSlowDBQueryGroupType,
-)
 from sentry.issue_detection.performance_detection import (
     PERFORMANCE_DETECTOR_CONFIG_MAPPINGS,
     SETTINGS_PROJECT_OPTION_KEY,
@@ -28,7 +23,12 @@ from sentry.issue_detection.performance_detection import (
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
-from sentry.issues.grouptype import registry
+from sentry.issues.grouptype import (
+    PerformanceConsecutiveHTTPQueriesGroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
+    registry,
+)
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
