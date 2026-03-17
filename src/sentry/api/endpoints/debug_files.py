@@ -2,7 +2,7 @@ import logging
 import posixpath
 import re
 import uuid
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence, Set
 from typing import TYPE_CHECKING, TypedDict, TypeGuard
 
 import jsonschema
@@ -422,14 +422,10 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
         return Response({"associatedDsymFiles": []})
 
 
-def get_file_info(files, checksum):
+def get_file_info(file) -> tuple[str | None, str | None, list[str]]:
     """
-    Extracts file information from files given a checksum.
+    Extracts file information from one assemble payload.
     """
-    file = files.get(checksum)
-    if file is None:
-        return None
-
     name = file.get("name")
     debug_id = file.get("debug_id")
     chunks = file.get("chunks", [])
@@ -441,22 +437,20 @@ def batch_assemble(project, files):
     """
     Performs assembling in a batch fashion, issuing queries that span multiple files.
     """
-    # We build a set of all the checksums that still need checks.
-    checksums_to_check = {checksum for checksum in files.keys()}
+    files_to_check = files.copy()
     file_response = {}
 
-    # 1. Exclude all files that have already an assemble status.
-    checksums_with_status = set()
-    for checksum in checksums_to_check:
+    # 1. Exclude all files that already have an assemble status.
+    for checksum, file in list(files_to_check.items()):
         # First, check the cached assemble status. During assembling, a
         # `ProjectDebugFile` will be created, and we need to prevent a race
         # condition.
         state, detail = get_assemble_status(AssembleTask.DIF, project.id, checksum)
-        requested_debug_id = _get_requested_debug_id(files[checksum])
+        requested_debug_id = _get_requested_debug_id(file)
         cached_debug_id = detail.get("uuid") if isinstance(detail, Mapping) else None
 
         if state == ChunkFileState.OK and not _is_proguard_reupload_clone_request(
-            file=files[checksum],
+            file=file,
             requested_debug_id=requested_debug_id,
             selected_debug_id=cached_debug_id,
         ):
@@ -466,34 +460,33 @@ def batch_assemble(project, files):
                 "missingChunks": [],
                 "dif": detail,
             }
-            checksums_with_status.add(checksum)
+            files_to_check.pop(checksum)
         elif state is not None and state != ChunkFileState.OK:
             file_response[checksum] = {"state": state, "detail": detail, "missingChunks": []}
-            checksums_with_status.add(checksum)
-
-    checksums_to_check -= checksums_with_status
+            files_to_check.pop(checksum)
 
     # 2. Check if this project already owns the `ProjectDebugFile` for each file,
     # also create ProGuard reupload clones if applicable.
     requested_debug_ids_by_checksum = {
-        checksum: _get_requested_debug_id(files[checksum]) for checksum in checksums_to_check
+        checksum: _get_requested_debug_id(file) for checksum, file in files_to_check.items()
     }
     existing_debug_files = _find_existing_debug_files(
         project=project,
-        checksums=checksums_to_check,
+        checksums=files_to_check.keys(),
         requested_debug_ids_by_checksum=requested_debug_ids_by_checksum,
     )
 
     for debug_file in existing_debug_files:
-        checksums_to_check.discard(debug_file.checksum)
-        requested_debug_id = requested_debug_ids_by_checksum[debug_file.checksum]
+        checksum = debug_file.checksum
+        file = files_to_check.pop(checksum)
+        requested_debug_id = requested_debug_ids_by_checksum[checksum]
 
         if _is_proguard_reupload_clone_request(
             requested_debug_id=requested_debug_id,
-            file=files[debug_file.checksum],
+            file=file,
             selected_debug_id=debug_file.debug_id,
         ):
-            file_response[debug_file.checksum] = _clone_proguard_debug_file_for_reupload(
+            file_response[checksum] = _clone_proguard_debug_file_for_reupload(
                 project=project,
                 debug_file=debug_file,
                 requested_debug_id=requested_debug_id,
@@ -501,7 +494,7 @@ def batch_assemble(project, files):
             )
             continue
 
-        file_response[debug_file.checksum] = {
+        file_response[checksum] = {
             "state": ChunkFileState.OK,
             "detail": None,
             "missingChunks": [],
@@ -510,23 +503,19 @@ def batch_assemble(project, files):
 
     # 3. Compute all the chunks that have to be checked for existence.
     chunks_to_check = {}
-    checksums_without_chunks = set()
-    for checksum in checksums_to_check:
-        file_info = get_file_info(files, checksum)
-        name, debug_id, chunks = file_info or (None, None, None)
+    for checksum, file in list(files_to_check.items()):
+        name, debug_id, chunks = get_file_info(file)
 
         # If we don't have any chunks, this is likely a poll request
         # checking for file status, so return NOT_FOUND.
         if not chunks:
             file_response[checksum] = {"state": ChunkFileState.NOT_FOUND, "missingChunks": []}
-            checksums_without_chunks.add(checksum)
+            files_to_check.pop(checksum)
             continue
 
         # Map each chunk back to its source file checksum.
         for chunk in chunks:
             chunks_to_check[chunk] = checksum
-
-    checksums_to_check -= checksums_without_chunks
 
     # 4. Find missing chunks and group them per checksum.
     all_missing_chunks = find_missing_chunks(project.organization.id, set(chunks_to_check.keys()))
@@ -538,29 +527,22 @@ def batch_assemble(project, files):
         missing_chunks_per_checksum.setdefault(chunks_to_check[chunk], set()).add(chunk)
 
     # 5. Report missing chunks per checksum.
-    checksums_with_missing_chunks = set()
     for checksum, missing_chunks in missing_chunks_per_checksum.items():
         file_response[checksum] = {
             "state": ChunkFileState.NOT_FOUND,
             "missingChunks": list(missing_chunks),
         }
-        checksums_with_missing_chunks.add(checksum)
-
-    checksums_to_check -= checksums_with_missing_chunks
+        files_to_check.pop(checksum, None)
 
     from sentry.tasks.assemble import assemble_dif
 
     # 6. Kickstart async assembling for all remaining chunks that have passed all checks.
-    for checksum in checksums_to_check:
-        file_info = get_file_info(files, checksum)
-        if file_info is None:
-            continue
-
+    for checksum, file in files_to_check.items():
         # We don't have a state yet, this means we can now start an assemble job in the background and mark
         # this in the state.
         set_assemble_status(AssembleTask.DIF, project.id, checksum, ChunkFileState.CREATED)
 
-        name, debug_id, chunks = file_info
+        name, debug_id, chunks = get_file_info(file)
         assemble_dif.apply_async(
             kwargs={
                 "project_id": project.id,
@@ -619,7 +601,7 @@ class _DebugFileAnnotations(TypedDict):
 
 def _find_existing_debug_files(
     project: Project,
-    checksums: set[str],
+    checksums: Set[str],
     requested_debug_ids_by_checksum: dict[str, str | None],
 ) -> "QuerySet[WithAnnotations[ProjectDebugFile, _DebugFileAnnotations]]":
     """Find up to one existing `ProjectDebugFile` row per requested checksum.
