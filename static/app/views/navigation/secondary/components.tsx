@@ -796,6 +796,9 @@ function SecondaryNavigationReorderableLink({
       aria-selected={isActive}
       onClick={handleNavigate}
       onKeyDown={(e: React.KeyboardEvent) => {
+        // When the grab handle has focus, dnd-kit owns Space/Enter for pick-up
+        // and drop. Without this guard those keys would also trigger navigation
+        // via bubbling, making the drop action unreliable.
         if ((e.target as HTMLElement).closest('[data-drag-icon]')) {
           return;
         }
