@@ -5,7 +5,7 @@ import responses
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.auditlogentry import AuditLogEntry
@@ -773,7 +773,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.workflow.id)
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -797,7 +797,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             assert response.status_code == 404
 
         # Ensure it wasn't deleted
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -809,7 +809,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             self.get_success_response(self.organization.slug, self.workflow.id)
 
         # Ensure the workflow is scheduled for deletion
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -828,7 +828,7 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             self.get_success_response(self.organization.slug, self.workflow.id)
 
         # Ensure the workflow is scheduled for deletion
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
