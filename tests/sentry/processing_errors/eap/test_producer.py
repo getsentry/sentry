@@ -167,6 +167,37 @@ class ProduceProcessingErrorsToEAPTest(TestCase):
             "Skipping EAP processing error production: missing trace_id"
         )
 
+    @patch("sentry.processing_errors.eap.producer.logger")
+    @patch("sentry.processing_errors.eap.producer._eap_producer")
+    def test_skips_when_contexts_is_none(self, mock_producer, mock_logger):
+        event_data = self._make_event_data()
+        event_data["contexts"] = None
+        errors = [{"type": "js_no_source"}]
+
+        produce_processing_errors_to_eap(self.project, event_data, errors)
+
+        mock_producer.produce.assert_not_called()
+        mock_logger.debug.assert_called_once_with(
+            "Skipping EAP processing error production: missing trace_id"
+        )
+
+    @patch("sentry.processing_errors.eap.producer._eap_producer")
+    @patch("sentry.processing_errors.eap.producer.get_topic_definition")
+    def test_handles_none_sdk_gracefully(self, mock_get_topic, mock_producer):
+        mock_get_topic.return_value = {"real_topic_name": "test-eap-items"}
+        codec = get_topic_codec(Topic.SNUBA_ITEMS)
+
+        event_data = self._make_event_data(sdk=None)
+        errors = [{"type": "js_no_source"}]
+
+        produce_processing_errors_to_eap(self.project, event_data, errors)
+
+        payload = mock_producer.produce.call_args[0][1]
+        trace_item = codec.decode(payload.value)
+
+        assert "sdk_name" not in trace_item.attributes
+        assert "sdk_version" not in trace_item.attributes
+
     @patch("sentry.processing_errors.eap.producer._eap_producer")
     @patch("sentry.processing_errors.eap.producer.logger")
     def test_error_handling_does_not_raise(self, mock_logger, mock_producer):
