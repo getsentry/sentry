@@ -10,6 +10,7 @@ import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem'
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -64,6 +65,8 @@ interface MetricSelectOption {
   metricName: string;
   metricType: TraceMetricTypeValue;
   value: string;
+  count?: number;
+  lastSeen?: number;
   metricUnit?: string;
   trailingItems?: MenuListItemProps['trailingItems'];
 }
@@ -170,6 +173,12 @@ export function MetricSelector({
         metricUnit: hasMetricUnitsUI
           ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
           : undefined,
+        count: option[`count(${TraceMetricKnownFieldKey.METRIC_NAME})`] as number,
+        lastSeen:
+          option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`] === undefined
+            ? undefined
+            : Number(option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]) /
+              1_000_000,
         trailingItems: () => (
           <MetricOptionTrailingItems
             hasMetricUnitsUI={hasMetricUnitsUI}
@@ -491,19 +500,35 @@ function MetricDetailPanel({
         {metric.metricName}
       </Text>
       <Flex gap="xs" align="center">
-        <Text variant="muted" size="sm">
-          {t('Type:')}
+        <Text variant="muted" size="md">
+          {t('Type')}
         </Text>
         <MetricTypeBadge metricType={metric.metricType} />
       </Flex>
       {hasDisplayMetricUnit(hasMetricUnitsUI, metric.metricUnit) ? (
         <Flex gap="xs" align="center">
-          <Text variant="muted" size="sm">
-            {t('Unit:')}
+          <Text variant="muted" size="md">
+            {t('Unit')}
           </Text>
           <Tag variant="promotion">{metric.metricUnit}</Tag>
         </Flex>
       ) : null}
+      {metric.lastSeen ? (
+        <Flex gap="xs" align="center">
+          <Text variant="muted" size="md">
+            {t('Last seen')}
+          </Text>
+          <DateTime date={metric.lastSeen} timeZone />
+        </Flex>
+      ) : null}
+      {metric.count === undefined ? null : (
+        <Flex gap="xs" align="center">
+          <Text variant="muted" size="md">
+            {t('Times seen')}
+          </Text>
+          <Text size="md">{metric.count.toLocaleString()}</Text>
+        </Flex>
+      )}
     </Stack>
   );
 }
