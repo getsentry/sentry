@@ -768,7 +768,7 @@ def build_result_from_events(
 ) -> tuple[Any | None, CodingAgentStatus]:
     result = None
     pr_url = None
-    description = ""
+    description: str | None = None
     if new_status == CodingAgentStatus.COMPLETED:
         pr_url, description = extract_result_from_events(events)
         if not pr_url:
