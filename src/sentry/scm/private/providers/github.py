@@ -143,6 +143,29 @@ def _get_next_link(response: requests.Response) -> str | None:
     return None
 
 
+def _get_with_pagination(
+    client: "GitHubProviderApiClient",
+    path: str,
+    response_key: str | None = None,
+) -> list[Any]:
+    output: list[Any] = []
+    page_number = 1
+
+    resp = client.request("GET", path, params={"per_page": "100"})
+    data = resp.json()
+    output.extend(data[response_key] if response_key else data)
+
+    next_url = _get_next_link(resp)
+    while next_url and page_number < PAGE_NUMBER_LIMIT:
+        resp = client.request("GET", next_url)
+        data = resp.json()
+        output.extend(data[response_key] if response_key else data)
+        next_url = _get_next_link(resp)
+        page_number += 1
+
+    return output
+
+
 class GitHubProviderApiClient:
     def __init__(self, base_url: str, client: GitHubApiClient) -> None:
         self.base_url = base_url
@@ -181,10 +204,10 @@ class GitHubProviderApiClient:
     def get(self, path: str, params: dict[str, str], headers: dict[str, str]) -> requests.Response:
         return self.request("GET", path=path, params=params, headers=headers)
 
-    def post(self, path: str, data: dict[str, str], headers: dict[str, str]) -> requests.Response:
+    def post(self, path: str, data: dict[str, Any], headers: dict[str, str]) -> requests.Response:
         return self.request("POST", path=path, data=data, headers=headers)
 
-    def patch(self, path: str, data: dict[str, str], headers: dict[str, str]) -> requests.Response:
+    def patch(self, path: str, data: dict[str, Any], headers: dict[str, str]) -> requests.Response:
         return self.request("PATCH", path=path, data=data, headers=headers)
 
     def delete(self, path: str) -> requests.Response:
@@ -238,7 +261,9 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Comment]:
         repo = self.repository["name"]
-        raw_comments = self._get(f"/repos/{repo}/issues/{issue_id}/comments")
+        raw_comments = self.client.get(
+            f"/repos/{repo}/issues/{issue_id}/comments", params={}, headers={}
+        )
         return PaginatedActionResult(
             data=[map_comment(c) for c in raw_comments],
             type="github",
@@ -248,12 +273,12 @@ class GitHubProvider:
 
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
         repo = self.repository["name"]
-        raw = self._post(f"/repos/{repo}/issues/{issue_id}/comments", data={"body": body})
+        raw = self.client.post(f"/repos/{repo}/issues/{issue_id}/comments", {"body": body}, {})
         return map_action(raw, map_comment)
 
     def delete_issue_comment(self, issue_id: str, comment_id: str) -> None:
         repo = self.repository["name"]
-        self._delete(f"/repos/{repo}/issues/comments/{comment_id}")
+        self.client.delete(f"/repos/{repo}/issues/comments/{comment_id}")
 
     def get_pull_request(
         self,
@@ -261,7 +286,7 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> ActionResult[PullRequest]:
         repo = self.repository["name"]
-        raw = self._get(f"/repos/{repo}/pulls/{pull_request_id}")
+        raw = self.client.get(f"/repos/{repo}/pulls/{pull_request_id}", params={}, headers={})
         return map_action(raw, map_pull_request)
 
     def get_pull_request_comments(
@@ -271,7 +296,9 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Comment]:
         repo = self.repository["name"]
-        comments = self._get(f"/repos/{repo}/issues/{pull_request_id}/comments")
+        comments = self.client.get(
+            f"/repos/{repo}/issues/{pull_request_id}/comments", params={}, headers={}
+        )
         return PaginatedActionResult(
             data=[map_comment(c) for c in comments],
             type="github",
@@ -281,12 +308,14 @@ class GitHubProvider:
 
     def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
         repo = self.repository["name"]
-        raw = self._post(f"/repos/{repo}/issues/{pull_request_id}/comments", data={"body": body})
+        raw = self.client.post(
+            f"/repos/{repo}/issues/{pull_request_id}/comments", {"body": body}, {}
+        )
         return map_action(raw, map_comment)
 
     def delete_pull_request_comment(self, pull_request_id: str, comment_id: str) -> None:
         repo = self.repository["name"]
-        self._delete(f"/repos/{repo}/issues/comments/{comment_id}")
+        self.client.delete(f"/repos/{repo}/issues/comments/{comment_id}")
 
     def get_issue_comment_reactions(
         self,
@@ -296,8 +325,8 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[ReactionResult]:
         repo = self.repository["name"]
-        raw_reactions = self._get_with_pagination(
-            f"/repos/{repo}/issues/comments/{comment_id}/reactions"
+        raw_reactions = _get_with_pagination(
+            self.client, f"/repos/{repo}/issues/comments/{comment_id}/reactions"
         )
         return PaginatedActionResult(
             data=[map_reaction(r) for r in raw_reactions],
@@ -311,9 +340,10 @@ class GitHubProvider:
     ) -> ActionResult[ReactionResult]:
         repo = self.repository["name"]
         github_reaction = REACTION_MAP[reaction]
-        raw = self._post(
+        raw = self.client.post(
             f"/repos/{repo}/issues/comments/{comment_id}/reactions",
-            data={"content": github_reaction.value},
+            {"content": github_reaction.value},
+            {},
         )
         return map_action(raw, map_reaction)
 
@@ -321,7 +351,7 @@ class GitHubProvider:
         self, issue_id: str, comment_id: str, reaction_id: str
     ) -> None:
         repo = self.repository["name"]
-        self._delete(f"/repos/{repo}/issues/comments/{comment_id}/reactions/{reaction_id}")
+        self.client.delete(f"/repos/{repo}/issues/comments/{comment_id}/reactions/{reaction_id}")
 
     def get_pull_request_comment_reactions(
         self,
@@ -351,7 +381,9 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[ReactionResult]:
         repo = self.repository["name"]
-        raw_reactions = self._get_with_pagination(f"/repos/{repo}/issues/{issue_id}/reactions")
+        raw_reactions = _get_with_pagination(
+            self.client, f"/repos/{repo}/issues/{issue_id}/reactions"
+        )
         return PaginatedActionResult(
             data=[map_reaction(r) for r in raw_reactions],
             type="github",
@@ -364,15 +396,16 @@ class GitHubProvider:
     ) -> ActionResult[ReactionResult]:
         repo = self.repository["name"]
         github_reaction = REACTION_MAP[reaction]
-        raw = self._post(
+        raw = self.client.post(
             f"/repos/{repo}/issues/{issue_id}/reactions",
-            data={"content": github_reaction.value},
+            {"content": github_reaction.value},
+            {},
         )
         return map_action(raw, map_reaction)
 
     def delete_issue_reaction(self, issue_id: str, reaction_id: str) -> None:
         repo = self.repository["name"]
-        self._delete(f"/repos/{repo}/issues/{issue_id}/reactions/{reaction_id}")
+        self.client.delete(f"/repos/{repo}/issues/{issue_id}/reactions/{reaction_id}")
 
     def get_pull_request_reactions(
         self,
@@ -396,13 +429,13 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitRef]:
         repo = self.repository["name"]
-        raw = self._get(f"/repos/{repo}/branches/{branch}")
+        raw = self.client.get(f"/repos/{repo}/branches/{branch}", params={}, headers={})
         return map_action(raw, lambda r: GitRef(ref=r["name"], sha=r["commit"]["sha"]))
 
     def create_branch(self, branch: BranchName, sha: SHA) -> ActionResult[GitRef]:
         repo = self.repository["name"]
         ref = f"refs/heads/{branch}"
-        raw = self._post(f"/repos/{repo}/git/refs", data={"ref": ref, "sha": sha})
+        raw = self.client.post(f"/repos/{repo}/git/refs", {"ref": ref, "sha": sha}, {})
         return map_action(
             raw, lambda r: GitRef(ref=r["ref"].removeprefix("refs/heads/"), sha=r["object"]["sha"])
         )
@@ -411,8 +444,8 @@ class GitHubProvider:
         self, branch: BranchName, sha: SHA, force: bool = False
     ) -> ActionResult[GitRef]:
         repo = self.repository["name"]
-        raw = self._patch(
-            f"/repos/{repo}/git/refs/heads/{branch}", data={"sha": sha, "force": force}
+        raw = self.client.patch(
+            f"/repos/{repo}/git/refs/heads/{branch}", {"sha": sha, "force": force}, {}
         )
         return map_action(
             raw, lambda r: GitRef(ref=r["ref"].removeprefix("refs/heads/"), sha=r["object"]["sha"])
@@ -420,8 +453,8 @@ class GitHubProvider:
 
     def create_git_blob(self, content: str, encoding: str) -> ActionResult[GitBlob]:
         repo = self.repository["name"]
-        raw = self._post(
-            f"/repos/{repo}/git/blobs", data={"content": content, "encoding": encoding}
+        raw = self.client.post(
+            f"/repos/{repo}/git/blobs", {"content": content, "encoding": encoding}, {}
         )
         return map_action(raw, map_git_blob)
 
@@ -435,7 +468,7 @@ class GitHubProvider:
         params: dict[str, str] = {}
         if ref:
             params["ref"] = ref
-        raw = self._get(f"/repos/{repo}/contents/{path}", params=params or None)
+        raw = self.client.get(f"/repos/{repo}/contents/{path}", params=params, headers={})
         return map_action(raw, map_file_content)
 
     def get_commit(
@@ -444,7 +477,7 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> ActionResult[Commit]:
         repo = self.repository["name"]
-        raw = self._get(f"/repos/{repo}/commits/{sha}")
+        raw = self.client.get(f"/repos/{repo}/commits/{sha}", params={}, headers={})
         return map_action(raw, map_commit)
 
     def get_commits(
@@ -457,7 +490,8 @@ class GitHubProvider:
         params: dict[str, str] = {}
         if ref:
             params["sha"] = ref
-        raw_commits = self._get(f"/repos/{repo}/commits", params=params or None)
+
+        raw_commits = self.client.get(f"/repos/{repo}/commits", params=params, headers={})
         return PaginatedActionResult(
             data=[map_commit(c) for c in raw_commits],
             type="github",
@@ -476,7 +510,7 @@ class GitHubProvider:
         params: dict[str, str] = {"path": path}
         if ref:
             params["sha"] = ref
-        raw_commits = self._get(f"/repos/{repo}/commits", params=params)
+        raw_commits = self.client.get(f"/repos/{repo}/commits", params=params, headers={})
         return PaginatedActionResult(
             data=[map_commit(c) for c in raw_commits],
             type="github",
@@ -492,7 +526,8 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
         repo = self.repository["name"]
-        raw_commits = self._get_with_pagination(
+        raw_commits = _get_with_pagination(
+            self.client,
             f"/repos/{repo}/compare/{start_sha}...{end_sha}",
             response_key="commits",
         )
@@ -510,10 +545,10 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitTree]:
         repo = self.repository["name"]
-        params: dict[str, int] = {}
+        params: dict[str, Any] = {}
         if recursive:
             params["recursive"] = 1
-        raw = self._get(f"/repos/{repo}/git/trees/{tree_sha}", params=params or None)
+        raw = self.client.get(f"/repos/{repo}/git/trees/{tree_sha}", params=params, headers={})
         return map_action(raw, map_git_tree)
 
     def get_git_commit(
@@ -522,7 +557,7 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> ActionResult[GitCommitObject]:
         repo = self.repository["name"]
-        raw = self._get(f"/repos/{repo}/git/commits/{sha}")
+        raw = self.client.get(f"/repos/{repo}/git/commits/{sha}", params={}, headers={})
         return map_action(raw, map_git_commit_object)
 
     def create_git_tree(
@@ -534,7 +569,7 @@ class GitHubProvider:
         data: dict[str, Any] = {"tree": tree}
         if base_tree is not None:
             data["base_tree"] = base_tree
-        raw = self._post(f"/repos/{repo}/git/trees", data=data)
+        raw = self.client.post(f"/repos/{repo}/git/trees", data=data, headers={})
         return map_action(raw, map_git_tree)
 
     def create_git_commit(
@@ -549,7 +584,7 @@ class GitHubProvider:
             "tree": tree_sha,
             "parents": parent_shas,
         }
-        raw = self._post(f"/repos/{repo}/git/commits", data=data)
+        raw = self.client.post(f"/repos/{repo}/git/commits", data=data, headers={})
         return map_action(raw, map_git_commit_object)
 
     def get_pull_request_files(
@@ -559,7 +594,9 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[PullRequestFile]:
         repo = self.repository["name"]
-        raw_files = self._get(f"/repos/{repo}/pulls/{pull_request_id}/files")
+        raw_files = self.client.get(
+            f"/repos/{repo}/pulls/{pull_request_id}/files", params={}, headers={}
+        )
         return PaginatedActionResult(
             data=[map_pull_request_file(f) for f in raw_files],
             type="github",
@@ -574,7 +611,9 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[PullRequestCommit]:
         repo = self.repository["name"]
-        raw_commits = self._get(f"/repos/{repo}/pulls/{pull_request_id}/commits")
+        raw_commits = self.client.get(
+            f"/repos/{repo}/pulls/{pull_request_id}/commits", params={}, headers={}
+        )
         return PaginatedActionResult(
             data=[map_pull_request_commit(c) for c in raw_commits],
             type="github",
@@ -588,7 +627,7 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> ActionResult[str]:
         repo = self.repository["name"]
-        resp = self._request(
+        resp = self.client.request(
             "GET",
             f"/repos/{repo}/pulls/{pull_request_id}",
             headers={"Accept": "application/vnd.github.v3.diff"},
@@ -612,7 +651,7 @@ class GitHubProvider:
         params: dict[str, Any] = {"state": github_state}
         if head:
             params["head"] = head
-        raw_prs = self._get(f"/repos/{repo}/pulls", params=params)
+        raw_prs = self.client.get(f"/repos/{repo}/pulls", params=params, headers={})
         return PaginatedActionResult(
             data=[map_pull_request(pr) for pr in raw_prs],
             type="github",
@@ -634,7 +673,7 @@ class GitHubProvider:
             "head": head,
             "base": base,
         }
-        raw = self._post(f"/repos/{repo}/pulls", data=data)
+        raw = self.client.post(f"/repos/{repo}/pulls", data=data, headers={})
         return map_action(raw, map_pull_request)
 
     def create_pull_request_draft(
@@ -652,7 +691,7 @@ class GitHubProvider:
             "base": base,
             "draft": True,
         }
-        raw = self._post(f"/repos/{repo}/pulls", data=data)
+        raw = self.client.post(f"/repos/{repo}/pulls", data=data, headers={})
         return map_action(raw, map_pull_request)
 
     def update_pull_request(
@@ -670,14 +709,15 @@ class GitHubProvider:
             data["body"] = body
         if state is not None:
             data["state"] = state
-        raw = self._patch(f"/repos/{repo}/pulls/{pull_request_id}", data=data)
+        raw = self.client.patch(f"/repos/{repo}/pulls/{pull_request_id}", data=data, headers={})
         return map_action(raw, map_pull_request)
 
     def request_review(self, pull_request_id: str, reviewers: list[str]) -> None:
         repo = self.repository["name"]
-        self._post(
+        self.client.post(
             f"/repos/{repo}/pulls/{pull_request_id}/requested_reviewers",
-            data={"reviewers": reviewers},
+            {"reviewers": reviewers},
+            {},
         )
 
     def create_review_comment_file(
@@ -690,15 +730,16 @@ class GitHubProvider:
     ) -> ActionResult[ReviewComment]:
         """Leave a review comment on a file."""
         repo = self.repository["name"]
-        raw = self._post(
+        raw = self.client.post(
             f"/repos/{repo}/pulls/{pull_request_id}/comments",
-            data={
+            {
                 "body": body,
                 "commit_id": commit_id,
                 "path": path,
                 "side": side,
                 "subject_type": "file",
             },
+            {},
         )
         return map_action(raw, map_review_comment)
 
@@ -713,12 +754,13 @@ class GitHubProvider:
     ) -> ActionResult[ReviewComment]:
         """Leave a review comment in reply to another review comment."""
         repo = self.repository["name"]
-        raw = self._post(
+        raw = self.client.post(
             f"/repos/{repo}/pulls/{pull_request_id}/comments",
-            data={
+            {
                 "body": body,
                 "in_reply_to": int(comment_id),
             },
+            {},
         )
         return map_action(raw, map_review_comment)
 
@@ -738,7 +780,9 @@ class GitHubProvider:
         }
         if body is not None:
             data["body"] = body
-        raw = self._post(f"/repos/{repo}/pulls/{pull_request_id}/reviews", data=data)
+        raw = self.client.post(
+            f"/repos/{repo}/pulls/{pull_request_id}/reviews", data=data, headers={}
+        )
         return map_action(raw, map_review)
 
     def create_check_run(
@@ -769,7 +813,7 @@ class GitHubProvider:
             data["completed_at"] = completed_at
         if output is not None:
             data["output"] = output
-        raw = self._post(f"/repos/{repo}/check-runs", data=data)
+        raw = self.client.post(f"/repos/{repo}/check-runs", data=data, headers={})
         return map_action(raw, map_check_run)
 
     def get_check_run(
@@ -778,7 +822,7 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> ActionResult[CheckRun]:
         repo = self.repository["name"]
-        raw = self._get(f"/repos/{repo}/check-runs/{check_run_id}")
+        raw = self.client.get(f"/repos/{repo}/check-runs/{check_run_id}", params={}, headers={})
         return map_action(raw, map_check_run)
 
     def update_check_run(
@@ -796,11 +840,11 @@ class GitHubProvider:
             data["conclusion"] = GITHUB_CONCLUSION_WRITE_MAP[conclusion]
         if output is not None:
             data["output"] = output
-        raw = self._patch(f"/repos/{repo}/check-runs/{check_run_id}", data=data)
+        raw = self.client.patch(f"/repos/{repo}/check-runs/{check_run_id}", data=data, headers={})
         return map_action(raw, map_check_run)
 
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
-        self._graphql(
+        self.client.graphql(
             MINIMIZE_COMMENT_MUTATION,
             {"commentId": comment_node_id, "reason": reason},
         )
