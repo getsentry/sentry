@@ -22,7 +22,7 @@ import {
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -688,8 +688,8 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>({
       axis="y"
       values={items}
       onReorder={newOrder => {
-        setItems(newOrder);
         orderedItemsRef.current = newOrder;
+        setItems(newOrder);
       }}
       initial={false}
     >
@@ -719,7 +719,6 @@ function SecondaryNavigationReorderableLink({
   onClick,
   ...linkProps
 }: SecondaryNavigationReorderableLinkProps) {
-  const {controls, grabbing} = useReorderableItemContext();
   const {interaction} = useSecondaryNavigation();
 
   return (
@@ -727,21 +726,7 @@ function SecondaryNavigationReorderableLink({
       {...linkProps}
       leadingItems={
         <Flex justify="center" align="center" position="relative">
-          <GrabHandleWrapper
-            data-drag-icon
-            grabbing={grabbing}
-            onPointerDown={e => {
-              controls.start(e);
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-          >
-            <IconGrabbable variant="muted" />
-          </GrabHandleWrapper>
+          <GrabHandle />
           {icon}
         </Flex>
       }
@@ -759,6 +744,32 @@ function SecondaryNavigationReorderableLink({
   );
 }
 
+function GrabHandle(props: FlexProps<'div'>) {
+  const {controls, grabbing} = useReorderableItemContext();
+  return (
+    <Flex
+      {...props}
+      data-drag-icon
+      onPointerDown={e => {
+        controls.start(e);
+        e.stopPropagation();
+        e.preventDefault();
+      }}
+      onClick={e => {
+        e.stopPropagation();
+        e.preventDefault();
+      }}
+      width="18px"
+      height="18px"
+      justify="center"
+      align="center"
+      style={{cursor: grabbing ? 'grabbing' : 'grab'}}
+    >
+      <IconGrabbable variant="muted" />
+    </Flex>
+  );
+}
+
 interface SecondaryNavigationIndicatorProps {
   variant?: 'accent' | 'danger' | 'warning';
 }
@@ -766,36 +777,54 @@ interface SecondaryNavigationIndicatorProps {
 function SecondaryNavigationIndicator({
   variant = 'accent',
 }: SecondaryNavigationIndicatorProps) {
-  return <NavigationIndicator variant={variant} />;
+  return (
+    <Container
+      position="absolute"
+      top="0"
+      right="0"
+      width="10px"
+      height="10px"
+      radius="full"
+    >
+      {p => <DotIndicator {...p} variant={variant} />}
+    </Container>
+  );
 }
 
-const ReorderableGroupList = styled(Reorder.Group)`
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  list-style: none;
-` as typeof Reorder.Group;
-
-const ReorderableItemContainer = styled(Reorder.Item, {
-  shouldForwardProp: prop => prop !== 'grabbing',
-})<{grabbing: boolean}>`
-  position: relative;
-  list-style: none;
-  background-color: ${p => (p.grabbing ? p.theme.colors.surface200 : 'transparent')};
-  border-radius: ${p => p.theme.radius.md};
+const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
+  background: ${p => p.theme.tokens.graphics[p.variant].vibrant};
+  border: 2px solid ${p => p.theme.tokens.border[p.variant].muted};
 `;
 
-const GrabHandleWrapper = styled('div')<{grabbing: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  cursor: ${p => (p.grabbing ? 'grabbing' : 'grab')};
-  z-index: 3;
-`;
+type GroupProps<T> = Omit<
+  React.ComponentProps<typeof Reorder.Group>,
+  'values' | 'onReorder'
+> & {
+  onReorder: (values: T[]) => void;
+  values: T[];
+};
+
+function ReorderableGroupList<T extends {id: string | number}>(props: GroupProps<T>) {
+  return (
+    <Stack direction="column" padding="0" width="100%">
+      {/* MergeProps is not working here due to the type signature, but it's not actually
+      needed anyway because p will only ever be a className prop */}
+      {p => <Reorder.Group {...p} {...props} />}
+    </Stack>
+  );
+}
+
+function ReorderableItemContainer(props: React.ComponentProps<typeof Reorder.Item>) {
+  return (
+    <Container
+      position="relative"
+      radius="md"
+      background={props.grabbing ? 'secondary' : undefined}
+    >
+      {p => <Reorder.Item {...p} {...props} />}
+    </Container>
+  );
+}
 
 const StyledReorderableNavigationLink = styled(SecondaryNavigationLink)`
   :not(:hover) {
@@ -809,17 +838,6 @@ const StyledReorderableNavigationLink = styled(SecondaryNavigationLink)`
       ${p => p.theme.visuallyHidden}
     }
   }
-`;
-
-const NavigationIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
-  background: ${p => p.theme.tokens.graphics[p.variant].vibrant};
-  border: 2px solid ${p => p.theme.tokens.border[p.variant].muted};
-  border-radius: 50%;
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 10px;
-  height: 10px;
 `;
 
 export const SecondaryNavigation = {
