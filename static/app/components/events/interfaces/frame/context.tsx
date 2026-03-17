@@ -98,7 +98,8 @@ function Context({
     isExpanded &&
     !!frame.lineNo &&
     !!frame.filename &&
-    frame.inApp;
+    frame.inApp &&
+    defined(project);
 
   const {data: sourceContextData, isPending: isLoadingSourceContext} = useSourceContext(
     {

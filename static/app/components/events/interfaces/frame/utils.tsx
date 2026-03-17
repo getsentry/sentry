@@ -48,7 +48,7 @@ export function hasAssembly(frame: Frame, platform?: string) {
  * source context from an SCM integration (filename + line number + in-app).
  */
 export function hasPotentialSourceContext(frame: Frame) {
-  return !!frame.inApp && !!frame.lineNo && !!(frame.filename || frame.absPath);
+  return !!frame.inApp && !!frame.lineNo && !!frame.filename;
 }
 
 export function isExpandable({
