@@ -17,6 +17,10 @@ type ScmProvidersData = {
  * Fetches SCM integration providers and active installations for use in the
  * onboarding connect step. Providers are identified by having a feature gate
  * that includes 'commits'.
+ *
+ * Note: This duplicates the provider filter from useScmIntegrationTreeData but
+ * intentionally avoids reusing that hook -- it fetches connected repos and
+ * pagination data we don't need, and doesn't filter integrations by active status.
  */
 export function useScmProviders(): ScmProvidersData {
   const organization = useOrganization();

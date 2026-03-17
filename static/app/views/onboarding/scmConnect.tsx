@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -7,52 +7,12 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
-import type {
-  Integration,
-  IntegrationRepository,
-  Repository,
-} from 'sentry/types/integrations';
-import {RepositoryStatus} from 'sentry/types/integrations';
+import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
 
 import {ConnectedView} from './components/scmConnectedView';
 import {ProviderPills} from './components/scmProviderPills';
 import type {StepProps} from './types';
 import {useScmProviders} from './useScmProviders';
-
-/**
- * Convert a context-stored Repository back to an IntegrationRepository so the
- * RepoSelector can display the previously selected repo on mount.
- */
-function contextRepoToIntegrationRepo(repo?: Repository): IntegrationRepository | null {
-  if (!repo) {
-    return null;
-  }
-  return {
-    identifier: repo.externalSlug || repo.name,
-    name: repo.name,
-    isInstalled: false,
-  };
-}
-
-function integrationRepoToContextRepo(
-  repo: IntegrationRepository,
-  integration: Integration
-): Repository {
-  return {
-    id: '',
-    externalId: repo.identifier,
-    name: repo.name,
-    externalSlug: repo.identifier,
-    url: '',
-    provider: {
-      id: integration.provider.key,
-      name: integration.provider.name,
-    },
-    status: RepositoryStatus.ACTIVE,
-    dateCreated: '',
-    integrationId: integration.id,
-  };
-}
 
 export function ScmConnect({onComplete}: StepProps) {
   const onboardingContext = useOnboardingContext();
@@ -62,24 +22,17 @@ export function ScmConnect({onComplete}: StepProps) {
   const [activeIntegration, setActiveIntegration] = useState<Integration | null>(
     () => onboardingContext.selectedIntegration ?? null
   );
-  const [selectedRepo, setSelectedRepo] = useState<IntegrationRepository | null>(() =>
-    contextRepoToIntegrationRepo(onboardingContext.selectedRepository)
-  );
-  const [hasAutoSelected, setHasAutoSelected] = useState(
-    () => !!onboardingContext.selectedIntegration
+  const [selectedRepo, setSelectedRepo] = useState<IntegrationRepository | null>(
+    () => onboardingContext.selectedRepository ?? null
   );
 
   // Auto-select an existing SCM integration so returning users see the
   // connected view instead of the provider pills.
-  if (
-    !hasAutoSelected &&
-    !isPending &&
-    scmIntegrations.length > 0 &&
-    !activeIntegration
-  ) {
-    setActiveIntegration(scmIntegrations[0]!);
-    setHasAutoSelected(true);
-  }
+  useEffect(() => {
+    if (!isPending && scmIntegrations.length > 0 && !activeIntegration) {
+      setActiveIntegration(scmIntegrations[0]!);
+    }
+  }, [isPending, scmIntegrations, activeIntegration]);
 
   const handleInstall = useCallback(
     (data: Integration) => {
@@ -104,9 +57,7 @@ export function ScmConnect({onComplete}: StepProps) {
     if (activeIntegration) {
       onboardingContext.setSelectedIntegration(activeIntegration);
       if (selectedRepo) {
-        onboardingContext.setSelectedRepository(
-          integrationRepoToContextRepo(selectedRepo, activeIntegration)
-        );
+        onboardingContext.setSelectedRepository(selectedRepo);
       }
     }
     onComplete();

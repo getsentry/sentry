@@ -1,7 +1,7 @@
 import {createContext, useContext, useMemo} from 'react';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import type {Integration, Repository} from 'sentry/types/integrations';
+import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
@@ -9,18 +9,18 @@ type OnboardingContextProps = {
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
   setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
-  setSelectedRepository: (repo?: Repository) => void;
+  setSelectedRepository: (repo?: IntegrationRepository) => void;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
-  selectedRepository?: Repository;
+  selectedRepository?: IntegrationRepository;
 };
 
 type OnboardingSessionState = {
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
-  selectedRepository?: Repository;
+  selectedRepository?: IntegrationRepository;
 };
 
 /**
@@ -82,7 +82,7 @@ export function OnboardingContextProvider({children, value}: ProviderProps) {
         setOnboarding({...onboarding, selectedIntegration});
       },
       selectedRepository: onboarding?.selectedRepository,
-      setSelectedRepository: (selectedRepository?: Repository) => {
+      setSelectedRepository: (selectedRepository?: IntegrationRepository) => {
         setOnboarding({...onboarding, selectedRepository});
       },
       selectedFeatures: onboarding?.selectedFeatures,

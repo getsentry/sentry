@@ -51,16 +51,19 @@ export function RepoSelector({integration, selectedRepo, onSelect}: RepoSelector
     enabled: !!debouncedSearch,
   });
 
-  const searchResult = useMemo(() => query.data?.[0] ?? {repos: []}, [query.data]);
+  const reposByIdentifier = useMemo(() => {
+    const repos = query.data?.[0]?.repos ?? [];
+    return new Map(repos.map(r => [r.identifier, r]));
+  }, [query.data]);
 
   const dropdownItems = useMemo(() => {
-    return searchResult.repos.map(repo => ({
+    return [...reposByIdentifier.values()].map(repo => ({
       value: repo.identifier,
       label: repo.name,
       textValue: repo.name,
       disabled: repo.identifier === selectedRepo?.identifier,
     }));
-  }, [searchResult, selectedRepo]);
+  }, [reposByIdentifier, selectedRepo]);
 
   return (
     <Stack gap="md">
@@ -69,7 +72,7 @@ export function RepoSelector({integration, selectedRepo, onSelect}: RepoSelector
         disabled={false}
         options={dropdownItems}
         onChange={selection => {
-          const repo = searchResult.repos.find(r => r.identifier === selection.value);
+          const repo = reposByIdentifier.get(selection.value);
           if (repo) {
             onSelect(repo);
           }

@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -23,10 +25,15 @@ export function ProviderPills({
 }: ProviderPillsProps) {
   const organization = useOrganization();
 
+  const integrationsByProvider = useMemo(
+    () => new Map(integrations.map(i => [i.provider.key, i])),
+    [integrations]
+  );
+
   return (
     <Flex gap="md" wrap="wrap" justify="center">
       {providers.map(provider => {
-        const installation = integrations.find(i => i.provider.key === provider.key);
+        const installation = integrationsByProvider.get(provider.key);
 
         if (installation) {
           return (
