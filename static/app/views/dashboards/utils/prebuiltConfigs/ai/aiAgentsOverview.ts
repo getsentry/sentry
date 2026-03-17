@@ -1,4 +1,3 @@
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {FieldKind} from 'sentry/utils/fields';
 import {DisplayType, MAX_TABLE_LIMIT, WidgetType} from 'sentry/views/dashboards/types';
@@ -23,17 +22,7 @@ const DEFAULT_GLOBAL_FILTERS = [
   },
 ];
 
-export const DEFAULT_TRACES_TABLE_WIDTHS = [
-  110,
-  COL_WIDTH_UNDEFINED,
-  140,
-  110,
-  110,
-  110,
-  120,
-  110,
-  110,
-];
+export const DEFAULT_TRACES_TABLE_WIDTHS = [110, 600, 140, 110, 110, 110, 120, 110, 110];
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [

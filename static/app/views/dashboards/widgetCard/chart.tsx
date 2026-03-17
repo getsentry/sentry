@@ -991,7 +991,6 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
 const TableWrapper = styled('div')`
   margin-top: ${p => p.theme.space.lg};
   min-height: 0;
-  flex: 1;
   border-bottom-left-radius: ${p => p.theme.radius.md};
   border-bottom-right-radius: ${p => p.theme.radius.md};
 `;
