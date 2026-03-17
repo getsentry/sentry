@@ -70,5 +70,4 @@ function RedirectToProjectModal({slug, Header, Body}: Props) {
   );
 }
 
-export default RedirectToProjectModal;
 export {RedirectToProjectModal};
