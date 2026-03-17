@@ -1,7 +1,7 @@
 """
-This module contains signal handler for region outbox messages.
+This module contains signal handlers for cell outbox messages.
 
-These receivers are triggered on the region silo as outbox messages
+These receivers are triggered on the cell silo as outbox messages
 are drained. Receivers are expected to make local state changes (tombstones)
 and perform RPC calls to propagate changes to Control Silo.
 """
@@ -32,7 +32,7 @@ from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.sentry_apps.services.app.service import app_service
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)

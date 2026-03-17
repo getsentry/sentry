@@ -7,7 +7,7 @@ from typing import Any
 from django.conf import settings
 
 from sentry.hybridcloud.rpc import ArgumentDict
-from sentry.types.region import (
+from sentry.types.cell import (
     Cell,
     CellMappingNotFound,
     CellResolutionError,

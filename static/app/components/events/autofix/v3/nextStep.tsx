@@ -1,4 +1,4 @@
-import {useCallback, useState, type ReactNode} from 'react';
+import {useCallback, useMemo, useState, type ReactNode} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -6,8 +6,11 @@ import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {
+  isCodeChangesArtifact,
   isCodeChangesSection,
+  isRootCauseArtifact,
   isRootCauseSection,
+  isSolutionArtifact,
   isSolutionSection,
   type AutofixSection,
   type useExplorerAutofix,
@@ -22,22 +25,22 @@ interface SeerDrawerNextStepProps {
 
 export function SeerDrawerNextStep({sections, autofix}: SeerDrawerNextStepProps) {
   const runId = autofix.runState?.run_id;
-  const lastSection = sections[sections.length - 1];
+  const section = sections[sections.length - 1];
 
-  if (!defined(runId) || !defined(lastSection)) {
+  if (!defined(runId) || !defined(section)) {
     return null;
   }
 
-  if (isRootCauseSection(lastSection)) {
-    return <RootCauseNextStep autofix={autofix} runId={runId} />;
+  if (isRootCauseSection(section)) {
+    return <RootCauseNextStep autofix={autofix} runId={runId} section={section} />;
   }
 
-  if (isSolutionSection(lastSection)) {
-    return <SolutionNextStep autofix={autofix} runId={runId} />;
+  if (isSolutionSection(section)) {
+    return <SolutionNextStep autofix={autofix} runId={runId} section={section} />;
   }
 
-  if (isCodeChangesSection(lastSection)) {
-    return <CodeChangesNextStep autofix={autofix} runId={runId} />;
+  if (isCodeChangesSection(section)) {
+    return <CodeChangesNextStep autofix={autofix} runId={runId} section={section} />;
   }
 
   return null;
@@ -46,9 +49,10 @@ export function SeerDrawerNextStep({sections, autofix}: SeerDrawerNextStepProps)
 interface NextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   runId: number;
+  section: AutofixSection;
 }
 
-function RootCauseNextStep({autofix, runId}: NextStepProps) {
+function RootCauseNextStep({autofix, runId, section}: NextStepProps) {
   const {startStep} = autofix;
 
   const handleYesClick = useCallback(() => {
@@ -61,6 +65,15 @@ function RootCauseNextStep({autofix, runId}: NextStepProps) {
     },
     [startStep, runId]
   );
+
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isRootCauseArtifact),
+    [section.artifacts]
+  );
+
+  if (!defined(artifact)) {
+    return null;
+  }
 
   return (
     <NextStepTemplate
@@ -77,7 +90,7 @@ function RootCauseNextStep({autofix, runId}: NextStepProps) {
   );
 }
 
-function SolutionNextStep({autofix, runId}: NextStepProps) {
+function SolutionNextStep({autofix, runId, section}: NextStepProps) {
   const {startStep} = autofix;
 
   const handleYesClick = useCallback(() => {
@@ -90,6 +103,15 @@ function SolutionNextStep({autofix, runId}: NextStepProps) {
     },
     [startStep, runId]
   );
+
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isSolutionArtifact),
+    [section.artifacts]
+  );
+
+  if (!defined(artifact)) {
+    return null;
+  }
 
   return (
     <NextStepTemplate
@@ -108,7 +130,7 @@ function SolutionNextStep({autofix, runId}: NextStepProps) {
   );
 }
 
-function CodeChangesNextStep({autofix, runId}: NextStepProps) {
+function CodeChangesNextStep({autofix, runId, section}: NextStepProps) {
   const {createPR, startStep} = autofix;
 
   const handleYesClick = useCallback(() => {
@@ -121,6 +143,15 @@ function CodeChangesNextStep({autofix, runId}: NextStepProps) {
     },
     [startStep, runId]
   );
+
+  const artifact = useMemo(
+    () => section.artifacts.findLast(isCodeChangesArtifact),
+    [section.artifacts]
+  );
+
+  if (!defined(artifact)) {
+    return null;
+  }
 
   return (
     <NextStepTemplate

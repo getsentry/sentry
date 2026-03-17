@@ -2,7 +2,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test, create_test_regions
-from sentry.types.region import Cell, get_cell_by_name, get_global_directory
+from sentry.types.cell import Cell, get_cell_by_name, get_global_directory
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 

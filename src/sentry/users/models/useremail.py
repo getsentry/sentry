@@ -25,7 +25,7 @@ from sentry.hybridcloud.models.outbox import ControlOutboxBase
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.types.region import find_cells_for_user
+from sentry.types.cell import find_cells_for_user
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.security import get_secure_token
 
