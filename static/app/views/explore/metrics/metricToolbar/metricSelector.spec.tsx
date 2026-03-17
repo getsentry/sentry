@@ -429,7 +429,7 @@ describe('MetricSelector', () => {
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       await screen.findByRole('option', {name: 'bar'});
 
-      expect(screen.queryByText('Type:')).not.toBeInTheDocument();
+      expect(screen.queryByText('Type')).not.toBeInTheDocument();
     });
 
     it('renders side panel with tracemetrics-attributes-dropdown-side-panel feature', async () => {
@@ -446,7 +446,7 @@ describe('MetricSelector', () => {
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       await userEvent.hover(await screen.findByRole('option', {name: 'bar'}));
 
-      expect(await screen.findByText('Type:')).toBeInTheDocument();
+      expect(await screen.findByText('Type')).toBeInTheDocument();
       expect(await screen.findByText('Last seen')).toBeInTheDocument();
       expect(await screen.findByText('Times seen')).toBeInTheDocument();
     });
@@ -465,7 +465,7 @@ describe('MetricSelector', () => {
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       await screen.findByRole('listbox');
 
-      expect(await screen.findByText('Type:')).toBeInTheDocument();
+      expect(await screen.findByText('Type')).toBeInTheDocument();
       expect((await screen.findAllByText('bar')).length).toBeGreaterThan(0);
     });
 
