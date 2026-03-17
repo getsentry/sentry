@@ -443,6 +443,19 @@ function DynamicSampling({organization}: {organization: Organization}) {
 
   const formatRate = (rate: number) => `${rate.toFixed(2).replace(/\.00$/, '')}%`;
 
+  const getSampleRateValue = (): string => {
+    if (effectiveSampleRate && desiredSampleRate) {
+      if (formatRate(effectiveSampleRate) === formatRate(desiredSampleRate)) {
+        return formatRate(effectiveSampleRate);
+      }
+      return `${formatRate(effectiveSampleRate)} instead of ${formatRate(desiredSampleRate)} (~${formatRate(diffSampleRate!)})`;
+    }
+    if (desiredSampleRate) {
+      return formatRate(desiredSampleRate);
+    }
+    return 'n/a';
+  };
+
   return (
     <ThresholdLabel
       positive={
@@ -451,16 +464,7 @@ function DynamicSampling({organization}: {organization: Organization}) {
           : false
       }
     >
-      {/* When rates match, show just the rate instead of "X% instead of X% (~0%)" */}
-      {effectiveSampleRate &&
-      desiredSampleRate &&
-      formatRate(effectiveSampleRate) === formatRate(desiredSampleRate)
-        ? formatRate(effectiveSampleRate)
-        : effectiveSampleRate && desiredSampleRate
-          ? `${formatRate(effectiveSampleRate)} instead of ${formatRate(desiredSampleRate)} (~${formatRate(diffSampleRate!)})`
-          : desiredSampleRate
-            ? formatRate(desiredSampleRate)
-            : 'n/a'}
+      {getSampleRateValue()}
     </ThresholdLabel>
   );
 }
