@@ -4,10 +4,12 @@ import pytest
 
 from sentry.seer.explorer.context_engine_utils import ProjectEventCounts
 from sentry.tasks.context_engine_index import (
+    get_allowed_org_ids_context_engine_indexing,
     index_org_project_knowledge,
     schedule_context_engine_indexing_tasks,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -111,6 +113,30 @@ class TestIndexOrgProjectKnowledge(TestCase):
                         ):
                             with pytest.raises(Exception):
                                 index_org_project_knowledge(self.org.id)
+
+
+class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
+    @freeze_time("2024-01-15 10:00:00")  # Monday, hour 10 → slot = 0*24+10 = 10
+    def test_returns_only_orgs_assigned_to_current_slot(self):
+        org_ids = list(range(1, 501))
+
+        with override_options({"explorer.service_map.allowed_organizations": org_ids}):
+            result = get_allowed_org_ids_context_engine_indexing()
+
+        assert len(result) > 0
+        assert all(org_id in org_ids for org_id in result)
+        # Each returned org must hash to the current slot (Monday hour 10 = slot 10)
+        from sentry.utils.hashlib import md5_text
+
+        for org_id in result:
+            assert int(md5_text(str(org_id)).hexdigest(), 16) % 168 == 10
+
+        # Verify different time yields different orgs
+        with freeze_time("2024-01-15 11:00:00"):  # slot 11
+            with override_options({"explorer.service_map.allowed_organizations": org_ids}):
+                result_different_hour = get_allowed_org_ids_context_engine_indexing()
+
+        assert set(result) != set(result_different_hour)
 
 
 @django_db_all
