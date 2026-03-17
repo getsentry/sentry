@@ -761,7 +761,7 @@ def format_request_data(
         actor = parse_and_validate_actor(str(owner), project.organization_id)
         if actor is not None:
             workflow_payload["owner"] = actor.identifier
-    elif owner is None:  # user has expliticly passed None so as to clear the owner field
+    elif owner is None:  # user has explicitly passed None so as to clear the owner field
         workflow_payload["owner"] = None
 
     triggers: DataConditionGroupInput = {"logicType": "any-short", "conditions": []}
