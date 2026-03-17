@@ -59,7 +59,7 @@ jobs:
         run: |
           # pull_request_target checks out the base branch, so the fork's head
           # SHA isn't available locally. Fetch the PR head ref first.
-          git fetch --depth=1 origin "pull/${{ github.event.number }}/head"
+          git fetch origin "pull/${{ github.event.number }}/head"
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           BASE_SHA="${{ github.event.pull_request.base.sha }}"
 
