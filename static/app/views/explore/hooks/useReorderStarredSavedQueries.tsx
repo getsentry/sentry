@@ -29,7 +29,7 @@ export function useReorderStarredSavedQueries() {
           predicate: query =>
             Array.isArray(query.queryKey) &&
             query.queryKey[0] === starredUrl &&
-            (query.queryKey[1] as any)?.query?.starred !== undefined,
+            query.queryKey[1]?.query?.starred !== undefined,
         },
         oldData => {
           if (!oldData) return oldData;
