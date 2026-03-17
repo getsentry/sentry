@@ -12,6 +12,7 @@ import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {MobileAppSizeConfig} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {labelSeriesForLegend} from 'sentry/views/dashboards/utils/labelSeriesForLegend';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -177,10 +178,14 @@ export function useMobileAppSizeSeriesQuery(
       const responseData = q.data[0];
       rawData[requestIndex] = responseData;
 
-      const transformedResult = MobileAppSizeConfig.transformSeries!(
-        responseData,
+      const transformedResult = labelSeriesForLegend(
+        MobileAppSizeConfig.transformSeries!(
+          responseData,
+          filteredWidget.queries[requestIndex]!,
+          organization
+        ),
         filteredWidget.queries[requestIndex]!,
-        organization
+        filteredWidget
       );
 
       transformedResult.forEach((result: Series, resultIndex: number) => {

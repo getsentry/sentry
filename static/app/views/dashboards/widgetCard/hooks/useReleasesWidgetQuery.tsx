@@ -13,6 +13,7 @@ import useApi from 'sentry/utils/useApi';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import {getWidgetInterval} from 'sentry/views/dashboards/utils';
+import {labelSeriesForLegend} from 'sentry/views/dashboards/utils/labelSeriesForLegend';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
@@ -198,8 +199,14 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
         return;
       }
 
-      transformedResult.forEach((result: Series, resultIndex: number) => {
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
+      const labeledResult = labelSeriesForLegend(
+        transformedResult,
+        filteredWidget.queries[requestIndex]!,
+        filteredWidget
+      );
+
+      labeledResult.forEach((result: Series, resultIndex: number) => {
+        timeseriesResults[requestIndex * labeledResult.length + resultIndex] = result;
       });
     });
 

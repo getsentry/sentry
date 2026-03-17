@@ -23,6 +23,7 @@ import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {labelSeriesForLegend} from 'sentry/views/dashboards/utils/labelSeriesForLegend';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -174,10 +175,14 @@ export function useErrorsSeriesQuery(
       const responseData = q.data[0];
       rawData[requestIndex] = responseData;
 
-      const transformedResult = ErrorsConfig.transformSeries!(
-        responseData,
+      const transformedResult = labelSeriesForLegend(
+        ErrorsConfig.transformSeries!(
+          responseData,
+          filteredWidget.queries[requestIndex]!,
+          organization
+        ),
         filteredWidget.queries[requestIndex]!,
-        organization
+        filteredWidget
       );
 
       transformedResult.forEach((result: Series, resultIndex: number) => {

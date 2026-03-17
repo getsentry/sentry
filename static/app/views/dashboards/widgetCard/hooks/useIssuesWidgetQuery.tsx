@@ -15,6 +15,7 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/issues';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DEFAULT_TABLE_LIMIT} from 'sentry/views/dashboards/types';
+import {labelSeriesForLegend} from 'sentry/views/dashboards/utils/labelSeriesForLegend';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -184,10 +185,14 @@ export function useIssuesSeriesQuery(
       const responseData = q.data[0];
       rawData[requestIndex] = responseData;
 
-      const transformedResult = IssuesConfig.transformSeries!(
-        responseData,
+      const transformedResult = labelSeriesForLegend(
+        IssuesConfig.transformSeries!(
+          responseData,
+          filteredWidget.queries[requestIndex]!,
+          organization
+        ),
         filteredWidget.queries[requestIndex]!,
-        organization
+        filteredWidget
       );
 
       transformedResult.forEach((result: Series, resultIndex: number) => {

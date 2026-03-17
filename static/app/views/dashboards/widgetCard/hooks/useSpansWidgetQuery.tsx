@@ -31,6 +31,7 @@ import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {labelSeriesForLegend} from 'sentry/views/dashboards/utils/labelSeriesForLegend';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -212,10 +213,14 @@ export function useSpansSeriesQuery(
 
       rawData[requestIndex] = responseData;
 
-      const transformedResult = SpansConfig.transformSeries!(
-        responseData,
+      const transformedResult = labelSeriesForLegend(
+        SpansConfig.transformSeries!(
+          responseData,
+          filteredWidget.queries[requestIndex]!,
+          organization
+        ),
         filteredWidget.queries[requestIndex]!,
-        organization
+        filteredWidget
       );
 
       // Maintain color consistency

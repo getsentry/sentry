@@ -5,6 +5,7 @@ import {
   transformLegacySeriesToTimeSeries,
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {prettifyQueryConditions} from 'sentry/views/dashboards/utils/labelSeriesForLegend';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 
@@ -18,6 +19,9 @@ interface TransformedSeries {
 /**
  * Transforms a legacy echarts Series into a TimeSeries using the widget's
  * query configuration, and computes a display label that matches the chart legend.
+ *
+ * Expects that multi-query series names are already prefixed with the query
+ * alias or conditions by {@link labelSeriesForLegend} in the widget query hooks.
  */
 export function transformWidgetSeriesToTimeSeries(
   series: Series,
@@ -42,9 +46,15 @@ export function transformWidgetSeriesToTimeSeries(
     aggregates[0] ??
     '';
 
-  const widgetQuery =
-    widget.queries.find(({name}) => name && splitSeriesName.includes(name)) ?? firstQuery;
-  const queryName = widgetQuery?.name || undefined;
+  // For multi-query widgets, the first non-aggregate part of the series name
+  // is the query identifier (alias or prettified conditions, added upstream
+  // by transformEventsResponseToSeries or labelSeriesForLegend).
+  const queryName =
+    widget.queries.length > 1
+      ? splitSeriesName.find(part => !aggregates.includes(part))
+      : undefined;
+
+  const widgetQuery = resolveWidgetQuery(firstQuery, widget, queryName);
 
   const timeSeries = transformLegacySeriesToTimeSeries(
     series,
@@ -68,7 +78,7 @@ export function transformWidgetSeriesToTimeSeries(
 
   const labelParts = [queryName, fieldAlias ?? formatTimeSeriesLabel(timeSeries)];
   // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
-  if (aggregates.length > 1 && columns.length > 1) {
+  if (aggregates.length > 1 && columns.length > 0) {
     labelParts.push(timeSeries.yAxis);
   }
 
@@ -77,4 +87,26 @@ export function transformWidgetSeriesToTimeSeries(
     .join(SERIES_NAME_PART_DELIMITER);
 
   return {timeSeries, label, seriesName, widgetQuery};
+}
+
+/**
+ * Resolves which widget query a series belongs to by matching the extracted
+ * query name against query aliases and prettified conditions.
+ */
+function resolveWidgetQuery(
+  firstQuery: WidgetQuery,
+  widget: Widget,
+  queryName?: string
+): WidgetQuery {
+  if (!queryName || widget.queries.length <= 1) {
+    return firstQuery;
+  }
+
+  return (
+    widget.queries.find(
+      q =>
+        q.name === queryName ||
+        (!q.name && prettifyQueryConditions(q.conditions) === queryName)
+    ) ?? firstQuery
+  );
 }
