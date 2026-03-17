@@ -941,10 +941,10 @@ describe('constructAddQueryToDashboardLink', () => {
         axisRange: 'auto',
       });
     });
-    it('should preserve group by columns for logs widgets', () => {
+    it('should preserve group by columns and display type for logs widgets', () => {
       const eventView = new EventView({
         ...baseView,
-        display: DisplayType.BAR,
+        display: DisplayType.AREA,
         name: 'logs query',
         fields: [
           {field: 'sentry.severity_text'},
@@ -970,7 +970,7 @@ describe('constructAddQueryToDashboardLink', () => {
         field: ['sentry.severity_text', 'sentry.service'],
         title: 'logs query',
         dataset: WidgetType.LOGS,
-        displayType: DisplayType.BAR,
+        displayType: DisplayType.AREA,
         yAxis: ['count()'],
         limit: undefined,
         source: DashboardWidgetSource.LOGS,

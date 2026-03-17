@@ -843,7 +843,9 @@ export function constructAddQueryToDashboardLink({
   yAxis?: string | string[];
 }) {
   const displayType =
-    widgetType === WidgetType.SPANS
+    widgetType === WidgetType.SPANS ||
+    widgetType === WidgetType.LOGS ||
+    widgetType === WidgetType.TRACEMETRICS
       ? (eventView.display as DisplayType)
       : displayModeToDisplayType(eventView.display as DisplayModes);
   const defaultWidgetQuery = eventViewToWidgetQuery({
