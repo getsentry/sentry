@@ -44,7 +44,7 @@ class _AsyncRegionDispatcher(ABC):
         return f"{self.log_code}.{tag}"
 
     def dispatch(self, region_names: Iterable[str]) -> Response | None:
-        results = [self._dispatch_to_region(name) for name in region_names]
+        results = [self._dispatch_to_cell(name) for name in region_names]
         successes = [r for r in results if r.was_successful()]
 
         logger.info(
@@ -66,8 +66,8 @@ class _AsyncRegionDispatcher(ABC):
     def unpack_payload(self, response: Response) -> Any:
         raise NotImplementedError
 
-    def _dispatch_to_region(self, region_name: str) -> _AsyncResult:
-        cell = get_cell_by_name(region_name)
+    def _dispatch_to_cell(self, cell_name: str) -> _AsyncResult:
+        cell = get_cell_by_name(cell_name)
         client = CellSiloClient(cell=cell)
         response = client.request(
             method=self.request_payload["method"],
@@ -95,8 +95,8 @@ class _AsyncRegionDispatcher(ABC):
                 "integration.async_integration_response",
                 extra={
                     "path": self.request_payload["path"],
-                    "region": result.region.name,
-                    "region_status_code": result.response.status_code,
+                    "cell": result.region.name,
+                    "cell_status_code": result.response.status_code,
                     "integration_status_code": integration_response.status_code,
                 },
             )
