@@ -417,27 +417,23 @@ def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
     raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
-def resolve_repository_ids(organization_id: int, preferences: list[dict]) -> None:
-    """Resolve missing repository_id fields on preference dicts in-place using a single bulk query."""
-    repos_to_resolve: list[dict] = []
+def resolve_repository_ids(
+    organization_id: int, preferences: list[SeerProjectPreference]
+) -> list[SeerProjectPreference]:
+    """Return a new list of preferences with missing repository_id fields resolved via a single bulk query."""
     external_ids: set[str] = set()
     providers: set[str] = set()
     for pref in preferences:
-        for repo in pref.get("repositories", []):
-            external_id = repo["external_id"]
-            provider = repo["provider"]
-
-            # We can't resolve repos with None providers or external IDs.
-            if repo.get("repository_id") is not None or not external_id or not provider:
+        for repo in pref.repositories:
+            if repo.repository_id is not None or not repo.external_id or not repo.provider:
                 continue
 
-            repos_to_resolve.append(repo)
-            external_ids.add(external_id)
-            providers.add(provider)
-            providers.add(f"integrations:{provider}")
+            external_ids.add(repo.external_id)
+            providers.add(repo.provider)
+            providers.add(f"integrations:{repo.provider}")
 
-    if not repos_to_resolve:
-        return
+    if not external_ids:
+        return preferences
 
     resolved_ids: dict[tuple[str, str], int] = {}
     for db_repo in Repository.objects.filter(
@@ -450,12 +446,20 @@ def resolve_repository_ids(organization_id: int, preferences: list[dict]) -> Non
             (str(db_repo["external_id"]), str(db_repo["provider"]).removeprefix("integrations:"))
         ] = db_repo["id"]
 
-    for repo in repos_to_resolve:
+    def _resolve_repo(repo: SeerRepoDefinition) -> SeerRepoDefinition:
+        if repo.repository_id is not None or not repo.external_id or not repo.provider:
+            return repo
         resolved_id = resolved_ids.get(
-            (repo["external_id"], str(repo["provider"]).removeprefix("integrations:"))
+            (repo.external_id, repo.provider.removeprefix("integrations:"))
         )
         if resolved_id is not None:
-            repo["repository_id"] = resolved_id
+            return repo.copy(update={"repository_id": resolved_id})
+        return repo
+
+    return [
+        pref.copy(update={"repositories": [_resolve_repo(r) for r in pref.repositories]})
+        for pref in preferences
+    ]
 
 
 def _write_preference_project_options(project: Project, preference: SeerProjectPreference) -> None:

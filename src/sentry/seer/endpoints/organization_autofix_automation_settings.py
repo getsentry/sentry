@@ -355,12 +355,13 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 # Seer API responses don't include repository_id.
                 # Resolve before dual-writing so repos aren't skipped.
                 # This will not be necessary once we cut over reads from Seer API to Sentry DB.
-                resolve_repository_ids(organization.id, preferences_to_set)
-
                 validated_preferences = [
                     SeerProjectPreference.validate(pref) for pref in preferences_to_set
                 ]
-                bulk_write_preferences_to_sentry_db(projects, validated_preferences)
+                resolved_preferences = resolve_repository_ids(
+                    organization.id, validated_preferences
+                )
+                bulk_write_preferences_to_sentry_db(projects, resolved_preferences)
             except Exception:
                 logger.exception(
                     "seer.write_preferences.failed",

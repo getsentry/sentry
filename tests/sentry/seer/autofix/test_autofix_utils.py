@@ -691,22 +691,20 @@ class TestResolveRepositoryIds(TestCase):
 
     def test_resolves_repository_id(self):
         preferences = [
-            {
-                "project_id": self.project.id,
-                "repositories": [
-                    {
-                        "provider": "github",
-                        "external_id": "ext123",
-                        "owner": "test-org",
-                        "name": "test-repo",
-                    }
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github", external_id="ext123", owner="test-org", name="test-repo"
+                    )
                 ],
-            }
+            )
         ]
 
-        resolve_repository_ids(self.organization.id, preferences)
+        result = resolve_repository_ids(self.organization.id, preferences)
 
-        assert preferences[0]["repositories"][0]["repository_id"] == self.repo.id
+        assert result[0].repositories[0].repository_id == self.repo.id
 
     def test_skips_unresolvable_repos(self):
         """Repos with empty provider, empty external_id, existing repository_id, or inactive status are skipped."""
@@ -722,52 +720,44 @@ class TestResolveRepositoryIds(TestCase):
         inactive_repo.save()
 
         preferences = [
-            {
-                "project_id": self.project.id,
-                "repositories": [
-                    {
-                        "provider": "",
-                        "external_id": "ext123",
-                        "owner": "test-org",
-                        "name": "test-repo",
-                    },
-                    {
-                        "provider": "github",
-                        "external_id": "",
-                        "owner": "test-org",
-                        "name": "test-repo",
-                    },
-                    {
-                        "provider": "github",
-                        "external_id": "ext123",
-                        "owner": "test-org",
-                        "name": "test-repo",
-                        "repository_id": 999,
-                    },
-                    {
-                        "provider": "github",
-                        "external_id": "ext_inactive",
-                        "owner": "test-org",
-                        "name": "inactive-repo",
-                    },
-                    {
-                        "provider": "github",
-                        "external_id": "nonexistent",
-                        "owner": "test-org",
-                        "name": "nope",
-                    },
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="", external_id="ext123", owner="test-org", name="test-repo"
+                    ),
+                    SeerRepoDefinition(
+                        provider="github", external_id="", owner="test-org", name="test-repo"
+                    ),
+                    SeerRepoDefinition(
+                        provider="github",
+                        external_id="ext123",
+                        owner="test-org",
+                        name="test-repo",
+                        repository_id=999,
+                    ),
+                    SeerRepoDefinition(
+                        provider="github",
+                        external_id="ext_inactive",
+                        owner="test-org",
+                        name="inactive-repo",
+                    ),
+                    SeerRepoDefinition(
+                        provider="github", external_id="nonexistent", owner="test-org", name="nope"
+                    ),
                 ],
-            }
+            )
         ]
 
-        resolve_repository_ids(self.organization.id, preferences)
+        result = resolve_repository_ids(self.organization.id, preferences)
 
-        repos = preferences[0]["repositories"]
-        assert "repository_id" not in repos[0]  # empty provider
-        assert "repository_id" not in repos[1]  # empty external_id
-        assert repos[2]["repository_id"] == 999  # existing id preserved
-        assert "repository_id" not in repos[3]  # inactive repo
-        assert "repository_id" not in repos[4]  # nonexistent external_id
+        repos = result[0].repositories
+        assert repos[0].repository_id is None  # empty provider
+        assert repos[1].repository_id is None  # empty external_id
+        assert repos[2].repository_id == 999  # existing id preserved
+        assert repos[3].repository_id is None  # inactive repo
+        assert repos[4].repository_id is None  # nonexistent external_id
 
     def test_resolves_multiple_repos_across_preferences(self):
         repo2 = self.create_repo(
@@ -778,34 +768,30 @@ class TestResolveRepositoryIds(TestCase):
         )
 
         preferences = [
-            {
-                "project_id": self.project.id,
-                "repositories": [
-                    {
-                        "provider": "github",
-                        "external_id": "ext123",
-                        "owner": "test-org",
-                        "name": "test-repo",
-                    },
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github", external_id="ext123", owner="test-org", name="test-repo"
+                    ),
                 ],
-            },
-            {
-                "project_id": self.project.id,
-                "repositories": [
-                    {
-                        "provider": "github",
-                        "external_id": "ext456",
-                        "owner": "test-org",
-                        "name": "other-repo",
-                    },
+            ),
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github", external_id="ext456", owner="test-org", name="other-repo"
+                    ),
                 ],
-            },
+            ),
         ]
 
-        resolve_repository_ids(self.organization.id, preferences)
+        result = resolve_repository_ids(self.organization.id, preferences)
 
-        assert preferences[0]["repositories"][0]["repository_id"] == self.repo.id
-        assert preferences[1]["repositories"][0]["repository_id"] == repo2.id
+        assert result[0].repositories[0].repository_id == self.repo.id
+        assert result[1].repositories[0].repository_id == repo2.id
 
 
 class TestWritePreferencesToSentryDb(TestCase):
