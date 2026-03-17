@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PreventQueryParamsProvider} from 'sentry/components/prevent/container/preventParamsProvider';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import TestsPage from 'sentry/views/prevent/tests/tests';
 

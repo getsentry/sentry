@@ -6,7 +6,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PreventQueryParamsProvider} from 'sentry/components/prevent/container/preventParamsProvider';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 import RepoTokenTable from './repoTokenTable';
 
