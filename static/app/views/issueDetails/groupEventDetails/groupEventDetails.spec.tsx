@@ -207,21 +207,43 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/trace/${TRACE_ID}/`,
-    body: [],
-  });
-
-  MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-trace/${TRACE_ID}/`,
-    body: trace
-      ? {transactions: [trace], orphan_errors: []}
-      : {transactions: [], orphan_errors: []},
-  });
-
-  MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-trace-light/${TRACE_ID}/`,
-    body: trace
-      ? {transactions: [trace], orphan_errors: []}
-      : {transactions: [], orphan_errors: []},
+    body: trace?.performance_issues?.length
+      ? [
+          {
+            event_id: trace.event_id ?? '',
+            event_type: 'span',
+            op: trace['transaction.op'] ?? 'navigation',
+            name: trace.transaction ?? '',
+            transaction: trace.transaction ?? '',
+            start_timestamp: trace.start_timestamp ?? 0,
+            end_timestamp: trace.timestamp ?? 0,
+            is_transaction: true,
+            project_id: trace.project_id ?? parseInt(project.id, 10),
+            project_slug: trace.project_slug ?? project.slug,
+            parent_span_id: null,
+            children: [],
+            errors: [],
+            duration: (trace.timestamp ?? 0) - (trace.start_timestamp ?? 0),
+            profile_id: '',
+            profiler_id: '',
+            sdk_name: '',
+            occurrences: trace.performance_issues.map(issue => ({
+              event_id: issue.event_id,
+              event_type: 'occurrence',
+              issue_id: issue.issue_id,
+              issue_type: issue.type,
+              description: issue.title,
+              culprit: issue.culprit,
+              project_id: issue.project_id,
+              project_slug: issue.project_slug,
+              level: issue.level,
+              start_timestamp: issue.start,
+              transaction: trace.transaction ?? '',
+              short_id: issue.issue_short_id,
+            })),
+          },
+        ]
+      : [],
   });
 
   MockApiClient.addMockResponse({
