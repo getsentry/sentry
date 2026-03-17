@@ -83,7 +83,7 @@ def find_commit_context_for_event_all_frames(
         extra=extra,
     )
 
-    if organization_id in options.get("demo-org-ids") and file_blames:
+    if organization_id in options.get("demo-mode.orgs") and file_blames:
         selected_blame = max(file_blames, key=lambda blame: blame.commit.committedDate)
         has_too_old_blames = False
         has_too_recent_blames = False
