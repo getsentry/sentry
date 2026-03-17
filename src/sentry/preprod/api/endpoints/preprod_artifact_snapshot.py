@@ -198,6 +198,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         image_list = [
             SnapshotImageResponse(
+                **{
+                    k: v
+                    for k, v in metadata.extras().items()
+                    if k not in SnapshotImageResponse.__fields__
+                },
                 key=key,
                 display_name=metadata.display_name,
                 image_file_name=metadata.image_file_name,

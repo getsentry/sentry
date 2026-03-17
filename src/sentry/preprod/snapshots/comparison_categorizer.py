@@ -39,6 +39,7 @@ def _build_base_images(
     result: dict[str, SnapshotImageResponse] = {}
     for key, meta in base_images.items():
         result[meta.image_file_name] = SnapshotImageResponse(
+            **{k: v for k, v in meta.extras().items() if k not in SnapshotImageResponse.__fields__},
             key=key,
             display_name=meta.display_name,
             image_file_name=meta.image_file_name,
