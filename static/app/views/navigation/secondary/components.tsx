@@ -2,7 +2,6 @@ import {
   createContext,
   Fragment,
   useContext,
-  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -669,12 +668,6 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   const groupRef = useRef<HTMLElement>(null);
   const [items, setItems] = useState<T[]>(props.items);
   const orderedItemsRef = useRef<T[]>(props.items);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-    setItems(props.items);
-    orderedItemsRef.current = props.items;
-  }, [props.items]);
 
   return (
     <ReorderableGroupList

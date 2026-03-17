@@ -27,7 +27,7 @@ export function IssueViews() {
   const organization = useOrganization();
   const {viewId} = useParams<{orgId?: string; viewId?: string}>();
 
-  const {starredViews: views} = useStarredIssueViews();
+  const {starredViews: views, setStarredIssueViews: setViews} = useStarredIssueViews();
 
   const {mutate: updateStarredViewsOrder} = useUpdateGroupSearchViewStarredOrder();
 
@@ -42,6 +42,7 @@ export function IssueViews() {
         <SecondaryNavigation.ReorderableList
           items={views}
           onDragEnd={newViews => {
+            setViews(newViews);
             updateStarredViewsOrder({
               orgSlug: organization.slug,
               viewIds: newViews.map(view => parseInt(view.id, 10)),
