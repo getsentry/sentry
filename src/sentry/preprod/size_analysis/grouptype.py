@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _artifact_to_tags(artifact: PreprodArtifact) -> dict[str, str]:
+def _artifact_to_tags(artifact: PreprodArtifact, *, include_git: bool = True) -> dict[str, str]:
     from sentry.preprod.models import PreprodArtifact as PreprodArtifactModel
 
     tags: dict[str, str] = {}
@@ -58,17 +58,20 @@ def _artifact_to_tags(artifact: PreprodArtifact) -> dict[str, str]:
 
     tags["artifact_id"] = str(artifact.id)
 
-    commit_comparison = artifact.commit_comparison
+    commit_comparison = artifact.commit_comparison if include_git else None
     if commit_comparison is not None:
-        tags["sha"] = commit_comparison.head_sha
-        tags["branch"] = commit_comparison.head_ref
-        tags["repo"] = commit_comparison.head_repo_name
+        if commit_comparison.head_sha:
+            tags["sha"] = commit_comparison.head_sha
+        if commit_comparison.head_ref:
+            tags["branch"] = commit_comparison.head_ref
+        if commit_comparison.pr_number is not None:
+            tags["pr_number"] = str(commit_comparison.pr_number)
+        if commit_comparison.head_repo_name:
+            tags["repo"] = commit_comparison.head_repo_name
         if commit_comparison.base_sha:
             tags["base_sha"] = commit_comparison.base_sha
         if commit_comparison.base_ref:
             tags["base_branch"] = commit_comparison.base_ref
-        if commit_comparison.pr_number is not None:
-            tags["pr_number"] = str(commit_comparison.pr_number)
 
     return tags
 
@@ -243,7 +246,9 @@ class PreprodSizeAnalysisDetectorHandler(
             tags["regression_kind"] = measurement.replace("_size", "")
             for key, value in _artifact_to_tags(metadata["head_artifact"]).items():
                 tags[f"head.{key}"] = value
-            for key, value in _artifact_to_tags(metadata["base_artifact"]).items():
+            for key, value in _artifact_to_tags(
+                metadata["base_artifact"], include_git=False
+            ).items():
                 tags[f"base.{key}"] = value
 
         occurrence = DetectorOccurrence(
