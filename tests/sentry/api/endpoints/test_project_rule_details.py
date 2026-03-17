@@ -696,6 +696,23 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     def test_no_owner(self) -> None:
         conditions = [{"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}]
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+
+        # first set it up so that it does have an owner
+        payload = {
+            "name": "hello world",
+            "owner": f"user:{self.user.id}",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": conditions,
+        }
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        assert response.data["owner"] == f"user:{self.user.id}"
+
         payload = {
             "name": "hello world",
             "owner": None,
@@ -708,6 +725,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
         assert response.data["id"] == str(self.rule.id)
+        assert response.data["owner"] is None
         assert_rule_from_payload(self.rule, payload)
 
         with self.feature("organizations:workflow-engine-rule-serializers"):
