@@ -65,7 +65,7 @@ class OAuthDeviceView(AuthLoginView):
     or deny the authorization request.
 
     Flow:
-    1. GET /oauth/device - Show form to enter user_code (or with ?user_code=XXX)
+    1. GET /oauth/device - Show form to enter user_code (or prefilled with ?user_code=XXX)
     2. POST /oauth/device - Verify code and show approval form
     3. POST /oauth/device (op=approve/deny) - Complete verification
 
@@ -83,9 +83,16 @@ class OAuthDeviceView(AuthLoginView):
 
     def _error_response(self, request: HttpRequest, error: str) -> HttpResponseBase:
         """Return an error response on the device code entry page."""
+        return self._entry_form_response(request, error=error)
+
+    def _entry_form_response(
+        self, request: HttpRequest, *, error: str | None = None, user_code: str = ""
+    ) -> HttpResponseBase:
+        """Render the device code entry form with an optional prefilled code."""
         context = self.get_default_context(request) | {
             "user": request.user,
             "error": error,
+            "user_code": user_code,
         }
         return self.respond("sentry/oauth-device.html", context)
 
@@ -138,7 +145,8 @@ class OAuthDeviceView(AuthLoginView):
         return device_code, None
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
-        # Check if user_code was provided in query string (verification_uri_complete)
+        # Treat user_code in the query string as a prefill hint from verification_uri_complete.
+        # Validation only happens on POST after the user explicitly submits the form.
         user_code = request.GET.get("user_code", "").upper().strip()
 
         if not request.user.is_authenticated:
@@ -147,20 +155,8 @@ class OAuthDeviceView(AuthLoginView):
                 request.session["device_user_code"] = user_code
             return super().get(request, **kwargs)
 
-        # If we have a user_code, try to look it up and show the approval form
-        if user_code:
-            return self._show_approval_form(request, user_code)
-
-        # Check if we stored a user_code in session during login
         stored_code = request.session.pop("device_user_code", None)
-        if stored_code:
-            return self._show_approval_form(request, stored_code)
-
-        # Otherwise, show the user_code entry form
-        context = self.get_default_context(request) | {
-            "user": request.user,
-        }
-        return self.respond("sentry/oauth-device.html", context)
+        return self._entry_form_response(request, user_code=user_code or stored_code or "")
 
     def _show_approval_form(self, request: HttpRequest, user_code: str) -> HttpResponseBase:
         """Show the approval form for a valid user code."""
