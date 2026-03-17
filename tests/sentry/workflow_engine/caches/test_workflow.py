@@ -313,7 +313,7 @@ class TestQueryWorkflowsByDetectorIds(TestCase):
         self.create_detector_workflow(detector=self.detector2, workflow=self.workflow2)
 
     def test_single_detector(self) -> None:
-        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment)
+        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment.id)
 
         # Env-specific workflow should be in env_workflows, global should be empty
         assert result.global_workflows.mapping == {self.detector1.id: set()}
@@ -321,7 +321,7 @@ class TestQueryWorkflowsByDetectorIds(TestCase):
 
     def test_multiple_detectors(self) -> None:
         result = _query_workflows_by_detector_ids(
-            [self.detector1.id, self.detector2.id], self.environment
+            [self.detector1.id, self.detector2.id], self.environment.id
         )
 
         assert result.global_workflows.mapping == {
@@ -348,7 +348,7 @@ class TestQueryWorkflowsByDetectorIds(TestCase):
         workflow_no_env = self.create_workflow()
         self.create_detector_workflow(detector=self.detector1, workflow=workflow_no_env)
 
-        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment)
+        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment.id)
 
         # Global workflow should be in global_workflows
         assert workflow_no_env in result.global_workflows.mapping.get(self.detector1.id, set())
@@ -362,20 +362,20 @@ class TestQueryWorkflowsByDetectorIds(TestCase):
         self.workflow1.enabled = False
         self.workflow1.save()
 
-        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment)
+        result = _query_workflows_by_detector_ids([self.detector1.id], self.environment.id)
 
         assert result.global_workflows.mapping == {self.detector1.id: set()}
         assert result.env_workflows.mapping == {self.detector1.id: set()}
 
     def test_empty_detector_ids(self) -> None:
-        result = _query_workflows_by_detector_ids([], self.environment)
+        result = _query_workflows_by_detector_ids([], self.environment.id)
 
         assert result.global_workflows.mapping == {}
         assert result.env_workflows.mapping == {}
 
     def test_all_workflows_helper(self) -> None:
         result = _query_workflows_by_detector_ids(
-            [self.detector1.id, self.detector2.id], self.environment
+            [self.detector1.id, self.detector2.id], self.environment.id
         )
 
         # all_workflows should combine both global and env workflows

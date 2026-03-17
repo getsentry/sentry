@@ -2266,6 +2266,11 @@ class Factories:
             name = petname.generate(2, " ", letters=10).title()
         if config is None:
             config = {}
+        # Convert environment object to environment_id
+        if "environment" in kwargs:
+            env = kwargs.pop("environment")
+            if env is not None:
+                kwargs["environment_id"] = env.id
         return Workflow.objects.create(
             organization=organization, name=name, config=config, **kwargs
         )
