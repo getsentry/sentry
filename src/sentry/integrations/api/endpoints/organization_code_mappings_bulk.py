@@ -120,15 +120,23 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         if not repo_info:
             return None, None  # Repo doesn't exist on provider, fall through to 404
 
-        repo, _ = Repository.objects.get_or_create(
-            name=repo_name,
-            organization_id=organization.id,
-            provider=repo_provider,
-            defaults={
-                "integration_id": org_int.integration_id,
-            },
-        )
-        return repo, None
+        try:
+            return Repository.objects.create(
+                name=repo_name,
+                organization_id=organization.id,
+                provider=repo_provider,
+                integration_id=org_int.integration_id,
+                external_id=repo_info.get("identifier", ""),
+            ), None
+        except IntegrityError:
+            # Race condition — repo was created between our lookup and now
+            existing = Repository.objects.filter(
+                name=repo_name,
+                organization_id=organization.id,
+                provider=repo_provider,
+                status=ObjectStatus.ACTIVE,
+            ).first()
+            return existing, None
 
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = BulkCodeMappingsRequestSerializer(data=request.data)
