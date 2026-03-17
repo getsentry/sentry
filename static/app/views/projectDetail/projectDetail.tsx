@@ -10,7 +10,7 @@ import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import CreateAlertButton from 'sentry/components/createAlertButton';
+import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';

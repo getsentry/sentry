@@ -8,7 +8,7 @@ import {Select} from '@sentry/scraps/select';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';

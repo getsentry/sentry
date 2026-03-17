@@ -1,4 +1,4 @@
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 type FetchStarredGroupSearchViewsParameters = {

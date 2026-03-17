@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {
   CardContainer,
   EventFeatureFlagDrawer,

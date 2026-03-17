@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import Confirm, {openConfirmModal} from 'sentry/components/confirm';
+import {Confirm, openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

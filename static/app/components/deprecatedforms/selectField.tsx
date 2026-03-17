@@ -6,7 +6,7 @@ import {withFormContext} from 'sentry/components/deprecatedforms/withFormContext
 import {defined} from 'sentry/utils';
 
 import {StyledForm} from './form';
-import FormField, {type FormFieldProps} from './formField';
+import {FormField, type FormFieldProps} from './formField';
 
 // Combined interface for SelectField props
 export interface SelectFieldProps extends FormFieldProps {

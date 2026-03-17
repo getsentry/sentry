@@ -4,9 +4,9 @@ import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
 import {withApi} from 'sentry/utils/withApi';
 
 type Props = {

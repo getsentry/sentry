@@ -5,8 +5,9 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {t, tct} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

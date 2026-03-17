@@ -4,8 +4,9 @@ import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

@@ -13,7 +13,7 @@ import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 
-import RequestError from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';

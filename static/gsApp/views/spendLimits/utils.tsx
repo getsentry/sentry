@@ -19,7 +19,7 @@ import {
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function parseOnDemandBudgetsFromSubscription(
   subscription: Subscription

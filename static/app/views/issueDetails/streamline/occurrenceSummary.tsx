@@ -6,7 +6,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {DowntimeDuration} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Event, EventEvidenceDisplay} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

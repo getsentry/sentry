@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {useApi} from 'sentry/utils/useApi';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 

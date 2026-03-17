@@ -3,9 +3,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
