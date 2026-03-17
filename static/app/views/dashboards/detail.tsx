@@ -801,6 +801,8 @@ class DashboardDetail extends Component<Props, State> {
       };
     }
 
+    this.cleanupWidgetBuilderSessionStorage();
+
     navigate(
       getDashboardLocation({
         organization,
@@ -812,8 +814,6 @@ class DashboardDetail extends Component<Props, State> {
         state: navigationState,
       }
     );
-
-    this.cleanupWidgetBuilderSessionStorage();
   };
 
   handleChangeWidgetBuilderView = (openWidgetTemplates: boolean) => {
