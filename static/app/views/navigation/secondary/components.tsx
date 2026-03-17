@@ -624,12 +624,7 @@ interface ReorderableListItemProps<T> {
   onDragEnd: () => void;
 }
 
-function ReorderableListItem<T>({
-  item,
-  groupRef,
-  children,
-  onDragEnd: onDragEndProp,
-}: ReorderableListItemProps<T>) {
+function ReorderableListItem<T>(props: ReorderableListItemProps<T>) {
   const controls = useDragControls();
   const [grabbing, setGrabbing] = useState(false);
   const {setInteraction} = useSecondaryNavigation();
@@ -638,10 +633,11 @@ function ReorderableListItem<T>({
     <ReorderableItemContext.Provider value={{controls, grabbing}}>
       <ReorderableItemContainer
         grabbing={grabbing}
-        value={item}
+        value={props.item}
+        layout="position"
         dragListener={false}
         dragControls={controls}
-        dragConstraints={groupRef}
+        dragConstraints={props.groupRef}
         dragElastic={0.03}
         dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
         style={grabbing ? {} : {originY: '0px'}}
@@ -652,10 +648,10 @@ function ReorderableListItem<T>({
         onDragEnd={() => {
           setGrabbing(false);
           setInteraction(null);
-          onDragEndProp();
+          props.onDragEnd();
         }}
       >
-        {children}
+        {props.children}
       </ReorderableItemContainer>
     </ReorderableItemContext.Provider>
   );
@@ -667,25 +663,23 @@ interface SecondaryNavigationReorderableListProps<T extends {id: string | number
   onDragEnd: (items: T[]) => void;
 }
 
-function SecondaryNavigationReorderableList<T extends {id: string | number}>({
-  items: externalItems,
-  onDragEnd,
-  children,
-}: SecondaryNavigationReorderableListProps<T>) {
+function SecondaryNavigationReorderableList<T extends {id: string | number}>(
+  props: SecondaryNavigationReorderableListProps<T>
+) {
   const groupRef = useRef<HTMLElement>(null);
-  const [items, setItems] = useState<T[]>(externalItems);
-  const orderedItemsRef = useRef<T[]>(externalItems);
+  const [items, setItems] = useState<T[]>(props.items);
+  const orderedItemsRef = useRef<T[]>(props.items);
 
   useEffect(() => {
     // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-    setItems(externalItems);
-    orderedItemsRef.current = externalItems;
-  }, [externalItems]);
+    setItems(props.items);
+    orderedItemsRef.current = props.items;
+  }, [props.items]);
 
   return (
     <ReorderableGroupList
-      ref={groupRef}
       axis="y"
+      ref={groupRef}
       values={items}
       onReorder={newOrder => {
         orderedItemsRef.current = newOrder;
@@ -698,9 +692,9 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>({
           key={item.id}
           item={item}
           groupRef={groupRef}
-          onDragEnd={() => onDragEnd(orderedItemsRef.current)}
+          onDragEnd={() => props.onDragEnd(orderedItemsRef.current)}
         >
-          {children(item)}
+          {props.children(item)}
         </ReorderableListItem>
       ))}
     </ReorderableGroupList>
@@ -714,20 +708,21 @@ interface SecondaryNavigationReorderableLinkProps extends Omit<
   icon: ReactNode;
 }
 
-function SecondaryNavigationReorderableLink({
-  icon,
-  onClick,
-  ...linkProps
-}: SecondaryNavigationReorderableLinkProps) {
+function SecondaryNavigationReorderableLink(
+  props: SecondaryNavigationReorderableLinkProps
+) {
   const {interaction} = useSecondaryNavigation();
 
+  const {icon, onClick, ...linkProps} = props;
   return (
     <StyledReorderableNavigationLink
       {...linkProps}
       leadingItems={
         <Flex justify="center" align="center" position="relative">
           <GrabHandle />
-          {icon}
+          <Flex justify="center" align="center" data-reorderable-handle-slot>
+            {icon}
+          </Flex>
         </Flex>
       }
       onPointerDown={e => {
@@ -771,12 +766,10 @@ function GrabHandle(props: FlexProps<'div'>) {
 }
 
 interface SecondaryNavigationIndicatorProps {
-  variant?: 'accent' | 'danger' | 'warning';
+  variant: 'accent' | 'danger' | 'warning';
 }
 
-function SecondaryNavigationIndicator({
-  variant = 'accent',
-}: SecondaryNavigationIndicatorProps) {
+function SecondaryNavigationIndicator(props: SecondaryNavigationIndicatorProps) {
   return (
     <Container
       position="absolute"
@@ -786,7 +779,7 @@ function SecondaryNavigationIndicator({
       height="10px"
       radius="full"
     >
-      {p => <DotIndicator {...p} variant={variant} />}
+      {p => <DotIndicator {...p} variant={props.variant} />}
     </Container>
   );
 }
@@ -834,7 +827,7 @@ const StyledReorderableNavigationLink = styled(SecondaryNavigationLink)`
   }
 
   :hover {
-    [data-project-icon] {
+    [data-reorderable-handle-slot] {
       ${p => p.theme.visuallyHidden}
     }
   }
