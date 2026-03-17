@@ -26,7 +26,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install codeowners-coverage
-        run: pip install codeowners-coverage==0.2.0
+        run: pip install codeowners-coverage==0.2.1
 
       - name: Run CODEOWNERS coverage check
         run: codeowners-coverage check
