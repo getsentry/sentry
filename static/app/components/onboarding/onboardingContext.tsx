@@ -9,18 +9,18 @@ type OnboardingContextProps = {
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
   setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
-  setSelectedRepositories: (repos?: Repository[]) => void;
+  setSelectedRepository: (repo?: Repository) => void;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
-  selectedRepositories?: Repository[];
+  selectedRepository?: Repository;
 };
 
 type OnboardingSessionState = {
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
-  selectedRepositories?: Repository[];
+  selectedRepository?: Repository;
 };
 
 /**
@@ -31,8 +31,8 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setSelectedPlatform: () => {},
   selectedIntegration: undefined,
   setSelectedIntegration: () => {},
-  selectedRepositories: undefined,
-  setSelectedRepositories: () => {},
+  selectedRepository: undefined,
+  setSelectedRepository: () => {},
   selectedFeatures: undefined,
   setSelectedFeatures: () => {},
 });
@@ -66,7 +66,7 @@ export function OnboardingContextProvider({children, value}: ProviderProps) {
           };
           const hasOtherState =
             nextState.selectedIntegration ||
-            nextState.selectedRepositories ||
+            nextState.selectedRepository ||
             nextState.selectedFeatures;
           if (hasOtherState) {
             setOnboarding(nextState);
@@ -81,9 +81,9 @@ export function OnboardingContextProvider({children, value}: ProviderProps) {
       setSelectedIntegration: (selectedIntegration?: Integration) => {
         setOnboarding({...onboarding, selectedIntegration});
       },
-      selectedRepositories: onboarding?.selectedRepositories,
-      setSelectedRepositories: (selectedRepositories?: Repository[]) => {
-        setOnboarding({...onboarding, selectedRepositories});
+      selectedRepository: onboarding?.selectedRepository,
+      setSelectedRepository: (selectedRepository?: Repository) => {
+        setOnboarding({...onboarding, selectedRepository});
       },
       selectedFeatures: onboarding?.selectedFeatures,
       setSelectedFeatures: (selectedFeatures?: ProductSolution[]) => {

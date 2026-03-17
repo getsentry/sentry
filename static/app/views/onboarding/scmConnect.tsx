@@ -20,18 +20,38 @@ import type {StepProps} from './types';
 import {useScmProviders} from './useScmProviders';
 
 /**
- * Convert context-stored Repository[] back to IntegrationRepository[] so the
- * RepoSelector can display previously selected repos on mount.
+ * Convert a context-stored Repository back to an IntegrationRepository so the
+ * RepoSelector can display the previously selected repo on mount.
  */
-function contextReposToIntegrationRepos(repos?: Repository[]): IntegrationRepository[] {
-  if (!repos) {
-    return [];
+function contextRepoToIntegrationRepo(repo?: Repository): IntegrationRepository | null {
+  if (!repo) {
+    return null;
   }
-  return repos.map(r => ({
-    identifier: r.externalSlug || r.name,
-    name: r.name,
+  return {
+    identifier: repo.externalSlug || repo.name,
+    name: repo.name,
     isInstalled: false,
-  }));
+  };
+}
+
+function integrationRepoToContextRepo(
+  repo: IntegrationRepository,
+  integration: Integration
+): Repository {
+  return {
+    id: '',
+    externalId: repo.identifier,
+    name: repo.name,
+    externalSlug: repo.identifier,
+    url: '',
+    provider: {
+      id: integration.provider.key,
+      name: integration.provider.name,
+    },
+    status: RepositoryStatus.ACTIVE,
+    dateCreated: '',
+    integrationId: integration.id,
+  };
 }
 
 export function ScmConnect({onComplete}: StepProps) {
@@ -42,8 +62,8 @@ export function ScmConnect({onComplete}: StepProps) {
   const [activeIntegration, setActiveIntegration] = useState<Integration | null>(
     () => onboardingContext.selectedIntegration ?? null
   );
-  const [selectedRepos, setSelectedRepos] = useState<IntegrationRepository[]>(() =>
-    contextReposToIntegrationRepos(onboardingContext.selectedRepositories)
+  const [selectedRepo, setSelectedRepo] = useState<IntegrationRepository | null>(() =>
+    contextRepoToIntegrationRepo(onboardingContext.selectedRepository)
   );
   const [hasAutoSelected, setHasAutoSelected] = useState(
     () => !!onboardingContext.selectedIntegration
@@ -64,7 +84,7 @@ export function ScmConnect({onComplete}: StepProps) {
   const handleInstall = useCallback(
     (data: Integration) => {
       setActiveIntegration(data);
-      setSelectedRepos([]);
+      setSelectedRepo(null);
       refetchIntegrations();
     },
     [refetchIntegrations]
@@ -72,51 +92,25 @@ export function ScmConnect({onComplete}: StepProps) {
 
   const handleDisconnect = useCallback(() => {
     setActiveIntegration(null);
-    setSelectedRepos([]);
+    setSelectedRepo(null);
   }, []);
 
   const handleSelectProvider = useCallback((installation: Integration) => {
     setActiveIntegration(installation);
-    setSelectedRepos([]);
+    setSelectedRepo(null);
   }, []);
 
   const handleContinue = useCallback(() => {
     if (activeIntegration) {
       onboardingContext.setSelectedIntegration(activeIntegration);
-      if (selectedRepos.length > 0) {
-        onboardingContext.setSelectedRepositories(
-          selectedRepos.map(repo => ({
-            id: '',
-            externalId: repo.identifier,
-            name: repo.identifier,
-            externalSlug: repo.identifier,
-            url: '',
-            provider: {
-              id: activeIntegration.provider.key,
-              name: activeIntegration.provider.name,
-            },
-            status: RepositoryStatus.ACTIVE,
-            dateCreated: '',
-            integrationId: activeIntegration.id,
-          }))
+      if (selectedRepo) {
+        onboardingContext.setSelectedRepository(
+          integrationRepoToContextRepo(selectedRepo, activeIntegration)
         );
       }
     }
     onComplete();
-  }, [activeIntegration, selectedRepos, onboardingContext, onComplete]);
-
-  const addRepo = useCallback((repo: IntegrationRepository) => {
-    setSelectedRepos(prev => {
-      if (prev.some(r => r.identifier === repo.identifier)) {
-        return prev;
-      }
-      return [...prev, repo];
-    });
-  }, []);
-
-  const removeRepo = useCallback((identifier: string) => {
-    setSelectedRepos(prev => prev.filter(r => r.identifier !== identifier));
-  }, []);
+  }, [activeIntegration, selectedRepo, onboardingContext, onComplete]);
 
   if (isPending) {
     return (
@@ -139,10 +133,9 @@ export function ScmConnect({onComplete}: StepProps) {
         {activeIntegration ? (
           <ConnectedView
             integration={activeIntegration}
-            selectedRepos={selectedRepos}
+            selectedRepo={selectedRepo}
             onDisconnect={handleDisconnect}
-            onAddRepo={addRepo}
-            onRemoveRepo={removeRepo}
+            onSelectRepo={setSelectedRepo}
           />
         ) : (
           <ProviderPills

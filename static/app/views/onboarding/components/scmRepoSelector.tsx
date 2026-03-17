@@ -20,17 +20,11 @@ interface RepoSearchResult {
 
 interface RepoSelectorProps {
   integration: Integration;
-  onAddRepo: (repo: IntegrationRepository) => void;
-  onRemoveRepo: (identifier: string) => void;
-  selectedRepos: IntegrationRepository[];
+  onSelect: (repo: IntegrationRepository | null) => void;
+  selectedRepo: IntegrationRepository | null;
 }
 
-export function RepoSelector({
-  integration,
-  selectedRepos,
-  onAddRepo,
-  onRemoveRepo,
-}: RepoSelectorProps) {
+export function RepoSelector({integration, selectedRepo, onSelect}: RepoSelectorProps) {
   const organization = useOrganization();
   const [search, setSearch] = useState<string>();
   const debouncedSearch = useDebouncedValue(search, 200);
@@ -59,21 +53,14 @@ export function RepoSelector({
 
   const searchResult = useMemo(() => query.data?.[0] ?? {repos: []}, [query.data]);
 
-  const selectedIdentifiers = useMemo(
-    () => new Set(selectedRepos.map(r => r.identifier)),
-    [selectedRepos]
-  );
-
   const dropdownItems = useMemo(() => {
     return searchResult.repos.map(repo => ({
       value: repo.identifier,
-      label: selectedIdentifiers.has(repo.identifier)
-        ? `${repo.name} (Selected)`
-        : repo.name,
+      label: repo.name,
       textValue: repo.name,
-      disabled: selectedIdentifiers.has(repo.identifier),
+      disabled: repo.identifier === selectedRepo?.identifier,
     }));
-  }, [searchResult, selectedIdentifiers]);
+  }, [searchResult, selectedRepo]);
 
   return (
     <Stack gap="md">
@@ -84,7 +71,7 @@ export function RepoSelector({
         onChange={selection => {
           const repo = searchResult.repos.find(r => r.identifier === selection.value);
           if (repo) {
-            onAddRepo(repo);
+            onSelect(repo);
           }
         }}
         value={undefined}
@@ -104,29 +91,23 @@ export function RepoSelector({
         loading={query.isFetching}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps}>
-            {selectedRepos.length > 0
-              ? t('%d selected', selectedRepos.length)
-              : t('Search repositories')}
+            {selectedRepo ? selectedRepo.name : t('Search repositories')}
           </OverlayTrigger.Button>
         )}
       />
-      {selectedRepos.length > 0 && (
-        <Stack gap="sm">
-          {selectedRepos.map(repo => (
-            <Flex key={repo.identifier} align="center" gap="sm">
-              <Flex flexGrow={1}>
-                <Text size="sm">{repo.name}</Text>
-              </Flex>
-              <Button
-                size="zero"
-                priority="link"
-                icon={<IconClose size="xs" />}
-                aria-label={t('Remove %s', repo.name)}
-                onClick={() => onRemoveRepo(repo.identifier)}
-              />
-            </Flex>
-          ))}
-        </Stack>
+      {selectedRepo && (
+        <Flex align="center" gap="sm">
+          <Flex flexGrow={1}>
+            <Text size="sm">{selectedRepo.name}</Text>
+          </Flex>
+          <Button
+            size="zero"
+            priority="link"
+            icon={<IconClose size="xs" />}
+            aria-label={t('Remove %s', selectedRepo.name)}
+            onClick={() => onSelect(null)}
+          />
+        </Flex>
       )}
     </Stack>
   );

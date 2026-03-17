@@ -69,7 +69,7 @@ describe('useConfigureSdk', () => {
     mockUseOnboardingContext.mockReturnValue({
       setSelectedPlatform: jest.fn(),
       setSelectedIntegration: jest.fn(),
-      setSelectedRepositories: jest.fn(),
+      setSelectedRepository: jest.fn(),
       setSelectedFeatures: jest.fn(),
     });
 

@@ -10,18 +10,16 @@ import {RepoSelector} from './scmRepoSelector';
 
 interface ConnectedViewProps {
   integration: Integration;
-  onAddRepo: (repo: IntegrationRepository) => void;
   onDisconnect: () => void;
-  onRemoveRepo: (identifier: string) => void;
-  selectedRepos: IntegrationRepository[];
+  onSelectRepo: (repo: IntegrationRepository | null) => void;
+  selectedRepo: IntegrationRepository | null;
 }
 
 export function ConnectedView({
   integration,
-  selectedRepos,
+  selectedRepo,
   onDisconnect,
-  onAddRepo,
-  onRemoveRepo,
+  onSelectRepo,
 }: ConnectedViewProps) {
   return (
     <Stack gap="lg">
@@ -43,9 +41,8 @@ export function ConnectedView({
       </Flex>
       <RepoSelector
         integration={integration}
-        selectedRepos={selectedRepos}
-        onAddRepo={onAddRepo}
-        onRemoveRepo={onRemoveRepo}
+        selectedRepo={selectedRepo}
+        onSelect={onSelectRepo}
       />
     </Stack>
   );
