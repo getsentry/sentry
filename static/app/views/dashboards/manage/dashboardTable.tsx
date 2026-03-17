@@ -209,14 +209,16 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.NAME) {
       return (
-        <Link
-          to={{
-            pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
-            ...queryLocation,
-          }}
-        >
-          <Text ellipsis>{dataRow[ResponseKeys.NAME]}</Text>
-        </Link>
+        <Text ellipsis underline variant="accent">
+          <Link
+            to={{
+              pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
+              ...queryLocation,
+            }}
+          >
+            {dataRow[ResponseKeys.NAME]}
+          </Link>
+        </Text>
       );
     }
 
