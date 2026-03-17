@@ -19,7 +19,7 @@ class EntrypointSetupError(Exception):
 @instrumented_task(
     name="sentry.seer.entrypoints.slack.process_mention_for_slack",
     namespace=integrations_tasks,
-    processing_deadline_duration=300,
+    processing_deadline_duration=30,
     retry=Retry(times=2, delay=30),
 )
 def process_mention_for_slack(
