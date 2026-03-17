@@ -693,7 +693,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                         .order_by("-date_started")
                         .values("id")[:1]
                     ),
-                    Value(INCIDENT_STATUS_NONE),
+                    Value(-1),
                 )
             )
 
