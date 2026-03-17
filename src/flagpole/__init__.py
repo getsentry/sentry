@@ -216,7 +216,7 @@ class Feature:
     def to_dict(self) -> dict[str, Any]:
         dict_data = dataclasses.asdict(self)
         dict_data.pop("name")
-        return {self.name: dict_data}
+        return {self.name: {k: v for k, v in dict_data.items() if v is not None}}
 
     def to_yaml_str(self) -> str:
         # Add an extra level of indentation by adding a top level dummy config.
