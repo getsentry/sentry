@@ -502,6 +502,10 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
 
     code_mappings = get_sorted_code_mapping_configs(project)
 
+    should_send_code_mappings = features.has(
+        "organizations:autofix-send-code-mappings", project.organization
+    )
+
     repos: dict[tuple, dict] = {}
     for code_mapping in code_mappings:
         repo: Repository = code_mapping.repository
@@ -509,19 +513,29 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
 
         # We expect a repository name to be in the format of "owner/name" for now.
         if len(repo_name_sections) > 1 and repo.provider:
-            repo_dict = {
-                "organization_id": repo.organization_id,
-                "integration_id": (
-                    str(repo.integration_id) if repo.integration_id is not None else None
-                ),
-                "provider": repo.provider,
-                "owner": repo_name_sections[0],
-                "name": "/".join(repo_name_sections[1:]),
-                "external_id": repo.external_id,
-            }
-            repo_key = (repo_dict["provider"], repo_dict["owner"], repo_dict["name"])
+            repo_key = (repo.provider, repo_name_sections[0], "/".join(repo_name_sections[1:]))
 
-            repos[repo_key] = repo_dict
+            if repo_key not in repos:
+                repos[repo_key] = {
+                    "organization_id": repo.organization_id,
+                    "integration_id": (
+                        str(repo.integration_id) if repo.integration_id is not None else None
+                    ),
+                    "provider": repo.provider,
+                    "owner": repo_name_sections[0],
+                    "name": "/".join(repo_name_sections[1:]),
+                    "external_id": repo.external_id,
+                }
+                if should_send_code_mappings:
+                    repos[repo_key]["code_mappings"] = []
+
+            if should_send_code_mappings:
+                repos[repo_key]["code_mappings"].append(
+                    {
+                        "stack_root": code_mapping.stack_root,
+                        "source_root": code_mapping.source_root,
+                    }
+                )
 
     return list(repos.values())
 
