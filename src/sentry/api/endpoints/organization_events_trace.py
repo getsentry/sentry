@@ -218,6 +218,14 @@ class TraceEvent:
                 self.load_span_serialized_performance_issues(light)
             elif snuba_params is not None:
                 self.load_performance_issues(light, snuba_params)
+            else:
+                logger.exception(
+                    "Expected either span_serialized or snuba_params to be set",
+                    extra={
+                        "event_id": self.event["id"],
+                        "project_id": self.event["project.id"],
+                    },
+                )
 
     @property
     def nodestore_event(self) -> Event | GroupEvent | None:
