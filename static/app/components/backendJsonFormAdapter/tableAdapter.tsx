@@ -41,13 +41,13 @@ export function TableHeaderRow({
   indicator,
   disabled,
 }: TableHeaderRowProps) {
-  const columnKeys = config.columnKeys ?? [];
-  const emptyRow: Record<string, unknown> = {id: ''};
-  for (const key of columnKeys) {
-    emptyRow[key] = '';
-  }
-
   const addRow = () => {
+    const columnKeys = config.columnKeys ?? [];
+    const emptyRow: Record<string, unknown> = {id: ''};
+    for (const key of columnKeys) {
+      emptyRow[key] = '';
+    }
+
     onAdd([...value, emptyRow]);
   };
 
