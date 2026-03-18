@@ -4,6 +4,7 @@ import logging
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
+from pydantic import ValidationError
 from slack_sdk.models.blocks.blocks import Block
 
 from sentry.constants import ObjectStatus
@@ -29,7 +30,6 @@ from sentry.shared_integrations.exceptions import IntegrationConfigurationError,
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
-from sentry.utils.registry import NoRegistrationExistsError
 
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
@@ -117,7 +117,7 @@ def process_thread_update(
     ).capture() as lifecycle:
         try:
             notification_data = deserialize_notification_data(serialized_data)
-        except (NotificationServiceError, NoRegistrationExistsError) as e:
+        except (NotificationServiceError, ValidationError) as e:
             lifecycle.record_failure(failure_reason=e)
             return
 
