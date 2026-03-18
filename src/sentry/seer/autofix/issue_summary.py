@@ -157,12 +157,19 @@ def _trigger_autofix_task(
     event_id: str,
     user_id: int | None,
     auto_run_source: str,
-    referrer: AutofixReferrer = AutofixReferrer.UNKNOWN,
-    stopping_point: AutofixStoppingPoint | None = None,
+    referrer: AutofixReferrer | str = AutofixReferrer.UNKNOWN,
+    stopping_point: AutofixStoppingPoint | str | None = None,
 ):
     """
     Asynchronous task to trigger Autofix.
+    Task queue serializes enum parameters to strings, so we need to convert them back.
     """
+    # Convert deserialized string parameters back to their enum types
+    if isinstance(referrer, str):
+        referrer = AutofixReferrer(referrer)
+    if isinstance(stopping_point, str):
+        stopping_point = AutofixStoppingPoint(stopping_point)
+    
     with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
         try:
             group = Group.objects.get(id=group_id)
