@@ -94,7 +94,7 @@ const ALLOWED_TAGS = [
   'sup',
 ];
 
-const ALLOWED_ATTR = ['href', 'title', 'src', 'alt', 'class', 'id'];
+const ALLOWED_ATTR = ['href', 'title', 'src', 'alt', 'class', 'id', 'align'];
 
 function postprocess(html: string) {
   return dompurify.sanitize(html, {

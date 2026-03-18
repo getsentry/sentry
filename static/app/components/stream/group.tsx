@@ -20,11 +20,11 @@ import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ProgressBar} from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
@@ -264,7 +264,7 @@ export function LoadingStreamGroup({
   );
 }
 
-function StreamGroup({
+export function StreamGroup({
   group,
   customStatsPeriod,
   displayReprocessingLayout,
@@ -716,8 +716,6 @@ function StreamGroup({
     </Wrapper>
   );
 }
-
-export default StreamGroup;
 
 const CheckboxLabel = styled('label')`
   position: absolute;

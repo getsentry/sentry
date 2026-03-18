@@ -14,7 +14,7 @@ export type ApiResponse<TResponseData = unknown> = {
   json: TResponseData;
 };
 
-export default async function apiFetch<TQueryFnData = unknown>(
+export async function apiFetch<TQueryFnData = unknown>(
   context: QueryFunctionContext<ApiQueryKey, never>
 ): Promise<ApiResponse<TQueryFnData>> {
   const {url, options} = parseQueryKey(context.queryKey);

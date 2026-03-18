@@ -2,7 +2,7 @@
 
 ## Overview
 
-Manual signal receivers are used for `OutboxCategory` values that are **not** tied to a `ReplicatedCellModel` or `ReplicatedControlModel`. The model mixins auto-connect receivers via `connect_region_model_updates()` / `connect_control_model_updates()` — you only write manual receivers for categories with custom dispatch logic.
+Manual signal receivers are used for `OutboxCategory` values that are **not** tied to a `ReplicatedCellModel` or `ReplicatedControlModel`. The model mixins auto-connect receivers via `connect_cell_model_updates()` / `connect_control_model_updates()` — you only write manual receivers for categories with custom dispatch logic.
 
 **Source files**:
 
@@ -32,11 +32,11 @@ For categories that carry all data in the payload (no DB lookup needed):
 
 ```python
 from django.dispatch import receiver
-from sentry.hybridcloud.outbox.signals import process_region_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.MY_CATEGORY)
+@receiver(process_cell_outbox, sender=OutboxCategory.MY_CATEGORY)
 def process_my_category(payload: Any, **kwds: Any) -> None:
     if payload is not None:
         my_rpc_service.do_something(data=MyRpcData(**payload))
@@ -48,12 +48,12 @@ For categories tied to a model where you need to detect create/update vs delete:
 
 ```python
 from django.dispatch import receiver
-from sentry.hybridcloud.outbox.signals import process_region_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.receivers.outbox import maybe_process_tombstone
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.MY_CATEGORY)
+@receiver(process_cell_outbox, sender=OutboxCategory.MY_CATEGORY)
 def process_my_category(object_identifier: int, **kwds: Any) -> None:
     if (instance := maybe_process_tombstone(MyModel, object_identifier)) is None:
         return  # Object was deleted — tombstone recorded
@@ -66,7 +66,7 @@ def process_my_category(object_identifier: int, **kwds: Any) -> None:
 When you need both the payload and a tombstone check:
 
 ```python
-@receiver(process_region_outbox, sender=OutboxCategory.MY_CATEGORY)
+@receiver(process_cell_outbox, sender=OutboxCategory.MY_CATEGORY)
 def process_my_category(object_identifier: int, payload: Any, **kwds: Any) -> None:
     if (instance := maybe_process_tombstone(MyModel, object_identifier)) is None:
         return

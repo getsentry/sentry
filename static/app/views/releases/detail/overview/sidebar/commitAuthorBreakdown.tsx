@@ -11,7 +11,7 @@ import {t, tn} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 import {percent} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 

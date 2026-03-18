@@ -6,7 +6,7 @@ import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
 
-import ResultsSearchQueryBuilder from './resultsSearchQueryBuilder';
+import {ResultsSearchQueryBuilder} from './resultsSearchQueryBuilder';
 
 describe('ResultsSearchQueryBuilder', () => {
   let organization: Organization;

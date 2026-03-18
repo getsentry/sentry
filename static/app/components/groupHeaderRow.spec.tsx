@@ -111,14 +111,10 @@ describe('GroupHeaderRow', () => {
       },
     });
 
-    const href = screen.getByRole('link').getAttribute('href');
-    expect(href).toBeTruthy();
-
-    const url = new URL(`https://example${href}`);
-    expect(url.pathname).toBe(`${baseIssuesPath}${groupDefault.id}/`);
-    expect(url.searchParams.get('sort')).toBe('freq');
-    expect(url.searchParams.get('_allp')).toBe('1');
-    expect(url.searchParams.get('referrer')).toBe('event-or-group-header');
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      `${baseIssuesPath}${groupDefault.id}/?_allp=1&project=2&referrer=event-or-group-header&sort=freq`
+    );
   });
 
   it('lack of project adds all parameter', () => {
@@ -129,12 +125,9 @@ describe('GroupHeaderRow', () => {
 
     render(<GroupHeaderRow data={groupDefault} />);
 
-    const href = screen.getByRole('link').getAttribute('href');
-    expect(href).toBeTruthy();
-
-    const url = new URL(`https://example${href}`);
-    expect(url.pathname).toBe(`${baseIssuesPath}${groupDefault.id}/`);
-    expect(url.searchParams.get('_allp')).toBe('1');
-    expect(url.searchParams.get('referrer')).toBe('event-or-group-header');
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      `${baseIssuesPath}${groupDefault.id}/?_allp=1&project=2&referrer=event-or-group-header`
+    );
   });
 });

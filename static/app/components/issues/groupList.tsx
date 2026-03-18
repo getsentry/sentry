@@ -3,27 +3,28 @@ import styled from '@emotion/styled';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
-import StreamGroup, {
+import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  StreamGroup,
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
 import type {Group, PriorityLevel} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -91,7 +92,7 @@ type State = {
 
 const DEFAULT_COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'assignee'];
 
-function GroupList({
+export function GroupList({
   queryParams,
   endpointPath,
   onFetchSuccess,
@@ -372,8 +373,6 @@ function GroupList({
     </Fragment>
   );
 }
-
-export default GroupList;
 
 const GroupPlaceholder = styled('div')`
   padding: ${p => p.theme.space.md};

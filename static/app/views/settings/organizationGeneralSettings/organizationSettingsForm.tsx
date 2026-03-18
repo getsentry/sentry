@@ -413,7 +413,7 @@ function OrganizationMembershipSettingsBase({
   );
 }
 
-function OrganizationSettingsForm({initialData, onSave}: Props) {
+export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const organization = useOrganization();
   const endpoint = `/organizations/${organization.slug}/`;
 
@@ -706,7 +706,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                     'Use AI to review and find bugs in pull requests [link:Learn more]',
                     {
                       link: (
-                        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+                        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/" />
                       ),
                     }
                   )}
@@ -736,8 +736,6 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
     </Fragment>
   );
 }
-
-export default OrganizationSettingsForm;
 
 const PoweredByCodecov = styled('div')`
   display: flex;

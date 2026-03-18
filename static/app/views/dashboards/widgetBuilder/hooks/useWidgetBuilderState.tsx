@@ -25,7 +25,9 @@ import {
   DEFAULT_CATEGORICAL_BAR_LIMIT,
   DisplayType,
   WidgetType,
+  type LegendType,
   type LinkedDashboard,
+  type Widget,
 } from 'sentry/views/dashboards/types';
 import {
   doesDisplayTypeSupportThresholds,
@@ -59,10 +61,15 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 
 export const MAX_NUM_Y_AXES = 3;
 
-export const stateParamsNotInUrl: Array<keyof WidgetBuilderStateParams> = ['textContent'];
-
-const SESSION_STORAGE_CONTENT_KEY_MAP = {
-  textContent: 'dashboard:widget-builder:text-content',
+export const WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP: Record<
+  keyof WidgetBuilderStateLocalParams,
+  {key: string; storeCondition: (widget: Widget) => boolean; widgetField: keyof Widget}
+> = {
+  textContent: {
+    key: 'dashboard:widget-builder:text-content',
+    widgetField: 'description',
+    storeCondition: (widget: Widget) => widget.displayType === DisplayType.TEXT,
+  },
 };
 
 export type WidgetBuilderStateQueryParams = {
@@ -72,6 +79,7 @@ export type WidgetBuilderStateQueryParams = {
   displayType?: DisplayType;
   field?: string[];
   legendAlias?: string[];
+  legendType?: LegendType;
   limit?: number;
   query?: string[];
   selectedAggregate?: number;
@@ -81,14 +89,17 @@ export type WidgetBuilderStateQueryParams = {
   yAxis?: string[];
 };
 
+export type WidgetBuilderStateLocalParams = {
+  textContent?: string;
+};
+
 /**
  * Extends the URL query params shape with `textContent` for text widgets.
  * Used as the payload type for SET_STATE actions, where text widget content
  * must be carried in-memory without being written to the URL.
  */
-export type WidgetBuilderStateParams = WidgetBuilderStateQueryParams & {
-  textContent?: string;
-};
+export type WidgetBuilderStateParams = WidgetBuilderStateQueryParams &
+  WidgetBuilderStateLocalParams;
 
 export const BuilderStateAction = {
   SET_TITLE: 'SET_TITLE',
@@ -102,6 +113,7 @@ export const BuilderStateAction = {
   SET_LINKED_DASHBOARDS: 'SET_LINKED_DASHBOARDS',
   SET_LIMIT: 'SET_LIMIT',
   SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
+  SET_LEGEND_TYPE: 'SET_LEGEND_TYPE',
   SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
   SET_STATE: 'SET_STATE',
   SET_TEXT_CONTENT: 'SET_TEXT_CONTENT',
@@ -125,6 +137,10 @@ type WidgetAction =
   | {payload: LinkedDashboard[]; type: typeof BuilderStateAction.SET_LINKED_DASHBOARDS}
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
   | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
+  | {
+      payload: LegendType | undefined;
+      type: typeof BuilderStateAction.SET_LEGEND_TYPE;
+    }
   | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
   | {payload: WidgetBuilderStateParams; type: typeof BuilderStateAction.SET_STATE}
   | {
@@ -166,6 +182,7 @@ export interface WidgetBuilderState {
    */
   fields?: Column[];
   legendAlias?: string[];
+  legendType?: LegendType;
   limit?: number;
   linkedDashboards?: LinkedDashboard[];
   query?: string[];
@@ -329,6 +346,10 @@ export function useWidgetBuilderState(): {
     fieldName: 'legendAlias',
     decoder: decodeList,
   });
+  const [legendType, setLegendType] = useQueryParamState<LegendType | undefined>({
+    fieldName: 'legendType',
+    deserializer: deserializeLegendType,
+  });
   const [selectedAggregate, setSelectedAggregate] = useQueryParamState<number>({
     fieldName: 'selectedAggregate',
     decoder: decodeScalar,
@@ -353,7 +374,7 @@ export function useWidgetBuilderState(): {
   });
   const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
     string | undefined
-  >(SESSION_STORAGE_CONTENT_KEY_MAP.textContent, undefined);
+  >(WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP.textContent.key, undefined);
 
   const state = useMemo(
     () => ({
@@ -368,6 +389,7 @@ export function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
+      legendType,
       thresholds,
       linkedDashboards,
       axisRange,
@@ -402,6 +424,7 @@ export function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
+      legendType,
       thresholds,
       linkedDashboards,
       axisRange,
@@ -600,6 +623,7 @@ export function useWidgetBuilderState(): {
           }
           if (!usesTimeSeriesData(action.payload)) {
             setAxisRange(undefined, options);
+            setLegendType(undefined, options);
           }
           setSelectedAggregate(undefined, options);
           setLinkedDashboards([], options);
@@ -690,6 +714,7 @@ export function useWidgetBuilderState(): {
 
           setThresholds(undefined, options);
           setAxisRange(undefined, options);
+          setLegendType(undefined, options);
           setQuery([config.defaultWidgetQuery.conditions], options);
           setLegendAlias([], options);
           setSelectedAggregate(undefined, options);
@@ -831,6 +856,11 @@ export function useWidgetBuilderState(): {
               options
             );
           }
+
+          // Reset legend breakdown when more than one column is selected
+          if (action.payload.length > 1 && legendType === 'breakdown') {
+            setLegendType(undefined, options);
+          }
           break;
         }
         case BuilderStateAction.SET_Y_AXIS: {
@@ -897,6 +927,9 @@ export function useWidgetBuilderState(): {
         case BuilderStateAction.SET_LEGEND_ALIAS:
           setLegendAlias(action.payload, options);
           break;
+        case BuilderStateAction.SET_LEGEND_TYPE:
+          setLegendType(action.payload, options);
+          break;
         case BuilderStateAction.SET_SELECTED_AGGREGATE:
           setSelectedAggregate(action.payload, options);
           // For categorical bar, sync sort to the selected aggregate so
@@ -938,6 +971,7 @@ export function useWidgetBuilderState(): {
             setFields(deserializeFields(action.payload.field), options);
           }
           setLegendAlias(action.payload.legendAlias, options);
+          setLegendType(action.payload.legendType, options);
           setLimit(action.payload.limit, options);
           setQuery(action.payload.query, options);
           setSelectedAggregate(action.payload.selectedAggregate, options);
@@ -1144,6 +1178,7 @@ export function useWidgetBuilderState(): {
       displayType,
       setLimit,
       setLegendAlias,
+      setLegendType,
       setSelectedAggregate,
       fields,
       setDataset,
@@ -1160,6 +1195,7 @@ export function useWidgetBuilderState(): {
       query,
       description,
       limit,
+      legendType,
       linkedDashboards,
       selectedAggregate,
     ]
@@ -1291,6 +1327,15 @@ function deserializeLimit(value: string): number {
 
 function deserializeSelectedAggregate(value: string): number | undefined {
   return decodeInteger(value);
+}
+
+const VALID_LEGEND_TYPES: LegendType[] = ['default', 'breakdown'];
+
+function deserializeLegendType(value: string): LegendType | undefined {
+  if (VALID_LEGEND_TYPES.includes(value as LegendType)) {
+    return value as LegendType;
+  }
+  return undefined;
 }
 
 /**

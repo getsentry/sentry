@@ -246,7 +246,7 @@ function IssueEscalatingDebugging() {
   );
 }
 
-function DebuggingTools() {
+export function DebuggingTools() {
   return (
     <div>
       <PageHeader title="Debug Tools" />
@@ -270,4 +270,3 @@ export const SearchContainer = styled('div')`
 const StyledTag = styled(Tag)`
   padding: 0 ${p => p.theme.space['3xl']};
 `;
-export default DebuggingTools;

@@ -1,6 +1,6 @@
 import type {Group} from 'sentry/types/group';
 import type {Committer} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {usePrevious} from 'sentry/utils/usePrevious';

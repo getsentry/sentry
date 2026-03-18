@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {WidgetBuilderSearchBarProps} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
-import IssueListSearchBar from 'sentry/views/issueList/searchBar';
+import {IssueListSearchBar} from 'sentry/views/issueList/searchBar';
 
 interface Props {
   onClose: WidgetBuilderSearchBarProps['onClose'];

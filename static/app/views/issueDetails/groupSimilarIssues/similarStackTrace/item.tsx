@@ -14,9 +14,9 @@ import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import {Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {ScoreBar} from 'sentry/components/scoreBar';
-import SimilarScoreCard from 'sentry/components/similarScoreCard';
+import {SimilarScoreCard} from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
-import GroupingStore from 'sentry/stores/groupingStore';
+import {GroupingStore} from 'sentry/stores/groupingStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 

@@ -120,15 +120,9 @@ describe('GroupMetaRow', () => {
       />
     );
 
-    const commentsLink = screen.getByRole('link', {name: '14'});
-    expect(commentsLink).toBeInTheDocument();
-    expect(commentsLink).toHaveAttribute(
+    expect(screen.getByRole('link', {name: '14'})).toHaveAttribute(
       'href',
-      expect.stringContaining('/issues/groupId/activity/')
-    );
-    expect(commentsLink).toHaveAttribute(
-      'href',
-      expect.stringContaining('filter=comments')
+      `/organizations/org-slug/issues/groupId/activity/?filter=comments`
     );
   });
 });
