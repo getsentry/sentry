@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from datetime import datetime
+from typing import Any
 
 from django.utils import timezone
 from pydantic import root_validator
@@ -33,7 +34,7 @@ class RpcOrganizationMapping(RpcOrganizationSummary):
     # TODO(cells): temporary code to accept `cell_name` on the wire before property rename is complete
     @root_validator(pre=True)
     @classmethod
-    def _accept_cell_name(cls, values: dict) -> dict:
+    def _accept_cell_name(cls, values: dict[str, Any]) -> dict[str, Any]:
         if "cell_name" in values and "region_name" not in values:
             values["region_name"] = values.pop("cell_name")
         return values
@@ -58,7 +59,7 @@ class RpcOrganizationMappingUpdate(RpcModel):
     # TODO(cells): temporary code to accept `cell_name` on the wire before property rename is complete
     @root_validator(pre=True)
     @classmethod
-    def _accept_cell_name(cls, values: dict) -> dict:
+    def _accept_cell_name(cls, values: dict[str, Any]) -> dict[str, Any]:
         if "cell_name" in values and "region_name" not in values:
             values["region_name"] = values.pop("cell_name")
         return values
