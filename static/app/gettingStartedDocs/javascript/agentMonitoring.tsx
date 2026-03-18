@@ -381,7 +381,11 @@ export function agentMonitoring({
 } = {}): OnboardingConfig {
   return {
     introduction: params => (
-      <SdkUpdateAlert projectId={params.project.id} minVersion={minVersion} />
+      <SdkUpdateAlert
+        projectId={params.project.id}
+        minVersion={minVersion}
+        packageName={packageName}
+      />
     ),
     install: params =>
       getInstallStep(params, {

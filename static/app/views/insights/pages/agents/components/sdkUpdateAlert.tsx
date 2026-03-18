@@ -3,6 +3,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {t, tct} from 'sentry/locale';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 
+/**
+ * Maps an SDK name to its installable package name.
+ * Returns null for SDKs not supported by agent monitoring.
+ */
 function getPackageNameFromSdkName(sdkName?: string): string | null {
   if (!sdkName) {
     return null;
@@ -29,8 +33,10 @@ function getPackageNameFromSdkName(sdkName?: string): string | null {
 export function SdkUpdateAlert({
   projectId,
   minVersion,
+  packageName,
 }: {
   minVersion: string;
+  packageName: string;
   projectId: string;
 }) {
   const {needsUpdate, isFetching, isError, data} = useProjectSdkNeedsUpdate({
@@ -42,10 +48,15 @@ export function SdkUpdateAlert({
     return null;
   }
 
-  const sdkUpdate = data?.[0];
-  const packageName = getPackageNameFromSdkName(sdkUpdate?.sdkName);
+  const sdkUpdate = data?.find(
+    update => getPackageNameFromSdkName(update.sdkName) === packageName
+  );
 
-  const suggestedVersion = sdkUpdate?.suggestions?.find(
+  if (!sdkUpdate) {
+    return null;
+  }
+
+  const suggestedVersion = sdkUpdate.suggestions?.find(
     suggestion => suggestion.type === 'updateSdk'
   )?.newSdkVersion;
 
