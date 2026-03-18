@@ -10,7 +10,7 @@ import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/p
 import {WebVitalsWeightList} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalWeightList';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
-import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/insightsTimeSeriesWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {SpanFields} from 'sentry/views/insights/types';

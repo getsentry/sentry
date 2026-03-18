@@ -43,7 +43,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.types.region import subdomain_is_locality
+from sentry.types.cell import subdomain_is_locality
 from sentry.users.services.user.service import user_service
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry

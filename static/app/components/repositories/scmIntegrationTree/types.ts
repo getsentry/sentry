@@ -2,6 +2,7 @@ import type {
   Integration,
   IntegrationProvider,
   IntegrationRepository,
+  OrganizationIntegration,
 } from 'sentry/types/integrations';
 
 export type ProviderNode = {
@@ -13,7 +14,7 @@ export type ProviderNode = {
 
 export type IntegrationNode = {
   connectedRepoCount: number;
-  integration: Integration;
+  integration: OrganizationIntegration;
   isExpanded: boolean;
   isReposPending: boolean;
   repoCount: number;

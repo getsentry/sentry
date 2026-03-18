@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import SettingsBreadcrumb from 'sentry/views/settings/components/settingsBreadcrumb';
+import {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb';
 import type {RouteWithName} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 import {SettingsHeader} from 'sentry/views/settings/components/settingsHeader';
 import {SettingsSearch} from 'sentry/views/settings/components/settingsSearch';

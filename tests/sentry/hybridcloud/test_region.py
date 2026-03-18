@@ -13,7 +13,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.types.region import Cell, CellResolutionError, RegionCategory
+from sentry.types.cell import Cell, CellResolutionError, RegionCategory
 
 _TEST_REGIONS = (
     Cell("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),

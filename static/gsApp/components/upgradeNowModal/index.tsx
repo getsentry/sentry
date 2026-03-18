@@ -7,7 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

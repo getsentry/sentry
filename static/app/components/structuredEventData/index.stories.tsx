@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import {CodeBlock} from '@sentry/scraps/code';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('StructuredEventData', story => {

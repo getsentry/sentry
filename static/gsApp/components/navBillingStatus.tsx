@@ -13,7 +13,7 @@ import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {
   PrimaryNavigation,
   usePrimaryNavigationButtonOverlay,
@@ -32,7 +32,7 @@ import {
   listDisplayNames,
   sortCategoriesWithKeys,
 } from 'getsentry/utils/dataCategory';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {
   size: 'xs',

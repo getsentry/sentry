@@ -18,8 +18,8 @@ import {StatsHeader as Header} from 'sentry/views/organizationStats/header';
 import {TeamStatsControls} from './controls';
 import {DescriptionCard} from './descriptionCard';
 import {TeamIssuesAge} from './teamIssuesAge';
-import TeamIssuesBreakdown from './teamIssuesBreakdown';
-import TeamResolutionTime from './teamResolutionTime';
+import {TeamIssuesBreakdown} from './teamIssuesBreakdown';
+import {TeamResolutionTime} from './teamResolutionTime';
 import {TeamUnresolvedIssues} from './teamUnresolvedIssues';
 import {dataDatetime} from './utils';
 

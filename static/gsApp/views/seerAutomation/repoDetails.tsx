@@ -3,7 +3,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';

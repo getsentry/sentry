@@ -2,7 +2,7 @@ import type {Location} from 'history';
 
 import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {t} from 'sentry/locale';
-import Histogram from 'sentry/utils/performance/histogram';
+import {Histogram} from 'sentry/utils/performance/histogram';
 
 import {ZOOM_END, ZOOM_START} from './utils';
 

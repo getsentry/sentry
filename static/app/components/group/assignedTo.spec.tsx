@@ -9,7 +9,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AssignedTo from 'sentry/components/group/assignedTo';
+import {AssignedTo} from 'sentry/components/group/assignedTo';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {MemberListStore} from 'sentry/stores/memberListStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';

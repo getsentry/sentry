@@ -11,9 +11,9 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
-import NumberField from 'sentry/components/forms/fields/numberField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -242,16 +242,15 @@ function PriorityRow({
   const isHigh = priority === 'high';
   const isStatic = detectionType === 'static';
 
-  const conditionChoices: Array<[MetricDetectorFormData['conditionType'], string]> =
-    isStatic
-      ? [
-          [DataConditionType.GREATER, t('Above')],
-          [DataConditionType.LESS, t('Below')],
-        ]
-      : [
-          [DataConditionType.GREATER, t('higher')],
-          [DataConditionType.LESS, t('lower')],
-        ];
+  const conditionChoices = isStatic
+    ? ([
+        [DataConditionType.GREATER, t('Above')],
+        [DataConditionType.LESS, t('Below')],
+      ] as const)
+    : ([
+        [DataConditionType.GREATER, t('higher')],
+        [DataConditionType.LESS, t('lower')],
+      ] as const);
 
   const thresholdFieldName = isHigh
     ? METRIC_DETECTOR_FORM_FIELDS.highThreshold

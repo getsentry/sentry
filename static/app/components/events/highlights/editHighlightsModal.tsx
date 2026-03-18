@@ -13,7 +13,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
-import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import type {
   HighlightContext,
   HighlightTags,
@@ -325,7 +325,7 @@ function EditContextHighlightSection({
   );
 }
 
-export default function EditHighlightsModal({
+export function EditHighlightsModal({
   Header,
   Body,
   Footer,

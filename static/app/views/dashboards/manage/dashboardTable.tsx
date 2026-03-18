@@ -17,13 +17,14 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import GridEditable, {
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import TimeSince from 'sentry/components/timeSince';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -231,7 +232,7 @@ function DashboardTable({
         </Flex>
       ) : (
         <Flex justify="between" align="center" gap="3xl">
-          <Tooltip title="Sentry">
+          <Tooltip title={PREBUILT_DASHBOARD_LABEL}>
             <ActivityAvatar type="system" size={26} />
           </Tooltip>
         </Flex>
@@ -296,20 +297,9 @@ function DashboardTable({
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
                   size="sm"
-                  disabled={
-                    hasReachedDashboardLimit ||
-                    isLoadingDashboardsLimit ||
-                    (defined(dataRow.prebuiltId) &&
-                      !organization.features.includes('dashboards-prebuilt-controls'))
-                  }
+                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
                   tooltipProps={{
-                    title:
-                      defined(dataRow.prebuiltId) &&
-                      !organization.features.includes('dashboards-prebuilt-controls')
-                        ? tct('[label] dashboards cannot be duplicated', {
-                            label: PREBUILT_DASHBOARD_LABEL,
-                          })
-                        : limitMessage,
+                    title: limitMessage,
                   }}
                 />
               )}

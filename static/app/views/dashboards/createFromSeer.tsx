@@ -22,7 +22,7 @@ import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 import {WidgetErrorProvider} from './contexts/widgetErrorContext';
 import {DashboardChatPanel} from './dashboardChatPanel';
 import {EMPTY_DASHBOARD} from './data';
-import DashboardDetail from './detail';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import {assignDefaultLayout, assignTempId, getInitialColumnDepths} from './layoutUtils';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardState} from './types';
