@@ -443,6 +443,15 @@ static/app/components/avatarChooser/avatarCropper.spec.tsx
 static/app/components/avatarChooser/avatarCropper.tsx
 static/app/components/avatarChooser/index.tsx
 static/app/components/avatarChooser/useUploader.tsx
+static/app/components/backendJsonFormAdapter/choiceMapperAdapter.spec.tsx
+static/app/components/backendJsonFormAdapter/choiceMapperAdapter.tsx
+static/app/components/backendJsonFormAdapter/index.spec.tsx
+static/app/components/backendJsonFormAdapter/index.tsx
+static/app/components/backendJsonFormAdapter/projectMapperAdapter.spec.tsx
+static/app/components/backendJsonFormAdapter/projectMapperAdapter.tsx
+static/app/components/backendJsonFormAdapter/tableAdapter.spec.tsx
+static/app/components/backendJsonFormAdapter/tableAdapter.tsx
+static/app/components/backendJsonFormAdapter/types.ts
 static/app/components/badge/groupPriority.spec.tsx
 static/app/components/badge/groupPriority.stories.tsx
 static/app/components/badge/groupPriority.tsx
@@ -616,12 +625,6 @@ static/app/components/errors/detailedError.spec.tsx
 static/app/components/errors/detailedError.tsx
 static/app/components/errors/groupEventDetailsLoadingError.tsx
 static/app/components/errors/notFound.tsx
-static/app/components/eventOrGroupExtraDetails.spec.tsx
-static/app/components/eventOrGroupExtraDetails.tsx
-static/app/components/eventOrGroupHeader.spec.tsx
-static/app/components/eventOrGroupHeader.tsx
-static/app/components/eventOrGroupTitle.spec.tsx
-static/app/components/eventOrGroupTitle.tsx
 static/app/components/eventTitleError.tsx
 static/app/components/events/attachmentViewers/imageViewer.tsx
 static/app/components/events/attachmentViewers/jsonViewer.spec.tsx
@@ -770,6 +773,10 @@ static/app/components/globalModal/components.tsx
 static/app/components/globalModal/index.spec.tsx
 static/app/components/globalModal/index.tsx
 static/app/components/globalModal/useGlobalModal.tsx
+static/app/components/groupHeaderRow.spec.tsx
+static/app/components/groupHeaderRow.tsx
+static/app/components/groupMetaRow.spec.tsx
+static/app/components/groupMetaRow.tsx
 static/app/components/groupPreviewTooltip/evidencePreview.spec.tsx
 static/app/components/groupPreviewTooltip/evidencePreview.tsx
 static/app/components/groupPreviewTooltip/groupPreviewHovercard.tsx
@@ -779,6 +786,8 @@ static/app/components/groupPreviewTooltip/spanEvidencePreview.tsx
 static/app/components/groupPreviewTooltip/stackTracePreview.spec.tsx
 static/app/components/groupPreviewTooltip/stackTracePreview.tsx
 static/app/components/groupPreviewTooltip/utils.tsx
+static/app/components/groupTitle.spec.tsx
+static/app/components/groupTitle.tsx
 static/app/components/guidedSteps/guidedSteps.spec.tsx
 static/app/components/guidedSteps/guidedSteps.stories.tsx
 static/app/components/guidedSteps/guidedSteps.tsx
@@ -919,8 +928,6 @@ static/app/components/modals/teamAccessRequestModal.spec.tsx
 static/app/components/modals/teamAccessRequestModal.tsx
 static/app/components/modals/textWidgetViewerModal.spec.tsx
 static/app/components/modals/textWidgetViewerModal.tsx
-static/app/components/modals/tokenRegenerationConfirmationModal.spec.tsx
-static/app/components/modals/tokenRegenerationConfirmationModal.tsx
 static/app/components/modals/widgetBuilder/addToDashboardModal.spec.tsx
 static/app/components/modals/widgetBuilder/addToDashboardModal.tsx
 static/app/components/modals/widgetBuilder/linkToDashboardModal.tsx
