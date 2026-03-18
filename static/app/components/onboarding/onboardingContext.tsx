@@ -58,18 +58,7 @@ export function OnboardingContextProvider({children, value}: ProviderProps) {
       selectedPlatform: onboarding?.selectedPlatform,
       setSelectedPlatform: (selectedPlatform?: OnboardingSelectedSDK) => {
         if (selectedPlatform === undefined) {
-          // Check current state to decide clear vs preserve. Reading
-          // `onboarding` from the memo closure is safe here because
-          // setSelectedPlatform is recreated whenever onboarding changes.
-          const hasOtherState =
-            onboarding?.selectedIntegration ||
-            onboarding?.selectedRepository ||
-            onboarding?.selectedFeatures;
-          if (hasOtherState) {
-            setOnboarding(prev => ({...prev, selectedPlatform: undefined}));
-          } else {
-            removeOnboarding();
-          }
+          removeOnboarding();
         } else {
           setOnboarding(prev => ({...prev, selectedPlatform}));
         }
