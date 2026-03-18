@@ -158,16 +158,3 @@ class DatabaseBackedRepositoryService(RepositoryService):
             RepositoryProjectPathConfig.objects.filter(
                 organization_integration_id=organization_integration_id
             ).delete()
-
-    def schedule_update_gitlab_project_webhooks(
-        self,
-        *,
-        organization_id: int,
-        integration_id: int,
-    ) -> None:
-        from sentry.integrations.gitlab.tasks import update_all_project_webhooks
-
-        update_all_project_webhooks.delay(
-            integration_id=integration_id,
-            organization_id=organization_id,
-        )
