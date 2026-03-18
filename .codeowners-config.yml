@@ -9,10 +9,13 @@ baseline_path: '.github/codeowners-coverage-baseline.txt'
 team_allowlist:
   - getsentry/alerts-create-issues
   - getsentry/alerts-notifications
+  - getsentry/app-backend
   - getsentry/app-frontend
   - getsentry/codecov
   - getsentry/codecov-merge
   - getsentry/coding-workflows
+  - getsentry/coding-workflows-sentry-backend
+  - getsentry/coding-workflows-sentry-frontend
   - getsentry/crons
   - getsentry/dashboards
   - getsentry/data
@@ -58,6 +61,7 @@ team_allowlist:
   - getsentry/team-javascript-sdks
   - getsentry/team-web-sdk-backend
   - getsentry/telemetry-experience
+  - getsentry/value-discovery
 
 # File patterns to exclude from coverage checking
 exclusions:
