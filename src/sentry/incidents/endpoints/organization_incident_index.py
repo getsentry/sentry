@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, metrics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -35,11 +35,11 @@ from sentry.snuba.models import QuerySubscription
 from sentry.types.group import PriorityLevel
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
+from sentry.workflow_engine.models import AlertRuleDetector, DataSourceDetector
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
 )
-from sentry.workflow_engine.models import AlertRuleDetector, DataSourceDetector
 
 from .utils import parse_team_params
 
@@ -165,6 +165,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
+        *,
         projects: Sequence[Project],
         envs: Sequence[Environment],
         expand: list[str],
@@ -197,7 +198,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             if query_include_snapshots:
                 # Snapshot alerts are not supported in workflow engine as they rely on
                 # AlertRuleActivity, which is a legacy model.
-                pass
+                metrics.incr("incidents.endpoint.unsupported_snapshot_filter")
 
             # Find detector IDs from alert rule ID mapping
             detector_ids = list(
@@ -271,32 +272,37 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             default_per_page=25,
         )
 
-    def _filter_by_environment(
-        self, open_periods: BaseQuerySet[GroupOpenPeriod], envs: Sequence[Environment]
-    ) -> BaseQuerySet[GroupOpenPeriod]:
+    def _detector_ids_for_subscriptions(
+        self, subscription_qs: BaseQuerySet[QuerySubscription]
+    ) -> BaseQuerySet[DataSourceDetector]:
         """
-        Filter open periods by environment via Detector → DataSource → QuerySubscription → SnubaQuery.
+        Return a values queryset of detector IDs whose DataSource points at one of the
+        given QuerySubscriptions. DataSource.source_id is a TextField, so we cast to
+        BigIntegerField — safe here because the type filter guarantees numeric values.
         """
-        matching_detector_ids = (
+        return (
             DataSourceDetector.objects.annotate(
                 source_id_as_int=Cast("data_source__source_id", output_field=BigIntegerField())
             )
             .filter(
                 data_source__type="snuba_query_subscription",
-                source_id_as_int__in=QuerySubscription.objects.filter(
-                    snuba_query__environment__in=envs
-                ).values("id"),
+                source_id_as_int__in=subscription_qs.values("id"),
             )
             .values("detector_id")
+        )
+
+    def _filter_by_environment(
+        self, open_periods: BaseQuerySet[GroupOpenPeriod], envs: Sequence[Environment]
+    ) -> BaseQuerySet[GroupOpenPeriod]:
+        matching_detector_ids = self._detector_ids_for_subscriptions(
+            QuerySubscription.objects.filter(snuba_query__environment__in=envs)
         )
         return open_periods.filter(group__detectorgroup__detector_id__in=matching_detector_ids)
 
     def _filter_by_status(
         self, open_periods: BaseQuerySet[GroupOpenPeriod], query_status: str
     ) -> BaseQuerySet[GroupOpenPeriod]:
-        """Filter open periods by status (open, closed, warning, critical)."""
         if query_status == "open":
-            # Open includes both warning and critical (anything not closed)
             return open_periods.filter(date_ended__isnull=True)
         elif query_status == "warning":
             return open_periods.filter(
@@ -313,20 +319,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
     def _filter_by_dataset(
         self, open_periods: BaseQuerySet[GroupOpenPeriod], dataset: Dataset
     ) -> BaseQuerySet[GroupOpenPeriod]:
-        """
-        Filter open periods by dataset via Detector → DataSource → QuerySubscription → SnubaQuery.
-        Uses the same Cast pattern as environment filter.
-        """
-        matching_detector_ids = (
-            DataSourceDetector.objects.annotate(
-                source_id_as_int=Cast("data_source__source_id", output_field=BigIntegerField())
-            )
-            .filter(
-                data_source__type="snuba_query_subscription",
-                source_id_as_int__in=QuerySubscription.objects.filter(
-                    snuba_query__dataset=dataset.value
-                ).values("id"),
-            )
-            .values("detector_id")
+        matching_detector_ids = self._detector_ids_for_subscriptions(
+            QuerySubscription.objects.filter(snuba_query__dataset=dataset.value)
         )
         return open_periods.filter(group__detectorgroup__detector_id__in=matching_detector_ids)

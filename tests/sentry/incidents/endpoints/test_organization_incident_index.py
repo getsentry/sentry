@@ -198,35 +198,42 @@ class IncidentListEndpointTest(APITestCase):
         assert len(results.data) == 2
 
 
-class IncidentListDeltaTest(IncidentListEndpointTest):
+class IncidentListDeltaTest(APITestCase):
+    endpoint = "sentry-api-0-organization-incident-index"
+
+    @cached_property
+    def organization(self):
+        return self.create_organization()
+
+    @cached_property
+    def project(self):
+        return self.create_project(organization=self.organization)
+
+    @cached_property
+    def user(self):
+        return self.create_user()
+
     def test_workflow_engine_serializer_matches_old_serializer(self) -> None:
-        # Create team and add user
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
-        # Create alert rule and migrate to WE models
         alert_rule = self.create_alert_rule()
         trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
         _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
         migrate_metric_data_conditions(trigger)
         migrate_resolve_threshold_data_condition(alert_rule)
 
-        # Create incident and corresponding WE models (CRITICAL status to match HIGH priority)
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CRITICAL.value)
 
-        # Create group and link it
         with assume_test_silo_mode(SiloMode.CELL):
             group = self.create_group(type=MetricIssue.type_id, project=self.project)
             group.priority = PriorityLevel.HIGH.value
             group.save()
             DetectorGroup.objects.create(detector=detector, group=group)
 
-            # Get or create the GroupOpenPeriod
             group_open_period = GroupOpenPeriod.objects.get(group=group, project=self.project)
-            # Align dates
             group_open_period.update(date_started=incident.date_started)
 
-            # Create the bridge
             IncidentGroupOpenPeriod.objects.create(
                 group_open_period=group_open_period,
                 incident_id=incident.id,
@@ -287,30 +294,42 @@ class IncidentListDeltaTest(IncidentListEndpointTest):
 
         assert not mismatches, "List old vs new serializer differences:\n" + "\n".join(mismatches)
 
+
+class WorkflowEngineIncidentListTest(APITestCase):
+    endpoint = "sentry-api-0-organization-incident-index"
+
+    @cached_property
+    def organization(self):
+        return self.create_organization()
+
+    @cached_property
+    def project(self):
+        return self.create_project(organization=self.organization)
+
+    @cached_property
+    def user(self):
+        return self.create_user()
+
     def test_single_written_metric_issue(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
-        # Create alert rule and migrate to get detector with full setup
         alert_rule = self.create_alert_rule()
         trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
         _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
         migrate_metric_data_conditions(trigger)
         migrate_resolve_threshold_data_condition(alert_rule)
 
-        # Create a single-written group (no Incident) linked to the detector
         with assume_test_silo_mode(SiloMode.CELL):
             group = self.create_group(type=MetricIssue.type_id, project=self.project)
             group.priority = PriorityLevel.HIGH.value
             group.save()
             DetectorGroup.objects.create(detector=detector, group=group)
 
-        # Old path should return empty (no Incident exists for this group)
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             old_resp = self.get_success_response(self.organization.slug)
         assert len(old_resp.data) == 0
 
-        # WE path should return the single-written metric issue
         with self.feature(
             [
                 "organizations:incidents",
@@ -321,12 +340,10 @@ class IncidentListDeltaTest(IncidentListEndpointTest):
             new_resp = self.get_success_response(self.organization.slug)
         assert len(new_resp.data) == 1
 
-        # Verify the returned data
         incident_data = new_resp.data[0]
         assert incident_data["status"] == IncidentStatus.CRITICAL.value
         assert incident_data["organizationId"] == str(self.organization.id)
         assert incident_data["projects"] == [self.project.slug]
-        # Should have a fake ID since no IncidentGroupOpenPeriod bridge exists
         assert incident_data["id"] is not None
 
     @with_feature(
@@ -337,38 +354,31 @@ class IncidentListDeltaTest(IncidentListEndpointTest):
         ]
     )
     def test_filter_by_fake_alert_rule_id(self) -> None:
-        """Test that we can filter by fake alert rule ID (detector_id + OFFSET)."""
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
-        # Create alert rule and migrate to get detector
         alert_rule = self.create_alert_rule()
         trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
         _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
         migrate_metric_data_conditions(trigger)
         migrate_resolve_threshold_data_condition(alert_rule)
 
-        # Create a group linked to the detector
         with assume_test_silo_mode(SiloMode.CELL):
             group = self.create_group(type=MetricIssue.type_id, project=self.project)
             group.priority = PriorityLevel.HIGH.value
             group.save()
             DetectorGroup.objects.create(detector=detector, group=group)
 
-        # Generate fake alert rule ID from detector ID
         fake_alert_rule_id = get_fake_id_from_object_id(detector.id)
 
-        # Query using fake alert rule ID (workflow engine-only detectors)
         resp = self.get_success_response(self.organization.slug, alertRule=str(fake_alert_rule_id))
 
-        # Should return the group linked to this detector
         assert len(resp.data) == 1
         incident_data = resp.data[0]
         assert incident_data["status"] == IncidentStatus.CRITICAL.value
         assert incident_data["organizationId"] == str(self.organization.id)
         assert incident_data["projects"] == [self.project.slug]
 
-        # Query with non-existent fake alert rule ID should return empty
         fake_nonexistent_id = get_fake_id_from_object_id(999999)
         resp_empty = self.get_success_response(
             self.organization.slug, alertRule=str(fake_nonexistent_id)
