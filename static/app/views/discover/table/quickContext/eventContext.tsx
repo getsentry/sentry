@@ -10,12 +10,12 @@ import {t} from 'sentry/locale';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type EventView from 'sentry/utils/discover/eventView';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-import ActionDropDown, {ContextValueType} from './actionDropdown';
+import {ActionDropDown, ContextValueType} from './actionDropdown';
 import {NoContext} from './quickContextWrapper';
 import {
   ContextBody,

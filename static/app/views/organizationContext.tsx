@@ -8,7 +8,7 @@ import {
   useBootstrapProjectsQuery,
   useBootstrapTeamsQuery,
 } from 'sentry/bootstrap/bootstrapRequests';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';

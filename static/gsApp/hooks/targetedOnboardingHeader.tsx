@@ -13,7 +13,7 @@ import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
   source: string;

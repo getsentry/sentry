@@ -5,7 +5,7 @@ import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'sentry/components/globalModal';
+import {GlobalModal} from 'sentry/components/globalModal';
 
 import {MetricRuleDuplicate} from './duplicate';
 import type {Action} from './types';

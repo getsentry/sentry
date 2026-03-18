@@ -18,7 +18,7 @@ import type {
 } from 'sentry/components/checkInTimeline/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
 import {
   useMonitorsScheduleSamples,

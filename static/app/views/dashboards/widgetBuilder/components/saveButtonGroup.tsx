@@ -4,7 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 
 import type {SaveButtonProps} from './saveButton';
-import SaveButton from './saveButton';
+import {SaveButton} from './saveButton';
 
 type SaveButtonGroupProps = SaveButtonProps & {
   onClose: () => void;

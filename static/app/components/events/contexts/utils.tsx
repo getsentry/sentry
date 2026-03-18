@@ -36,7 +36,7 @@ import {
   PLATFORM_CONTEXT_KEYS,
 } from 'sentry/components/events/contexts/platformContext/utils';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

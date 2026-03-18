@@ -1,15 +1,21 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {
   AutofixArtifact,
   AutofixSection,
   RootCauseArtifact,
   SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import type {ExplorerFilePatch, RepoPRState} from 'sentry/views/seerExplorer/types';
+import type {
+  ExplorerCodingAgentState,
+  ExplorerFilePatch,
+  RepoPRState,
+} from 'sentry/views/seerExplorer/types';
 
 import {
   CodeChangesCard,
+  CodingAgentCard,
   PullRequestsCard,
   RootCauseCard,
   SolutionCard,
@@ -334,7 +340,7 @@ describe('PullRequestsCard', () => {
 
     expect(screen.getByText('Pull Requests')).toBeInTheDocument();
     const button = screen.getByRole('button', {
-      name: 'View PR#42 in org/repo',
+      name: 'View org/repo#42',
     });
     expect(button).toHaveAttribute('href', 'https://github.com/org/repo/pull/42');
   });
@@ -352,12 +358,8 @@ describe('PullRequestsCard', () => {
       />
     );
 
-    expect(
-      screen.getByRole('button', {name: 'View PR#10 in org/repo-a'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'View PR#20 in org/repo-b'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View org/repo-a#10'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View org/repo-b#20'})).toBeInTheDocument();
   });
 
   it('skips PRs with missing pr_url or pr_number', () => {
@@ -378,7 +380,7 @@ describe('PullRequestsCard', () => {
       />
     );
 
-    expect(screen.getByRole('button', {name: /View PR#/})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: /View org\/valid#55/})).toHaveAttribute(
       'href',
       'https://pr/55'
     );
@@ -444,5 +446,147 @@ describe('ArtifactCard expand/collapse', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Root Cause'}));
     expect(screen.getByText('Bug')).toBeVisible();
     expect(screen.getByText('Toggle why')).toBeVisible();
+  });
+});
+
+function makeCodingAgent(
+  overrides: Partial<ExplorerCodingAgentState> = {}
+): ExplorerCodingAgentState {
+  return {
+    id: 'agent-1',
+    name: 'My Agent Task',
+    provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+    started_at: '2026-01-01T00:00:00Z',
+    status: 'running',
+    ...overrides,
+  };
+}
+
+describe('CodingAgentCard', () => {
+  it('renders agent name based on Cursor provider', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [makeCodingAgent({provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT})],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('Cursor Cloud Agent')).toBeInTheDocument();
+  });
+
+  it('renders agent name based on Claude provider', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [makeCodingAgent({provider: CodingAgentProvider.CLAUDE_CODE_AGENT})],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('Claude Agent')).toBeInTheDocument();
+  });
+
+  it('renders agent name based on GitHub Copilot provider', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [makeCodingAgent({provider: CodingAgentProvider.GITHUB_COPILOT_AGENT})],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('GitHub Copilot')).toBeInTheDocument();
+  });
+
+  it('renders default agent name for unknown provider', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [makeCodingAgent({provider: 'unknown_provider' as any})],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('Coding Agent')).toBeInTheDocument();
+  });
+
+  it('renders agent status tags', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [makeCodingAgent({status: 'running'})],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('running')).toBeInTheDocument();
+  });
+
+  it('renders "Open in" link when agent_url is present', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [
+            makeCodingAgent({
+              agent_url: 'https://cursor.com/agent/1',
+            }),
+          ],
+        ])}
+      />
+    );
+
+    const link = screen.getByRole('button', {name: /Open in/});
+    expect(link).toHaveAttribute('href', 'https://cursor.com/agent/1');
+  });
+
+  it('renders result PR links when results have pr_url', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [
+            makeCodingAgent({
+              results: [
+                {
+                  description: 'Fixed',
+                  repo_full_name: 'org/repo',
+                  repo_provider: 'github',
+                  pr_url: 'https://github.com/org/repo/pull/99',
+                },
+              ],
+            }),
+          ],
+        ])}
+      />
+    );
+
+    const link = screen.getByRole('button', {name: 'View Pull Request'});
+    expect(link).toHaveAttribute('href', 'https://github.com/org/repo/pull/99');
+  });
+
+  it('handles multiple coding agents', () => {
+    render(
+      <CodingAgentCard
+        autofix={mockAutofix}
+        section={makeSection('coding_agents', 'completed', [
+          [
+            makeCodingAgent({id: 'agent-1', name: 'Agent One', status: 'completed'}),
+            makeCodingAgent({id: 'agent-2', name: 'Agent Two', status: 'running'}),
+          ],
+        ])}
+      />
+    );
+
+    expect(screen.getByText('Agent One')).toBeInTheDocument();
+    expect(screen.getByText('Agent Two')).toBeInTheDocument();
+    expect(screen.getByText('completed')).toBeInTheDocument();
+    expect(screen.getByText('running')).toBeInTheDocument();
   });
 });

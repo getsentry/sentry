@@ -8,8 +8,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
-import Access from 'sentry/components/acl/access';
-import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
+import {Access} from 'sentry/components/acl/access';
+import {AssigneeSelectorDropdown} from 'sentry/components/assigneeSelectorDropdown';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {
   useHandleAssigneeChange,
@@ -194,7 +194,7 @@ export function getAssignedToDisplayName(group: Group | FeedbackIssue) {
   return group.assignedTo?.name;
 }
 
-function AssignedTo({
+export function AssignedTo({
   group,
   project,
   event,
@@ -304,8 +304,6 @@ function AssignedTo({
     </SidebarSection.Wrap>
   );
 }
-
-export default AssignedTo;
 
 const StyledAssigneeSelectorDropdown = styled(AssigneeSelectorDropdown)`
   width: 100%;

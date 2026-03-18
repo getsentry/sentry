@@ -26,7 +26,7 @@ const coverageClass: Record<Coverage, string | undefined> = {
   [Coverage.NOT_APPLICABLE]: undefined,
 };
 
-function ContextLineNumber({
+export function ContextLineNumber({
   lineNumber,
   isActive,
   coverage = Coverage.NOT_APPLICABLE,
@@ -39,8 +39,6 @@ function ContextLineNumber({
     </Wrapper>
   );
 }
-
-export default ContextLineNumber;
 
 const Wrapper = styled('div')`
   background: inherit;

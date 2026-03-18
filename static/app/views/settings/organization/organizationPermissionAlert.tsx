@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import {Alert, type AlertProps} from '@sentry/scraps/alert';
 
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 

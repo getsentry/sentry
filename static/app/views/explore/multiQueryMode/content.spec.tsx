@@ -10,7 +10,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 

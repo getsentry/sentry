@@ -7,13 +7,13 @@ import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {
   DashboardFilterKeys,
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 
 describe('Dashboards > ReleaseWidgetQueries', () => {
   const badMessage = 'Bad request data';

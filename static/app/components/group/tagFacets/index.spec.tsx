@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import TagFacets, {TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
+import {TagFacets, TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
 
 describe('Tag Facets', () => {
   const organization = OrganizationFixture();

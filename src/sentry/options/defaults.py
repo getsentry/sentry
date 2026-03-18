@@ -3786,6 +3786,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "demo-org-ids",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",

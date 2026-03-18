@@ -7,7 +7,7 @@ import {useOwners} from 'sentry/utils/useOwners';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {SelectFieldProps} from './selectField';
-import SelectField from './selectField';
+import {SelectField} from './selectField';
 
 // projects can be passed as a direct prop as well
 interface RenderFieldProps extends SelectFieldProps<any> {

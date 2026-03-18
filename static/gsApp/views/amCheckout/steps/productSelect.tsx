@@ -38,7 +38,7 @@ export function getProductCheckoutDescription({
   return '';
 }
 
-function ProductSelect({
+export function ProductSelect({
   activePlan,
   formData,
   onUpdate,
@@ -280,8 +280,6 @@ function ProductSelect({
     </Fragment>
   );
 }
-
-export default ProductSelect;
 
 const FeatureItem = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
