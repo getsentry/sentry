@@ -25,6 +25,7 @@ def root_cause_prompt(*, short_id: str, title: str, culprit: str, artifact_key: 
         - one_line_description: A concise summary under 30 words
         - five_whys: Chain of brief "why" statements leading to the root cause. (do not write the questions, only the answers; e.g. prefer "x -> y -> z", NOT "x -> why x? y -> why y? z")
         - reproduction_steps: Steps that would reproduce this issue, each under 15 words.
+        - relevant_repos: List of full repository names (e.g. "owner/repo") that contain the code relevant to this root cause. Include every repo you searched or found relevant code in.
         """
     )
 

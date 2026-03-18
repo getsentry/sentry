@@ -363,6 +363,29 @@ def generate_autofix_handoff_prompt(
     return "\n\n".join(parts)
 
 
+def _filter_repos_by_run_state(
+    state: SeerRunState,
+    repo_definitions: list[SeerRepoDefinition],
+    run_id: int,
+    group: Group,
+) -> list[SeerRepoDefinition]:
+    root_cause_artifact = state.get_artifacts().get("root_cause")
+    relevant_repos: list[str] = (
+        (root_cause_artifact.data or {}).get("relevant_repos") or [] if root_cause_artifact else []
+    )
+    if relevant_repos:
+        return [r for r in repo_definitions if f"{r.owner}/{r.name}" in set(relevant_repos)]
+    logger.warning(
+        "autofix.coding_agent_handoff.no_relevant_repos",
+        extra={
+            "organization_id": group.organization.id,
+            "run_id": run_id,
+            "project_id": group.project_id,
+        },
+    )
+    return repo_definitions[:1]
+
+
 def trigger_coding_agent_handoff(
     group: Group,
     run_id: int,
@@ -418,6 +441,8 @@ def trigger_coding_agent_handoff(
         category_value=str(group.id),
     )
     state = client.get_run(run_id)
+
+    repo_definitions = _filter_repos_by_run_state(state, repo_definitions, run_id, group)
 
     short_id = group.qualified_short_id
 

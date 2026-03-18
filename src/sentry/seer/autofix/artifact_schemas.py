@@ -62,6 +62,10 @@ class RootCauseArtifact(BaseModel):
     reproduction_steps: list[str] = Field(
         default_factory=list, description="Steps to reproduce the issue"
     )
+    relevant_repos: list[str] = Field(
+        default_factory=list,
+        description="Full repository names (e.g. 'owner/repo') that contain the code relevant to this root cause",
+    )
 
 
 class SolutionArtifact(BaseModel):

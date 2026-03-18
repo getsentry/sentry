@@ -595,3 +595,80 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert len(result["failures"]) == 1
         assert "No repositories configured" in result["failures"][0]["error_message"]
         mock_client.launch_coding_agents.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_coding_agent_handoff_filters_repos_by_relevant_repos(
+        self, mock_client_class, mock_get_prefs
+    ):
+        """Test that repos are filtered to those listed in the root_cause artifact's relevant_repos."""
+        from sentry.seer.models import SeerRepoDefinition
+
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state(
+            [
+                Artifact(
+                    key="root_cause",
+                    data={"one_line_description": "Bug", "relevant_repos": ["owner/relevant-repo"]},
+                    reason="test",
+                )
+            ]
+        )
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_get_prefs.return_value = self._make_preference_response(
+            repos=[
+                SeerRepoDefinition(
+                    provider="github", owner="owner", name="relevant-repo", external_id="1"
+                ),
+                SeerRepoDefinition(
+                    provider="github", owner="owner", name="other-repo", external_id="2"
+                ),
+            ]
+        )
+
+        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+
+        repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
+        assert len(repos) == 1
+        assert repos[0].name == "relevant-repo"
+
+    @patch("sentry.seer.autofix.autofix_agent.logger")
+    @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_trigger_coding_agent_handoff_falls_back_to_first_repo_when_no_relevant_repos(
+        self, mock_client_class, mock_get_prefs, mock_logger
+    ):
+        """Test that when relevant_repos is absent, first configured repo is used and a warning is logged."""
+        from sentry.seer.models import SeerRepoDefinition
+
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state(
+            [Artifact(key="root_cause", data={"one_line_description": "Bug"}, reason="test")]
+        )
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        mock_get_prefs.return_value = self._make_preference_response(
+            repos=[
+                SeerRepoDefinition(
+                    provider="github", owner="owner", name="first-repo", external_id="1"
+                ),
+                SeerRepoDefinition(
+                    provider="github", owner="owner", name="second-repo", external_id="2"
+                ),
+            ]
+        )
+
+        trigger_coding_agent_handoff(group=self.group, run_id=123, integration_id=456)
+
+        repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
+        assert len(repos) == 1
+        assert repos[0].name == "first-repo"
+        mock_logger.warning.assert_called_once_with(
+            "autofix.coding_agent_handoff.no_relevant_repos",
+            extra={
+                "organization_id": self.group.organization.id,
+                "run_id": 123,
+                "project_id": self.group.project_id,
+            },
+        )
