@@ -815,7 +815,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/coding-workflows-sentry-backend
 /src/sentry/seer/code_review/                                                @getsentry/coding-workflows-sentry-backend
 /tests/sentry/seer/code_review/                                              @getsentry/coding-workflows-sentry-backend
-                                    @getsentry/coding-workflows
 /src/sentry/releases/                                     @getsentry/coding-workflows-sentry-backend
 /tests/sentry/releases/                                   @getsentry/coding-workflows-sentry-backend
 
