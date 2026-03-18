@@ -650,10 +650,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 user_is_active=user.is_active, user_email=user.email
             )
 
-    # TODO(cells): Remove when callers updated
-    def update_region_user(self, *, user: RpcRegionUser, cell_name: str) -> None:
-        return self.update_cell_user(user=user, cell_name=cell_name)
-
     def get_option(self, *, organization_id: int, key: str) -> OptionValue:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
         value = orm_organization.get_option(key)
