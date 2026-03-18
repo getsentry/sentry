@@ -1,6 +1,14 @@
+from unittest.mock import patch
+
 import pytest
 
-from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
+from sentry.sdk_updates import (
+    SdkIndexState,
+    SdkSetupState,
+    get_sdk_urls,
+    get_sdk_versions,
+    get_suggested_updates,
+)
 
 PYTHON_INDEX_STATE = SdkIndexState(sdk_versions={"sentry.python": "0.9.1"})
 
@@ -217,3 +225,59 @@ def test_more_specific_dotnet_sdk(some_dotnet_sdk) -> None:
                 "type": "changeSdk",
             }
         ]
+
+
+class TestGetSdkUrls:
+    @patch("sentry.sdk_updates.get_sdk_index")
+    def test_missing_main_docs_url(self, mock_get_sdk_index):
+        """SDK entries without main_docs_url should be skipped, not cause a KeyError."""
+        mock_get_sdk_index.return_value = {
+            "sentry.javascript.effect": {
+                "canonical": "npm:@sentry/effect",
+                "name": "Sentry Effect SDK",
+                "package_url": "https://www.npmjs.com/package/@sentry/effect",
+                "repo_url": "https://github.com/getsentry/sentry-javascript",
+                "version": "10.44.0",
+            },
+            "sentry.python": {
+                "canonical": "pypi:sentry-sdk",
+                "main_docs_url": "https://docs.sentry.io/platforms/python/",
+                "name": "Sentry Python SDK",
+                "version": "1.0.0",
+            },
+        }
+        result = get_sdk_urls()
+        # Entry without main_docs_url should be absent
+        assert "sentry.javascript.effect" not in result
+        # Entry with main_docs_url should be present
+        assert result["sentry.python"] == "https://docs.sentry.io/platforms/python/"
+
+    @patch("sentry.sdk_updates.get_sdk_index")
+    def test_all_entries_have_main_docs_url(self, mock_get_sdk_index):
+        mock_get_sdk_index.return_value = {
+            "sentry.python": {
+                "main_docs_url": "https://docs.sentry.io/platforms/python/",
+                "version": "1.0.0",
+            },
+        }
+        result = get_sdk_urls()
+        assert result["sentry.python"] == "https://docs.sentry.io/platforms/python/"
+
+
+class TestGetSdkVersions:
+    @patch("sentry.sdk_updates.get_sdk_index")
+    def test_missing_version(self, mock_get_sdk_index):
+        """SDK entries without version should be skipped, not cause a KeyError."""
+        mock_get_sdk_index.return_value = {
+            "sentry.javascript.effect": {
+                "canonical": "npm:@sentry/effect",
+                "name": "Sentry Effect SDK",
+            },
+            "sentry.python": {
+                "version": "1.0.0",
+                "main_docs_url": "https://docs.sentry.io/platforms/python/",
+            },
+        }
+        result = get_sdk_versions()
+        assert "sentry.javascript.effect" not in result
+        assert result["sentry.python"] == "1.0.0"
