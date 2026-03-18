@@ -75,7 +75,7 @@ export function useScmRepoSelection({
         url: `/organizations/${organization.slug}/repos/${addedRepoIdRef.current}/`,
         method: 'PUT',
         data: {status: 'hidden'},
-      });
+      }).catch(() => {});
       addedRepoIdRef.current = null;
     }
   };
