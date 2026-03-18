@@ -5,9 +5,9 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import SentryApplicationDashboard from './index';
 
-jest.mock('sentry/components/charts/baseChart', () => {
-  return jest.fn().mockImplementation(() => <div data-test-id="chart" />);
-});
+jest.mock('sentry/components/charts/baseChart', () => ({
+  BaseChart: jest.fn().mockImplementation(() => <div data-test-id="chart" />),
+}));
 
 describe('Sentry Application Dashboard', () => {
   const NUM_INSTALLS = 5;

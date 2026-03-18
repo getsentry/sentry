@@ -14,12 +14,12 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {toArray} from 'sentry/utils/array/toArray';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
@@ -39,7 +39,7 @@ export type ProjectReleaseCount = {
   release_counts: Record<string, number>;
 };
 
-function TeamReleases({
+export function TeamReleases({
   organization,
   projects,
   teamSlug,
@@ -297,8 +297,6 @@ function TeamReleases({
     </div>
   );
 }
-
-export default TeamReleases;
 
 const ChartWrapper = styled('div')`
   padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};

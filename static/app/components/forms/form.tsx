@@ -109,7 +109,7 @@ export function getSubmitButtonTitle(form: FormModel) {
   return t('Fields must contain valid inputs');
 }
 
-function Form({
+export function Form({
   'data-test-id': dataTestId,
   allowUndo,
   apiEndpoint,
@@ -291,8 +291,6 @@ function Form({
     </FormContext>
   );
 }
-
-export default Form;
 
 const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   display: flex;

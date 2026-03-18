@@ -58,7 +58,7 @@ function toEventsStatsData(
   return isEventsStatsData(percentileData) ? percentileData : [];
 }
 
-function getBreakpointChartOptionsFromData(
+export function getBreakpointChartOptionsFromData(
   {percentileData, evidenceData}: EventBreakpointChartData,
   chartType: ChartType,
   theme: Theme
@@ -150,5 +150,3 @@ function getBreakpointChartOptionsFromData(
     chartOptions,
   };
 }
-
-export default getBreakpointChartOptionsFromData;

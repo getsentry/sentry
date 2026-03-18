@@ -16,7 +16,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {ApiSource} from './sources/apiSource';
 import {CommandSource} from './sources/commandSource';
 import {DsnLookupSource} from './sources/dsnLookupSource';
-import FormSource from './sources/formSource';
+import {FormSource} from './sources/formSource';
 import {OrganizationsSource} from './sources/organizationsSource';
 import {RouteSource} from './sources/routeSource';
 import type {Result} from './sources/types';

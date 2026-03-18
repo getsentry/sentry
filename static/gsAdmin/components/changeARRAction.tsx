@@ -4,7 +4,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import NumberField from 'sentry/components/forms/fields/numberField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
 
 type Props = {
   // TODO(ts): Type customer when available

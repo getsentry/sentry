@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 
 import {Client} from 'sentry/api';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {

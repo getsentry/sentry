@@ -6,8 +6,8 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
 import {t} from 'sentry/locale';

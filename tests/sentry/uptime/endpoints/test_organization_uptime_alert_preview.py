@@ -36,12 +36,11 @@ class OrganizationUptimeAlertPreview(UptimeAlertBaseEndpointTest):
         assert "timeoutMs" in response.data
         assert response.data["timeoutMs"][0].code == "required"
 
-    def test_bad_checker_validation(self) -> None:
-        mock_response = mock.Mock()
-        mock_response.status_code = 400
-        mock_response.json.return_value = {"error": True}
-        self.mock_invoke_checker_validator.return_value = mock_response
-
+    @mock.patch("sentry.uptime.checker_api.invoke_checker_validator")
+    def test_bad_checker_validation(self, mock_validator: mock.MagicMock) -> None:
+        mock_validator.return_value = mock.Mock(
+            status_code=400, **{"json.return_value": {"error": True}}
+        )
         response = self.get_error_response(
             self.organization.slug,
             name="test",

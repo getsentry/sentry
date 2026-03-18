@@ -27,7 +27,7 @@ type Props = {
   className?: string;
 };
 
-function SettingsBreadcrumb({className, routes, params}: Props) {
+export function SettingsBreadcrumb({className, routes, params}: Props) {
   const pathMap = useBreadcrumbsPathmap();
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
@@ -91,5 +91,3 @@ export const CrumbLink = styled(RouterLink)`
     color: ${p => p.theme.tokens.content.primary};
   }
 `;
-
-export default SettingsBreadcrumb;

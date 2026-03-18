@@ -87,7 +87,7 @@ function EditableOption({
   );
 }
 
-export default function Options() {
+export function Options() {
   return (
     <div>
       <PageHeader title="Options" />

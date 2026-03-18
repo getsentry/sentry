@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 
 export const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   height: 100%;
