@@ -96,17 +96,8 @@ class NotificationService[T: NotificationData]:
             thread: NotificationThread | None = None
             thread_context: ThreadContext | None = None
             if threading_options is not None:
-                threading_lookup = ThreadingLookup(
-                    key_type=threading_options.thread_key.key_type,
-                    key_data=threading_options.thread_key.key_data,
-                    provider_key=target.provider_key,
-                    target_id=target.resource_id,
-                )
-                thread = ThreadingService.resolve(threading_lookup=threading_lookup)
-                thread_context = ThreadContext(
-                    thread_key=threading_options.thread_key,
-                    thread=thread,
-                    reply_broadcast=threading_options.reply_broadcast,
+                thread, thread_context = NotificationService._resolve_thread_context(
+                    target=target, threading_options=threading_options
                 )
 
             # Step 4: Send the notification
@@ -122,12 +113,17 @@ class NotificationService[T: NotificationData]:
 
             # Step 5: Store threading result
             if threading_options is not None:
-                NotificationService._handle_threading_result(
-                    threading_options=threading_options,
-                    thread=thread,
-                    target=target,
-                    result=result,
-                )
+                try:
+                    NotificationService._handle_threading_result(
+                        threading_options=threading_options,
+                        thread=thread,
+                        target=target,
+                        result=result,
+                    )
+                except Exception as e:
+                    # We don't want to retry the task if we fail to store the threading result
+                    # as that would cause double send issues
+                    lifecycle.record_failure(failure_reason=e, create_issue=False)
 
             return result
 
@@ -141,6 +137,26 @@ class NotificationService[T: NotificationData]:
         rendered_template = template.render(data=data)
         renderer = provider.get_renderer(data=data, category=template.category)
         return renderer.render(data=data, rendered_template=rendered_template)
+
+    @staticmethod
+    def _resolve_thread_context(
+        *,
+        target: NotificationTarget,
+        threading_options: ThreadingOptions,
+    ) -> tuple[NotificationThread | None, ThreadContext]:
+        threading_lookup = ThreadingLookup(
+            key_type=threading_options.thread_key.key_type,
+            key_data=threading_options.thread_key.key_data,
+            provider_key=target.provider_key,
+            target_id=target.resource_id,
+        )
+        thread = ThreadingService.resolve(threading_lookup=threading_lookup)
+        thread_context = ThreadContext(
+            thread_key=threading_options.thread_key,
+            thread=thread,
+            reply_broadcast=threading_options.reply_broadcast,
+        )
+        return thread, thread_context
 
     def notify_async(
         self,
@@ -309,17 +325,8 @@ def notify_target_async(
         thread: NotificationThread | None = None
         thread_context: ThreadContext | None = None
         if options is not None:
-            threading_lookup = ThreadingLookup(
-                key_type=options.thread_key.key_type,
-                key_data=options.thread_key.key_data,
-                provider_key=target.provider_key,
-                target_id=target.resource_id,
-            )
-            thread = ThreadingService.resolve(threading_lookup=threading_lookup)
-            thread_context = ThreadContext(
-                thread_key=options.thread_key,
-                thread=thread,
-                reply_broadcast=options.reply_broadcast,
+            thread, thread_context = NotificationService._resolve_thread_context(
+                target=target, threading_options=options
             )
 
         # Step 5: Send the notification
@@ -333,12 +340,17 @@ def notify_target_async(
 
         # Step 6: Store threading result
         if options is not None:
-            NotificationService._handle_threading_result(
-                threading_options=options,
-                thread=thread,
-                target=target,
-                result=result,
-            )
+            try:
+                NotificationService._handle_threading_result(
+                    threading_options=options,
+                    thread=thread,
+                    target=target,
+                    result=result,
+                )
+            except Exception as e:
+                # We don't want to retry the task if we fail to store the threading result
+                # as that would cause double send issues
+                lifecycle.record_failure(failure_reason=e, create_issue=False)
 
 
 @dataclass
