@@ -1446,8 +1446,9 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert len(response.data["actions"]) == len(payload["actions"])
 
         workflow = Workflow.objects.get(id=get_object_id_from_fake_id(int(response.data["id"])))
-        assert workflow.environment is not None
-        assert workflow.environment.name == payload["environment"]
+        assert workflow.environment_id is not None
+        workflow_env = Environment.objects.get(id=workflow.environment_id)
+        assert workflow_env.name == payload["environment"]
         assert workflow.name == payload["name"]
         assert workflow.enabled is True
 

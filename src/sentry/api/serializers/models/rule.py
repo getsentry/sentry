@@ -392,7 +392,6 @@ class WorkflowEngineRuleSerializer(Serializer):
             .select_related("when_condition_group")
             .prefetch_related("when_condition_group__conditions")
             .prefetch_related(workflow_dcg_prefetch)
-            .prefetch_related("environment")
         )
         return workflows
 
@@ -539,6 +538,11 @@ class WorkflowEngineRuleSerializer(Serializer):
         # Bulk fetch workflow -> rule ids
         workflow_rule_ids = self._fetch_workflow_rule_ids(item_list)
 
+        # Bulk fetch environments for workflows
+        environments = Environment.objects.in_bulk(
+            [_f for _f in [wf.environment_id for wf in item_list] if _f]
+        )
+
         last_triggered_lookup: dict[int, datetime] = {}
         if "lastTriggered" in self.expand:
             last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
@@ -551,7 +555,7 @@ class WorkflowEngineRuleSerializer(Serializer):
             if owner:
                 result[workflow]["owner"] = owner
 
-            result[workflow]["environment"] = workflow.environment
+            result[workflow]["environment"] = environments.get(workflow.environment_id)
             result[workflow]["projects"] = list(workflow_to_projects[workflow])
             result[workflow]["rule_id"] = workflow_rule_ids.get(
                 workflow.id, get_fake_id_from_object_id(workflow.id)
