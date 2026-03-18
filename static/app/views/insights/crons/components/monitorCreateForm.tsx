@@ -75,7 +75,7 @@ export function MonitorCreateForm() {
     };
     navigate(
       normalizeUrl({
-        pathname: `/organizations/${organization.slug}/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`,
+        pathname: `/organizations/${organization.slug}/issues/alerts/rules/crons/${data.project.slug}/${data.slug}/details/`,
         query: endpointOptions.query,
       })
     );
