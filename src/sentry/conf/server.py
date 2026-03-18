@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from typing import Any, Final, Literal, Union, overload
 from urllib.parse import urlparse
 
+from taskbroker_client.scheduler.config import ScheduleConfigMap, crontab
+
 import sentry
 import sentry.utils.types as env_types
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
@@ -28,8 +30,6 @@ from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.conf.types.service_options import ServiceOptions
-from sentry.conf.types.taskworker import ScheduleConfigMap
-from sentry.conf.types.taskworker import crontab as task_crontab
 from sentry.conf.types.uptime import UptimeRegionConfig
 
 
@@ -981,11 +981,11 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
 TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "send-beacon": {
         "task": "selfhosted:sentry.tasks.send_beacon",
-        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
     "send-ping": {
         "task": "selfhosted:sentry.tasks.send_ping",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
@@ -1005,179 +1005,179 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "monitors-clock-pulse": {
         "task": "crons:sentry.monitors.tasks.clock_pulse",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "monitors-detect-broken-monitor-envs": {
         "task": "crons:sentry.monitors.tasks.detect_broken_monitor_envs",
-        "schedule": task_crontab("0", "15", "mon-fri", "*", "*"),
+        "schedule": crontab("0", "15", "mon-fri", "*", "*"),
     },
     "clear-expired-snoozes": {
         "task": "issues:sentry.tasks.clear_expired_snoozes",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "clear-expired-rulesnoozes": {
         "task": "issues:sentry.tasks.clear_expired_rulesnoozes",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "collect-project-platforms": {
         "task": "issues:sentry.tasks.collect_project_platforms",
-        "schedule": task_crontab("0", "3", "*", "*", "*"),
+        "schedule": crontab("0", "3", "*", "*", "*"),
     },
     "deliver-from-outbox": {
         "task": "hybridcloud:sentry.tasks.enqueue_outbox_jobs",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "update-user-reports": {
         "task": "issues:sentry.feedback.tasks.update_user_reports",
-        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "schedule-auto-resolution": {
         "task": "issues:sentry.tasks.schedule_auto_resolution",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
     "auto-remove-inbox": {
         "task": "issues:sentry.tasks.auto_remove_inbox",
-        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "schedule-deletions": {
         "task": "deletions:sentry.deletions.tasks.run_scheduled_deletions",
-        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "reattempt-deletions": {
         "task": "deletions:sentry.deletions.tasks.reattempt_deletions",
-        "schedule": task_crontab("0", "*/2", "*", "*", "*"),
+        "schedule": crontab("0", "*/2", "*", "*", "*"),
     },
     "delete-pending-groups": {
         "task": "deletions:sentry.tasks.delete_pending_groups",
         # Runs every 6 hours (at 00:00, 06:00, 12:00, 18:00 UTC)
-        "schedule": task_crontab("0", "*/6", "*", "*", "*"),
+        "schedule": crontab("0", "*/6", "*", "*", "*"),
     },
     "schedule-weekly-organization-reports-new": {
         "task": "reports:sentry.tasks.summaries.weekly_reports.schedule_organizations",
-        "schedule": task_crontab("0", "12", "sat", "*", "*"),
+        "schedule": crontab("0", "12", "sat", "*", "*"),
     },
     "schedule-hybrid-cloud-foreign-key-jobs": {
         "task": "deletions:sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs",
-        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "monitor-release-adoption": {
         "task": "releasehealth:sentry.release_health.tasks.monitor_release_adoption",
-        "schedule": task_crontab("0", "*", "*", "*", "*"),
+        "schedule": crontab("0", "*", "*", "*", "*"),
     },
     "fetch-release-registry-data": {
         "task": "sdk:sentry.tasks.release_registry.fetch_release_registry_data",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "snuba-subscription-checker": {
         "task": "alerts:sentry.snuba.tasks.subscription_checker",
-        "schedule": task_crontab("*/20", "*", "*", "*", "*"),
+        "schedule": crontab("*/20", "*", "*", "*", "*"),
     },
     "uptime-subscription-checker": {
         "task": "uptime:sentry.uptime.tasks.subscription_checker",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
     "uptime-broken-monitor-checker": {
         "task": "uptime:sentry.uptime.tasks.broken_monitor_checker",
-        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
     "poll_tempest": {
         "task": "tempest:sentry.tempest.tasks.poll_tempest",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "transaction-name-clusterer": {
         "task": "performance:sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
-        "schedule": task_crontab("17", "*", "*", "*", "*"),
+        "schedule": crontab("17", "*", "*", "*", "*"),
     },
     "auto-enable-codecov": {
         "task": "integrations:sentry.tasks.auto_enable_codecov.enable_for_org",
-        "schedule": task_crontab("30", "0", "*", "*", "*"),
+        "schedule": crontab("30", "0", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-projects": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
     "autopilot-run-sdk-update-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_sdk_update_detector",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
     "autopilot-run-missing-sdk-integration-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_missing_sdk_integration_detector",
-        "schedule": task_crontab("0", "*/4", "*", "*", "*"),
+        "schedule": crontab("0", "*/4", "*", "*", "*"),
     },
     "autopilot-run-trace-instrumentation-detector": {
         "task": "autopilot:sentry.autopilot.tasks.run_trace_instrumentation_detector",
-        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "dynamic-sampling-boost-low-volume-transactions": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
     "dynamic-sampling-recalibrate-orgs": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
     "dynamic-sampling-sliding-window-org": {
         "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
-        "schedule": task_crontab("*/10", "*", "*", "*", "*"),
+        "schedule": crontab("*/10", "*", "*", "*", "*"),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
-        "schedule": task_crontab("0", "0", "*", "*", "*"),
+        "schedule": crontab("0", "0", "*", "*", "*"),
     },
     "schedule_auto_transition_to_ongoing": {
         "task": "issues:sentry.tasks.schedule_auto_transition_to_ongoing",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "statistical-detectors-detect-regressions": {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
-        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
     "seer-explorer-index": {
         "task": "seer:sentry.tasks.seer_explorer_index.schedule_explorer_index",
-        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "on-demand-metrics-schedule-on-demand-check": {
         "task": "performance:sentry.tasks.on_demand_metrics.schedule_on_demand_check",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "uptime-detection-scheduler": {
         "task": "uptime:sentry.uptime.detectors.tasks.schedule_detections",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "demo_mode_sync_debug_artifacts": {
         "task": "demomode:sentry.demo_mode.tasks.sync_debug_artifacts",
-        "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "fetch-ai-model-costs": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
-        "schedule": task_crontab("*/30", "*", "*", "*", "*"),
+        "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
     "llm-issue-detection": {
         "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": task_crontab("0", "*", "*", "*", "*"),
+        "schedule": crontab("0", "*", "*", "*", "*"),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
-        "schedule": task_crontab("0", "*", "*", "*", "*"),
+        "schedule": crontab("0", "*", "*", "*", "*"),
     },
     "web-vitals-issue-detection": {
         "task": "issues:sentry.tasks.web_vitals_issue_detection.run_web_vitals_issue_detection",
-        "schedule": task_crontab("0", "0", "*", "1,15", "*"),
+        "schedule": crontab("0", "0", "*", "1,15", "*"),
     },
 }
 
 TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
     "check-auth": {
         "task": "auth.control:sentry.tasks.check_auth",
-        "schedule": task_crontab("*/1", "*", "*", "*", "*"),
+        "schedule": crontab("*/1", "*", "*", "*", "*"),
     },
     "sync-options-control": {
         "task": "options.control:sentry.tasks.options.sync_options_control",
@@ -1189,19 +1189,19 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
     },
     "schedule-deletions-control": {
         "task": "deletions.control:sentry.deletions.tasks.run_scheduled_deletions_control",
-        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "reattempt-deletions-control": {
         "task": "deletions.control:sentry.deletions.tasks.reattempt_deletions_control",
-        "schedule": task_crontab("0", "*/2", "*", "*", "*"),
+        "schedule": crontab("0", "*/2", "*", "*", "*"),
     },
     "schedule-hybrid-cloud-foreign-key-jobs-control": {
         "task": "deletions.control:sentry.deletions.tasks.hybrid_cloud.schedule_hybrid_cloud_foreign_key_jobs_control",
-        "schedule": task_crontab("*/15", "*", "*", "*", "*"),
+        "schedule": crontab("*/15", "*", "*", "*", "*"),
     },
     "schedule-vsts-integration-subscription-check": {
         "task": "integrations.control:sentry.integrations.vsts.tasks.kickoff_vsts_subscription_check",
-        "schedule": task_crontab("0", "*/6", "*", "*", "*"),
+        "schedule": crontab("0", "*/6", "*", "*", "*"),
     },
     "deliver-webhooks-control": {
         "task": "hybridcloud.control:sentry.hybridcloud.tasks.deliver_webhooks.schedule_webhook_delivery",
@@ -1209,11 +1209,11 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
     },
     "relocation-find-transfer-control": {
         "task": "relocation.control:sentry.relocation.transfer.find_relocation_transfer_control",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "fetch-release-registry-data-control": {
         "task": "sdk.control:sentry.tasks.release_registry.fetch_release_registry_data_control",
-        "schedule": task_crontab("*/5", "*", "*", "*", "*"),
+        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
 }
 
