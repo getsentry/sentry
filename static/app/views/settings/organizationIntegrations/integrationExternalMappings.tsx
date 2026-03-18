@@ -36,18 +36,15 @@ type CodeOwnersAssociationMappings = Record<
 >;
 
 type Props = Pick<
-  IntegrationExternalMappingForm['props'],
-  | 'dataEndpoint'
-  | 'getBaseFormEndpoint'
-  | 'sentryNamesMapper'
-  | 'onResults'
-  | 'defaultOptions'
+  React.ComponentProps<typeof IntegrationExternalMappingForm>,
+  'getBaseFormEndpoint' | 'defaultOptions'
 > & {
   integration: Integration;
   mappings: ExternalActorMapping[];
   onCreate: (mapping?: ExternalActorMappingOrSuggestion) => void;
   onDelete: (mapping: ExternalActorMapping) => void;
   type: 'team' | 'user';
+  onSubmitSuccess?: () => Promise<void>;
   pageLinks?: string;
 };
 
@@ -61,13 +58,11 @@ export function IntegrationExternalMappings(props: Props) {
     type,
     mappings,
     pageLinks,
-    dataEndpoint,
     defaultOptions,
     onCreate,
-    onResults,
     onDelete,
+    onSubmitSuccess,
     getBaseFormEndpoint,
-    sentryNamesMapper,
   } = props;
 
   const [newlyAssociatedMappings, setNewlyAssociatedMappings] = useState<
@@ -134,18 +129,16 @@ export function IntegrationExternalMappings(props: Props) {
       <IntegrationExternalMappingForm
         type={type}
         integration={integration}
-        dataEndpoint={dataEndpoint}
         getBaseFormEndpoint={getBaseFormEndpoint}
         mapping={mapping}
-        sentryNamesMapper={sentryNamesMapper}
-        onResults={onResults}
-        onSubmitSuccess={(newMapping: ExternalActorMapping) => {
+        onSubmitSuccess={async (newMapping: ExternalActorMapping) => {
           setNewlyAssociatedMappings([
             ...newlyAssociatedMappings.filter(
               map => map.externalName !== newMapping.externalName
             ),
             newMapping,
           ]);
+          await onSubmitSuccess?.();
         }}
         isInline
         defaultOptions={defaultOptions}

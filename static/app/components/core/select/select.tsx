@@ -27,6 +27,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {FormSize, Theme} from 'sentry/utils/theme';
@@ -457,6 +458,15 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
        */
       isInsideModal?: boolean;
       /**
+       * custom value comparator function
+       * defaults to === comparison of the option values
+       */
+      isValueEqual?: (
+        optionA: OptionType['value'],
+        optionB: OptionType['value']
+      ) => boolean;
+
+      /**
        * Maximum width of the menu component. Menu item labels that overflow the
        * menu's boundaries will automatically be truncated.
        */
@@ -539,7 +549,14 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
     options;
 
   // It's possible that `choicesOrOptions` does not exist (e.g. in the case of AsyncSelect)
-  let mappedValue = value;
+  // When isValueEqual is provided, the value is a raw domain object (e.g.
+  // {id, name}) that react-select can't handle directly — it would call
+  // callbacks like getOptionValue on it expecting a full option shape. In that
+  // case, fall back to null instead of passing the raw object through.
+  // Otherwise the value is a primitive or option-shaped object that
+  // react-select can handle directly.
+  const noMatchFallback = props.isValueEqual ? (props.multiple ? [] : null) : value;
+  let mappedValue = noMatchFallback;
 
   if (choicesOrOptions) {
     /**
@@ -554,10 +571,21 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
     } else {
       flatOptions = choicesOrOptions.flatMap((option: any) => option);
     }
+
+    const compare = (
+      a: OptionType['value'] | null | undefined,
+      b: OptionType['value'] | null | undefined
+    ) => {
+      if (props.isValueEqual && defined(a) && defined(b)) {
+        return props.isValueEqual(a, b);
+      }
+      return a === b;
+    };
+
     mappedValue =
       props.multiple && Array.isArray(value)
-        ? value.map(val => flatOptions.find(option => option.value === val))
-        : flatOptions.find(opt => opt.value === value) || value;
+        ? value.map(val => flatOptions.find(option => compare(option.value, val)))
+        : flatOptions.find(opt => compare(opt.value, value)) || noMatchFallback;
   }
 
   // Override the default style with in-field labels if they are provided
