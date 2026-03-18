@@ -229,6 +229,11 @@ export function NotificationSettingsByType({notificationType}: Props) {
       organization.features?.includes('am2-tier')
     );
 
+    // at least one org exists with am1 tier plan
+    const hasOrgWithAm1 = organizations.some(organization =>
+      organization.features?.includes('am1-tier')
+    );
+
     // Check if any organization has the continuous-profiling-billing feature flag
     const hasOrgWithContinuousProfilingBilling = organizations.some(organization =>
       organization.features?.includes('continuous-profiling-billing')
@@ -252,7 +257,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
     const includeSeer = hasSeerBilling;
     const includeLogs = hasLogsBilling;
-    const includeSizeAnalysis = hasOrgWithAm3 || hasOrgWithAm2;
+    const includeSizeAnalysis = hasOrgWithAm3 || hasOrgWithAm2 || hasOrgWithAm1;
 
     return fields.filter(field => {
       if (field.name === 'quotaSpans' && !includeSpans) {
