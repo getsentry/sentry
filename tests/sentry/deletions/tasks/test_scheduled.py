@@ -10,7 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import Model
 from sentry.deletions.models.scheduleddeletion import (
     BaseScheduledDeletion,
-    RegionScheduledDeletion,
+    CellScheduledDeletion,
     ScheduledDeletion,
 )
 from sentry.deletions.tasks.scheduled import (
@@ -209,10 +209,10 @@ class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):
         assert not self.ScheduledDeletion.objects.filter(id=schedule.id).exists()
 
 
-class RunRegionScheduledDeletionTest(RegionalRunScheduleDeletionTest):
+class RunCellScheduledDeletionTest(RegionalRunScheduleDeletionTest):
     @property
     def ScheduledDeletion(self) -> type[BaseScheduledDeletion]:
-        return RegionScheduledDeletion
+        return CellScheduledDeletion
 
     def run_scheduled_deletions(self) -> None:
         return run_scheduled_deletions()

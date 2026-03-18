@@ -19,7 +19,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
-from sentry.seer.code_review.models import SeerCodeReviewRequestType, SeerCodeReviewTrigger
+from sentry.seer.code_review.models import SeerCodeReviewTrigger
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 
 from .metrics import CodeReviewErrorType, record_webhook_handler_error
@@ -77,16 +77,16 @@ class SeerEndpoint(StrEnum):
     CODE_REVIEW_PR_CLOSED = "/v1/code_review/pr-closed"
 
 
-def get_seer_path_for_request(github_event: str, payload: Mapping[str, Any]) -> str:
+def get_seer_path_for_request(github_event: str, github_event_action: str | None = None) -> str:
     """
-    Get the Seer API path for a webhook request based on event type and payload.
+    Get the Seer API path for a webhook request based on event type and action.
 
     CHECK_RUN events use the rerun endpoint. PR and issue_comment events use the
-    dedicated review-request or pr-closed endpoint based on request_type.
+    dedicated review-request or pr-closed endpoint based on event action.
     """
     if github_event == GithubWebhookType.CHECK_RUN.value:
         return SeerEndpoint.PR_REVIEW_RERUN.value
-    if payload.get("request_type") == "pr-closed":
+    if github_event_action == "closed":
         return SeerEndpoint.CODE_REVIEW_PR_CLOSED.value
     return SeerEndpoint.CODE_REVIEW_REVIEW_REQUEST.value
 
@@ -227,7 +227,7 @@ def transform_webhook_to_codegen_request(
         target_commit_sha: The target commit SHA for PR review (head of the PR at the time of webhook event)
 
     Returns:
-        Dictionary with request_type, data, and external_owner_id that matches either
+        Dictionary with data, and external_owner_id that matches either
         SeerCodeReviewTaskRequestForPrReview or SeerCodeReviewTaskRequestForPrClosed format,
         or None if the event is not PR-related (e.g., issue_comment on regular issues)
     """
@@ -244,7 +244,8 @@ def transform_webhook_to_codegen_request(
 
 
 def _common_codegen_request_payload(
-    request_type: SeerCodeReviewRequestType,
+    *,
+    add_experiment_enabled: bool,
     repo: Repository,
     target_commit_sha: str,
     organization: Organization,
@@ -262,13 +263,11 @@ def _common_codegen_request_payload(
         },
     }
 
-    # Add experiment_enabled flag ONLY for pr-review requests
-    if request_type == SeerCodeReviewRequestType.PR_REVIEW:
+    # Add experiment_enabled flag ONLY for pr-review requests (not for pr-closed / pr-reopened)
+    if add_experiment_enabled:
         data["experiment_enabled"] = is_org_enabled_for_code_review_experiments(organization)
 
     return {
-        # Payload shape consumed by Seer code_review routes (review-request, pr-closed).
-        "request_type": request_type.value,
         "external_owner_id": repo.external_id,
         "data": data,
     }
@@ -286,7 +285,7 @@ def transform_issue_comment_to_codegen_request(
     Returns a dictionary matching SeerCodeReviewTaskRequestForPrReview format.
     """
     payload = _common_codegen_request_payload(
-        SeerCodeReviewRequestType.PR_REVIEW,  # An issue comment on a PR is a PR review request
+        add_experiment_enabled=True,  # Issue comment on a PR is always a PR review request
         repo=repo,
         target_commit_sha=target_commit_sha,
         organization=organization,
@@ -319,13 +318,8 @@ def transform_pull_request_to_codegen_request(
         case "synchronize":
             review_request_trigger = SeerCodeReviewTrigger.ON_NEW_COMMIT
 
-    request_type = (
-        SeerCodeReviewRequestType.PR_REVIEW
-        if github_event_action != "closed"
-        else SeerCodeReviewRequestType.PR_CLOSED
-    )
     payload = _common_codegen_request_payload(
-        request_type,
+        add_experiment_enabled=(github_event_action not in ("closed", "reopened")),
         repo=repo,
         target_commit_sha=target_commit_sha,
         organization=organization,

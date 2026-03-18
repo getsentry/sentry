@@ -38,7 +38,7 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

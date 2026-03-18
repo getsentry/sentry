@@ -23,7 +23,7 @@ from django.test import override_settings
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
 from sentry.testutils.region import get_test_env_directory, override_regions
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils.snowflake import uses_snowflake_id
 
 if typing.TYPE_CHECKING:
@@ -334,7 +334,7 @@ Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to CONTROL.
 """
 
-region_silo_test = SiloModeTestDecorator(SiloMode.CELL)
+cell_silo_test = SiloModeTestDecorator(SiloMode.CELL)
 """
 Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to REGION.
@@ -436,7 +436,7 @@ _protected_operations: list[re.Pattern] = []
 
 def get_protected_operations() -> list[re.Pattern]:
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
+    from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 
     if len(_protected_operations):
         return _protected_operations
@@ -455,9 +455,7 @@ def get_protected_operations() -> list[re.Pattern]:
                     continue
                 seen_models.add(fk_model)
                 _protected_operations.append(protected_table(fk_model._meta.db_table, "delete"))
-            if issubclass(model, ReplicatedControlModel) or issubclass(
-                model, ReplicatedRegionModel
-            ):
+            if issubclass(model, ReplicatedControlModel) or issubclass(model, ReplicatedCellModel):
                 _protected_operations.append(protected_table(model._meta.db_table, "insert"))
                 _protected_operations.append(protected_table(model._meta.db_table, "update"))
                 _protected_operations.append(protected_table(model._meta.db_table, "delete"))

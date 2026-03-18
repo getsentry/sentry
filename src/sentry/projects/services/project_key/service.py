@@ -6,7 +6,7 @@
 from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.resolvers import ByCellName, ByOrganizationId
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.projects.services.project_key import ProjectKeyRole, RpcProjectKey
 from sentry.silo.base import SiloMode
 
@@ -21,36 +21,25 @@ class ProjectKeyService(RpcService):
 
         return DatabaseBackedProjectKeyService()
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_project_key(
         self, *, organization_id: int, project_id: int, role: ProjectKeyRole
     ) -> RpcProjectKey | None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_default_project_key(
         self, *, organization_id: int, project_id: int
     ) -> RpcProjectKey | None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
-    def get_project_key_by_region(
-        self, *, region_name: str, project_id: int, role: ProjectKeyRole
+    def get_project_key_by_cell(
+        self, *, cell_name: str, project_id: int, role: ProjectKeyRole
     ) -> RpcProjectKey | None:
-        pass
-
-    @regional_rpc_method(resolve=ByCellName())
-    @abstractmethod
-    def get_project_keys_by_region(
-        self,
-        *,
-        region_name: str,
-        project_ids: list[int],
-        role: ProjectKeyRole,
-    ) -> list[RpcProjectKey]:
         pass
 
 

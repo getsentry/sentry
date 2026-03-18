@@ -8,23 +8,23 @@ import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useMedia} from 'sentry/utils/useMedia';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function UsageOverviewActions({organization}: {organization: Organization}) {
-  const {layout: navLayout} = useNavigation();
-  const {isCollapsed: navIsCollapsed} = useSecondaryNavigation();
-  const isMobile = navLayout === 'mobile';
+  const {layout} = usePrimaryNavigation();
+  const {view} = useSecondaryNavigation();
+  const navIsCollapsed = view !== 'expanded';
   const theme = useTheme();
   const shouldCollapseOnLargeScreen =
     useMedia(
       `(min-width: ${theme.breakpoints.lg}) and (max-width: ${theme.breakpoints.xl})`
     ) && !navIsCollapsed;
   const shouldCollapseOnMobile =
-    useMedia(`(max-width: ${theme.breakpoints.sm})`) && isMobile;
+    useMedia(`(max-width: ${theme.breakpoints.sm})`) && layout === 'mobile';
 
   const shouldCollapseActions = shouldCollapseOnLargeScreen || shouldCollapseOnMobile;
 

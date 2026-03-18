@@ -233,7 +233,6 @@ describe('BillingPlans Component', () => {
       level: 3,
       name: /AM9000\s+Business\s+Plan/i,
     });
-    // eslint-disable-next-line testing-library/no-node-access
     const planNotLiveBadge = within(planHeader.parentElement!).getByText('NOT LIVE');
     expect(planNotLiveBadge).toBeInTheDocument();
 
@@ -242,7 +241,6 @@ describe('BillingPlans Component', () => {
       level: 5,
       name: /Errors\s+for\s+AM9000\s+Business/i,
     });
-    // eslint-disable-next-line testing-library/no-node-access
     const dataCategoryNotLiveBadge = within(dataCategoryHeader.parentElement!).getByText(
       'NOT LIVE'
     );
@@ -301,7 +299,6 @@ describe('BillingPlans Component', () => {
 
     // Check that the 'DISABLED' badge is displayed next to the data category
     const dataCategoryHeader = screen.getByText('Errors for AM9000 Business');
-    // eslint-disable-next-line testing-library/no-node-access
     const disabledBadge = within(dataCategoryHeader.parentElement!).getByText('DISABLED');
     expect(disabledBadge).toBeInTheDocument();
   });
@@ -319,7 +316,6 @@ describe('BillingPlans Component', () => {
 
     // Check that the LIVE badge is displayed for the plan
     const planHeader = screen.getByRole('heading', {level: 2, name: /AM9000 Plans/i});
-    // eslint-disable-next-line testing-library/no-node-access
     const headerLiveBadges = within(planHeader.parentElement!).getAllByText('LIVE');
     headerLiveBadges.forEach(badge => {
       expect(badge).toBeInTheDocument();
@@ -327,7 +323,6 @@ describe('BillingPlans Component', () => {
 
     // Check that the LIVE badge is displayed for the data category
     const dataCategoryHeader = screen.getByText('Errors for AM9000 Business');
-    // eslint-disable-next-line testing-library/no-node-access
     const liveBadge = within(dataCategoryHeader.parentElement!).getByText('LIVE');
     expect(liveBadge).toBeInTheDocument();
   });

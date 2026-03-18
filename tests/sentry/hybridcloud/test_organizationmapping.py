@@ -19,11 +19,11 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.silo import (
     assume_test_silo_mode,
+    cell_silo_test,
     control_silo_test,
     create_test_regions,
-    region_silo_test,
 )
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 
 
 def assert_matching_organization_mapping(
@@ -203,7 +203,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert_matching_organization_mapping(org=self.organization)
 
 
-@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+@cell_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class OrganizationMappingReplicationTest(TransactionTestCase):
     def test_replicates_all_flags(self) -> None:
         self.organization = self.create_organization(slug="santry", region="us")

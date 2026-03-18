@@ -251,24 +251,30 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
 function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   const issueTypeConfig = getConfigForIssueType(group, project);
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
-  const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
+
   const theme = useTheme();
   const style = {
     padding: `${theme.space.md} ${theme.space.lg}`,
   };
 
-  return isFixedEnvironment ? (
-    <EnvironmentPageFilter
-      disabled
-      triggerProps={{
-        label: eventEnvironment ?? t('All Envs'),
-        title: t('This issue only occurs in a single environment'),
-        style,
-      }}
-    />
-  ) : (
-    <EnvironmentPageFilter triggerProps={{style}} />
-  );
+  if (isFixedEnvironment) {
+    const detectorEnvironment =
+      event?.occurrence?.evidenceData?.dataSources?.[0]?.queryObj?.snubaQuery
+        ?.environment;
+    const eventEnvironment = event?.tags?.find(tag => tag.key === 'environment')?.value;
+    return (
+      <EnvironmentPageFilter
+        disabled
+        triggerProps={{
+          label: eventEnvironment ?? detectorEnvironment ?? t('All Envs'),
+          title: t('This issue only occurs in a single environment'),
+          style,
+        }}
+      />
+    );
+  }
+
+  return <EnvironmentPageFilter triggerProps={{style}} />;
 }
 
 const DetailsContainer = styled('div')<{hasFilterBar: boolean}>`

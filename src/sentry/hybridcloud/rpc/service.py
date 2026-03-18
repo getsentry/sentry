@@ -32,7 +32,7 @@ from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.types.region import Cell, CellMappingNotFound
+from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
 
@@ -103,11 +103,11 @@ class RpcMethodSignature(SerializableFunctionSignature):
         is_region_service = self.base_service_cls.local_mode == SiloMode.CELL
         if not is_region_service and region_resolution is not None:
             raise self._setup_exception(
-                "@regional_rpc_method should be used only on a service with "
+                "@cell_rpc_method should be used only on a service with "
                 "`local_mode = SiloMode.CELL`"
             )
         if is_region_service and region_resolution is None:
-            raise self._setup_exception("Needs @regional_rpc_method")
+            raise self._setup_exception("Needs @cell_rpc_method")
 
         return region_resolution
 
@@ -177,7 +177,7 @@ def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
     return method
 
 
-def regional_rpc_method(
+def cell_rpc_method(
     resolve: CellResolutionStrategy,
     return_none_if_mapping_not_found: bool = False,
 ) -> Callable[[Callable[..., _T]], Callable[..., _T]]:

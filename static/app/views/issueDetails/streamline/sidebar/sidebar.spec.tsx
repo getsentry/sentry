@@ -102,7 +102,7 @@ describe('StreamlinedSidebar', () => {
       organization,
     });
 
-    expect(await screen.findByText('Seer')).toBeInTheDocument();
+    expect(await screen.findByText('Seer Autofix')).toBeInTheDocument();
 
     expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();

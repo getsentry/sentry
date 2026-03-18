@@ -1,10 +1,14 @@
 import {useEffect, useRef, useState} from 'react';
 
+import type {LinkProps} from '@sentry/scraps/link';
+
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
+import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {useMouseMovement} from 'sentry/views/navigation/primary/useMouseMovement';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
-import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
 
 /**
  * Hovering over a primary nav item will change the contents of the sidebar.
@@ -20,13 +24,16 @@ import {PrimaryNavigationGroup} from 'sentry/views/navigation/types';
  * 2. If it looks like the user is skimming the side of the nav (e.g. they are browsing the secondary
  *    nav), an extra delay is added to prevent accidental activation.
  */
+
+interface UseActivateNavigationGroupOnHoverProps {
+  ref: React.RefObject<HTMLElement | null>;
+}
 export function useActivateNavigationGroupOnHover({
   ref,
-}: {
-  ref: React.RefObject<HTMLElement | null>;
-}) {
-  const {layout, setActivePrimaryNavigationGroup} = useNavigation();
-  const {isCollapsed, isOpen} = useSecondaryNavigation();
+}: UseActivateNavigationGroupOnHoverProps) {
+  const {layout, setActiveGroup, activeGroup} = usePrimaryNavigation();
+  const {view} = useSecondaryNavigation();
+  const location = useLocation();
 
   const mouseAccelerationRef = useMouseMovement({
     ref,
@@ -35,14 +42,23 @@ export function useActivateNavigationGroupOnHover({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const windowHeight = useWindowHeight();
 
-  return function makeNavigationItemProps(group: PrimaryNavigationGroup) {
-    const onMouseEnter = (e: MouseEvent) => {
+  return function makeNavigationItemProps(
+    group: ReturnType<typeof usePrimaryNavigation>['activeGroup'],
+    to: string,
+    activeTo?: string
+  ): Omit<Partial<LinkProps>, 'to'> {
+    const isActive = isPrimaryNavigationLinkActive(
+      normalizeUrl(activeTo ?? to, location),
+      location.pathname
+    );
+
+    const onMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
 
-      if (isCollapsed && !isOpen) {
-        setActivePrimaryNavigationGroup(group);
+      if (view === 'collapsed') {
+        setActiveGroup(group);
         return;
       }
 
@@ -91,7 +107,7 @@ export function useActivateNavigationGroupOnHover({
       };
 
       timeoutRef.current = setTimeout(() => {
-        setActivePrimaryNavigationGroup(group);
+        setActiveGroup(group);
       }, getDelay());
     };
 
@@ -102,10 +118,12 @@ export function useActivateNavigationGroupOnHover({
     };
 
     const onClick = () => {
-      setActivePrimaryNavigationGroup(group);
+      setActiveGroup(group);
     };
 
     return {
+      'aria-selected': activeGroup === group ? true : isActive,
+      'aria-current': isActive ? ('page' as const) : undefined,
       onMouseEnter,
       onMouseLeave,
       onClick,
