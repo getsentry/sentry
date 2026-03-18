@@ -18,7 +18,9 @@ export function LegendTypeSelector() {
 
   return (
     <Tooltip
-      title={t('Legend breakdown is only available with one or fewer group-by columns')}
+      title={t(
+        'Legend breakdown is only available with no more than one group-by column'
+      )}
       disabled={!disabled}
     >
       <Flex
