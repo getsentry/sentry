@@ -422,3 +422,49 @@ class NotificationServiceThreadingTest(TestCase):
         record = NotificationRecord.objects.first()
         assert record is not None
         assert record.thread_id == thread.id
+
+    @mock.patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_notification_with_threading"
+    )
+    def test_full_threading_integration(self, mock_send_with_threading: mock.MagicMock) -> None:
+        """
+        Full service → provider → integration test, only mocking the
+        integration's send method response. Sends two messages and verifies the
+        second one threads onto the first.
+        """
+        # First message — Slack returns ts "1111111111.111111"
+        mock_send_with_threading.return_value = {"ok": True, "ts": "1111111111.111111"}
+
+        service = NotificationService(data=MockNotification(message="first"))
+        service.notify_target(target=self.target, threading_options=self.threading_options)
+
+        # Verify first call: no thread_ts (first message in thread)
+        first_ctx = mock_send_with_threading.call_args.kwargs["threading_context"]
+        assert first_ctx.thread_ts is None
+
+        # Verify DB state after first message
+        assert NotificationThread.objects.count() == 1
+        thread = NotificationThread.objects.first()
+        assert thread is not None
+        assert thread.thread_identifier == "1111111111.111111"
+        assert NotificationRecord.objects.count() == 1
+
+        # Second message — Slack returns a new ts
+        mock_send_with_threading.return_value = {"ok": True, "ts": "2222222222.222222"}
+
+        service = NotificationService(data=MockNotification(message="second"))
+        service.notify_target(target=self.target, threading_options=self.threading_options)
+
+        # Verify second call: thread_ts set to first message's ts, reply_broadcast set
+        second_ctx = mock_send_with_threading.call_args.kwargs["threading_context"]
+        assert second_ctx.thread_ts == "1111111111.111111"
+        assert second_ctx.reply_broadcast is True
+
+        # Verify DB state: same thread, two records
+        assert NotificationThread.objects.count() == 1
+        assert NotificationRecord.objects.count() == 2
+
+        records = list(NotificationRecord.objects.order_by("date_added"))
+        assert records[0].message_id == "1111111111.111111"
+        assert records[1].message_id == "2222222222.222222"
+        assert records[0].thread_id == records[1].thread_id
