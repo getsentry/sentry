@@ -30,6 +30,7 @@ import {DashboardState} from './types';
 
 const POLL_INTERVAL_MS = 500;
 const DASHBOARD_ARTIFACT_KEY = 'dashboard';
+const POST_COMPLETE_POLL_MS = 5000;
 
 type DashboardArtifact = {
   title: string;
@@ -137,6 +138,12 @@ export default function CreateFromSeer() {
   const [isUpdating, setisUpdating] = useState(false); // State tracks if dashboard is being updated from user chat input
   const prevUpdatedAtRef = useRef<string | null>(null);
 
+  // Timestamp of when we observe a "completed" status.
+  // This is required to poll for POST_COMPLETE_POLL_MS
+  // since backend hooks can resume runs in case of
+  // validation errors.
+  const completedAtRef = useRef<number | null>(null);
+
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(organization.slug, seerRunId),
     {
@@ -148,6 +155,16 @@ export default function CreateFromSeer() {
           return POLL_INTERVAL_MS;
         }
         const status = query.state.data?.[0]?.session?.status;
+        if (status === 'completed') {
+          if (completedAtRef.current === null) {
+            completedAtRef.current = Date.now();
+          }
+          if (Date.now() - completedAtRef.current < POST_COMPLETE_POLL_MS) {
+            return POLL_INTERVAL_MS;
+          }
+          return false;
+        }
+        completedAtRef.current = null;
         if (statusIsTerminal(status)) {
           return false;
         }
