@@ -11,6 +11,7 @@ import {
   DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
+import {useButtonDefaults} from './useButtonDefaults';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {ButtonProps};
@@ -46,8 +47,9 @@ export function Button({
         type={type}
         busy={busy}
         {...props}
-        onClick={handleClick}
+        {...useButtonDefaults(props)}
         role="button"
+        onClick={handleClick}
       >
         <Flex
           as="span"
