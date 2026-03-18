@@ -182,9 +182,7 @@ export default function CreateFromSeer() {
         };
         setDashboard(newDashboard);
 
-        if (prevUpdatedAt !== null && prevUpdatedAt !== sessionUpdatedAt) {
-          validateDashboardAndRecordMetrics(organization, newDashboard, seerRunId);
-        }
+        validateDashboardAndRecordMetrics(organization, newDashboard, seerRunId);
       }
     }
   }, [organization, seerRunId, isUpdating, sessionStatus, session, sessionUpdatedAt]);
