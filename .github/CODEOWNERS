@@ -12,7 +12,7 @@
 /src/sentry/utils/                                      @getsentry/app-backend
 /src/sentry/testutils/                                  @getsentry/app-backend
 /src/sentry/users/                                      @getsentry/app-backend
-/tests/sentry/api/                                      @getsentry/app-backend/tests/sentry/api/                                      @getsentry/app-backend
+/tests/sentry/api/                                      @getsentry/app-backend
 /tests/sentry/api/                                      @getsentry/app-backend
 /src/sentry/templates/                                  @getsentry/app-backend
 /src/sentry/tasks/                                      @getsentry/app-backend
