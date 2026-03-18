@@ -253,8 +253,6 @@ jobs:
     name: backend test
     runs-on: ubuntu-24.04
     timeout-minutes: 60
-    # During xdist rollout, don't let failures block the workflow on master/dispatch
-    continue-on-error: ${{ github.event_name != 'pull_request' }}
     permissions:
       contents: read
       id-token: write
