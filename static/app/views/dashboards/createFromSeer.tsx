@@ -157,7 +157,7 @@ export default function CreateFromSeer() {
         });
       }
     }
-  }, [organization, seerRunId, isUpdating, sessionStatus, session, sessionUpdatedAt]);
+  }, [isUpdating, sessionStatus, session, sessionUpdatedAt]);
 
   const blockMessages = useMemo(
     () => (session ? extractMessages(session) : []),
