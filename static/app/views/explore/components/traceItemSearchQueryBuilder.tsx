@@ -28,6 +28,7 @@ export type TraceItemSearchQueryBuilderProps = {
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
   caseInsensitive?: CaseInsensitive;
+  disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
   disallowHas?: boolean;
@@ -101,6 +102,7 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disableRecentSearches,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
@@ -149,7 +151,9 @@ export function useTraceItemSearchQueryBuilderProps({
       disallowUnsupportedFilters: !getTagKeys,
       disallowFreeText,
       disallowLogicalOperators,
-      recentSearches: itemTypeToRecentSearches(itemType),
+      recentSearches: disableRecentSearches
+        ? undefined
+        : itemTypeToRecentSearches(itemType),
       namespace,
       showUnsubmittedIndicator: true,
       portalTarget,
@@ -168,6 +172,7 @@ export function useTraceItemSearchQueryBuilderProps({
       caseInsensitive,
       disallowFreeText,
       disallowLogicalOperators,
+      disableRecentSearches,
       filterKeySections,
       filterTags,
       getFilterTokenWarning,
@@ -220,6 +225,7 @@ export function TraceItemSearchQueryBuilder({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disableRecentSearches,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -246,6 +252,7 @@ export function TraceItemSearchQueryBuilder({
     disallowHas,
     disallowFreeText,
     disallowLogicalOperators,
+    disableRecentSearches,
   });
 
   return (

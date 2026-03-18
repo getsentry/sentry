@@ -11,7 +11,7 @@ from sentry.hybridcloud.rpc.resolvers import (
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.region import override_regions
+from sentry.testutils.cell import override_cells
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.cell import Cell, CellResolutionError, RegionCategory
 
@@ -70,20 +70,20 @@ class CellResolutionTest(TestCase):
         cell_resolution = RequireSingleOrganization()
 
         with (
-            override_regions([self.target_cell]),
+            override_cells([self.target_cell]),
             override_settings(SENTRY_SINGLE_ORGANIZATION=True),
         ):
             actual_cell = cell_resolution.resolve({})
             assert actual_cell == self.target_cell
 
         with (
-            override_regions([self.target_cell]),
+            override_cells([self.target_cell]),
             override_settings(SENTRY_SINGLE_ORGANIZATION=False),
         ):
             with pytest.raises(CellResolutionError):
                 cell_resolution.resolve({})
 
-        with override_regions(_TEST_CELLS), override_settings(SENTRY_SINGLE_ORGANIZATION=True):
+        with override_cells(_TEST_CELLS), override_settings(SENTRY_SINGLE_ORGANIZATION=True):
             self.create_organization(region=_TEST_CELLS[1])
             with pytest.raises(CellResolutionError):
                 cell_resolution.resolve({})

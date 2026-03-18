@@ -6,7 +6,7 @@ import {Select} from '@sentry/scraps/select';
 
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {IconGraph, IconNumber, IconSettings, IconTable} from 'sentry/icons';
+import {IconGraph, IconMarkdown, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
@@ -29,6 +29,7 @@ const typeIcons: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.BIG_NUMBER]: <IconNumber key="number" />,
   [DisplayType.DETAILS]: <IconSettings key="details" />,
   [DisplayType.CATEGORICAL_BAR]: <IconGraph key="categorical_bar" type="bar" />,
+  [DisplayType.TEXT]: <IconMarkdown key="text" />,
 };
 
 interface WidgetBuilderTypeSelectorProps {
@@ -47,6 +48,7 @@ export function WidgetBuilderTypeSelector({
   const organization = useOrganization();
 
   const hasDetailsWidget = organization.features.includes('dashboards-details-widget');
+  const hasTextWidget = organization.features.includes('dashboards-text-widgets');
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
   const displayTypeOrder: Array<{label: string; type: DisplayType}> = [
@@ -56,6 +58,7 @@ export function WidgetBuilderTypeSelector({
     {type: DisplayType.LINE, label: t('Line')},
     {type: DisplayType.TABLE, label: t('Table')},
     {type: DisplayType.BIG_NUMBER, label: t('Big Number')},
+    ...(hasTextWidget ? [{type: DisplayType.TEXT, label: t('Text (Markdown)')}] : []),
     ...(hasDetailsWidget ? [{type: DisplayType.DETAILS, label: t('Details')}] : []),
   ];
 
@@ -108,7 +111,8 @@ export function WidgetBuilderTypeSelector({
             leadingItems: typeIcons[type],
             label,
             value: type,
-            disabled: !config.supportedDisplayTypes.includes(type),
+            disabled:
+              type !== DisplayType.TEXT && !config.supportedDisplayTypes.includes(type),
           }))}
           clearable={false}
           onChange={(newValue: any) => {

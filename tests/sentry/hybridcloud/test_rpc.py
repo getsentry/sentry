@@ -28,8 +28,8 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers import override_options
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 from sentry.types.cell import Cell, RegionCategory
 from sentry.users.services.user import RpcUser
@@ -64,7 +64,7 @@ class RpcServiceTest(TestCase):
         serial_org = serialize_rpc_organization(organization)
 
         service = OrganizationService.create_delegation()
-        with override_regions(_CELLS), override_settings(SILO_MODE=SiloMode.CONTROL):
+        with override_cells(_CELLS), override_settings(SILO_MODE=SiloMode.CONTROL):
             service.add_organization_member(
                 organization_id=serial_org.id,
                 default_org_role=serial_org.default_role,
@@ -171,7 +171,7 @@ class DispatchRemoteCallTest(TestCase):
         assert result is None
 
     @responses.activate
-    @override_regions(_CELLS)
+    @override_cells(_CELLS)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_control_to_cell_happy_path(self) -> None:
         user = self.create_user()
@@ -184,7 +184,7 @@ class DispatchRemoteCallTest(TestCase):
         assert result == serial
 
     @responses.activate
-    @override_regions(_CELLS)
+    @override_cells(_CELLS)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_cell_to_control_with_list_result(self) -> None:
         users = [self.create_user() for _ in range(3)]
@@ -195,7 +195,7 @@ class DispatchRemoteCallTest(TestCase):
         assert result == serial
 
     @responses.activate
-    @override_regions(_CELLS)
+    @override_cells(_CELLS)
     @override_settings(SILO_MODE=SiloMode.CONTROL, DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_early_halt_from_null_cell_resolution(self) -> None:
         with override_settings(SILO_MODE=SiloMode.CONTROL):
