@@ -73,16 +73,19 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
-    def test_denied_when_beta_org_has_legacy_toggle_disabled(self) -> None:
+    def test_denied_when_beta_org_has_no_repo_settings(self) -> None:
         service = self._create_service()
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == PreflightDenialReason.ORG_PR_REVIEW_LEGACY_TOGGLE_DISABLED
+        assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
-    def test_allowed_when_beta_org_has_legacy_toggle_enabled(self) -> None:
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+    def test_allowed_when_beta_org_has_repo_settings_enabled(self) -> None:
+        self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
 
         OrganizationContributors.objects.create(
             organization_id=self.organization.id,
@@ -90,24 +93,17 @@ class TestCodeReviewPreflightService(TestCase):
             external_identifier=self.external_identifier,
         )
 
-        with patch(
-            "sentry.quotas.backend.check_seer_quota",
-            return_value=True,
-        ):
-            service = self._create_service()
-            result = service.check()
+        service = self._create_service()
+        result = service.check()
 
         assert result.allowed is True
         assert result.denial_reason is None
 
     @with_feature("organizations:gen-ai-features")
-    def test_denied_when_legacy_opt_in_enabled_without_beta_flag(self) -> None:
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
-
+    def test_denied_when_org_has_no_seer_feature_flags(self) -> None:
         service = self._create_service()
         result = service.check()
 
-        # Should be denied because org doesn't have code-review-beta, seer-added, or seat-based-seer-enabled
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
@@ -116,16 +112,19 @@ class TestCodeReviewPreflightService(TestCase):
     # -------------------------------------------------------------------------
 
     @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
-    def test_denied_when_seer_added_org_has_legacy_toggle_disabled(self) -> None:
+    def test_denied_when_seer_added_org_has_no_repo_settings(self) -> None:
         service = self._create_service()
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == PreflightDenialReason.ORG_PR_REVIEW_LEGACY_TOGGLE_DISABLED
+        assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
-    def test_allowed_when_seer_added_org_has_legacy_toggle_enabled(self) -> None:
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
+    def test_allowed_when_seer_added_org_has_repo_settings_enabled(self) -> None:
+        self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
 
         OrganizationContributors.objects.create(
             organization_id=self.organization.id,
@@ -133,25 +132,14 @@ class TestCodeReviewPreflightService(TestCase):
             external_identifier=self.external_identifier,
         )
 
-        with patch(
-            "sentry.quotas.backend.check_seer_quota",
-            return_value=True,
-        ):
-            service = self._create_service()
-            result = service.check()
+        service = self._create_service()
+        result = service.check()
 
         assert result.allowed is True
         assert result.denial_reason is None
 
-    @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
-    def test_seer_added_org_bypasses_repo_settings_check(self, mock_check_quota: MagicMock) -> None:
-        """Seer-added orgs don't need repo settings to be enabled."""
-        mock_check_quota.return_value = True
-
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
-
-        # Explicitly disable repo code review
+    def test_denied_when_seer_added_org_has_repo_settings_disabled(self) -> None:
         self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=False,
@@ -166,9 +154,8 @@ class TestCodeReviewPreflightService(TestCase):
         service = self._create_service()
         result = service.check()
 
-        # Should still be allowed because seer-added orgs bypass repo settings
-        assert result.allowed is True
-        assert result.denial_reason is None
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     # -------------------------------------------------------------------------
     # Seat-based org tests
@@ -253,29 +240,13 @@ class TestCodeReviewPreflightService(TestCase):
         assert CodeReviewTrigger.ON_NEW_COMMIT in result.settings.triggers
         assert CodeReviewTrigger.ON_READY_FOR_REVIEW in result.settings.triggers
 
-    @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
-    def test_returns_default_settings_for_beta_org_without_repo_settings(
-        self, mock_check_quota: MagicMock
-    ) -> None:
-        mock_check_quota.return_value = True
-
-        self.organization.update_option("sentry:enable_pr_review_test_generation", True)
-
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            external_identifier=self.external_identifier,
-        )
-
+    def test_denied_when_beta_org_has_no_repo_settings_in_settings_section(self) -> None:
         service = self._create_service()
         result = service.check()
 
-        assert result.allowed is True
-        assert result.settings is not None
-        assert result.settings.enabled is True
-        assert CodeReviewTrigger.ON_NEW_COMMIT in result.settings.triggers
-        assert CodeReviewTrigger.ON_READY_FOR_REVIEW in result.settings.triggers
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(

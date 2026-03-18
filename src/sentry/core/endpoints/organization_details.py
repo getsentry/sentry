@@ -50,7 +50,6 @@ from sentry.constants import (
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
     ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
@@ -229,12 +228,6 @@ ORG_OPTIONS = (
         DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
     ),
     (
-        "enablePrReviewTestGeneration",
-        "sentry:enable_pr_review_test_generation",
-        bool,
-        ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-    ),
-    (
         "enableSeerEnhancedAlerts",
         "sentry:enable_seer_enhanced_alerts",
         bool,
@@ -367,7 +360,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         allow_empty=True,
     )
     consoleSdkInviteQuota = serializers.IntegerField(required=False, min_value=0)
-    enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
     autoOpenPrs = serializers.BooleanField(required=False)

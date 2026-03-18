@@ -39,7 +39,6 @@ from sentry.constants import (
     DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     DEFAULT_CODE_REVIEW_TRIGGERS,
     DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
     ENABLE_SEER_CODING_DEFAULT,
     ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
     ENABLED_CONSOLE_PLATFORMS_DEFAULT,
@@ -554,7 +553,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     streamlineOnly: bool
     defaultAutofixAutomationTuning: str
     defaultSeerScannerAutomation: bool
-    enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     autoEnableCodeReview: bool
@@ -717,12 +715,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             "defaultSeerScannerAutomation": obj.get_option(
                 "sentry:default_seer_scanner_automation",
                 DEFAULT_SEER_SCANNER_AUTOMATION_DEFAULT,
-            ),
-            "enablePrReviewTestGeneration": bool(
-                obj.get_option(
-                    "sentry:enable_pr_review_test_generation",
-                    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-                )
             ),
             "enableSeerEnhancedAlerts": bool(
                 obj.get_option(

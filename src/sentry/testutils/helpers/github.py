@@ -145,7 +145,7 @@ class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
     # Options to set are regional options as set in options automator
     OPTIONS_TO_SET: dict[str, Any] = {}
     # Org options are org options as set via OrganizationOption.objects.set_value
-    ORG_OPTIONS: dict[str, Any] = {"sentry:enable_pr_review_test_generation": True}
+    ORG_OPTIONS: dict[str, Any] = {}
     # Code review triggers are the allowed triggers as set via RepositorySettings.objects.create
     _triggers: list[CodeReviewTrigger] = []
 
