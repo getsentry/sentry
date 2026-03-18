@@ -538,7 +538,13 @@ def compare_snapshots(
                 sample_rate=1.0,
             )
 
-        if changed_count == 0 and not added and not removed and not renamed_pairs:
+        if (
+            changed_count == 0
+            and not added
+            and not removed
+            and not renamed_pairs
+            and not error_count
+        ):
             metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0)
 
         create_preprod_snapshot_status_check_task.apply_async(
