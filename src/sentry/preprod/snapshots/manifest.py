@@ -14,10 +14,6 @@ class ImageMetadata(BaseModel):
     class Config:
         extra = "allow"
 
-    def extras(self) -> dict[str, object]:
-        """Return extra fields that are not first-class model fields."""
-        return {k: v for k, v in self.dict().items() if k not in self.__fields__}
-
 
 class SnapshotManifest(BaseModel):
     images: dict[str, ImageMetadata]
