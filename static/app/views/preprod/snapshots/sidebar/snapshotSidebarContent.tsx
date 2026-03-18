@@ -195,26 +195,29 @@ export function SnapshotSidebarContent({
                 </SidebarSectionTitle>
                 {isExpanded && (
                   <SidebarSectionContent>
-                    {sectionItems.map(item => (
-                      <SidebarItemRow
-                        key={item.name}
-                        data-item-name={item.name}
-                        isSelected={item.name === currentItemName}
-                        onClick={() => onSelectItem(item.name)}
-                      >
-                        <Flex align="center" gap="sm" flex="1" minWidth="0">
-                          <Text
-                            size="md"
-                            variant={item.name === currentItemName ? 'accent' : 'muted'}
-                            bold={item.name === currentItemName}
-                            ellipsis
-                          >
-                            {item.name}
-                          </Text>
-                        </Flex>
-                        <DiffItemBadge item={item} />
-                      </SidebarItemRow>
-                    ))}
+                    {sectionItems.map(item => {
+                      const isSelected = item.name === currentItemName;
+                      return (
+                        <SidebarItemRow
+                          key={item.name}
+                          data-item-name={item.name}
+                          isSelected={isSelected}
+                          onClick={() => onSelectItem(item.name)}
+                        >
+                          <Flex align="center" gap="sm" flex="1" minWidth="0">
+                            <Text
+                              size="md"
+                              variant={isSelected ? 'accent' : 'muted'}
+                              bold={isSelected}
+                              ellipsis
+                            >
+                              {item.name}
+                            </Text>
+                          </Flex>
+                          <DiffItemBadge item={item} />
+                        </SidebarItemRow>
+                      );
+                    })}
                   </SidebarSectionContent>
                 )}
               </Disclosure>
