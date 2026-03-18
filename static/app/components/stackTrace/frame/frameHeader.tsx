@@ -281,7 +281,7 @@ const LocationWrapper = styled('span')`
   align-items: baseline;
   min-width: 0;
   max-width: 100%;
-  flex: 0 999 auto;
+  flex: 0 1 auto;
   overflow: hidden;
 `;
 
@@ -314,7 +314,7 @@ const Path = styled('span')`
 const ContextWrapper = styled('span')`
   display: inline-flex;
   align-items: baseline;
-  flex: 0 1 auto;
+  flex: 0 999 auto;
   gap: ${p => p.theme.space.sm};
   max-width: 100%;
   min-width: 0;
