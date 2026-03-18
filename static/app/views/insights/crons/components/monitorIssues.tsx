@@ -4,8 +4,8 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import GroupList from 'sentry/components/issues/groupList';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {GroupList} from 'sentry/components/issues/groupList';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';

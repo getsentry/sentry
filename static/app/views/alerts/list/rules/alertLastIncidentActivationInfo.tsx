@@ -1,4 +1,4 @@
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {hasActiveIncident} from 'sentry/views/alerts/list/rules/utils';

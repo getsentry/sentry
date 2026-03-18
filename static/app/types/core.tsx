@@ -61,12 +61,12 @@ export interface SelectValue<T> extends MenuListItemProps {
 /**
  * The 'other' option format used by checkboxes, radios and more.
  */
-export type Choice = [
+export type Choice = readonly [
   value: string | number,
   label: string | number | React.ReactElement,
 ];
 
-export type Choices = Choice[];
+export type Choices = readonly Choice[];
 
 /**
  * These are used in billing, stats, and other places to consistently refer to categories.

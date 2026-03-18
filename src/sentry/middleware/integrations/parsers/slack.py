@@ -41,7 +41,7 @@ from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
-from sentry.types.region import Cell
+from sentry.types.cell import Cell
 from sentry.utils import json
 from sentry.utils.signing import unsign
 

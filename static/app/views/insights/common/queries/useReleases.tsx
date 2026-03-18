@@ -5,7 +5,7 @@ import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

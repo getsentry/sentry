@@ -3,7 +3,7 @@ from django.urls import reverse
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.impersonation import simulate_impersonation
-from sentry.types.region import get_local_locality
+from sentry.types.cell import get_local_locality
 
 
 class ReleaseTokenGetTest(APITestCase):

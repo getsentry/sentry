@@ -31,7 +31,7 @@ function RowLayout(props: RowLayoutProps) {
     <HighlightableFlex
       id={field.name}
       direction="row"
-      gap="sm"
+      gap="xl"
       align="center"
       justify="between"
       padding={props.padding}

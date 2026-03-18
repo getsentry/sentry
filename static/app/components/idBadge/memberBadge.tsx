@@ -26,7 +26,7 @@ function getMemberUser(member: Member): AvatarUser {
   };
 }
 
-function MemberBadge({member, disableLink, ...props}: MemberBadgeProps) {
+export function MemberBadge({member, disableLink, ...props}: MemberBadgeProps) {
   const user = getMemberUser(member);
   const org = useOrganization({allowNull: true});
 
@@ -37,5 +37,3 @@ function MemberBadge({member, disableLink, ...props}: MemberBadgeProps) {
 
   return <UserBadge to={membersUrl} user={user} {...props} />;
 }
-
-export default MemberBadge;

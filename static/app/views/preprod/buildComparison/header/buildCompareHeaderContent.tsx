@@ -7,7 +7,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {

@@ -19,7 +19,7 @@ import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -55,7 +55,7 @@ import {SaveButtonGroup} from 'sentry/views/dashboards/widgetBuilder/components/
 import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import {ThresholdsSection} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {WidgetBuilderTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
-import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';

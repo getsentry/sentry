@@ -63,7 +63,7 @@ function projectWriteAndOrgOverrideDisabledReason({
   return null;
 }
 
-const formGroups: JsonFormObject[] = [
+export const formGroups: JsonFormObject[] = [
   {
     title: t('Security & Privacy'),
     fields: [
@@ -194,5 +194,3 @@ const formGroups: JsonFormObject[] = [
     ],
   },
 ];
-
-export default formGroups;

@@ -13,7 +13,7 @@ import {AiSetupConfiguration} from 'sentry/components/events/autofix/v2/autofixC
 import {SeerDrawerBody} from 'sentry/components/events/autofix/v2/body';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v2/content';
 import {formatArtifactsToMarkdown} from 'sentry/components/events/autofix/v2/utils';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

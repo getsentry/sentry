@@ -1,4 +1,4 @@
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
 
 import {GridBodyCellStatus, GridRow} from './styles';
