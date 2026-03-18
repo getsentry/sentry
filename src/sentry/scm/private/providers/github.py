@@ -558,14 +558,13 @@ class GitHubProvider:
         tree_sha: SHA,
         parent_shas: list[SHA],
     ) -> ActionResult[GitCommitObject]:
-        data: dict[str, Any] = {
-            "message": message,
-            "tree": tree_sha,
-            "parents": parent_shas,
-        }
         response = self.client.post(
             f"/repos/{self.repository['name']}/git/commits",
-            data=data,
+            data={
+                "message": message,
+                "tree": tree_sha,
+                "parents": parent_shas,
+            },
         )
         return map_action(response, map_git_commit_object)
 
@@ -624,10 +623,10 @@ class GitHubProvider:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[PullRequest]:
-        github_state = state if state is not None else "all"
-        params: dict[str, Any] = {"state": github_state}
+        params: dict[str, Any] = {"state": state if state is not None else "all"}
         if head:
             params["head"] = head
+
         response = self.client.get(
             f"/repos/{self.repository['name']}/pulls",
             params=params,
