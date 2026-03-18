@@ -207,8 +207,6 @@ describe('ProjectPageFilter', () => {
   });
 
   it('clicking My Projects when All Projects is active selects only non-member projects', async () => {
-    const closedOrg = OrganizationFixture({orgRole: 'member'});
-
     // Start with All Projects active from URL
     PageFiltersStore.onInitializeUrlState({
       projects: [-1],
@@ -217,7 +215,7 @@ describe('ProjectPageFilter', () => {
     });
 
     render(<ProjectPageFilter />, {
-      organization: closedOrg,
+      organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {project: '-1'}},
       },
@@ -239,8 +237,6 @@ describe('ProjectPageFilter', () => {
   });
 
   it('clicking My Projects while All Projects is staged selects only non-member projects', async () => {
-    const closedOrg = OrganizationFixture({orgRole: 'member'});
-
     // Start with a single project selected
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
@@ -249,7 +245,7 @@ describe('ProjectPageFilter', () => {
     });
 
     render(<ProjectPageFilter />, {
-      organization: closedOrg,
+      organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
       },
@@ -274,8 +270,6 @@ describe('ProjectPageFilter', () => {
   });
 
   it('All Projects toggles all projects on; clicking again deselects everything', async () => {
-    const closedOrg = OrganizationFixture({orgRole: 'member'});
-
     // Start with a single project selected
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
@@ -284,7 +278,7 @@ describe('ProjectPageFilter', () => {
     });
 
     render(<ProjectPageFilter />, {
-      organization: closedOrg,
+      organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
       },
@@ -311,8 +305,6 @@ describe('ProjectPageFilter', () => {
   });
 
   it('unchecking all project checkboxes from All Projects leaves everything unchecked', async () => {
-    const closedOrg = OrganizationFixture({orgRole: 'member'});
-
     // Start with All Projects active from URL
     PageFiltersStore.onInitializeUrlState({
       projects: [-1],
@@ -321,7 +313,7 @@ describe('ProjectPageFilter', () => {
     });
 
     render(<ProjectPageFilter />, {
-      organization: closedOrg,
+      organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {project: '-1'}},
       },
@@ -343,8 +335,6 @@ describe('ProjectPageFilter', () => {
   });
 
   it('My Projects toggles member projects on; clicking again deselects everything', async () => {
-    const closedOrg = OrganizationFixture({orgRole: 'member'});
-
     // Start with a single project selected
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
@@ -353,7 +343,7 @@ describe('ProjectPageFilter', () => {
     });
 
     render(<ProjectPageFilter />, {
-      organization: closedOrg,
+      organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
       },
@@ -380,10 +370,8 @@ describe('ProjectPageFilter', () => {
   });
 
   it('does not show All Projects separator when My Projects is visible', async () => {
-    const closedOrg = OrganizationFixture({orgRole: 'member'});
-
     render(<ProjectPageFilter />, {
-      organization: closedOrg,
+      organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {}},
       },
@@ -418,13 +406,11 @@ describe('ProjectPageFilter', () => {
   });
 
   it('does not show All Projects or My Projects options when only one project exists', async () => {
-    const closedOrg = OrganizationFixture({orgRole: 'member'});
-
     const singleProject = [ProjectFixture({id: '3', slug: 'project-3', isMember: false})];
     ProjectsStore.loadInitialData(singleProject);
 
     render(<ProjectPageFilter />, {
-      organization: closedOrg,
+      organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {}},
       },
@@ -616,9 +602,6 @@ describe('ProjectPageFilter', () => {
   ])(
     'shows selection limit warning when $label is active and a single project is unchecked',
     async ({memberCount, nonMemberCount, urlProjects, urlQuery, triggerName}) => {
-      // My Projects sentinel only exists in closed-membership orgs
-      const closedOrg = OrganizationFixture({orgRole: 'member'});
-
       const manyProjects = [
         ...Array.from({length: memberCount}, (_, index) =>
           ProjectFixture({
@@ -644,7 +627,7 @@ describe('ProjectPageFilter', () => {
       });
 
       render(<ProjectPageFilter />, {
-        organization: closedOrg,
+        organization,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: urlQuery},
         },
@@ -860,11 +843,9 @@ describe('ProjectPageFilter', () => {
   });
 
   it('deselecting My Projects does not select All Projects in the URL', async () => {
-    const closedOrg = OrganizationFixture({orgRole: 'member'});
-
-    // Start with default empty URL = "My Projects" state in a closed org
+    // Start with default empty URL = "My Projects" state
     const {router} = render(<ProjectPageFilter />, {
-      organization: closedOrg,
+      organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/issues/', query: {}},
       },
@@ -960,17 +941,9 @@ describe('ProjectPageFilter', () => {
   });
 
   describe('closed-membership org defaults', () => {
-    let closedOrg: ReturnType<typeof OrganizationFixture>;
-
-    beforeEach(() => {
-      // Org without open-membership; user is a regular member
-      closedOrg = OrganizationFixture({orgRole: 'member'});
-      OrganizationStore.onUpdate(closedOrg, {replace: true});
-    });
-
     it('shows My Projects (not All Projects) as the default in closed orgs', async () => {
       render(<ProjectPageFilter />, {
-        organization: closedOrg,
+        organization,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
@@ -984,7 +957,7 @@ describe('ProjectPageFilter', () => {
 
     it('correctly round-trips My Projects selection in closed orgs', async () => {
       const {router} = render(<ProjectPageFilter />, {
-        organization: closedOrg,
+        organization,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
@@ -1009,7 +982,7 @@ describe('ProjectPageFilter', () => {
 
     it('selecting All Projects in a closed org writes project=-1 to the URL', async () => {
       const {router} = render(<ProjectPageFilter />, {
-        organization: closedOrg,
+        organization,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
@@ -1032,7 +1005,7 @@ describe('ProjectPageFilter', () => {
       });
 
       const {router} = render(<ProjectPageFilter />, {
-        organization: closedOrg,
+        organization,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/issues/',
