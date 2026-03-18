@@ -1,6 +1,6 @@
 import {Flex} from '@sentry/scraps/layout';
 
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
