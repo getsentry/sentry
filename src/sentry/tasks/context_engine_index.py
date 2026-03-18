@@ -34,11 +34,13 @@ from sentry.seer.signed_seer_api import (
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
+CONTEXT_ENGINE_ENABLED_ORG_IDS = "context_engine_indexing:enabled_org_ids"
 
 
 @instrumented_task(
@@ -208,7 +210,7 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
         raise
 
 
-def get_allowed_org_ids_context_engine_indexing() -> list[int]:
+def get_allowed_org_ids_context_engine_indexing() -> tuple[list[int], list[int]]:
     """
     Get the list of allowed organizations for context engine indexing.
 
@@ -223,17 +225,24 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     TOTAL_HOURLY_SLOTS = 24 * 7  # 168 slots across every hour of the week
 
     eligible_org_ids: list[int] = []
+    feature_enabled_org_ids: list[int] = []
     for org in RangeQuerySetWrapper(
         Organization.objects.filter(status=ObjectStatus.ACTIVE),
         result_value_getter=lambda o: o.id,
     ):
-        if features.has("organizations:seer-explorer", org) and features.has(
-            "organizations:seer-explorer-context-engine", org
-        ):
+        if features.has("organizations:seer-explorer-context-engine", org):
+            feature_enabled_org_ids.append(org.id)
             if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == current_slot:
                 eligible_org_ids.append(org.id)
 
-    return eligible_org_ids
+    # Add recently enabled orgs that should not wait for their weekly slot.
+    previous_enabled_org_ids = cache.get(CONTEXT_ENGINE_ENABLED_ORG_IDS)
+    if previous_enabled_org_ids is not None:
+        newly_added_org_ids_set = set(feature_enabled_org_ids) - set(previous_enabled_org_ids)
+        if newly_added_org_ids_set:
+            eligible_org_ids = list(set(eligible_org_ids).union(newly_added_org_ids_set))
+
+    return feature_enabled_org_ids, eligible_org_ids
 
 
 @instrumented_task(
@@ -252,10 +261,7 @@ def schedule_context_engine_indexing_tasks() -> None:
         logger.info("explorer.context_engine_indexing.enable flag is disabled")
         return
 
-    allowed_org_ids = get_allowed_org_ids_context_engine_indexing()
-    if not allowed_org_ids:
-        logger.info("No allowed organizations for context engine indexing")
-        return
+    feature_enabled_org_ids, allowed_org_ids = get_allowed_org_ids_context_engine_indexing()
 
     dispatched = 0
     for org_id in allowed_org_ids:
@@ -268,6 +274,9 @@ def schedule_context_engine_indexing_tasks() -> None:
                 "Failed to dispatch context engine tasks for org",
                 extra={"org_id": org_id},
             )
+
+    # Store full currently-enabled orgs so next run can compute a stable diff.
+    cache.set(CONTEXT_ENGINE_ENABLED_ORG_IDS, feature_enabled_org_ids, 24 * 60 * 60)
 
     logger.info(
         "Scheduled context engine indexing tasks",
