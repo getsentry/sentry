@@ -85,55 +85,14 @@ jobs:
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
           script: |
-            const owner = 'getsentry';
-            const repo = 'getsentry';
-            const workflow_id = 'select-sentry-tests.yml';
-
-            const before = new Date();
-            before.setSeconds(before.getSeconds() - 5);
-
-            await github.rest.actions.createWorkflowDispatch({
-              owner, repo, workflow_id,
-              ref: 'master',
+            const { dispatchAndWait } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/getsentry-dispatch-and-wait.js`);
+            const { runId, conclusion } = await dispatchAndWait({
+              github, core,
+              workflow_id: 'select-sentry-tests.yml',
               inputs: { 'sentry-changed-files': process.env.CHANGED_FILES },
             });
-            core.info('Dispatched select-sentry-tests.yml to getsentry');
-
-            // Find the dispatched run
-            let runId;
-            for (let i = 0; i < 30; i++) {
-              await new Promise(r => setTimeout(r, 2000));
-              const { data: { workflow_runs } } = await github.rest.actions.listWorkflowRuns({
-                owner, repo, workflow_id,
-                event: 'workflow_dispatch',
-                created: `>=${before.toISOString()}`,
-                per_page: 5,
-              });
-              if (workflow_runs.length > 0) {
-                runId = workflow_runs[0].id;
-                break;
-              }
-            }
-            if (!runId) throw new Error('Could not find dispatched workflow run');
-            core.info(`Found getsentry run: ${runId}`);
-
-            // Wait for completion (up to 10 minutes)
-            for (let i = 0; i < 60; i++) {
-              await new Promise(r => setTimeout(r, 10000));
-              const { data: run } = await github.rest.actions.getWorkflowRun({
-                owner, repo, run_id: runId,
-              });
-              core.info(`Run status: ${run.status}`);
-              if (run.status === 'completed') {
-                if (run.conclusion !== 'success') {
-                  core.warning(`Getsentry run concluded with: ${run.conclusion}`);
-                }
-                core.setOutput('run-id', String(runId));
-                core.setOutput('conclusion', run.conclusion);
-                return;
-              }
-            }
-            throw new Error('Timed out waiting for getsentry workflow');
+            core.setOutput('run-id', runId);
+            core.setOutput('conclusion', conclusion);
 
       - name: Download selected tests from getsentry
         if: steps.dispatch.outputs.conclusion == 'success'
