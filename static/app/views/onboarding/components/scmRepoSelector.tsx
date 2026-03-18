@@ -17,7 +17,7 @@ export function ScmRepoSelector() {
   const {reposByIdentifier, dropdownItems, isFetching, debouncedSearch, setSearch} =
     useScmRepoSearch(selectedIntegration?.id ?? '', selectedRepository);
 
-  const {adding, handleSelect, handleRemove} = useScmRepoSelection({
+  const {busy, handleSelect, handleRemove} = useScmRepoSelection({
     onSelect: setSelectedRepository,
     reposByIdentifier,
   });
@@ -26,7 +26,7 @@ export function ScmRepoSelector() {
     <Stack gap="md">
       <CompactSelect
         menuWidth="100%"
-        disabled={adding}
+        disabled={busy}
         options={dropdownItems}
         onChange={handleSelect}
         value={undefined}
@@ -45,7 +45,7 @@ export function ScmRepoSelector() {
         }}
         loading={isFetching}
         trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps} busy={adding}>
+          <OverlayTrigger.Button {...triggerProps} busy={busy}>
             {selectedRepository ? selectedRepository.name : t('Search repositories')}
           </OverlayTrigger.Button>
         )}
@@ -61,7 +61,7 @@ export function ScmRepoSelector() {
             icon={<IconClose size="xs" />}
             aria-label={t('Remove %s', selectedRepository.name)}
             onClick={handleRemove}
-            disabled={adding}
+            disabled={busy}
           />
         </Flex>
       )}

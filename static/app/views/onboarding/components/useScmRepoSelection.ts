@@ -45,7 +45,7 @@ export function useScmRepoSelection({
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const {selectedIntegration, selectedRepository} = useOnboardingContext();
-  const [adding, setAdding] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   // Fetch repos already registered in Sentry for this integration, so we
   // can look up the real Repository (with Sentry ID) for "Already Added" repos.
@@ -101,7 +101,7 @@ export function useScmRepoSelection({
       return;
     }
 
-    setAdding(true);
+    setBusy(true);
     try {
       const created = await addRepository(
         api,
@@ -114,7 +114,7 @@ export function useScmRepoSelection({
     } catch {
       onSelect(undefined);
     } finally {
-      setAdding(false);
+      setBusy(false);
     }
   };
 
@@ -127,21 +127,22 @@ export function useScmRepoSelection({
     onSelect(undefined);
 
     if (addedRepoIdRef.current && addedRepoIdRef.current === previous.id) {
+      setBusy(true);
       try {
         await hideRepository(api, organization.slug, previous.id);
         addedRepoIdRef.current = null;
       } catch {
         onSelect(previous);
+      } finally {
+        setBusy(false);
       }
     }
   };
 
   return {
-    // Busy while adding a new repo OR while existing repos are still loading.
-    // The UI disables the CompactSelect and remove button when true, which
-    // prevents selecting an installed repo before we have its Sentry ID and
-    // prevents removal from racing with an in-flight add.
-    adding: adding || existingReposPending,
+    // Busy while adding/removing a repo or while existing repos are still
+    // loading. The UI disables the CompactSelect and remove button when true.
+    busy: busy || existingReposPending,
     handleSelect,
     handleRemove,
   };

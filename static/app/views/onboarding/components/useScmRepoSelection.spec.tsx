@@ -146,7 +146,7 @@ describe('useScmRepoSelection', () => {
     );
 
     // Wait for existing repos query to resolve
-    await waitFor(() => expect(result.current.adding).toBe(false));
+    await waitFor(() => expect(result.current.busy).toBe(false));
 
     await act(async () => {
       await result.current.handleSelect({value: 'getsentry/sentry'});
