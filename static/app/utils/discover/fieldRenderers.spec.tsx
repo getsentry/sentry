@@ -532,6 +532,79 @@ describe('getFieldRenderer', () => {
     });
   });
 
+  it('renders replay.id with ViewReplayLink', () => {
+    const renderer = getFieldRenderer('replay.id', {'replay.id': 'string'});
+
+    render(
+      renderer(
+        {...data, 'replay.id': 'abc123def456'},
+        {location, organization, theme}
+      ) as React.ReactElement<any, any>
+    );
+
+    // ViewReplayLink renders "(missing)" when replay existence can't be confirmed,
+    // but this verifies the renderer is wired up through ViewReplayLink
+    expect(screen.getByText('(missing)')).toBeInTheDocument();
+  });
+
+  it('renders replay.id as empty when missing', () => {
+    const renderer = getFieldRenderer('replay.id', {'replay.id': 'string'});
+
+    render(
+      renderer(
+        {...data, 'replay.id': ''},
+        {location, organization, theme}
+      ) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
+  });
+
+  it('renders profile.id as a link to the profile flamechart', () => {
+    const renderer = getFieldRenderer('profile.id', {'profile.id': 'string'});
+
+    render(
+      renderer(
+        {...data, 'profile.id': 'abc123def456'},
+        {location, organization, theme, projects: [project]}
+      ) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/explore/profiling/profile/${project.slug}/abc123def456/flamegraph/`
+    );
+    expect(screen.getByText('abc123de')).toBeInTheDocument();
+  });
+
+  it('renders profile.id as plain text when project is not available', () => {
+    const renderer = getFieldRenderer('profile.id', {'profile.id': 'string'});
+
+    render(
+      renderer(
+        {...data, project: 'unknown-project', 'profile.id': 'abc123def456'},
+        {location, organization, theme, projects: [project]}
+      ) as React.ReactElement<any, any>
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByText('abc123de')).toBeInTheDocument();
+  });
+
+  it('renders profile.id as empty when missing', () => {
+    const renderer = getFieldRenderer('profile.id', {'profile.id': 'string'});
+
+    render(
+      renderer(
+        {...data, 'profile.id': ''},
+        {location, organization, theme, projects: [project]}
+      ) as React.ReactElement<any, any>
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
+  });
+
   it('renders opportunity score', () => {
     const renderer = getFieldRenderer('opportunity_score(measurements.score.total)', {
       'opportunity_score(measurements.score.total)': 'score',
