@@ -20,7 +20,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
     def setUp(self):
         super().setUp()
         # Create repositories with webhook config
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.repo1 = self.create_gitlab_repo(
                 name="test-repo-1",
                 external_id=101,
@@ -97,7 +97,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
     def test_task_handles_no_repositories(self, mock_delay, mock_record_event):
         """Test that the task handles case with no repositories and records halt metric"""
         # Delete all repositories
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.filter(integration_id=self.integration.id).delete()
 
         update_all_project_webhooks(
@@ -146,7 +146,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
     def test_task_skips_repositories_missing_webhook_config(self, mock_delay, mock_record_event):
         """Test that the task spawns tasks for all repos - filtering happens in individual tasks"""
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # Repository missing webhook_id
             repo_no_webhook = self.create_gitlab_repo(
                 name="repo-no-webhook",
@@ -188,7 +188,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
     def test_task_only_processes_active_repositories(self, mock_delay, mock_record_event):
         """Test that only active repositories are processed"""
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # Mark one repository as inactive
             self.repo2.status = ObjectStatus.DISABLED
             self.repo2.save()
@@ -215,7 +215,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     def setUp(self):
         super().setUp()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.repo = self.create_gitlab_repo(
                 name="test-repo",
                 external_id=101,
@@ -293,7 +293,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
     @responses.activate
     def test_task_handles_inactive_repository(self, mock_record_event):
         """Test that the task handles inactive repositories"""
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.repo.status = ObjectStatus.DISABLED
             self.repo.save()
 
@@ -318,7 +318,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
     @responses.activate
     def test_task_handles_missing_webhook_config(self, mock_record_event):
         """Test that the task handles repositories without webhook configuration"""
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.repo.config = {"project_id": "101"}  # Missing webhook_id
             self.repo.save()
 

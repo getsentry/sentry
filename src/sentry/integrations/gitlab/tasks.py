@@ -23,7 +23,7 @@ logger = logging.getLogger("sentry.tasks.integrations.gitlab")
 @instrumented_task(
     name="sentry.tasks.integrations.gitlab.update_project_webhook",
     namespace=integrations_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
 )
 @retry(exclude=(Integration.DoesNotExist,))
@@ -100,7 +100,7 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
 @instrumented_task(
     name="sentry.tasks.integrations.gitlab.update_all_project_webhooks",
     namespace=integrations_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
 )
 @retry(exclude=(Integration.DoesNotExist,))
