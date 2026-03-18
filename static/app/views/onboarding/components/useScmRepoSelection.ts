@@ -1,6 +1,5 @@
 import {useMemo, useRef, useState} from 'react';
 
-import {addRepository, hideRepository} from 'sentry/actionCreators/integrations';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import type {
   Integration,
@@ -9,8 +8,7 @@ import type {
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseScmRepoSelectionOptions {
@@ -42,7 +40,6 @@ export function useScmRepoSelection({
   onSelect,
   reposByIdentifier,
 }: UseScmRepoSelectionOptions) {
-  const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const {selectedIntegration, selectedRepository} = useOnboardingContext();
   const [busy, setBusy] = useState(false);
@@ -75,7 +72,11 @@ export function useScmRepoSelection({
   const cleanupPreviousAdd = () => {
     if (addedRepoIdRef.current) {
       try {
-        hideRepository(api, organization.slug, addedRepoIdRef.current);
+        fetchMutation({
+          url: `/organizations/${organization.slug}/repos/${addedRepoIdRef.current}/`,
+          method: 'PUT',
+          data: {status: 'hidden'},
+        });
       } finally {
         addedRepoIdRef.current = null;
       }
@@ -105,12 +106,15 @@ export function useScmRepoSelection({
     // migrateRepository for repos previously connected via legacy plugins.
     setBusy(true);
     try {
-      const created = await addRepository(
-        api,
-        organization.slug,
-        repo.identifier,
-        selectedIntegration
-      );
+      const created = await fetchMutation<Repository>({
+        url: `/organizations/${organization.slug}/repos/`,
+        method: 'POST',
+        data: {
+          installation: selectedIntegration.id,
+          identifier: repo.identifier,
+          provider: `integrations:${selectedIntegration.provider.key}`,
+        },
+      });
       onSelect({...optimistic, id: created.id});
       addedRepoIdRef.current = created.id;
     } catch {
@@ -131,7 +135,11 @@ export function useScmRepoSelection({
     if (addedRepoIdRef.current && addedRepoIdRef.current === previous.id) {
       setBusy(true);
       try {
-        await hideRepository(api, organization.slug, previous.id);
+        await fetchMutation({
+          url: `/organizations/${organization.slug}/repos/${previous.id}/`,
+          method: 'PUT',
+          data: {status: 'hidden'},
+        });
         addedRepoIdRef.current = null;
       } catch {
         onSelect(previous);
