@@ -96,7 +96,16 @@ export function AIContentRenderer({
       );
 
     case 'markdown-with-xml':
-      return <MarkdownWithXmlRenderer text={text} />;
+      if (inline) {
+        return <MarkdownWithXmlRenderer text={text} />;
+      }
+      return (
+        <TraceDrawerComponents.MultilineText
+          renderFormatted={rawText => <MarkdownWithXmlRenderer text={rawText} />}
+        >
+          {text}
+        </TraceDrawerComponents.MultilineText>
+      );
 
     case 'markdown':
       if (inline) {
