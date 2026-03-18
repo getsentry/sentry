@@ -671,8 +671,8 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
             )
             err_cause = err.__cause__
             if err_cause is not None and isinstance(err_cause, RestrictedIPAddress):
-                # Region silos that are IP address restricted are actionable.
-                silo_client_err = SiloClientError("Region silo is IP address restricted")
+                # Cell silos that are IP address restricted are actionable.
+                silo_client_err = SiloClientError("Cell silo is IP address restricted")
                 silo_client_err.__cause__ = err
                 sentry_sdk.capture_exception(silo_client_err)
                 raise DeliveryFailed()
@@ -707,7 +707,7 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
             if orig_response is not None:
                 response_code = orig_response.status_code
 
-            # We need to retry on region 500s
+            # We need to retry on cell 500s
             if status.HTTP_500_INTERNAL_SERVER_ERROR <= response_code < 600:
                 raise DeliveryFailed() from err
 
