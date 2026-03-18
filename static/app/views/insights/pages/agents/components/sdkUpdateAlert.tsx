@@ -60,21 +60,19 @@ export function SdkUpdateAlert({
     suggestion => suggestion.type === 'updateSdk'
   )?.newSdkVersion;
 
-  const firstSentence = packageName
-    ? tct('Your [sdkName] version is below the minimum required for agent monitoring.', {
-        sdkName: <code>{packageName}</code>,
-      })
-    : t('Your SDK version is below the minimum required for agent monitoring.');
-
-  const secondSentence = suggestedVersion
-    ? tct('Update to [latestVersion] or later.', {
-        latestVersion: <code>{suggestedVersion}</code>,
-      })
-    : t('Update to the latest version.');
-
   return (
     <Alert variant="warning">
-      {firstSentence} {secondSentence}
+      {tct(
+        'Your [packageName] version is below the minimum required for agent monitoring.',
+        {
+          packageName: <code>{packageName}</code>,
+        }
+      )}{' '}
+      {suggestedVersion
+        ? tct('Update to [latestVersion] or later.', {
+            latestVersion: <code>{suggestedVersion}</code>,
+          })
+        : t('Update to the latest version.')}
     </Alert>
   );
 }
