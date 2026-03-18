@@ -142,6 +142,21 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
     score += scoreMatch;
   }
 
+  if (matches.length === 1 && patternLength > 1) {
+    // Contiguous substring bonus: a match where all pattern characters appear
+    // consecutively scores higher than a scattered subsequence match. Without
+    // this, a scattered match that hits multiple word boundaries (each worth +8)
+    // can outscore a true substring match that starts mid-word.
+    score += scoreMatch + bonusBoundary; // +24
+
+    // Prefix bonus: a substring match at the very start of the string (sidx === 0)
+    // ranks above the same substring appearing after a word separator elsewhere.
+    // Both hit the same boundary bonus during scoring, so without this they tie.
+    if (sidx === 0) {
+      score += bonusBoundary; // +8
+    }
+  }
+
   // Fzf will return matches per each character, we will try to merge these together
   return {
     start: sidx,
