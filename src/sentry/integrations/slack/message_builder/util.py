@@ -5,6 +5,7 @@ from sentry.integrations.slack.message_builder.types import SLACK_URL_FORMAT
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.notifications.platform.types import NotificationRuleInfo
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.utils.http import absolute_uri
@@ -13,7 +14,7 @@ from sentry.utils.http import absolute_uri
 def build_slack_footer(
     group: Group,
     project: Project,
-    rules: Sequence[Rule] | None = None,
+    rules: Sequence[Rule | NotificationRuleInfo] | None = None,
 ) -> str:
     footer = f"{group.qualified_short_id}"
 

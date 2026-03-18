@@ -7,6 +7,8 @@ from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel
 
+from pydantic import BaseModel, ConfigDict
+
 from sentry.integrations.types import ExternalProviderEnum
 
 
@@ -96,6 +98,21 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.SEER_EXPLORER_ERROR,
     ],
 }
+
+
+class NotificationRuleInfo(BaseModel):
+    """
+    A plain-data representation of a rule that triggered a notification.
+    Used instead of the Django Rule ORM model to decouple the notification
+    platform from the ORM layer.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    id: int
+    label: str
+    data: dict[str, Any]
+    environment_id: int | None = None
 
 
 class NotificationProviderKey(StrEnum):

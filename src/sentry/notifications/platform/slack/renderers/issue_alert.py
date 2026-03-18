@@ -3,7 +3,7 @@ from __future__ import annotations
 from sentry.models.group import Group
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.templates.issue_alert import IssueAlertNotificationData
+from sentry.notifications.platform.templates.issue_alert import IssueNotificationData
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -18,7 +18,7 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> SlackRenderable:
-        if not isinstance(data, IssueAlertNotificationData):
+        if not isinstance(data, IssueNotificationData):
             raise ValueError(f"IssueSlackRenderer does not support {data.__class__.__name__}")
 
         from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
