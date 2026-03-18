@@ -53,9 +53,7 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
                 ("org", str(organization.id)),
                 ("project", str(project.id)),
             ],
-            expirationPolicy=format_expiration(
-                TimeToLive(timedelta(days=396))
-            ),  # Hardcoded for now
+            expirationPolicy=format_expiration(TimeToLive(timedelta(days=30))),  # Hardcoded for now
         )
 
         return Response({"objectstore": options})
