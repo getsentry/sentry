@@ -12,8 +12,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
@@ -104,7 +103,6 @@ function extractMessages(
 export default function CreateFromSeer() {
   const organization = useOrganization();
   const location = useLocation();
-  const api = useApi();
   const queryClient = useQueryClient();
 
   const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
@@ -208,24 +206,20 @@ export default function CreateFromSeer() {
       }
       setisUpdating(true);
       try {
-        const {url} = parseQueryKey(
-          makeSeerExplorerQueryKey(organization.slug, seerRunId)
-        );
-        await api.requestPromise(url, {
+        const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
+        const {url} = parseQueryKey(queryKey);
+        await fetchMutation({
+          url,
           method: 'POST',
-          data: {
-            query: message,
-          },
+          data: {query: message},
         });
-        queryClient.invalidateQueries({
-          queryKey: makeSeerExplorerQueryKey(organization.slug, seerRunId),
-        });
+        queryClient.invalidateQueries({queryKey});
       } catch {
         setisUpdating(false);
         addErrorMessage(t('Failed to send message'));
       }
     },
-    [api, organization.slug, queryClient, seerRunId]
+    [organization.slug, queryClient, seerRunId]
   );
 
   if (!hasFeature) {
