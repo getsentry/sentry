@@ -123,6 +123,7 @@ def compare_snapshots(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> None:
+    task_start_time = timezone.now()
     logger.info(
         "Snapshot comparison kicked off for artifacts",
         extra={
@@ -516,7 +517,7 @@ def compare_snapshots(
 
         time_now = timezone.now()
 
-        diff_duration_s = (time_now - comparison.date_added).total_seconds()
+        diff_duration_s = (time_now - task_start_time).total_seconds()
         metrics.distribution(
             "preprod.snapshots.diff.duration_s",
             diff_duration_s,
@@ -537,7 +538,7 @@ def compare_snapshots(
                 sample_rate=1.0,
             )
 
-        if changed_count == 0 and not added and not removed:
+        if changed_count == 0 and not added and not removed and not renamed_pairs:
             metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0)
 
         create_preprod_snapshot_status_check_task.apply_async(
