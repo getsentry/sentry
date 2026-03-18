@@ -1094,12 +1094,11 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
   }
 
   [data-reorderable-handle-slot] {
-    transform: scale(1);
     transition:
       opacity ${p => p.theme.motion.smooth.moderate},
       transform ${p => p.theme.motion.smooth.moderate};
     opacity: ${p => (p.isDragging ? 0 : undefined)};
-    transform: ${p => (p.isDragging ? 'scale(0.95)' : undefined)};
+    transform: ${p => (p.isDragging ? 'scale(0.95)' : 'scale(1)')};
   }
 
   :hover [data-reorderable-handle-slot],
