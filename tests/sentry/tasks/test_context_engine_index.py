@@ -159,20 +159,24 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         hour = target_slot % 24
         frozen_time = f"2024-01-{15 + day} {hour:02d}:00:00"
 
-        def feature_enabled_for_one_org(_flag_name: str, org, *args, **kwargs) -> bool:
-            return org.id == org_with_flag.id
-
         with freeze_time(frozen_time):
-            with mock.patch(
-                "sentry.tasks.context_engine_index.features.has",
-                side_effect=feature_enabled_for_one_org,
+            with self.feature(
+                {
+                    "organizations:seer-explorer": [org_with_flag.slug],
+                    "organizations:seer-explorer-context-engine": [org_with_flag.slug],
+                }
             ):
                 result = get_allowed_org_ids_context_engine_indexing()
 
         assert org_without_flag.id not in result
 
     def test_returns_empty_when_no_orgs_have_feature_flag(self):
-        with mock.patch("sentry.tasks.context_engine_index.features.has", return_value=False):
+        with self.feature(
+            {
+                "organizations:seer-explorer": False,
+                "organizations:seer-explorer-context-engine": False,
+            }
+        ):
             result = get_allowed_org_ids_context_engine_indexing()
 
         assert result == []
