@@ -95,8 +95,9 @@ export function useScmRepoSelection({
       const existing = existingReposBySlug.get(repo.identifier);
       if (existing) {
         onSelect({...optimistic, id: existing.id});
+        return;
       }
-      return;
+      // Lookup missed (e.g., repo was hidden). Fall through to re-add it.
     }
 
     // Note: for project creation (non-onboarding), we'll also need to handle
