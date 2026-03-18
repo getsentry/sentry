@@ -127,9 +127,9 @@ export function useScmRepoSelection({
     onSelect(undefined);
 
     if (addedRepoIdRef.current && addedRepoIdRef.current === previous.id) {
-      addedRepoIdRef.current = null;
       try {
         await hideRepository(api, organization.slug, previous.id);
+        addedRepoIdRef.current = null;
       } catch {
         onSelect(previous);
       }
