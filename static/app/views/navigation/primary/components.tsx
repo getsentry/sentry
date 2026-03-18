@@ -114,7 +114,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
       {showSuperuserWarning && (
         <Container
           position="absolute"
-          top={`-${theme.space.lg}`}
+          top={0}
           left={0}
           width={`${PRIMARY_SIDEBAR_WIDTH}px`}
           style={{
