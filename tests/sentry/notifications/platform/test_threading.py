@@ -5,9 +5,7 @@ from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.threading import (
     ThreadingConfig,
     ThreadingLookup,
-    ThreadingOptions,
     ThreadingService,
-    ThreadKey,
 )
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.testutils.cases import TestCase
@@ -260,33 +258,3 @@ class ThreadingServiceStoreErrorTest(ThreadingServiceTestBase):
         assert record.error_details == error_details
         assert record.provider_key == self.provider_key
         assert record.target_id == self.target_id
-
-
-class ThreadingOptionsTest(TestCase):
-    def test_to_dict_from_dict_roundtrip(self) -> None:
-        options = ThreadingOptions(
-            thread_key=ThreadKey(
-                key_type=NotificationSource.ERROR_ALERT,
-                key_data={"rule_fire_history_id": 123, "rule_action_uuid": "abc-123"},
-            ),
-            reply_broadcast=True,
-        )
-
-        serialized = options.dict()
-        deserialized = ThreadingOptions.parse_obj(serialized)
-
-        assert deserialized.thread_key.key_type == options.thread_key.key_type
-        assert deserialized.thread_key.key_data == options.thread_key.key_data
-        assert deserialized.reply_broadcast == options.reply_broadcast
-
-    def test_from_dict_defaults_reply_broadcast_to_false(self) -> None:
-        data = {
-            "thread_key": {
-                "key_type": NotificationSource.ERROR_ALERT.value,
-                "key_data": {"id": 1},
-            },
-        }
-
-        options = ThreadingOptions.parse_obj(data)
-
-        assert options.reply_broadcast is False
