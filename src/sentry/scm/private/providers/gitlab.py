@@ -26,10 +26,12 @@ from collections.abc import Callable
 from typing import Any, Iterable
 
 from sentry.integrations.gitlab.client import GitLabApiClient
+from sentry.integrations.gitlab.utils import GitLabApiClientPath
 from sentry.scm.errors import SCMProviderException
 from sentry.scm.types import (
     SHA,
     ActionResult,
+    ArchiveFormat,
     Author,
     BranchName,
     Comment,
@@ -68,6 +70,11 @@ AWARD_NAME_BY_REACTION: dict[Reaction, str] = {
 
 REACTION_BY_AWARD_NAME: dict[str, Reaction] = {
     award: reaction for reaction, award in AWARD_NAME_BY_REACTION.items()
+}
+
+GITLAB_ARCHIVE_FORMAT_MAP: dict[ArchiveFormat, str] = {
+    "tar.gz": ".tar.gz",
+    "zip": ".zip",
 }
 
 PULL_REQUEST_STATE_RETRIEVE_MAP: dict[PullRequestState, list[str]] = {
@@ -320,6 +327,24 @@ class GitLabProvider:
     def create_branch(self, branch: BranchName, sha: SHA) -> ActionResult[GitRef]:
         raw = self.client.create_branch(self._repo_id, branch, sha)
         return make_result(map_git_ref, raw)
+
+    @catch_provider_exception
+    def get_archive_link(
+        self,
+        ref: str,
+        archive_format: ArchiveFormat = "tar.gz",
+    ) -> ActionResult[str]:
+        fmt = GITLAB_ARCHIVE_FORMAT_MAP[archive_format]
+        path = GitLabApiClientPath.archive.format(project=self._repo_id, format=fmt)
+        url = GitLabApiClientPath.build_api_url(self.client.base_url, path)
+        if ref:
+            url = f"{url}?sha={ref}"
+        return ActionResult(
+            data=url,
+            type="gitlab",
+            raw=url,
+            meta={},
+        )
 
     @catch_provider_exception
     def get_file_content(

@@ -3,6 +3,7 @@ from typing import Protocol, runtime_checkable
 from sentry.scm.types import (
     SHA,
     ActionResult,
+    ArchiveFormat,
     BranchName,
     BuildConclusion,
     BuildStatus,
@@ -401,6 +402,18 @@ class GetFileContentProtocol(Protocol):
     ) -> ActionResult[FileContent]: ...
 
 
+# Archive Protocols
+
+
+@runtime_checkable
+class GetArchiveLinkProtocol(Protocol):
+    def get_archive_link(
+        self,
+        ref: str,
+        archive_format: ArchiveFormat = "tar.gz",
+    ) -> ActionResult[str]: ...
+
+
 # Check Run Protocols
 
 
@@ -558,6 +571,7 @@ class ActionMap:
     create_git_tree = CreateGitTreeProtocol
     create_git_commit = CreateGitCommitProtocol
     get_file_content = GetFileContentProtocol
+    get_archive_link = GetArchiveLinkProtocol
     get_check_run = GetCheckRunProtocol
     create_check_run = CreateCheckRunProtocol
     update_check_run = UpdateCheckRunProtocol

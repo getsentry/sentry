@@ -13066,3 +13066,32 @@ def test_forward_to_client(client, provider: GitLabProvider, param: ForwardToCli
         assert mock_call[0] == client_call.client_method
         assert mock_call[1] == client_call.client_args
         assert mock_call[2] == client_call.client_kwds
+
+
+class TestGetArchiveLink:
+    def test_returns_tar_gz_url(self, provider: GitLabProvider, client: GitLabApiClient):
+        client.base_url = "https://gitlab.example.com"
+
+        result = provider.get_archive_link("main")
+
+        assert result["type"] == "gitlab"
+        assert result["data"] == (
+            "https://gitlab.example.com/api/v4/projects/79787061/repository/archive.tar.gz?sha=main"
+        )
+
+    def test_returns_zip_url(self, provider: GitLabProvider, client: GitLabApiClient):
+        client.base_url = "https://gitlab.example.com"
+
+        result = provider.get_archive_link("main", "zip")
+
+        assert result["type"] == "gitlab"
+        assert result["data"] == (
+            "https://gitlab.example.com/api/v4/projects/79787061/repository/archive.zip?sha=main"
+        )
+
+    def test_empty_ref_omits_sha_param(self, provider: GitLabProvider, client: GitLabApiClient):
+        client.base_url = "https://gitlab.example.com"
+
+        result = provider.get_archive_link("")
+
+        assert "?sha=" not in result["data"]

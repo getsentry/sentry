@@ -54,6 +54,9 @@ type FileStatus = Literal[
 - unknown: file status could not be positively identified
 """
 
+type ArchiveFormat = Literal["tar.gz", "zip"]
+"""Normalized archive format identifiers shared across all SCM providers."""
+
 type BuildStatus = Literal["pending", "running", "completed"]
 """The lifecycle stage of a CI build.
 

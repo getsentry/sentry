@@ -498,6 +498,21 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}")
 
+    def get_archive_link(self, repo: str, archive_format: str, ref: str) -> str:
+        """
+        https://docs.github.com/en/rest/repos/contents#download-a-repository-archive-tar-ball-or-zip-ball
+
+        Returns the redirect URL for downloading a repository archive.
+        The API returns a 302; we capture the Location header instead of following it.
+        """
+        resp = self._request(
+            "GET",
+            f"/repos/{repo}/{archive_format}/{ref}",
+            allow_redirects=False,
+            raw_response=True,
+        )
+        return resp.headers["Location"]
+
     def get_repo(self, repo: str) -> Any:
         """
         https://docs.github.com/en/rest/repos/repos#get-a-repository
