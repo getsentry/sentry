@@ -735,7 +735,14 @@ function PrimaryNavigationButtonFeatureBadge(props: FeatureBadgeProps) {
   }
 
   return (
-    <Container right="6px" top="0px" position="absolute" padding="0 xs" height="16px">
+    <Container
+      right="6px"
+      top="0px"
+      position="absolute"
+      padding="0 xs"
+      height="16px"
+      pointerEvents="none"
+    >
       {p => (
         <FeatureBadge
           {...mergeProps(p, props)}
