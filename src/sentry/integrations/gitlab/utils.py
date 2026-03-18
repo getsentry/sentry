@@ -46,6 +46,7 @@ class GitLabApiClientPath:
     )
     merge_requests = "/projects/{project_id}/merge_requests"
     merge_request = "/projects/{project_id}/merge_requests/{pr_key}"
+    merge_request_approve = "/projects/{project_id}/merge_requests/{pr_key}/approve"
     merge_request_commits = "/projects/{project_id}/merge_requests/{pr_key}/commits"
     merge_request_awards = "/projects/{project_id}/merge_requests/{pr_key}/award_emoji"
     merge_request_award = "/projects/{project_id}/merge_requests/{pr_key}/award_emoji/{award_id}"
@@ -74,6 +75,7 @@ class GitLabApiClientPath:
     statuses = "/projects/{project}/statuses/{sha}"
     commit_statuses = "/projects/{project}/repository/commits/{sha}/statuses"
     archive = "/projects/{project}/repository/archive{format}"
+    tree = "/projects/{project}/repository/tree"
     branches = "/projects/{project_id}/repository/branches"
     branch = "/projects/{project_id}/repository/branches/{branch}"
     user = "/user"

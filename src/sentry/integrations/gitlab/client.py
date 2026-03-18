@@ -347,6 +347,15 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             GitLabApiClientPath.merge_request_notes.format(project_id=project_id, pr_key=pr_key)
         )
 
+    def approve_merge_request(self, project_id: str, pr_key: str) -> Any:
+        """Approve a merge request.
+
+        See https://docs.gitlab.com/ee/api/merge_request_approvals.html#approve-merge-request
+        """
+        return self.post(
+            GitLabApiClientPath.merge_request_approve.format(project_id=project_id, pr_key=pr_key),
+        )
+
     def get_merge_request_versions(self, project_id: str, pr_key: str) -> Any:
         return self.get(
             GitLabApiClientPath.merge_request_versions.format(project_id=project_id, pr_key=pr_key)
@@ -689,6 +698,18 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         project_id = repo.config["project_id"]
         path = GitLabApiClientPath.build_pr_diffs(project=project_id, pr_key=pr.key, unidiff=True)
         return self.get(path)
+
+    def get_repository_tree(
+        self, project_id: str, ref: str, recursive: bool = True
+    ) -> list[dict[str, Any]]:
+        """List repository tree at a given ref.
+
+        See https://docs.gitlab.com/ee/api/repositories.html#list-repository-tree
+        """
+        params: dict[str, str] = {"ref": ref, "per_page": "100"}
+        if recursive:
+            params["recursive"] = "true"
+        return self.get(GitLabApiClientPath.tree.format(project=project_id), params=params)
 
     def get_merge_request_diffs(self, project_id: str, pr_key: str) -> list[dict[str, Any]]:
         return self.get(GitLabApiClientPath.pr_diffs.format(project=project_id, pr_key=pr_key))
