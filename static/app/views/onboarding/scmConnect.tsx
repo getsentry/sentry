@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -7,7 +7,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
-import type {Integration, Repository} from 'sentry/types/integrations';
+import type {Integration} from 'sentry/types/integrations';
 
 import {ConnectedView} from './components/scmConnectedView';
 import {ProviderPills} from './components/scmProviderPills';
@@ -19,33 +19,17 @@ export function ScmConnect({onComplete}: StepProps) {
   const {scmProviders, isPending, refetchIntegrations, activeIntegrationExisting} =
     useScmProviders();
 
-  const [activeIntegration, setActiveIntegration] = useState<Integration | null>(
-    () => onboardingContext.selectedIntegration ?? null
-  );
-  const [selectedRepo, setSelectedRepo] = useState<Repository | null>(
-    () => onboardingContext.selectedRepository ?? null
-  );
-
-  const effectiveIntegration = activeIntegration ?? activeIntegrationExisting;
+  const effectiveIntegration =
+    onboardingContext.selectedIntegration ?? activeIntegrationExisting;
 
   const handleInstall = useCallback(
     (data: Integration) => {
-      setActiveIntegration(data);
-      setSelectedRepo(null);
+      onboardingContext.setSelectedIntegration(data);
+      onboardingContext.setSelectedRepository(undefined);
       refetchIntegrations();
     },
-    [refetchIntegrations]
+    [onboardingContext, refetchIntegrations]
   );
-
-  const handleContinue = useCallback(() => {
-    if (effectiveIntegration) {
-      onboardingContext.setSelectedIntegration(effectiveIntegration);
-      if (selectedRepo) {
-        onboardingContext.setSelectedRepository(selectedRepo);
-      }
-    }
-    onComplete();
-  }, [effectiveIntegration, selectedRepo, onboardingContext, onComplete]);
 
   if (isPending) {
     return (
@@ -68,8 +52,10 @@ export function ScmConnect({onComplete}: StepProps) {
         {effectiveIntegration ? (
           <ConnectedView
             integration={effectiveIntegration}
-            selectedRepo={selectedRepo}
-            onSelectRepo={setSelectedRepo}
+            selectedRepo={onboardingContext.selectedRepository ?? null}
+            onSelectRepo={repo =>
+              onboardingContext.setSelectedRepository(repo ?? undefined)
+            }
           />
         ) : (
           <ProviderPills providers={scmProviders} onInstall={handleInstall} />
@@ -78,7 +64,11 @@ export function ScmConnect({onComplete}: StepProps) {
 
       <Flex gap="md" align="center">
         <Button onClick={() => onComplete()}>{t('Skip for now')}</Button>
-        <Button priority="primary" onClick={handleContinue} disabled={!selectedRepo}>
+        <Button
+          priority="primary"
+          onClick={() => onComplete()}
+          disabled={!onboardingContext.selectedRepository}
+        >
           {t('Continue')}
         </Button>
       </Flex>
