@@ -483,7 +483,7 @@ class SeerExplorerOperator[CachePayloadT]:
                 # RpcUser is not in SeerExplorerClient's type signature but works at runtime
                 client = SeerExplorerClient(
                     organization=organization,
-                    user=user,  # type: ignore[arg-type]
+                    user=user,
                     category_key=category_key,
                     category_value=category_value,
                     on_completion_hook=SeerOperatorCompletionHook,
