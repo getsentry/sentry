@@ -8,8 +8,9 @@ import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {clamp} from 'sentry/utils/number/clamp';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
-import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
-import hydrateBreadcrumbs, {
+import {extractDomNodes} from 'sentry/utils/replays/extractDomNodes';
+import {
+  hydrateBreadcrumbs,
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
 import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';

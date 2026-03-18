@@ -22,7 +22,7 @@ import {
 } from 'sentry/components/events/autofix/utils';
 import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

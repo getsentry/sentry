@@ -40,31 +40,45 @@ describe('incremental trace fetch', () => {
     // Mock the API calls
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 3',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 4'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
+      url: '/organizations/org-slug/trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'a',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          op: 'txn 3',
+          children: [
+            makeEAPSpan({
+              event_id: 'b',
+              start_timestamp: 1,
+              parent_span_id: 'a',
+              end_timestamp: 2,
+              op: 'txn 4',
+            }),
+          ],
+        }),
+      ]),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 5',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
+      url: '/organizations/org-slug/trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'c',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          op: 'txn 5',
+          children: [
+            makeEAPSpan({
+              event_id: 'd',
+              start_timestamp: 1,
+              parent_span_id: 'c',
+              end_timestamp: 2,
+              op: 'txn 6',
+            }),
+          ],
+        }),
+      ]),
     });
 
     tree.build();
@@ -77,7 +91,7 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'non-eap',
+
       meta: null,
     });
 
@@ -109,36 +123,50 @@ describe('incremental trace fetch', () => {
     // Mock the API calls
     const mockedResponse1 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
+      url: '/organizations/org-slug/trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
       statusCode: 400,
     });
     const mockedResponse2 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 5',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
+      url: '/organizations/org-slug/trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'e',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          op: 'txn 5',
+          children: [
+            makeEAPSpan({
+              event_id: 'f',
+              start_timestamp: 1,
+              parent_span_id: 'e',
+              end_timestamp: 2,
+              op: 'txn 6',
+            }),
+          ],
+        }),
+      ]),
     });
     const mockedResponse3 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace/slug3/?include_uptime=1&limit=10000&timestamp=3',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 7',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 8'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
+      url: '/organizations/org-slug/trace/slug3/?include_uptime=1&limit=10000&timestamp=3',
+      body: makeEAPTrace([
+        makeEAPSpan({
+          event_id: 'g',
+          start_timestamp: 0,
+          end_timestamp: 1,
+          op: 'txn 7',
+          children: [
+            makeEAPSpan({
+              event_id: 'h',
+              start_timestamp: 1,
+              parent_span_id: 'g',
+              end_timestamp: 2,
+              op: 'txn 8',
+            }),
+          ],
+        }),
+      ]),
     });
 
     tree.build();
@@ -151,7 +179,7 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'non-eap',
+
       meta: null,
     });
 
@@ -238,7 +266,7 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'eap',
+
       meta: null,
     });
 
@@ -318,7 +346,7 @@ describe('incremental trace fetch', () => {
       organization,
       rerender: () => {},
       urlParams: {} as Location['query'],
-      type: 'eap',
+
       meta: null,
     });
 

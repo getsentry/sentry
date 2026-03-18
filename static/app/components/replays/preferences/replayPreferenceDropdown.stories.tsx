@@ -6,7 +6,7 @@ import {
   StaticNoSkipReplayPreferences,
   StaticReplayPreferences,
 } from 'sentry/components/replays/preferences/replayPreferences';
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 import {
   ReplayPreferencesContextProvider,

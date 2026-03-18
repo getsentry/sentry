@@ -51,7 +51,6 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
             `count(${SpanFields.SPAN_DURATION})`,
             `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
           ],
-          fieldMeta: [null, {valueType: 'percentage', valueUnit: null}],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },
       ],
@@ -269,7 +268,7 @@ export const NEXTJS_FRONTEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   ],
   onboarding: {
     type: 'overview',
-    requiredProjectFlags: ['hasInsightsVitals', 'hasInsightsAssets'],
+    requiredProjectFlags: ['firstTransactionEvent'],
     description: 'Get started with Next.js tracing',
   },
 };

@@ -275,7 +275,7 @@ interface Props {
   node?: IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null;
 }
 
-function RuleNode({
+export function RuleNode({
   index,
   data,
   node,
@@ -612,8 +612,6 @@ function RuleNode({
     </RuleRowContainer>
   );
 }
-
-export default RuleNode;
 
 const InlineInput = styled(Input)`
   width: auto;

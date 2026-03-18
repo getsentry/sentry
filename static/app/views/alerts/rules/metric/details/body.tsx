@@ -13,7 +13,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,

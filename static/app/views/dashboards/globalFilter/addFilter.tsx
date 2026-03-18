@@ -51,7 +51,11 @@ type AddFilterProps = {
   onAddFilter: (filter: GlobalFilter) => void;
 };
 
-function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProps) {
+export function AddFilter({
+  globalFilters,
+  getSearchBarData,
+  onAddFilter,
+}: AddFilterProps) {
   const [selectedDataset, setSelectedDataset] = useState<WidgetType | null>(null);
   const [selectedFilterKey, setSelectedFilterKey] = useState<Tag | null>(null);
   const [isSelectingFilterKey, setIsSelectingFilterKey] = useState(false);
@@ -194,5 +198,3 @@ function AddFilter({globalFilters, getSearchBarData, onAddFilter}: AddFilterProp
     />
   );
 }
-
-export default AddFilter;

@@ -198,7 +198,7 @@ type PassthroughProps = Omit<
   | 'defaultValue'
 >;
 
-function FormField(props: FormFieldProps) {
+export function FormField(props: FormFieldProps) {
   const initialProps = useRef(props);
 
   const {name, onBlur, onChange, onKeyDown} = props;
@@ -465,5 +465,3 @@ function FormField(props: FormFieldProps) {
     <Observer>{() => makeField(observedProps.reduce(resolveObservedProps, {}))}</Observer>
   );
 }
-
-export default FormField;

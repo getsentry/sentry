@@ -4,7 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -14,7 +14,7 @@ import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
-import OldProjectDetails from 'sentry/views/settings/projectSeer/index';
+import {ProjectSeerContainer as OldProjectDetails} from 'sentry/views/settings/projectSeer/index';
 
 import {AutofixAgent} from 'getsentry/views/seerAutomation/components/projectDetails/autofixAgent';
 import {AutofixRepositories} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesList';

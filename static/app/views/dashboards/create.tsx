@@ -11,7 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {EMPTY_DASHBOARD, getDashboardTemplates} from './data';
-import DashboardDetail from './detail';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardState} from './types';
 import {cloneDashboard} from './utils';

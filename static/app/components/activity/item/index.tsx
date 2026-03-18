@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {textStyles} from 'sentry/styles/text';
 import type {AvatarUser} from 'sentry/types/user';
 

@@ -3,7 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import CreateAlertButton, {
+import {
+  CreateAlertButton,
   CreateAlertFromViewButton,
 } from 'sentry/components/createAlertButton';
 import {ProjectsStore} from 'sentry/stores/projectsStore';

@@ -9,14 +9,15 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {useDrawer} from 'sentry/components/globalDrawer';
-import Pagination from 'sentry/components/pagination';
-import GridEditable, {
+import {Pagination} from 'sentry/components/pagination';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
