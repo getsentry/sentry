@@ -566,13 +566,13 @@ const NavigationLink = styled(Link)<NavigationLink>`
   }
 
   &:hover {
-    color: ${p => p.theme.tokens.interactive.link.neutral.hover} !important;
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &[aria-selected='true'] {
-    color: ${p => p.theme.tokens.interactive.link.accent.rest} !important;
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
 
@@ -581,7 +581,7 @@ const NavigationLink = styled(Link)<NavigationLink>`
     }
     /* Override the default hover styles */
     &:hover {
-      color: ${p => p.theme.tokens.interactive.link.accent.hover} !important;
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
