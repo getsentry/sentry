@@ -43,32 +43,28 @@ export function useScmProviders(): ScmProvidersData {
     [providersQuery.data]
   );
 
-  const scmProviderKeys = useMemo(
-    () => new Set(scmProviders.map(p => p.key)),
-    [scmProviders]
-  );
-
+  // Use integrationType=source_code_management to filter server-side to
+  // GitHub, GitLab, Bitbucket, Azure DevOps. Still need client-side active
+  // status check since the endpoint also returns disabled/pending deletion.
   const integrationsQuery = useQuery(
     apiOptions.as<Integration[]>()('/organizations/$organizationIdOrSlug/integrations/', {
       path: {organizationIdOrSlug: organization.slug},
+      query: {integrationType: 'source_code_management'},
       staleTime: 0,
     })
   );
 
-  const scmIntegrations = useMemo(
+  const activeIntegration = useMemo(
     () =>
-      (integrationsQuery.data ?? []).filter(
-        i =>
-          scmProviderKeys.has(i.provider.key) &&
-          i.organizationIntegrationStatus === 'active' &&
-          i.status === 'active'
-      ),
-    [integrationsQuery.data, scmProviderKeys]
+      (integrationsQuery.data ?? []).find(
+        i => i.organizationIntegrationStatus === 'active' && i.status === 'active'
+      ) ?? null,
+    [integrationsQuery.data]
   );
 
   return {
     // V1 only supports a single active SCM integration in onboarding.
-    activeIntegrationExisting: scmIntegrations[0] ?? null,
+    activeIntegrationExisting: activeIntegration,
     scmProviders,
     isPending: providersQuery.isPending || integrationsQuery.isPending,
     isError: providersQuery.isError || integrationsQuery.isError,
