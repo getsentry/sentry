@@ -101,6 +101,8 @@ export function useScmRepoSelection({
       return;
     }
 
+    // Note: for project creation (non-onboarding), we'll also need to handle
+    // migrateRepository for repos previously connected via legacy plugins.
     setBusy(true);
     try {
       const created = await addRepository(
