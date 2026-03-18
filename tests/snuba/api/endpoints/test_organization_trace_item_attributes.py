@@ -2301,64 +2301,51 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
 
     def test_no_feature(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["span.duration"],
-            },
+            payload={"attributes": ["span.duration"]},
+            query_params={"itemType": "spans"},
             features={},
         )
         assert response.status_code == 404
 
     def test_missing_item_type(self):
         response = self.do_request(
-            payload={
-                "attributes": ["span.duration"],
-            },
+            payload={"attributes": ["span.duration"]},
         )
         assert response.status_code == 400
 
     def test_missing_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-            },
+            payload={},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
     def test_empty_attributes_list(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": [],
-            },
+            payload={"attributes": []},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
     def test_too_many_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": [f"attr{i}" for i in range(101)],
-            },
+            payload={"attributes": [f"attr{i}" for i in range(101)]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 400
 
     def test_unsupported_item_type(self):
         response = self.do_request(
-            payload={
-                "itemType": "uptime_results",
-                "attributes": ["some.attr"],
-            },
+            payload={"attributes": ["some.attr"]},
+            query_params={"itemType": "uptime_results"},
         )
         assert response.status_code == 400
         assert "Unsupported item type" in response.data["detail"]
 
     def test_well_known_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["span.duration"],
-            },
+            payload={"attributes": ["span.duration"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         attr = response.data["attributes"]["span.duration"]
@@ -2367,10 +2354,8 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
 
     def test_virtual_context_attributes(self):
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["project"],
-            },
+            payload={"attributes": ["project"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         attr = response.data["attributes"]["project"]
@@ -2380,13 +2365,13 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
     def test_user_tags_not_in_storage(self):
         response = self.do_request(
             payload={
-                "itemType": "spans",
                 "attributes": [
                     "my.custom.tag",
                     "tags[x,string]",
                     "tags[numberAttr,number]",
-                ],
+                ]
             },
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         for key in ["my.custom.tag", "tags[x,string]", "tags[numberAttr,number]"]:
@@ -2409,10 +2394,8 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         )
 
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["my.custom.tag", "nonexistent.tag"],
-            },
+            payload={"attributes": ["my.custom.tag", "nonexistent.tag"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
 
@@ -2440,10 +2423,8 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         )
 
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["tags[foo,string]", "tags[foo,number]"],
-            },
+            payload={"attributes": ["tags[foo,string]", "tags[foo,number]"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
 
@@ -2457,10 +2438,8 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
     def test_invalid_attributes(self):
         long_attr = "a" * 201
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": [long_attr, "tags[foo,faketype]"],
-            },
+            payload={"attributes": [long_attr, "tags[foo,faketype]"]},
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
 
@@ -2488,15 +2467,15 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
         long_attr = "a" * 201
         response = self.do_request(
             payload={
-                "itemType": "spans",
                 "attributes": [
                     "span.duration",
                     "project",
                     "my.custom.tag",
                     "nonexistent.tag",
                     long_attr,
-                ],
+                ]
             },
+            query_params={"itemType": "spans"},
         )
         assert response.status_code == 200
         attrs = response.data["attributes"]
@@ -2533,22 +2512,16 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
 
         # Wide time range should find the tag
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["old.tag"],
-            },
-            query_params={"statsPeriod": "7d"},
+            payload={"attributes": ["old.tag"]},
+            query_params={"itemType": "spans", "statsPeriod": "7d"},
         )
         assert response.status_code == 200
         assert response.data["attributes"]["old.tag"]["valid"] is True
 
         # Narrow time range should not find the tag
         response = self.do_request(
-            payload={
-                "itemType": "spans",
-                "attributes": ["old.tag"],
-            },
-            query_params={"statsPeriod": "1h"},
+            payload={"attributes": ["old.tag"]},
+            query_params={"itemType": "spans", "statsPeriod": "1h"},
         )
         assert response.status_code == 200
         assert response.data["attributes"]["old.tag"]["valid"] is False
