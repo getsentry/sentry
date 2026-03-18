@@ -175,13 +175,13 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
 
         Logs a warning and returns ``False`` when the scope is missing.
         """
-        if scope not in self.model.metadata.get("scopes", []):
+        has_scope = scope in self.model.metadata.get("scopes", [])
+        if not has_scope:
             _logger.warning(
                 "slack.missing_scope",
                 extra={"integration_id": self.model.id, "scope": scope},
             )
-            return False
-        return True
+        return has_scope
 
     def get_thread_history(
         self,
