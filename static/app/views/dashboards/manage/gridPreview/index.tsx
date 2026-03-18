@@ -1,6 +1,7 @@
 import 'react-grid-layout/css/styles.css';
 
 import GridLayout, {WidthProvider} from 'react-grid-layout';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {defined} from 'sentry/utils';
@@ -18,20 +19,31 @@ import {LinePreview as WidgetLine} from './chartPreviews/line';
 import {NumberPreview as WidgetBigNumber} from './chartPreviews/number';
 import {TablePreview as WidgetTable} from './chartPreviews/table';
 
-function miniWidget(displayType: DisplayType): () => React.JSX.Element {
+function miniWidget(
+  displayType: DisplayType,
+  chartColor: string
+): () => React.JSX.Element {
   switch (displayType) {
     case DisplayType.BAR:
-      return WidgetBar;
+      return function () {
+        return <WidgetBar color={chartColor} />;
+      };
     case DisplayType.AREA:
     case DisplayType.TOP_N:
-      return WidgetArea;
+      return function () {
+        return <WidgetArea color={chartColor} />;
+      };
     case DisplayType.BIG_NUMBER:
-      return WidgetBigNumber;
+      return function () {
+        return <WidgetBigNumber color={chartColor} />;
+      };
     case DisplayType.TABLE:
       return WidgetTable;
     case DisplayType.LINE:
     default:
-      return WidgetLine;
+      return function () {
+        return <WidgetLine color={chartColor} />;
+      };
   }
 }
 
@@ -40,6 +52,9 @@ type Props = {
 };
 
 export function GridPreview({widgetPreview}: Props) {
+  const theme = useTheme();
+  const chartPalette = theme.chart.getColorPalette(3);
+
   const definedLayouts = widgetPreview
     .map(({layout}) => layout)
     .filter((layout): layout is WidgetLayout => defined(layout));
@@ -56,8 +71,9 @@ export function GridPreview({widgetPreview}: Props) {
       useCSSTransforms={false}
       measureBeforeMount
     >
-      {renderPreview.map(({displayType, layout}) => {
-        const Preview = miniWidget(displayType);
+      {renderPreview.map(({displayType, layout}, index) => {
+        const color = chartPalette[index % chartPalette.length]!;
+        const Preview = miniWidget(displayType, color);
         return (
           <Chart key={uniqueId()} data-grid={{...layout}}>
             <PreviewWrapper>
@@ -77,10 +93,13 @@ const PreviewWrapper = styled('div')`
   overflow: hidden;
 `;
 
-// ::before is the widget title and ::after is the border
+// ::before is the widget title placeholder
 const Chart = styled('div')`
-  background: white;
+  background: ${p => p.theme.tokens.background.primary};
   position: relative;
+  border: 1px solid ${p => p.theme.tokens.border.secondary};
+  border-radius: ${p => p.theme.radius.sm};
+  overflow: hidden;
 
   &::before {
     content: '';
@@ -89,18 +108,8 @@ const Chart = styled('div')`
     top: 10px;
     width: max(30px, 30%);
     height: 4px;
-    background-color: #d4d1ec;
+    background-color: ${p => p.theme.tokens.background.tertiary};
     border-radius: 8px;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    left: 2px;
-    top: 2px;
-    width: 100%;
-    height: 100%;
-    border: 2px solid #444674;
   }
 `;
 
