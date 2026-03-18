@@ -704,16 +704,14 @@ def trends_aggregation_impl(
 def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
     """Build a Snuba aggregation expression for the recommended sort.
 
-    Combines five normalized [0, 1] components additively:
+    Combines four normalized [0, 1] components additively:
     - activity_score: recency (24hr halflife) + volume spike (6hr vs 7d)
     - severity_score: max log level (fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0)
-    - momentum_score: recent vs prior event count ratio
     - user_impact_score: log-scaled unique user count
     - event_volume_score: log-scaled total event count
     """
     activity_weight = options.get("snuba.search.recommended.activity-weight")
     severity_weight = options.get("snuba.search.recommended.severity-weight")
-    momentum_weight = options.get("snuba.search.recommended.momentum-weight")
     user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
     event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
     recency_halflife_hours = options.get("snuba.search.recommended.recency-halflife-hours")
@@ -723,8 +721,8 @@ def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
     recency = f"divide(1, pow(2, divide({age}, {recency_halflife_hours})))"
 
     recent_6h = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {6 * hour}))"
-    total_7d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {7 * 24 * hour}))"
-    spike = f"divide({recent_6h}, plus({total_7d}, 1))"
+    total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"
+    spike = f"divide({recent_6h}, plus({total_3d}, 1))"
 
     activity = f"plus(multiply(0.6, {recency}), multiply(0.4, least(1.0, {spike})))"
 
@@ -737,11 +735,6 @@ def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
         "0.0))"
     )
 
-    recent_count = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {6 * hour}))"
-    prior_count = f"countIf(and(greater(minus(now(), {timestamp_column}), {6 * hour}), lessOrEquals(minus(now(), {timestamp_column}), {12 * hour})))"
-    raw_momentum = f"if(greater({prior_count}, 0), divide({recent_count}, {prior_count}), if(greater({recent_count}, 0), 2.0, 0.0))"
-    momentum = f"least(1.0, divide({raw_momentum}, 2.0))"
-
     # ln(uniq(tags[sentry:user]) + 1) / ln(1001) — maps 1→~0, 10→0.33, 100→0.67, 1000→1.0
     user_impact = "least(1.0, divide(log(plus(uniq(tags[sentry:user]), 1)), log(1001)))"
 
@@ -750,10 +743,9 @@ def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
 
     return [
         (
-            f"plus(plus(plus(plus("
+            f"plus(plus(plus("
             f"multiply({activity_weight}, {activity}), "
             f"multiply({severity_weight}, {severity})), "
-            f"multiply({momentum_weight}, {momentum})), "
             f"multiply({user_impact_weight}, {user_impact})), "
             f"multiply({event_volume_weight}, {event_volume}))"
         ),

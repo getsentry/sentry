@@ -921,27 +921,22 @@ register(
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "snuba.search.recommended.activity-weight",
-    default=0.25,
+    default=0.30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "snuba.search.recommended.severity-weight",
-    default=0.20,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "snuba.search.recommended.momentum-weight",
-    default=0.20,
+    default=0.25,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "snuba.search.recommended.user-impact-weight",
-    default=0.15,
+    default=0.20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "snuba.search.recommended.event-volume-weight",
-    default=0.20,
+    default=0.25,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
