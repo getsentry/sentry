@@ -920,8 +920,13 @@ register(
 )
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
-    "snuba.search.recommended.activity-weight",
-    default=0.30,
+    "snuba.search.recommended.recency-weight",
+    default=0.20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.spike-weight",
+    default=0.10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

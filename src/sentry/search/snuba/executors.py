@@ -704,13 +704,15 @@ def trends_aggregation_impl(
 def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
     """Build a Snuba aggregation expression for the recommended sort.
 
-    Combines four normalized [0, 1] components additively:
-    - activity_score: recency (24hr halflife) + volume spike (6hr vs 7d)
+    Combines five normalized [0, 1] components additively:
+    - recency_score: exponential decay based on time since last event (24hr halflife)
+    - spike_score: ratio of recent 6hr events to total 3d events
     - severity_score: max log level (fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0)
     - user_impact_score: log-scaled unique user count
     - event_volume_score: log-scaled total event count
     """
-    activity_weight = options.get("snuba.search.recommended.activity-weight")
+    recency_weight = options.get("snuba.search.recommended.recency-weight")
+    spike_weight = options.get("snuba.search.recommended.spike-weight")
     severity_weight = options.get("snuba.search.recommended.severity-weight")
     user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
     event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
@@ -722,9 +724,7 @@ def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
 
     recent_6h = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {6 * hour}))"
     total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"
-    spike = f"divide({recent_6h}, plus({total_3d}, 1))"
-
-    activity = f"plus(multiply(0.6, {recency}), multiply(0.4, least(1.0, {spike})))"
+    spike = f"least(1.0, divide({recent_6h}, plus({total_3d}, 1)))"
 
     severity = (
         "max(multiIf("
@@ -743,8 +743,9 @@ def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
 
     return [
         (
-            f"plus(plus(plus("
-            f"multiply({activity_weight}, {activity}), "
+            f"plus(plus(plus(plus("
+            f"multiply({recency_weight}, {recency}), "
+            f"multiply({spike_weight}, {spike})), "
             f"multiply({severity_weight}, {severity})), "
             f"multiply({user_impact_weight}, {user_impact})), "
             f"multiply({event_volume_weight}, {event_volume}))"
