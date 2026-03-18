@@ -93,6 +93,11 @@ describe('CreateFromSeer', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      method: 'POST',
+      body: {},
+    });
   });
 
   it('shows loading state while session is processing', () => {

@@ -55,7 +55,11 @@ describe('SdkUpdateAlert', () => {
     });
 
     const {container} = render(
-      <SdkUpdateAlert projectId={project.id} minVersion="1.0.0" />,
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="1.0.0"
+        packageName="sentry-sdk"
+      />,
       {organization}
     );
 
@@ -72,7 +76,11 @@ describe('SdkUpdateAlert', () => {
     });
 
     const {container} = render(
-      <SdkUpdateAlert projectId={project.id} minVersion="1.0.0" />,
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="1.0.0"
+        packageName="sentry-sdk"
+      />,
       {organization}
     );
 
@@ -81,7 +89,7 @@ describe('SdkUpdateAlert', () => {
     });
   });
 
-  it('renders alert when SDK version is below minimum with suggested version', async () => {
+  it('renders alert when Python SDK version is below minimum', async () => {
     renderMockSdkUpdateRequest({
       organization,
       body: [
@@ -94,9 +102,14 @@ describe('SdkUpdateAlert', () => {
       ],
     });
 
-    render(<SdkUpdateAlert projectId={project.id} minVersion="2.0.0" />, {
-      organization,
-    });
+    render(
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="2.0.0"
+        packageName="sentry-sdk"
+      />,
+      {organization}
+    );
 
     expect(
       await screen.findByText(
@@ -111,7 +124,7 @@ describe('SdkUpdateAlert', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders alert with JavaScript SDK package name', async () => {
+  it('renders alert when JavaScript SDK version is below minimum', async () => {
     renderMockSdkUpdateRequest({
       organization,
       body: [
@@ -124,9 +137,14 @@ describe('SdkUpdateAlert', () => {
       ],
     });
 
-    render(<SdkUpdateAlert projectId={project.id} minVersion="8.0.0" />, {
-      organization,
-    });
+    render(
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="8.0.0"
+        packageName="@sentry/nextjs"
+      />,
+      {organization}
+    );
 
     expect(
       await screen.findByText(
@@ -141,31 +159,112 @@ describe('SdkUpdateAlert', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders alert with fallback message when package name cannot be determined', async () => {
+  it('renders alert when Node SDK version is below minimum', async () => {
     renderMockSdkUpdateRequest({
       organization,
       body: [
         {
           projectId: project.id,
-          sdkName: 'sentry.unknown',
-          sdkVersion: '1.0.0',
+          sdkName: 'sentry.javascript.node',
+          sdkVersion: '9.0.0',
+          suggestions: [{type: 'updateSdk', newSdkVersion: '10.5.0'}],
         },
       ],
     });
 
-    render(<SdkUpdateAlert projectId={project.id} minVersion="2.0.0" />, {
-      organization,
-    });
+    render(
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="10.0.0"
+        packageName="@sentry/node"
+      />,
+      {organization}
+    );
 
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          'Your SDK version is below the minimum required for agent monitoring.'
+          'Your @sentry/node version is below the minimum required for agent monitoring.'
         )
       )
     ).toBeInTheDocument();
 
-    expect(screen.getByText(/Update to the latest version\./)).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher('Update to 10.5.0 or later.'))
+    ).toBeInTheDocument();
+  });
+
+  it('does not render when only a non-matching SDK has updates', async () => {
+    // Reproduces a real scenario: a Flask project also receives Rust events.
+    // The Rust SDK has an update suggestion but the Flask SDK is up-to-date.
+    // The alert should not display the Rust update for a Flask project.
+    renderMockSdkUpdateRequest({
+      organization,
+      body: [
+        {
+          projectId: project.id,
+          sdkName: 'sentry.rust',
+          sdkVersion: '0.41.0',
+          suggestions: [{type: 'updateSdk', newSdkVersion: '0.47.0'}],
+        },
+      ],
+    });
+
+    const {container} = render(
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="2.0.0"
+        packageName="sentry-sdk"
+      />,
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
+
+  it('renders alert when one SDK is outdated and another is up-to-date', async () => {
+    // A project can receive events from multiple SDKs (e.g. Python + Node).
+    // If the Python SDK is outdated but the Node SDK is up-to-date, the alert
+    // should still display for the outdated Python SDK.
+    renderMockSdkUpdateRequest({
+      organization,
+      body: [
+        {
+          projectId: project.id,
+          sdkName: 'sentry.python',
+          sdkVersion: '1.0.0',
+          suggestions: [{type: 'updateSdk', newSdkVersion: '2.5.0'}],
+        },
+        {
+          projectId: project.id,
+          sdkName: 'sentry.javascript.node',
+          sdkVersion: '10.0.0',
+        },
+      ],
+    });
+
+    render(
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="2.0.0"
+        packageName="sentry-sdk"
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Your sentry-sdk version is below the minimum required for agent monitoring.'
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('Update to 2.5.0 or later.'))
+    ).toBeInTheDocument();
   });
 
   it('renders alert without suggested version when suggestions are not available', async () => {
@@ -180,9 +279,14 @@ describe('SdkUpdateAlert', () => {
       ],
     });
 
-    render(<SdkUpdateAlert projectId={project.id} minVersion="2.0.0" />, {
-      organization,
-    });
+    render(
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="2.0.0"
+        packageName="sentry-sdk"
+      />,
+      {organization}
+    );
 
     expect(
       await screen.findByText(

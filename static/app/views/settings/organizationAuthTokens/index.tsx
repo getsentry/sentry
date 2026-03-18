@@ -5,7 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -13,7 +13,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {OrgAuthToken} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   setApiQueryData,
@@ -21,7 +21,7 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';

@@ -30,7 +30,7 @@ import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
-import AddWidget, {ADD_WIDGET_BUTTON_DRAG_ID} from './addWidget';
+import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -97,7 +97,7 @@ interface LayoutState extends Record<string, Layout[]> {
   [MOBILE]: Layout[];
 }
 
-function Dashboard({
+export function Dashboard({
   dashboard,
   handleAddCustomWidget,
   handleUpdateWidgetList,
@@ -452,8 +452,6 @@ function Dashboard({
     </WidgetSyncContextProvider>
   );
 }
-
-export default Dashboard;
 
 // A widget being dragged has a z-index of 3
 // Allow the Add Widget tile to show above widgets when moved

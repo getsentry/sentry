@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import NumberField from 'sentry/components/forms/fields/numberField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';

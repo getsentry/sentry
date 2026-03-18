@@ -20,7 +20,7 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getAlertText,
   getIntegrationStatus,
@@ -42,7 +42,7 @@ import type {
   AlertType,
   IntegrationTab,
 } from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
 import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';

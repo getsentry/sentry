@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
-import displayRawContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
+import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';

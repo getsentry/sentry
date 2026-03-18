@@ -77,7 +77,7 @@ function getTrendsRequestPayload(props: RequestProps) {
   return apiPayload;
 }
 
-export default function TrendsDiscoverQuery(props: Omit<Props, 'projects'>) {
+export function TrendsDiscoverQuery(props: Omit<Props, 'projects'>) {
   const {projects} = useProjects();
   const route = props.withBreakpoint ? 'events-trends-statsv2' : 'events-trends-stats';
   return (

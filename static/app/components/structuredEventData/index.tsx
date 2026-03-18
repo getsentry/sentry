@@ -136,7 +136,7 @@ export interface StructuredEventDataProps extends BaseProps {
   withAnnotatedText?: boolean;
 }
 
-export default function StructuredEventData({
+export function StructuredEventData({
   children,
   config,
   data = null,

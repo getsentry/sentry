@@ -12,7 +12,7 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {LastCommit} from 'sentry/components/lastCommit';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
