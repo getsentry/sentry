@@ -47,7 +47,7 @@ import {
   FieldKind,
   isDeviceClass,
 } from 'sentry/utils/fields';
-import type Measurements from 'sentry/utils/measurements/measurements';
+import type {Measurements} from 'sentry/utils/measurements/measurements';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -129,7 +129,7 @@ function ErrorsSearchBar({
   );
 }
 
-function ResultsSearchQueryBuilder(props: Props) {
+export function ResultsSearchQueryBuilder(props: Props) {
   const {
     placeholder,
     portalTarget,
@@ -223,8 +223,6 @@ function ResultsSearchQueryBuilder(props: Props) {
     />
   );
 }
-
-export default ResultsSearchQueryBuilder;
 
 const EXCLUDED_FILTER_KEYS = [FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT];
 

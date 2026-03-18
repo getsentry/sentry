@@ -5,8 +5,8 @@ import type {Location} from 'history';
 import {LinkButton} from '@sentry/scraps/button';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import Pagination, {type CursorHandler} from 'sentry/components/pagination';
-import GridEditable from 'sentry/components/tables/gridEditable';
+import {Pagination, type CursorHandler} from 'sentry/components/pagination';
+import {GridEditable} from 'sentry/components/tables/gridEditable';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

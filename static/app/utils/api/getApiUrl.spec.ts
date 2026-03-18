@@ -1,7 +1,7 @@
 import {skipToken} from '@tanstack/react-query';
 import {expectTypeOf} from 'expect-type';
 
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 describe('getApiUrl', () => {
   it('should replace path parameters with their values', () => {

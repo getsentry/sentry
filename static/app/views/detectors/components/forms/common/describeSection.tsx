@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import TextareaField from 'sentry/components/forms/fields/textareaField';
+import {TextareaField} from 'sentry/components/forms/fields/textareaField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 
 export function DescribeSection() {

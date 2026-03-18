@@ -6,7 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {GroupListHeader} from 'sentry/components/issues/groupListHeader';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
@@ -16,14 +16,15 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import Placeholder from 'sentry/components/placeholder';
-import StreamGroup, {
+import {Placeholder} from 'sentry/components/placeholder';
+import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
+  StreamGroup,
 } from 'sentry/components/stream/group';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';

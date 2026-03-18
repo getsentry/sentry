@@ -13,7 +13,7 @@ import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -46,7 +46,7 @@ const makeGroupPreviewRequestUrl = ({
   );
 };
 
-function AllEventsTable({organization, excludedTags, group}: Props) {
+export function AllEventsTable({organization, excludedTags, group}: Props) {
   const location = useLocation();
   const theme = useTheme();
   const config = getConfigForIssueType(group, group.project);
@@ -239,5 +239,3 @@ const getPlatformColumns = (
 
   return platformColumns;
 };
-
-export default AllEventsTable;

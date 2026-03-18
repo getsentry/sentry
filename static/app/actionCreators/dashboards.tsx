@@ -3,14 +3,14 @@ import omit from 'lodash/omit';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {TOP_N} from 'sentry/utils/discover/types';
-import type {QueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation, type QueryClient} from 'sentry/utils/queryClient';
 import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
   DisplayType,
@@ -86,6 +86,41 @@ export function createDashboard(
   });
 
   return promise;
+}
+
+export function validateDashboard(
+  orgSlug: string,
+  dashboard: DashboardDetails
+): Promise<void> {
+  const {title, widgets, projects, environment, period, start, end, filters, utc} =
+    dashboard;
+
+  const url = getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+    path: {organizationIdOrSlug: orgSlug},
+  });
+
+  return fetchMutation({
+    url,
+    method: 'POST',
+    data: {
+      title,
+      widgets: widgets.map(widget => omit(widget, ['tempId'])),
+      projects,
+      environment,
+      period,
+      start,
+      end,
+      filters,
+      utc,
+    },
+    options: {
+      query: {
+        validateOnly: '1',
+        project: projects,
+        environment,
+      },
+    },
+  });
 }
 
 export function updateDashboardVisit(

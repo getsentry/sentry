@@ -63,7 +63,7 @@ type Props = {
   organization?: Organization;
 };
 
-function SuperuserWarning({organization, className}: Props) {
+export function SuperuserWarning({organization, className}: Props) {
   const isExcludedOrg = shouldExcludeOrg(organization);
 
   useEffect(() => {
@@ -122,5 +122,3 @@ const TooltipContent = styled('div')`
 const Content = styled('p')`
   margin: 0;
 `;
-
-export default SuperuserWarning;

@@ -18,7 +18,7 @@ type ResponseError = {
   responseJSON?: Record<ResponseFields, string[]>;
 };
 
-function handleError(error: ResponseError): Error {
+export function handleError(error: ResponseError): Error {
   const errorMessage = error.responseJSON?.relayPiiConfig[0];
 
   if (!errorMessage) {
@@ -64,5 +64,3 @@ function handleError(error: ResponseError): Error {
     message: t('An unknown error occurred while saving data scrubbing rule'),
   };
 }
-
-export default handleError;

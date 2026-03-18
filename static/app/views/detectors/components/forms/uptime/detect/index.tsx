@@ -1,14 +1,14 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import RangeField from 'sentry/components/forms/fields/rangeField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextareaField from 'sentry/components/forms/fields/textareaField';
-import TextField from 'sentry/components/forms/fields/textField';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {RangeField} from 'sentry/components/forms/fields/rangeField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {TextareaField} from 'sentry/components/forms/fields/textareaField';
+import {TextField} from 'sentry/components/forms/fields/textField';
 import type {FormModel} from 'sentry/components/forms/model';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t, tct} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {HTTPSnippet} from 'sentry/views/alerts/rules/uptime/httpSnippet';

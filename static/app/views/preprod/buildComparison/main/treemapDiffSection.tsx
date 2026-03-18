@@ -7,7 +7,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Text} from '@sentry/scraps/text';
 
-import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
+import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
 import {IconContract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getAppSizeDiffCategoryInfo} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
