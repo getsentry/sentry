@@ -267,6 +267,7 @@ export default function CreateFromSeer() {
         />
         <DashboardChatPanel
           blocks={session?.blocks ?? []}
+          pendingUserInput={session?.pending_user_input}
           onSend={sendMessage}
           isUpdating={isUpdating}
         />
