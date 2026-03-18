@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any, Final
 
 import sentry_sdk
+from pydantic import ValidationError
 
 from sentry.models.organization import Organization
 from sentry.notifications.platform.metrics import (
@@ -191,7 +192,7 @@ def notify_target_async(
     """
     try:
         notification_data = deserialize_notification_data(data)
-    except (NotificationServiceError, NoRegistrationExistsError) as e:
+    except (NotificationServiceError, NoRegistrationExistsError, ValidationError) as e:
         logger.warning(
             "notifications.platform.notify_target_async.deserialize_error",
             extra={"error": e, "data": data, "nested_target": nested_target},
