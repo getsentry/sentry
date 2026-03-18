@@ -279,7 +279,7 @@ export function WidgetBuilderSlideout({
             'dashboards.widget_builder.slideout_open_duration',
             duration,
             {
-              unit: 'ms',
+              unit: 'millisecond',
               attributes: {
                 org_slug: organization.slug,
                 dashboard_id: dashboard.id,
