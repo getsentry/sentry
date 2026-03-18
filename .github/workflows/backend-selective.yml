@@ -52,10 +52,10 @@ jobs:
     needs: files-changed
     name: select tests via getsentry coverage
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     outputs:
-      has-selected-tests: ${{ steps.results.outputs.has-selected-tests }}
-      test-count: ${{ steps.results.outputs.test-count }}
+      has-selected-tests: ${{ steps.compute-tests.outputs.has-selected-tests }}
+      test-count: ${{ steps.compute-tests.outputs.test-count }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -77,54 +77,69 @@ jobs:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - name: Dispatch and wait for getsentry test selection
-        id: dispatch
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        env:
-          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+      - name: Checkout getsentry
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          github-token: ${{ steps.getsentry.outputs.token }}
-          script: |
-            const { dispatchAndWait } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/getsentry-dispatch-and-wait.js`);
-            const { runId, conclusion } = await dispatchAndWait({
-              github, core,
-              workflow_id: 'select-sentry-tests.yml',
-              inputs: { 'sentry-changed-files': process.env.CHANGED_FILES },
-            });
-            core.setOutput('run-id', runId);
-            core.setOutput('conclusion', conclusion);
-
-      - name: Download selected tests from getsentry
-        if: steps.dispatch.outputs.conclusion == 'success'
-        id: download
-        continue-on-error: true
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: selected-tests
           repository: getsentry/getsentry
-          run-id: ${{ steps.dispatch.outputs.run-id }}
-          github-token: ${{ steps.getsentry.outputs.token }}
-          path: .artifacts/
+          token: ${{ steps.getsentry.outputs.token }}
+          path: getsentry
 
-      - name: Re-upload selected tests for downstream jobs
-        if: steps.download.outcome == 'success'
+      - name: Setup Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13.1'
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.3
+        with:
+          project_id: sentry-dev-tooling
+          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
+          service_account: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Download coverage database
+        id: download-coverage
+        run: |
+          set -euo pipefail
+          mkdir -p .artifacts/coverage
+
+          GCS_PATH="gs://getsentry-coverage-data/latest/.coverage.combined"
+          echo "Fetching coverage DB from: $GCS_PATH"
+          gcloud storage ls -l "$GCS_PATH" 2>/dev/null || true
+
+          if ! gcloud storage cp "$GCS_PATH" \
+            .artifacts/coverage/.coverage.combined 2>/dev/null; then
+            echo "Warning: Failed to download coverage from GCS, will run full test suite"
+            echo "coverage-file=" >> "$GITHUB_OUTPUT"
+          else
+            ls -lh .artifacts/coverage/.coverage.combined
+            echo "coverage-file=.artifacts/coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Compute selected tests
+        id: compute-tests
+        if: steps.download-coverage.outputs.coverage-file != ''
+        env:
+          COVERAGE_DB: ${{ steps.download-coverage.outputs.coverage-file }}
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+        # Run from getsentry/ so ../sentry resolves to the sentry checkout
+        working-directory: getsentry
+        run: |
+          set -euo pipefail
+
+          python3 .github/workflows/scripts/compute-selected-tests.py \
+            --coverage-db "$GITHUB_WORKSPACE/$COVERAGE_DB" \
+            --sentry-changed-files "$CHANGED_FILES" \
+            --output-repo sentry \
+            --output "$GITHUB_WORKSPACE/.artifacts/selected-tests.txt" \
+            --github-output
+
+      - name: Upload selected tests artifact
+        if: steps.compute-tests.outputs.has-selected-tests == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/selected-tests.txt
           retention-days: 1
-
-      - name: Parse results
-        id: results
-        run: |
-          if [[ "${{ steps.download.outcome }}" == "success" && -f .artifacts/selected-tests.txt ]]; then
-            count=$(wc -l < .artifacts/selected-tests.txt | tr -d ' ')
-            echo "has-selected-tests=true" >> "$GITHUB_OUTPUT"
-            echo "test-count=${count}" >> "$GITHUB_OUTPUT"
-          else
-            echo "has-selected-tests=false" >> "$GITHUB_OUTPUT"
-            echo "test-count=" >> "$GITHUB_OUTPUT"
-          fi
 
   calculate-shards:
     if: >-
