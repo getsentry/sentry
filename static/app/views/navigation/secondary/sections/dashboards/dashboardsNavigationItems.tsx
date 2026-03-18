@@ -38,7 +38,7 @@ export function DashboardsNavigationItems({
       {dashboard => {
         const dashboardProjects = new Set((dashboard?.projects ?? []).map(String));
         if (!defined(dashboard?.projects)) {
-          SentryLogDashboardProjectsUndefined(dashboard, {
+          logUndefinedDashboardValue(dashboard, {
             organizationId: organization.id,
             userId: user.id,
           });
@@ -78,7 +78,7 @@ export function DashboardsNavigationItems({
   );
 }
 
-function SentryLogDashboardProjectsUndefined(
+function logUndefinedDashboardValue(
   dashboard: DashboardListItem,
   {organizationId, userId}: {organizationId: string; userId: string}
 ) {
