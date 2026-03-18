@@ -46,12 +46,12 @@ export function DashboardChatPanel({
     }
   }, [isUpdating]);
 
-  // Scroll chat to bottom when new blocks arrive
+  // Scroll chat to bottom when new blocks arrive or pending input appears
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [blocks.length]);
+  }, [blocks.length, pendingUserInput]);
 
   const handleSubmit = useCallback(() => {
     const trimmed = inputValue.trim();
@@ -173,7 +173,7 @@ const ChatHistory = memo(function ChatHistoryInner({
             runId={seerRunId}
           />
         ))}
-        {pendingUserInput && pendingUserInput.data.questions.length > 0 && (
+        {pendingUserInput && pendingUserInput.data.questions?.length > 0 && (
           <Container padding="xl" style={{paddingLeft: '40px'}}>
             <MarkedText text={pendingUserInput.data.questions[0].question} inline />
           </Container>
