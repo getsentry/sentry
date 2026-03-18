@@ -9,6 +9,7 @@ type ScmProvidersData = {
   activeIntegrationExisting: Integration | null;
   isError: boolean;
   isPending: boolean;
+  refetch: () => void;
   refetchIntegrations: () => void;
   scmProviders: IntegrationProvider[];
 };
@@ -68,6 +69,10 @@ export function useScmProviders(): ScmProvidersData {
     scmProviders,
     isPending: providersQuery.isPending || integrationsQuery.isPending,
     isError: providersQuery.isError || integrationsQuery.isError,
+    refetch: () => {
+      providersQuery.refetch();
+      integrationsQuery.refetch();
+    },
     refetchIntegrations: integrationsQuery.refetch,
   };
 }

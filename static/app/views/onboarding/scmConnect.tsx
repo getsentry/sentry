@@ -25,6 +25,7 @@ export function ScmConnect({onComplete}: StepProps) {
     scmProviders,
     isPending,
     isError,
+    refetch,
     refetchIntegrations,
     activeIntegrationExisting,
   } = useScmProviders();
@@ -60,7 +61,7 @@ export function ScmConnect({onComplete}: StepProps) {
     return (
       <Flex direction="column" align="center" gap="lg" flexGrow={1}>
         <Text variant="muted">{t('Failed to load integrations.')}</Text>
-        <Button onClick={() => refetchIntegrations()}>{t('Retry')}</Button>
+        <Button onClick={() => refetch()}>{t('Retry')}</Button>
       </Flex>
     );
   }
