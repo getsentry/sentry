@@ -7,7 +7,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import ManageDashboards, {LAYOUT_KEY} from 'sentry/views/dashboards/manage';

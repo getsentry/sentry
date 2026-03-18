@@ -73,7 +73,7 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
     calculate_sample_rates_of_projects,
@@ -1264,7 +1264,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
-                RegionScheduledDeletion.cancel(organization)
+                CellScheduledDeletion.cancel(organization)
             elif changed_data:
                 if "enabledConsolePlatforms" in changed_data:
                     create_console_platform_audit_log(

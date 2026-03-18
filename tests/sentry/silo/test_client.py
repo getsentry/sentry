@@ -23,7 +23,7 @@ from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADE
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import override_allowed_cell_silo_ip_addresses
 from sentry.testutils.region import override_regions
-from sentry.types.region import Cell, CellResolutionError, RegionCategory
+from sentry.types.cell import Cell, CellResolutionError, RegionCategory
 from sentry.utils import json
 
 

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {IconFire} from 'sentry/icons';
@@ -32,11 +33,13 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
-          {incidents.map(incident => (
-            <IncidentItemWrapper key={incident.id}>
-              <ServiceIncidentDetails incident={incident} />
-            </IncidentItemWrapper>
-          ))}
+          <Stack as="ul" padding="0" gap="md">
+            {incidents.map(incident => (
+              <Stack key={incident.id} as="li">
+                <ServiceIncidentDetails incident={incident} />
+              </Stack>
+            ))}
+          </Stack>
         </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
@@ -51,14 +54,3 @@ export function PrimaryNavigationServiceIncidents() {
 
   return <ServiceIncidentsButton incidents={incidents} />;
 }
-
-const IncidentItemWrapper = styled('div')`
-  line-height: 1.5;
-  background: ${p => p.theme.tokens.background.primary};
-  font-size: ${p => p.theme.font.size.md};
-  padding: ${p => p.theme.space['2xl']};
-
-  :not(:first-child) {
-    border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-  }
-`;

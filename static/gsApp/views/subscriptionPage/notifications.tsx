@@ -214,7 +214,7 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
         multiple
         value={thresholds}
         options={availableThresholdValues.map(value => ({label: `${value}%`, value}))}
-        onChange={(option: Array<{label: string; value: number}>) => {
+        onChange={option => {
           updateThresholds(option.map(o => o.value));
         }}
       />

@@ -32,7 +32,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -54,7 +54,7 @@ import OwnedDashboardsTable, {
   OWNED_CURSOR_KEY,
 } from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
-import {DashboardFilter} from 'sentry/views/dashboards/types';
+import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import RouteError from 'sentry/views/routeError';
@@ -590,7 +590,7 @@ function ManageDashboards() {
       renderDisabled={renderNoAccess}
     >
       <SentryDocumentTitle
-        title={isOnlyPrebuilt ? t('Sentry Built') : t('All Dashboards')}
+        title={isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
         orgSlug={organization.slug}
       >
         <ErrorBoundary>
@@ -604,7 +604,7 @@ function ManageDashboards() {
                 <Layout.Header unified>
                   <Layout.HeaderContent unified>
                     <Layout.Title>
-                      {isOnlyPrebuilt ? t('Sentry Built') : t('All Dashboards')}
+                      {isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
                       <PageHeadingQuestionTooltip
                         docsUrl="https://docs.sentry.io/product/dashboards/"
                         title={

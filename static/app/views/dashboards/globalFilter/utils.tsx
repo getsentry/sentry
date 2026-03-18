@@ -29,6 +29,8 @@ export function getFieldDefinitionForDataset(
         return 'span';
       case WidgetType.LOGS:
         return 'log';
+      case WidgetType.TRACEMETRICS:
+        return 'tracemetric';
       default:
         return 'event';
     }

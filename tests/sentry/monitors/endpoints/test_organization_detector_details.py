@@ -1,6 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.monitors.serializers import MonitorSerializer
@@ -183,7 +183,7 @@ class OrganizationMonitorIncidentDetectorDetailsTest(APITestCase):
                 method="DELETE",
             )
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.detector.id
         ).exists()
 

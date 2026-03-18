@@ -148,7 +148,7 @@ export function SeerSection({
     <HeaderContainer>{t('Resources')}</HeaderContainer>
   ) : (
     <HeaderContainer>
-      {t('Seer')}
+      {t('Seer Autofix')}
       <IconSeer />
     </HeaderContainer>
   );
