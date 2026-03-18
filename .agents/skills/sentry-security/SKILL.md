@@ -173,8 +173,6 @@ See `enforcement-layers.md` "Cross-Flow Enforcement."
   ```python
   [Code that fixes the issue — must enforce, not document]
   ```
-````
-
 - **Precedent**: [Similar past fix if applicable, e.g. "Similar to #104990 PromptsActivity IDOR"]
 
 ### Needs Verification
@@ -184,8 +182,6 @@ See `enforcement-layers.md` "Cross-Flow Enforcement."
 ### Not Reviewed
 
 [Areas outside the scope of this review]
-
-```
+````
 
 Fix suggestions must include actual enforcement code. Never suggest a comment or docstring as a fix.
-```
