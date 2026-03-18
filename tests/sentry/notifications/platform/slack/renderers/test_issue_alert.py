@@ -11,7 +11,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
-from sentry.notifications.platform.slack.renderers.issue_alert import IssueAlertSlackRenderer
+from sentry.notifications.platform.slack.renderers.issue_alert import IssueSlackRenderer
 from sentry.notifications.platform.templates.issue_alert import (
     IssueAlertNotificationData,
     IssueAlertNotificationTemplate,
@@ -126,7 +126,7 @@ class IssueAlertNotificationTemplateTest(TestCase):
         assert IssueAlertNotificationTemplate.hide_from_debugger is True
 
 
-class IssueAlertSlackRendererTest(IssueAlertInvocationMixin):
+class IssueSlackRendererTest(IssueAlertInvocationMixin):
     def test_render_raises_on_invalid_data(self) -> None:
         from sentry.notifications.platform.templates.seer import SeerAutofixError
 
@@ -134,7 +134,7 @@ class IssueAlertSlackRendererTest(IssueAlertInvocationMixin):
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
-            IssueAlertSlackRenderer.render(
+            IssueSlackRenderer.render(
                 data=invalid_data,
                 rendered_template=rendered_template,
             )
@@ -259,7 +259,7 @@ class IssueAlertSlackRendererTest(IssueAlertInvocationMixin):
         data = IssueAlertNotificationData.from_action_invocation(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueAlertSlackRenderer.render(
+        result = IssueSlackRenderer.render(
             data=data,
             rendered_template=rendered_template,
         )
@@ -278,7 +278,7 @@ class IssueAlertSlackRendererTest(IssueAlertInvocationMixin):
         data = IssueAlertNotificationData.from_action_invocation(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueAlertSlackRenderer.render(
+        result = IssueSlackRenderer.render(
             data=data,
             rendered_template=rendered_template,
         )
@@ -301,7 +301,7 @@ class IssueAlertSlackRendererTest(IssueAlertInvocationMixin):
         data = IssueAlertNotificationData.from_action_invocation(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueAlertSlackRenderer.render(
+        result = IssueSlackRenderer.render(
             data=data,
             rendered_template=rendered_template,
         )
@@ -321,7 +321,7 @@ class IssueAlertProviderDispatchTest(TestCase):
             data=data,
             category=NotificationCategory.ISSUE_ALERT,
         )
-        assert renderer is IssueAlertSlackRenderer
+        assert renderer is IssueSlackRenderer
 
     def test_provider_returns_default_for_unknown_category(self) -> None:
         data = IssueAlertNotificationData(group_id=self.group.id)

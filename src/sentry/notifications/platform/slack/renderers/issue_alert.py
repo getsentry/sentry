@@ -11,7 +11,7 @@ from sentry.notifications.platform.types import (
 )
 
 
-class IssueAlertSlackRenderer(NotificationRenderer[SlackRenderable]):
+class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
     provider_key = NotificationProviderKey.SLACK
 
     @classmethod
@@ -19,7 +19,7 @@ class IssueAlertSlackRenderer(NotificationRenderer[SlackRenderable]):
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> SlackRenderable:
         if not isinstance(data, IssueAlertNotificationData):
-            raise ValueError(f"IssueAlertSlackRenderer does not support {data.__class__.__name__}")
+            raise ValueError(f"IssueSlackRenderer does not support {data.__class__.__name__}")
 
         from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 

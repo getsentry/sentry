@@ -136,14 +136,14 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         cls, *, data: NotificationData, category: NotificationCategory
     ) -> type[NotificationRenderer[SlackRenderable]]:
         from sentry.notifications.platform.slack.renderers.issue_alert import (
-            IssueAlertSlackRenderer,
+            IssueSlackRenderer,
         )
         from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 
         if category == NotificationCategory.SEER:
             return SeerSlackRenderer
         if category == NotificationCategory.ISSUE_ALERT:
-            return IssueAlertSlackRenderer
+            return IssueSlackRenderer
         return cls.default_renderer
 
     @classmethod
