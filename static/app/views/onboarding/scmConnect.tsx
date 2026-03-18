@@ -88,7 +88,7 @@ export function ScmConnect({onComplete}: StepProps) {
         <Button
           priority="primary"
           onClick={() => onComplete()}
-          disabled={!selectedRepository}
+          disabled={!selectedRepository?.id}
         >
           {t('Continue')}
         </Button>
