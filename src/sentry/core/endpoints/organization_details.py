@@ -73,7 +73,7 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
     calculate_sample_rates_of_projects,
@@ -1264,7 +1264,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
-                RegionScheduledDeletion.cancel(organization)
+                CellScheduledDeletion.cancel(organization)
             elif changed_data:
                 if "enabledConsolePlatforms" in changed_data:
                     create_console_platform_audit_log(
@@ -1300,7 +1300,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         # TODO: this will take a long time for organizations with a lot of projects
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
-        measure = SamplingMeasure.TRANSACTIONS
+        measure = SamplingMeasure.SEGMENTS
         if options.get("dynamic-sampling.check_span_feature_flag"):
             span_org_ids = options.get("dynamic-sampling.measure.spans") or []
             if org_id in span_org_ids:

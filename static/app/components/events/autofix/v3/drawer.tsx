@@ -12,7 +12,7 @@ import {SeerDrawerBody} from 'sentry/components/events/autofix/v3/body';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
 import {SeerDrawerHeader} from 'sentry/components/events/autofix/v3/header';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

@@ -12,7 +12,7 @@ from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
@@ -79,7 +79,7 @@ from sentry.projects.services.project import RpcProjectFlags
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth.auth import email_unlink_notifications
-from sentry.types.region import find_cells_for_orgs
+from sentry.types.cell import find_cells_for_orgs
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_org_delete_log
 
@@ -727,13 +727,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 response_state=RpcOrganizationDeleteState.OWNS_PUBLISHED_INTEGRATION
             )
 
-        with transaction.atomic(router.db_for_write(RegionScheduledDeletion)):
+        with transaction.atomic(router.db_for_write(CellScheduledDeletion)):
             updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
                 org_id=orm_organization.id
             )
 
             if updated_organization is not None:
-                schedule = RegionScheduledDeletion.schedule(orm_organization, days=1, actor=user)
+                schedule = CellScheduledDeletion.schedule(orm_organization, days=1, actor=user)
 
                 Organization.objects.uncache_object(updated_organization.id)
                 return RpcOrganizationDeleteResponse(

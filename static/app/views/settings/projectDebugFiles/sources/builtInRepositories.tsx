@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import Access from 'sentry/components/acl/access';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {Access} from 'sentry/components/acl/access';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';

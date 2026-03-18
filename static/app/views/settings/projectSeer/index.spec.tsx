@@ -16,7 +16,7 @@ import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/pre
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import ProjectSeer from 'sentry/views/settings/projectSeer';
+import {ProjectSeerContainer as ProjectSeer} from 'sentry/views/settings/projectSeer';
 
 // Needed to mock useVirtualizer lists.
 jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({

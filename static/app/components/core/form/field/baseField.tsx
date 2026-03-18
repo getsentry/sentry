@@ -77,6 +77,43 @@ function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | n
   }, [fieldName, ref, location.hash]);
 }
 
+function useFocusRestore(ref: React.RefObject<HTMLElement | null>) {
+  const autoSaveContext = useAutoSaveContext();
+  const hadFocusRef = useRef(false);
+  const isDisabledByAutoSave = autoSaveContext?.status === 'pending';
+
+  // When the element loses focus because it was disabled during an auto-save,
+  // record that so we can restore focus when the mutation completes.
+  // The native blur listener fires synchronously during DOM commit (when React
+  // sets the disabled attribute), so we can check el.disabled at that point.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) {
+      return undefined;
+    }
+
+    function onBlur() {
+      if (el!.hasAttribute('disabled')) {
+        hadFocusRef.current = true;
+      }
+    }
+
+    el.addEventListener('blur', onBlur);
+    return () => el.removeEventListener('blur', onBlur);
+  }, [ref]);
+
+  useEffect(() => {
+    if (!isDisabledByAutoSave && hadFocusRef.current) {
+      hadFocusRef.current = false;
+      // Only restore focus if it's still on the body (i.e. the user hasn't
+      // moved focus elsewhere while the mutation was in-flight).
+      if (document.activeElement === document.body) {
+        ref.current?.focus();
+      }
+    }
+  }, [isDisabledByAutoSave, ref]);
+}
+
 type FieldState = {indicator: React.ReactNode};
 
 export function BaseField<T extends HTMLElement>(
@@ -91,6 +128,7 @@ export function BaseField<T extends HTMLElement>(
   const fieldId = useFieldId();
   const hintTextId = useHintTextId();
   useScrollToHash(field.name, ref);
+  useFocusRestore(ref);
 
   return (
     <Flex gap="sm" align="center">

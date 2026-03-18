@@ -266,7 +266,7 @@ interface VisualizeProps {
   setError?: (error: Record<string, any>) => void;
 }
 
-function Visualize({error, setError}: VisualizeProps) {
+export function Visualize({error, setError}: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
@@ -1129,8 +1129,6 @@ function Visualize({error, setError}: VisualizeProps) {
     </Fragment>
   );
 }
-
-export default Visualize;
 
 function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
   return (

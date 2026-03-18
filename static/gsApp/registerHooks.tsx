@@ -39,8 +39,9 @@ import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerC
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
-import SuperuserWarning, {
+import {
   shouldExcludeOrg,
+  SuperuserWarning,
 } from 'getsentry/components/superuser/superuserWarning';
 import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
 import {analyticsInitUser} from 'getsentry/hooks/analyticsInitUser';
@@ -109,7 +110,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * Additional routes to be inserted into sentrys route tree
    */
   'routes:root': rootRoutes,
-  'routes:settings': seerSettingsRoutes,
+  'routes:org-settings': seerSettingsRoutes,
   'routes:legacy-organization-redirects': legacyOrganizationRedirectRoutes,
 
   /**

@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
 describe('Resource Subscriptions', () => {

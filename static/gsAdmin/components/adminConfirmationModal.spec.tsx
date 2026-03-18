@@ -7,7 +7,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import AdminConfirmationModal from 'admin/components/adminConfirmationModal';
+import {AdminConfirmationModal} from 'admin/components/adminConfirmationModal';
 
 describe('Admin confirmation modal', () => {
   const mockOnConfirm = jest.fn();

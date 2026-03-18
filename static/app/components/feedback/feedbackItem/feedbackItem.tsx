@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
-import ContextCard from 'sentry/components/events/contexts/contextCard';
-import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
+import {ContextCard} from 'sentry/components/events/contexts/contextCard';
+import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
 import {CrashReportSection} from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import {FeedbackActivitySection} from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
 import {FeedbackItemHeader} from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';

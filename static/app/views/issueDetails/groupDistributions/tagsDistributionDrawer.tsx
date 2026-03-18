@@ -21,7 +21,7 @@ import {TagExportDropdown} from 'sentry/views/issueDetails/groupDistributions/ta
 import {TagFlagPicker} from 'sentry/views/issueDetails/groupDistributions/tagFlagPicker';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
-import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
+import {TagDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface Props {

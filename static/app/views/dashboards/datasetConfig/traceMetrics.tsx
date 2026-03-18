@@ -199,6 +199,39 @@ export function formatTraceMetricsFunction(
   return defaultValue ?? valueToParse;
 }
 
+export function useGlobalFilterTraceMetricsSearchBarDataProvider(
+  props: Pick<SearchBarDataProviderProps, 'pageFilters'>
+): SearchBarData {
+  const {pageFilters} = props;
+
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceMetricItemAttributes({}, 'string', HiddenTraceMetricSearchFields);
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceMetricItemAttributes({}, 'number', HiddenTraceMetricSearchFields);
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceMetricItemAttributes({}, 'boolean', HiddenTraceMetricSearchFields);
+
+  const {filterKeys, filterKeySections, getTagValues} =
+    useTraceItemSearchQueryBuilderProps({
+      itemType: TraceItemDataset.TRACEMETRICS,
+      booleanAttributes,
+      numberAttributes,
+      stringAttributes,
+      booleanSecondaryAliases,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      searchSource: 'dashboards',
+      initialQuery: '',
+      projects: pageFilters.projects,
+    });
+
+  return {
+    getFilterKeySections: () => filterKeySections,
+    getFilterKeys: () => filterKeys,
+    getTagValues,
+  };
+}
+
 export const TraceMetricsConfig: DatasetConfig<
   EventsTimeSeriesResponse,
   EventsTableData

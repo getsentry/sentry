@@ -6,7 +6,7 @@ import type {Organization} from 'sentry/types/organization';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
 
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
   organization: Organization;

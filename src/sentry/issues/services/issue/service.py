@@ -38,7 +38,12 @@ class IssueService(RpcService):
     @cell_rpc_method(resolve=ByCellName(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_external_issue_groups(
-        self, *, region_name: str, external_issue_key: str, integration_id: int
+        self,
+        *,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        external_issue_key: str,
+        integration_id: int,
     ) -> list[RpcExternalIssueGroupMetadata] | None:
         pass
 

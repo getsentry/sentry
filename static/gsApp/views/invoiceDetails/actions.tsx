@@ -18,7 +18,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import {openInvoicePaymentModal} from 'getsentry/actionCreators/modal';
 import type {Invoice} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
   invoice: Invoice;
