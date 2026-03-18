@@ -194,7 +194,6 @@ function Graph({
       <VisualizeLabel
         justify="center"
         align="center"
-        background="tertiary"
         radius="md"
         paddingLeft="sm"
         paddingRight="sm"
