@@ -65,6 +65,7 @@ class ActionFilterTestCase(TestCase):
         return action_filters
 
     def populate_action_filter_cache(
+        self,
         cache_data: ActionFiltersByWorkflow,
     ) -> list[_ActionFilterCacheKey]:
         _populate_cache(cache_data)
@@ -75,8 +76,12 @@ class ActionFilterTestCase(TestCase):
 
         return cache_keys
 
-    def get_data_from_cache(cache_keys: list[_ActionFilterCacheKey]) -> ActionFiltersByWorkflow:
-        return _action_filters_cache.get_many(cache_keys)
+    def get_data_from_cache(
+        self,
+        cache_keys: list[_ActionFilterCacheKey],
+    ) -> ActionFiltersByWorkflow:
+        cache_results = _action_filters_cache.get_many(cache_keys)
+        return {key.workflow_id: values for key, values in cache_results.items()}
 
     def assert_cache_result(
         self,
