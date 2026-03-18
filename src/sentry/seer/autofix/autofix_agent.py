@@ -374,15 +374,27 @@ def _filter_repos_by_run_state(
         (root_cause_artifact.data or {}).get("relevant_repos") or [] if root_cause_artifact else []
     )
     if relevant_repos:
-        return [r for r in repo_definitions if f"{r.owner}/{r.name}" in set(relevant_repos)]
-    logger.warning(
-        "autofix.coding_agent_handoff.no_relevant_repos",
-        extra={
-            "organization_id": group.organization.id,
-            "run_id": run_id,
-            "project_id": group.project_id,
-        },
-    )
+        filtered = [r for r in repo_definitions if f"{r.owner}/{r.name}" in set(relevant_repos)]
+        if filtered:
+            return filtered
+        logger.warning(
+            "autofix.coding_agent_handoff.relevant_repos_not_found",
+            extra={
+                "organization_id": group.organization.id,
+                "run_id": run_id,
+                "project_id": group.project_id,
+                "relevant_repos": relevant_repos,
+            },
+        )
+    else:
+        logger.warning(
+            "autofix.coding_agent_handoff.no_relevant_repos",
+            extra={
+                "organization_id": group.organization.id,
+                "run_id": run_id,
+                "project_id": group.project_id,
+            },
+        )
     return repo_definitions[:1]
 
 
