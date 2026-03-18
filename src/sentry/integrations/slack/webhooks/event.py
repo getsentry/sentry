@@ -375,6 +375,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             except Exception:
                 pass
 
+            authorizations = slack_request.data.get("authorizations") or []
+            bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
+
             process_mention_for_slack.apply_async(
                 kwargs={
                     "integration_id": slack_request.integration.id,
@@ -384,49 +387,10 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     "message_ts": message_ts,
                     "text": text,
                     "slack_user_id": slack_request.user_id,
+                    "bot_user_id": bot_user_id,
                 }
             )
             return self.respond()
-
-        if organization_context.organization.status != OrganizationStatus.ACTIVE:
-            _logger.info(
-                "on_app_mention.organization-not-active",
-                extra={
-                    "integration_id": slack_request.integration.id,
-                    "organization_id": organization_id,
-                    "status": organization_context.organization.status,
-                },
-            )
-            return self.respond()
-
-        if not features.has("organizations:seer-slack-explorer", organization_context.organization):
-            return self.respond()
-
-        channel_id = slack_request.channel_id
-        text = data.get("text", "")
-        thread_ts = data.get("thread_ts")
-        message_ts = data.get("ts", "")
-
-        if not channel_id or not text:
-            return self.respond()
-
-        authorizations = slack_request.data.get("authorizations") or []
-        bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
-
-        process_mention_for_slack.apply_async(
-            kwargs={
-                "integration_id": slack_request.integration.id,
-                "organization_id": organization_id,
-                "channel_id": channel_id,
-                "thread_ts": thread_ts,
-                "message_ts": message_ts,
-                "text": text,
-                "slack_user_id": slack_request.user_id,
-                "bot_user_id": bot_user_id,
-            }
-        )
-
-        return self.respond()
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     def post(self, request: Request) -> Response:
