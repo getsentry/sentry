@@ -1,5 +1,6 @@
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from unittest import mock
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -85,6 +86,61 @@ class TestGitHubProviderIntegration(TestCase):
         assert comments["data"][0]["author"] is not None
         assert comments["data"][0]["author"]["id"] == "1"
         assert comments["data"][0]["author"]["username"] == "octocat"
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_issue_comments_uses_query_params_for_pagination(self, mock_get_jwt):
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/1347/comments?page=3&per_page=25",
+            json=[],
+        )
+
+        self.provider.get_issue_comments("1347", pagination={"cursor": "3", "per_page": 25})
+
+        assert len(responses.calls) == 1
+        request_url = urlparse(responses.calls[0].request.url)
+        assert request_url.scheme == "https"
+        assert request_url.netloc == "api.github.com"
+        assert request_url.path == f"/repos/{REPO_NAME}/issues/1347/comments"
+        assert parse_qs(request_url.query) == {"page": ["3"], "per_page": ["25"]}
+        assert responses.calls[0].request.headers["Accept"] == "application/vnd.github+json"
+        assert "page" not in responses.calls[0].request.headers
+        assert "per_page" not in responses.calls[0].request.headers
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_pull_request_uses_conditional_request_headers(self, mock_get_jwt):
+        responses.add(
+            method=responses.GET,
+            url=f"https://api.github.com/repos/{REPO_NAME}/pulls/1347",
+            json={
+                "id": 1,
+                "node_id": "MDExOlB1bGxSZXF1ZXN0MQ==",
+                "url": f"https://api.github.com/repos/{REPO_NAME}/pulls/1347",
+                "html_url": f"https://github.com/{REPO_NAME}/pull/1347",
+                "number": 1347,
+                "state": "open",
+                "title": "Amazing new feature",
+                "body": "Please pull these awesome changes in!",
+                "head": {"ref": "new-topic", "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5e"},
+                "base": {"ref": "master", "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5f"},
+                "merged": False,
+                "user": {"login": "octocat", "id": 1},
+            },
+        )
+
+        self.provider.get_pull_request(
+            "1347",
+            request_options={
+                "if_none_match": '"etag-123"',
+                "if_modified_since": datetime(2026, 3, 18, 15, 4, 5, tzinfo=UTC),
+            },
+        )
+
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.headers["If-None-Match"] == '"etag-123"'
+        assert responses.calls[0].request.headers["If-Modified-Since"] == "2026-03-18T15:04:05Z"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

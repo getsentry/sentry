@@ -103,12 +103,6 @@ GITHUB_REVIEW_EVENT_MAP: dict[ReviewEvent, str] = {
 }
 
 
-# TODO: Rate-limits are dynamic per org. Some will have higher limits. We need to dynamically
-#       configure the shared pool. The absolute allocation amount for explicit referrers can
-#       remain unchanged.
-REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
-
-
 MINIMIZE_COMMENT_MUTATION = """
 mutation MinimizeComment($commentId: ID!, $reason: ReportedContentClassifiers!) {
     minimizeComment(input: {subjectId: $commentId, classifier: $reason}) {
@@ -117,37 +111,44 @@ mutation MinimizeComment($commentId: ID!, $reason: ReportedContentClassifiers!) 
 }
 """
 
-PAGE_NUMBER_LIMIT = 50
 
-
-def _get_next_link(response: requests.Response) -> str | None:
-    """Parse the 'next' URL from GitHub's Link header."""
-    link_header = response.headers.get("Link", "")
-    for part in link_header.split(","):
-        if 'rel="next"' in part:
-            return part.split(";")[0].strip().strip("<>")
-    return None
+# TODO: Rate-limits are dynamic per org. Some will have higher limits. We need to dynamically
+#       configure the shared pool. The absolute allocation amount for explicit referrers can
+#       remain unchanged.
+REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
 
 
 def as_github_headers(
-    pagination: PaginationParams | None,
     request_options: RequestOptions | None,
 ) -> dict[str, str]:
     # GitHub recommends this accept header.
     headers = {"Accept": "application/vnd.github+json"}
 
+    if request_options:
+        if_none_match = request_options.get("if_none_match")
+        if if_none_match is not None:
+            headers["If-None-Match"] = if_none_match
+
+        # If the "if_modified_since" header was provided then we'll only fetch those items which
+        # were recently modified.
+        if_modified_since = request_options.get("if_modified_since")
+        if if_modified_since is not None:
+            headers["If-Modified-Since"] = if_modified_since.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    return headers
+
+
+def as_github_params(params: dict[str, Any], pagination: PaginationParams | None) -> dict[str, str]:
     # Pagination must be set regardless of if it was received or not. The default values are
     # identical to what GitHub sets by default.
     if pagination:
-        headers["per_page"] = str(pagination["per_page"])
-        headers["page"] = str(pagination["cursor"])
+        params["per_page"] = str(pagination["per_page"])
+        params["page"] = str(pagination["cursor"])
+    else:
+        params["per_page"] = "50"
+        params["page"] = "1"
 
-    # If the "if_modified_since" header was provided then we'll only fetch those items which
-    # were recently modified.
-    if request_options:
-        headers["since"] = request_options["if_modified_since"].strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    return headers
+    return params
 
 
 def _extract_response_meta(response: requests.Response) -> ResponseMeta:
@@ -256,7 +257,8 @@ class GitHubProvider:
     ) -> PaginatedActionResult[Comment]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/issues/{issue_id}/comments",
-            headers=as_github_headers(pagination, request_options),
+            params=as_github_params({}, pagination),
+            headers=as_github_headers(request_options),
         )
         return map_paginated_action(pagination, response, lambda r: [map_comment(c) for c in r])
 
@@ -277,7 +279,7 @@ class GitHubProvider:
     ) -> ActionResult[PullRequest]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/pulls/{pull_request_id}",
-            headers=as_github_headers(None, request_options),
+            headers=as_github_headers(request_options),
         )
         return map_action(response, map_pull_request)
 
@@ -289,7 +291,8 @@ class GitHubProvider:
     ) -> PaginatedActionResult[Comment]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/issues/{pull_request_id}/comments",
-            headers=as_github_headers(pagination, request_options),
+            params=as_github_params({}, pagination),
+            headers=as_github_headers(request_options),
         )
         return map_paginated_action(pagination, response, lambda r: [map_comment(c) for c in r])
 
@@ -312,7 +315,8 @@ class GitHubProvider:
     ) -> PaginatedActionResult[ReactionResult]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/issues/comments/{comment_id}/reactions",
-            headers=as_github_headers(pagination, request_options),
+            params=as_github_params({}, pagination),
+            headers=as_github_headers(request_options),
         )
         return map_paginated_action(pagination, response, lambda r: [map_reaction(c) for c in r])
 
@@ -361,7 +365,8 @@ class GitHubProvider:
     ) -> PaginatedActionResult[ReactionResult]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/issues/{issue_id}/reactions",
-            headers=as_github_headers(pagination, request_options),
+            params=as_github_params({}, pagination),
+            headers=as_github_headers(request_options),
         )
         return map_paginated_action(pagination, response, lambda r: [map_reaction(c) for c in r])
 
@@ -402,7 +407,7 @@ class GitHubProvider:
     ) -> ActionResult[GitRef]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/branches/{branch}",
-            headers=as_github_headers(None, request_options),
+            headers=as_github_headers(request_options),
         )
         return map_action(response, lambda r: GitRef(ref=r["name"], sha=r["commit"]["sha"]))
 
@@ -448,7 +453,7 @@ class GitHubProvider:
         response = self.client.get(
             f"/repos/{self.repository['name']}/contents/{path}",
             params=params,
-            headers=as_github_headers(None, request_options),
+            headers=as_github_headers(request_options),
         )
         return map_action(response, map_file_content)
 
@@ -459,7 +464,7 @@ class GitHubProvider:
     ) -> ActionResult[Commit]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/commits/{sha}",
-            headers=as_github_headers(None, request_options),
+            headers=as_github_headers(request_options),
         )
         return map_action(response, map_commit)
 
@@ -474,8 +479,8 @@ class GitHubProvider:
             params["sha"] = ref
         response = self.client.get(
             f"/repos/{self.repository['name']}/commits",
-            params=params,
-            headers=as_github_headers(pagination, request_options),
+            params=as_github_params(params, pagination),
+            headers=as_github_headers(request_options),
         )
         return map_paginated_action(pagination, response, lambda r: [map_commit(c) for c in r])
 
@@ -491,8 +496,8 @@ class GitHubProvider:
             params["sha"] = ref
         response = self.client.get(
             f"/repos/{self.repository['name']}/commits",
-            params=params,
-            headers=as_github_headers(pagination, request_options),
+            params=as_github_params(params, pagination),
+            headers=as_github_headers(request_options),
         )
         return map_paginated_action(pagination, response, lambda r: [map_commit(c) for c in r])
 
@@ -505,7 +510,8 @@ class GitHubProvider:
     ) -> PaginatedActionResult[Commit]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/compare/{start_sha}...{end_sha}",
-            headers=as_github_headers(pagination, request_options),
+            params=as_github_params({}, pagination),
+            headers=as_github_headers(request_options),
         )
         return map_paginated_action(
             pagination, response, lambda r: [map_commit(c) for c in r["commits"]]
@@ -523,7 +529,7 @@ class GitHubProvider:
         response = self.client.get(
             f"/repos/{self.repository['name']}/git/trees/{tree_sha}",
             params=params,
-            headers=as_github_headers(None, request_options),
+            headers=as_github_headers(request_options),
         )
         return map_action(response, map_git_tree)
 
@@ -534,7 +540,7 @@ class GitHubProvider:
     ) -> ActionResult[GitCommitObject]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/git/commits/{sha}",
-            headers=as_github_headers(None, request_options),
+            headers=as_github_headers(request_options),
         )
         return map_action(response, map_git_commit_object)
 
@@ -576,7 +582,8 @@ class GitHubProvider:
     ) -> PaginatedActionResult[PullRequestFile]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/pulls/{pull_request_id}/files",
-            headers=as_github_headers(pagination, request_options),
+            params=as_github_params({}, pagination),
+            headers=as_github_headers(request_options),
         )
         return map_paginated_action(
             pagination, response, lambda r: [map_pull_request_file(f) for f in r]
@@ -590,7 +597,8 @@ class GitHubProvider:
     ) -> PaginatedActionResult[PullRequestCommit]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/pulls/{pull_request_id}/commits",
-            headers=as_github_headers(pagination, request_options),
+            params=as_github_params({}, pagination),
+            headers=as_github_headers(request_options),
         )
         return map_paginated_action(
             pagination, response, lambda r: [map_pull_request_commit(c) for c in r]
@@ -601,7 +609,7 @@ class GitHubProvider:
         pull_request_id: str,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[str]:
-        headers = as_github_headers(None, request_options)
+        headers = as_github_headers(request_options)
         headers["Accept"] = "application/vnd.github.v3.diff"
 
         response = self.client.request(
@@ -629,8 +637,8 @@ class GitHubProvider:
 
         response = self.client.get(
             f"/repos/{self.repository['name']}/pulls",
-            params=params,
-            headers=as_github_headers(pagination, request_options),
+            params=as_github_params(params, pagination),
+            headers=as_github_headers(request_options),
         )
         return map_paginated_action(
             pagination, response, lambda r: [map_pull_request(pr) for pr in r]
@@ -791,7 +799,7 @@ class GitHubProvider:
     ) -> ActionResult[CheckRun]:
         response = self.client.get(
             f"/repos/{self.repository['name']}/check-runs/{check_run_id}",
-            headers=as_github_headers(None, request_options),
+            headers=as_github_headers(request_options),
         )
         return map_action(response, map_check_run)
 
