@@ -623,7 +623,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 update_tracked_data(option_inst)
             except OrganizationOption.DoesNotExist:
                 OrganizationOption.objects.set_value(
-                    organization=org, key=option, value=type_(data[key])
+                    organization=org,
+                    key=option,
+                    value=None if data[key] is None else type_(data[key]),
                 )
 
                 if data[key] != default_value:

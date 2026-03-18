@@ -48,8 +48,11 @@ export function SeerAutomationSettings() {
           allowUndo
           initialData={{
             // Project<->Repo settings:
-            defaultAutofixAutomationTuning: organization.defaultAutofixAutomationTuning,
-            autoOpenPrs: organization.autoOpenPrs ?? false,
+            // defaultAutofixAutomationTuning: organization.defaultAutofixAutomationTuning,
+            // autoOpenPrs: organization.autoOpenPrs ?? false,
+            defaultCodingAgent: organization.defaultCodingAgent ?? 'none',
+            defaultCodingAgentIntegrationId:
+              organization.defaultCodingAgentIntegrationId ?? null,
 
             // Second section
             autoEnableCodeReview: organization.autoEnableCodeReview ?? true,
