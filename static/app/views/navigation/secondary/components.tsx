@@ -1104,7 +1104,8 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
       transform 150ms ease;
   }
 
-  :hover [data-reorderable-handle-slot] {
+  :hover [data-reorderable-handle-slot],
+  :has(:focus-visible) [data-reorderable-handle-slot] {
     opacity: 0;
     transform: scale(0.95);
   }
