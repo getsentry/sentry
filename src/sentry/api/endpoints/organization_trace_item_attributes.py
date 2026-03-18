@@ -841,10 +841,13 @@ def adjust_start_end_window(start_date: datetime, end_date: datetime) -> tuple[d
     return start_date, end_date
 
 
-class OrganizationTraceItemAttributeValidateSerializer(serializers.Serializer):
+class OrganizationTraceItemAttributeValidateQuerySerializer(serializers.Serializer):
     itemType = serializers.ChoiceField(
         [e.value for e in SupportedTraceItemType], required=True, source="item_type"
     )
+
+
+class OrganizationTraceItemAttributeValidateBodySerializer(serializers.Serializer):
     attributes = serializers.ListField(
         child=serializers.CharField(max_length=300),
         min_length=1,
@@ -926,13 +929,16 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        serializer = OrganizationTraceItemAttributeValidateSerializer(data=request.data)
+        query_serializer = OrganizationTraceItemAttributeValidateQuerySerializer(data=request.GET)
+        if not query_serializer.is_valid():
+            return Response(query_serializer.errors, status=400)
+
+        serializer = OrganizationTraceItemAttributeValidateBodySerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        validated = serializer.validated_data
-        item_type = SupportedTraceItemType(validated["item_type"])
-        attribute_names: list[str] = validated["attributes"]
+        item_type = SupportedTraceItemType(query_serializer.validated_data["item_type"])
+        attribute_names: list[str] = serializer.validated_data["attributes"]
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
