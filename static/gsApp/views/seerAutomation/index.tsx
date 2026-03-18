@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -11,12 +10,28 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
 import {AiFeaturesAreDisabledBanner} from 'getsentry/views/seerAutomation/components/aiFeaturesAreDisabledBanner';
+import {NoActiveSeerSubscriptionBanner} from 'getsentry/views/seerAutomation/components/noActiveSeerSubscriptionBanner';
 
 export default function SeerAutomationRoot() {
   const organization = useOrganization();
   const {isLoading, billing} = useOrganizationSeerSetup();
+
+  const hasSeerCohort =
+    organization.features.includes('seat-based-seer-enabled') ||
+    organization.features.includes('seer-added') ||
+    organization.features.includes('code-review-beta');
+  const hasActiveSeerSubscription = billing.hasAutofixQuota || billing.hasScannerQuota;
+
+  if (hasSeerCohort && !isLoading && !hasActiveSeerSubscription) {
+    return (
+      <AnalyticsArea name="seer">
+        <Stack gap="lg">
+          <NoActiveSeerSubscriptionBanner />
+        </Stack>
+      </AnalyticsArea>
+    );
+  }
 
   if (organization.hideAiFeatures) {
     return (
@@ -42,22 +57,6 @@ export default function SeerAutomationRoot() {
           <Placeholder height="200px" />
           <Placeholder height="200px" />
         </Stack>
-      </AnalyticsArea>
-    );
-  }
-
-  // Check if setup is needed
-  const needsBilling =
-    !billing.hasAutofixQuota && organization.features.includes('seer-billing');
-
-  // Show setup screen if needed
-  if (needsBilling) {
-    return (
-      <AnalyticsArea name="seer">
-        <Fragment>
-          <SentryDocumentTitle title={t('Seer Automation')} orgSlug={organization.slug} />
-          <AiSetupDataConsent />
-        </Fragment>
       </AnalyticsArea>
     );
   }
