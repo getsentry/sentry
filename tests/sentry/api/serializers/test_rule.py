@@ -1024,3 +1024,13 @@ class WorkflowRuleSerializerTest(TestCase):
             serialized_workflow["errors"][0]["detail"]
             == "Could not fetch details from Test Application"
         )
+
+    def test_workflow_without_data_condition_groups(self) -> None:
+        workflow = self.create_workflow(organization=self.organization)
+
+        serialized = serialize(workflow, self.user, WorkflowEngineRuleSerializer())
+
+        assert serialized["filterMatch"] is None
+        assert serialized["conditions"] == []
+        assert serialized["filters"] == []
+        assert serialized["actions"] == []

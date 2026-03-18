@@ -21,7 +21,6 @@ import {
   IconGraph,
   IconIssues,
   IconOpen,
-  IconPrevent,
   IconSettings,
   IconStar,
   IconUser,
@@ -251,30 +250,6 @@ function useNavigationActions(): CommandPaletteAction[] {
       },
       actions: insightsChildren,
       hidden: !organization.features.includes('performance-view'),
-    }),
-    makeCommandPaletteGroup({
-      groupingKey: 'navigate',
-      display: {
-        label: t('Prevent'),
-        icon: <IconPrevent />,
-      },
-      actions: [
-        makeCommandPaletteLink({
-          display: {
-            label: t('Tests'),
-          },
-          to: `${prefix}/prevent/tests/`,
-          hidden: !organization.features.includes('prevent-test-analytics'),
-        }),
-        makeCommandPaletteLink({
-          display: {
-            label: t('Tokens'),
-          },
-          to: `${prefix}/prevent/tokens/`,
-          hidden: !organization.features.includes('prevent-test-analytics'),
-        }),
-      ],
-      hidden: !organization.features.includes('prevent-test-analytics'),
     }),
     makeCommandPaletteGroup({
       groupingKey: 'navigate',

@@ -7,7 +7,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
@@ -42,7 +42,7 @@ interface ScreenshotModalProps extends ModalRenderProps {
   onDownload?: () => void;
 }
 
-export default function ScreenshotModal({
+export function ScreenshotModal({
   eventAttachment,
   attachments = [],
   projectSlug,

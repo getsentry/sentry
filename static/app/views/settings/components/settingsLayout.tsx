@@ -6,7 +6,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
-import SettingsBreadcrumb from './settingsBreadcrumb';
+import {SettingsBreadcrumb} from './settingsBreadcrumb';
 import {SettingsHeader} from './settingsHeader';
 import {SettingsSearch} from './settingsSearch';
 

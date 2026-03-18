@@ -42,7 +42,7 @@ type Props = {
   threadId?: number;
 } & Partial<DefaultProps>;
 
-function Content({
+export function Content({
   data,
   event,
   className,
@@ -241,5 +241,3 @@ export const StackTraceContentPanel = styled(Panel)<{hideIcon?: boolean}>`
 const StyledList = styled('ul')`
   list-style: none;
 `;
-
-export default Content;

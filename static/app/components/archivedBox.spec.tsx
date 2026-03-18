@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {GroupSubstatus} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 
-import ArchivedBox from './archivedBox';
+import {ArchivedBox} from './archivedBox';
 
 describe('ArchivedBox', () => {
   const organization = OrganizationFixture();

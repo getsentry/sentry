@@ -9,7 +9,7 @@ import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProje
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';

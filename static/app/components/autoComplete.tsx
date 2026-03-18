@@ -15,7 +15,7 @@ import type {
   GetActorArgs,
   GetMenuArgs,
 } from 'sentry/components/deprecatedDropdownMenu';
-import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
+import {DropdownMenu as DeprecatedDropdownMenu} from 'sentry/components/deprecatedDropdownMenu';
 import {uniqueId} from 'sentry/utils/guid';
 
 interface DefaultProps {

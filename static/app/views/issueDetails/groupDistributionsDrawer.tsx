@@ -1,4 +1,4 @@
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {
   EventDrawerContainer,
   EventDrawerHeader,
