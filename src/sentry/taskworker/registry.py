@@ -13,9 +13,9 @@ from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
 from sentry_sdk.consts import OP, SPANDATA
+from taskbroker_client.constants import DEFAULT_PROCESSING_DEADLINE, CompressionType
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE, CompressionType
 from sentry.taskworker.retry import Retry
 from sentry.taskworker.router import TaskRouter
 from sentry.taskworker.task import P, R, Task

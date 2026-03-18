@@ -9,11 +9,11 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     ON_ATTEMPTS_EXCEEDED_DEADLETTER,
     ON_ATTEMPTS_EXCEEDED_DISCARD,
 )
+from taskbroker_client.constants import MAX_PARAMETER_BYTES_BEFORE_COMPRESSION, CompressionType
 from taskbroker_client.registry import TaskNamespace, TaskRegistry
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.adapters import SentryMetricsBackend, SentryRouter, make_producer
-from sentry.taskworker.constants import MAX_PARAMETER_BYTES_BEFORE_COMPRESSION, CompressionType
 from sentry.taskworker.retry import LastAction, Retry
 from sentry.taskworker.task import Task
 

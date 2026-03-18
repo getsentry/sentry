@@ -19,12 +19,12 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     RetryState,
     TaskActivation,
 )
-
-from sentry.taskworker.constants import (
+from taskbroker_client.constants import (
     DEFAULT_PROCESSING_DEADLINE,
     MAX_PARAMETER_BYTES_BEFORE_COMPRESSION,
     CompressionType,
 )
+
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 

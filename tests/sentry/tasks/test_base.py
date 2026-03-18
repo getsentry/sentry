@@ -193,7 +193,7 @@ def test_retry_timeout_enabled_taskbroker(capture_exception) -> None:
     assert capture_exception.call_count == 1
 
 
-@patch("sentry.taskworker.retry.current_task")
+@patch("taskbroker_client.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_timeout_disabled_taskbroker(capture_exception, current_task) -> None:
     @retry(timeouts=False)
@@ -219,7 +219,7 @@ def test_retry_timeout_enabled(capture_exception) -> None:
     assert capture_exception.call_count == 1
 
 
-@patch("sentry.taskworker.retry.current_task")
+@patch("taskbroker_client.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_timeout_disabled(capture_exception, current_task) -> None:
     current_task.retry.side_effect = ExpectedException("retry called")
