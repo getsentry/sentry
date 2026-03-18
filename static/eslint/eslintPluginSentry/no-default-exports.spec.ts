@@ -20,6 +20,13 @@ ruleTester.run('no-default-exports', noDefaultExports, {
       filename: 'valid.tsx',
     },
     {
+      code: `
+export function MyComponentInner() { return <div />; }
+export default wrap(MyComponentInner);
+`,
+      filename: 'valid.tsx',
+    },
+    {
       code: `export const MyComponent = () => <div />;`,
       filename: 'valid.tsx',
     },
@@ -32,6 +39,18 @@ ruleTester.run('no-default-exports', noDefaultExports, {
     {
       code: 'function example() {}\nexport default example;',
       output: 'export function example() {}\n',
+      errors: [{messageId: 'forbidden'}],
+      filename: 'invalid.tsx',
+    },
+    {
+      code: `
+export function alsoExported() {}
+export default function defaultExported() {}
+`,
+      output: `
+export function alsoExported() {}
+export function defaultExported() {}
+`,
       errors: [{messageId: 'forbidden'}],
       filename: 'invalid.tsx',
     },
