@@ -1,5 +1,7 @@
+import {css, Global} from '@emotion/react';
+
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -61,7 +63,23 @@ export default function LogsContent() {
           analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
           source="location"
         >
-          <Stack flex={1}>
+          <Global
+            styles={css`
+              /* Lock the layout to viewport height when a viewport-constrained page is active */
+              div:has(> div > div#main > [data-viewport-constrained]) {
+                height: 100vh;
+                height: 100dvh;
+                overflow: hidden;
+              }
+              div:has(> div#main > [data-viewport-constrained]) {
+                min-height: 0;
+              }
+            `}
+          />
+          <Layout.Page
+            data-viewport-constrained
+            style={{minHeight: 0, overflow: 'hidden'}}
+          >
             <LogsHeader />
             <LogsPageDataProvider allowHighFidelity>
               {defined(onboardingProject) ? (
@@ -74,7 +92,7 @@ export default function LogsContent() {
                 <LogsTabContent datePageFilterProps={datePageFilterProps} />
               )}
             </LogsPageDataProvider>
-          </Stack>
+          </Layout.Page>
         </LogsQueryParamsProvider>
       </PageFiltersContainer>
     </SentryDocumentTitle>
