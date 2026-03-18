@@ -394,9 +394,7 @@ const GETSENTRY_EVENT_MAP: Record<GetsentryEventKey, string> = {
     'Subscription Page: Usage Overview Add On Toggled',
 };
 
-const trackGetsentryAnalytics = makeAnalyticsFunction<
+export const trackGetsentryAnalytics = makeAnalyticsFunction<
   GetsentryEventParameters,
   {organization: Organization}
 >(GETSENTRY_EVENT_MAP);
-
-export default trackGetsentryAnalytics;

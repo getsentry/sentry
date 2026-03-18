@@ -21,7 +21,10 @@ from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
-from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 from .utils import parse_team_params
 
@@ -49,6 +52,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         incidents = Incident.objects.fetch_for_organization(
             organization, self.get_projects(request, organization)
         )
+        report_used_legacy_models()
 
         envs = self.get_environments(request, organization)
         if envs:

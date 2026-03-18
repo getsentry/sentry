@@ -3,7 +3,7 @@ import {Grid} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import CreateAlertButton from 'sentry/components/createAlertButton';
+import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';

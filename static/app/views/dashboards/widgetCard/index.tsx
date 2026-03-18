@@ -14,7 +14,7 @@ import {
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {t, tct} from 'sentry/locale';

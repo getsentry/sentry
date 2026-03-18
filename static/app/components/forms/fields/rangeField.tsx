@@ -1,4 +1,4 @@
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import type {SliderProps} from 'sentry/components/slider';
 import {Slider} from 'sentry/components/slider';
 
@@ -30,7 +30,7 @@ function defaultFormatMessageValue(value: number | '', {formatLabel}: RangeField
   return formatLabel?.(value) ?? value;
 }
 
-function RangeField({
+export function RangeField({
   formatMessageValue = defaultFormatMessageValue,
   disabled,
   ...otherProps
@@ -66,5 +66,3 @@ function RangeField({
     </FormField>
   );
 }
-
-export default RangeField;

@@ -39,8 +39,9 @@ import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerC
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
-import SuperuserWarning, {
+import {
   shouldExcludeOrg,
+  SuperuserWarning,
 } from 'getsentry/components/superuser/superuserWarning';
 import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
 import {analyticsInitUser} from 'getsentry/hooks/analyticsInitUser';

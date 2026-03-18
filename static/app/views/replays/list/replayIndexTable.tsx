@@ -21,7 +21,7 @@ import {
   MIN_DEAD_RAGE_CLICK_SDK,
   MIN_REPLAY_CLICK_SDK,
 } from 'sentry/utils/replays/sdkVersions';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -32,7 +32,7 @@ import {ReplaysFilters} from 'sentry/views/replays/list/filters';
 import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
 import {ReplaysSearch} from 'sentry/views/replays/list/search';
 import {useReplayIndexTableColumns} from 'sentry/views/replays/list/useReplayIndexTableColumns';
-import DeadRageSelectorCards from 'sentry/views/replays/selectors/deadRageSelectorCards';
+import {DeadRageSelectorCards} from 'sentry/views/replays/selectors/deadRageSelectorCards';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {

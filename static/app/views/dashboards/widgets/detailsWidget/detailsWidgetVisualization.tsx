@@ -5,7 +5,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
-import SampleImages from 'sentry/views/insights/browser/resources/components/sampleImages';
+import {SampleImages} from 'sentry/views/insights/browser/resources/components/sampleImages';
 import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/insights/browser/resources/constants';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
