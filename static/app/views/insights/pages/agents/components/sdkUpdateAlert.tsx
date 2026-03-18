@@ -2,6 +2,7 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t, tct} from 'sentry/locale';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
 /**
  * Maps an SDK name to its installable package name.
@@ -39,24 +40,26 @@ export function SdkUpdateAlert({
   packageName: string;
   projectId: string;
 }) {
-  const {needsUpdate, isFetching, isError, data} = useProjectSdkNeedsUpdate({
+  const {isFetching, isError, data} = useProjectSdkNeedsUpdate({
     minVersion,
     projectId: [projectId],
   });
 
-  if (!needsUpdate || isFetching || isError) {
+  if (isFetching || isError) {
     return null;
   }
 
-  const sdkUpdate = data?.find(
-    update => getPackageNameFromSdkName(update.sdkName) === packageName
+  const validSdkUpdate = data?.find(
+    update =>
+      getPackageNameFromSdkName(update.sdkName) === packageName &&
+      semverCompare(update.sdkVersion || '', minVersion) === -1
   );
 
-  if (!sdkUpdate) {
+  if (!validSdkUpdate) {
     return null;
   }
 
-  const suggestedVersion = sdkUpdate.suggestions?.find(
+  const suggestedVersion = validSdkUpdate.suggestions?.find(
     suggestion => suggestion.type === 'updateSdk'
   )?.newSdkVersion;
 

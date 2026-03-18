@@ -224,6 +224,49 @@ describe('SdkUpdateAlert', () => {
     });
   });
 
+  it('renders alert when one SDK is outdated and another is up-to-date', async () => {
+    // A project can receive events from multiple SDKs (e.g. Python + Node).
+    // If the Python SDK is outdated but the Node SDK is up-to-date, the alert
+    // should still display for the outdated Python SDK.
+    renderMockSdkUpdateRequest({
+      organization,
+      body: [
+        {
+          projectId: project.id,
+          sdkName: 'sentry.python',
+          sdkVersion: '1.0.0',
+          suggestions: [{type: 'updateSdk', newSdkVersion: '2.5.0'}],
+        },
+        {
+          projectId: project.id,
+          sdkName: 'sentry.javascript.node',
+          sdkVersion: '10.0.0',
+        },
+      ],
+    });
+
+    render(
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="2.0.0"
+        packageName="sentry-sdk"
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Your sentry-sdk version is below the minimum required for agent monitoring.'
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('Update to 2.5.0 or later.'))
+    ).toBeInTheDocument();
+  });
+
   it('renders alert without suggested version when suggestions are not available', async () => {
     renderMockSdkUpdateRequest({
       organization,
