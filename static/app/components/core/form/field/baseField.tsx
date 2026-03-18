@@ -77,21 +77,8 @@ function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | n
   }, [fieldName, ref, location.hash]);
 }
 
-type FieldState = {indicator: React.ReactNode};
-
-export function BaseField<T extends HTMLElement>(
-  props: BaseFieldProps<T> & {
-    children: (props: FieldChildrenProps<T>, state: FieldState) => React.ReactNode;
-  }
-) {
+function useFocusRestore(ref: React.RefObject<HTMLElement | null>) {
   const autoSaveContext = useAutoSaveContext();
-  const indicator = useAutoSaveIndicator();
-  const field = useFieldContext();
-  const ref = useRef<T>(null);
-  const fieldId = useFieldId();
-  const hintTextId = useHintTextId();
-  useScrollToHash(field.name, ref);
-
   const hadFocusRef = useRef(false);
   const isDisabledByAutoSave = autoSaveContext?.status === 'pending';
 
@@ -113,7 +100,7 @@ export function BaseField<T extends HTMLElement>(
 
     el.addEventListener('blur', onBlur);
     return () => el.removeEventListener('blur', onBlur);
-  }, []);
+  }, [ref]);
 
   useEffect(() => {
     if (!isDisabledByAutoSave && hadFocusRef.current) {
@@ -124,7 +111,24 @@ export function BaseField<T extends HTMLElement>(
         ref.current?.focus();
       }
     }
-  }, [isDisabledByAutoSave]);
+  }, [isDisabledByAutoSave, ref]);
+}
+
+type FieldState = {indicator: React.ReactNode};
+
+export function BaseField<T extends HTMLElement>(
+  props: BaseFieldProps<T> & {
+    children: (props: FieldChildrenProps<T>, state: FieldState) => React.ReactNode;
+  }
+) {
+  const autoSaveContext = useAutoSaveContext();
+  const indicator = useAutoSaveIndicator();
+  const field = useFieldContext();
+  const ref = useRef<T>(null);
+  const fieldId = useFieldId();
+  const hintTextId = useHintTextId();
+  useScrollToHash(field.name, ref);
+  useFocusRestore(ref);
 
   return (
     <Flex gap="sm" align="center">
