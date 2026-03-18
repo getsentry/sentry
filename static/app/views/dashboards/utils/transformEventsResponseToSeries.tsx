@@ -13,6 +13,13 @@ import {
 } from './isEventsStats';
 import {transformEventsStatsToSeries} from './transformEventsStatsToSeries';
 
+/**
+ * Delimiter used to separate the query alias/prefix from group-by and
+ * aggregate parts in a series name. Distinct from {@link SERIES_NAME_PART_DELIMITER}
+ * (` : `) so that the query prefix can be reliably extracted.
+ */
+export const SERIES_QUERY_DELIMITER = ' > ';
+
 type SeriesWithOrdering = [order: number, series: Series];
 
 export function transformEventsResponseToSeries(
@@ -49,7 +56,7 @@ export function transformEventsResponseToSeries(
 
         const seriesData = groupData[seriesName] as EventsStats;
         const prefixedName = queryAlias
-          ? `${queryAlias} > ${groupName} : ${seriesName}`
+          ? `${queryAlias}${SERIES_QUERY_DELIMITER}${groupName} : ${seriesName}`
           : `${groupName} : ${seriesName}`;
 
         seriesWithOrdering.push([

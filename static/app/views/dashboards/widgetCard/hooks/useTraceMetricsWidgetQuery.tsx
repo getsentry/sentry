@@ -11,7 +11,6 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
-import {SERIES_NAME_PART_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
@@ -19,6 +18,7 @@ import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
+import {SERIES_QUERY_DELIMITER} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -210,7 +210,7 @@ export function useTraceMetricsSeriesQuery(
 
       transformedResult.forEach((result: Series, resultIndex: number) => {
         if (seriesQueryPrefix) {
-          result.seriesName = `${seriesQueryPrefix}${SERIES_NAME_PART_DELIMITER}${result.seriesName}`;
+          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
         }
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
