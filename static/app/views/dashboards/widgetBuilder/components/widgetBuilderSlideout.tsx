@@ -98,6 +98,7 @@ export function WidgetBuilderSlideout({
   thresholdMetaState,
 }: WidgetBuilderSlideoutProps) {
   const mountTimeRef = useRef(performance.now());
+  const hasEmittedOpenMetricRef = useRef(false);
 
   const organization = useOrganization();
   const location = useLocation();
@@ -270,11 +271,13 @@ export function WidgetBuilderSlideout({
       position="left"
       data-test-id="widget-slideout"
       transitionProps={animationTransitionSettings}
-      onAnimationComplete={definition => {
-        if (definition === 'animate') {
+      onAnimationComplete={() => {
+        if (!hasEmittedOpenMetricRef.current) {
+          hasEmittedOpenMetricRef.current = true;
+          const duration = performance.now() - mountTimeRef.current;
           metrics.distribution(
             'dashboards.widget_builder.slideout_open_duration',
-            performance.now() - mountTimeRef.current,
+            duration,
             {
               unit: 'ms',
               attributes: {
