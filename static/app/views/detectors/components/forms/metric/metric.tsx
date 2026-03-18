@@ -242,16 +242,15 @@ function PriorityRow({
   const isHigh = priority === 'high';
   const isStatic = detectionType === 'static';
 
-  const conditionChoices: Array<[MetricDetectorFormData['conditionType'], string]> =
-    isStatic
-      ? [
-          [DataConditionType.GREATER, t('Above')],
-          [DataConditionType.LESS, t('Below')],
-        ]
-      : [
-          [DataConditionType.GREATER, t('higher')],
-          [DataConditionType.LESS, t('lower')],
-        ];
+  const conditionChoices = isStatic
+    ? ([
+        [DataConditionType.GREATER, t('Above')],
+        [DataConditionType.LESS, t('Below')],
+      ] as const)
+    : ([
+        [DataConditionType.GREATER, t('higher')],
+        [DataConditionType.LESS, t('lower')],
+      ] as const);
 
   const thresholdFieldName = isHigh
     ? METRIC_DETECTOR_FORM_FIELDS.highThreshold

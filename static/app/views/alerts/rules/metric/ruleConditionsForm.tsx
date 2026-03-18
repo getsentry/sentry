@@ -535,9 +535,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               options={getTimeWindowOptions(dataset, comparisonType)}
               isDisabled={disabled || this.disableTransactionAlertType}
               value={timeWindow}
-              onChange={({value}: any) => onTimeWindowChange(value)}
-              inline={false}
-              flexibleControlStateSize
+              onChange={({value}) => onTimeWindowChange(value)}
             />
           </Tooltip>
         </FormRow>
