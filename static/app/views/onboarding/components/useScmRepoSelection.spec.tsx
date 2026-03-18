@@ -30,11 +30,7 @@ describe('useScmRepoSelection', () => {
       features: ['commits'],
       aspects: {},
     },
-    configOrganization: [],
-    configData: {},
-    externalId: '',
-    organizationId: 0,
-  } as unknown as Integration;
+  };
 
   const mockRepo: IntegrationRepository = {
     identifier: 'getsentry/sentry',
