@@ -113,7 +113,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
 
     def resolve_to_cell(self, arguments: ArgumentDict) -> _CellResolutionResult:
         if self._cell_resolution is None:
-            raise self._setup_exception("Does not run on the region silo")
+            raise self._setup_exception("Does not run on the cell silo")
 
         try:
             cell = self._cell_resolution.resolve(arguments)
@@ -482,39 +482,39 @@ _RPC_CONTENT_CHARSET = "utf-8"
 
 
 def dispatch_remote_call(
-    region: Cell | None,
+    cell: Cell | None,
     service_name: str,
     method_name: str,
     serial_arguments: ArgumentDict,
     use_test_client: bool = False,
 ) -> Any:
-    remote_silo_call = _RemoteSiloCall(region, service_name, method_name, serial_arguments)
+    remote_silo_call = _RemoteSiloCall(cell, service_name, method_name, serial_arguments)
     return remote_silo_call.dispatch(use_test_client)
 
 
 @dataclass(frozen=True)
 class _RemoteSiloCall:
-    region: Cell | None
+    cell: Cell | None
     service_name: str
     method_name: str
     serial_arguments: ArgumentDict
 
     @property
     def address(self) -> str:
-        if self.region is None:
+        if self.cell is None:
             if not settings.SENTRY_CONTROL_ADDRESS:
                 raise RpcServiceSetupException(
                     self.service_name, self.method_name, "Control silo address is not configured"
                 )
             return settings.SENTRY_CONTROL_ADDRESS
         else:
-            if not self.region.address:
+            if not self.cell.address:
                 raise RpcServiceSetupException(
                     self.service_name,
                     self.method_name,
-                    f"Address for region {self.region.name!r} is not configured",
+                    f"Address for cell {self.cell.name!r} is not configured",
                 )
-            return self.region.address
+            return self.cell.address
 
     @property
     def path(self) -> str:
@@ -532,7 +532,7 @@ class _RemoteSiloCall:
 
     def _metrics_tags(self, **additional_tags: str | int) -> Mapping[str, str | int | None]:
         return dict(
-            rpc_destination_region=self.region.name if self.region else "control",
+            rpc_destination_region=self.cell.name if self.cell else "control",
             rpc_method=f"{self.service_name}.{self.method_name}",
             **additional_tags,
         )
@@ -666,14 +666,14 @@ class _RemoteSiloCall:
             f"remote service method to {self.path} called inside transaction!  Move service calls to outside of transactions."
         )
 
-        if self.region:
+        if self.cell:
             target_mode = SiloMode.CELL
         else:
             target_mode = SiloMode.CONTROL
 
         with (
             SingleProcessSiloModeState.exit(),
-            SingleProcessSiloModeState.enter(target_mode, self.region),
+            SingleProcessSiloModeState.enter(target_mode, self.cell),
         ):
             extra: Mapping[str, Any] = {
                 f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
