@@ -17,7 +17,7 @@ import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
-const organization = OrganizationFixture({openMembership: true});
+const organization = OrganizationFixture();
 const projects = [
   ProjectFixture({id: '1', slug: 'project-1', isMember: true}),
   ProjectFixture({id: '2', slug: 'project-2', isMember: true}),
@@ -50,7 +50,7 @@ describe('ProjectPageFilter', () => {
     });
 
     // Open menu
-    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
 
     // Select only project-1
     await userEvent.click(screen.getByRole('row', {name: 'project-1'}));
@@ -68,11 +68,14 @@ describe('ProjectPageFilter', () => {
       },
     });
 
-    // Open menu — initial state is All Projects (open-membership org)
-    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+    // Open menu
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
 
-    // Uncheck All Projects to clear the selection, then select only project-3
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Select All Projects'}));
+    // Deselect project-1 & project-2 by clicking on their checkboxes
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
+
+    // Select project-3 by clicking on its checkbox
     await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
 
     // Click "Apply"
@@ -99,12 +102,13 @@ describe('ProjectPageFilter', () => {
     });
 
     // Open the menu, search input has focus
-    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
     });
 
-    // Move focus past the one special item ("All Projects") to project-1
+    // Move focus past the two special items ("All Projects", "My Projects") to project-1
+    await userEvent.keyboard('{ArrowDown}');
     await userEvent.keyboard('{ArrowDown}');
     await userEvent.keyboard('{ArrowDown}');
     const optionOne = screen.getByRole('row', {name: 'project-1'});
@@ -166,7 +170,7 @@ describe('ProjectPageFilter', () => {
     });
 
     // Open the menu, select project-1
-    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
     await userEvent.click(screen.getByRole('row', {name: 'project-1'}));
     expect(router.location.query).toEqual({project: '1'});
 
@@ -175,7 +179,7 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
 
     // Trigger button was updated, onReset was called
-    expect(screen.getByRole('button', {name: 'All Projects'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'My Projects'})).toBeInTheDocument();
     expect(onReset).toHaveBeenCalled();
   });
 
@@ -192,7 +196,7 @@ describe('ProjectPageFilter', () => {
     });
 
     // Confirm initial selection
-    expect(await screen.findByRole('button', {name: 'All Projects'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'My Projects'})).toBeInTheDocument();
 
     // Edit store value
     act(() => updateProjects([2], mockRouter));
@@ -401,7 +405,7 @@ describe('ProjectPageFilter', () => {
       },
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
     await userEvent.type(screen.getByPlaceholderText('Search…'), 'project-1');
 
     expect(
@@ -884,9 +888,11 @@ describe('ProjectPageFilter', () => {
   });
 
   describe('open-membership org defaults', () => {
+    const openOrg = OrganizationFixture({openMembership: true});
+
     it('shows All Projects (not My Projects) as the default trigger label', async () => {
       render(<ProjectPageFilter />, {
-        organization,
+        organization: openOrg,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
@@ -899,7 +905,7 @@ describe('ProjectPageFilter', () => {
 
     it('does not show the My Projects option in the dropdown', async () => {
       render(<ProjectPageFilter />, {
-        organization,
+        organization: openOrg,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
@@ -914,7 +920,7 @@ describe('ProjectPageFilter', () => {
 
     it('sends no project param for the default All Projects state', async () => {
       const {router} = render(<ProjectPageFilter />, {
-        organization,
+        organization: openOrg,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
@@ -936,7 +942,7 @@ describe('ProjectPageFilter', () => {
       });
 
       const {router} = render(<ProjectPageFilter />, {
-        organization,
+        organization: openOrg,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/issues/', query: {project: '1'}},
         },
