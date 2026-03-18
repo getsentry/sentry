@@ -10,6 +10,7 @@ import {
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {
@@ -36,7 +37,6 @@ type BaseProps = {
   type: 'user' | 'team';
   defaultOptions?: Array<{label: React.ReactNode; value: SentrySelection}>;
   mapping?: ExternalActorMappingOrSuggestion;
-  onSubmitError?: () => void;
   onSubmitSuccess?: (data: ExternalActorMapping) => void | Promise<void>;
 };
 
@@ -158,7 +158,6 @@ function InlineMappingForm({
   getBaseFormEndpoint,
   integration,
   mapping,
-  onSubmitError,
   onSubmitSuccess,
   type,
 }: InlineProps) {
@@ -193,7 +192,9 @@ function InlineMappingForm({
             });
           },
           onSuccess: data => onSubmitSuccess?.(data),
-          onError: () => onSubmitError?.(),
+          onError: () => {
+            addErrorMessage(t('Unable to save changes'));
+          },
         }}
       >
         {field =>
@@ -233,7 +234,6 @@ function ModalMappingForm({
   getBaseFormEndpoint,
   integration,
   mapping,
-  onSubmitError,
   onSubmitSuccess,
   type,
 }: ModalProps) {
@@ -280,7 +280,9 @@ function ModalMappingForm({
       onSubmitSuccess?.(data);
       closeModal();
     },
-    onError: () => onSubmitError?.(),
+    onError: () => {
+      addErrorMessage(t('Unable to save changes'));
+    },
   });
 
   const form = useScrapsForm({
