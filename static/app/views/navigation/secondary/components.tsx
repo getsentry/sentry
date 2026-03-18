@@ -440,7 +440,7 @@ function SecondaryNavigationLink({
       }}
     >
       {leadingItems}
-      <Text ellipsis variant={layout === 'sidebar' ? 'muted' : undefined}>
+      <Text ellipsis variant="inherit">
         {children}
       </Text>
       {trailingItems}
