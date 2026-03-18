@@ -11,7 +11,7 @@ import {GroupActivityType} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {GroupActivityItem} from 'sentry/views/issueDetails/groupActivityItem';
 

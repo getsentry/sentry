@@ -6,7 +6,7 @@ import type {RequestState} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {ProfileTransactionContext, TransactionProfileProvider} from './profilesProvider';

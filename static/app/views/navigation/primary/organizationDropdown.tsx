@@ -1,8 +1,12 @@
-import styled from '@emotion/styled';
+import {useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
@@ -10,18 +14,17 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface OrganizationDropdownProps {
@@ -35,6 +38,12 @@ interface OrganizationDropdownProps {
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
   const config = useLegacyStore(ConfigStore);
+  const theme = useTheme();
+  const portalContainerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    portalContainerRef.current = document.body;
+  }, []);
 
   const organization = useOrganization();
   const {organizations} = useLegacyStore(OrganizationsStore);
@@ -45,7 +54,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 
   const {projects} = useProjects();
-  const {layout} = useNavigationContext();
+  const {layout} = usePrimaryNavigation();
 
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
@@ -56,6 +65,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
 
   return (
     <DropdownMenu
+      usePortal
+      portalContainerRef={portalContainerRef}
+      zIndex={theme.zIndex.modal}
       trigger={triggerProps => (
         <AvatarButton
           avatar={
@@ -77,7 +89,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     ...letterAvatarProps,
                   }
           }
-          size={layout === NavigationLayout.MOBILE ? 'xs' : 'md'}
+          size={layout === 'mobile' ? 'xs' : 'md'}
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
           onClick={e => {
@@ -92,13 +104,17 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         {
           key: 'organization',
           label: (
-            <SectionTitleWrapper>
-              <OrganizationBadge
-                organization={organization}
-                description={tn('%s Project', '%s Projects', projects.length)}
-                avatarSize={32}
-              />
-            </SectionTitleWrapper>
+            <Flex align="center" gap="md">
+              <OrganizationAvatar organization={organization} size={32} />
+              <Stack gap="xs">
+                <Text size="sm" bold uppercase variant="primary">
+                  {organization.name}
+                </Text>
+                <Text size="xs" variant="muted">
+                  {tn('%s Project', '%s Projects', projects.length)}
+                </Text>
+              </Stack>
+            </Flex>
           ),
           children: [
             ...(props.hideCurrentOrganizationLinks
@@ -205,10 +221,3 @@ function makeCreateOrganizationMenuItem(): MenuItemProps {
     hidden: !ConfigStore.get('features').has('organizations:create'),
   };
 }
-
-const SectionTitleWrapper = styled('div')`
-  text-transform: none;
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.primary};
-`;

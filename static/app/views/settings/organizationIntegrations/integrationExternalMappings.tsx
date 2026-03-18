@@ -23,9 +23,9 @@ import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import IntegrationExternalMappingForm from './integrationExternalMappingForm';
+import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 
 type CodeOwnersAssociationMappings = Record<
   string,

@@ -4,7 +4,7 @@ import MemberBadge, {type MemberBadgeProps} from './memberBadge';
 import OrganizationBadge, {type OrganizationBadgeProps} from './organizationBadge';
 import ProjectBadge, {type ProjectBadgeProps} from './projectBadge';
 import {TeamBadge, type TeamBadgeProps} from './teamBadge';
-import UserBadge, {type UserBadgeProps} from './userBadge';
+import {UserBadge, type UserBadgeProps} from './userBadge';
 
 interface AddedBaseBadgeProps {
   displayName?: React.ReactNode;

@@ -10,8 +10,7 @@ import {
 import {VitalDetailPanel} from './vitalDetailPanel';
 
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject', () => ({
-  __esModule: true,
-  default: () => ({selectedPlatform: 'Android'}),
+  useCrossPlatformProject: () => ({selectedPlatform: 'Android'}),
 }));
 
 const mockStatus: VitalStatus = {

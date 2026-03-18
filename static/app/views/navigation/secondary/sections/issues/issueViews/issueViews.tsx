@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {Reorder} from 'framer-motion';
 import debounce from 'lodash/debounce';
 
@@ -6,12 +6,12 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IssueViewParams} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchViewStarredOrder} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarredOrder';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {IssueViewItem} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewItem';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 
@@ -64,29 +64,32 @@ export function IssueViews({sectionRef}: IssueViewsProps) {
   }
 
   return (
-    <SecondaryNavigation.Section id="issues-starred-views" title={t('Starred Views')}>
-      <Reorder.Group
-        as="div"
-        axis="y"
-        values={views}
-        onReorder={newOrder => setViews(newOrder)}
-        initial={false}
-        ref={sectionRef}
-      >
-        {views.map(view => (
-          <IssueViewItem
-            key={view.id}
-            view={view}
-            sectionRef={sectionRef}
-            isActive={view.id === viewId}
-            onReorderComplete={handleReorderComplete}
-            isLastView={views.length === 1}
-            isDragging={isDragging}
-            setIsDragging={setIsDragging}
-          />
-        ))}
-      </Reorder.Group>
-    </SecondaryNavigation.Section>
+    <Fragment>
+      <SecondaryNavigation.Separator />
+      <SecondaryNavigation.Section id="issues-starred-views" title={t('Starred Views')}>
+        <Reorder.Group
+          as="div"
+          axis="y"
+          values={views}
+          onReorder={newOrder => setViews(newOrder)}
+          initial={false}
+          ref={sectionRef}
+        >
+          {views.map(view => (
+            <IssueViewItem
+              key={view.id}
+              view={view}
+              sectionRef={sectionRef}
+              isActive={view.id === viewId}
+              onReorderComplete={handleReorderComplete}
+              isLastView={views.length === 1}
+              isDragging={isDragging}
+              setIsDragging={setIsDragging}
+            />
+          ))}
+        </Reorder.Group>
+      </SecondaryNavigation.Section>
+    </Fragment>
   );
 }
 

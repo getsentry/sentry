@@ -23,9 +23,9 @@ import {
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {SentryApplicationRow} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';

@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, type Subscription} from 'getsentry/types';
 import {BilledSeats} from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
 

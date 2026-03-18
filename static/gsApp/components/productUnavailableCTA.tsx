@@ -6,7 +6,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {
   sendReplayOnboardRequest,

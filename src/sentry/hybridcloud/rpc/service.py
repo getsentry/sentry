@@ -32,7 +32,7 @@ from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.types.region import Cell, CellMappingNotFound
+from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
 
@@ -100,14 +100,14 @@ class RpcMethodSignature(SerializableFunctionSignature):
     def _extract_region_resolution(self) -> CellResolutionStrategy | None:
         region_resolution = getattr(self.base_function, _REGION_RESOLUTION_ATTR, None)
 
-        is_region_service = self.base_service_cls.local_mode == SiloMode.REGION
+        is_region_service = self.base_service_cls.local_mode == SiloMode.CELL
         if not is_region_service and region_resolution is not None:
             raise self._setup_exception(
-                "@regional_rpc_method should be used only on a service with "
-                "`local_mode = SiloMode.REGION`"
+                "@cell_rpc_method should be used only on a service with "
+                "`local_mode = SiloMode.CELL`"
             )
         if is_region_service and region_resolution is None:
-            raise self._setup_exception("Needs @regional_rpc_method")
+            raise self._setup_exception("Needs @cell_rpc_method")
 
         return region_resolution
 
@@ -177,7 +177,7 @@ def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
     return method
 
 
-def regional_rpc_method(
+def cell_rpc_method(
     resolve: CellResolutionStrategy,
     return_none_if_mapping_not_found: bool = False,
 ) -> Callable[[Callable[..., _T]], Callable[..., _T]]:
@@ -342,7 +342,7 @@ class RpcService(abc.ABC):
                         f"Signature was not initialized for {cls.__name__}.{method_name}",
                     )
 
-                if cls.local_mode == SiloMode.REGION:
+                if cls.local_mode == SiloMode.CELL:
                     result = signature.resolve_to_region(kwargs)
                     if result.is_early_halt:
                         return None
@@ -667,7 +667,7 @@ class _RemoteSiloCall:
         )
 
         if self.region:
-            target_mode = SiloMode.REGION
+            target_mode = SiloMode.CELL
         else:
             target_mode = SiloMode.CONTROL
 

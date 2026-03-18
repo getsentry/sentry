@@ -20,7 +20,7 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {SubregionSelector} from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {ModuleName} from 'sentry/views/insights/types';

@@ -27,6 +27,10 @@ const commitSchema = z.object({
     .refine((val): val is Commit => val !== null, t('Please select a commit')),
 });
 
+const defaultValues: z.input<typeof commitSchema> = {
+  commit: null,
+};
+
 export function CustomCommitsResolutionModal({
   onSelected,
   orgSlug,
@@ -38,9 +42,7 @@ export function CustomCommitsResolutionModal({
 }: CustomCommitsResolutionModalProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      commit: null as Commit | null,
-    },
+    defaultValues,
     validators: {
       onDynamic: commitSchema,
     },

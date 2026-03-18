@@ -131,7 +131,7 @@ def increment_project_counter_in_database(project, delta=1, using="default") -> 
     name="sentry.models.counter.refill_cached_short_ids",
     namespace=ingest_errors_tasks,
     retry=None,  # No retries since we want to try again on next counter increment
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def refill_cached_short_ids(project_id, block_size: int, using="default", **kwargs) -> None:
     """Refills the Redis short-id counter block for a project."""

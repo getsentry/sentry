@@ -15,12 +15,12 @@ from sentry.preprod.models import (
 from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 _sentinel = object()
 
 
-@region_silo_test
+@cell_silo_test
 class CreatePreprodPrCommentTaskTest(TestCase):
     def setUp(self):
         super().setUp()

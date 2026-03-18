@@ -144,7 +144,7 @@ def _get_matching_base_metric(
     name="sentry.preprod.tasks.create_preprod_status_check",
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def create_preprod_status_check_task(
     preprod_artifact_id: int, caller: str | None = None, **kwargs: Any

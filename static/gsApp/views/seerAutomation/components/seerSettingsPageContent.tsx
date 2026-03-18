@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 
 import {SeerWizardSetupBanner} from 'getsentry/views/seerAutomation/components/seerWizardSetupBanner';
 import {SettingsPageTabs} from 'getsentry/views/seerAutomation/components/settingsPageTabs';
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   children: React.ReactNode;

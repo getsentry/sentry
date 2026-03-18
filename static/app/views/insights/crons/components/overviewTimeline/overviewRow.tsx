@@ -21,7 +21,7 @@ import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import type {ObjectStatus} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
 import type {Monitor} from 'sentry/views/insights/crons/types';

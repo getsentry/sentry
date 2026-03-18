@@ -651,6 +651,7 @@ export const usesTimeSeriesData = (displayType?: DisplayType) => {
     DisplayType.WHEEL,
     DisplayType.RAGE_AND_DEAD_CLICKS,
     DisplayType.AGENTS_TRACES_TABLE,
+    DisplayType.TEXT,
   ].includes(displayType);
 };
 
@@ -668,6 +669,7 @@ export const widgetFetchesOwnData = (widgetType: DisplayType) => {
     DisplayType.SERVER_TREE,
     DisplayType.RAGE_AND_DEAD_CLICKS,
     DisplayType.AGENTS_TRACES_TABLE,
+    DisplayType.TEXT,
   ];
   return widgetTypesThatFetchOwnData.includes(widgetType);
 };

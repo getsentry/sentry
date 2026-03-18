@@ -11,7 +11,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SCIMTestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
 
 class SCIMDetailGetTest(SCIMTestCase):
@@ -226,6 +226,182 @@ class SCIMDetailPatchTest(SCIMTestCase):
         ).exists()
         assert Team.objects.get(id=self.team.id).idp_provisioned
 
+    def test_replace_members_keeps_overlapping_members(self) -> None:
+        # member_on_team is already on the team; replacing with member_on_team + member_one
+        # should keep member_on_team untouched and only add member_one
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_on_team.id,
+                        "display": "existing@example.com",
+                    },
+                    {
+                        "value": self.member_one.id,
+                        "display": "new@example.com",
+                    },
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        assert not OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
+    def test_add_multiple_members(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [
+                    {"value": self.member_one.id, "display": "one@example.com"},
+                    {"value": self.member_two.id, "display": "two@example.com"},
+                ],
+            },
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
+    def test_replace_members_preserves_overlapping_membership_row(self) -> None:
+        original_omt = OrganizationMemberTeam.objects.get(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        )
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {"value": self.member_on_team.id, "display": "existing@example.com"},
+                    {"value": self.member_one.id, "display": "new@example.com"},
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        # The overlapping member's row is the same DB object, not deleted and re-created
+        assert OrganizationMemberTeam.objects.filter(id=original_omt.id).exists()
+        # New member was added
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_one.id
+        ).exists()
+        # member_two was not in the replace list and should not be on the team
+        assert not OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_two.id
+        ).exists()
+
+    def test_replace_members_with_identical_list_is_noop(self) -> None:
+        # Replacing with the same member already on the team should change nothing
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_on_team.id,
+                        "display": "already@example.com",
+                    },
+                ],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert OrganizationMemberTeam.objects.filter(
+            team_id=self.team.id, organizationmember_id=self.member_on_team.id
+        ).exists()
+        assert OrganizationMemberTeam.objects.filter(team_id=self.team.id).count() == 1
+
+    def test_replace_members_query_count(self) -> None:
+        """The replace-members path should use a bounded number of core data
+        queries regardless of member count: 1 SELECT existing OMTs,
+        1 SELECT new OrgMembers, 1 bulk DELETE, 1 bulk INSERT.
+        """
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [
+                    {
+                        "value": self.member_one.id,
+                        "display": "test.user@okta.local",
+                    },
+                    {
+                        "value": self.member_two.id,
+                        "display": "test.user2@okta.local",
+                    },
+                ],
+            }
+        ]
+
+        # Removes 1 existing member (member_on_team), adds 2 new members.
+        with CaptureQueriesContext(connection) as ctx:
+            self.get_success_response(
+                self.organization.slug, self.team.id, **self.base_data, status_code=204
+            )
+
+        # Count the core replace-path queries:
+        # - SELECT on OMT with JOIN to OM (fetch existing with select_related)
+        # - DELETE on OMT (bulk delete removed members)
+        # - SELECT on OM with IN clause (batch fetch new members)
+        # - INSERT on OMT (bulk create new memberships)
+        # Exclude: auth lookups, outbox replication callbacks, savepoints,
+        # audit logs, bulk_delete pre-fetches, and sequence nextval calls.
+        core_queries = []
+        for q in ctx.captured_queries:
+            sql = q["sql"]
+            is_fetch_existing = "INNER JOIN" in sql and "sentry_organizationmember_teams" in sql
+            is_bulk_delete = sql.startswith("DELETE") and "sentry_organizationmember_teams" in sql
+            is_fetch_new = (
+                sql.startswith("SELECT")
+                and '"sentry_organizationmember"' in sql
+                and "IN" in sql
+                and "sentry_organizationmember_teams" not in sql
+            )
+            is_bulk_insert = sql.startswith("INSERT") and "sentry_organizationmember_teams" in sql
+            if is_fetch_existing or is_bulk_delete or is_fetch_new or is_bulk_insert:
+                core_queries.append(sql)
+
+        # Exactly 4 core queries, none of which scale with member count
+        assert len(core_queries) <= 4, (
+            f"Expected at most 4 core member queries, got {len(core_queries)}:\n"
+            + "\n".join(f"  {i + 1}. {q[:120]}" for i, q in enumerate(core_queries))
+        )
+
+    def test_replace_members_with_empty_list(self) -> None:
+        # Replacing with an empty list should remove all members
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [],
+            }
+        ]
+        self.get_success_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=204
+        )
+        assert not OrganizationMemberTeam.objects.filter(team_id=self.team.id).exists()
+
     def test_team_member_doesnt_exist_add_to_team(self) -> None:
         self.base_data["Operations"] = [
             {
@@ -273,6 +449,70 @@ class SCIMDetailPatchTest(SCIMTestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
             "scimType": "invalidFilter",
+        }
+
+    def test_add_members_invalid_value_format(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [{"bad_key": "not_a_value"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_add_members_non_numeric_value(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "add",
+                "path": "members",
+                "value": [{"value": "not_a_number"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_replace_members_invalid_value_format(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [{"bad_key": "not_a_value"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
+        }
+
+    def test_replace_members_non_numeric_value(self) -> None:
+        self.base_data["Operations"] = [
+            {
+                "op": "replace",
+                "path": "members",
+                "value": [{"value": "not_a_number"}],
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug, self.team.id, **self.base_data, status_code=400
+        )
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Invalid SCIM payload.",
         }
 
     def test_rename_team_azure_request(self) -> None:
@@ -327,7 +567,7 @@ class SCIMDetailDeleteTest(SCIMTestCase):
         mock_metrics.incr.assert_called_with("sentry.scim.team.delete")
 
 
-@region_silo_test
+@cell_silo_test
 class SCIMPrivilegeManagementTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-team-details"
     method = "patch"
@@ -510,6 +750,10 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
                 organization=self.organization, slug="snty-staff", idp_provisioned=True
             )
 
+            self.user_one.is_staff = True
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                self.user_one.save()
+
             OrganizationMemberTeam.objects.create(
                 team=staff_team, organizationmember=self.member_one
             )
@@ -535,6 +779,10 @@ class SCIMPrivilegeManagementTest(SCIMTestCase):
             # The new member gets granted staff
             self.user_two.refresh_from_db()
             assert self.user_two.is_staff
+
+            # The removed member gets staff revoked
+            self.user_one.refresh_from_db()
+            assert not self.user_one.is_staff
 
     def test_adding_to_superuser_write_group_dispatches_task(self) -> None:
         from sentry.users.models.userpermission import UserPermission

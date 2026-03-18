@@ -8,7 +8,7 @@ import {
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 export type TeamSelection = {
   action: 'key' | 'unkey';

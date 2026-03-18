@@ -261,7 +261,7 @@ function AttributesHighlights({
   ];
 
   return (
-    <ScrollCarousel gap={2} aria-label={t('Attributes Highlights')}>
+    <ScrollCarousel gap="xl" aria-label={t('Attributes Highlights')}>
       {highlights.map(highlight => {
         const summary = highlight.getSummary();
 

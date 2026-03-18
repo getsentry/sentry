@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useReducer, useRef} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type DataState = 'pending' | 'loading' | 'errored' | 'empty' | 'populated';
 

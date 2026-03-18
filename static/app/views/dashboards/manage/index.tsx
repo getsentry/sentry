@@ -32,16 +32,16 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {getDashboardTemplates} from 'sentry/views/dashboards/data';
 import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
@@ -54,6 +54,7 @@ import OwnedDashboardsTable, {
   OWNED_CURSOR_KEY,
 } from 'sentry/views/dashboards/manage/tableView/ownedDashboardsTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
+import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import RouteError from 'sentry/views/routeError';
@@ -65,29 +66,24 @@ import {
   DASHBOARD_GRID_DEFAULT_NUM_COLUMNS,
   DASHBOARD_GRID_DEFAULT_NUM_ROWS,
   DASHBOARD_TABLE_NUM_ROWS,
+  DEFAULT_PREBUILT_SORT,
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from './settings';
 import {TemplateCard} from './templateCard';
 
 const SHOW_TEMPLATES_KEY = 'dashboards-show-templates';
-const SHOW_PREBUILT_KEY = 'dashboards-show-prebuilt';
 export const LAYOUT_KEY = 'dashboards-overview-layout';
 
 const GRID = 'grid';
 const TABLE = 'table';
 
 function shouldShowTemplates(): boolean {
-  const shouldShow = localStorage.getItem(SHOW_TEMPLATES_KEY);
-  return shouldShow === 'true' || shouldShow === null;
-}
-
-function shouldShowPrebuilt(): boolean {
-  const shouldShow = localStorage.getItem(SHOW_PREBUILT_KEY);
+  const shouldShow = localStorageWrapper.getItem(SHOW_TEMPLATES_KEY);
   return shouldShow === 'true' || shouldShow === null;
 }
 
 function getDashboardsOverviewLayout(): DashboardsLayout {
-  const dashboardsLayout = localStorage.getItem(LAYOUT_KEY);
+  const dashboardsLayout = localStorageWrapper.getItem(LAYOUT_KEY);
 
   // There was a bug where the layout was saved as 'list' instead of 'table'
   // this coerces it back to TABLE in case we still rely on it anywhere
@@ -103,34 +99,52 @@ function getDashboardsOverviewLayout(): DashboardsLayout {
 function getSortOptions({
   organization,
   dashboardsLayout,
+  isOnlyPrebuilt,
 }: {
   dashboardsLayout: DashboardsLayout;
+  isOnlyPrebuilt: boolean;
   organization: Organization;
 }) {
-  return [
-    ...(!organization.features.includes('dashboards-starred-reordering') ||
-    dashboardsLayout === GRID
-      ? [{label: t('My Dashboards'), value: 'mydashboards'}]
-      : []),
+  const options = [];
+
+  if (
+    !isOnlyPrebuilt &&
+    (!organization.features.includes('dashboards-starred-reordering') ||
+      dashboardsLayout === GRID)
+  ) {
+    options.push({label: t('My Dashboards'), value: 'mydashboards'});
+  }
+
+  options.push(
     {label: t('Dashboard Name (A-Z)'), value: 'title'},
     {label: t('Dashboard Name (Z-A)'), value: '-title'},
     {label: t('Date Created (Newest)'), value: '-dateCreated'},
     {label: t('Date Created (Oldest)'), value: 'dateCreated'},
-    {label: t('Most Popular'), value: 'mostPopular'},
-    ...(organization.features.includes('dashboards-starred-reordering')
-      ? [{label: t('Most Starred'), value: 'mostFavorited'}]
-      : []),
-    {label: t('Recently Viewed'), value: 'recentlyViewed'},
-  ];
+    {label: t('Most Popular'), value: 'mostPopular'}
+  );
+
+  if (organization.features.includes('dashboards-starred-reordering')) {
+    options.push({label: t('Most Starred'), value: 'mostFavorited'});
+  }
+
+  options.push({label: t('Recently Viewed'), value: 'recentlyViewed'});
+
+  return options;
 }
 
 function getDefaultSort({
   organization,
   dashboardsLayout,
+  isOnlyPrebuilt,
 }: {
   dashboardsLayout: DashboardsLayout;
+  isOnlyPrebuilt: boolean;
   organization: Organization;
 }) {
+  if (isOnlyPrebuilt) {
+    return DEFAULT_PREBUILT_SORT;
+  }
+
   if (
     organization.features.includes('dashboards-starred-reordering') &&
     dashboardsLayout === TABLE
@@ -150,14 +164,13 @@ function ManageDashboards() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
+  const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
+  const isOnlyPrebuilt =
+    hasPrebuiltDashboards && urlFilter === DashboardFilter.ONLY_PREBUILT;
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
     shouldShowTemplates()
-  );
-  const [showPrebuilt, setShowPrebuiltLocal] = useLocalStorageState(
-    SHOW_PREBUILT_KEY,
-    shouldShowPrebuilt()
   );
   const [dashboardsLayout, setDashboardsLayout] = useLocalStorageState(
     LAYOUT_KEY,
@@ -171,6 +184,7 @@ function ManageDashboards() {
   const sortOptions = getSortOptions({
     organization,
     dashboardsLayout,
+    isOnlyPrebuilt,
   });
 
   const {
@@ -192,7 +206,7 @@ function ManageDashboards() {
           pin: 'favorites',
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
-          ...(hasPrebuiltDashboards && !showPrebuilt ? {filter: 'excludePrebuilt'} : {}),
+          ...(isOnlyPrebuilt ? {filter: DashboardFilter.ONLY_PREBUILT} : {}),
         },
       },
     ],
@@ -301,6 +315,7 @@ function ManageDashboards() {
     const defaultSort = getDefaultSort({
       organization,
       dashboardsLayout,
+      isOnlyPrebuilt,
     });
     if (urlSort && !sortOptions.some(option => option.value === urlSort)) {
       // The sort option is not valid, so we need to set the default sort
@@ -312,6 +327,7 @@ function ManageDashboards() {
     }
   }, [
     dashboardsLayout,
+    isOnlyPrebuilt,
     location.pathname,
     location.query,
     navigate,
@@ -323,6 +339,7 @@ function ManageDashboards() {
     const defaultSort = getDefaultSort({
       organization,
       dashboardsLayout,
+      isOnlyPrebuilt,
     });
     const urlSort = decodeScalar(location.query.sort, defaultSort);
 
@@ -370,14 +387,6 @@ function ManageDashboards() {
       show_templates: !showTemplates,
     });
     setShowTemplatesLocal(!showTemplates);
-  };
-
-  const togglePrebuilt = () => {
-    setShowPrebuiltLocal(!showPrebuilt);
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, cursor: undefined, [OWNED_CURSOR_KEY]: undefined},
-    });
   };
 
   function getQuery() {
@@ -518,6 +527,8 @@ function ManageDashboards() {
     );
   }
 
+  const {query: _query, ...queryWithoutSearch} = location.query;
+
   function onCreate() {
     trackAnalytics('dashboards_manage.create.start', {
       organization,
@@ -526,7 +537,7 @@ function ManageDashboards() {
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/`,
-        query: location.query,
+        query: queryWithoutSearch,
       })
     );
   }
@@ -553,7 +564,7 @@ function ManageDashboards() {
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
-        query: location.query,
+        query: queryWithoutSearch,
       })
     );
   }
@@ -567,7 +578,7 @@ function ManageDashboards() {
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/${dashboardId}/`,
-        query: location.query,
+        query: queryWithoutSearch,
       })
     );
   }
@@ -578,7 +589,10 @@ function ManageDashboards() {
       features="dashboards-edit"
       renderDisabled={renderNoAccess}
     >
-      <SentryDocumentTitle title={t('All Dashboards')} orgSlug={organization.slug}>
+      <SentryDocumentTitle
+        title={isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
+        orgSlug={organization.slug}
+      >
         <ErrorBoundary>
           {isError ? (
             <Layout.Page withPadding>
@@ -590,27 +604,24 @@ function ManageDashboards() {
                 <Layout.Header unified>
                   <Layout.HeaderContent unified>
                     <Layout.Title>
-                      {t('All Dashboards')}
+                      {isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards')}
                       <PageHeadingQuestionTooltip
                         docsUrl="https://docs.sentry.io/product/dashboards/"
-                        title={t(
-                          'A broad overview of your application’s health where you can navigate through error and performance data across multiple projects.'
-                        )}
+                        title={
+                          isOnlyPrebuilt
+                            ? t(
+                                'Dashboards built by Sentry to help monitor your application out of the box.'
+                              )
+                            : t(
+                                "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                              )
+                        }
                       />
                     </Layout.Title>
                   </Layout.HeaderContent>
                   <Layout.HeaderActions>
                     <Grid flow="column" align="center" gap="lg">
-                      {hasPrebuiltDashboards ? (
-                        <TemplateSwitch>
-                          {t('Show Sentry Built Dashboards')}
-                          <Switch
-                            checked={showPrebuilt}
-                            size="lg"
-                            onChange={togglePrebuilt}
-                          />
-                        </TemplateSwitch>
-                      ) : (
+                      {!hasPrebuiltDashboards && (
                         <TemplateSwitch>
                           {t('Show Templates')}
                           <Switch

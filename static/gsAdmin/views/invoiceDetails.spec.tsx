@@ -9,7 +9,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {InvoiceDetails} from 'admin/views/invoiceDetails';
 

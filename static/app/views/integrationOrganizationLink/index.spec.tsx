@@ -4,9 +4,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {VercelProviderFixture} from 'sentry-fixture/vercelIntegration';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';

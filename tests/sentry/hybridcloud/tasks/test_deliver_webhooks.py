@@ -25,7 +25,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, CellResolutionError, RegionCategory
+from sentry.types.cell import Cell, CellResolutionError, RegionCategory
 
 region_config = [Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)]
 
@@ -1099,7 +1099,6 @@ class DeliveryTimeMetricsTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    @override_options({"hybridcloud.deliver_webhooks.delivery_time_include_github_tags": True})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_github_event_and_action(self, mock_metrics: MagicMock) -> None:
         responses.add(
@@ -1127,12 +1126,10 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
-        assert tags.get("github_event_type") == "pull_request"
-        assert tags.get("github_action") == "opened"
+        assert tags.get("github_event_and_action") == "pull_request.opened"
 
     @responses.activate
     @override_regions(region_config)
-    @override_options({"hybridcloud.deliver_webhooks.delivery_time_include_github_tags": True})
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_github_event_only(self, mock_metrics: MagicMock) -> None:
         responses.add(
@@ -1160,8 +1157,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
-        assert tags.get("github_event_type") == "push"
-        assert "github_action" not in tags
+        assert tags.get("github_event_and_action") == "push.unknown"
 
     @responses.activate
     @override_regions(region_config)
@@ -1188,8 +1184,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert len(delivery_time_ms_calls) == 1
         tags = delivery_time_ms_calls[0][1].get("tags", {})
         assert tags.get("region_sent_to") == "us"
-        assert "github_event_type" not in tags
-        assert "github_action" not in tags
+        assert "github_event_and_action" not in tags
 
 
 @control_silo_test

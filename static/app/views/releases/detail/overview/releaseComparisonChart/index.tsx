@@ -33,14 +33,14 @@ import {
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/sessions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   displaySessionStatusPercent,
   getReleaseBounds,

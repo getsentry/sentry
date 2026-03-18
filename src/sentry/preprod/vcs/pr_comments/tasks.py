@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
     name="sentry.preprod.tasks.create_preprod_pr_comment",
     namespace=preprod_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
     retry=Retry(times=5, delay=60 * 5),
 )
 def create_preprod_pr_comment_task(

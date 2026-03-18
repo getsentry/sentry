@@ -49,7 +49,7 @@ class GitLabTestCase(APITestCase):
             GitlabIntegration, self.integration, self.organization.id
         )
 
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def create_gitlab_repo(
         self,
         name: str,

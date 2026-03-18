@@ -1,4 +1,4 @@
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
  * Determines whether we should render the new EAP-based Transaction Summary Page.

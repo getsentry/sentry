@@ -24,13 +24,14 @@ import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 import {useQueryClient, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
-import useDeleteReplays, {
+import {
+  useDeleteReplays,
   type ReplayBulkDeletePayload,
 } from 'sentry/utils/replays/hooks/useDeleteReplays';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
-import useProjects from 'sentry/utils/useProjects';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {

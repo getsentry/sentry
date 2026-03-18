@@ -10,7 +10,7 @@ import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookup
 import {IconIssues, IconList, IconSettings} from 'sentry/icons';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const ICONS: React.ReactElement[] = [
   <IconIssues key="issues" />,

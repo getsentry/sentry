@@ -26,7 +26,7 @@ import type {
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 

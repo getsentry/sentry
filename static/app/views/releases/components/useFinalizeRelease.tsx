@@ -1,8 +1,8 @@
 import type {Release} from 'sentry/types/release';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export default function useFinalizeRelease() {
+export function useFinalizeRelease() {
   const organization = useOrganization();
 
   return useMutation({
