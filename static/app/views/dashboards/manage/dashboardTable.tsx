@@ -7,6 +7,7 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -210,14 +211,16 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.NAME) {
       return (
-        <Link
-          to={{
-            pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
-            ...queryLocation,
-          }}
-        >
-          {dataRow[ResponseKeys.NAME]}
-        </Link>
+        <Text ellipsis variant="accent">
+          <Link
+            to={{
+              pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
+              ...queryLocation,
+            }}
+          >
+            {dataRow[ResponseKeys.NAME]}
+          </Link>
+        </Text>
       );
     }
 
