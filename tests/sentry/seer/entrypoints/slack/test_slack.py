@@ -569,16 +569,11 @@ class SlackExplorerEntrypointTest(TestCase):
             self.organization.update_option("sentry:hide_ai_features", False)
             assert SlackExplorerEntrypoint.has_access(self.organization)
 
-    @patch("sentry.integrations.slack.integration.SlackIntegration.clear_thread_status")
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    def test_on_trigger_explorer_error(self, mock_send_ephemeral, mock_clear_thread_status):
+    def test_on_trigger_explorer_error(self, mock_send_ephemeral):
         ep = self._get_entrypoint()
         ep.on_trigger_explorer_error(error="Test error")
 
-        mock_clear_thread_status.assert_called_once_with(
-            channel_id=self.channel_id,
-            thread_ts=self.thread_ts,
-        )
         mock_send_ephemeral.assert_called_once_with(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
@@ -601,8 +596,7 @@ class SlackExplorerEntrypointTest(TestCase):
         assert payload["thread"]["channel_id"] == self.channel_id
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    @patch("sentry.integrations.slack.integration.SlackIntegration.clear_thread_status")
-    def test_on_explorer_update(self, mock_clear_thread_status, mock_schedule_all_thread_updates):
+    def test_on_explorer_update(self, mock_schedule_all_thread_updates):
         ep = self._get_entrypoint()
         cache_payload = ep.create_explorer_cache_payload()
         run_id = 12345
@@ -613,10 +607,6 @@ class SlackExplorerEntrypointTest(TestCase):
             run_id=run_id,
         )
 
-        mock_clear_thread_status.assert_called_once_with(
-            channel_id=self.channel_id,
-            thread_ts=self.thread_ts,
-        )
         mock_schedule_all_thread_updates.assert_called_once_with(
             threads=[cache_payload["thread"]],
             integration_id=self.integration.id,
@@ -631,10 +621,7 @@ class SlackExplorerEntrypointTest(TestCase):
         assert call_data.summary == "Test summary"
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    @patch("sentry.integrations.slack.integration.SlackIntegration.clear_thread_status")
-    def test_on_explorer_update_with_no_summary(
-        self, mock_clear_thread_status, mock_schedule_all_thread_updates
-    ):
+    def test_on_explorer_update_with_no_summary(self, mock_schedule_all_thread_updates):
         ep = self._get_entrypoint()
         cache_payload = ep.create_explorer_cache_payload()
 
