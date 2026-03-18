@@ -435,7 +435,7 @@ function SecondaryNavigationLink({
     return (
       <PageFrameSidebarNavigationLink {...sharedLinkProps}>
         {leadingItems}
-        <Text ellipsis variant="muted">
+        <Text ellipsis variant="inherit">
           {children}
         </Text>
         {trailingItems}
@@ -572,11 +572,6 @@ const MobileNavigationLink = styled(Link)`
   border-radius: ${p => p.theme.radius['0']};
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 
-  /* Disable interaction state layer */
-  > [data-isl] {
-    display: none;
-  }
-
   /* Renders the active state indicator */
   &::before {
     content: '';
@@ -624,11 +619,6 @@ const SidebarNavigationLink = styled(Link)`
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius.md};
-
-  /* Disable interaction state layer */
-  > [data-isl] {
-    display: none;
-  }
 
   /* Renders the active state indicator */
   &::before {
@@ -679,9 +669,10 @@ const PageFrameSidebarNavigationLink = styled(Link)`
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;
 
-  /* Disable interaction state layer */
-  > [data-isl] {
-    display: none;
+  &:active {
+    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.background.active};
   }
 
   &:hover {
@@ -695,10 +686,7 @@ const PageFrameSidebarNavigationLink = styled(Link)`
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
-
-    * {
-      color: ${p => p.theme.tokens.content.primary} !important;
-    }
+    color: ${p => p.theme.tokens.content.primary};
 
     &:hover {
       background-color: ${p =>
