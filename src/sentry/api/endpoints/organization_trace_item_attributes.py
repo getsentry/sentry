@@ -19,7 +19,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import (
     TraceItemType as ProtoTraceItemType,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -871,19 +871,32 @@ def _check_attribute_exists(
     attr_type: AttributeKey.Type.ValueType,
     name: str,
 ) -> tuple[AttributeKey.Type.ValueType, str] | None:
-    """Check if a single typed attribute exists in storage."""
+    """Check if a single typed attribute has values in the active window."""
+    if attr_type == AttributeKey.Type.TYPE_STRING:
+        rpc_request = TraceItemAttributeValuesRequest(
+            meta=meta,
+            limit=1,
+            key=AttributeKey(type=attr_type, name=name),
+        )
+        rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
+        return (attr_type, name) if rpc_response.values else None
+
+    # For number/boolean attrs, use the typed names RPC with an exists filter
+    # so we verify both type identity and time-window intersection.
     rpc_request = TraceItemAttributeNamesRequest(
         meta=meta,
         limit=100,
         type=attr_type,
-        # The RPC only supports substring filtering, not exact match, so we
-        # scan the results and match exactly on the client side.
         value_substring_match=name,
+        intersecting_attributes_filter=TraceItemFilter(
+            exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
+        ),
     )
     rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
-    for attr in rpc_response.attributes:
-        if attr.name == name:
+    for attribute in rpc_response.attributes:
+        if attribute.name == name:
             return (attr_type, name)
+
     return None
 
 
