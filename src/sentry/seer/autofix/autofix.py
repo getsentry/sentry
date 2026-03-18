@@ -201,18 +201,35 @@ def _pre_resolve_stacktrace_frames(
         if len(repo_name_sections) > 1 and repo.provider:
             ordered_mappings.append((repo.name, cm))
 
+    resolved = 0
+    total_in_app = 0
+
     for entry in serialized_event.get("entries", []):
         frames = None
         if entry.get("type") == "exception":
             for exception in entry.get("data", {}).get("values", []):
                 frames = (exception.get("stacktrace") or {}).get("frames")
                 if frames:
-                    _resolve_frames(frames, ordered_mappings, platform, sdk_name)
+                    r, t = _resolve_frames(frames, ordered_mappings, platform, sdk_name)
+                    resolved += r
+                    total_in_app += t
         elif entry.get("type") == "threads":
             for thread in entry.get("data", {}).get("values", []):
                 frames = (thread.get("stacktrace") or {}).get("frames")
                 if frames:
-                    _resolve_frames(frames, ordered_mappings, platform, sdk_name)
+                    r, t = _resolve_frames(frames, ordered_mappings, platform, sdk_name)
+                    resolved += r
+                    total_in_app += t
+
+    logger.info(
+        "autofix.pre_resolve_stacktrace_frames",
+        extra={
+            "resolved_frames": resolved,
+            "unresolved_frames": total_in_app - resolved,
+            "total_in_app_frames": total_in_app,
+            "platform": platform,
+        },
+    )
 
 
 def _resolve_frames(
@@ -220,12 +237,19 @@ def _resolve_frames(
     ordered_mappings: list[tuple[str, RepositoryProjectPathConfig]],
     platform: str | None,
     sdk_name: str | None,
-) -> None:
-    """Resolve each frame's repo_name using code mappings in global priority order."""
+) -> tuple[int, int]:
+    """Resolve each frame's repo_name using code mappings in global priority order.
+
+    Returns (resolved_count, total_in_app_count).
+    """
+    resolved = 0
+    total_in_app = 0
 
     for frame in frames:
         if not frame.get("inApp"):
             continue
+
+        total_in_app += 1
 
         # Serialized events use camelCase keys but EventFrame expects snake_case
         event_frame = EventFrame(
@@ -245,7 +269,10 @@ def _resolve_frames(
             if source_path:
                 frame["repo_name"] = repo_full_name
                 frame["filename"] = source_path
+                resolved += 1
                 break
+
+    return resolved, total_in_app
 
 
 def _get_trace_tree_for_event(
