@@ -391,6 +391,9 @@ function ConfigureIntegration() {
       mutationFn: (data: Record<string, unknown>) =>
         fetchMutation({method: 'POST', url: integrationEndpoint, data}),
       onSuccess: () => {
+        // it's important that we keep the mutation pending while the refetch is happening by returning it.
+        // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.
+        // this makes the mutations seem to run longer than before. We could do optimistic updates here too, but I'm not sure it's worth the added complexity.
         return queryClient.invalidateQueries({
           queryKey: makeIntegrationQuery(organization, integrationId),
         });
