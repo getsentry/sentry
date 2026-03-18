@@ -36,8 +36,7 @@ def process_mention_for_slack(
     integration_id: int,
     organization_id: int,
     channel_id: str,
-    thread_ts: str | None,
-    message_ts: str,
+    thread_ts: str,
     text: str,
     slack_user_id: str,
     bot_user_id: str,
@@ -63,7 +62,6 @@ def process_mention_for_slack(
             {
                 "channel_id": channel_id,
                 "thread_ts": thread_ts,
-                "message_ts": message_ts,
                 "slack_user_id": slack_user_id,
             },
         )
@@ -83,7 +81,6 @@ def process_mention_for_slack(
                 integration_id=integration_id,
                 organization_id=organization_id,
                 channel_id=channel_id,
-                message_ts=message_ts,
                 thread_ts=thread_ts,
                 slack_user_id=slack_user_id,
             )

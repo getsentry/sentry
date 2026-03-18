@@ -318,7 +318,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
             lifecycle.add_extras(
                 {
                     "integration_id": slack_request.integration.id,
-                    "message_ts": data.get("ts"),
                     "thread_ts": data.get("thread_ts"),
                 }
             )
@@ -359,9 +358,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
             channel_id = slack_request.channel_id
             text = data.get("text", "")
             thread_ts = data.get("thread_ts")
-            message_ts = data.get("ts", "")
 
-            if not channel_id or not text:
+            if not channel_id or not text or not thread_ts:
                 lifecycle.record_halt(AppMentionHaltReason.MISSING_CHANNEL_OR_TEXT)
                 return self.respond()
 
@@ -369,7 +367,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 client = SlackSdkClient(integration_id=slack_request.integration.id)
                 client.assistant_threads_setStatus(
                     channel_id=channel_id,
-                    thread_ts=thread_ts or message_ts,
+                    thread_ts=thread_ts,
                     status="Thinking...",
                 )
             except Exception:
@@ -384,7 +382,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
                     "organization_id": organization_id,
                     "channel_id": channel_id,
                     "thread_ts": thread_ts,
-                    "message_ts": message_ts,
                     "text": text,
                     "slack_user_id": slack_request.user_id,
                     "bot_user_id": bot_user_id,

@@ -11,8 +11,7 @@ from sentry.testutils.cases import TestCase
 TASK_KWARGS = {
     "integration_id": 123,
     "channel_id": "C1234567890",
-    "thread_ts": None,
-    "message_ts": "1234567890.123456",
+    "thread_ts": "1234567890.123456",
     "text": "<@U0BOT> What is causing this issue?",
     "slack_user_id": "U1234567890",
     "bot_user_id": "U0BOT",

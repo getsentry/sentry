@@ -67,7 +67,6 @@ class SlackExplorerCachePayload(TypedDict):
     organization_id: int
     integration_id: int
     thread: SlackThreadDetails
-    message_ts: str
 
 
 class SlackAutofixEntrypoint(
@@ -346,8 +345,7 @@ class SlackExplorerEntrypoint(
         integration_id: int,
         organization_id: int,
         channel_id: str,
-        message_ts: str,
-        thread_ts: str | None,
+        thread_ts: str,
         slack_user_id: str,
     ):
         from sentry.integrations.services.integration import integration_service
@@ -376,8 +374,7 @@ class SlackExplorerEntrypoint(
             )
 
         self.channel_id = channel_id
-        self.message_ts = message_ts
-        self.thread_ts = thread_ts or message_ts
+        self.thread_ts = thread_ts
         self.thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=channel_id)
         self.organization_id = organization_id
         self.integration = integration
@@ -412,7 +409,6 @@ class SlackExplorerEntrypoint(
             thread=self.thread,
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
-            message_ts=self.message_ts,
         )
 
     @staticmethod
