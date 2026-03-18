@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -31,6 +31,7 @@ import {DashboardState} from './types';
 const POLL_INTERVAL_MS = 500;
 const DASHBOARD_ARTIFACT_KEY = 'dashboard';
 const POST_COMPLETE_POLL_MS = 5000;
+const EMPTY_DASHBOARDS: never[] = [];
 
 type DashboardArtifact = {
   title: string;
@@ -297,10 +298,10 @@ export default function CreateFromSeer() {
   return (
     <ErrorBoundary>
       <WidgetErrorProvider value={handleWidgetError}>
-        <DashboardDetail
+        <MemoizedDashboardDetail
           initialState={DashboardState.PREVIEW}
           dashboard={dashboard}
-          dashboards={[]}
+          dashboards={EMPTY_DASHBOARDS} // This prop is unused for the create from seer flow
         />
         <DashboardChatPanel
           blocks={session?.blocks ?? []}
@@ -312,6 +313,8 @@ export default function CreateFromSeer() {
     </ErrorBoundary>
   );
 }
+
+const MemoizedDashboardDetail = memo(DashboardDetail);
 
 const MessageBlock = styled(MarkedText)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
