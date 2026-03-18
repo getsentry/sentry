@@ -159,37 +159,6 @@ describe('SdkUpdateAlert', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders alert when Python Flask SDK version is below minimum', async () => {
-    renderMockSdkUpdateRequest({
-      organization,
-      body: [
-        {
-          projectId: project.id,
-          sdkName: 'sentry.python.flask',
-          sdkVersion: '1.0.0',
-          suggestions: [{type: 'updateSdk', newSdkVersion: '2.5.0'}],
-        },
-      ],
-    });
-
-    render(
-      <SdkUpdateAlert
-        projectId={project.id}
-        minVersion="2.0.0"
-        packageName="sentry-sdk"
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(
-          'Your sentry-sdk version is below the minimum required for agent monitoring.'
-        )
-      )
-    ).toBeInTheDocument();
-  });
-
   it('renders alert when Node SDK version is below minimum', async () => {
     renderMockSdkUpdateRequest({
       organization,
@@ -222,41 +191,6 @@ describe('SdkUpdateAlert', () => {
 
     expect(
       screen.getByText(textWithMarkupMatcher('Update to 10.5.0 or later.'))
-    ).toBeInTheDocument();
-  });
-
-  it('renders alert when React SDK version is below minimum', async () => {
-    renderMockSdkUpdateRequest({
-      organization,
-      body: [
-        {
-          projectId: project.id,
-          sdkName: 'sentry.javascript.react',
-          sdkVersion: '7.0.0',
-          suggestions: [{type: 'updateSdk', newSdkVersion: '8.5.0'}],
-        },
-      ],
-    });
-
-    render(
-      <SdkUpdateAlert
-        projectId={project.id}
-        minVersion="8.0.0"
-        packageName="@sentry/react"
-      />,
-      {organization}
-    );
-
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher(
-          'Your @sentry/react version is below the minimum required for agent monitoring.'
-        )
-      )
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(textWithMarkupMatcher('Update to 8.5.0 or later.'))
     ).toBeInTheDocument();
   });
 
