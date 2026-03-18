@@ -27,3 +27,10 @@ export const canUseMetricsSidePanelUI = (organization: Organization) => {
     organization.features.includes('tracemetrics-attributes-dropdown-side-panel')
   );
 };
+
+export const canUseMetricsUIRefresh = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-ui-refresh')
+  );
+};
