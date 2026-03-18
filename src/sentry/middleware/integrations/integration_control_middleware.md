@@ -23,7 +23,7 @@ The parsers vary per integration but they follow the same basic steps:
 - Now, depending on the payload we can choose how to respond to the initial request:
   - Some requests will require synchronous responses with an expected response pattern, (e.g. Slack).
   - Others don't care about the response, and we may opt to handle them asynchronously via the [`ControlOutbox` model](src/sentry/hybridcloud/models/outbox.py), (e.g. GitHub).
-  - And others may require fanning out identical webhooks to multiple regions where the integration is installed on an organization, (e.g. Jira).
+  - And others may require fanning out identical webhooks to multiple cells where the integration is installed on an organization, (e.g. Jira).
 
 ## Adding Integration Parsers
 
@@ -43,14 +43,14 @@ class ExampleRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         # This method calls self.get_organizations_from_integration which calls self.get_integration_from_request.
-        regions = self.get_regions_from_organizations()
+        cells = self.get_cells_from_organizations()
 
-        # If we're getting responses from multiple regions asynchronously...
+        # If we're getting responses from multiple cells asynchronously...
         if '/async/' in self.request.path:
-            return self.get_responses_from_outbox_creation(regions=regions)
+            return self.get_responses_from_outbox_creation(regions=cells)
 
-        # If we're getting responses from multiple regions synchronously...
-        response_map = self.get_responses_from_region_silos(regions=regions)
+        # If we're getting responses from multiple cells synchronously...
+        response_map = self.get_responses_from_cell_silos(cells=regions)
         # Require all forwarded requests to succeed...
         if not all([result.error is None for result in response_map.values()])
             return HttpResponse(status_code=200)

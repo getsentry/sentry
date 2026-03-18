@@ -493,7 +493,7 @@ class Project(Model):
         return self.slug
 
     def transfer_to(self, organization: Organization) -> None:
-        from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+        from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.integrations.models.repository_project_path_config import (
@@ -566,7 +566,7 @@ class Project(Model):
         )
         for monitor in monitors:
             if monitor.slug in new_monitors:
-                RegionScheduledDeletion.schedule(monitor, days=0)
+                CellScheduledDeletion.schedule(monitor, days=0)
             else:
                 for monitor_env_id, env_id in MonitorEnvironment.objects.filter(
                     monitor_id=monitor.id, status=MonitorStatus.ACTIVE

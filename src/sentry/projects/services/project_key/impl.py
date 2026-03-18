@@ -40,9 +40,3 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         self, *, cell_name: str, project_id: int, role: ProjectKeyRole
     ) -> RpcProjectKey | None:
         return self._get_project_key(project_id=project_id, role=role)
-
-    # TODO(cells): Deprecated in favor of get_project_key_by_cell
-    def get_project_key_by_region(
-        self, *, region_name: str, project_id: int, role: ProjectKeyRole
-    ) -> RpcProjectKey | None:
-        return self.get_project_key_by_cell(cell_name=region_name, project_id=project_id, role=role)

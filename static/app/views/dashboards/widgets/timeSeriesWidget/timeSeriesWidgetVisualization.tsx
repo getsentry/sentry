@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
@@ -136,7 +136,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // the backend zerofills the data
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
+  const unregisterRef = useRef<(() => void) | null>(null);
   const {register: registerWithWidgetSyncContext, groupName} = useWidgetSyncContext();
+
+  useEffect(() => {
+    return () => {
+      unregisterRef.current?.();
+    };
+  }, []);
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} =
@@ -445,7 +452,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const handleChartReady = useCallback(
     (instance: echarts.ECharts) => {
       onChartReadyZoom(instance);
-      registerWithWidgetSyncContext(instance);
+      unregisterRef.current?.();
+      unregisterRef.current = registerWithWidgetSyncContext(instance);
     },
     [onChartReadyZoom, registerWithWidgetSyncContext]
   );

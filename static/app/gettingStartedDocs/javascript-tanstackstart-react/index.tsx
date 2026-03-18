@@ -7,7 +7,7 @@ import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling
 import {mcp} from './mcp';
 import {onboarding} from './onboarding';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   profilingOnboarding: profilingFullStack({
     packageName: '@sentry/tanstackstart-react',
@@ -31,5 +31,3 @@ const docs: Docs = {
   }),
   mcpOnboarding: mcp,
 };
-
-export default docs;

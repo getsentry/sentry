@@ -14,12 +14,9 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
-  PrimaryButtonOverlay,
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-  usePrimaryButtonOverlay,
+  PrimaryNavigation,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
@@ -435,9 +432,7 @@ export function PrimaryNavigationQuotaExceeded({
     triggerProps: overlayTriggerProps,
     overlayProps,
     state: overlayState,
-  } = usePrimaryButtonOverlay({});
-  const {layout} = useNavigation();
-
+  } = usePrimaryNavigationButtonOverlay({});
   const hasSnoozedAllPrompts = useCallback(() => {
     return Object.values(isPromptDismissed).every(Boolean);
   }, [isPromptDismissed]);
@@ -527,18 +522,17 @@ export function PrimaryNavigationQuotaExceeded({
 
   return (
     <Fragment>
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="billingStatus"
         label={t('Billing Status')}
+        indicator="warning"
         buttonProps={{
           ...overlayTriggerProps,
           icon: <IconWarning />,
         }}
-      >
-        <SidebarItemUnreadIndicator isMobile={layout === 'mobile'} variant="warning" />
-      </SidebarButton>
+      />
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <QuotaExceededContent
             exceededCategories={exceededCategories}
             subscription={subscription}
@@ -546,7 +540,7 @@ export function PrimaryNavigationQuotaExceeded({
             isDismissed={hasSnoozedAllPrompts()}
             onClick={onDismiss}
           />
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </Fragment>
   );

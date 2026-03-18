@@ -5,9 +5,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
-import {NavigationContextProvider} from 'sentry/views/navigation/navigationContext';
 import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
+import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 
 jest.mock('framer-motion', () => ({
   ...jest.requireActual('framer-motion'),
@@ -73,18 +73,19 @@ describe('Onboarding Status', () => {
     const {mutateUserOptionsMock} = renderMockRequests(organization);
 
     render(
-      <NavigationContextProvider>
+      <PrimaryNavigationContextProvider>
         <NavigationTourProvider>
           <PrimaryNavigationOnboarding />
         </NavigationTourProvider>
-      </NavigationContextProvider>,
+      </PrimaryNavigationContextProvider>,
       {
         organization,
       }
     );
 
     expect(screen.getByText('1')).toBeInTheDocument();
-    expect(screen.getByTestId('pending-seen-indicator')).toBeInTheDocument();
+    const onboardingButton = screen.getByRole('button', {name: 'Onboarding'});
+    expect(onboardingButton.querySelector('[data-unread-indicator]')).toBeInTheDocument();
     expect(mutateUserOptionsMock).not.toHaveBeenCalled();
 
     // Next fetch should return the task as seen
@@ -109,7 +110,9 @@ describe('Onboarding Status', () => {
 
     // Pending indicator should go away
     await waitFor(() =>
-      expect(screen.queryByTestId('pending-seen-indicator')).not.toBeInTheDocument()
+      expect(
+        onboardingButton.querySelector('[data-unread-indicator]')
+      ).not.toBeInTheDocument()
     );
   });
 });

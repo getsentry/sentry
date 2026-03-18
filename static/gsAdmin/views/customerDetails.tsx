@@ -568,7 +568,9 @@ export function CustomerDetails() {
           {
             key: 'startEnterpriseTrial',
             name: 'Start Enterprise Trial',
-            help: 'Start enterprise trial (e.g. SSO, unlimited events).',
+            help: subscription.isFree
+              ? 'Start enterprise trial with capped event limits (includes SSO).'
+              : 'Start enterprise trial with unlimited events (includes SSO).',
             disabled: subscription.isPartner || subscription.isEnterpriseTrial,
             disabledReason: subscription.isPartner
               ? 'This account is managed by a third-party.'

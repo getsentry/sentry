@@ -24,7 +24,7 @@ from sentry.services.organization import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
@@ -62,7 +62,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
 
     def provision_organization(self, region_name: str = "us") -> RpcOrganizationSlugReservation:
         slug_reservation = control_organization_provisioning_rpc_service.provision_organization(
-            region_name=region_name, org_provision_args=self.provisioning_args
+            cell_name=region_name, org_provision_args=self.provisioning_args
         )
         return slug_reservation
 
@@ -179,7 +179,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=org_slug_res.organization_id,
                 desired_slug="newsantry",
                 require_exact=True,
-                region_name=self.region_name,
+                cell_name=self.region_name,
             )
         )
 
@@ -195,7 +195,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=org_slug_res.organization_id,
                 desired_slug="newsantry",
                 require_exact=False,
-                region_name=self.region_name,
+                cell_name=self.region_name,
             )
         )
 
@@ -222,7 +222,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=test_org_slug_reservation.organization_id,
                 desired_slug=conflicting_slug,
                 require_exact=False,
-                region_name=self.region_name,
+                cell_name=self.region_name,
             )
         )
 
@@ -253,7 +253,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=test_org_slug_reservation.organization_id,
                 desired_slug=conflicting_slug,
                 require_exact=True,
-                region_name=self.region_name,
+                cell_name=self.region_name,
             )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -280,7 +280,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=org_reservation.organization_id,
                 desired_slug=conflicting_slug,
                 require_exact=True,
-                region_name=org_reservation.region_name,
+                cell_name=org_reservation.region_name,
             )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -314,7 +314,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=test_org_slug_reservation.organization_id,
                 desired_slug=conflicting_slug,
                 require_exact=True,
-                region_name=self.region_name,
+                cell_name=self.region_name,
             )
 
         slug_reservations = self.get_slug_reservations_for_organization(
@@ -348,7 +348,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             organization_id=unregistered_org.id,
             desired_slug=desired_primary_slug,
             require_exact=True,
-            region_name=self.region_name,
+            cell_name=self.region_name,
         )
 
         slug_reservations = self.get_slug_reservations_for_organization(
@@ -368,7 +368,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
             organization_id=org.id,
             desired_slug=desired_slug,
             require_exact=True,
-            region_name=self.region_name,
+            cell_name=self.region_name,
         )
 
         slug_reservations = self.get_slug_reservations_for_organization(organization_id=org.id)
@@ -401,7 +401,7 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
                 organization_id=self.organization.id,
                 desired_slug="new-slug",
                 require_exact=True,
-                region_name=self.region_name,
+                cell_name=self.region_name,
             )
 
             token.refresh_from_db()

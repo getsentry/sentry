@@ -24,12 +24,14 @@ Before writing AST traversal logic, check `static/eslint/eslintPluginScraps/src/
 
 | Utility                 | Location                                 | Use for                                                             |
 | ----------------------- | ---------------------------------------- | ------------------------------------------------------------------- |
+| `getStyledCallInfo`     | `src/ast/utils/styled.ts`                | Classifying styled/css calls as element, component, or css          |
+| `createQuasiScanner`    | `src/ast/scanner/index.ts`               | Scanning static CSS text in template literals (Archetype 4)         |
+| `createImportTracker`   | `src/ast/tracker/imports.ts`             | Resolving where a local name was imported from                      |
 | `createStyleCollector`  | `src/ast/extractor/index.ts`             | Collecting CSS-in-JS _dynamic value_ declarations (NOT static text) |
 | `shouldAnalyze`         | `src/ast/extractor/index.ts`             | Fast pre-scan to skip files without Emotion usage                   |
 | `normalizePropertyName` | `src/ast/utils/normalizePropertyName.ts` | Normalizing CSS property names                                      |
 | `decomposeValue`        | `src/ast/extractor/value-decomposer.ts`  | Breaking complex expressions into all possible values               |
-| Theme tracker           | `src/ast/extractor/theme.ts`             | Tracking `useTheme()` and callback theme bindings                   |
-| `getStyledInfo`         | `src/ast/utils/styled.ts` (if exists)    | Detecting styled calls and extracting component/element name        |
+| Theme tracker           | `src/ast/tracker/theme.ts`               | Tracking `useTheme()` and callback theme bindings                   |
 
 If another rule already solves a similar problem, extract shared logic into `src/ast/utils/` and reuse it.
 
