@@ -215,14 +215,13 @@ def get_allowed_org_ids_context_engine_indexing() -> tuple[list[int], list[int]]
     Get the list of allowed organizations for context engine indexing.
 
     Only includes orgs that have the seer-explorer-context-engine feature flag
-    enabled. Spreads orgs evenly across every hour
-    of the day, every day of the week (168 slots total). Each org is
+    enabled. Spreads orgs evenly across the 24 hours of each day. Each org is
     deterministically assigned a slot via md5 hash so it is indexed exactly
-    once per week.
+    once per day.
     """
     now = datetime.now(UTC)
-    current_slot = now.weekday() * 24 + now.hour
-    TOTAL_HOURLY_SLOTS = 24 * 7  # 168 slots across every hour of the week
+    current_slot = now.hour
+    TOTAL_HOURLY_SLOTS = 24
 
     eligible_org_ids: list[int] = []
     feature_enabled_org_ids: list[int] = []
@@ -235,7 +234,7 @@ def get_allowed_org_ids_context_engine_indexing() -> tuple[list[int], list[int]]
             if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == current_slot:
                 eligible_org_ids.append(org.id)
 
-    # Add recently enabled orgs that should not wait for their weekly slot.
+    # Add recently enabled orgs that should not wait for their daily slot.
     previous_enabled_org_ids = cache.get(CONTEXT_ENGINE_ENABLED_ORG_IDS)
     if previous_enabled_org_ids is not None:
         newly_added_org_ids_set = set(feature_enabled_org_ids) - set(previous_enabled_org_ids)
