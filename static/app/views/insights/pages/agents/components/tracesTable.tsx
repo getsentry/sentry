@@ -279,7 +279,6 @@ export function TracesTable({
   const additionalGridProps = frameless
     ? {
         bodyStyle: FRAMELESS_STYLES,
-        fit: 'max-content' as const,
         resizable: true,
         scrollable: true,
         height: '100%',
