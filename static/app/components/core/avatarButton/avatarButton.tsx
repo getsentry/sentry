@@ -5,6 +5,7 @@ import color from 'color';
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {useButtonDefaults} from '@sentry/scraps/button/useButtonDefaults';
 
 import {useQuery} from 'sentry/utils/queryClient';
 
@@ -14,7 +15,7 @@ interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'pri
   size?: Exclude<ButtonProps['size'], 'zero'>;
 }
 
-export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps) {
+export function AvatarButton({avatar, ...props}: AvatarButtonProps) {
   const theme = useTheme();
   const avatarDefinition = useAvatar({
     identifier: avatar.identifier,
@@ -37,13 +38,15 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
     staleTime: Infinity,
   });
 
+  const {size = 'md', ...buttonDefaultProps} = useButtonDefaults(props);
+
   if (avatarDefinition.type === 'letter') {
     const avatarChonk = color(avatarDefinition.configuration.background)
       .darken(0.65)
       .hex();
 
     return (
-      <StyledAvatarButton {...props} size={size} chonk={avatarChonk}>
+      <StyledAvatarButton {...buttonDefaultProps} size={size} chonk={avatarChonk}>
         <AvatarContainer size={size} padded={false} chonk={avatarChonk}>
           <StyledLetterAvatar configuration={avatarDefinition.configuration} />
         </AvatarContainer>
@@ -52,7 +55,7 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
   }
 
   return (
-    <StyledAvatarButton {...props} size={size} chonk={imageResult?.chonk}>
+    <StyledAvatarButton {...buttonDefaultProps} size={size} chonk={imageResult?.chonk}>
       <AvatarContainer
         size={size}
         padded={imageResult?.style === 'padded'}

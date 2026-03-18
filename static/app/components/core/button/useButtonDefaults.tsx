@@ -1,26 +1,18 @@
 import {createContext, useContext} from 'react';
+import type {DistributedOmit} from 'type-fest';
 
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
 
-interface ButtonDefaultProps extends Pick<ButtonProps, 'size' | 'priority'> {
-  priority: NonNullable<ButtonProps['priority']>;
-  size: NonNullable<ButtonProps['size']>;
-}
-
-const ButtonDefaultsContext = createContext<ButtonDefaultProps | undefined>(undefined);
-
-interface ButtonDefaultsProviderProps extends ButtonDefaultProps {
-  children: React.ReactNode;
-}
+const ButtonDefaultsContext = createContext<
+  DistributedOmit<ButtonProps, 'children'> | undefined
+>(undefined);
 
 /**
  * Use this context provider to set default values for icons.
  */
-export function ButtonDefaultsProvider({
-  children,
-  ...props
-}: ButtonDefaultsProviderProps) {
-  return <ButtonDefaultsContext value={props}>{children}</ButtonDefaultsContext>;
+export function ButtonDefaultsProvider(props: ButtonProps & {children: React.ReactNode}) {
+  const {children, ...rest} = props;
+  return <ButtonDefaultsContext value={rest}>{children}</ButtonDefaultsContext>;
 }
 
 /**

@@ -5,11 +5,12 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
 import type {LocationDescriptor} from 'history';
+import type {DistributedOmit} from 'type-fest';
 
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
-import type {ButtonProps} from '@sentry/scraps/button';
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
+import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
+import {Button, ButtonBar, ButtonDefaultsProvider} from '@sentry/scraps/button';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
@@ -50,35 +51,16 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
   const organization = usePrimaryNavigationOrganization();
   const hasPageFrame = organization?.features.includes('page-frame');
 
-  if (hasPageFrame) {
-    return (
-      <Grid
-        as="nav"
-        aria-label={t('Primary Navigation')}
-        borderRight="primary"
-        background="primary"
-        columns="1fr"
-        rows={`${PRIMARY_HEADER_HEIGHT}px 1fr min-content`}
-        width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-        style={{zIndex: theme.zIndex.sidebarPanel}}
-        {...props}
-      >
-        {children}
-      </Grid>
-    );
-  }
-
   return (
     <Flex
       as="nav"
       aria-label={t('Primary Navigation')}
       width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-      padding="lg 0 md 0"
+      padding={hasPageFrame ? '0' : 'lg 0 md 0'}
       borderRight="primary"
       background="primary"
       direction="column"
       align="center"
-      justify="between"
       style={{zIndex: theme.zIndex.sidebarPanel}}
       {...props}
     >
@@ -100,32 +82,35 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
   const hasPageFrame = organization?.features.includes('page-frame');
 
   return (
-    <Flex
-      as="header"
-      direction="column"
-      align="center"
-      justify="center"
-      position="relative"
-      borderBottom={hasPageFrame ? 'muted' : undefined}
-      width={hasPageFrame ? '100%' : undefined}
-      {...props}
-    >
-      {props.children}
-      {showSuperuserWarning && (
-        <Container
-          position="absolute"
-          top={0}
-          left={0}
-          width={`${PRIMARY_SIDEBAR_WIDTH}px`}
-          style={{
-            zIndex: theme.zIndex.initial,
-            background: theme.tokens.background.danger.vibrant,
-          }}
-        >
-          <Hook name="component:superuser-warning" organization={organization} />
-        </Container>
-      )}
-    </Flex>
+    <ButtonDefaultsProvider size={hasPageFrame ? 'sm' : 'md'}>
+      <Flex
+        as="header"
+        direction="column"
+        align="center"
+        justify="center"
+        position="relative"
+        borderBottom={hasPageFrame ? 'muted' : undefined}
+        width={hasPageFrame ? '100%' : undefined}
+        height={hasPageFrame ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
+        {...props}
+      >
+        {props.children}
+        {showSuperuserWarning && (
+          <Container
+            position="absolute"
+            top={0}
+            left={0}
+            width={`${PRIMARY_SIDEBAR_WIDTH}px`}
+            style={{
+              zIndex: theme.zIndex.initial,
+              background: theme.tokens.background.danger.vibrant,
+            }}
+          >
+            <Hook name="component:superuser-warning" organization={organization} />
+          </Container>
+        )}
+      </Flex>
+    </ButtonDefaultsProvider>
   );
 }
 
@@ -217,7 +202,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
         as="span"
         align="center"
         justify="center"
-        padding="sm"
+        padding={hasPageFrame ? 'xs' : 'sm'}
         radius="md"
         data-icon-container
       >
@@ -244,7 +229,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
 
 interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
   label: string;
-  buttonProps?: Omit<ButtonProps, 'aria-label'>;
+  buttonProps?: Omit<ButtonProps, 'aria-label' | 'size'>;
   children?: React.ReactNode;
   indicator?: 'accent' | 'danger' | 'warning';
 }
@@ -329,7 +314,6 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   icon?: React.ReactNode;
   indicator?: 'accent' | 'danger' | 'warning';
   onOpen?: MouseEventHandler<HTMLButtonElement>;
-  size?: ButtonProps['size'];
   triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
@@ -367,7 +351,6 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
               <NavigationButton
                 {...triggerProps}
                 aria-label={layout === 'mobile' ? undefined : props.label}
-                size={props.size}
                 onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
                   if (organization) {
                     trackAnalytics('navigation.primary_item_clicked', {
@@ -408,14 +391,14 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   );
 }
 
-function NavigationButton(props: ButtonProps) {
+function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
   const {layout} = usePrimaryNavigation();
 
   return (
     <Flex
       align="center"
-      height={layout === 'mobile' ? 'auto' : '44px'}
-      width={layout === 'mobile' ? '100%' : '44px'}
+      height={layout === 'mobile' ? 'auto' : undefined}
+      width={layout === 'mobile' ? '100%' : undefined}
       padding={layout === 'mobile' ? 'md lg' : 'xs'}
       justify={layout === 'mobile' ? 'start' : 'center'}
     >
@@ -423,21 +406,25 @@ function NavigationButton(props: ButtonProps) {
         <Button
           {...p}
           {...props}
-          size={layout === 'mobile' ? 'zero' : props.size}
-          priority={layout === 'mobile' ? 'transparent' : props.priority}
+          {...(layout === 'mobile'
+            ? {size: 'zero' as const, priority: 'transparent'}
+            : {priority: props.priority})}
         />
       )}
     </Flex>
   );
 }
 
-// Force all buttons to the same size
-const PrimaryNavigationButtonBar = styled(ButtonBar)`
-  button {
-    width: ${p => p.theme.form.md.height};
-    height: ${p => p.theme.form.md.height};
-  }
-`;
+function PrimaryNavigationButtonBar(props: ButtonBarProps) {
+  const organization = usePrimaryNavigationOrganization();
+  const hasPageFrame = organization?.features.includes('page-frame');
+
+  return (
+    <ButtonDefaultsProvider size={hasPageFrame ? 'sm' : 'md'}>
+      <ButtonBar {...props} width="100%" />
+    </ButtonDefaultsProvider>
+  );
+}
 
 interface PrimaryNavigationFooterItemsProps {
   children: NonNullable<React.ReactNode>;
@@ -456,9 +443,11 @@ function PrimaryNavigationFooterItems(props: PrimaryNavigationFooterItemsProps) 
       {layout === 'mobile' ? (
         <Stack width="100%">{props.children}</Stack>
       ) : (
-        <PrimaryNavigation.ButtonBar orientation="vertical">
-          {props.children}
-        </PrimaryNavigation.ButtonBar>
+        <Stack width="100%" marginTop="auto">
+          <PrimaryNavigation.ButtonBar orientation="vertical">
+            {props.children}
+          </PrimaryNavigation.ButtonBar>
+        </Stack>
       )}
     </Flex>
   );
