@@ -2,7 +2,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import type {TagCollection} from 'sentry/types/group';
 import {AggregationKey, FieldKind} from 'sentry/utils/fields';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';

@@ -483,16 +483,16 @@ class SeerExplorerOperator[CachePayloadT]:
                 # RpcUser is not in SeerExplorerClient's type signature but works at runtime
                 client = SeerExplorerClient(
                     organization=organization,
-                    user=user,  # type: ignore[arg-type]
+                    user=user,
                     category_key=category_key,
                     category_value=category_value,
                     on_completion_hook=SeerOperatorCompletionHook,
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER_ERROR,
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER,
                     entrypoint_key=self.entrypoint.key,
-                ).capture():
+                ).capture(assume_success=False):
                     self.entrypoint.on_trigger_explorer_error(error=str(e))
                 lifecycle.record_failure(failure_reason=e)
                 return None
@@ -519,9 +519,9 @@ class SeerExplorerOperator[CachePayloadT]:
                     lifecycle.add_extra("continued", "false")
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER_ERROR,
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER,
                     entrypoint_key=self.entrypoint.key,
-                ).capture():
+                ).capture(assume_success=False):
                     self.entrypoint.on_trigger_explorer_error(error="An unexpected error occurred")
                 lifecycle.record_failure(failure_reason=e)
                 return None
@@ -529,7 +529,7 @@ class SeerExplorerOperator[CachePayloadT]:
             lifecycle.add_extra("run_id", str(run_id))
 
             with SeerOperatorEventLifecycleMetric(
-                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER_SUCCESS,
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER,
                 entrypoint_key=self.entrypoint.key,
             ).capture():
                 self.entrypoint.on_trigger_explorer_success(run_id=run_id)
@@ -803,8 +803,7 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                 if not cache_payload:
                     continue
 
-                # mypy marks this unreachable due to unbound generic TypeVar on SeerOperatorExplorerCache
-                if cache_payload.get("organization_id") != organization.id:  # type: ignore[unreachable]
+                if cache_payload.get("organization_id") != organization.id:
                     lifecycle.add_extra("org_mismatch", str(entrypoint_key))
                     continue
 

@@ -3,10 +3,10 @@ import {Outlet} from 'react-router-dom';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {NoAccess} from 'sentry/components/noAccess';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';

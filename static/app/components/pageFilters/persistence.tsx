@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {PinnedPageFilter} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';

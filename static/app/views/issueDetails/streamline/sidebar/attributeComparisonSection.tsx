@@ -6,7 +6,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';

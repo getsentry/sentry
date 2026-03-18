@@ -4,7 +4,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {TextOverflow} from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';

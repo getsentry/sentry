@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';

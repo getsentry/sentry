@@ -9,8 +9,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ModalTask} from 'sentry/components/onboardingWizard/modalTask';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';

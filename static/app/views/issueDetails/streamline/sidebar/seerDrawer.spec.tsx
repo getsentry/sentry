@@ -218,7 +218,7 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByRole('heading', {name: 'Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Seer Autofix'})).toBeInTheDocument();
 
     // Verify the Start Root Cause Analysis button is available
     const startButton = screen.getByRole('button', {name: 'Start Root Cause Analysis'});
@@ -498,7 +498,7 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByRole('heading', {name: 'Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Seer Autofix'})).toBeInTheDocument();
 
     // Since "Install the GitHub Integration" text isn't found, let's check for
     // the "Set Up the GitHub Integration" text which is what the component is actually showing

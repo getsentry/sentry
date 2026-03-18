@@ -7,7 +7,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';

@@ -3,8 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import Form from 'sentry/components/forms/form';
+import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import {Form} from 'sentry/components/forms/form';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {InstrumentationGuide} from './instrumentationGuide';

@@ -4,7 +4,7 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 

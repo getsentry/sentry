@@ -10,7 +10,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t, tct} from 'sentry/locale';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
