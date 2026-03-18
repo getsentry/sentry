@@ -14,7 +14,7 @@ import {useScmRepoSelection} from './useScmRepoSelection';
 function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
   return function OnboardingWrapper({children}: {children?: React.ReactNode}) {
     return (
-      <OnboardingContextProvider value={initialState}>
+      <OnboardingContextProvider initialValue={initialState}>
         {children}
       </OnboardingContextProvider>
     );

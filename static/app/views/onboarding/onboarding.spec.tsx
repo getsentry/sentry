@@ -346,7 +346,7 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider
-        value={{
+        initialValue={{
           selectedPlatform: {
             key: nextJsProject.slug as PlatformKey,
             type: 'framework',
@@ -412,7 +412,7 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider
-        value={{
+        initialValue={{
           selectedPlatform: {
             key: reactProject.slug as PlatformKey,
             type: 'framework',
@@ -513,7 +513,7 @@ describe('Onboarding', () => {
 
     render(
       <OnboardingContextProvider
-        value={{
+        initialValue={{
           selectedPlatform: {
             key: reactProject.slug as PlatformKey,
             type: 'framework',
@@ -743,7 +743,7 @@ describe('Onboarding', () => {
 
       const {router} = render(
         <OnboardingContextProvider
-          value={{
+          initialValue={{
             selectedPlatform: {
               key: nextJsProject.slug as PlatformKey,
               type: 'framework',

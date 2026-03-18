@@ -49,7 +49,9 @@ export function useScmRepoSelection({
 
   // Fetch repos already registered in Sentry for this integration, so we
   // can look up the real Repository (with Sentry ID) for "Already Added" repos.
-  const {data: existingRepos} = useApiQuery<Repository[]>(
+  const {data: existingRepos, isPending: existingReposPending} = useApiQuery<
+    Repository[]
+  >(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
         path: {organizationIdOrSlug: organization.slug},

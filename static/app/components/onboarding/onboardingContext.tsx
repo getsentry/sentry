@@ -43,13 +43,13 @@ type ProviderProps = {
    * Optional initial session state. Primarily used in tests to seed the context
    * without touching session storage directly.
    */
-  value?: OnboardingSessionState;
+  initialValue?: OnboardingSessionState;
 };
 
-export function OnboardingContextProvider({children, value}: ProviderProps) {
+export function OnboardingContextProvider({children, initialValue}: ProviderProps) {
   const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
     OnboardingSessionState | undefined
-  >('onboarding', value);
+  >('onboarding', initialValue);
 
   const contextValue = useMemo(
     () => ({
