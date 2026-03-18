@@ -824,7 +824,7 @@ function SecondaryNavigationReorderableLink({
           {icon}
         </Flex>
       </Flex>
-      <Text ellipsis variant={layout === 'sidebar' ? 'muted' : undefined}>
+      <Text ellipsis variant="inherit">
         {children}
       </Text>
       {trailingItems}
