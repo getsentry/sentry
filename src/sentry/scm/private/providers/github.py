@@ -49,9 +49,6 @@ from sentry.scm.types import (
     TreeEntry,
 )
 
-GITHUB_BASE_URL = "https://api.github.com"
-GITHUB_ACCEPT_HEADER = "application/vnd.github+json"
-
 # GitHub's Checks API status values map to generic BuildStatus.
 # "requested", "waiting", and "pending" are GitHub Actions-internal states that
 # cannot be set via the API; we treat them as "pending" when reading.
@@ -143,71 +140,74 @@ def _get_next_link(response: requests.Response) -> str | None:
     return None
 
 
-def _get_with_pagination(
-    client: "GitHubProviderApiClient",
-    path: str,
-    response_key: str | None = None,
-) -> list[Any]:
-    output: list[Any] = []
-    page_number = 1
+def as_github_headers(
+    pagination: PaginationParams | None,
+    request_options: RequestOptions | None,
+) -> dict[str, int | str]:
+    # GitHub recommends this accept header.
+    headers = {"Accept": "application/vnd.github+json"}
 
-    resp = client.request("GET", path, params={"per_page": "100"})
-    data = resp.json()
-    output.extend(data[response_key] if response_key else data)
+    # Pagination must be set regardless of if it was received or not. The default values are
+    # identical to what GitHub sets by default.
+    if pagination:
+        headers["per_page"] = pagination["per_page"]
+        headers["page"] = int(pagination["cursor"])
 
-    next_url = _get_next_link(resp)
-    while next_url and page_number < PAGE_NUMBER_LIMIT:
-        resp = client.request("GET", next_url)
-        data = resp.json()
-        output.extend(data[response_key] if response_key else data)
-        next_url = _get_next_link(resp)
-        page_number += 1
+    # If the "if_modified_since" header was provided then we'll only fetch those items which
+    # were recently modified.
+    if request_options:
+        headers["since"] = request_options["if_modified_since"].strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    return output
+    return headers
+
+
+def to_pagination_meta(pagination: PaginationParams | None) -> PaginatedResponseMeta:
+    return PaginatedResponseMeta(next_cursor=int(pagination["cursor"]) + 1 if pagination else 2)
 
 
 class GitHubProviderApiClient:
-    def __init__(self, base_url: str, client: GitHubApiClient) -> None:
-        self.base_url = base_url
+    def __init__(self, client: GitHubApiClient) -> None:
         self.client = client
-
-    def path_to_url(self, path: str) -> str:
-        """Accepts a resource path and returns a full URL."""
-        return f"{self.base_url}{path}"
 
     def request(
         self,
         method: str,
         path: str,
-        data: dict[str, Any],
-        params: dict[str, str],
-        headers: dict[str, str],
+        data: dict[str, Any] | None = None,
+        params: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> requests.Response:
-        token_data = self.client.get_access_token()
-        if not token_data:
-            raise SCMProviderException("Unable to retrieve access token")
-
-        authorized_headers = {
-            "Authorization": f"Bearer {token_data['access_token']}",
-            "Accept": GITHUB_ACCEPT_HEADER,
-            **headers,
-        }
-
-        return requests.request(
-            method,
-            self.path_to_url(path),
-            json=data,
+        return self.client._request(
+            method=method,
+            path=path,
+            headers=headers,
+            data=data,
             params=params,
-            headers=authorized_headers,
+            raw_response=True,
         )
 
-    def get(self, path: str, params: dict[str, str], headers: dict[str, str]) -> requests.Response:
+    def get(
+        self,
+        path: str,
+        params: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> requests.Response:
         return self.request("GET", path=path, params=params, headers=headers)
 
-    def post(self, path: str, data: dict[str, Any], headers: dict[str, str]) -> requests.Response:
+    def post(
+        self,
+        path: str,
+        data: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> requests.Response:
         return self.request("POST", path=path, data=data, headers=headers)
 
-    def patch(self, path: str, data: dict[str, Any], headers: dict[str, str]) -> requests.Response:
+    def patch(
+        self,
+        path: str,
+        data: dict[str, Any],
+        headers: dict[str, str] | None = None,
+    ) -> requests.Response:
         return self.request("PATCH", path=path, data=data, headers=headers)
 
     def delete(self, path: str) -> requests.Response:
@@ -238,7 +238,7 @@ class GitHubProvider:
     def __init__(
         self, client: GitHubApiClient, organization_id: int, repository: Repository
     ) -> None:
-        self.client = GitHubProviderApiClient(base_url=GITHUB_BASE_URL, client=client)
+        self.client = GitHubProviderApiClient(client)
         self.organization_id = organization_id
         self.repository = repository
 
@@ -260,34 +260,32 @@ class GitHubProvider:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Comment]:
-        repo = self.repository["name"]
-        raw_comments = self.client.get(
-            f"/repos/{repo}/issues/{issue_id}/comments", params={}, headers={}
+        response = self.client.get(
+            f"/repos/{self.repository['name']}/issues/{issue_id}/comments",
+            headers=as_github_headers(pagination, request_options),
         )
-        return PaginatedActionResult(
-            data=[map_comment(c) for c in raw_comments],
-            type="github",
-            raw=raw_comments,
-            meta=_DEFAULT_PAGINATED_META,
-        )
+        return map_paginated_action(pagination, response.json(), map_comment)
 
     def create_issue_comment(self, issue_id: str, body: str) -> ActionResult[Comment]:
-        repo = self.repository["name"]
-        raw = self.client.post(f"/repos/{repo}/issues/{issue_id}/comments", {"body": body}, {})
-        return map_action(raw, map_comment)
+        response = self.client.post(
+            f"/repos/{self.repository['name']}/issues/{issue_id}/comments",
+            data={"body": body},
+        )
+        return map_action(response.json(), map_comment)
 
     def delete_issue_comment(self, issue_id: str, comment_id: str) -> None:
-        repo = self.repository["name"]
-        self.client.delete(f"/repos/{repo}/issues/comments/{comment_id}")
+        self.client.delete(f"/repos/{self.repository['name']}/issues/comments/{comment_id}")
 
     def get_pull_request(
         self,
         pull_request_id: str,
         request_options: RequestOptions | None = None,
     ) -> ActionResult[PullRequest]:
-        repo = self.repository["name"]
-        raw = self.client.get(f"/repos/{repo}/pulls/{pull_request_id}", params={}, headers={})
-        return map_action(raw, map_pull_request)
+        response = self.client.get(
+            f"/repos/{self.repository['name']}/pulls/{pull_request_id}",
+            headers=as_github_headers(request_options=request_options),
+        )
+        return map_action(response.json(), map_pull_request)
 
     def get_pull_request_comments(
         self,
@@ -295,27 +293,27 @@ class GitHubProvider:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Comment]:
-        repo = self.repository["name"]
-        comments = self.client.get(
-            f"/repos/{repo}/issues/{pull_request_id}/comments", params={}, headers={}
+        response = self.client.get(
+            f"/repos/{self.repository['name']}/issues/{pull_request_id}/comments",
+            headers=as_github_headers(pagination, request_options),
         )
+        comments = response.json()
         return PaginatedActionResult(
             data=[map_comment(c) for c in comments],
             type="github",
             raw=comments,
-            meta=_DEFAULT_PAGINATED_META,
+            meta=to_pagination_meta(pagination),
         )
 
     def create_pull_request_comment(self, pull_request_id: str, body: str) -> ActionResult[Comment]:
-        repo = self.repository["name"]
         raw = self.client.post(
-            f"/repos/{repo}/issues/{pull_request_id}/comments", {"body": body}, {}
+            f"/repos/{self.repository['name']}/issues/{pull_request_id}/comments",
+            data={"body": body},
         )
         return map_action(raw, map_comment)
 
     def delete_pull_request_comment(self, pull_request_id: str, comment_id: str) -> None:
-        repo = self.repository["name"]
-        self.client.delete(f"/repos/{repo}/issues/comments/{comment_id}")
+        self.client.delete(f"/repos/{self.repository['name']}/issues/comments/{comment_id}")
 
     def get_issue_comment_reactions(
         self,
@@ -325,8 +323,8 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[ReactionResult]:
         repo = self.repository["name"]
-        raw_reactions = _get_with_pagination(
-            self.client, f"/repos/{repo}/issues/comments/{comment_id}/reactions"
+        raw_reactions = self.client.get(
+            f"/repos/{repo}/issues/comments/{comment_id}/reactions", params={}, headers={}
         )
         return PaginatedActionResult(
             data=[map_reaction(r) for r in raw_reactions],
@@ -381,8 +379,8 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[ReactionResult]:
         repo = self.repository["name"]
-        raw_reactions = _get_with_pagination(
-            self.client, f"/repos/{repo}/issues/{issue_id}/reactions"
+        raw_reactions = self.client.get(
+            f"/repos/{repo}/issues/{issue_id}/reactions", params={}, headers={}
         )
         return PaginatedActionResult(
             data=[map_reaction(r) for r in raw_reactions],
@@ -526,10 +524,8 @@ class GitHubProvider:
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
         repo = self.repository["name"]
-        raw_commits = _get_with_pagination(
-            self.client,
-            f"/repos/{repo}/compare/{start_sha}...{end_sha}",
-            response_key="commits",
+        raw_commits = self.client.get(
+            f"/repos/{repo}/compare/{start_sha}...{end_sha}", params={}, headers={}
         )
         return PaginatedActionResult(
             data=[map_commit(c) for c in raw_commits],
@@ -683,16 +679,18 @@ class GitHubProvider:
         head: str,
         base: str,
     ) -> ActionResult[PullRequest]:
-        repo = self.repository["name"]
-        data: dict[str, Any] = {
-            "title": title,
-            "body": body,
-            "head": head,
-            "base": base,
-            "draft": True,
-        }
-        raw = self.client.post(f"/repos/{repo}/pulls", data=data, headers={})
-        return map_action(raw, map_pull_request)
+        response = self.client.post(
+            f"/repos/{self.repository['name']}/pulls",
+            data={
+                "title": title,
+                "body": body,
+                "head": head,
+                "base": base,
+                "draft": True,
+            },
+            headers={},
+        )
+        return map_action(response.json(), map_pull_request)
 
     def update_pull_request(
         self,
@@ -1030,4 +1028,17 @@ def map_action[T](raw: dict[str, Any], fn: Callable[[dict[str, Any]], T]) -> Act
         "type": "github",
         "raw": raw,
         "meta": {},
+    }
+
+
+def map_paginated_action[T](
+    pagination: PaginationParams | None,
+    raw: list[dict[str, Any]],
+    fn: Callable[[dict[str, Any]], T],
+) -> PaginatedActionResult[T]:
+    return {
+        "data": [fn(item) for item in raw],
+        "type": "github",
+        "raw": raw,
+        "meta": to_pagination_meta(pagination),
     }
