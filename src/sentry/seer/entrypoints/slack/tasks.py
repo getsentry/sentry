@@ -84,8 +84,8 @@ def process_mention_for_slack(
                 thread_ts=thread_ts,
                 slack_user_id=slack_user_id,
             )
-        except (ValueError, EntrypointSetupError):
-            lifecycle.record_halt(halt_reason=ProcessMentionHaltReason.INTEGRATION_NOT_FOUND)
+        except (ValueError, EntrypointSetupError) as e:
+            lifecycle.record_halt(halt_reason=e)
             return
 
         user = _resolve_user(

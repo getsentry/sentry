@@ -86,7 +86,7 @@ class ProcessMentionForSlackTest(TestCase):
         self._run_task()
 
         mock_operator_cls.assert_not_called()
-        assert_halt_metric(mock_record, ProcessMentionHaltReason.INTEGRATION_NOT_FOUND)
+        assert_halt_metric(mock_record, EntrypointSetupError("not found"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks._send_link_identity_prompt")
