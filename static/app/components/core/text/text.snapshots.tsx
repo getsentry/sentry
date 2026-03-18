@@ -9,7 +9,7 @@ import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 const themes = {light: lightTheme, dark: darkTheme};
 
 describe('Text', () => {
-  describe.each(['light', 'dark'] as const)('theme-%s', themeName => {
+  describe.each(['light', 'dark'] as const)('%s', themeName => {
     it.snapshot.each(['xs', 'sm', 'md', 'lg', 'xl', '2xl'] as const)('%s', size => (
       <ThemeProvider theme={themes[themeName]}>
         <div style={{padding: 8}}>
