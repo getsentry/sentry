@@ -87,6 +87,7 @@ from sentry.dynamic_sampling.utils import (
 )
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.hybridcloud.rpc.service import RpcValidationException
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -399,6 +400,16 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
         return validate_pii_config_update(organization, value)
+
+    def validate_defaultCodingAgentIntegrationId(self, value: int | None) -> int | None:
+        if value is None:
+            return None
+        organization = self.context["organization"]
+        if not integration_service.get_organization_integration(
+            integration_id=value, organization_id=organization.id
+        ):
+            raise serializers.ValidationError("Integration does not belong to this organization.")
+        return value
 
     def validate_sensitiveFields(self, value):
         if value and not all(value):

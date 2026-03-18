@@ -1525,12 +1525,24 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert response.data["defaultCodingAgentIntegrationId"] is None
 
     def test_default_coding_agent_integration_id_can_be_set(self) -> None:
-        data = {"defaultCodingAgentIntegrationId": 123}
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="test-ext-id"
+        )
+        data = {"defaultCodingAgentIntegrationId": integration.id}
         response = self.get_success_response(self.organization.slug, **data)
         assert (
-            self.organization.get_option("sentry:seer_default_coding_agent_integration_id") == 123
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
+            == integration.id
         )
-        assert response.data["defaultCodingAgentIntegrationId"] == 123
+        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+
+    def test_default_coding_agent_integration_id_rejects_foreign_org(self) -> None:
+        other_org = self.create_organization()
+        integration = self.create_integration(
+            organization=other_org, provider="github", external_id="other-ext-id"
+        )
+        data = {"defaultCodingAgentIntegrationId": integration.id}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
 
     def test_default_coding_agent_can_be_cleared(self) -> None:
         self.organization.update_option("sentry:seer_default_coding_agent", "seer")
