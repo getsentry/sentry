@@ -127,8 +127,17 @@ export const LogTableBodyCell = styled(TableBodyCell)`
 `;
 
 export const LogTable = styled(Table)`
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   margin-bottom: 0;
+  overflow-x: hidden;
+
+  > div {
+    flex: 1;
+    min-height: 0;
+  }
 `;
 
 export const LogTableBody = styled(TableBody)<{
@@ -145,16 +154,13 @@ export const LogTableBody = styled(TableBody)<{
     padding-top: ${p.theme.space.md};
     padding-bottom: ${p.theme.space.md};
     `}
+  overflow-x: hidden;
   overflow-y: auto;
 
   /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
   min-height: 1px;
 
   height: 100%;
-  max-height: ${p =>
-    p.expanded
-      ? `calc(95vh - ${GRID_BODY_ROW_HEIGHT * 1.5}px)`
-      : 'max(calc(60vh - 20rem), 10rem)'};
 `;
 
 export const LogDetailTableBodyCell = styled(TableBodyCell)`
@@ -309,18 +315,27 @@ export function TableActionsContainer(props: FlexProps<'div'>) {
 
 export const LogsItemContainer = styled('div')`
   flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
   margin-top: ${p => p.theme.space.md};
   margin-bottom: ${p => p.theme.space.md};
   position: relative;
+  display: flex;
+  flex-direction: column;
 `;
 
 export const LogsTableActionsContainer = styled(LogsItemContainer)`
+  flex: 0 0 auto;
+  overflow: visible;
   margin-bottom: 0;
   display: flex;
+  flex-direction: row;
   justify-content: space-between;
 `;
 
 export const LogsGraphContainer = styled(LogsItemContainer)`
+  flex: 0 0 auto;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};

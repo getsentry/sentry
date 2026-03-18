@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -14,8 +14,6 @@ interface Expando {
 
 export function useExpando(): Expando {
   const [expanded, setExpanded] = useState(false);
-  const refDesktop = useRef<HTMLButtonElement>(null);
-  const refMobile = useRef<HTMLButtonElement>(null);
 
   const [Icon, text] = expanded
     ? [IconContract, t('Collapse')]
@@ -24,16 +22,6 @@ export function useExpando(): Expando {
   const toggleExpanded = useCallback(() => {
     setExpanded(previousExpanded => !previousExpanded);
   }, []);
-
-  useLayoutEffect(() => {
-    if (expanded) {
-      for (const ref of [refDesktop, refMobile]) {
-        ref.current?.scrollIntoView({
-          block: 'start',
-        });
-      }
-    }
-  }, [expanded]);
 
   const buttonProps = {
     'aria-label': text,
@@ -45,12 +33,8 @@ export function useExpando(): Expando {
   return {
     button: (
       <TableActionButton
-        desktop={
-          <ExpandoButton {...buttonProps} ref={refDesktop}>
-            {text}
-          </ExpandoButton>
-        }
-        mobile={<ExpandoButton {...buttonProps} ref={refMobile} />}
+        desktop={<ExpandoButton {...buttonProps}>{text}</ExpandoButton>}
+        mobile={<ExpandoButton {...buttonProps} />}
       />
     ),
     expanded,

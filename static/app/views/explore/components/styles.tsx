@@ -31,7 +31,11 @@ export const ExploreContentSection = styled('section')`
   background-color: ${p => p.theme.tokens.background.secondary};
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
   padding: ${p => p.theme.space.xl};
+
+  display: flex;
+  flex-direction: column;
 `;
 
 export const ExploreFilterSection = styled('div')`
@@ -66,6 +70,7 @@ export const ExploreBodySearch = styled(Layout.Body)`
 export const ExploreBodyContent = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
   flex-grow: 1;
+  min-height: 0;
 
   display: flex;
   flex-direction: column;

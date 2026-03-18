@@ -439,7 +439,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           {sidebarOpen ? <LogsToolbar /> : null}
         </ExploreControlSection>
         <ExploreContentSection>
-          <OverChartButtonGroup>
+          <OverChartButtonGroup style={expando.expanded ? {display: 'none'} : undefined}>
             <LogsSidebarCollapseButton
               sidebarOpen={sidebarOpen}
               aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
@@ -466,7 +466,7 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
             timeseriesResult={timeseriesResult}
             tableResult={infiniteLogsQueryResult}
           />
-          <LogsGraphContainer>
+          <LogsGraphContainer style={expando.expanded ? {display: 'none'} : undefined}>
             <LogsGraph rawLogCounts={rawLogCounts} timeseriesResult={timeseriesResult} />
           </LogsGraphContainer>
           <LogsTableActionsContainer>
