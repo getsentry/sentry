@@ -52,6 +52,10 @@ export function transformWidgetSeriesToTimeSeries(
   // This handles the alias-without-group-by case where transformEventsResponseToSeries
   // uses ' : ' (e.g., "Chrome : count()").
   const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
+  const splitUnprefixedName =
+    queryDelimiterIndex >= 0
+      ? unprefixedName.split(SERIES_NAME_PART_DELIMITER)
+      : splitSeriesName;
   const widgetQuery =
     widget.queries.find(({name}) => name && splitSeriesName.includes(name)) ?? firstQuery;
   const effectiveQueryName = queryName ?? (widgetQuery?.name || undefined);
@@ -61,16 +65,17 @@ export function transformWidgetSeriesToTimeSeries(
   const effectiveSeries =
     queryDelimiterIndex >= 0 ? {...series, seriesName: unprefixedName} : series;
 
+  const yAxis =
+    aggregates.find(aggregate => splitUnprefixedName.includes(aggregate)) ??
+    aggregates[0] ??
+    '';
+
   const timeSeries = transformLegacySeriesToTimeSeries(
     effectiveSeries,
     timeseriesResultsTypes,
     timeseriesResultsUnits,
     columns,
-    aggregates.find(aggregate =>
-      unprefixedName.split(SERIES_NAME_PART_DELIMITER).includes(aggregate)
-    ) ??
-      aggregates[0] ??
-      '',
+    yAxis,
     effectiveQueryName
   );
 
@@ -78,7 +83,6 @@ export function transformWidgetSeriesToTimeSeries(
     return null;
   }
 
-  const yAxis = timeSeries.yAxis;
   const fieldIndex = fields.indexOf(yAxis);
   // Only use field aliases for the yAxis if there are multiple yAxis and no group bys
   const fieldAlias =
