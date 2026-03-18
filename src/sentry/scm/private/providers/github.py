@@ -713,7 +713,7 @@ class GitHubProvider:
     def get_archive_link(
         self,
         ref: str,
-        archive_format: ArchiveFormat = "tar.gz",
+        archive_format: ArchiveFormat = "tarball",
     ) -> ActionResult[ArchiveLink]:
         github_format = GITHUB_ARCHIVE_FORMAT_MAP[archive_format]
         url = self.client.get_archive_link(self.repository["name"], github_format, ref)
