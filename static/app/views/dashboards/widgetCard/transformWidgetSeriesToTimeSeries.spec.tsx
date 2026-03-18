@@ -36,6 +36,38 @@ describe('transformWidgetSeriesToTimeSeries', () => {
   });
 
   describe('multi-query labels (prefixed upstream with > delimiter)', () => {
+    it('finds the correct widget query by matching conditions in the series name', () => {
+      const chromeQuery = WidgetQueryFixture({
+        name: '',
+        conditions: 'browser:Chrome',
+        aggregates: ['count()'],
+        columns: [],
+        fields: ['count()'],
+      });
+      const firefoxQuery = WidgetQueryFixture({
+        name: '',
+        conditions: 'browser:Firefox',
+        aggregates: ['count()'],
+        columns: [],
+        fields: ['count()'],
+      });
+      const widget = WidgetFixture({
+        queries: [chromeQuery, firefoxQuery],
+      });
+
+      const result0 = transformWidgetSeriesToTimeSeries(
+        makeSeries('browser:Chrome > count()'),
+        widget
+      );
+      expect(result0?.widgetQuery).toBe(chromeQuery);
+
+      const result1 = transformWidgetSeriesToTimeSeries(
+        makeSeries('browser:Firefox > count()'),
+        widget
+      );
+      expect(result1?.widgetQuery).toBe(firefoxQuery);
+    });
+
     it('extracts conditions prefix from before the > delimiter', () => {
       const widget = WidgetFixture({
         queries: [
