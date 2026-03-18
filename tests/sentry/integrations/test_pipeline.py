@@ -166,7 +166,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         """Ensures pipeline can complete if all integration organizations reside in one cell."""
         self._setup_cell_restriction()
 
-        # Installing organization is from the same region
+        # Installing organization is from the same cell
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
 
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
@@ -196,7 +196,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         with override_regions(self.cells):
             response = self.pipeline.finish_pipeline()
             assert isinstance(response, HttpResponse)
-            error_message = "This integration has already been installed on another Sentry organization which resides in a different region. Installation could not be completed."
+            error_message = "This integration has already been installed on another Sentry organization which resides in a different cell. Installation could not be completed."
             assert error_message in response.content.decode()
 
             if SiloMode.get_current_mode() == SiloMode.MONOLITH:
