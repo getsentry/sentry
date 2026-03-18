@@ -9,9 +9,11 @@ import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
+import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {MobileAppSizeConfig} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -182,8 +184,15 @@ export function useMobileAppSizeSeriesQuery(
         filteredWidget.queries[requestIndex]!,
         organization
       );
+      const seriesQueryPrefix = getSeriesQueryPrefix(
+        filteredWidget.queries[requestIndex]!,
+        filteredWidget
+      );
 
       transformedResult.forEach((result: Series, resultIndex: number) => {
+        if (seriesQueryPrefix) {
+          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
+        }
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
