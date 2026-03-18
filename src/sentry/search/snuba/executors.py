@@ -712,7 +712,7 @@ def _get_recommended_weights() -> dict[str, float | int]:
     }
 
 
-def _recommended_aggregation_impl(timestamp_column: str) -> Sequence[str]:
+def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
     """Build a Snuba aggregation expression for the recommended sort.
 
     Combines four normalized [0, 1] components additively:
@@ -768,8 +768,8 @@ def _recommended_aggregation_impl(timestamp_column: str) -> Sequence[str]:
     ]
 
 
-RECOMMENDED_AGGREGATION_TIMESTAMP = _recommended_aggregation_impl("timestamp")
-RECOMMENDED_AGGREGATION_CLIENT_TIMESTAMP = _recommended_aggregation_impl("client_timestamp")
+_RECOMMENDED_AGGREGATION_TIMESTAMP = _recommended_aggregation("timestamp")
+_RECOMMENDED_AGGREGATION_CLIENT_TIMESTAMP = _recommended_aggregation("client_timestamp")
 
 
 def recommended_aggregation(
@@ -777,7 +777,7 @@ def recommended_aggregation(
     end: datetime,
     aggregate_kwargs: Any = None,
 ) -> Sequence[str]:
-    return RECOMMENDED_AGGREGATION_TIMESTAMP
+    return _RECOMMENDED_AGGREGATION_TIMESTAMP
 
 
 def recommended_issue_platform_aggregation(
@@ -785,7 +785,7 @@ def recommended_issue_platform_aggregation(
     end: datetime,
     aggregate_kwargs: Any = None,
 ) -> Sequence[str]:
-    return RECOMMENDED_AGGREGATION_CLIENT_TIMESTAMP
+    return _RECOMMENDED_AGGREGATION_CLIENT_TIMESTAMP
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
