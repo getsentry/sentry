@@ -644,7 +644,6 @@ const DesktopPageFrameNavigationLink = styled((props: LinkProps) => (
   outline: none;
   box-shadow: none;
   transition: none;
-
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 
   [data-icon-container] {
@@ -659,18 +658,23 @@ const DesktopPageFrameNavigationLink = styled((props: LinkProps) => (
         p.theme.tokens.interactive.transparent.neutral.background.hover};
     }
 
-    * {
-      color: ${p => p.theme.tokens.interactive.link.neutral.hover} !important;
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+  }
+
+  &:active {
+    color: ${p => p.theme.tokens.content.primary};
+
+    [data-icon-container] {
+      border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.background.active};
     }
   }
 
   &:focus-visible {
     box-shadow: none;
     outline: none;
-
-    * {
-      color: ${p => p.theme.tokens.interactive.link.neutral.rest} !important;
-    }
+    color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 
     [data-icon-container] {
       ${p => p.theme.focusRing()}
@@ -684,9 +688,7 @@ const DesktopPageFrameNavigationLink = styled((props: LinkProps) => (
       border: 1px solid ${p => p.theme.tokens.border.transparent.accent.muted};
     }
 
-    * {
-      color: ${p => p.theme.tokens.content.primary} !important;
-    }
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;
 
