@@ -76,6 +76,7 @@ interface SecondarySidebarProps {
 }
 
 function SecondarySidebar({children}: SecondarySidebarProps) {
+  const theme = useTheme();
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
@@ -123,7 +124,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               initial={{x: -6, opacity: 0}}
               animate={{x: 0, opacity: 1}}
               exit={{x: 6, opacity: 0}}
-              transition={{duration: 0.06}}
+              transition={theme.motion.framer.smooth.fast}
             >
               <Grid
                 rows="auto 1fr auto"
@@ -201,7 +202,7 @@ const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
     width: 4px;
     opacity: 0.8;
     background: transparent;
-    transition: background 0.25s ease 0.1s;
+    transition: background ${p => p.theme.motion.smooth.slow} 0.1s;
   }
 `;
 
@@ -615,7 +616,7 @@ function navigationItemStyles(p: {layout: 'mobile' | 'sidebar'; theme: Theme}) {
       left: -${p.theme.space.sm};
       border-radius: ${p.theme.radius['2xs']};
       background-color: ${p.theme.tokens.graphics.accent.vibrant};
-      transition: opacity 0.1s ease-in-out;
+      transition: opacity ${p.theme.motion.smooth.fast};
       opacity: 0;
     }
 
@@ -665,7 +666,7 @@ const MobileNavigationLink = styled(Link)`
     left: -${p => p.theme.space.sm};
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity 0.1s ease-in-out;
+    transition: opacity ${p => p.theme.motion.smooth.fast};
     opacity: 0;
   }
 
@@ -952,8 +953,8 @@ const StyledGrabHandle = styled(Flex)`
   pointer-events: none;
   z-index: 1;
   transition:
-    opacity 150ms ease,
-    transform 150ms ease;
+    opacity ${p => p.theme.motion.smooth.moderate},
+    transform ${p => p.theme.motion.smooth.moderate};
   &:active {
     cursor: grabbing;
   }
@@ -1095,8 +1096,8 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
   [data-reorderable-handle-slot] {
     transform: scale(1);
     transition:
-      opacity 150ms ease,
-      transform 150ms ease;
+      opacity ${p => p.theme.motion.smooth.moderate},
+      transform ${p => p.theme.motion.smooth.moderate};
   }
 
   :hover [data-reorderable-handle-slot],
@@ -1137,7 +1138,7 @@ const SidebarNavigationLink = styled(Link)`
     left: -${p => p.theme.space.sm};
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity 0.1s ease-in-out;
+    transition: opacity ${p => p.theme.motion.smooth.fast};
     opacity: 0;
   }
 
