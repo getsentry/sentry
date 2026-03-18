@@ -7,3 +7,4 @@ class ProcessMentionHaltReason(StrEnum):
     ORG_NOT_FOUND = "org_not_found"
     NO_EXPLORER_ACCESS = "no_explorer_access"
     INTEGRATION_NOT_FOUND = "integration_not_found"
+    IDENTITY_NOT_LINKED = "identity_not_linked"

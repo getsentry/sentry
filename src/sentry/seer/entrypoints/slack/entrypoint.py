@@ -380,6 +380,7 @@ class SlackExplorerEntrypoint(
         self.thread_ts = thread_ts or message_ts
         self.thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=channel_id)
         self.organization_id = organization_id
+        self.integration = integration
         self.install = SlackIntegration(model=integration, organization_id=organization_id)
         self.slack_user_id = slack_user_id
 
