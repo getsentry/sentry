@@ -21,7 +21,7 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.core.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authprovider import AuthProvider
@@ -35,7 +35,7 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
-from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics import SpanMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -576,16 +576,16 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         self.login_as(user=member_user)
 
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction", "decision": "keep"},
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"is_segment": "true", "decision": "keep"},
             minutes_before_now=60 * 24 * 12,
             value=1,
             project_id=project_1.id,
             org_id=self.organization.id,
         )
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction", "decision": "keep"},
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"is_segment": "true", "decision": "keep"},
             minutes_before_now=60 * 24 * 12,
             value=1,
             project_id=project_2.id,
@@ -1153,13 +1153,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_cancel_delete(self) -> None:
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(org, days=1)
+        CellScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, **{"cancelDeletion": True})
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.ACTIVE
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Organization", object_id=org.id
         ).exists()
 
@@ -1896,7 +1896,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         deleted_org = DeletedOrganization.objects.get(slug=org.slug)
         self.assert_valid_deleted_log(deleted_org, org)
 
-        schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        schedule = CellScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
         assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
@@ -1943,7 +1943,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         deleted_org = DeletedOrganization.objects.get(slug=org.slug)
         self.assert_valid_deleted_log(deleted_org, org)
 
-        schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        schedule = CellScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
     def test_cannot_remove_default(self) -> None:
@@ -1957,14 +1957,14 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
     def test_redo_deletion(self) -> None:
         # Orgs can delete, undelete, delete within a day
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(org, days=1)
+        CellScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        scheduled_deletions = RegionScheduledDeletion.objects.filter(
+        scheduled_deletions = CellScheduledDeletion.objects.filter(
             object_id=org.id, model_name="Organization"
         )
         assert scheduled_deletions.exists()

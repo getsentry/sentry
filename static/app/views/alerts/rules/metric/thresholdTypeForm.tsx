@@ -95,9 +95,8 @@ export function ThresholdTypeForm({
               }),
             }}
             value={comparisonDelta}
-            onChange={({value}: any) => onComparisonDeltaChange(value)}
+            onChange={({value}) => onComparisonDeltaChange(value)}
             options={comparisonDeltaOptions}
-            required={comparisonType === AlertRuleComparisonType.CHANGE}
           />
         </Flex>
       ) : (
