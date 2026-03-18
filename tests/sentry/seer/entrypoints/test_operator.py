@@ -667,7 +667,7 @@ class TestSeerOperatorCompletionHook(TestCase):
         Returns the mock entrypoint class so callers can assert on it.
         """
         if cache_return_value is self._SENTINEL:
-            cache_return_value = {"thread_id": "abc"}
+            cache_return_value = {"thread_id": "abc", "organization_id": self.organization.id}
 
         mock_fetch.return_value = state
         mock_entrypoint_cls = Mock(spec=SeerExplorerEntrypoint)
@@ -715,7 +715,7 @@ class TestSeerOperatorCompletionHook(TestCase):
         mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
 
         mock_entrypoint_cls.on_explorer_update.assert_called_once_with(
-            cache_payload={"thread_id": "abc"},
+            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
             summary="last assistant",
             run_id=MOCK_RUN_ID,
         )
@@ -739,7 +739,7 @@ class TestSeerOperatorCompletionHook(TestCase):
         mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
 
         mock_entrypoint_cls.on_explorer_update.assert_called_once_with(
-            cache_payload={"thread_id": "abc"},
+            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
             summary="Explorer result could not be fetched. Please try again.",
             run_id=MOCK_RUN_ID,
         )
@@ -822,7 +822,7 @@ class TestSeerOperatorCompletionHook(TestCase):
         mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
 
         mock_entrypoint_cls.on_explorer_update.assert_called_once_with(
-            cache_payload={"thread_id": "abc"},
+            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
             summary="Explorer result could not be fetched. Please try again.",
             run_id=MOCK_RUN_ID,
         )
