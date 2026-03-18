@@ -3,8 +3,8 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 
 import type {
   AdminConfirmParams,

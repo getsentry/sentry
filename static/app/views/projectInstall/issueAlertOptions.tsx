@@ -4,11 +4,12 @@ import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
-import IssueAlertNotificationOptions, {
+import {
+  IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
@@ -125,7 +126,7 @@ export interface IssueAlertOptionsProps extends Partial<AlertRuleOptions> {
   notificationProps?: IssueAlertNotificationProps;
 }
 
-export default function IssueAlertOptions({
+export function IssueAlertOptions({
   alertSetting = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.alertSetting,
   interval = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.interval,
   metric = DEFAULT_ISSUE_ALERT_OPTIONS_VALUES.metric,

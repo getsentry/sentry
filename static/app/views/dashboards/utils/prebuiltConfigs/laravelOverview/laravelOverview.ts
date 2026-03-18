@@ -181,7 +181,7 @@ export const LARAVEL_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   ],
   onboarding: {
     type: 'overview',
-    requiredProjectFlags: ['hasInsightsDb', 'hasInsightsHttp'],
+    requiredProjectFlags: ['firstTransactionEvent'],
     description: 'Get started with Laravel tracing',
   },
 };

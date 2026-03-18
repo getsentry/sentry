@@ -3,7 +3,7 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {Repository, RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useFetchSequentialPages} from 'sentry/utils/api/useFetchSequentialPages';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';

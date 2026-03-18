@@ -17,6 +17,7 @@ from sentry.models.debugfile import (
     ProjectDebugFile,
     create_dif_from_id,
     detect_dif_from_path,
+    get_debug_id_from_dif_request,
 )
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase, TestCase
@@ -479,6 +480,30 @@ def test_proguard_file_not_detected(path: str, name: str | None) -> None:
         # Note that if the path or name does exist as a file on the filesystem,
         # this test will fail.
         detect_dif_from_path(path, name)
+
+
+def test_get_debug_id_from_dif_request_normalizes_debug_id() -> None:
+    assert (
+        get_debug_id_from_dif_request(
+            name=None,
+            debug_id="67E9247C814E392BA027DBDE6748FCBF",
+        )
+        == "67e9247c-814e-392b-a027-dbde6748fcbf"
+    )
+
+
+def test_get_debug_id_from_dif_request_invalid_debug_id_returns_none() -> None:
+    assert get_debug_id_from_dif_request(name=None, debug_id="not-a-debug-id") is None
+
+
+def test_get_debug_id_from_dif_request_reads_proguard_name() -> None:
+    assert (
+        get_debug_id_from_dif_request(
+            name="/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+            debug_id=None,
+        )
+        == "00000000-0000-0000-0000-000000000000"
+    )
 
 
 def test_dartsymbolmap_file_detected() -> None:

@@ -1139,6 +1139,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "seer:sentry.tasks.seer_explorer_index.schedule_explorer_index",
         "schedule": task_crontab("0", "*/1", "*", "*", "*"),
     },
+    "context-engine-index": {
+        "task": "seer:sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
+        # Offset by 30 minutes from seer-explorer-index to spread load
+        "schedule": task_crontab("30", "*/1", "*", "*", "*"),
+    },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
         "schedule": task_crontab("*/1", "*", "*", "*", "*"),
@@ -2661,6 +2666,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-cutover": "default",
     "taskworker-email": "default",
     "taskworker-email-dlq": "default",
+    "taskworker-example": "default",
     "taskworker-ingest": "default",
     "taskworker-ingest-dlq": "default",
     "taskworker-ingest-errors": "default",

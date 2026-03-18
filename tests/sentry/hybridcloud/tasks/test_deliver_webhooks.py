@@ -21,9 +21,9 @@ from sentry.hybridcloud.tasks.deliver_webhooks import (
     schedule_webhook_delivery,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, CellResolutionError, RegionCategory
 
@@ -106,7 +106,7 @@ class ScheduleWebhooksTest(TestCase):
         mock_deliver.delay.assert_called_with(webhook_one.id)
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_schedule_mailbox_with_more_than_batch_size_records(self) -> None:
         responses.add(
             responses.POST, "http://us.testserver/extensions/github/webhook/", body=ReadTimeout()
@@ -307,7 +307,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 0
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_success_partial(self) -> None:
         url = "http://us.testserver/extensions/github/webhook/"
         responses.add(responses.POST, url, status=200, body="")
@@ -332,7 +332,7 @@ class DrainMailboxTest(TestCase):
         assert first.schedule_for > timezone.now()
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_stops_on_failure_for_non_allowlisted_provider(self) -> None:
         url = "http://us.testserver/extensions/github/webhook/"
         responses.add(responses.POST, url, status=200, body="")
@@ -353,7 +353,7 @@ class DrainMailboxTest(TestCase):
         assert first.schedule_for > timezone.now()
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_mailbox_multiple_consecutive_failures(self) -> None:
         url = "http://us.testserver/extensions/github/webhook/"
         responses.add(responses.POST, url, status=500, body="")
@@ -370,7 +370,7 @@ class DrainMailboxTest(TestCase):
             assert record.schedule_for > timezone.now()
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_success(self) -> None:
         responses.add(
             responses.POST,
@@ -389,7 +389,7 @@ class DrainMailboxTest(TestCase):
     @override_options(
         {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
     )
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_success_codecov(self) -> None:
         responses.add(
             responses.POST,
@@ -409,7 +409,7 @@ class DrainMailboxTest(TestCase):
     @responses.activate
     @override_settings(CODECOV_API_BASE_URL=None)
     @override_options({"codecov.forward-webhooks.disabled": False})
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_codecov_configuration_error(self) -> None:
         responses.add(
             responses.POST,
@@ -433,7 +433,7 @@ class DrainMailboxTest(TestCase):
     @override_options(
         {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
     )
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_codecov_request_error(self) -> None:
         responses.add(
             responses.POST,
@@ -471,7 +471,7 @@ class DrainMailboxTest(TestCase):
     @override_options(
         {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
     )
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_codecov_not_filtered_other_owner(self) -> None:
         responses.add(
             responses.POST,
@@ -495,7 +495,7 @@ class DrainMailboxTest(TestCase):
     @override_options(
         {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
     )
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_codecov_not_filtered_malformed_body(self) -> None:
         responses.add(
             responses.POST,
@@ -516,7 +516,7 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_options({"codecov.forward-webhooks.disabled": True})
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_codecov_skipped_when_forwarding_disabled(self) -> None:
         """When codecov.forward-webhooks.disabled is True, payloads are drained but not sent."""
         records = create_payloads_with_destination_type(
@@ -528,7 +528,7 @@ class DrainMailboxTest(TestCase):
         assert not WebhookPayload.objects.filter().exists()
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_time_limit(self) -> None:
         responses.add(
             responses.POST,
@@ -548,7 +548,7 @@ class DrainMailboxTest(TestCase):
         assert WebhookPayload.objects.count() == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_too_many_attempts(self) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
@@ -560,7 +560,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 0
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_more_than_max_attempts(self) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
@@ -572,7 +572,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 0
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_fatality(self) -> None:
         responses.add(
             responses.POST,
@@ -593,7 +593,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_host_error(self) -> None:
         responses.add(
             responses.POST,
@@ -610,7 +610,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_conflict(self) -> None:
         # Getting a conflict back from the region silo means
         # we should drop the hook.
@@ -629,7 +629,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_api_error_unauthorized(self) -> None:
         responses.add(
             responses.POST,
@@ -648,7 +648,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_api_error_bad_request(self) -> None:
         responses.add(
             responses.POST,
@@ -667,7 +667,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_api_error_forbidden(self) -> None:
         responses.add(
             responses.POST,
@@ -686,7 +686,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_not_found(self) -> None:
         responses.add(
             responses.POST,
@@ -707,7 +707,7 @@ class DrainMailboxTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_timeout(self) -> None:
         responses.add(
             responses.POST, "http://us.testserver/extensions/github/webhook/", body=ReadTimeout()
@@ -743,7 +743,7 @@ class DrainMailboxParallelTest(TestCase):
         assert len(responses.calls) == 0
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_success_partial(self) -> None:
         responses.add(
             responses.POST,
@@ -774,7 +774,7 @@ class DrainMailboxParallelTest(TestCase):
         assert first.schedule_for > timezone.now()
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_success(self) -> None:
         responses.add(
             responses.POST,
@@ -789,7 +789,7 @@ class DrainMailboxParallelTest(TestCase):
         assert not WebhookPayload.objects.filter().exists()
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_time_limit(self) -> None:
         responses.add(
             responses.POST,
@@ -809,7 +809,7 @@ class DrainMailboxParallelTest(TestCase):
         assert WebhookPayload.objects.count() == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_discard_old_messages(self) -> None:
         responses.add(
             responses.POST,
@@ -832,7 +832,7 @@ class DrainMailboxParallelTest(TestCase):
         assert len(responses.calls) == 0
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_too_many_attempts(self) -> None:
         responses.add(
             responses.POST,
@@ -850,7 +850,7 @@ class DrainMailboxParallelTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_more_than_max_attempts(self) -> None:
         webhook_one = self.create_webhook_payload(
             mailbox_name="github:123",
@@ -862,7 +862,7 @@ class DrainMailboxParallelTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_fatality(self) -> None:
         responses.add(
             responses.POST,
@@ -883,7 +883,7 @@ class DrainMailboxParallelTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_host_error(self) -> None:
         responses.add(
             responses.POST,
@@ -900,7 +900,7 @@ class DrainMailboxParallelTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_conflict(self) -> None:
         # Getting a conflict back from the region silo means
         # we should drop the hook.
@@ -919,7 +919,7 @@ class DrainMailboxParallelTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_api_error_unauthorized(self) -> None:
         responses.add(
             responses.POST,
@@ -938,7 +938,7 @@ class DrainMailboxParallelTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_api_error_bad_request(self) -> None:
         responses.add(
             responses.POST,
@@ -957,7 +957,7 @@ class DrainMailboxParallelTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_not_found(self) -> None:
         responses.add(
             responses.POST,
@@ -978,7 +978,7 @@ class DrainMailboxParallelTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_drain_timeout(self) -> None:
         responses.add(
             responses.POST, "http://us.testserver/extensions/github/webhook/", body=ReadTimeout()
@@ -999,7 +999,7 @@ class DrainMailboxParallelTest(TestCase):
 @control_silo_test
 class SlowDeliveryLoggingTest(TestCase):
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_slow_delivery_logged(self) -> None:
         responses.add(
             responses.POST,
@@ -1039,7 +1039,7 @@ class SlowDeliveryLoggingTest(TestCase):
 @control_silo_test
 class DeliveryTimeMetricsTest(TestCase):
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_region_sent_to(self, mock_metrics: MagicMock) -> None:
         responses.add(
@@ -1067,7 +1067,7 @@ class DeliveryTimeMetricsTest(TestCase):
     @override_options(
         {"codecov.api-bridge-signing-secret": "test", "codecov.forward-webhooks.disabled": False}
     )
-    @override_regions(region_config)
+    @override_cells(region_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_codecov_region_sent_to(self, mock_metrics: MagicMock) -> None:
         responses.add(
@@ -1098,7 +1098,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert incr_calls[0][1].get("tags", {}).get("outcome") == "ok"
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_github_event_and_action(self, mock_metrics: MagicMock) -> None:
         responses.add(
@@ -1129,7 +1129,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert tags.get("github_event_and_action") == "pull_request.opened"
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_github_event_only(self, mock_metrics: MagicMock) -> None:
         responses.add(
@@ -1160,7 +1160,7 @@ class DeliveryTimeMetricsTest(TestCase):
         assert tags.get("github_event_and_action") == "push.unknown"
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
     def test_delivery_time_metrics_non_github_no_github_tags(self, mock_metrics: MagicMock) -> None:
         responses.add(
@@ -1275,7 +1275,7 @@ class PushTriggerTest(TestCase):
         mock_drain.delay.assert_called_once_with(webhook_b.id)
 
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
     def test_drain_clears_lock_on_completion(self) -> None:
         from django.core.cache import cache
@@ -1294,7 +1294,7 @@ class PushTriggerTest(TestCase):
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.drain_mailbox")
     @responses.activate
-    @override_regions(region_config)
+    @override_cells(region_config)
     @override_options({"hybridcloud.webhookpayload.push_drain_trigger": True})
     def test_push_trigger_fires_immediately_after_drain_completes(
         self, mock_drain: MagicMock

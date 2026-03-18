@@ -13,11 +13,12 @@ import {closeModal} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import Placeholder from 'sentry/components/placeholder';
+import {ListItem} from 'sentry/components/list/listItem';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
@@ -28,7 +29,7 @@ import {useUpgradeNowParams} from 'getsentry/components/upgradeNowModal/useUpgra
 import {redirectToManage} from 'getsentry/components/upgradeNowModal/utils';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = ModalRenderProps &
   Omit<ComponentProps<typeof ActionButtons>, 'hasPriceChange'> & {

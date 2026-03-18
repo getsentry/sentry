@@ -55,7 +55,7 @@ import {formatApdex} from 'sentry/utils/number/formatApdex';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {toPercent} from 'sentry/utils/number/toPercent';
-import Projects from 'sentry/utils/projects';
+import {Projects} from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {type DashboardFilters, type Widget} from 'sentry/views/dashboards/types';

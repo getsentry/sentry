@@ -20,7 +20,7 @@ type FilterSelectorTriggerProps = {
   queryResult: UseQueryResult<string[], Error>;
 };
 
-function FilterSelectorTrigger({
+export function FilterSelectorTrigger({
   globalFilter,
   activeFilterValues,
   operator,
@@ -66,8 +66,6 @@ function FilterSelectorTrigger({
     </ButtonLabelWrapper>
   );
 }
-
-export default FilterSelectorTrigger;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {
