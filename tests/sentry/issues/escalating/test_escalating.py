@@ -393,7 +393,7 @@ class TestEAPIsEscalating(TestCase, SnubaTestCase):
         snuba_results = _query_groups_past_counts_snuba([group])
         eap_results = _query_groups_past_counts_eap([group])
 
-        assert len(snuba_results) == len(eap_results) == 1
+        assert len(snuba_results) == len(eap_results) == 2
         assert snuba_results[0]["group_id"] == eap_results[0]["group_id"] == group.id
         assert snuba_results[0]["project_id"] == eap_results[0]["project_id"] == self.project.id
         assert snuba_results[0]["count()"] == eap_results[0]["count()"] == 3
