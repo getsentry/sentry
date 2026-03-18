@@ -20,7 +20,6 @@ from sentry.utils import metrics
 # These rules types will always be added to the generated rules, irrespectively of the base sample rate.
 ALWAYS_INCLUDED_RULE_TYPES = {
     RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE,
-    RuleType.CUSTOM_RULE,
 }
 
 ALWAYS_ALLOWED_RULE_TYPES = {

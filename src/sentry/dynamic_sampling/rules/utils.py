@@ -7,7 +7,6 @@ import orjson
 from django.conf import settings
 from redis import StrictRedis
 
-from sentry.models.dynamicsampling import CUSTOM_RULE_START
 from sentry.relay.types import RuleCondition
 from sentry.utils import redis
 
@@ -47,6 +46,7 @@ class RuleType(Enum):
     BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransactions"
     BOOST_LOW_VOLUME_TRANSACTIONS_RULE = "boostLowVolumeTransactions"
     BOOST_REPLAY_ID_RULE = "boostReplayId"
+    # Kept for Relay cross-system contract compatibility. Do not reuse this value.
     CUSTOM_RULE = "customRule"
     MINIMUM_SAMPLE_RATE_RULE = "minimumSampleRate"
 
@@ -74,7 +74,8 @@ RESERVED_IDS = {
     RuleType.MINIMUM_SAMPLE_RATE_RULE: 1006,
     RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE: 1400,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
-    RuleType.CUSTOM_RULE: CUSTOM_RULE_START,
+    # Reserved for Relay compatibility. Do not reuse.
+    RuleType.CUSTOM_RULE: 3000,
 }
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
 
