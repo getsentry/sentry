@@ -5,7 +5,7 @@ import {Image} from '@sentry/scraps/image';
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
 interface OverviewOnboardingPanelProps {

@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 
 import type {ChartType} from 'sentry/chartcuterie/types';
 import {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
-import getBreakpointChartOptionsFromData, {
+import {
+  getBreakpointChartOptionsFromData,
   type BreakpointEvidenceData,
   type EventBreakpointChartData,
 } from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
@@ -17,7 +18,12 @@ interface ChartProps {
   percentileData: EventBreakpointChartData['percentileData'];
 }
 
-function LineChart({datetime, percentileData, evidenceData, chartType}: ChartProps) {
+export function LineChart({
+  datetime,
+  percentileData,
+  evidenceData,
+  chartType,
+}: ChartProps) {
   const theme = useTheme();
   const normalizedDateTime = {
     period: datetime.period,
@@ -44,5 +50,3 @@ function LineChart({datetime, percentileData, evidenceData, chartType}: ChartPro
     />
   );
 }
-
-export default LineChart;

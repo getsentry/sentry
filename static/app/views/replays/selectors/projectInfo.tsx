@@ -3,10 +3,10 @@ import {PlatformIcon} from 'platformicons';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import TextOverflow from 'sentry/components/textOverflow';
-import useProjects from 'sentry/utils/useProjects';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {useProjects} from 'sentry/utils/useProjects';
 
-export default function ProjectInfo({id, isWidget}: {id: number; isWidget: boolean}) {
+export function ProjectInfo({id, isWidget}: {id: number; isWidget: boolean}) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === id.toString());
   const platform = project?.platform;

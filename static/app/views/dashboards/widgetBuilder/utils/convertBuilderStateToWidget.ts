@@ -32,6 +32,19 @@ export function getSelectedAggregateIndex(
 }
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
+  if (state.displayType === DisplayType.TEXT) {
+    return {
+      title: state.title ?? '',
+      description: state.textContent,
+      displayType: state.displayType,
+      interval: '',
+      queries: [],
+      widgetType: undefined,
+      limit: undefined,
+      thresholds: undefined,
+      axisRange: undefined,
+    };
+  }
   const datasetConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
   const defaultQuery = datasetConfig.defaultWidgetQuery;
 
@@ -134,6 +147,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     queries: widgetQueries,
     widgetType: state.dataset,
     limit,
+    legendType: state.legendType,
     thresholds: state.thresholds,
     axisRange: getAxisRange(state.axisRange) ?? datasetConfig.axisRange,
   };

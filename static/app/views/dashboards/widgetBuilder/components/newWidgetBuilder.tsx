@@ -1,4 +1,11 @@
-import {Fragment, useCallback, useEffect, useState, type CSSProperties} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,17 +14,16 @@ import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DisplayType,
   type DashboardDetails,
@@ -35,16 +41,15 @@ import {
   WIDGET_PREVIEW_DRAG_ID,
   type WidgetDragPositioning,
 } from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
-import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
-import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
-import WidgetPreview from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
+import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
+import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
+import {WidgetPreview} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import {useNavigationContext} from 'sentry/views/navigation/context';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
@@ -62,7 +67,7 @@ type WidgetBuilderV2Props = {
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
 
-function WidgetBuilderV2({
+export function WidgetBuilderV2({
   isOpen,
   onClose,
   onSave,
@@ -86,11 +91,20 @@ function WidgetBuilderV2({
     DEFAULT_WIDGET_DRAG_POSITIONING
   );
 
-  const {navigationParentRef} = useNavigationContext();
-  // Check if we have a valid nav reference
-  const hasValidNav = Boolean(navigationParentRef?.current);
+  const navigationElementRef = useRef<HTMLDivElement>(null);
 
-  const dimensions = useDimensions({elementRef: navigationParentRef});
+  useEffect(() => {
+    if (navigationElementRef.current) return;
+
+    const navigationElement = document.querySelector(
+      'nav[aria-label="Primary Navigation"]'
+    )?.parentElement;
+    if (navigationElement) {
+      navigationElementRef.current = navigationElement as HTMLDivElement;
+    }
+  }, []);
+
+  const dimensions = useDimensions({elementRef: navigationElementRef});
 
   const handleDragEnd = ({over}: any) => {
     setTranslate(snapPreviewToCorners(over));
@@ -150,7 +164,7 @@ function WidgetBuilderV2({
             <CustomMeasurementsProvider organization={organization} selection={selection}>
               <ContainerWithoutSidebar
                 style={
-                  hasValidNav
+                  navigationElementRef.current
                     ? isMediumScreen
                       ? {
                           left: 0,
@@ -212,8 +226,6 @@ function WidgetBuilderV2({
     </AnimatePresence>
   );
 }
-
-export default WidgetBuilderV2;
 
 export function WidgetPreviewContainer({
   dashboardFilters,
@@ -334,7 +346,7 @@ export function WidgetPreviewContainer({
                     height: getPreviewHeight(),
                     outline: isDragEnabled
                       ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
-                        `${space(1)} solid ${theme.tokens.border.primary}`
+                        `8px solid ${theme.tokens.border.primary}`
                       : undefined,
                   }}
                 >

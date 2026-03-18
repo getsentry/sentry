@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
-import CheckoutSuccess from 'getsentry/views/amCheckout/components/checkoutSuccess';
+import {CheckoutSuccess} from 'getsentry/views/amCheckout/components/checkoutSuccess';
 
 describe('CheckoutSuccess', () => {
   const bizPlan = PlanDetailsLookupFixture('am3_business');

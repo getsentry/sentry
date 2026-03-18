@@ -6,8 +6,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import ConfigStore from 'sentry/stores/configStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -29,8 +29,7 @@ type InitializeOrgProps = {
 };
 
 jest.mock('sentry/utils/useMedia', () => ({
-  __esModule: true,
-  default: jest.fn(() => true),
+  useMedia: jest.fn(() => true),
 }));
 
 const mockEventsUrl = '/organizations/org-slug/events/';

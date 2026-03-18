@@ -8,8 +8,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
-import FileSize from 'sentry/components/fileSize';
-import TimeSince from 'sentry/components/timeSince';
+import {FileSize} from 'sentry/components/fileSize';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
@@ -21,9 +21,9 @@ import type {
 import {CandidateDownloadStatus, SymbolType} from 'sentry/types/debugImage';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-import Divider from './divider';
-import Features from './features';
-import ProcessingIcon, {getProcessingInfoTooltip} from './processingIcon';
+import {Divider} from './divider';
+import {Features} from './features';
+import {getProcessingInfoTooltip, ProcessingIcon} from './processingIcon';
 
 type Props = {
   candidate: ImageCandidate;
@@ -32,7 +32,7 @@ type Props = {
   eventDateReceived?: string;
 };
 
-function Information({
+export function Information({
   candidate,
   isInternalSource,
   hasReprocessWarning,
@@ -241,8 +241,6 @@ function Information({
     </Wrapper>
   );
 }
-
-export default Information;
 
 const Wrapper = styled('div')`
   white-space: pre-wrap;

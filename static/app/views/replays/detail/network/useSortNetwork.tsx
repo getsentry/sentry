@@ -21,7 +21,7 @@ const SortStrategies: Record<string, (row: any) => any> = {
 
 type Opts = {items: SpanFrame[]};
 
-export default function useSortNetwork({items}: Opts) {
+export function useSortNetwork({items}: Opts) {
   const [sortAsc, setSortAsc] = useQueryState(
     's_n_asc',
     parseAsBoolean.withDefault(true).withOptions({history: 'push', throttleMs: 0})

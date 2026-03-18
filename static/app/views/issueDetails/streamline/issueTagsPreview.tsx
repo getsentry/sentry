@@ -12,8 +12,8 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DeviceName} from 'sentry/components/deviceName';
-import Placeholder from 'sentry/components/placeholder';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   backend,
   featureFlagDrawerPlatforms,
@@ -26,8 +26,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -223,7 +223,7 @@ function DistributionsDrawerButton({
   );
 }
 
-export default function IssueTagsPreview({
+export function IssueTagsPreview({
   groupId,
   environments,
   project,

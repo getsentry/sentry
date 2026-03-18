@@ -12,7 +12,7 @@ import {onboarding} from './onboarding';
 import {replay} from './replay';
 import {installSnippetBlock} from './utils';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedback,
   replayOnboarding: replay,
@@ -38,5 +38,3 @@ const docs: Docs = {
   }),
   mcpOnboarding: mcp,
 };
-
-export default docs;

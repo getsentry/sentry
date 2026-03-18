@@ -31,9 +31,9 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {Timeline} from 'sentry/components/timeline';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconCheckmark,
   IconChevron,
@@ -53,7 +53,7 @@ import type {Group} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {

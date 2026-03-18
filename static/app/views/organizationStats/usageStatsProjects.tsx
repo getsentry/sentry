@@ -8,23 +8,23 @@ import {Flex} from '@sentry/scraps/layout';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import Pagination from 'sentry/components/pagination';
-import SearchBar from 'sentry/components/searchBar';
+import {Pagination} from 'sentry/components/pagination';
+import {SearchBar} from 'sentry/components/searchBar';
 import type {
   Alignments,
   Directions,
 } from 'sentry/components/tables/gridEditable/sortLink';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import type {UsageSeries} from './types';
 import type {TableStat} from './usageTable';

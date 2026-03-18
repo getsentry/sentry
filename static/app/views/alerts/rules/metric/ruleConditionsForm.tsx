@@ -25,17 +25,16 @@ import {
   STATIC_SPAN_TAGS,
 } from 'sentry/components/events/searchBarFieldConstants';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import FormField from 'sentry/components/forms/formField';
-import IdBadge from 'sentry/components/idBadge';
-import ListItem from 'sentry/components/list/listItem';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {FormField} from 'sentry/components/forms/formField';
+import {IdBadge} from 'sentry/components/idBadge';
+import {ListItem} from 'sentry/components/list/listItem';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t, tct, tctCode} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -52,11 +51,11 @@ import {
 import {getOnDemandKeys, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {getHasTag} from 'sentry/utils/tag';
-import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
-import withTags from 'sentry/utils/withTags';
+import {withApi} from 'sentry/utils/withApi';
+import {withProjects} from 'sentry/utils/withProjects';
+import {withTags} from 'sentry/utils/withTags';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
-import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
+import {WizardField} from 'sentry/views/alerts/rules/metric/wizardField';
 import {getProjectOptions, isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import {
   convertDatasetEventTypesToSource,
@@ -213,7 +212,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   };
 
   formElemBaseStyle = {
-    padding: space(0.5),
+    padding: '4px',
     border: 'none',
   };
 
@@ -286,7 +285,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       }),
       container: (provided: Record<string, string | number | boolean>) => ({
         ...provided,
-        margin: space(0.5),
+        margin: '4px',
       }),
     };
   }
@@ -536,9 +535,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               options={getTimeWindowOptions(dataset, comparisonType)}
               isDisabled={disabled || this.disableTransactionAlertType}
               value={timeWindow}
-              onChange={({value}: any) => onTimeWindowChange(value)}
-              inline={false}
-              flexibleControlStateSize
+              onChange={({value}) => onTimeWindowChange(value)}
             />
           </Tooltip>
         </FormRow>

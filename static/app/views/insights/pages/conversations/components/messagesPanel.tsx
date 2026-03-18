@@ -4,16 +4,15 @@ import styled from '@emotion/styled';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {ClippedBox} from 'sentry/components/clippedBox';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
-import {MarkedText} from 'sentry/utils/marked/markedText';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {MessageToolCalls} from 'sentry/views/insights/pages/conversations/components/messageToolCalls';
 import type {ConversationMessage} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {extractMessagesFromNodes} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 interface MessagesPanelProps {
   nodes: AITraceSpanNode[];
@@ -117,10 +116,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
               >
                 <Container padding="md">
                   <MessageText size="sm" align="left">
-                    <MarkedText
-                      as={TraceDrawerComponents.MarkdownContainer}
-                      text={message.content}
-                    />
+                    <AIContentRenderer text={message.content} inline />
                   </MessageText>
                 </Container>
               </StyledClippedBox>

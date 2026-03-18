@@ -10,9 +10,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Access from 'sentry/components/acl/access';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
+import {Access} from 'sentry/components/acl/access';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconDocs} from 'sentry/icons/iconDocs';
 import {IconGeneric} from 'sentry/icons/iconGeneric';
@@ -26,11 +26,11 @@ import type {
 import {getCategories, getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {useIntegrationFeatures} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationFeatures';
-import IntegrationStatus from 'sentry/views/settings/organizationIntegrations/integrationStatus';
+import {IntegrationStatus} from 'sentry/views/settings/organizationIntegrations/integrationStatus';
 
 export type IntegrationTab = 'overview' | 'configurations' | 'features';
 export interface AlertType extends AlertProps {
@@ -296,7 +296,7 @@ function ResourceIcon({title}: {title: string}) {
   }
 }
 
-const IntegrationLayout = {
+export const IntegrationLayout = {
   TopSection,
   Tabs: IntegrationTabs,
   Body,
@@ -306,8 +306,6 @@ const IntegrationLayout = {
   InformationCard,
   ResourceIcon,
 };
-
-export default IntegrationLayout;
 
 const IntegrationDescription = styled('div')`
   flex-grow: 1;

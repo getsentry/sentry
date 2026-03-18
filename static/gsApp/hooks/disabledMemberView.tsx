@@ -6,25 +6,25 @@ import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import Confirm from 'sentry/components/confirm';
-import Footer from 'sentry/components/footer';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PageOverlay from 'sentry/components/pageOverlay';
+import {Confirm} from 'sentry/components/confirm';
+import {Footer} from 'sentry/components/footer';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageOverlay} from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
-import DeactivatedMember from 'getsentry/components/features/illustrations/deactivatedMember';
-import withSubscription from 'getsentry/components/withSubscription';
+import {DeactivatedMember} from 'getsentry/components/features/illustrations/deactivatedMember';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
   subscription: Subscription;

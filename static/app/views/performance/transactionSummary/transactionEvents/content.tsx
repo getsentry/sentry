@@ -11,7 +11,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
@@ -23,7 +23,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -33,7 +33,8 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {OverviewSpansTable} from 'sentry/views/performance/eap/overviewSpansTable';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
-import Filter, {
+import {
+  Filter,
   filterToSearchConditions,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
@@ -43,7 +44,7 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-import EventsTable from './eventsTable';
+import {EventsTable} from './eventsTable';
 import type {EventsDisplayFilterName} from './utils';
 import {getEventsFilterOptions} from './utils';
 
@@ -74,7 +75,7 @@ const TRANSACTIONS_LIST_TITLES: readonly string[] = [
   t('timestamp'),
 ];
 
-function EventsContent(props: Props) {
+export function EventsContent(props: Props) {
   const {
     location,
     organization,
@@ -326,5 +327,3 @@ const StyledSearchBarWrapper = styled('div')`
     grid-column: auto;
   }
 `;
-
-export default EventsContent;

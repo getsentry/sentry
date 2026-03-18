@@ -9,21 +9,21 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import Card from 'sentry/components/card';
-import Carousel from 'sentry/components/carousel';
+import {Card} from 'sentry/components/card';
+import {Carousel} from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import FloatingFeedbackButton from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 const MAX_MEMBERS_TO_SHOW = 5;
 

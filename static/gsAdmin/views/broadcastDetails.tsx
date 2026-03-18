@@ -8,17 +8,17 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import ConfigStore from 'sentry/stores/configStore';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsPage from 'admin/components/detailsPage';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsPage} from 'admin/components/detailsPage';
 import {
   ALL_PLANCHOICES,
   CATEGORYCHOICES,
@@ -29,7 +29,7 @@ import {
   TRIALCHOICES,
 } from 'getsentry/utils/broadcasts';
 
-export default function BroadcastDetails() {
+export function BroadcastDetails() {
   const {broadcastId} = useParams<{broadcastId: string}>();
   const api = useApi();
   const queryClient = useQueryClient();

@@ -7,12 +7,12 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 
 import {ActionWrapper} from './actionWrapper';
 
@@ -135,7 +135,7 @@ type Props = {
   query?: string;
 };
 
-function ProjectVelocityScoreCard(props: Props) {
+export function ProjectVelocityScoreCard(props: Props) {
   const {organization} = props;
 
   const {
@@ -222,5 +222,3 @@ function ProjectVelocityScoreCard(props: Props) {
     />
   );
 }
-
-export default ProjectVelocityScoreCard;

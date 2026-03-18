@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from sentry import options, search
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.environments import get_environment_func
@@ -26,7 +26,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import RPC_DATASETS
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -74,7 +74,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -138,7 +138,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
         return Response(context)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

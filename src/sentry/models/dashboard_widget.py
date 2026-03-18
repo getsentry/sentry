@@ -14,7 +14,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.base import DefaultFieldsModel
@@ -92,6 +92,15 @@ class DashboardWidgetTypes(TypesClass):
         (PREPROD_APP_SIZE, "preprod-app-size"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class DashboardWidgetLegendType(str, Enum):
+    DEFAULT = "default"
+    BREAKDOWN = "breakdown"
+
+    @classmethod
+    def as_text_choices(cls):
+        return [(member.value, member.value) for member in cls]
 
 
 class DatasetSourcesTypes(Enum):
@@ -199,7 +208,7 @@ class DashboardWidgetDisplayTypes(TypesClass):
     TYPE_NAMES = [t[1] for t in TYPES]
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardWidgetQuery(Model):
     """
     A query in a dashboard widget.
@@ -239,7 +248,7 @@ class DashboardWidgetQuery(Model):
     __repr__ = sane_repr("widget", "type", "name")
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardFieldLink(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -256,7 +265,7 @@ class DashboardFieldLink(DefaultFieldsModel):
         unique_together = (("dashboard_widget_query", "field"),)
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardWidgetQueryOnDemand(Model):
     """
     Tracks on_demand state and values for dashboard widget queries.
@@ -325,7 +334,7 @@ class DashboardWidgetQueryOnDemand(Model):
     __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
-@region_silo_model
+@cell_silo_model
 class DashboardWidget(Model):
     """
     A dashboard widget.

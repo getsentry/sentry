@@ -10,12 +10,12 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import MemberListStore from 'sentry/stores/memberListStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import * as RegionUtils from 'sentry/utils/regions';
-import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
+import {OrganizationSettingsForm} from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
 jest.mock('sentry/utils/regions');
 
@@ -295,7 +295,7 @@ describe('OrganizationSettingsForm', () => {
       const aiCodeReviewLink = learnMoreLinks.find(
         link =>
           link.getAttribute('href') ===
-          'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/'
+          'https://docs.sentry.io/product/ai-in-sentry/seer/code-review/'
       );
       expect(aiCodeReviewLink).toBeInTheDocument();
     });

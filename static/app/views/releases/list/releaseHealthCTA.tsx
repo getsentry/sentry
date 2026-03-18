@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface Props {
@@ -21,7 +21,7 @@ interface Props {
   selection: PageFilters;
 }
 
-export default function ReleaseHealthCTA({
+export function ReleaseHealthCTA({
   organization,
   releases,
   selectedProject,

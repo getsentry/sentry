@@ -8,7 +8,7 @@ from django.urls import reverse
 from sentry import options
 from sentry.api.utils import generate_locality_url
 from sentry.auth import superuser
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_deletion
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization, OrganizationStatus
@@ -16,7 +16,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_regions
 from sentry.utils import json
 
 
@@ -86,7 +86,7 @@ Disallow: /
         assert response["Content-Type"] == "text/plain"
 
 
-@region_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)
+@cell_silo_test(regions=create_test_regions("us", "eu"), include_monolith_run=True)
 class ClientConfigViewTest(TestCase):
     @cached_property
     def path(self) -> str:
@@ -510,10 +510,10 @@ class ClientConfigViewTest(TestCase):
 
         # Delete lastOrganization
         assert Organization.objects.filter(slug=self.organization.slug).count() == 1
-        assert RegionScheduledDeletion.objects.count() == 0
+        assert CellScheduledDeletion.objects.count() == 0
 
         self.organization.update(status=OrganizationStatus.PENDING_DELETION)
-        deletion = RegionScheduledDeletion.schedule(self.organization, days=0)
+        deletion = CellScheduledDeletion.schedule(self.organization, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():
@@ -635,7 +635,7 @@ class ClientConfigViewTest(TestCase):
 
             expected_region_url = (
                 "http://foobar.us.testserver"
-                if SiloMode.get_current_mode() == SiloMode.REGION
+                if SiloMode.get_current_mode() == SiloMode.CELL
                 else options.get("system.url-prefix")
             )
             assert data["isAuthenticated"] is True

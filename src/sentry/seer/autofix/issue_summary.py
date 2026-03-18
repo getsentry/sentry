@@ -43,6 +43,7 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     make_summarize_issue_request,
 )
+from sentry.seer.supergroups.lightweight_rca import trigger_lightweight_rca
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -156,18 +157,50 @@ def _trigger_autofix_task(
     event_id: str,
     user_id: int | None,
     auto_run_source: str,
-    referrer: AutofixReferrer = AutofixReferrer.UNKNOWN,
-    stopping_point: AutofixStoppingPoint | None = None,
+    referrer: AutofixReferrer | str = AutofixReferrer.UNKNOWN,
+    stopping_point: AutofixStoppingPoint | str | None = None,
 ):
     """
     Asynchronous task to trigger Autofix.
+    Task queue serializes enum parameters to strings, so we need to convert them back.
     """
+    # Convert deserialized string parameters back to their enum types
+    if isinstance(referrer, str):
+        try:
+            referrer = AutofixReferrer(referrer)
+        except ValueError as e:
+            logger.warning(
+                "_trigger_autofix_task.unknown_referrer",
+                extra={"group_id": group_id, "referrer": referrer},
+            )
+            sentry_sdk.capture_exception(e)
+            return
+
+    if isinstance(stopping_point, str):
+        try:
+            stopping_point = AutofixStoppingPoint(stopping_point)
+        except ValueError as e:
+            logger.warning(
+                "_trigger_autofix_task.unknown_stopping_point",
+                extra={"group_id": group_id, "stopping_point": stopping_point},
+            )
+            sentry_sdk.capture_exception(e)
+            return
+
     with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
         try:
             group = Group.objects.get(id=group_id)
         except Group.DoesNotExist:
             logger.warning("_trigger_autofix_task.group_not_found", extra={"group_id": group_id})
             return
+
+        sentry_sdk.set_tags(
+            {
+                "group_id": group_id,
+                "org_id": group.organization.id,
+                "project_id": group.project_id,
+            }
+        )
 
         user: User | AnonymousUser | RpcUser | None = None
         if user_id:
@@ -192,6 +225,13 @@ def _trigger_autofix_task(
                 run_id=None,
                 stopping_point=stopping_point,
             )
+            try:
+                trigger_lightweight_rca(group)
+            except Exception:
+                logger.exception(
+                    "lightweight_rca.trigger_error_in_trigger_autofix_task",
+                    extra={"group_id": group_id},
+                )
         else:
             response = trigger_autofix(
                 group=group,

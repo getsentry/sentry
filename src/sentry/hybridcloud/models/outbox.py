@@ -23,8 +23,8 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     Model,
+    cell_silo_model,
     control_silo_model,
-    region_silo_model,
     sane_repr,
 )
 from sentry.db.postgres.transactions import (
@@ -33,7 +33,7 @@ from sentry.db.postgres.transactions import (
     in_test_assert_no_transaction,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.hybridcloud.outbox.signals import process_control_outbox, process_region_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
 from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -412,10 +412,10 @@ class OutboxBase(Model):
         return cls.objects.count()
 
 
-# Outboxes bound from region silo -> control silo
-class RegionOutboxBase(OutboxBase):
+# Outboxes bound from cell silo -> control silo
+class CellOutboxBase(OutboxBase):
     def send_signal(self) -> None:
-        process_region_outbox.send(
+        process_cell_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,
             object_identifier=self.object_identifier,
@@ -432,8 +432,8 @@ class RegionOutboxBase(OutboxBase):
     __repr__ = sane_repr("payload", *coalesced_columns)
 
 
-@region_silo_model
-class RegionOutbox(RegionOutboxBase):
+@cell_silo_model
+class CellOutbox(CellOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
@@ -518,10 +518,10 @@ class ControlOutbox(ControlOutboxBase):
 def outbox_silo_modes() -> list[SiloMode]:
     cur = SiloMode.get_current_mode()
     result: list[SiloMode] = []
-    if cur != SiloMode.REGION:
+    if cur != SiloMode.CELL:
         result.append(SiloMode.CONTROL)
     if cur != SiloMode.CONTROL:
-        result.append(SiloMode.REGION)
+        result.append(SiloMode.CELL)
     return result
 
 

@@ -8,12 +8,12 @@ import {REPLAY_TIMESTAMP_OPTIONS} from 'sentry/components/replays/preferences/re
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-export default function ReplayPreferenceDropdown({
+export function ReplayPreferenceDropdown({
   speedOptions,
   hideFastForward = false,
   isLoading,

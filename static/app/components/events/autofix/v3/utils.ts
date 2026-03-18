@@ -1,16 +1,18 @@
+import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
+  isCodeChangesArtifact,
+  isCodingAgentsArtifact,
+  isPullRequestsArtifact,
   isRootCauseArtifact,
   isSolutionArtifact,
   type AutofixArtifact,
   type RootCauseArtifact,
   type SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {isArrayOf} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {
-  isExplorerFilePatch,
-  isRepoPRState,
   type Artifact,
+  type ExplorerCodingAgentState,
   type ExplorerFilePatch,
   type RepoPRState,
 } from 'sentry/views/seerExplorer/types';
@@ -24,12 +26,16 @@ export function artifactToMarkdown(artifact: AutofixArtifact): string | null {
     return solutionArtifactToMarkdown(artifact);
   }
 
-  if (isArrayOf(artifact, isExplorerFilePatch) && artifact.length) {
+  if (isCodeChangesArtifact(artifact)) {
     return filePatchesToMarkdown(artifact);
   }
 
-  if (isArrayOf(artifact, isRepoPRState) && artifact.length) {
+  if (isPullRequestsArtifact(artifact)) {
     return repoPRStatesToMarkdown(artifact);
+  }
+
+  if (isCodingAgentsArtifact(artifact)) {
+    return codingAgentsToMarkdown(artifact);
   }
 
   return null; // unknown artifact
@@ -124,6 +130,33 @@ function repoPRStatesToMarkdown(artifact: RepoPRState[]): string | null {
         return `[${pullRequest.repo_name}#${pullRequest.pr_number}](${pullRequest.pr_url})`;
       })
       .filter(defined)
+  );
+
+  return parts.join('\n');
+}
+
+function codingAgentsToMarkdown(artifact: ExplorerCodingAgentState[]): string | null {
+  if (!artifact.length) {
+    return null;
+  }
+
+  const parts: string[] = ['# Coding Agents', ''];
+
+  parts.push(
+    ...artifact
+      .map(codingAgent => {
+        if (!codingAgent.agent_url) {
+          return null;
+        }
+
+        return [
+          `## ${getCodingAgentName(codingAgent.provider)}`,
+          '',
+          `[${codingAgent.name}](${codingAgent.agent_url})`,
+        ];
+      })
+      .filter(defined)
+      .flatMap(lines => lines)
   );
 
   return parts.join('\n');

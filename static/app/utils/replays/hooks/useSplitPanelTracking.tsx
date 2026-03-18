@@ -1,8 +1,8 @@
 import {useCallback, useRef} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useReplayLayout} from 'sentry/utils/replays/hooks/useReplayLayout';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type CSSValuePct = `${number}%`;
 type CSSValueFR = '1fr';
@@ -11,7 +11,7 @@ type Options = {
   slideDirection: 'updown' | 'leftright';
 };
 
-function useSplitPanelTracking({slideDirection}: Options) {
+export function useSplitPanelTracking({slideDirection}: Options) {
   const organization = useOrganization();
   const {getLayout} = useReplayLayout();
   const startSizeCSSRef = useRef<number>(0);
@@ -44,5 +44,3 @@ function useSplitPanelTracking({slideDirection}: Options) {
     logEndPosition,
   };
 }
-
-export default useSplitPanelTracking;

@@ -1,7 +1,7 @@
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import CreateAlertButton from 'sentry/components/createAlertButton';
+import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -12,7 +12,7 @@ type Props = {
   projectSlug: string;
 };
 
-function MissingAlertsButtons({organization, projectSlug}: Props) {
+export function MissingAlertsButtons({organization, projectSlug}: Props) {
   return (
     <Grid flow="column" align="center" gap="md">
       <CreateAlertButton
@@ -40,5 +40,3 @@ function MissingAlertsButtons({organization, projectSlug}: Props) {
     </Grid>
   );
 }
-
-export default MissingAlertsButtons;

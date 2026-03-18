@@ -9,18 +9,17 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
-import LinkHint from 'sentry/components/structuredEventData/linkHint';
+import {LinkHint} from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
+import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
 import {
   DisabledImages,
   LOCAL_STORAGE_SHOW_LINKS,
@@ -40,7 +39,7 @@ import {
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
-import SpanSummaryLink from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
+import {SpanSummaryLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/components/spanSummaryLink';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   findSpanAttributeValue,
@@ -108,9 +107,7 @@ export function SpanDescription({
   const exploreAttributeValue = exploreUsingName ? span.name : span.description;
 
   const actions = exploreAttributeValue ? (
-    <BodyContentWrapper
-      padding={resolvedModule === ModuleName.DB ? `${space(1)} ${space(2)}` : space(1)}
-    >
+    <BodyContentWrapper padding={resolvedModule === ModuleName.DB ? '8px 16px' : '8px'}>
       {node.value.is_transaction ? (
         <StyledLink
           to={transactionSummaryRouteWithQuery({

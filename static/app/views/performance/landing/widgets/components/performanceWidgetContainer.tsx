@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 
 export type PerformanceWidgetContainerTypes = 'panel' | 'inline';
 
@@ -12,7 +12,7 @@ const StyledPanel = styled(Panel)`
 `;
 const Div = styled('div')``;
 
-const getPerformanceWidgetContainer = ({
+export const getPerformanceWidgetContainer = ({
   containerType,
 }: {
   containerType: PerformanceWidgetContainerTypes;
@@ -25,5 +25,3 @@ const getPerformanceWidgetContainer = ({
   }
   return Div;
 };
-
-export default getPerformanceWidgetContainer;

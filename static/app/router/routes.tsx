@@ -6,16 +6,16 @@ import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {HookName} from 'sentry/types/hooks';
-import errorHandler from 'sentry/utils/errorHandler';
+import {errorHandler} from 'sentry/utils/errorHandler';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {translateSentryRoute} from 'sentry/utils/reactRouter6Compat/router';
-import withDomainRedirect from 'sentry/utils/withDomainRedirect';
-import withDomainRequired from 'sentry/utils/withDomainRequired';
-import App from 'sentry/views/app';
+import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
+import {withDomainRequired} from 'sentry/utils/withDomainRequired';
+import {App} from 'sentry/views/app';
 import {AppBodyContentRoute} from 'sentry/views/app/appBodyContent';
-import AuthLayoutRoute from 'sentry/views/auth/layout';
+import {AuthLayoutRoute} from 'sentry/views/auth/layout';
 import {authV2Routes} from 'sentry/views/authV2/routes';
 import {automationRoutes} from 'sentry/views/automations/routes';
 import {detectorRoutes} from 'sentry/views/detectors/routes';
@@ -34,14 +34,14 @@ import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDeta
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
-import OrganizationContainerRoute from 'sentry/views/organizationContainer';
-import OrganizationLayout from 'sentry/views/organizationLayout';
+import {OrganizationContainerRoute} from 'sentry/views/organizationContainer';
+import {OrganizationLayout} from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
 import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
-import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
-import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
-import RouteNotFound from 'sentry/views/routeNotFound';
-import SettingsWrapper from 'sentry/views/settings/components/settingsWrapper';
+import {ProjectEventRedirect} from 'sentry/views/projectEventRedirect';
+import {redirectDeprecatedProjectRoute} from 'sentry/views/projects/redirectDeprecatedProjectRoute';
+import {RouteNotFound} from 'sentry/views/routeNotFound';
+import {SettingsWrapper} from 'sentry/views/settings/components/settingsWrapper';
 
 import {type SentryRouteObject} from './types';
 
@@ -825,6 +825,7 @@ function buildRoutes(): RouteObject[] {
   };
 
   const orgSettingsChildren: SentryRouteObject[] = [
+    routeHook('routes:org-settings'),
     {
       index: true,
       name: t('General'),
@@ -1164,52 +1165,6 @@ function buildRoutes(): RouteObject[] {
               ),
             },
           ],
-        },
-      ],
-    },
-    {
-      path: 'seer/',
-      name: t('Seer'),
-      // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-      component: make(() => import('getsentry/views/seerAutomation/index')),
-      children: [
-        {
-          path: 'trial/',
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/trial')),
-        },
-        {
-          index: true,
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
-        },
-        {
-          path: 'scm/',
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/scm')),
-        },
-        {
-          path: 'projects/',
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/projects')),
-        },
-        {
-          path: 'repos/',
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/repos')),
-        },
-        {
-          path: 'repos/:repoId/',
-          // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-          component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
-        },
-        {
-          path: 'onboarding/',
-          name: t('Setup Wizard'),
-          component: make(
-            // eslint-disable-next-line boundaries/element-types -- TODO: move to getsentry routes
-            () => import('getsentry/views/seerAutomation/onboarding/onboarding')
-          ),
         },
       ],
     },
@@ -2552,6 +2507,10 @@ function buildRoutes(): RouteObject[] {
       component: make(
         () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
       ),
+    },
+    {
+      path: 'supergroups/',
+      component: make(() => import('sentry/views/issueList/pages/supergroups')),
     },
     {
       path: 'views/:viewId/',

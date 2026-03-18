@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import Access from 'sentry/components/acl/access';
-import SnoozeAlert from 'sentry/components/alerts/snoozeAlert';
+import {Access} from 'sentry/components/acl/access';
+import {SnoozeAlert} from 'sentry/components/alerts/snoozeAlert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -37,7 +37,7 @@ type Props = {
   rule?: MetricRule;
 };
 
-function DetailsHeader({
+export function DetailsHeader({
   hasMetricRuleDetailsError,
   rule,
   organization,
@@ -152,8 +152,6 @@ function DetailsHeader({
     </Layout.Header>
   );
 }
-
-export default DetailsHeader;
 
 const RuleTitle = styled(Layout.Title, {
   shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',

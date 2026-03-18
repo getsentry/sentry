@@ -27,7 +27,7 @@ from rest_framework.views import APIView
 from sentry import features, options, quotas, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
@@ -96,6 +96,7 @@ class PrebuiltDashboardId(IntEnum):
 class PrebuiltDashboard(TypedDict, total=False):
     prebuilt_id: Required[PrebuiltDashboardId]
     title: Required[str]
+    hidden: bool
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
@@ -119,6 +120,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
         "title": "Query Details",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.HTTP,
@@ -127,6 +129,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.HTTP_DOMAIN_SUMMARY,
         "title": "Domain Details",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
@@ -135,6 +138,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS_SUMMARY,
         "title": "Web Vitals Page Summary",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS,
@@ -143,14 +147,17 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_APP_STARTS,
         "title": "Mobile Vitals App Starts",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_LOADS,
         "title": "Mobile Vitals Screen Loads",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_VITALS_SCREEN_RENDERING,
         "title": "Mobile Vitals Screen Rendering",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
@@ -207,6 +214,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.FRONTEND_ASSETS_SUMMARY,
         "title": "Frontend Assets Summary",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUES,
@@ -215,6 +223,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_QUEUE_SUMMARY,
         "title": "Queue Summary",
+        "hidden": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_CACHES,
@@ -328,7 +337,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 
 
 @extend_schema(tags=["Dashboards"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -402,6 +411,13 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 dashboards = dashboards.exclude(prebuilt_id__isnull=False)
             elif f == "onlyPrebuilt":
                 dashboards = dashboards.filter(prebuilt_id__isnull=False)
+
+        if "showHidden" not in filters:
+            hidden_prebuilt_ids = [
+                d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("hidden", False)
+            ]
+            if hidden_prebuilt_ids:
+                dashboards = dashboards.exclude(prebuilt_id__in=hidden_prebuilt_ids)
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")
@@ -621,6 +637,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
+
+        if request.GET.get("validateOnly"):
+            return Response(status=200)
 
         # We need to acquire a lock so that a burst of concurrent create requests doesn't read
         # stale count data and bypass the dashboard limit for an org.

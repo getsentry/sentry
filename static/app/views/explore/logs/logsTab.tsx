@@ -11,7 +11,7 @@ import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/dateP
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilder,
@@ -25,9 +25,9 @@ import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   ExploreBodyContent,
@@ -515,8 +515,9 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           <LogsItemContainer>
             {tableTab === 'logs' ? (
               <LogsInfiniteTable
-                stringAttributes={stringAttributes}
+                booleanAttributes={booleanAttributes}
                 numberAttributes={numberAttributes}
+                stringAttributes={stringAttributes}
               />
             ) : (
               <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />

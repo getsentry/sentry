@@ -11,24 +11,25 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import HighlightModalContainer from 'sentry/components/highlightModalContainer';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import Placeholder from 'sentry/components/placeholder';
+import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
-import PlanTable from 'getsentry/components/upgradeNowModal/planTable';
-import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData';
-import useUpgradeNowParams from 'getsentry/components/upgradeNowModal/useUpgradeNowParams';
+import {PlanTable} from 'getsentry/components/upgradeNowModal/planTable';
+import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
+import {useUpgradeNowParams} from 'getsentry/components/upgradeNowModal/useUpgradeNowParams';
 import {redirectToManage} from 'getsentry/components/upgradeNowModal/utils';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = ModalRenderProps &
   Omit<ComponentProps<typeof ActionButtons>, 'hasPriceChange'> & {

@@ -2,17 +2,18 @@ import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventTagsTreeRow, {
+import {
+  EventTagsTreeRow,
   type EventTagsTreeRowProps,
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const MAX_TREE_DEPTH = 4;
@@ -203,7 +204,7 @@ function TagTreeColumns({
   return <Fragment>{assembledColumns}</Fragment>;
 }
 
-function EventTagsTree(props: EventTagsTreeProps) {
+export function EventTagsTree(props: EventTagsTreeProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
@@ -249,5 +250,3 @@ export const TreeColumn = styled('div')`
 const TreeLoadingIndicator = styled(LoadingIndicator)`
   grid-column: 1 /-1;
 `;
-
-export default EventTagsTree;

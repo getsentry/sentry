@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 
 type Props = {
   /**
@@ -27,7 +27,7 @@ const hoverStyle = css`
   }
 `;
 
-const Card = styled(Panel)<Props>`
+export const Card = styled(Panel)<Props>`
   display: flex;
   align-items: stretch;
   flex-direction: column;
@@ -38,5 +38,3 @@ const Card = styled(Panel)<Props>`
   ${p => p.interactive && 'cursor: pointer'};
   ${p => p.interactive && hoverStyle};
 `;
-
-export default Card;

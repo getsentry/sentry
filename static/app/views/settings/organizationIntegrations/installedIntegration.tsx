@@ -6,9 +6,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Access from 'sentry/components/acl/access';
-import CircleIndicator from 'sentry/components/circleIndicator';
-import Confirm from 'sentry/components/confirm';
+import {Access} from 'sentry/components/acl/access';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
+import {Confirm} from 'sentry/components/confirm';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ObjectStatus} from 'sentry/types/core';
@@ -19,7 +19,7 @@ import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 import {AddIntegrationButton} from './addIntegrationButton';
-import IntegrationItem from './integrationItem';
+import {IntegrationItem} from './integrationItem';
 
 type Props = {
   integration: Integration;
@@ -31,7 +31,7 @@ type Props = {
   requiresUpgrade?: boolean;
 };
 
-export default class InstalledIntegration extends Component<Props> {
+export class InstalledIntegration extends Component<Props> {
   handleUninstallClick = () => {
     this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
   };

@@ -13,7 +13,7 @@ import {
   STATIC_SPAN_TAGS,
 } from 'sentry/components/events/searchBarFieldConstants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
   SearchQueryBuilderProvider,
@@ -47,15 +47,15 @@ import {
   FieldKind,
   isDeviceClass,
 } from 'sentry/utils/fields';
-import type Measurements from 'sentry/utils/measurements/measurements';
+import type {Measurements} from 'sentry/utils/measurements/measurements';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTags from 'sentry/utils/useTags';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTags} from 'sentry/utils/useTags';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {IssueListSeerComboBox} from 'sentry/views/discover/results/issueListSeerComboBox';
-import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
+import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
 type DataProviderProps = {
   customMeasurements?: CustomMeasurementCollection;
@@ -129,7 +129,7 @@ function ErrorsSearchBar({
   );
 }
 
-function ResultsSearchQueryBuilder(props: Props) {
+export function ResultsSearchQueryBuilder(props: Props) {
   const {
     placeholder,
     portalTarget,
@@ -223,8 +223,6 @@ function ResultsSearchQueryBuilder(props: Props) {
     />
   );
 }
-
-export default ResultsSearchQueryBuilder;
 
 const EXCLUDED_FILTER_KEYS = [FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT];
 

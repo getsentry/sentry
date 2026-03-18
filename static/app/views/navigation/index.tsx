@@ -1,6 +1,4 @@
-import {useEffect} from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -11,31 +9,30 @@ import {
 import {useGlobalCommandPaletteActions} from 'sentry/components/commandPalette/useGlobalCommandPaletteActions';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-import useOrganization from 'sentry/utils/useOrganization';
-import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
-import MobileTopbar from 'sentry/views/navigation/mobileTopbar';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {MobileNavigation} from 'sentry/views/navigation/mobileNavigation';
+import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
 import {
   NavigationTourProvider,
   useNavigationTour,
 } from 'sentry/views/navigation/navigationTour';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
-import {Sidebar} from 'sentry/views/navigation/sidebar';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+import {
+  PrimaryNavigationContextProvider,
+  usePrimaryNavigation,
+} from 'sentry/views/navigation/primaryNavigationContext';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
-  const {layout, navigationParentRef} = useNavigationContext();
-  const {currentStepId, endTour} = useNavigationTour();
-  const tourIsActive = currentStepId !== null;
-  const hoverProps = useResetActiveNavigationGroup();
-
   const organization = useOrganization();
-  const {visible: isModalOpen} = useGlobalModal();
+  const {layout} = usePrimaryNavigation();
+  const {visible} = useGlobalModal();
+
   useGlobalCommandPaletteActions();
 
   useHotkeys(
-    isModalOpen
+    visible
       ? []
       : [
           {
@@ -51,33 +48,41 @@ function UserAndOrganizationNavigation() {
         ]
   );
 
-  // The tour only works with the sidebar layout, so if we change to the mobile
-  // layout in the middle of the tour, it needs to end.
-  useEffect(() => {
-    if (tourIsActive && layout === NavigationLayout.MOBILE) {
-      endTour();
-    }
-  }, [endTour, layout, tourIsActive]);
-
   return (
-    <NavigationContainer
-      ref={navigationParentRef}
-      tourIsActive={tourIsActive}
-      isMobile={layout === NavigationLayout.MOBILE}
-      {...hoverProps}
-    >
-      {layout === NavigationLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
-    </NavigationContainer>
+    <NavigationLayout>
+      {layout === 'mobile' ? <MobileNavigation /> : <DesktopNavigation />}
+    </NavigationLayout>
   );
 }
 
 function UserOnlyNavigation() {
   return (
-    <NoOrganizationSidebar data-test-id="no-organization-sidebar">
-      <Flex direction="column" gap="md" justify="between">
-        <UserDropdown />
-      </Flex>
-    </NoOrganizationSidebar>
+    <PrimaryNavigation.Sidebar data-test-id="no-organization-sidebar">
+      <UserDropdown />
+    </PrimaryNavigation.Sidebar>
+  );
+}
+
+function NavigationLayout({children}: {children: React.ReactNode}) {
+  const theme = useTheme();
+  const {layout} = usePrimaryNavigation();
+  const {currentStepId} = useNavigationTour();
+  const hoverProps = useResetActiveNavigationGroup();
+
+  return (
+    <Flex
+      top={0}
+      position={currentStepId ? undefined : 'sticky'}
+      bottom={layout === 'mobile' ? undefined : 0}
+      height={layout === 'mobile' ? undefined : '100dvh'}
+      style={{
+        zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
+        userSelect: 'none',
+      }}
+      {...hoverProps}
+    >
+      {children}
+    </Flex>
   );
 }
 
@@ -89,40 +94,10 @@ export function Navigation() {
   }
 
   return (
-    <NavigationTourProvider>
-      <UserAndOrganizationNavigation />
-    </NavigationTourProvider>
+    <PrimaryNavigationContextProvider>
+      <NavigationTourProvider>
+        <UserAndOrganizationNavigation />
+      </NavigationTourProvider>
+    </PrimaryNavigationContextProvider>
   );
 }
-
-const NavigationContainer = styled('div')<{isMobile: boolean; tourIsActive: boolean}>`
-  display: flex;
-  user-select: none;
-
-  ${p =>
-    !p.tourIsActive &&
-    css`
-      position: sticky;
-      top: 0;
-      z-index: ${p.theme.zIndex.sidebarPanel};
-    `}
-
-  ${p =>
-    !p.isMobile &&
-    css`
-      bottom: 0;
-      height: 100vh;
-      height: 100dvh;
-    `}
-`;
-
-const NoOrganizationSidebar = styled('div')`
-  z-index: ${p => p.theme.zIndex.sidebarPanel};
-  width: ${PRIMARY_SIDEBAR_WIDTH}px;
-  padding: ${p => p.theme.space.lg} 0 ${p => p.theme.space.md} 0;
-  border-right: 1px solid ${p => p.theme.tokens.border.primary};
-  background: ${p => p.theme.tokens.background.primary};
-  display: flex;
-  align-items: center;
-  flex-direction: column;
-`;

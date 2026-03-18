@@ -12,7 +12,7 @@ import type {
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
 } from 'sentry/types/alerts';
-import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
+import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
@@ -23,7 +23,7 @@ import {
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
 
-import RuleNode from './ruleNode';
+import {RuleNode} from './ruleNode';
 
 type Props = {
   disabled: boolean;
@@ -68,14 +68,6 @@ const createSelectOptions = (
   return actions.map(node => {
     if (node.id === IssueAlertActionType.NOTIFY_EMAIL) {
       const label = t('Suggested Assignees, Team, or Member');
-      return {
-        value: node,
-        label,
-      };
-    }
-
-    if (node.id === IssueAlertConditionType.REAPPEARED_EVENT) {
-      const label = t('The issue changes state from archived to escalating');
       return {
         value: node,
         label,

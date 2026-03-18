@@ -10,12 +10,12 @@ import {useSessionsRequest} from 'sentry/components/charts/useSessionsRequest';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {DateTime} from 'sentry/components/dateTime';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
-import TransactionsList from 'sentry/components/discover/transactionsList';
+import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
@@ -30,10 +30,10 @@ import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
@@ -50,15 +50,15 @@ import {
 
 import {ReleaseContext} from '..';
 
-import CommitAuthorBreakdown from './sidebar/commitAuthorBreakdown';
-import Deploys from './sidebar/deploys';
-import OtherProjects from './sidebar/otherProjects';
-import ProjectReleaseDetails from './sidebar/projectReleaseDetails';
-import ReleaseAdoption from './sidebar/releaseAdoption';
-import ReleaseStats from './sidebar/releaseStats';
-import TotalCrashFreeUsers from './sidebar/totalCrashFreeUsers';
-import ReleaseArchivedNotice from './releaseArchivedNotice';
-import ReleaseComparisonChart from './releaseComparisonChart';
+import {CommitAuthorBreakdown} from './sidebar/commitAuthorBreakdown';
+import {Deploys} from './sidebar/deploys';
+import {OtherProjects} from './sidebar/otherProjects';
+import {ProjectReleaseDetails} from './sidebar/projectReleaseDetails';
+import {ReleaseAdoption} from './sidebar/releaseAdoption';
+import {ReleaseStats} from './sidebar/releaseStats';
+import {TotalCrashFreeUsers} from './sidebar/totalCrashFreeUsers';
+import {ReleaseArchivedNotice} from './releaseArchivedNotice';
+import {ReleaseComparisonChart} from './releaseComparisonChart';
 import ReleaseIssues from './releaseIssues';
 
 const RELEASE_PERIOD_KEY = 'release';

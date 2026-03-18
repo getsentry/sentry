@@ -4,15 +4,15 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {TextArea} from '@sentry/scraps/textarea';
 
-import TextField from 'sentry/components/forms/fields/textField';
+import {TextField} from 'sentry/components/forms/fields/textField';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
-import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 interface WidgetBuilderNameAndDescriptionProps {
@@ -20,7 +20,7 @@ interface WidgetBuilderNameAndDescriptionProps {
   setError?: (error: Record<string, any>) => void;
 }
 
-function WidgetBuilderNameAndDescription({
+export function WidgetBuilderNameAndDescription({
   error,
   setError,
 }: WidgetBuilderNameAndDescriptionProps) {
@@ -122,8 +122,6 @@ function WidgetBuilderNameAndDescription({
     </Fragment>
   );
 }
-
-export default WidgetBuilderNameAndDescription;
 
 const StyledTextField = styled(TextField)`
   margin-bottom: ${p => p.theme.space.md};

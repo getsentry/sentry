@@ -6,8 +6,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import NotAvailable from 'sentry/components/notAvailable';
-import Placeholder from 'sentry/components/placeholder';
+import {NotAvailable} from 'sentry/components/notAvailable';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
@@ -26,7 +26,7 @@ type Props = Omit<ReleaseComparisonRow, 'diffDirection' | 'diffColor'> & {
   withExpanders: boolean;
 };
 
-function ReleaseComparisonChartRow({
+export function ReleaseComparisonChartRow({
   type,
   role,
   drilldown,
@@ -242,5 +242,3 @@ const ToggleButton = styled(Button)`
     background: transparent;
   }
 `;
-
-export default ReleaseComparisonChartRow;

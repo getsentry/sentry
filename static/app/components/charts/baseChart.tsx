@@ -28,7 +28,7 @@ import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -48,16 +48,16 @@ import type {
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 
-import Grid from './components/grid';
-import Legend from './components/legend';
+import {Grid} from './components/grid';
+import {Legend} from './components/legend';
 import {
   CHART_TOOLTIP_VIEWPORT_OFFSET,
   computeChartTooltip,
   type TooltipSubLabel,
 } from './components/tooltip';
-import XAxis from './components/xAxis';
-import YAxis from './components/yAxis';
-import LineSeries from './series/lineSeries';
+import {XAxis} from './components/xAxis';
+import {YAxis} from './components/yAxis';
+import {LineSeries} from './series/lineSeries';
 import {
   computeEchartsAriaLabels,
   getDiffInMinutes,
@@ -332,7 +332,7 @@ const DEFAULT_ADDITIONAL_SERIES: LineSeriesOption[] = [];
 const DEFAULT_Y_AXIS = {};
 const DEFAULT_X_AXIS = {};
 
-function BaseChart({
+export function BaseChart({
   animation,
   brush,
   colors,
@@ -868,5 +868,3 @@ const getPortalledTooltipStyles = (p: {theme: Theme}) => css`
     ${getTooltipStyles(p)};
   }
 `;
-
-export default BaseChart;

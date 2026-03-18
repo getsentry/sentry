@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any, Literal, NotRequired, TypedDict, cast
 
 from django.conf import settings
@@ -8,13 +8,14 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
@@ -41,7 +42,17 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
-from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
+from sentry.types.actor import parse_and_validate_actor
+from sentry.workflow_engine.endpoints.validators.base.action import ActionInput
+from sentry.workflow_engine.endpoints.validators.base.data_condition import DataConditionInput
+from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
+    DataConditionGroupInput,
+)
+from sentry.workflow_engine.endpoints.validators.base.workflow import (
+    ActionFilterInput,
+    WorkflowInput,
+    WorkflowValidator,
+)
 from sentry.workflow_engine.endpoints.validators.detector_workflow import (
     BulkWorkflowDetectorsValidator,
 )
@@ -727,7 +738,7 @@ class ProjectRulePostData(TypedDict):
     conditions: list[ConditionsData]
     actions: list[dict[str, Any]]
     environment: NotRequired[str | None]
-    owner: NotRequired[str | None]
+    owner: NotRequired[str | int | None]
     filterMatch: NotRequired[Literal["all", "any", "none"]]
     filters: NotRequired[list[FiltersData]]
     status: NotRequired[str]
@@ -737,49 +748,71 @@ class ProjectRulePostData(TypedDict):
 
 def format_request_data(
     data: ProjectRulePostData,
-) -> dict[str, Any]:
-    workflow_payload = {
-        "name": data.get("name"),
+    project: Project,
+) -> WorkflowInput:
+    workflow_payload: WorkflowInput = {
+        "name": data.get("name", ""),
         "enabled": data.get("status", "active") == "active",
         "environment": data.get("environment"),
         "config": {"frequency": data.get("frequency")},
     }
+    owner = data.get("owner", "")
+    if owner:
+        actor = parse_and_validate_actor(str(owner), project.organization_id)
+        if actor is not None:
+            workflow_payload["owner"] = actor.identifier
+    elif owner is None:  # user has explicitly passed None so as to clear the owner field
+        workflow_payload["owner"] = None
 
-    triggers: dict[str, Any] = {"logicType": "any-short", "conditions": []}
-    translated_filter_list = []
+    triggers: DataConditionGroupInput = {"logicType": "any-short", "conditions": []}
+    translated_filter_list: list[DataConditionInput] = []
     fake_dcg = DataConditionGroup()
     # XXX: In order to avoid making bigger changes to translate_to_data_condition in issue_alert_conditions.py
     # we pass in a dummy DCG and then pop it off since we just need the formatted data
 
     for condition in data.get("conditions", []):
-        translated_conditions = asdict(translate_to_data_condition_data(condition, fake_dcg))
-        translated_conditions.pop("condition_group")
-        triggers["conditions"].append(translated_conditions)
+        try:
+            triggers["conditions"].append(
+                translate_to_data_condition_data(condition, fake_dcg).to_input()
+            )
+        except KeyError:
+            raise ValidationError("Ensure all required fields are filled in.")
+        except ValueError:
+            raise ValidationError("Invalid condition data")
 
     workflow_payload["triggers"] = triggers
 
     for filter_data in data.get("filters", []):
-        translated_filters = asdict(translate_to_data_condition_data(filter_data, fake_dcg))
-        translated_filters.pop("condition_group")
-        translated_filter_list.append(translated_filters)
+        try:
+            translated_filter_list.append(
+                translate_to_data_condition_data(filter_data, fake_dcg).to_input()
+            )
+        except KeyError:
+            raise ValidationError("Ensure all required fields are filled in.")
+        except ValueError:
+            raise ValidationError("Invalid filter data")
 
-    translated_actions = translate_rule_data_actions_to_notification_actions(
+    translated_actions: list[ActionInput] = []
+    for action_data in translate_rule_data_actions_to_notification_actions(
         data.get("actions", []), False
-    )
-    for action in translated_actions:
-        target_type = None
-        action_config = action.get("config", {})
-        if action_config is not None:
-            target_type = action_config.get("target_type")
+    ):
+        action: ActionInput = {
+            "type": action_data["type"],
+            "data": action_data["data"],
+            "config": action_data["config"],
+            "integrationId": action_data["integration_id"],
+        }
+        target_type = action["config"].get("target_type")
         if target_type is not None:
             assert isinstance(target_type, int)
             action["config"]["target_type"] = ActionTarget.get_name(target_type)
+        translated_actions.append(action)
 
     filter_match = data.get("filterMatch", "any-short")
     if filter_match == "any":
         filter_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
 
-    action_filters = {
+    action_filters: ActionFilterInput = {
         "logicType": filter_match,
         "conditions": translated_filter_list,
         "actions": translated_actions,
@@ -790,7 +823,7 @@ def format_request_data(
 
 
 @extend_schema(tags=["Alerts"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -881,7 +914,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            request_data = format_request_data(cast(ProjectRulePostData, request.data))
+            request_data = format_request_data(cast(ProjectRulePostData, request.data), project)
             validator = WorkflowValidator(
                 data=request_data,
                 context={"organization": project.organization, "request": request},

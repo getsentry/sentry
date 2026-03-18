@@ -10,12 +10,12 @@ import {Switch} from '@sentry/scraps/switch';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
-import OptionSelector from 'sentry/components/charts/optionSelector';
+import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import NotAvailable from 'sentry/components/notAvailable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {NotAvailable} from 'sentry/components/notAvailable';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ScoreCard} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
@@ -28,14 +28,15 @@ import type {
 } from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useRouter from 'sentry/utils/useRouter';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -46,12 +47,13 @@ import {
 import {mapSeriesToChart} from './mapSeriesToChart';
 import type {UsageSeries} from './types';
 import type {ChartStats, UsageChartProps} from './usageChart';
-import UsageChart, {
+import {
   CHART_OPTIONS_DATA_TRANSFORM,
   ChartDataTransform,
   SeriesTypes,
+  UsageChart,
 } from './usageChart';
-import UsageStatsPerMin from './usageStatsPerMin';
+import {UsageStatsPerMin} from './usageStatsPerMin';
 import {isDisplayUtc} from './utils';
 
 type ChartData = {
@@ -340,7 +342,7 @@ type CardMetadata = Record<
   }
 >;
 
-function UsageStatsOrganization({
+export function UsageStatsOrganization({
   dataDatetime,
   projectIds,
   dataCategoryApiName,
@@ -353,7 +355,8 @@ function UsageStatsOrganization({
   children,
   endpointQuery,
 }: UsageStatsOrganizationProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const orgStatsQuery = useMemo(() => {
     return (
       endpointQuery ??
@@ -404,11 +407,9 @@ function UsageStatsOrganization({
     (event: ReactMouseEvent) => {
       event.preventDefault();
       const url = `/settings/${organization.slug}/projects/:projectId/filters/data-filters/`;
-      if (router) {
-        navigateTo(url, router);
-      }
+      navigateTo(url, navigate, location);
     },
-    [router, organization]
+    [navigate, location, organization]
   );
 
   const chartDataTransform = useMemo(() => {
@@ -636,8 +637,6 @@ function UsageStatsOrganization({
     </PageGrid>
   );
 }
-
-export default UsageStatsOrganization;
 
 const PageGrid = styled('div')`
   display: grid;

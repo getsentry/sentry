@@ -5,7 +5,7 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -18,8 +18,8 @@ import {
   isTransactionProfileReference,
 } from 'sentry/utils/profiling/guards/profile';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 
 interface AggregateFlamegraphSidePanelProps {

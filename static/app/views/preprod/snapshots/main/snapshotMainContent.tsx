@@ -1,3 +1,4 @@
+import {useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -5,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -168,8 +168,24 @@ function OverlayControls({
   showOverlay: boolean;
 }) {
   const theme = useTheme();
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   const overlayColors = theme.chart.getColorPalette(10);
+
+  useEffect(() => {
+    if (!isColorPickerOpen) {
+      return undefined;
+    }
+
+    function handleMouseDown(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setIsColorPickerOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [isColorPickerOpen]);
 
   return (
     <Flex align="center" gap="sm">
@@ -180,36 +196,59 @@ function OverlayControls({
       >
         {showOverlay ? t('Hide Overlay') : t('Show Overlay')}
       </Button>
-      <Tooltip
-        isHoverable
-        maxWidth={400}
-        title={
-          <Flex gap="xs">
-            {overlayColors.map(color => (
-              <ColorSwatch
-                key={color}
-                $color={color}
-                $selected={overlayColor === color}
-                onClick={() => onOverlayColorChange(color)}
-                aria-label={t('Overlay color %s', color)}
-              />
-            ))}
-          </Flex>
-        }
-      >
-        <ColorTrigger $color={overlayColor} aria-label={t('Pick overlay color')} />
-      </Tooltip>
+      <ColorPickerWrapper ref={pickerRef}>
+        <ColorTrigger
+          color={overlayColor}
+          aria-label={t('Pick overlay color')}
+          onClick={() => setIsColorPickerOpen(open => !open)}
+        />
+        {isColorPickerOpen && (
+          <ColorPickerDropdown>
+            <Flex gap="xs">
+              {overlayColors.map(color => (
+                <ColorSwatch
+                  key={color}
+                  color={color}
+                  selected={overlayColor === color}
+                  onClick={() => {
+                    onOverlayColorChange(color);
+                    setIsColorPickerOpen(false);
+                  }}
+                  aria-label={t('Overlay color %s', color)}
+                />
+              ))}
+            </Flex>
+          </ColorPickerDropdown>
+        )}
+      </ColorPickerWrapper>
     </Flex>
   );
 }
 
-const ColorTrigger = styled('button')<{$color: string}>`
+const ColorPickerWrapper = styled('div')`
+  position: relative;
+`;
+
+const ColorPickerDropdown = styled('div')`
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space.sm};
+  background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  z-index: ${p => p.theme.zIndex.dropdown};
+`;
+
+const ColorTrigger = styled('button')<{color: string}>`
   width: 24px;
   height: 24px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid ${p => p.theme.tokens.border.primary};
-  background-color: ${p => p.$color};
+  background-color: ${p => p.color};
   padding: 0;
 
   &:hover {
@@ -217,15 +256,15 @@ const ColorTrigger = styled('button')<{$color: string}>`
   }
 `;
 
-const ColorSwatch = styled('button')<{$color: string; $selected: boolean}>`
+const ColorSwatch = styled('button')<{color: string; selected: boolean}>`
   width: 20px;
   height: 20px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid
-    ${p => (p.$selected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
-  background-color: ${p => p.$color};
+    ${p => (p.selected ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
+  background-color: ${p => p.color};
   padding: 0;
-  outline: ${p => (p.$selected ? `2px solid ${p.theme.tokens.focus.default}` : 'none')};
+  outline: ${p => (p.selected ? `2px solid ${p.theme.tokens.focus.default}` : 'none')};
   outline-offset: 1px;
 `;

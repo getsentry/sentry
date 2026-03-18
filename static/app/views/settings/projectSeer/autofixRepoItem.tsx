@@ -7,9 +7,9 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TextArea} from '@sentry/scraps/textarea';
 
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import type {BranchOverride, RepoSettings} from 'sentry/components/events/autofix/types';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {
   IconAdd,
   IconClose,

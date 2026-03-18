@@ -1,13 +1,13 @@
 import {LinkButton} from '@sentry/scraps/button';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import GroupList from 'sentry/components/issues/groupList';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {GroupList} from 'sentry/components/issues/groupList';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getUtcDateString} from 'sentry/utils/dates';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type DetectorDetailsOngoingIssuesProps = {
   // The time range used for the issues query.

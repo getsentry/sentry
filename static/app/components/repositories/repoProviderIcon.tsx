@@ -23,7 +23,7 @@ interface Props extends SVGIconProps {
   provider: keyof typeof PROVIDER_ICONS | (string & {});
 }
 
-export default function RepoProviderIcon({provider, ...props}: Props) {
+export function RepoProviderIcon({provider, ...props}: Props) {
   if (provider in PROVIDER_ICONS) {
     const Icon = PROVIDER_ICONS[provider as keyof typeof PROVIDER_ICONS];
     return <Icon {...props} />;

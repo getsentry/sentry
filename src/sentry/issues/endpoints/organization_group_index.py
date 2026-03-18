@@ -16,7 +16,7 @@ from sentry import analytics, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.event_search import SearchFilter
@@ -165,7 +165,7 @@ def inbox_search(
 
 
 @extend_schema(tags=["Events"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,

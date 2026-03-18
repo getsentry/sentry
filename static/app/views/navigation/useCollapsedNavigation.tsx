@@ -5,7 +5,8 @@ import {
   NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS,
   NAVIGATION_SIDEBAR_OPEN_DELAY_MS,
 } from 'sentry/views/navigation/constants';
-import {useNavigationContext} from 'sentry/views/navigation/context';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const IGNORE_ELEMENTS = [
   // Tooltips are rendered in document.body so will cause the nav to close
@@ -24,24 +25,35 @@ const IGNORE_ELEMENTS = [
  * Escape -> close
  */
 export function useCollapsedNavigation() {
-  const {
-    navigationParentRef,
-    isCollapsed,
-    isInteractingRef,
-    endInteraction,
-    setActivePrimaryNavigationGroup,
-    collapsedNavigationIsOpen,
-    setCollapsedNavigationIsOpen,
-  } = useNavigationContext();
+  const {setActiveGroup} = usePrimaryNavigation();
+  const {view, setView, interaction, setInteraction} = useSecondaryNavigation();
+
+  const isCollapsed = view !== 'expanded';
+  // Keep a ref so event handlers can read the latest isCollapsed value during
+  // React's commit phase (e.g. focusout fires while React is unmounting elements).
+  const isCollapsedRef = useRef(isCollapsed);
+  isCollapsedRef.current = isCollapsed;
 
   const isHoveredRef = useRef(false);
 
   const closeNavigation = useCallback(() => {
     isHoveredRef.current = false;
-    endInteraction();
-    setCollapsedNavigationIsOpen(false);
-    setActivePrimaryNavigationGroup(null);
-  }, [endInteraction, setActivePrimaryNavigationGroup, setCollapsedNavigationIsOpen]);
+    setInteraction(null);
+    setView('collapsed');
+    setActiveGroup(null);
+  }, [setActiveGroup, setInteraction, setView]);
+
+  const navigationParentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (navigationParentRef.current) return;
+    const navigationParentEl = document.querySelector(
+      'nav[aria-label="Primary Navigation"]'
+    )?.parentElement;
+    if (navigationParentEl) {
+      navigationParentRef.current = navigationParentEl as HTMLDivElement;
+    }
+  }, []);
 
   const shouldNavigationStayOpen = useCallback(() => {
     const hasKeyboardFocus = navigationParentRef.current?.querySelector(':focus-visible');
@@ -49,10 +61,8 @@ export function useCollapsedNavigation() {
       '[aria-expanded="true"]'
     );
 
-    return (
-      isHoveredRef.current || isInteractingRef.current || hasKeyboardFocus || hasOpenMenu
-    );
-  }, [isInteractingRef, navigationParentRef]);
+    return isHoveredRef.current || interaction.current || hasKeyboardFocus || hasOpenMenu;
+  }, [interaction, navigationParentRef]);
 
   const tryCloseNavigation = useCallback(() => {
     if (shouldNavigationStayOpen()) {
@@ -61,14 +71,6 @@ export function useCollapsedNavigation() {
 
     closeNavigation();
   }, [closeNavigation, shouldNavigationStayOpen]);
-
-  // Resets hover state if nav is disabled
-  // Without this the menu will pop back open when collapsing
-  useEffect(() => {
-    if (!isCollapsed && collapsedNavigationIsOpen) {
-      closeNavigation();
-    }
-  });
 
   // Sets up event listeners hover and focus changes
   useEffect(() => {
@@ -88,7 +90,7 @@ export function useCollapsedNavigation() {
       isHoveredRef.current = true;
 
       openTimer = setTimeout(() => {
-        setCollapsedNavigationIsOpen(true);
+        setView('peek');
       }, NAVIGATION_SIDEBAR_OPEN_DELAY_MS);
     };
 
@@ -127,11 +129,14 @@ export function useCollapsedNavigation() {
     const handleFocusIn = (e: FocusEvent) => {
       if (e.target instanceof HTMLElement && e.target.matches(':focus-visible')) {
         clearTimeout(closeTimer);
-        setCollapsedNavigationIsOpen(true);
+        setView('peek');
       }
     };
 
     const handleFocusOut = () => {
+      if (!isCollapsedRef.current) {
+        return;
+      }
       tryCloseNavigation();
     };
 
@@ -151,15 +156,15 @@ export function useCollapsedNavigation() {
       navigationParentEl.removeEventListener('focusin', handleFocusIn);
       navigationParentEl.removeEventListener('focusout', handleFocusOut);
       document.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(openTimer);
       clearTimeout(closeTimer);
     };
   }, [
     closeNavigation,
-    endInteraction,
+    interaction,
     isCollapsed,
-    isInteractingRef,
     navigationParentRef,
-    setCollapsedNavigationIsOpen,
+    setView,
     shouldNavigationStayOpen,
     tryCloseNavigation,
   ]);
@@ -180,8 +185,8 @@ export function useCollapsedNavigation() {
 
       closeNavigation();
     },
-    isDisabled: !isCollapsed || !collapsedNavigationIsOpen,
+    isDisabled: view !== 'peek',
   });
 
-  return {isOpen: collapsedNavigationIsOpen};
+  return {view};
 }

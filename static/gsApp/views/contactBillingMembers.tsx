@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function HelpfulMembers() {
   const organization = useOrganization();
@@ -39,7 +39,7 @@ function HelpfulMembers() {
   );
 }
 
-function ContactBillingMembers() {
+export function ContactBillingMembers() {
   return (
     <Panel data-test-id="permission-denied">
       <EmptyMessage title={t('Insufficient Access')} icon={<IconWarning />}>
@@ -49,5 +49,3 @@ function ContactBillingMembers() {
     </Panel>
   );
 }
-
-export default ContactBillingMembers;

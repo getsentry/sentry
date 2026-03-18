@@ -9,9 +9,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {LineChart} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import Placeholder from 'sentry/components/placeholder';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';

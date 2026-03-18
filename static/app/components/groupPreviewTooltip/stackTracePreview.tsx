@@ -1,17 +1,17 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
-import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
-import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
+import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
+import {getThreadStacktrace} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
 import {
   useDelayedLoadingState,
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';

@@ -18,17 +18,14 @@ import {
   isEquationAlias,
   parseFunction,
 } from 'sentry/utils/discover/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
 import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import {
-  sortDirections,
-  type SortDirection,
-} from 'sentry/views/dashboards/widgetBuilder/utils';
-import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
+import {SortDirection, sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -126,13 +123,12 @@ export function SortBySelectors({
           name="sortDirection"
           aria-label={t('Sort direction')}
           disabled={disableSortDirection}
-          options={Object.keys(sortDirections).map(value => ({
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            label: sortDirections[value],
-            value,
+          options={Object.entries(sortDirections).map(([value, label]) => ({
+            value: value as SortDirection,
+            label,
           }))}
           value={values.sortDirection}
-          onChange={(option: SelectValue<SortDirection>) => {
+          onChange={option => {
             onChange({
               sortBy: values.sortBy,
               sortDirection: option.value,

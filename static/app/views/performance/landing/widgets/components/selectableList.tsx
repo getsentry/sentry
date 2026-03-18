@@ -5,13 +5,13 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
@@ -27,7 +27,7 @@ type Props = {
   radioColor?: string;
 };
 
-export default function SelectableList(props: Props) {
+export function SelectableList(props: Props) {
   return (
     <div>
       {props.items.map((item, index) => (

@@ -1,13 +1,14 @@
 import type {Theme} from '@emotion/react';
 
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-import transformTransaction, {
+import {
+  transformTransaction,
   type BreakpointTransaction,
 } from 'sentry/views/performance/utils/transformTransaction';
 

@@ -2,17 +2,17 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import BreakdownBars from 'sentry/components/charts/breakdownBars';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {BreakdownBars} from 'sentry/components/charts/breakdownBars';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -25,7 +25,7 @@ type Props = {
   organization: Organization;
 };
 
-function StatusBreakdown({eventView, location, organization}: Props) {
+export function StatusBreakdown({eventView, location, organization}: Props) {
   const navigate = useNavigate();
   const statusAttribute =
     eventView.dataset === DiscoverDatasets.SPANS ? 'span.status' : 'transaction.status';
@@ -112,5 +112,3 @@ const EmptyStatusBreakdown = styled(EmptyStateWarning)`
   height: 124px;
   padding: 50px 15%;
 `;
-
-export default StatusBreakdown;

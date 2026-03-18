@@ -12,18 +12,18 @@ import memoize from 'lodash/memoize';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import HeatMapChart from 'sentry/components/charts/heatMapChart';
+import {HeatMapChart} from 'sentry/components/charts/heatMapChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import MenuItem from 'sentry/components/menuItem';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {MenuItem} from 'sentry/components/menuItem';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import Panel from 'sentry/components/panels/panel';
-import PerformanceDuration from 'sentry/components/performanceDuration';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import Truncate from 'sentry/components/truncate';
+import {Panel} from 'sentry/components/panels/panel';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {Truncate} from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
@@ -32,12 +32,12 @@ import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import type EventView from 'sentry/utils/discover/eventView';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {
   TableDataRow,
   TableData as TagTableData,
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
-import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
+import {TagTransactionsQuery} from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
@@ -95,7 +95,7 @@ const getPortal = memoize((): HTMLElement => {
   return portal;
 });
 
-function TagsHeatMap(
+export function TagsHeatMap(
   props: Props & {
     isLoading: boolean;
     tableData: TagTableData | null;
@@ -494,5 +494,3 @@ function DropdownItem({
     </StyledMenuItem>
   );
 }
-
-export default TagsHeatMap;

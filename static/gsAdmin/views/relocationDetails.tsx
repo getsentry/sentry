@@ -12,34 +12,34 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import UserBadge from 'sentry/components/idBadge/userBadge';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Truncate from 'sentry/components/truncate';
-import ConfigStore from 'sentry/stores/configStore';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Truncate} from 'sentry/components/truncate';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
-import CustomerName from 'admin/components/customerName';
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
+import {CustomerName} from 'admin/components/customerName';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
 import type {ActionItem} from 'admin/components/detailsPage';
-import DetailsPage from 'admin/components/detailsPage';
-import RelocationAbortModal from 'admin/components/relocationAbortModal';
-import RelocationBadge from 'admin/components/relocationBadge';
-import RelocationCancelModal from 'admin/components/relocationCancelModal';
-import RelocationPauseModal from 'admin/components/relocationPauseModal';
-import RelocationRetryModal from 'admin/components/relocationRetryModal';
-import RelocationUnpauseModal from 'admin/components/relocationUnpauseModal';
+import {DetailsPage} from 'admin/components/detailsPage';
+import {RelocationAbortModal} from 'admin/components/relocationAbortModal';
+import {RelocationBadge} from 'admin/components/relocationBadge';
+import {RelocationCancelModal} from 'admin/components/relocationCancelModal';
+import {RelocationPauseModal} from 'admin/components/relocationPauseModal';
+import {RelocationRetryModal} from 'admin/components/relocationRetryModal';
+import {RelocationUnpauseModal} from 'admin/components/relocationUnpauseModal';
 import ResultGrid from 'admin/components/resultGrid';
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 
 enum ArtifactsState {
   DISABLED = 0,
@@ -171,7 +171,7 @@ const getUserRow = (row: any) => [
   </td>,
 ];
 
-function RelocationDetails() {
+export function RelocationDetails() {
   const {regionName, relocationUuid} = useParams<{
     regionName: string;
     relocationUuid: string;
@@ -635,5 +635,3 @@ function RelocationDetails() {
     />
   );
 }
-
-export default RelocationDetails;

@@ -5,7 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 // import {
@@ -32,7 +32,7 @@ type SlackFormProps = {
   onSave: () => void;
 };
 
-function SlackForm({
+export function SlackForm({
   action,
   availableActions,
   onChange,
@@ -124,5 +124,3 @@ function SlackForm({
 const StyledInput = styled(Input)`
   width: 100px;
 `;
-
-export default SlackForm;

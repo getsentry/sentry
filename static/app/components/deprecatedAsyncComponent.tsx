@@ -4,14 +4,14 @@ import isEqual from 'lodash/isEqual';
 
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {
   RouteComponentProps,
   RouteContextInterface,
 } from 'sentry/types/legacyReactRouter';
-import PermissionDenied from 'sentry/views/permissionDenied';
+import {PermissionDenied} from 'sentry/views/permissionDenied';
 import RouteError from 'sentry/views/routeError';
 
 interface AsyncComponentProps extends Partial<RouteComponentProps> {}

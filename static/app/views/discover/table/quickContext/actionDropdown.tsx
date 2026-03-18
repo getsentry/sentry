@@ -9,7 +9,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -39,7 +39,7 @@ type Props = {
   value: string | number | string[];
 };
 
-function ActionDropDown(props: Props) {
+export function ActionDropDown(props: Props) {
   const navigate = useNavigate();
   const menuItems: MenuItemProps[] = [];
   const {location, eventView, queryKey, value, organization, contextValueType, dataRow} =
@@ -171,5 +171,3 @@ function ActionDropDown(props: Props) {
 const StyledTrigger = styled(Button)`
   margin-left: ${p => p.theme.space.xs};
 `;
-
-export default ActionDropDown;

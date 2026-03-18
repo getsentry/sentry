@@ -12,7 +12,7 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
-import TextField from 'sentry/components/forms/fields/textField';
+import {TextField} from 'sentry/components/forms/fields/textField';
 
 describe('FeatureFeedback', () => {
   describe('default', () => {

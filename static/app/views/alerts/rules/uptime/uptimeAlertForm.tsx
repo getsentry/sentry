@@ -10,31 +10,31 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import HiddenField from 'sentry/components/forms/fields/hiddenField';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import RangeField from 'sentry/components/forms/fields/rangeField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import TextareaField from 'sentry/components/forms/fields/textareaField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {HiddenField} from 'sentry/components/forms/fields/hiddenField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {RangeField} from 'sentry/components/forms/fields/rangeField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {SentryMemberTeamSelectorField} from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
+import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import {TextareaField} from 'sentry/components/forms/fields/textareaField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeAssertion, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
@@ -314,7 +314,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
             label={t('Environment')}
             placeholder={t('Select an environment')}
             noOptionsMessage={() => t('Start typing to create an environment')}
-            onCreateOption={(env: any) => {
+            onCreateOption={env => {
               setNewEnvironment(env);
               formModel.setValue('environment', env);
             }}

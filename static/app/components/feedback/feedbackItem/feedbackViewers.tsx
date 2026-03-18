@@ -11,7 +11,7 @@ import {userDisplayName} from 'sentry/utils/formatters';
 interface Props {
   feedbackItem: FeedbackIssue;
 }
-export default function FeedbackViewers({feedbackItem}: Props) {
+export function FeedbackViewers({feedbackItem}: Props) {
   const displayUsers = feedbackItem.seenBy;
 
   return (

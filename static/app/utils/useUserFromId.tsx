@@ -1,10 +1,10 @@
 import type {User} from '@sentry/core';
 
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export default function useUserFromId({id}: {id: number | undefined}) {
+export function useUserFromId({id}: {id: number | undefined}) {
   const organization = useOrganization();
 
   const {isPending, isError, data} = useApiQuery<User>(

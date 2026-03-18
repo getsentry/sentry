@@ -10,14 +10,14 @@ import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import type {Client} from 'sentry/api';
-import DiscoverButton from 'sentry/components/discoverButton';
-import GroupList from 'sentry/components/issues/groupList';
+import {DiscoverButton} from 'sentry/components/discoverButton';
+import {GroupList} from 'sentry/components/issues/groupList';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import QueryCount from 'sentry/components/queryCount';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {QueryCount} from 'sentry/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -60,7 +60,7 @@ type Props = {
   query?: string;
 };
 
-function ProjectIssues({organization, location, projectId, query, api}: Props) {
+export function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
   const [issuesType, setIssuesType] = useQueryState('issuesType', {
@@ -299,5 +299,3 @@ const OpenInButtonBar = styled((props: GridProps) => (
 const StyledPagination = styled(Pagination)`
   margin: 0;
 `;
-
-export default ProjectIssues;

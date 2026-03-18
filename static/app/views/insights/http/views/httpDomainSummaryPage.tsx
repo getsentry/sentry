@@ -10,9 +10,9 @@ import {DataCategory} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
@@ -29,7 +29,7 @@ import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle'
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {SubregionSelector} from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
   DataTitles,
   getThroughputTitle,

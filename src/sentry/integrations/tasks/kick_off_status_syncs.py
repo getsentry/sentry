@@ -9,7 +9,7 @@ from sentry.taskworker.retry import Retry
     name="sentry.integrations.tasks.kick_off_status_syncs",
     namespace=integrations_tasks,
     retry=Retry(times=5, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry()
 @track_group_async_operation

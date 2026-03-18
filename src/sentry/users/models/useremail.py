@@ -25,7 +25,7 @@ from sentry.hybridcloud.models.outbox import ControlOutboxBase
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.types.region import find_regions_for_user
+from sentry.types.cell import find_cells_for_user
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.security import get_secure_token
 
@@ -78,7 +78,7 @@ class UserEmail(ControlOutboxProducingModel):
     __repr__ = sane_repr("user_id", "email")
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
-        regions = find_regions_for_user(self.user_id)
+        regions = find_cells_for_user(self.user_id)
         return [
             outbox
             for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(

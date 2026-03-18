@@ -2,32 +2,32 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import routeTitleGen from 'sentry/utils/routeTitle';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
-import CreateProjectButton from 'sentry/views/settings/organizationProjects/createProjectButton';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {ProjectItem} from 'sentry/views/settings/components/settingsProjectItem';
+import {CreateProjectButton} from 'sentry/views/settings/organizationProjects/createProjectButton';
 
-import ProjectStatsGraph from './projectStatsGraph';
+import {ProjectStatsGraph} from './projectStatsGraph';
 
 const ITEMS_PER_PAGE = 50;
 
@@ -100,7 +100,7 @@ function OrganizationProjects() {
             sortProjects(projectList).map(project => (
               <GridPanelItem key={project.id}>
                 <ProjectListItemWrapper>
-                  <ProjectListItem project={project} organization={organization} />
+                  <ProjectItem project={project} organization={organization} />
                 </ProjectListItemWrapper>
                 <ProjectStatsGraphWrapper>
                   <ProjectStatsGraph project={project} />

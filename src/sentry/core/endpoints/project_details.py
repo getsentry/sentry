@@ -13,7 +13,7 @@ from rest_framework.serializers import ListField
 
 from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import is_considered_sudo
 from sentry.api.exceptions import SudoRequired
@@ -33,7 +33,7 @@ from sentry.constants import (
     SAMPLING_MODE_DEFAULT,
     ObjectStatus,
 )
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
@@ -493,7 +493,7 @@ class RelaxedProjectAndStaffPermission(StaffPermissionMixin, RelaxedProjectPermi
 
 
 @extend_schema(tags=["Projects"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -1075,7 +1075,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             status=ObjectStatus.PENDING_DELETION
         )
         if updated:
-            scheduled = RegionScheduledDeletion.schedule(project, days=0, actor=request.user)
+            scheduled = CellScheduledDeletion.schedule(project, days=0, actor=request.user)
 
             common_audit_data = {
                 "organization": project.organization,

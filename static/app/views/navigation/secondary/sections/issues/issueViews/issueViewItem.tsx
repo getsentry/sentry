@@ -10,17 +10,17 @@ import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
-import {useNavigationContext} from 'sentry/views/navigation/context';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
 import {
   constructViewLink,
   type IssueView,
 } from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 interface IssueViewItemProps {
   /**
@@ -77,7 +77,7 @@ export function IssueViewItem({
     .map(p => p.platform)
     .filter(defined);
 
-  const {startInteraction, endInteraction, isInteractingRef} = useNavigationContext();
+  const {interaction, setInteraction} = useSecondaryNavigation();
 
   return (
     <StyledReorderItem
@@ -88,12 +88,12 @@ export function IssueViewItem({
       value={view}
       onDragStart={() => {
         setIsDragging(view.id);
-        startInteraction();
+        setInteraction('dragging');
       }}
       onDragEnd={() => {
         setIsDragging(null);
         onReorderComplete();
-        endInteraction();
+        setInteraction(null);
       }}
       dragListener={false}
       dragControls={controls}
@@ -145,7 +145,7 @@ export function IssueViewItem({
           e.preventDefault();
         }}
         onClick={e => {
-          if (isInteractingRef.current) {
+          if (interaction.current) {
             e.preventDefault();
           } else {
             trackAnalytics('issue_views.switched_views', {
@@ -221,7 +221,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
   border-radius: 4px;
 `;
 
-const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Item)`
+const StyledSecondaryNavigationItem = styled(SecondaryNavigation.Link)`
   position: relative;
   padding-right: ${p => p.theme.space.xs};
 

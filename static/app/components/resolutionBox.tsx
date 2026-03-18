@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 
-import CommitLink from 'sentry/components/commitLink';
+import {CommitLink} from 'sentry/components/commitLink';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
@@ -129,7 +129,7 @@ export function renderResolutionReason({
   return hasStreamlinedUI ? null : t('This issue has been marked as resolved.');
 }
 
-function ResolutionBox(props: Props) {
+export function ResolutionBox(props: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
@@ -186,5 +186,3 @@ const StreamlinedCommitLink = styled(CommitLink)`
     text-decoration: none;
   }
 `;
-
-export default ResolutionBox;

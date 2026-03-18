@@ -9,23 +9,23 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import ChangeARRAction from 'admin/components/changeARRAction';
-import ChangeContractEndDateAction from 'admin/components/changeContractEndDateAction';
-import CustomerContact from 'admin/components/customerContact';
-import CustomerStatus from 'admin/components/customerStatus';
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
-import ExtendProductTrialAction from 'admin/components/extendProductTrialAction';
+import {ChangeARRAction} from 'admin/components/changeARRAction';
+import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDateAction';
+import {CustomerContact} from 'admin/components/customerContact';
+import {CustomerStatus} from 'admin/components/customerStatus';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
+import {ExtendProductTrialAction} from 'admin/components/extendProductTrialAction';
 import {getLogQuery} from 'admin/utils';
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
 import type {
@@ -49,9 +49,9 @@ import {
   getReservedBudgetDisplayName,
   sortCategories,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type SubscriptionSummaryProps = {
@@ -441,6 +441,22 @@ function DynamicSampling({organization}: {organization: Organization}) {
       ? Math.abs(effectiveSampleRate - desiredSampleRate)
       : null;
 
+  const formatRate = (rate: number) => `${rate.toFixed(2)}%`;
+
+  const getSampleRateValue = (): string => {
+    if (effectiveSampleRate && desiredSampleRate) {
+      // When rates match, show just the rate instead of "X% instead of X% (~0%)"
+      if (formatRate(effectiveSampleRate) === formatRate(desiredSampleRate)) {
+        return formatRate(effectiveSampleRate);
+      }
+      return `${formatRate(effectiveSampleRate)} instead of ${formatRate(desiredSampleRate)} (~${formatRate(diffSampleRate!)})`;
+    }
+    if (desiredSampleRate) {
+      return formatRate(desiredSampleRate);
+    }
+    return 'n/a';
+  };
+
   return (
     <ThresholdLabel
       positive={
@@ -449,16 +465,12 @@ function DynamicSampling({organization}: {organization: Organization}) {
           : false
       }
     >
-      {effectiveSampleRate && desiredSampleRate
-        ? `${effectiveSampleRate.toFixed(2)}% instead of ${desiredSampleRate.toFixed(2)}% (~${diffSampleRate?.toFixed(2)}%)`
-        : desiredSampleRate
-          ? `${desiredSampleRate.toFixed(2)}%`
-          : 'n/a'}
+      {getSampleRateValue()}
     </ThresholdLabel>
   );
 }
 
-function CustomerOverview({customer, onAction, organization}: Props) {
+export function CustomerOverview({customer, onAction, organization}: Props) {
   let orgUrl = `/organizations/${organization.slug}/issues/`;
   const configFeatures = ConfigStore.get('features');
   if (configFeatures.has('system:multi-region')) {
@@ -946,5 +958,3 @@ function ThresholdLabel({positive, children}: ThresholdLabelProps) {
 const ThresholdValue = styled('dd')<{positive: boolean}>`
   color: ${p => (p.positive ? p.theme.colors.green500 : p.theme.colors.red500)};
 `;
-
-export default CustomerOverview;

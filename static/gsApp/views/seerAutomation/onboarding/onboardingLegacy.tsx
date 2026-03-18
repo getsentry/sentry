@@ -14,7 +14,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {useOrganizationRepositories} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {useUpdateProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useUpdateProjectSeerPreferences';
@@ -24,24 +24,24 @@ import {
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
 import ExternalLink from 'sentry/components/links/externalLink';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
@@ -594,7 +594,7 @@ function EnableIssueScansButton({
   );
 }
 
-function SeerAutomationOnboarding() {
+export function SeerAutomationOnboarding() {
   const organization = useOrganization();
   const {projects, fetching} = useProjects();
   const navigate = useNavigate();
@@ -892,5 +892,3 @@ const CustomizationList = styled('ul')`
 const SearchInputWrapper = styled('div')`
   width: 300px;
 `;
-
-export default SeerAutomationOnboarding;

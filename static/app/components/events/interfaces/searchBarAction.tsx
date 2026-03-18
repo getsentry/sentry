@@ -5,7 +5,7 @@ import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSe
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
 
 type Props = {
@@ -18,7 +18,7 @@ type Props = {
   filterSelections?: Array<SelectOption<string>>;
 };
 
-function SearchBarAction({
+export function SearchBarAction({
   onChange,
   query,
   placeholder,
@@ -61,8 +61,6 @@ function SearchBarAction({
     </Wrapper>
   );
 }
-
-export default SearchBarAction;
 
 const Wrapper = styled('div')`
   display: flex;

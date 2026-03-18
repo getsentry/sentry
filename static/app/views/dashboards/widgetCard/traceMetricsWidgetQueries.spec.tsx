@@ -3,10 +3,10 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
-import TraceMetricsWidgetQueries from './traceMetricsWidgetQueries';
+import {TraceMetricsWidgetQueries} from './traceMetricsWidgetQueries';
 
 describe('traceMetricsWidgetQueries', () => {
   const selection = PageFiltersFixture();

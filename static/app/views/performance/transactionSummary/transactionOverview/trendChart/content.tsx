@@ -2,13 +2,13 @@ import type {Theme} from '@emotion/react';
 import type {Query} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import Placeholder from 'sentry/components/placeholder';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
@@ -17,7 +17,7 @@ import {
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 import {transformEventStatsSmoothed} from 'sentry/views/performance/trends/utils';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
@@ -38,7 +38,7 @@ type Props = {
 } & Omit<React.ComponentProps<typeof ReleaseSeries>, 'children' | 'queryExtra'> &
   Pick<LineChartProps, 'onLegendSelectChanged' | 'legend'>;
 
-function Content({
+export function Content({
   errored,
   theme,
   series: data,
@@ -170,5 +170,3 @@ function Content({
     </ChartZoom>
   );
 }
-
-export default Content;

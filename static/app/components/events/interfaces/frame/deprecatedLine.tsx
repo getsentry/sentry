@@ -10,12 +10,12 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {openModal} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
+import {LeadHint} from 'sentry/components/events/interfaces/frame/leadHint';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
-import StrictClick from 'sentry/components/strictClick';
+import {StrictClick} from 'sentry/components/strictClick';
 import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
@@ -26,12 +26,12 @@ import type {
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
-import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
-import Context from './context';
-import DefaultTitle from './defaultTitle';
+import {Context} from './context';
+import {DefaultTitle} from './defaultTitle';
 import {OpenInContextLine} from './openInContextLine';
 import {
   getPlatform,

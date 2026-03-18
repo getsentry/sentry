@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams, PreventParams
 from sentry.codecov.base import CodecovEndpoint
@@ -19,7 +19,7 @@ MAX_RESULTS_PER_PAGE = 25
 
 
 @extend_schema(tags=["Prevent"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class RepositoryBranchesEndpoint(CodecovEndpoint):
     owner = ApiOwner.CODECOV
     publish_status = {

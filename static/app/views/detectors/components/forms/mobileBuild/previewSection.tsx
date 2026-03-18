@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
 import {
   PREPROD_DETECTOR_FORM_FIELDS,

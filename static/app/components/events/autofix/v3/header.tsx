@@ -2,7 +2,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
+import {AutofixFeedback} from 'sentry/components/events/autofix/autofixFeedback';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
@@ -18,7 +18,7 @@ export function SeerDrawerHeader({onCopyMarkdown, onReset}: SeerDrawerHeaderProp
     <DrawerHeader>
       <Flex justify="between" width="100%">
         <Flex align="center" gap="xs">
-          <Text>{t('Autofix')}</Text>
+          <Text>{t('Seer Autofix')}</Text>
           <Button
             size="xs"
             icon={<IconCopy />}

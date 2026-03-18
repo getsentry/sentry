@@ -5,16 +5,12 @@ import {t} from 'sentry/locale';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useNavigationContext} from 'sentry/views/navigation/context';
-import {
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-} from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import TrialStartedSidebarItem from 'getsentry/components/trialStartedSidebarItem';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {hasPerformance, isBizPlanFamily} from 'getsentry/utils/billing';
 
@@ -44,26 +40,23 @@ function TryBusinessNavigationItem({
 
   const isNew = !subscription.isTrial && subscription.canTrial;
   const showIsNew = isNew && !tryBusinessSeen;
-  const {layout} = useNavigationContext();
+  const {layout} = usePrimaryNavigation();
 
   return (
     <TrialStartedSidebarItem {...{organization, subscription}}>
-      <SidebarButton
+      <PrimaryNavigation.Button
         label={t('Try Business')}
-        onClick={() => {
-          setTryBusinessSeen(true);
-          onClick();
-        }}
         analyticsKey="try-business"
+        indicator={showIsNew ? 'accent' : undefined}
         buttonProps={{
-          size: layout === NavigationLayout.MOBILE ? 'xs' : 'sm',
+          size: layout === 'mobile' ? 'xs' : 'sm',
           icon: <IconBusiness size="md" />,
+          onClick: () => {
+            setTryBusinessSeen(true);
+            onClick();
+          },
         }}
-      >
-        {showIsNew && (
-          <SidebarItemUnreadIndicator isMobile={layout === NavigationLayout.MOBILE} />
-        )}
-      </SidebarButton>
+      />
     </TrialStartedSidebarItem>
   );
 }

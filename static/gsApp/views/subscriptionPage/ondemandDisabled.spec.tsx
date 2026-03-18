@@ -6,7 +6,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PlanTier} from 'getsentry/types';
 
-import OnDemandDisabled from './ondemandDisabled';
+import {OnDemandDisabled} from './ondemandDisabled';
 
 describe('OnDemandDisabled', () => {
   const organization = OrganizationFixture();
