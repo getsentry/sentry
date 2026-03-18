@@ -38,6 +38,8 @@ export function useSessionStorage<T>(
   const wrappedSetState = useCallback(
     (valueOrUpdater: SetStateAction<T>) => {
       setState(prev => {
+        // Cast needed: TS can't narrow SetStateAction<T> via typeof when T
+        // could itself be a function type.
         const next =
           typeof valueOrUpdater === 'function'
             ? (valueOrUpdater as (prev: T) => T)(prev)
