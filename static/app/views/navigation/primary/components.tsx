@@ -126,9 +126,9 @@ function PrimaryNavigationList({children, ...props}: PrimaryNavigationListProps)
       as="ul"
       position="relative"
       margin="0"
-      padding="0"
+      padding={hasPageFrame ? 'xs' : '0'}
       width="100%"
-      gap={hasPageFrame ? undefined : 'xs'}
+      gap="xs"
       align={layout === 'mobile' ? 'stretch' : 'center'}
       paddingTop={hasPageFrame ? undefined : 'md'}
       {...props}
@@ -167,6 +167,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const hasPageFrame = organization?.features.includes('page-frame');
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
+  const theme = useTheme();
 
   const sharedLinkProps = {
     to: props.to,
@@ -202,8 +203,10 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
         as="span"
         align="center"
         justify="center"
-        padding={hasPageFrame ? 'xs' : 'sm'}
         radius="md"
+        padding={hasPageFrame ? 'xs' : 'sm'}
+        width={hasPageFrame ? theme.form.sm.height : undefined}
+        height={hasPageFrame ? theme.form.sm.height : undefined}
         data-icon-container
       >
         {props.children}
@@ -617,19 +620,23 @@ const DesktopNavigationLink = styled((props: LinkProps) => (
   }
 `;
 
-const DesktopPageFrameNavigationLink = styled((props: LinkProps) => (
-  <Flex
-    position="relative"
-    width="100%"
-    align="center"
-    direction="column"
-    justify="center"
-    gap="xs"
-    padding="md 0 xs 0"
-  >
-    {p => <Link {...mergeProps(p, props)} />}
-  </Flex>
-))`
+const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
+  const organization = usePrimaryNavigationOrganization();
+  const hasPageFrame = organization?.features.includes('page-frame');
+  return (
+    <Flex
+      position="relative"
+      width="100%"
+      align="center"
+      direction="column"
+      justify="center"
+      gap="xs"
+      padding={hasPageFrame ? 'xs' : 'md 0 xs 0'}
+    >
+      {p => <Link {...mergeProps(p, props)} />}
+    </Flex>
+  );
+})`
   outline: none;
   box-shadow: none;
   transition: none;
