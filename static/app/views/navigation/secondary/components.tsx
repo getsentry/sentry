@@ -1099,6 +1099,7 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
     `}
 
   [data-reorderable-handle-slot] {
+    transform: scale(1);
     transition:
       opacity 150ms ease,
       transform 150ms ease;
