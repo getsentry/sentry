@@ -85,12 +85,6 @@ def process_mention_for_slack(
             lifecycle.record_halt(halt_reason=ProcessMentionHaltReason.INTEGRATION_NOT_FOUND)
             return
 
-        entrypoint.install.set_thread_status(
-            channel_id=channel_id,
-            thread_ts=entrypoint.thread_ts,
-            status="Thinking...",
-        )
-
         prompt = extract_prompt(text, bot_user_id)
 
         thread_context: str | None = None

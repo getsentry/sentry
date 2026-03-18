@@ -365,6 +365,16 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 lifecycle.record_halt(AppMentionHaltReason.MISSING_CHANNEL_OR_TEXT)
                 return self.respond()
 
+            try:
+                client = SlackSdkClient(integration_id=slack_request.integration.id)
+                client.assistant_threads_setStatus(
+                    channel_id=channel_id,
+                    thread_ts=thread_ts or message_ts,
+                    status="Thinking...",
+                )
+            except Exception:
+                pass
+
             process_mention_for_slack.apply_async(
                 kwargs={
                     "integration_id": slack_request.integration.id,
@@ -402,8 +412,6 @@ class SlackEventEndpoint(SlackDMEndpoint):
 
         authorizations = slack_request.data.get("authorizations") or []
         bot_user_id = authorizations[0].get("user_id", "") if authorizations else ""
-
-        from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
 
         process_mention_for_slack.apply_async(
             kwargs={
