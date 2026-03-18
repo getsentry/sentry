@@ -413,7 +413,7 @@ function SecondaryNavigationLink({
       }}
     >
       {leadingItems}
-      <Text data-text ellipsis variant={layout === 'sidebar' ? 'muted' : undefined}>
+      <Text ellipsis variant="inherit">
         {children}
       </Text>
       {trailingItems}
@@ -545,10 +545,6 @@ const NavigationLink = styled(Link)<NavigationLink>`
   border-radius: ${p => p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 
-  [data-text] {
-    color: ${p => p.theme.tokens.interactive.link.neutral.rest};
-  }
-
   /* Disable interaction state layer */
   > [data-isl] {
     display: none;
@@ -571,18 +567,12 @@ const NavigationLink = styled(Link)<NavigationLink>`
 
   &:hover {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover} !important;
-    [data-text] {
-      color: ${p => p.theme.tokens.interactive.link.neutral.hover} !important;
-    }
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &[aria-selected='true'] {
     color: ${p => p.theme.tokens.interactive.link.accent.rest} !important;
-    [data-text] {
-      color: ${p => p.theme.tokens.interactive.link.accent.rest} !important;
-    }
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
 
@@ -592,9 +582,6 @@ const NavigationLink = styled(Link)<NavigationLink>`
     /* Override the default hover styles */
     &:hover {
       color: ${p => p.theme.tokens.interactive.link.accent.hover} !important;
-      [data-text] {
-        color: ${p => p.theme.tokens.interactive.link.accent.hover} !important;
-      }
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
