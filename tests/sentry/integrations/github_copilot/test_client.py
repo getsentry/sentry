@@ -117,7 +117,7 @@ class GithubCopilotAgentClientTest(TestCase):
 
     @patch.object(GithubCopilotAgentClient, "post")
     def test_launch_with_created_at(self, mock_post: Mock) -> None:
-        """Test launch correctly parses created_at from the response"""
+        """Test launch correctly parses created_at from the wrapped response"""
         mock_response = Mock()
         mock_response.json = {
             "task": {
@@ -160,6 +160,50 @@ class GithubCopilotAgentClientTest(TestCase):
         after = datetime.now(UTC)
 
         assert result.id == "getsentry:sentry:task-456"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert before <= result.started_at <= after
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_unwrapped_response(self, mock_post: Mock) -> None:
+        """Test launch handles unwrapped API response (task fields at top level)"""
+        mock_response = Mock()
+        mock_response.json = {
+            "id": "task-789",
+            "status": "in_progress",
+            "created_at": "2024-07-01T10:00:00Z",
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+
+        assert result.id == "getsentry:sentry:task-789"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert result.provider == CodingAgentProviderType.GITHUB_COPILOT_AGENT
+        assert result.started_at == datetime(2024, 7, 1, 10, 0, 0, tzinfo=UTC)
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_unwrapped_response_no_created_at(self, mock_post: Mock) -> None:
+        """Test launch handles unwrapped response without created_at"""
+        mock_response = Mock()
+        mock_response.json = {
+            "id": "task-000",
+            "status": "in_progress",
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        before = datetime.now(UTC)
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+        after = datetime.now(UTC)
+
+        assert result.id == "getsentry:sentry:task-000"
         assert result.status == CodingAgentStatus.RUNNING
         assert before <= result.started_at <= after
 

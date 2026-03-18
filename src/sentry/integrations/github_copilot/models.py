@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from pydantic import BaseModel
+from typing import Any
+
+from pydantic import BaseModel, model_validator
 
 
 class GithubCopilotTaskRequest(BaseModel):
@@ -85,10 +87,20 @@ class GithubCopilotTask(BaseModel):
 class GithubCopilotTaskResponse(BaseModel):
     """
     Response from GitHub Copilot Tasks API.
-    The API wraps the task object in a {"task": {...}} envelope.
+
+    Handles both wrapped {"task": {...}} and unwrapped {...} response formats.
+    The API previously wrapped the task in a "task" envelope but now returns
+    the task object directly.
     """
 
     task: GithubCopilotTask
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_response(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "task" not in data and "id" in data:
+            return {"task": data}
+        return data
 
 
 class GithubPRFromGraphQL(BaseModel):
