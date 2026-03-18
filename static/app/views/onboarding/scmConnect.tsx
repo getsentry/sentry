@@ -32,11 +32,12 @@ export function ScmConnect({onComplete}: StepProps) {
   // If an existing SCM integration is detected and context doesn't have one
   // yet, persist it to context so downstream steps and child components can
   // read it without prop drilling.
+  const hasSelectedIntegration = !!selectedIntegration;
   useEffect(() => {
-    if (!selectedIntegration && activeIntegrationExisting) {
+    if (!hasSelectedIntegration && activeIntegrationExisting) {
       setSelectedIntegration(activeIntegrationExisting);
     }
-  }, [selectedIntegration, setSelectedIntegration, activeIntegrationExisting]);
+  }, [hasSelectedIntegration, setSelectedIntegration, activeIntegrationExisting]);
 
   const handleInstall = useCallback(
     (data: Integration) => {

@@ -26,7 +26,7 @@ export function ScmConnectedView() {
           <Text bold variant="success">
             {t(
               'Connected to %s',
-              selectedIntegration.domainName ?? selectedIntegration.provider.name
+              selectedIntegration.domainName || selectedIntegration.provider.name
             )}
           </Text>
         </Flex>
