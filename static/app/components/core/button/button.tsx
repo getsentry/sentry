@@ -17,15 +17,15 @@ import {useButtonFunctionality} from './useButtonFunctionality';
 export type {ButtonProps};
 
 export function Button({
-  size = 'md',
   disabled,
   type = 'button',
   tooltipProps,
   busy,
   ...props
 }: ButtonProps) {
+  const {size = 'md', ...resolvedProps} = useButtonDefaults(props);
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
-    ...props,
+    ...resolvedProps,
     type,
     disabled,
     busy,
@@ -46,8 +46,7 @@ export function Button({
         size={size}
         type={type}
         busy={busy}
-        {...props}
-        {...useButtonDefaults(props)}
+        {...resolvedProps}
         role="button"
         onClick={handleClick}
       >
@@ -60,7 +59,7 @@ export function Button({
           whiteSpace="nowrap"
           visibility={busy ? 'hidden' : undefined}
         >
-          {props.icon && (
+          {resolvedProps.icon && (
             <Flex
               as="span"
               align="center"
@@ -70,11 +69,11 @@ export function Button({
               }
             >
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
-                {props.icon}
+                {resolvedProps.icon}
               </IconDefaultsProvider>
             </Flex>
           )}
-          {props.children}
+          {resolvedProps.children}
           {busy && (
             <Flex
               align="center"
