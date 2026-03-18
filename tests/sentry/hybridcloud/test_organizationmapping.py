@@ -134,7 +134,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert_matching_organization_mapping(org=self.organization)
         assert not OrganizationMapping.objects.filter(organization_id=fake_org_id).exists()
 
-    def test_upsert__reject_org_slug_reservation_region_mismatch(self) -> None:
+    def test_upsert__reject_org_slug_reservation_cell_mismatch(self) -> None:
         self.organization = self.create_organization(slug="santry", region="us")
 
         organization_mapping_service.upsert(
