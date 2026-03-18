@@ -15,7 +15,13 @@ from sentry.analytics.events.suspectcommit_assignment import SuspectCommitAssign
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey
-from sentry.issues.ownership.grammar import Matcher, Rule, load_schema, resolve_actors
+from sentry.issues.ownership.grammar import (
+    Matcher,
+    OwnershipSchema,
+    Rule,
+    load_schema,
+    resolve_actors,
+)
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupowner import OwnerRuleType
@@ -63,7 +69,9 @@ class ProjectOwnership(Model):
         return f"projectownership_project_id:1:{project_id}"
 
     @classmethod
-    def get_combined_schema(self, ownership, codeowners):
+    def get_combined_schema(
+        self, ownership: ProjectOwnership, codeowners: ProjectCodeOwners | None
+    ) -> OwnershipSchema | None:
         if codeowners and codeowners.schema:
             ownership.schema = (
                 codeowners.schema

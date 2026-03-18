@@ -8,7 +8,7 @@ export interface ListItemProps extends React.HTMLAttributes<HTMLLIElement> {
   symbol?: React.ReactElement;
 }
 
-const ListItem = styled(
+export const ListItem = styled(
   ({ref, symbol, children, padding: _padding, ...props}: ListItemProps) => (
     <li ref={ref} role={props.onClick ? 'button' : undefined} {...props}>
       {symbol && (
@@ -23,5 +23,3 @@ const ListItem = styled(
   position: relative;
   padding-left: ${p => (p.symbol ? (p.padding ?? p.theme.space['3xl']) : undefined)};
 `;
-
-export default ListItem;

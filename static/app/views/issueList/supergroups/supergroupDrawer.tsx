@@ -11,7 +11,7 @@ import {
   ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import GroupList from 'sentry/components/issues/groupList';
+import {GroupList} from 'sentry/components/issues/groupList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';

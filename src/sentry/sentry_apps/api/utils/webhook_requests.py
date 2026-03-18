@@ -7,7 +7,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app_request import RpcSentryAppRequest, SentryAppRequestFilterArgs
 from sentry.sentry_apps.services.app_request.serial import serialize_rpc_sentry_app_request
 from sentry.sentry_apps.services.app_request.service import app_request_service
-from sentry.types.region import find_all_cell_names
+from sentry.types.cell import find_all_cell_names
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 

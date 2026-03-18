@@ -7,7 +7,9 @@ from collections.abc import Callable
 from typing import Any, TypeVar
 
 import sentry_sdk
+from django.conf import settings
 from django.db.models import Model
+from taskbroker_client.constants import CompressionType as TaskbrokerCompressionType
 
 from sentry.silo.base import SiloMode
 from sentry.taskworker.constants import CompressionType
@@ -113,6 +115,9 @@ def instrumented_task(
     silo_mode : SiloMode | None
         The silo that the task will run in. This should be the silo that the task was called from.
     """
+    if compression_type and settings.TASKWORKER_USE_LIBRARY:
+        # TODO(tasks) this shim is temporary and will be removed alongside TASKWORKER_USE_LIBRARY
+        compression_type = TaskbrokerCompressionType(compression_type.value)  # type: ignore[assignment]
 
     def wrapped(func: Callable[P, R]) -> Task[P, R]:
         task = namespace.register(

@@ -11,7 +11,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.region import override_regions
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.users.models.user import User
 from sentry.utils import snowflake
 from sentry.utils.snowflake import (

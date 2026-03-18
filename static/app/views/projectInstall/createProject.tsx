@@ -12,15 +12,15 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-import PlatformPicker, {type Platform} from 'sentry/components/platformPicker';
+import {PlatformPicker, type Platform} from 'sentry/components/platformPicker';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
 import {t, tct} from 'sentry/locale';
@@ -49,8 +49,9 @@ import type {
   AlertRuleOptions,
   RequestDataFragment,
 } from 'sentry/views/projectInstall/issueAlertOptions';
-import IssueAlertOptions, {
+import {
   getRequestDataFragment,
+  IssueAlertOptions,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';

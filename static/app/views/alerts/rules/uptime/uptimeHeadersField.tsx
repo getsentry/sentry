@@ -6,7 +6,7 @@ import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import type {FormFieldProps} from 'sentry/components/forms/formField';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';

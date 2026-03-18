@@ -18,7 +18,7 @@ from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.types.region import find_cells_for_orgs
+from sentry.types.cell import find_cells_for_orgs
 
 logger = logging.getLogger("sentry.authprovider")
 

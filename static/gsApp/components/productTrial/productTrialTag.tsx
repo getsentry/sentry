@@ -6,7 +6,7 @@ import {IconBusiness} from 'sentry/icons';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
 import type {ProductTrial} from 'getsentry/types';
 

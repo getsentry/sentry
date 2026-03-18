@@ -205,7 +205,7 @@ function useBetweenOperatorFilter(
   };
 }
 
-function NumericFilterSelector({
+export function NumericFilterSelector({
   globalFilter,
   onRemoveFilter,
   onUpdateFilter,
@@ -353,8 +353,6 @@ function NumericFilterSelector({
     />
   );
 }
-
-export default NumericFilterSelector;
 
 const MenuBodyWrap = styled('div')`
   padding: ${p => p.theme.space.md};

@@ -10,7 +10,7 @@ from sentry.integrations.bitbucket.webhook import BitbucketWebhookEndpoint
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.types.region import CellResolutionError, get_cell_by_name
+from sentry.types.cell import CellResolutionError, get_cell_by_name
 
 logger = logging.getLogger(__name__)
 

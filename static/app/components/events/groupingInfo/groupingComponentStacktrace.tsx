@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import type {EventGroupComponent} from 'sentry/types/event';
 
-import GroupingComponent from './groupingComponent';
-import GroupingComponentFrames from './groupingComponentFrames';
+import {GroupingComponent} from './groupingComponent';
+import {GroupingComponentFrames} from './groupingComponentFrames';
 import {getFrameGroups} from './utils';
 
 type Props = {

@@ -28,7 +28,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.types.region import Cell, RegionCategory, get_local_cell
+from sentry.types.cell import Cell, RegionCategory, get_local_cell
 from sentry.users.models.user import User
 
 

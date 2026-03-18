@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 
-import MonitorQuickStartGuide from './monitorQuickStartGuide';
+import {MonitorQuickStartGuide} from './monitorQuickStartGuide';
 
 interface Props {
   monitorSlug: string;

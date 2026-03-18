@@ -3,7 +3,7 @@ import {useCallback, useMemo, useRef} from 'react';
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';

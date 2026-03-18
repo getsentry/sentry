@@ -437,7 +437,7 @@ def validate_options(settings: Any) -> None:
 
 
 def validate_regions(settings: Any) -> None:
-    from sentry.types.region import load_from_config
+    from sentry.types.cell import load_from_config
 
     if not settings.SENTRY_REGION_CONFIG:
         return

@@ -13,7 +13,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {useDrawer} from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {getFormattedDate} from 'sentry/utils/dates';
@@ -23,7 +23,7 @@ import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/type
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
-import MonitorQuickStartGuide from './monitorQuickStartGuide';
+import {MonitorQuickStartGuide} from './monitorQuickStartGuide';
 
 interface Props {
   monitor: Monitor;
