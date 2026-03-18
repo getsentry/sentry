@@ -363,39 +363,35 @@ def generate_autofix_handoff_prompt(
     return "\n\n".join(parts)
 
 
-def _filter_repos_by_run_state(
+def _get_relevant_repo(
     state: SeerRunState,
     repo_definitions: list[SeerRepoDefinition],
     run_id: int,
     group: Group,
-) -> list[SeerRepoDefinition]:
+) -> SeerRepoDefinition:
     root_cause_artifact = state.get_artifacts().get("root_cause")
-    relevant_repos: list[str] = (
-        (root_cause_artifact.data or {}).get("relevant_repos") or [] if root_cause_artifact else []
+    relevant_repo: str | None = (
+        (root_cause_artifact.data or {}).get("relevant_repo") if root_cause_artifact else None
     )
-    if relevant_repos:
-        filtered = [r for r in repo_definitions if f"{r.owner}/{r.name}" in set(relevant_repos)]
-        if filtered:
-            return filtered
+    warning_extras = {
+        "organization_id": group.organization.id,
+        "run_id": run_id,
+        "project_id": group.project_id,
+    }
+    if relevant_repo:
+        match = next((r for r in repo_definitions if f"{r.owner}/{r.name}" == relevant_repo), None)
+        if match:
+            return match
         logger.warning(
-            "autofix.coding_agent_handoff.relevant_repos_not_found",
-            extra={
-                "organization_id": group.organization.id,
-                "run_id": run_id,
-                "project_id": group.project_id,
-                "relevant_repos": relevant_repos,
-            },
+            "autofix.coding_agent_handoff.relevant_repo_not_found",
+            extra={**warning_extras, "relevant_repo": relevant_repo},
         )
     else:
         logger.warning(
-            "autofix.coding_agent_handoff.no_relevant_repos",
-            extra={
-                "organization_id": group.organization.id,
-                "run_id": run_id,
-                "project_id": group.project_id,
-            },
+            "autofix.coding_agent_handoff.no_relevant_repo",
+            extra=warning_extras,
         )
-    return repo_definitions[:1]
+    return repo_definitions[0]
 
 
 def trigger_coding_agent_handoff(
@@ -454,7 +450,7 @@ def trigger_coding_agent_handoff(
     )
     state = client.get_run(run_id)
 
-    repo_definitions = _filter_repos_by_run_state(state, repo_definitions, run_id, group)
+    repo = _get_relevant_repo(state, repo_definitions, run_id, group)
 
     short_id = group.qualified_short_id
 
@@ -466,7 +462,7 @@ def trigger_coding_agent_handoff(
         provider=provider,
         user_id=user_id,
         prompt=prompt,
-        repos=repo_definitions,
+        repos=[repo],
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
     )

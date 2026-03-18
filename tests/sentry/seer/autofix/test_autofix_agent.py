@@ -598,10 +598,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
 
     @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
-    def test_trigger_coding_agent_handoff_filters_repos_by_relevant_repos(
+    def test_trigger_coding_agent_handoff_filters_to_relevant_repo(
         self, mock_client_class, mock_get_prefs
     ):
-        """Test that repos are filtered to those listed in the root_cause artifact's relevant_repos."""
+        """Test that only the repo named in relevant_repo is passed to launch_coding_agents."""
         from sentry.seer.models import SeerRepoDefinition
 
         mock_client = MagicMock()
@@ -610,7 +610,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             [
                 Artifact(
                     key="root_cause",
-                    data={"one_line_description": "Bug", "relevant_repos": ["owner/relevant-repo"]},
+                    data={"one_line_description": "Bug", "relevant_repo": "owner/relevant-repo"},
                     reason="test",
                 )
             ]
@@ -636,10 +636,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
     @patch("sentry.seer.autofix.autofix_agent.logger")
     @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
-    def test_trigger_coding_agent_handoff_falls_back_to_first_repo_when_no_relevant_repos(
+    def test_trigger_coding_agent_handoff_falls_back_to_first_repo_when_no_relevant_repo(
         self, mock_client_class, mock_get_prefs, mock_logger
     ):
-        """Test that when relevant_repos is absent, first configured repo is used and a warning is logged."""
+        """Test that when relevant_repo is absent, first configured repo is used and a warning is logged."""
         from sentry.seer.models import SeerRepoDefinition
 
         mock_client = MagicMock()
@@ -665,7 +665,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert len(repos) == 1
         assert repos[0].name == "first-repo"
         mock_logger.warning.assert_called_once_with(
-            "autofix.coding_agent_handoff.no_relevant_repos",
+            "autofix.coding_agent_handoff.no_relevant_repo",
             extra={
                 "organization_id": self.group.organization.id,
                 "run_id": 123,
@@ -676,10 +676,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
     @patch("sentry.seer.autofix.autofix_agent.logger")
     @patch("sentry.seer.autofix.autofix_agent.get_project_seer_preferences")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
-    def test_trigger_coding_agent_handoff_falls_back_when_relevant_repos_dont_match(
+    def test_trigger_coding_agent_handoff_falls_back_when_relevant_repo_doesnt_match(
         self, mock_client_class, mock_get_prefs, mock_logger
     ):
-        """Test that when relevant_repos is non-empty but none match configured repos, first repo is used."""
+        """Test that when relevant_repo doesn't match any configured repo, first repo is used."""
         from sentry.seer.models import SeerRepoDefinition
 
         mock_client = MagicMock()
@@ -688,10 +688,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
             [
                 Artifact(
                     key="root_cause",
-                    data={
-                        "one_line_description": "Bug",
-                        "relevant_repos": ["owner/nonexistent-repo"],
-                    },
+                    data={"one_line_description": "Bug", "relevant_repo": "owner/nonexistent-repo"},
                     reason="test",
                 )
             ]
@@ -714,11 +711,11 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert len(repos) == 1
         assert repos[0].name == "first-repo"
         mock_logger.warning.assert_called_once_with(
-            "autofix.coding_agent_handoff.relevant_repos_not_found",
+            "autofix.coding_agent_handoff.relevant_repo_not_found",
             extra={
                 "organization_id": self.group.organization.id,
                 "run_id": 123,
                 "project_id": self.group.project_id,
-                "relevant_repos": ["owner/nonexistent-repo"],
+                "relevant_repo": "owner/nonexistent-repo",
             },
         )
