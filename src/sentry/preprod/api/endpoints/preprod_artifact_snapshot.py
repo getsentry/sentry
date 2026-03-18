@@ -405,17 +405,20 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         )
 
         if has_vcs:
-            # No composite index on (commit_comparison, project) — acceptable at current
-            # Snapshots customer volume (rate-limited to 100 req/min/org).
-            bundle_count = PreprodArtifact.objects.filter(
-                commit_comparison=commit_comparison,
-                project=project,
-            ).count()
-            metrics.distribution(
-                "preprod.snapshots.upload.bundles_per_commit",
-                bundle_count,
-                sample_rate=1.0,
-            )
+            try:
+                # No composite index on (commit_comparison, project) — acceptable at current
+                # Snapshots customer volume (rate-limited to 100 req/min/org).
+                bundle_count = PreprodArtifact.objects.filter(
+                    commit_comparison=commit_comparison,
+                    project=project,
+                ).count()
+                metrics.distribution(
+                    "preprod.snapshots.upload.bundles_per_commit",
+                    bundle_count,
+                    sample_rate=1.0,
+                )
+            except Exception:
+                logger.exception("Failed to record bundles_per_commit metric")
 
         create_preprod_snapshot_status_check_task.apply_async(
             kwargs={
