@@ -9,7 +9,7 @@ import type {Frame} from 'sentry/types/event';
 import type {LineCoverage} from 'sentry/types/integrations';
 import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 
-import Context, {getLineCoverage} from './context';
+import {Context, getLineCoverage} from './context';
 
 describe('Frame - Context', () => {
   const org = OrganizationFixture();

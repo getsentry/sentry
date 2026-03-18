@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
 interface Props {
   isLoading: boolean;

@@ -458,11 +458,11 @@ def _call_autofix(
             "options": {
                 "comment_on_pr_with_url": pr_to_comment_on_url,
                 "auto_run_source": auto_run_source,
-                "referrer": referrer,
+                "referrer": referrer.value,
                 "disable_coding_step": not group.organization.get_option(
                     "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
                 ),
-                "stopping_point": stopping_point,
+                "stopping_point": stopping_point.value if stopping_point else None,
             },
         },
         option=orjson.OPT_NON_STR_KEYS,

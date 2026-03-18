@@ -98,7 +98,7 @@ export type SplitPanelProps = CommonProps &
       }
   );
 
-function SplitPanel(props: SplitPanelProps) {
+export function SplitPanel(props: SplitPanelProps) {
   const {
     availableSize,
     SplitDivider = BaseSplitDivider,
@@ -221,5 +221,3 @@ const SplitPanelContainer = styled('div')<{
     pointer-events: none !important;
   }
 `;
-
-export default SplitPanel;

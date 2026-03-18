@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import GlobalModal from 'sentry/components/globalModal';
+import {GlobalModal} from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
 import {IconSentry, IconSliders} from 'sentry/icons';

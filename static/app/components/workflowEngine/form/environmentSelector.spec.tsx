@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 

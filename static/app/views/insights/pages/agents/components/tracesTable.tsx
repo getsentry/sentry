@@ -10,15 +10,16 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
-import GridEditable, {
+import {Pagination} from 'sentry/components/pagination';
+import {Placeholder} from 'sentry/components/placeholder';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {isOverflown} from 'sentry/utils/useHoverOverlay';
@@ -183,6 +184,8 @@ export function TracesTable({
       fields: ['trace', 'count(span.duration)'],
       limit: tracesRequest.data?.data.length ?? 0,
       enabled: Boolean(tracesRequest.data && tracesRequest.data.data.length > 0),
+      samplingMode: SAMPLING_MODE.HIGH_ACCURACY,
+      extrapolationMode: 'none',
     },
     Referrer.TRACES_TABLE
   );
@@ -279,7 +282,6 @@ export function TracesTable({
   const additionalGridProps = frameless
     ? {
         bodyStyle: FRAMELESS_STYLES,
-        fit: 'max-content' as const,
         resizable: true,
         scrollable: true,
         height: '100%',

@@ -1,5 +1,5 @@
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import GroupList from 'sentry/components/issues/groupList';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {GroupList} from 'sentry/components/issues/groupList';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';

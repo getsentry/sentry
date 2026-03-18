@@ -40,7 +40,7 @@ type Props = BannerWrapperProps & {
   title?: string;
 };
 
-function Banner({
+export function Banner({
   title,
   subtitle,
   isDismissable = true,
@@ -149,5 +149,3 @@ const CloseButton = styled(Button)`
   cursor: pointer;
   z-index: 1;
 `;
-
-export default Banner;

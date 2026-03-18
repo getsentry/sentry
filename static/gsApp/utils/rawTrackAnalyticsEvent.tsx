@@ -5,7 +5,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {uniqueId} from 'sentry/utils/guid';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';

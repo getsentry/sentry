@@ -6,7 +6,14 @@ from sentry.seer.signed_seer_api import UnitTestGenerationRequest, make_unit_tes
 
 class RegionBackedTestGenerationService(TestGenerationService):
     def start_unit_test_generation(
-        self, *, region_name: str, github_org: str, repo: str, pr_id: int, external_id: str
+        self,
+        *,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        github_org: str,
+        repo: str,
+        pr_id: int,
+        external_id: str,
     ) -> CreateUnitTestResponse:
         body = UnitTestGenerationRequest(
             repo={

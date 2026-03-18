@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {UserMisery} from 'sentry/components/userMisery';
 import {t} from 'sentry/locale';
