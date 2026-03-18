@@ -697,29 +697,21 @@ def trends_aggregation_impl(
 
 
 def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
-    """Build a Snuba aggregation expression for the recommended sort.
-
-    Combines five normalized [0, 1] components additively:
-    - recency_score: exponential decay based on time since last event (24hr halflife)
-    - spike_score: ratio of recent 6hr events to total 3d events
-    - severity_score: max log level (fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0)
-    - user_impact_score: log-scaled unique user count
-    - event_volume_score: log-scaled total event count
-    """
-    recency_weight = options.get("snuba.search.recommended.recency-weight")
-    spike_weight = options.get("snuba.search.recommended.spike-weight")
-    severity_weight = options.get("snuba.search.recommended.severity-weight")
-    user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
-    event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
-
     hour = 3600
+
+    # Recency: exponential decay based on time since last event (24hr halflife)
+    recency_weight = options.get("snuba.search.recommended.recency-weight")
     age_hours = f"divide(minus(now(), max({timestamp_column})), {hour})"
     recency = f"divide(1, pow(2, divide({age_hours}, 24)))"
 
+    # Spike: ratio of recent 6hr events to total 3d events
+    spike_weight = options.get("snuba.search.recommended.spike-weight")
     recent_6h = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {6 * hour}))"
     total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"
     spike = f"least(1.0, divide({recent_6h}, plus({total_3d}, 1)))"
 
+    # Severity: max log level - maps fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0
+    severity_weight = options.get("snuba.search.recommended.severity-weight")
     severity = (
         "max(multiIf("
         "equals(level, 'fatal'), 1.0, "
@@ -729,10 +721,12 @@ def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
         "0.0))"
     )
 
-    # ln(uniq(tags[sentry:user]) + 1) / ln(1001) — maps 1→~0, 10→0.33, 100→0.67, 1000→1.0
+    # User impact: ln(uniq(tags[sentry:user]) + 1)/ln(1001) - maps 1→~0, 10→0.33, 100→0.67, 1000→1.0
+    user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
     user_impact = "least(1.0, divide(log(plus(uniq(tags[sentry:user]), 1)), log(1001)))"
 
-    # ln(count() + 1) / ln(10001) — maps 1→~0, 10→0.25, 100→0.50, 1000→0.75, 10000+→1.0
+    # Event volume: ln(count() + 1)/ln(10001) - maps 1→~0, 10→0.25, 100→0.50, 1000→0.75, 10000+→1.0
+    event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
     event_volume = "least(1.0, divide(log(plus(count(), 1)), log(10001)))"
 
     return [
