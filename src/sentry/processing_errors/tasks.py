@@ -75,8 +75,11 @@ def _resolve_detector(state: DetectorState) -> None:
         return
 
     handler = state.detector.detector_handler
+    if handler is None:
+        logger.error("detector_handler returned None for detector %s", state.detector.id)
+        return
     if not isinstance(handler, StatefulDetectorHandler):
-        logger.error("No handler for detector %s", state.detector.id)
+        logger.error("Unexpected handler type %s for detector %s", type(handler), state.detector.id)
         return
 
     fingerprint = [
@@ -97,7 +100,8 @@ def _resolve_detector(state: DetectorState) -> None:
         status_change=status_change,
     )
 
-    # Clear Redis triggered cache so detection can re-trigger if the problem returns
+    # Clear triggered cache so detection can re-trigger if the problem returns.
+    # This is keyed per-project, so resolving any detector clears it for the project.
     get_redis_client().delete(_redis_key_triggered(state.detector.project_id))
 
     metrics.incr("processing_errors.sourcemap_detector.resolved")
