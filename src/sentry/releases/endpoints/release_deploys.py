@@ -207,9 +207,9 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             )
             raise ResourceDoesNotExist
 
-        if not self.has_release_permission(request, organization, release):
-            # Logic here copied from `has_release_permission` (lightly edited for results to be more
-            # human-readable)
+        if not self.has_release_permission(
+            request, organization, release, require_all_projects=True
+        ):
             if request.user.is_authenticated:
                 auth = f"user.id: {request.user.id}"
             elif request.auth is not None:

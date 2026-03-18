@@ -706,14 +706,26 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         organization: Organization | RpcOrganization,
         release: Release | None = None,
         project_ids: set[int] | None = None,
+        require_all_projects: bool = False,
     ) -> bool:
         """
         Does the given request have permission to access this release, based
         on the projects to which the release is attached?
 
+        By default (require_all_projects=False), access is granted if the user
+        has access to *any* project linked to the release. This is appropriate
+        for read operations.
+
+        When require_all_projects=True and a release is provided, access is
+        only granted if the user has access to *all* projects linked to the
+        release. Use this for mutations (PUT, DELETE, POST) that affect the
+        entire release across all its projects. This check respects Open
+        Membership: when allow_joinleave is True, has_project_access grants
+        access to all active org projects via has_global_access.
+
         If the given request has an actor (user or ApiKey), cache the results
-        for a minute on the unique combination of actor,org,release, and project
-        ids.
+        for a minute on the unique combination of actor, org, release, project
+        ids, and require_all_projects.
         """
         actor_id = None
         has_perms = None
@@ -727,20 +739,23 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             if requested_project_ids is None:
                 requested_project_ids = self.get_requested_project_ids_unchecked(request)
             key = "release_perms:1:%s" % hash_values(
-                [actor_id, organization.id, release.id if release is not None else 0]
+                [
+                    actor_id,
+                    organization.id,
+                    release.id if release is not None else 0,
+                    int(require_all_projects),
+                ]
                 + sorted(requested_project_ids)
             )
             has_perms = cache.get(key)
         if has_perms is None:
             projects = self.get_projects(request, organization, project_ids=project_ids)
-            # XXX(iambriccardo): The logic here is that you have access to this release if any of your projects
-            # associated with this release you have release permissions to.  This is a bit of
-            # a problem because anyone can add projects to a release, so this check is easy
-            # to defeat.
             if release is not None:
                 has_perms = ReleaseProject.objects.filter(
                     release=release, project__in=projects
                 ).exists()
+                if has_perms and require_all_projects:
+                    has_perms = request.access.has_projects_access(list(release.projects.all()))
             else:
                 has_perms = len(projects) > 0
 
