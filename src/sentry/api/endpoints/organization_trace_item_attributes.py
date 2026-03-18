@@ -876,6 +876,8 @@ def _check_attribute_exists(
         meta=meta,
         limit=100,
         type=attr_type,
+        # The RPC only supports substring filtering, not exact match, so we
+        # scan the results and match exactly on the client side.
         value_substring_match=name,
     )
     rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
@@ -902,6 +904,8 @@ def _check_attributes_exist(
     all_checks = [(attr_type, name) for attr_type, names in attrs_by_type.items() for name in names]
 
     found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
+    # Each (type, name) pair requires a separate RPC call with no batching
+    # available, so we fire them all in parallel to minimise latency.
     with ThreadPoolExecutor(
         thread_name_prefix="attr_validate",
         max_workers=len(all_checks),
@@ -978,6 +982,9 @@ class OrganizationTraceItemAttributeValidateEndpoint(OrganizationTraceItemAttrib
                 }
 
         if unknown_attrs:
+            # Group by proto type because the storage check is keyed on
+            # (proto_type, internal_name) — the same display name can exist
+            # as both a string and a number attribute simultaneously.
             attrs_by_type: dict[AttributeKey.Type.ValueType, list[str]] = {}
             for _, resolved in unknown_attrs:
                 attrs_by_type.setdefault(resolved.proto_type, []).append(resolved.internal_name)
