@@ -16,7 +16,7 @@ from sentry.users.models.identity import Identity
 _TEST_CELL = Cell("eu", 1, "http://eu.testserver", RegionCategory.MULTI_TENANT)
 
 
-@control_silo_test(regions=[_TEST_CELL])
+@control_silo_test(cells=[_TEST_CELL])
 class ProcessControlOutboxTest(TestCase):
     identifier = 1
 

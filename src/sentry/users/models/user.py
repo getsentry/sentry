@@ -611,7 +611,7 @@ class User(Model, AbstractBaseUser):
 
         cell_caching_service.clear_key(key=get_user.key_from(self.id), cell_name=cell_name)
         cell_caching_service.clear_key(key=get_many_by_id.key_from(self.id), cell_name=cell_name)
-        organization_service.update_region_user(
+        organization_service.update_cell_user(
             user=RpcRegionUser(
                 id=self.id,
                 is_active=self.is_active,
