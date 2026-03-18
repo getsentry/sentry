@@ -13,7 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 type DetailsProps = {
   api: Client;
@@ -112,7 +112,7 @@ type RedirectOptions = {
 
 type RedirectCallback = (options: RedirectOptions) => string;
 
-const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback) =>
+export const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback) =>
   function RedirectDeprecatedProjectRoute() {
     const params = useParams<{orgId: string; projectId: string}>();
     const location = useLocation();
@@ -170,8 +170,6 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
       </Wrapper>
     );
   };
-
-export default redirectDeprecatedProjectRoute;
 
 const Wrapper = styled('div')`
   flex: 1;

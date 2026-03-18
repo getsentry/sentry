@@ -15,7 +15,7 @@ import {t, tct, tn} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 
 const ONE_HOUR = 60;
 

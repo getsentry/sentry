@@ -412,8 +412,8 @@ class OutboxBase(Model):
         return cls.objects.count()
 
 
-# Outboxes bound from region silo -> control silo
-class RegionOutboxBase(OutboxBase):
+# Outboxes bound from cell silo -> control silo
+class CellOutboxBase(OutboxBase):
     def send_signal(self) -> None:
         process_region_outbox.send(
             sender=OutboxCategory(self.category),
@@ -433,7 +433,7 @@ class RegionOutboxBase(OutboxBase):
 
 
 @cell_silo_model
-class RegionOutbox(RegionOutboxBase):
+class CellOutbox(CellOutboxBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regionoutbox"
@@ -518,10 +518,10 @@ class ControlOutbox(ControlOutboxBase):
 def outbox_silo_modes() -> list[SiloMode]:
     cur = SiloMode.get_current_mode()
     result: list[SiloMode] = []
-    if cur != SiloMode.REGION:
+    if cur != SiloMode.CELL:
         result.append(SiloMode.CONTROL)
     if cur != SiloMode.CONTROL:
-        result.append(SiloMode.REGION)
+        result.append(SiloMode.CELL)
     return result
 
 

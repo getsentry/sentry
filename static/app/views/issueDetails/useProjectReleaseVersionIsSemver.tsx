@@ -1,10 +1,10 @@
 import type {Release} from 'sentry/types/release';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
-export default function useProjectReleaseVersionIsSemver({
+export function useProjectReleaseVersionIsSemver({
   version,
   enabled,
 }: {

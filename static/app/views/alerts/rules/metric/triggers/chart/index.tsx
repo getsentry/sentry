@@ -46,7 +46,7 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {
@@ -81,7 +81,7 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-import ThresholdsChart from './thresholdsChart';
+import {ThresholdsChart} from './thresholdsChart';
 
 type Props = {
   aggregate: MetricRule['aggregate'];

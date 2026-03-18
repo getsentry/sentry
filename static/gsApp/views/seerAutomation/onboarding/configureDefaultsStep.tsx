@@ -18,7 +18,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';

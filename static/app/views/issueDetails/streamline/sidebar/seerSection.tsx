@@ -21,7 +21,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -148,7 +148,7 @@ export function SeerSection({
     <HeaderContainer>{t('Resources')}</HeaderContainer>
   ) : (
     <HeaderContainer>
-      {t('Seer')}
+      {t('Seer Autofix')}
       <IconSeer />
     </HeaderContainer>
   );

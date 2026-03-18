@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {logout} from 'sentry/actionCreators/account';
 import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = {
   children: React.ReactNode;

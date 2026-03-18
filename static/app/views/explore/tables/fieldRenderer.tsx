@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -24,8 +24,8 @@ import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/ro
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';

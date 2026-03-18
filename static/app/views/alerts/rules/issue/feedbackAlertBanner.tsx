@@ -5,7 +5,7 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
 import {IssueAlertFilterType, type IssueAlertRuleCondition} from 'sentry/types/alerts';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function FeedbackAlertBanner({
   filters,

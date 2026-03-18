@@ -19,7 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
@@ -90,19 +90,13 @@ function DashboardGrid({
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem, dashboardLimitData: any) {
-    const shouldDisablePrebuiltControls =
-      defined(dashboard.prebuiltId) &&
-      !organization.features.includes('dashboards-prebuilt-controls');
     const {
       hasReachedDashboardLimit,
       isLoading: isLoadingDashboardsLimit,
       limitMessage,
     } = dashboardLimitData;
 
-    const disableDuplicate =
-      hasReachedDashboardLimit ||
-      isLoadingDashboardsLimit ||
-      shouldDisablePrebuiltControls;
+    const disableDuplicate = hasReachedDashboardLimit || isLoadingDashboardsLimit;
 
     const disableDelete = defined(dashboard.prebuiltId);
 
@@ -118,9 +112,7 @@ function DashboardGrid({
           });
         },
         disabled: disableDuplicate,
-        tooltip: shouldDisablePrebuiltControls
-          ? t('Prebuilt dashboards cannot be duplicated')
-          : limitMessage,
+        tooltip: limitMessage,
         tooltipOptions: {
           isHoverable: true,
         },
@@ -137,9 +129,6 @@ function DashboardGrid({
           });
         },
         disabled: disableDelete,
-        tooltip: shouldDisablePrebuiltControls
-          ? t('Prebuilt dashboards cannot be deleted')
-          : undefined,
       },
     ];
 
@@ -180,10 +169,9 @@ function DashboardGrid({
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
+  const {query: _searchQuery, ...queryWithoutSearch} = location.query;
   const queryLocation = {
-    ...(location.query && Object.keys(location.query).length > 0
-      ? {query: location.query}
-      : {}),
+    ...(Object.keys(queryWithoutSearch).length > 0 ? {query: queryWithoutSearch} : {}),
   };
 
   function renderMiniDashboards() {

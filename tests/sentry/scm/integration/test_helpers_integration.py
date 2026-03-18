@@ -115,6 +115,7 @@ class TestMapIntegrationToProvider(TestCase):
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
             "is_active": False,
+            "external_id": None,
         }
 
         provider = map_integration_to_provider(
@@ -138,6 +139,7 @@ class TestMapIntegrationToProvider(TestCase):
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
             "is_active": False,
+            "external_id": None,
         }
 
         with pytest.raises(SCMCodedError) as exc_info:
@@ -165,6 +167,7 @@ class TestFetchServiceProvider(TestCase):
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
             "is_active": True,
+            "external_id": None,
         }
         provider = fetch_service_provider(
             self.organization.id,
@@ -182,6 +185,7 @@ class TestFetchServiceProvider(TestCase):
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
             "is_active": True,
+            "external_id": None,
         }
         result = fetch_service_provider(self.organization.id, repository)
         assert result is None
@@ -322,6 +326,7 @@ def _make_active_repository(organization_id: int) -> Repository:
         "name": "test-org/test-repo",
         "organization_id": organization_id,
         "is_active": True,
+        "external_id": None,
     }
 
 
@@ -347,6 +352,7 @@ class TestInitializeProvider(TestCase):
             "name": "test-org/test-repo",
             "organization_id": self.organization.id,
             "is_active": False,
+            "external_id": None,
         }
 
         with pytest.raises(SCMCodedError) as exc_info:

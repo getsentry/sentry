@@ -104,7 +104,7 @@ def async_send_notification(
     name="src.sentry.notifications.utils.async_send_notification",
     namespace=notifications_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[str, Any]]) -> None:
     NotificationClass = get(notification_class_name)

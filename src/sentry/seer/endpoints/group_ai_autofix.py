@@ -117,6 +117,12 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
         default="low",
         help_text="The intelligence level to use.",
     )
+    user_context = serializers.CharField(
+        required=False,
+        max_length=1000,
+        help_text="Optional user context to append to the step prompt.",
+        allow_blank=True,
+    )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         stopping_point = data.get("stopping_point", None)
@@ -239,6 +245,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=data.get("run_id"),
                 intelligence_level=data["intelligence_level"],
+                user_context=data.get("user_context"),
             )
             return Response({"run_id": run_id}, status=202)
         except SeerPermissionError as e:

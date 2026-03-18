@@ -31,7 +31,7 @@ from sentry.users.services.user.service import user_service
     namespace=integrations_tasks,
     processing_deadline_duration=30,
     retry=Retry(times=5, delay=60 * 5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(
     exclude=(

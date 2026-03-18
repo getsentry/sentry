@@ -7,7 +7,7 @@ from typing import Any
 from django.conf import settings
 
 from sentry.hybridcloud.rpc import ArgumentDict
-from sentry.types.region import (
+from sentry.types.cell import (
     Cell,
     CellMappingNotFound,
     CellResolutionError,
@@ -110,7 +110,3 @@ class RequireSingleOrganization(CellResolutionStrategy):
 
         (single_cell_name,) = all_cell_names
         return get_cell_by_name(single_cell_name)
-
-
-# TODO(cells): Remove once all callers have been migrated to new names
-ByRegionName = ByCellName

@@ -12,7 +12,7 @@ import {
   DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   PREPROD_DETECTOR_FORM_FIELDS,
   usePreprodDetectorFormField,

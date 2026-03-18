@@ -101,6 +101,7 @@ export interface ToolCall {
 interface Message {
   content: string;
   role: 'user' | 'assistant' | 'tool_use';
+  metadata?: Record<string, string> | null;
   thinking_content?: string;
   tool_calls?: ToolCall[];
 }
@@ -136,4 +137,20 @@ export interface ExplorerCodingAgentState {
   status: 'pending' | 'running' | 'completed' | 'failed';
   agent_url?: string;
   results?: CodingAgentResult[];
+}
+
+export function isExplorerCodingAgentState(
+  value: unknown
+): value is ExplorerCodingAgentState {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const obj = value as Record<string, unknown>;
+  return (
+    typeof obj.id === 'string' &&
+    typeof obj.name === 'string' &&
+    typeof obj.provider === 'string' &&
+    typeof obj.started_at === 'string' &&
+    typeof obj.status === 'string'
+  );
 }

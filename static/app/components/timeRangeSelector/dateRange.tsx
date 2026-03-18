@@ -19,7 +19,7 @@ import {
   isValidTime,
   setDateToTime,
 } from 'sentry/utils/dates';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 // eslint-disable-next-line no-restricted-imports
 import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 

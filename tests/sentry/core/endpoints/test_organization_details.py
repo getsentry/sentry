@@ -21,7 +21,7 @@ from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.core.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authprovider import AuthProvider
@@ -40,7 +40,7 @@ from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, TwoFac
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test, create_test_regions
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
@@ -86,7 +86,7 @@ class MockAccess:
 regions = create_test_regions("us", "de")
 
 
-@region_silo_test(regions=regions, include_monolith_run=True)
+@cell_silo_test(regions=regions, include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
     @property
     def now(self):
@@ -673,7 +673,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             assert "onboarding" not in response.data["features"]
 
 
-@region_silo_test(regions=regions)
+@cell_silo_test(regions=regions)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -1153,13 +1153,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_cancel_delete(self) -> None:
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(org, days=1)
+        CellScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, **{"cancelDeletion": True})
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.ACTIVE
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Organization", object_id=org.id
         ).exists()
 
@@ -1896,7 +1896,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         deleted_org = DeletedOrganization.objects.get(slug=org.slug)
         self.assert_valid_deleted_log(deleted_org, org)
 
-        schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        schedule = CellScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
         assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
@@ -1943,7 +1943,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         deleted_org = DeletedOrganization.objects.get(slug=org.slug)
         self.assert_valid_deleted_log(deleted_org, org)
 
-        schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        schedule = CellScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
     def test_cannot_remove_default(self) -> None:
@@ -1957,14 +1957,14 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
     def test_redo_deletion(self) -> None:
         # Orgs can delete, undelete, delete within a day
         org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
-        RegionScheduledDeletion.schedule(org, days=1)
+        CellScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        scheduled_deletions = RegionScheduledDeletion.objects.filter(
+        scheduled_deletions = CellScheduledDeletion.objects.filter(
             object_id=org.id, model_name="Organization"
         )
         assert scheduled_deletions.exists()

@@ -5,15 +5,16 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {WebhookProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
@@ -28,7 +29,7 @@ type FetchSecretResponse = {data: Secret[]};
 
 function OrganizationFeatureFlagsNewSecret() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [selectedProvider, setSelectedProvider] = useState<WebhookProviderEnum | ''>('');
   const [error, setError] = useState<string | null>(null);
   const organization = useOrganization();
   const user = useUser();

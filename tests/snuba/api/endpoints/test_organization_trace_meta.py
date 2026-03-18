@@ -102,13 +102,13 @@ class OrganizationEventsTraceMetaEndpointTest(
                     project=self.project,
                     group_id=first_group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 ),
                 self.create_eap_occurrence(
                     project=self.project,
                     group_id=second_group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 ),
             ]
         )
@@ -174,7 +174,6 @@ class OrganizationEventsTraceMetaEndpointTest(
                     project=self.gen1_project,
                     group_id=group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="error",
                 ),
             ]
         )
@@ -207,7 +206,6 @@ class OrganizationEventsTraceMetaEndpointTest(
                     project=self.gen1_project,
                     group_id=group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="error",
                 ),
             ]
         )
@@ -278,7 +276,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         """Test that uptime_checks field is NOT present when include_uptime is not set"""
         self.load_trace()
         uptime_result = self.create_uptime_check()
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result])
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
@@ -302,7 +300,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
             self.create_uptime_check(check_status="failure"),
             self.create_uptime_check(check_status="success"),
         ]
-        self.store_uptime_results(uptime_results)
+        self.store_eap_items(uptime_results)
 
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -343,7 +341,7 @@ class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, Uptim
         self.load_trace()
         other_trace_id = uuid4().hex
         uptime_result = self.create_uptime_check(trace_id=other_trace_id)
-        self.store_uptime_results([uptime_result])
+        self.store_eap_items([uptime_result])
 
         with self.feature(self.FEATURES):
             response = self.client.get(

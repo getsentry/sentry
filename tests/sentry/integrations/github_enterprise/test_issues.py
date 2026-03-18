@@ -133,7 +133,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
             },
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github_enterprise",
@@ -194,7 +194,7 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
             },
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name="getsentry/sentry",
                 provider="integrations:github_enterprise",

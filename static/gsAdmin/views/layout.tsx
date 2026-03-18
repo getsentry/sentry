@@ -11,7 +11,7 @@ import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
 import {IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import SystemAlerts from 'sentry/views/app/systemAlerts';
@@ -26,13 +26,13 @@ const themes = {
 type ThemeName = keyof typeof themes;
 
 const useToggleTheme = () => {
-  const current = localStorage.getItem('getsentryAdminTheme') ?? 'lightTheme';
+  const current = localStorageWrapper.getItem('getsentryAdminTheme') ?? 'lightTheme';
   const [themeName, setThemeName] = useState<ThemeName>(current as ThemeName);
 
   const toggleTheme = () => {
     const newThemeName = themeName === 'darkTheme' ? 'lightTheme' : 'darkTheme';
     setThemeName(newThemeName);
-    localStorage.setItem('getsentryAdminTheme', newThemeName);
+    localStorageWrapper.setItem('getsentryAdminTheme', newThemeName);
   };
 
   return [themeName === 'darkTheme', themes[themeName], toggleTheme] as const;

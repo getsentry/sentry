@@ -12,7 +12,7 @@ import {
   generateProfileFlamechartRouteWithQuery,
   generateProfilingRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 
 export interface ProfilingBreadcrumbsProps {

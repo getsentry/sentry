@@ -33,11 +33,11 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 import {AutofixHighlightPopup} from './autofixHighlightPopup';

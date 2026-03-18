@@ -2,11 +2,11 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
+import {useFeedbackSummary} from 'sentry/components/feedback/list/useFeedbackSummary';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function FeedbackSummary() {
   const {isError, isPending, summary, tooFewFeedbacks} = useFeedbackSummary();

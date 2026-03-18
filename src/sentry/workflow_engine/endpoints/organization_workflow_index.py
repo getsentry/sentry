@@ -45,7 +45,7 @@ from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamp
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -453,7 +453,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         for workflow in queryset:
             with transaction.atomic(router.db_for_write(Workflow)):
-                RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
+                CellScheduledDeletion.schedule(workflow, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
                     organization=organization,

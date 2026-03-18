@@ -19,7 +19,7 @@ import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 type GroupHistory = {

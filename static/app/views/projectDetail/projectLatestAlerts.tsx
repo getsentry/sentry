@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Incident} from 'sentry/views/alerts/types';
 import {IncidentStatus} from 'sentry/views/alerts/types';

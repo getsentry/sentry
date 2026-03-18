@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';

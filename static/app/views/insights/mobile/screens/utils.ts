@@ -1,5 +1,5 @@
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';

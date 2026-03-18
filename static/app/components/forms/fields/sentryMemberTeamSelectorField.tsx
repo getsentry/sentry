@@ -1,6 +1,6 @@
 import {useContext, useMemo} from 'react';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import {useOwnerOptions} from 'sentry/utils/useOwnerOptions';
 import {useOwners} from 'sentry/utils/useOwners';

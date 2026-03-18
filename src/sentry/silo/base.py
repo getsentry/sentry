@@ -12,7 +12,7 @@ from typing import Any, ParamSpec, TypeVar
 from sentry.utils.env import in_test_environment
 
 if typing.TYPE_CHECKING:
-    from sentry.types.region import Cell
+    from sentry.types.cell import Cell
 
 
 P = ParamSpec("P")
@@ -28,7 +28,7 @@ class SiloMode(Enum):
 
     MONOLITH = "MONOLITH"
     CONTROL = "CONTROL"
-    REGION = "REGION"
+    CELL = "REGION"
 
     @classmethod
     def resolve(cls, mode: str | SiloMode | None) -> SiloMode:
@@ -36,7 +36,7 @@ class SiloMode(Enum):
             return SiloMode.MONOLITH
         if isinstance(mode, SiloMode):
             return mode
-        return cls[mode]
+        return cls(mode)
 
     def __str__(self) -> str:
         return str(self.value)
@@ -196,10 +196,6 @@ class FunctionSiloLimit(SiloLimit):
         return self.create_override(decorated_obj)
 
 
-cell_silo_function = FunctionSiloLimit(SiloMode.REGION)
+cell_silo_function = FunctionSiloLimit(SiloMode.CELL)
 control_silo_function = FunctionSiloLimit(SiloMode.CONTROL)
-all_silo_function = FunctionSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
-
-
-# TODO(cells): Remove once getsentry is updated
-region_silo_function = cell_silo_function
+all_silo_function = FunctionSiloLimit(SiloMode.CELL, SiloMode.CONTROL)

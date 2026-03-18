@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
 import {TraceIssueEvent} from './traceTimeline/traceIssue';
 import {TraceLink} from './traceTimeline/traceLink';

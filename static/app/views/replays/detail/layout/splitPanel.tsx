@@ -3,7 +3,7 @@ import debounce from 'lodash/debounce';
 
 import type {SplitPanelProps} from 'sentry/components/splitPanel';
 import SplitPanel from 'sentry/components/splitPanel';
-import useSplitPanelTracking from 'sentry/utils/replays/hooks/useSplitPanelTracking';
+import {useSplitPanelTracking} from 'sentry/utils/replays/hooks/useSplitPanelTracking';
 
 export function ReplaySplitPanel(props: SplitPanelProps) {
   const {availableSize} = props;
