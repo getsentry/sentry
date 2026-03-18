@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -19,8 +19,14 @@ export function ScmConnect({onComplete}: StepProps) {
   const {scmProviders, isPending, refetchIntegrations, activeIntegrationExisting} =
     useScmProviders();
 
-  const effectiveIntegration =
-    onboardingContext.selectedIntegration ?? activeIntegrationExisting;
+  // If an existing SCM integration is detected and context doesn't have one
+  // yet, persist it to context so downstream steps and child components can
+  // read it without prop drilling.
+  useEffect(() => {
+    if (!onboardingContext.selectedIntegration && activeIntegrationExisting) {
+      onboardingContext.setSelectedIntegration(activeIntegrationExisting);
+    }
+  }, [onboardingContext, activeIntegrationExisting]);
 
   const handleInstall = useCallback(
     (data: Integration) => {
@@ -49,14 +55,8 @@ export function ScmConnect({onComplete}: StepProps) {
       </Stack>
 
       <Stack gap="lg" width="100%" maxWidth="600px">
-        {effectiveIntegration ? (
-          <ScmConnectedView
-            integration={effectiveIntegration}
-            selectedRepo={onboardingContext.selectedRepository ?? null}
-            onSelectRepo={repo =>
-              onboardingContext.setSelectedRepository(repo ?? undefined)
-            }
-          />
+        {onboardingContext.selectedIntegration ? (
+          <ScmConnectedView />
         ) : (
           <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
         )}

@@ -4,31 +4,23 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Integration, Repository} from 'sentry/types/integrations';
 
-import {useRepoSearch} from './useRepoSearch';
-import {useRepoSelection} from './useRepoSelection';
+import {useScmRepoSearch} from './useScmRepoSearch';
+import {useScmRepoSelection} from './useScmRepoSelection';
 
-interface ScmRepoSelectorProps {
-  integration: Integration;
-  onSelect: (repo: Repository | null) => void;
-  selectedRepo: Repository | null;
-}
+export function ScmRepoSelector() {
+  const {selectedIntegration, selectedRepository, setSelectedRepository} =
+    useOnboardingContext();
+  const selectedRepo = selectedRepository ?? null;
 
-export function ScmRepoSelector({
-  integration,
-  selectedRepo,
-  onSelect,
-}: ScmRepoSelectorProps) {
   const {reposByIdentifier, dropdownItems, isFetching, debouncedSearch, setSearch} =
-    useRepoSearch(integration.id, selectedRepo);
+    useScmRepoSearch(selectedIntegration?.id ?? '', selectedRepo);
 
-  const {adding, handleSelect, handleRemove} = useRepoSelection({
-    integration,
-    selectedRepo,
-    onSelect,
+  const {adding, handleSelect, handleRemove} = useScmRepoSelection({
+    onSelect: setSelectedRepository,
     reposByIdentifier,
   });
 

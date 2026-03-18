@@ -6,11 +6,11 @@ import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface RepoSearchResult {
+interface ScmRepoSearchResult {
   repos: IntegrationRepository[];
 }
 
-export function useRepoSearch(integrationId: string, selectedRepo: Repository | null) {
+export function useScmRepoSearch(integrationId: string, selectedRepo: Repository | null) {
   const organization = useOrganization();
   const [search, setSearch] = useState<string>();
   const debouncedSearch = useDebouncedValue(search, 200);
@@ -29,7 +29,7 @@ export function useRepoSearch(integrationId: string, selectedRepo: Repository | 
       {method: 'GET', query: {search: debouncedSearch}},
     ] as const,
     queryFn: async context => {
-      return fetchDataQuery<RepoSearchResult>(context);
+      return fetchDataQuery<ScmRepoSearchResult>(context);
     },
     retry: 0,
     staleTime: 20_000,

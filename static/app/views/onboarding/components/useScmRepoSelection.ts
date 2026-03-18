@@ -1,52 +1,27 @@
 import {useMemo, useRef, useState} from 'react';
 
 import {addRepository, hideRepository} from 'sentry/actionCreators/integrations';
-import type {
-  Integration,
-  IntegrationRepository,
-  Repository,
-} from 'sentry/types/integrations';
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import type {IntegrationRepository, Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-function integrationRepoToOptimisticRepo(
-  repo: IntegrationRepository,
-  integration: Integration
-): Repository {
-  return {
-    id: '',
-    externalId: repo.identifier,
-    name: repo.name,
-    externalSlug: repo.identifier,
-    url: '',
-    provider: {
-      id: integration.provider.key,
-      name: integration.provider.name,
-    },
-    status: RepositoryStatus.ACTIVE,
-    dateCreated: '',
-    integrationId: integration.id,
-  };
-}
-
-interface UseRepoSelectionOptions {
-  integration: Integration;
-  onSelect: (repo: Repository | null) => void;
+interface UseScmRepoSelectionOptions {
+  onSelect: (repo?: Repository) => void;
   reposByIdentifier: Map<string, IntegrationRepository>;
-  selectedRepo: Repository | null;
 }
 
-export function useRepoSelection({
-  integration,
-  selectedRepo,
+export function useScmRepoSelection({
   onSelect,
   reposByIdentifier,
-}: UseRepoSelectionOptions) {
+}: UseScmRepoSelectionOptions) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
+  const {selectedIntegration, selectedRepository} = useOnboardingContext();
+  const selectedRepo = selectedRepository ?? null;
   const [adding, setAdding] = useState(false);
 
   // Fetch repos already registered in Sentry for this integration, so we
@@ -56,9 +31,9 @@ export function useRepoSelection({
       getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
-      {query: {status: 'active', integration_id: integration.id}},
+      {query: {status: 'active', integration_id: selectedIntegration?.id ?? ''}},
     ],
-    {staleTime: 0}
+    {staleTime: 0, enabled: !!selectedIntegration}
   );
 
   const existingReposBySlug = useMemo(
@@ -82,13 +57,26 @@ export function useRepoSelection({
 
   const handleSelect = async (selection: {value: string}) => {
     const repo = reposByIdentifier.get(selection.value);
-    if (!repo) {
+    if (!repo || !selectedIntegration) {
       return;
     }
 
     cleanupPreviousAdd();
 
-    const optimistic = integrationRepoToOptimisticRepo(repo, integration);
+    const optimistic: Repository = {
+      id: '',
+      externalId: repo.identifier,
+      name: repo.name,
+      externalSlug: repo.identifier,
+      url: '',
+      provider: {
+        id: selectedIntegration.provider.key,
+        name: selectedIntegration.provider.name,
+      },
+      status: RepositoryStatus.ACTIVE,
+      dateCreated: '',
+      integrationId: selectedIntegration.id,
+    };
     onSelect(optimistic);
 
     if (repo.isInstalled) {
@@ -105,12 +93,12 @@ export function useRepoSelection({
         api,
         organization.slug,
         repo.identifier,
-        integration
+        selectedIntegration
       );
       onSelect({...optimistic, id: created.id});
       addedRepoIdRef.current = created.id;
     } catch {
-      onSelect(null);
+      onSelect(undefined);
     } finally {
       setAdding(false);
     }
@@ -122,7 +110,7 @@ export function useRepoSelection({
     }
 
     const previous = selectedRepo;
-    onSelect(null);
+    onSelect(undefined);
 
     if (addedRepoIdRef.current && addedRepoIdRef.current === previous.id) {
       addedRepoIdRef.current = null;

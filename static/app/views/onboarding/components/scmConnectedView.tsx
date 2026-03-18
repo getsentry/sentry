@@ -2,26 +2,21 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Integration, Repository} from 'sentry/types/integrations';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScmRepoSelector} from './scmRepoSelector';
 
-interface ScmConnectedViewProps {
-  integration: Integration;
-  onSelectRepo: (repo: Repository | null) => void;
-  selectedRepo: Repository | null;
-}
-
-export function ScmConnectedView({
-  integration,
-  selectedRepo,
-  onSelectRepo,
-}: ScmConnectedViewProps) {
+export function ScmConnectedView() {
   const organization = useOrganization();
+  const {selectedIntegration} = useOnboardingContext();
+
+  if (!selectedIntegration) {
+    return null;
+  }
 
   return (
     <Stack gap="lg">
@@ -29,18 +24,17 @@ export function ScmConnectedView({
         <Flex align="center" gap="sm">
           <IconCheckmark variant="success" size="sm" />
           <Text bold variant="success">
-            {t('Connected to %s', integration.domainName ?? integration.provider.name)}
+            {t(
+              'Connected to %s',
+              selectedIntegration.domainName ?? selectedIntegration.provider.name
+            )}
           </Text>
         </Flex>
         <Link to={normalizeUrl(`/settings/${organization.slug}/integrations/`)}>
           {t('Manage in Settings')}
         </Link>
       </Flex>
-      <ScmRepoSelector
-        integration={integration}
-        selectedRepo={selectedRepo}
-        onSelect={onSelectRepo}
-      />
+      <ScmRepoSelector />
     </Stack>
   );
 }
