@@ -62,10 +62,10 @@ def get_similarity_data_from_seer(
     metric_tags: Mapping[str, str | int | bool] | None = None,
     raise_on_error: bool = False,
     viewer_context: SeerViewerContext | None = None,
-) -> list[SeerSimilarIssueData]:
+) -> tuple[list[SeerSimilarIssueData], str | None]:
     """
-    Request similar issues data from seer and normalize the results. Returns similar groups
-    sorted in order of descending similarity.
+    Request similar issues data from seer and normalize the results. Returns a tuple of
+    (similar groups sorted in order of descending similarity, model_used from Seer response).
     """
     event_id = similar_issues_request["event_id"]
     project_id = similar_issues_request["project_id"]
@@ -107,7 +107,7 @@ def get_similarity_data_from_seer(
         circuit_breaker.record_error()
         if raise_on_error:
             raise
-        return []
+        return ([], None)
 
     metric_tags["response_status"] = response.status
 
@@ -140,10 +140,12 @@ def get_similarity_data_from_seer(
             raise Exception(
                 f"Received {response.status} from Seer endpoint {SEER_SIMILAR_ISSUES_URL}"
             )
-        return []
+        return ([], None)
 
     try:
-        response_data = json.loads(response.data.decode("utf-8")).get("responses")
+        response_json = json.loads(response.data.decode("utf-8"))
+        response_data = response_json.get("responses")
+        model_used = response_json.get("model_used")
     except (
         AttributeError,  # caused by a response with no data and therefore no `.decode` method
         UnicodeError,
@@ -164,7 +166,7 @@ def get_similarity_data_from_seer(
         )
         if raise_on_error:
             raise
-        return []
+        return ([], None)
 
     # TODO: Temporary log to prove things are working as they should. This should come in a pair
     # with the `get_seer_similar_issues.follow_up_seer_request` log in `seer.py`.
@@ -183,7 +185,7 @@ def get_similarity_data_from_seer(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**metric_tags, "outcome": "no_similar_groups"},
         )
-        return []
+        return ([], None)
 
     # This may get overwritten as we process the results, but by this point we know that Seer at
     # least found *something*
@@ -339,7 +341,10 @@ def get_similarity_data_from_seer(
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
         tags=metric_tags,
     )
-    return sorted(
-        normalized_results,
-        key=lambda issue_data: issue_data.stacktrace_distance,
+    return (
+        sorted(
+            normalized_results,
+            key=lambda issue_data: issue_data.stacktrace_distance,
+        ),
+        model_used,
     )
