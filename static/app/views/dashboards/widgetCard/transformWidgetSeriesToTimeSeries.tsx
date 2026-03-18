@@ -2,10 +2,10 @@ import type {Series} from 'sentry/types/echarts';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   SERIES_NAME_PART_DELIMITER,
+  SERIES_QUERY_DELIMITER,
   transformLegacySeriesToTimeSeries,
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
-import {SERIES_QUERY_DELIMITER} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 

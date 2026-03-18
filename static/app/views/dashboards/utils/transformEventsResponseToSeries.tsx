@@ -4,6 +4,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 
 import {
@@ -12,13 +13,6 @@ import {
   isMultiSeriesEventsStats,
 } from './isEventsStats';
 import {transformEventsStatsToSeries} from './transformEventsStatsToSeries';
-
-/**
- * Delimiter used to separate the query alias/prefix from group-by and
- * aggregate parts in a series name. Distinct from {@link SERIES_NAME_PART_DELIMITER}
- * (` : `) so that the query prefix can be reliably extracted.
- */
-export const SERIES_QUERY_DELIMITER = ' > ';
 
 type SeriesWithOrdering = [order: number, series: Series];
 
