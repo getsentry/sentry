@@ -1,13 +1,14 @@
 from collections.abc import Sequence
+from typing import Any
 
 from dateutil.parser import parse as parse_date
-from django.db.models import BigIntegerField, Q
+from django.db.models import BigIntegerField, Q, QuerySet
 from django.db.models.functions import Cast
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, metrics
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -33,6 +34,7 @@ from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.types.group import PriorityLevel
+from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import AlertRuleDetector, DataSourceDetector
@@ -274,7 +276,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
     def _detector_ids_for_subscriptions(
         self, subscription_qs: BaseQuerySet[QuerySubscription]
-    ) -> BaseQuerySet[DataSourceDetector]:
+    ) -> QuerySet[DataSourceDetector, dict[str, Any]]:
         """
         Return a values queryset of detector IDs whose DataSource points at one of the
         given QuerySubscriptions. DataSource.source_id is a TextField, so we cast to
