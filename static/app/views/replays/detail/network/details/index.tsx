@@ -6,7 +6,7 @@ import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {NetworkDetailsContent} from 'sentry/views/replays/detail/network/details/content';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
-import NetworkDetailsTabs from 'sentry/views/replays/detail/network/details/tabs';
+import {StyledNetworkDetailsTabs as NetworkDetailsTabs} from 'sentry/views/replays/detail/network/details/tabs';
 
 type Props = {
   isCaptureBodySetup: boolean;

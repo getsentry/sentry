@@ -1,6 +1,6 @@
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import FormField from 'sentry/components/forms/formField';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
+import {FormField} from 'sentry/components/forms/formField';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps, OnEvent} from './inputField';
@@ -20,7 +20,7 @@ function handleChange(
   onBlur(id, e);
 }
 
-function RadioField(props: RadioFieldProps) {
+export function RadioField(props: RadioFieldProps) {
   return (
     <FormField {...props}>
       {({id, onChange, onBlur, value, disabled, orientInline, ...fieldProps}: any) => (
@@ -39,5 +39,3 @@ function RadioField(props: RadioFieldProps) {
     </FormField>
   );
 }
-
-export default RadioField;

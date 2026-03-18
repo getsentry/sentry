@@ -12,7 +12,7 @@ const StyledPanel = styled(Panel)`
 `;
 const Div = styled('div')``;
 
-const getPerformanceWidgetContainer = ({
+export const getPerformanceWidgetContainer = ({
   containerType,
 }: {
   containerType: PerformanceWidgetContainerTypes;
@@ -25,5 +25,3 @@ const getPerformanceWidgetContainer = ({
   }
   return Div;
 };
-
-export default getPerformanceWidgetContainer;

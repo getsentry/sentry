@@ -20,7 +20,7 @@ export interface CreditCardFormProps extends CreditCardSetupProps {
   amount?: number;
 }
 
-export default function CreditCardForm(props: CreditCardFormProps) {
+export function CreditCardForm(props: CreditCardFormProps) {
   return (
     <StripeWrapper paymentElementMode={props.cardMode} amount={props.amount}>
       {props.cardMode === 'setup' ? (

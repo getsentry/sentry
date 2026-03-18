@@ -5,7 +5,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
+import {Actions, CellAction} from 'sentry/views/discover/table/cellAction';
 import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 

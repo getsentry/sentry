@@ -14,7 +14,7 @@ import {
 
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
-import FiltersBar, {type FiltersBarProps} from 'sentry/views/dashboards/filtersBar';
+import {FiltersBar, type FiltersBarProps} from 'sentry/views/dashboards/filtersBar';
 import {
   DashboardFilterKeys,
   WidgetType,

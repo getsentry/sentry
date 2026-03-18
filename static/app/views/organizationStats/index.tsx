@@ -39,7 +39,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
-import UsageStatsOrg from './usageStatsOrg';
+import {UsageStatsOrganization as UsageStatsOrg} from './usageStatsOrg';
 import {UsageStatsProjects} from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});

@@ -10,7 +10,7 @@ import {useSessionsRequest} from 'sentry/components/charts/useSessionsRequest';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {DateTime} from 'sentry/components/dateTime';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
-import TransactionsList from 'sentry/components/discover/transactionsList';
+import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -58,7 +58,7 @@ import {ReleaseAdoption} from './sidebar/releaseAdoption';
 import {ReleaseStats} from './sidebar/releaseStats';
 import {TotalCrashFreeUsers} from './sidebar/totalCrashFreeUsers';
 import {ReleaseArchivedNotice} from './releaseArchivedNotice';
-import ReleaseComparisonChart from './releaseComparisonChart';
+import {ReleaseComparisonChart} from './releaseComparisonChart';
 import ReleaseIssues from './releaseIssues';
 
 const RELEASE_PERIOD_KEY = 'release';
