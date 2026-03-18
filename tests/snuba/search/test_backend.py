@@ -3868,3 +3868,223 @@ class EventsGenericSnubaSearchTest(TestCase, SharedSnubaMixin, OccurrenceTestMix
         # Negated search for the keyword should NOT return this group
         results = self.make_query(search_filter_query="!message:excludethis999")
         assert group_info.group not in set(results)
+
+
+class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin):
+    @property
+    def backend(self):
+        return EventsDatasetSnubaSearchBackend()
+
+    def test_recommended_sort_basic(self) -> None:
+        """Test that recommended sort returns results and recent events rank higher."""
+        new_project = self.create_project(organization=self.project.organization)
+        base_datetime = before_now(hours=1)
+
+        recent_event = self.store_event(
+            data={
+                "fingerprint": ["recent-group"],
+                "event_id": "a" * 32,
+                "message": "recent issue",
+                "timestamp": base_datetime.isoformat(),
+                "level": "error",
+                "tags": {"sentry:user": "user1@example.com"},
+            },
+            project_id=new_project.id,
+        )
+        old_event = self.store_event(
+            data={
+                "fingerprint": ["old-group"],
+                "event_id": "b" * 32,
+                "message": "old issue",
+                "timestamp": (base_datetime - timedelta(days=5)).isoformat(),
+                "level": "info",
+                "tags": {"sentry:user": "user2@example.com"},
+            },
+            project_id=new_project.id,
+        )
+        recent_group = Group.objects.get(id=recent_event.group.id)
+        old_group = Group.objects.get(id=old_event.group.id)
+
+        results = self.make_query(sort_by="recommended", projects=[new_project])
+        assert list(results) == [recent_group, old_group]
+
+    def test_recommended_sort_severity_matters(self) -> None:
+        """Test that fatal events score higher than info events at similar recency."""
+        base_datetime = before_now(hours=1)
+
+        fatal_event = self.store_event(
+            data={
+                "fingerprint": ["fatal-group"],
+                "event_id": "c" * 32,
+                "message": "fatal issue",
+                "timestamp": (base_datetime - timedelta(minutes=30)).isoformat(),
+                "level": "fatal",
+                "tags": {"sentry:user": "user1@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        info_event = self.store_event(
+            data={
+                "fingerprint": ["info-group"],
+                "event_id": "d" * 32,
+                "message": "info issue",
+                "timestamp": base_datetime.isoformat(),
+                "level": "info",
+                "tags": {"sentry:user": "user2@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        fatal_group = Group.objects.get(id=fatal_event.group.id)
+        info_group = Group.objects.get(id=info_event.group.id)
+
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=[fatal_group.id, info_group.id],
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+        scores = {gid: score for gid, score in results}
+        # Fatal event should score higher despite being slightly older
+        assert scores[fatal_group.id] > scores[info_group.id]
+
+    def test_recommended_sort_user_impact(self) -> None:
+        """Test that issues affecting more users score higher."""
+        base_datetime = before_now(hours=1)
+
+        # Issue affecting many users
+        for i in range(10):
+            self.store_event(
+                data={
+                    "fingerprint": ["many-users-group"],
+                    "event_id": f"a{i:031d}",
+                    "message": "many users",
+                    "timestamp": base_datetime.isoformat(),
+                    "level": "error",
+                    "tags": {"sentry:user": f"user{i}@example.com"},
+                },
+                project_id=self.project.id,
+            )
+        many_users_group = Group.objects.get(
+            project=self.project,
+            message="many users",
+        )
+
+        # Issue affecting one user
+        self.store_event(
+            data={
+                "fingerprint": ["one-user-group"],
+                "event_id": "b" * 32,
+                "message": "one user",
+                "timestamp": base_datetime.isoformat(),
+                "level": "error",
+                "tags": {"sentry:user": "solo@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        one_user_group = Group.objects.get(
+            project=self.project,
+            message="one user",
+        )
+
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=[many_users_group.id, one_user_group.id],
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+        scores = {gid: score for gid, score in results}
+        assert scores[many_users_group.id] > scores[one_user_group.id]
+
+    def test_recommended_sort_mixed_group_types(self) -> None:
+        """Test that recommended sort works with both error and issue platform groups."""
+        base_datetime = before_now(hours=1)
+
+        error_event = self.store_event(
+            data={
+                "fingerprint": ["error-group"],
+                "event_id": "a" * 32,
+                "timestamp": base_datetime.isoformat(),
+                "message": "error event",
+                "level": "error",
+                "stacktrace": {"frames": [{"module": "group1"}]},
+            },
+            project_id=self.project.id,
+        )
+        error_group = error_event.group
+
+        profile_event_id = uuid.uuid4().hex
+        _, group_info = self.process_occurrence(
+            event_id=profile_event_id,
+            project_id=self.project.id,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+        assert group_info is not None
+        profile_group = group_info.group
+
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=[error_group.id, profile_group.id],
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+        # Both groups should be returned with valid scores
+        returned_group_ids = {gid for gid, _ in results}
+        assert error_group.id in returned_group_ids
+        assert profile_group.id in returned_group_ids
+
+    def test_recommended_sort_scores_are_bounded(self) -> None:
+        """Test that scores are in the expected [0, 1] range."""
+        base_datetime = before_now(hours=1)
+
+        self.store_event(
+            data={
+                "fingerprint": ["score-test-group"],
+                "event_id": "a" * 32,
+                "message": "score test",
+                "timestamp": base_datetime.isoformat(),
+                "level": "fatal",
+                "tags": {"sentry:user": "user@example.com"},
+            },
+            project_id=self.project.id,
+        )
+        group = Group.objects.get(project=self.project, message="score test")
+
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=[group.id],
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+        assert len(results) == 1
+        _, score = results[0]
+        assert 0.0 <= score <= 1.0
