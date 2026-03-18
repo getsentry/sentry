@@ -2,18 +2,20 @@ from __future__ import annotations
 
 import logging
 
+from sentry.models.organization import Organization
+from sentry.seer.entrypoints.metrics import (
+    SlackEntrypointEventLifecycleMetric,
+    SlackEntrypointInteractionType,
+)
+from sentry.seer.entrypoints.operator import SeerExplorerOperator
+from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackExplorerEntrypoint
+from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
 from sentry.seer.entrypoints.slack.metrics import ProcessMentionHaltReason
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
-
-
-class EntrypointSetupError(Exception):
-    """Raised when entrypoint construction fails during mention processing."""
-
-    pass
 
 
 @instrumented_task(
@@ -45,14 +47,6 @@ def process_mention_for_slack(
     so no per-user auth is performed; user-level auth can be added later
     when Sentry user mapping from Slack identity is available.
     """
-    from sentry.models.organization import Organization
-    from sentry.seer.entrypoints.metrics import (
-        SlackEntrypointEventLifecycleMetric,
-        SlackEntrypointInteractionType,
-    )
-    from sentry.seer.entrypoints.operator import SeerExplorerOperator
-    from sentry.seer.entrypoints.slack.entrypoint import SlackExplorerEntrypoint
-    from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
 
     with SlackEntrypointEventLifecycleMetric(
         interaction_type=SlackEntrypointInteractionType.PROCESS_MENTION,

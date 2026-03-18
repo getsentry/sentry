@@ -43,6 +43,12 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
+class EntrypointSetupError(Exception):
+    """Raised when entrypoint construction fails during mention processing."""
+
+    pass
+
+
 class SlackThreadDetails(TypedDict):
     thread_ts: str
     channel_id: str
