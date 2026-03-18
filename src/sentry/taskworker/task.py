@@ -29,7 +29,7 @@ from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
-    from sentry.taskworker.registry import TaskNamespace
+    from taskbroker_client.registry import TaskNamespace
 
 
 P = ParamSpec("P")

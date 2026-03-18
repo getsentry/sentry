@@ -8,10 +8,10 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     ON_ATTEMPTS_EXCEEDED_DEADLETTER,
     ON_ATTEMPTS_EXCEEDED_DISCARD,
 )
+from taskbroker_client.registry import TaskNamespace
 
-from sentry.taskworker.registry import TaskNamespace
+from sentry.taskworker.adapters import SentryMetricsBackend, SentryRouter, make_producer
 from sentry.taskworker.retry import LastAction, Retry, RetryTaskError
-from sentry.taskworker.router import DefaultRouter
 from sentry.taskworker.task import Task
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.utils import json
@@ -23,7 +23,14 @@ def do_things() -> None:
 
 @pytest.fixture
 def task_namespace() -> TaskNamespace:
-    return TaskNamespace(name="tests", application="sentry", router=DefaultRouter(), retry=None)
+    return TaskNamespace(
+        name="tests",
+        application="sentry",
+        producer_factory=make_producer,
+        router=SentryRouter(),
+        metrics=SentryMetricsBackend(),
+        retry=None,
+    )
 
 
 def test_define_task_defaults(task_namespace: TaskNamespace) -> None:
