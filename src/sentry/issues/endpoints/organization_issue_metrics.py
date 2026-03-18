@@ -11,7 +11,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -25,7 +24,6 @@ from sentry.models.project import Project
 
 @cell_silo_endpoint
 class OrganizationIssueMetricsEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
     def get(self, request: Request, organization: Organization) -> Response:
