@@ -113,7 +113,7 @@ export function useScmRepoSelection({
           provider: `integrations:${selectedIntegration.provider.key}`,
         },
       });
-      onSelect({...optimistic, id: created.id});
+      onSelect({...optimistic, ...created});
       addedRepoIdRef.current = created.id;
     } catch {
       onSelect(undefined);

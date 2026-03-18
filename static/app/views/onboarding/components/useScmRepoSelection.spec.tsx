@@ -106,9 +106,9 @@ describe('useScmRepoSelection', () => {
     expect(onSelect).toHaveBeenCalledWith(
       expect.objectContaining({id: '', name: 'sentry'})
     );
-    // Then real call with server id
+    // Then real call with server response spread over optimistic
     expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({id: '42', name: 'sentry'})
+      expect.objectContaining({id: '42', name: 'getsentry/sentry'})
     );
   });
 
