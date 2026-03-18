@@ -295,7 +295,7 @@ describe('OrganizationSettingsForm', () => {
       const aiCodeReviewLink = learnMoreLinks.find(
         link =>
           link.getAttribute('href') ===
-          'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/'
+          'https://docs.sentry.io/product/ai-in-sentry/seer/code-review/'
       );
       expect(aiCodeReviewLink).toBeInTheDocument();
     });

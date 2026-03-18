@@ -57,7 +57,9 @@ export function transformWidgetSeriesToTimeSeries(
       ? unprefixedName.split(SERIES_NAME_PART_DELIMITER)
       : splitSeriesName;
   const widgetQuery =
-    widget.queries.find(({name}) => name && splitSeriesName.includes(name)) ?? firstQuery;
+    widget.queries.find(({conditions}) => conditions && queryName === conditions) ??
+    widget.queries.find(({name}) => name && splitSeriesName.includes(name)) ??
+    firstQuery;
   const effectiveQueryName = queryName ?? (widgetQuery?.name || undefined);
 
   // Pass the unprefixed series name so transformLegacySeriesToTimeSeries
