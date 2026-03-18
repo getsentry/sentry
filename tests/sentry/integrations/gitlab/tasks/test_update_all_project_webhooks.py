@@ -10,10 +10,10 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class UpdateAllProjectWebhooksTest(GitLabTestCase):
     """Tests for the main orchestration task that spawns individual webhook update tasks"""
 
@@ -209,7 +209,7 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
         assert_slo_metric(mock_record_event)
 
 
-@region_silo_test
+@cell_silo_test
 class UpdateProjectWebhookTest(GitLabTestCase):
     """Tests for the individual webhook update task"""
 
