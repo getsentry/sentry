@@ -6,7 +6,7 @@ import {
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   setApiQueryData,

@@ -24,7 +24,7 @@ from sentry.db.models import (
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.types.region import find_all_cell_names
+from sentry.types.cell import find_all_cell_names
 
 logger = logging.getLogger("sentry.oauth")
 

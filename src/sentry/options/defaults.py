@@ -1083,6 +1083,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for batched nodestore fetches in group events endpoint.
+# When disabled, falls back to lazy per-event nodestore fetches.
+register(
+    "issues.group_events.batch_nodestore_enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for all Seer services
 #
 # TODO: So far this is only being checked when calling the Seer similar issues service during
@@ -1357,14 +1366,6 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
-# {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
-register(
-    "ai-agent-monitoring.custom-model-mapping",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # ## sentry.killswitches
@@ -3273,15 +3274,6 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set
-# exceeds this many bytes (via MEMORY USAGE). This avoids the expensive
-# re-serialisation of the entire destination set during SUNIONSTORE.
-register(
-    "spans.buffer.zero-copy-dest-threshold-bytes",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Latency threshold in milliseconds for logging slow EVALSHA pipeline operations
 register(
     "spans.buffer.evalsha-latency-threshold",
@@ -3799,6 +3791,12 @@ register(
 
 register(
     "demo-mode.users",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-org-ids",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

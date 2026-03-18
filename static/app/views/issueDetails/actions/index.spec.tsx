@@ -12,7 +12,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'sentry/components/globalModal';
+import {GlobalModal} from 'sentry/components/globalModal';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ModalStore} from 'sentry/stores/modalStore';

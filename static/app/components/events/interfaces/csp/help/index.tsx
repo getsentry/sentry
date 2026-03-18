@@ -16,7 +16,7 @@ export type HelpProps = {
   };
 };
 
-function CSPHelp({data: {effective_directive: key}}: HelpProps) {
+export function CSPHelp({data: {effective_directive: key}}: HelpProps) {
   const getHelp = () => ({
     __html: effectiveDirectives[key],
   });
@@ -58,8 +58,6 @@ function CSPHelp({data: {effective_directive: key}}: HelpProps) {
     </div>
   );
 }
-
-export default CSPHelp;
 
 const StyledP = styled('p')`
   text-align: right;

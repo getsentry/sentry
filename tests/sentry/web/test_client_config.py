@@ -34,7 +34,7 @@ from sentry.testutils.silo import (
     create_test_regions,
     no_silo_test,
 )
-from sentry.types import region
+from sentry.types import cell
 from sentry.web.client_config import get_client_config
 
 
@@ -171,7 +171,7 @@ def test_client_config_default_region_data() -> None:
 @no_silo_test
 @django_db_all
 def test_client_config_empty_region_data() -> None:
-    region_directory = region.load_from_config([], [])
+    region_directory = cell.load_from_config([], [])
 
     # Usually, we would want to use other testutils functions rather than calling
     # `swap_state` directly. We make an exception here in order to test the default
@@ -202,18 +202,18 @@ def test_client_config_with_region_data() -> None:
 
 
 hidden_regions = [
-    region.Cell(
+    cell.Cell(
         name="us",
         snowflake_id=1,
         address="https//us.testserver",
-        category=region.RegionCategory.MULTI_TENANT,
+        category=cell.RegionCategory.MULTI_TENANT,
     ),
-    region.Cell(
+    cell.Cell(
         name="eu",
         snowflake_id=5,
         address="https//eu.testserver",
         visible=False,
-        category=region.RegionCategory.MULTI_TENANT,
+        category=cell.RegionCategory.MULTI_TENANT,
     ),
 ]
 

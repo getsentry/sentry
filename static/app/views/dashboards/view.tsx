@@ -16,7 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardState, type DashboardDetails} from 'sentry/views/dashboards/types';
 
-import DashboardDetail from './detail';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import {OrgDashboards} from './orgDashboards';
 
 export default function ViewEditDashboard() {

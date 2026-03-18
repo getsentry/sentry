@@ -10,7 +10,7 @@ from sentry_sdk.api import capture_exception
 
 from sentry import features, options
 from sentry.models.organization import Organization
-from sentry.types.region import get_local_locality
+from sentry.types.cell import get_local_locality
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.numbers import base36_decode, base36_encode

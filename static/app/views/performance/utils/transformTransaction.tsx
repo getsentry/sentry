@@ -5,7 +5,7 @@ export type BreakpointTransaction = Pick<
   'aggregate_range_1' | 'aggregate_range_2' | 'breakpoint'
 >;
 
-export default function transformTransaction(
+export function transformTransaction(
   transaction: BreakpointTransaction
 ): BreakpointTransaction {
   if (transaction?.breakpoint) {

@@ -19,7 +19,7 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
@@ -47,7 +47,7 @@ import {
   createOnDemandFilterWarning,
   shouldDisplayOnDemandWidgetWarning,
 } from 'sentry/utils/onDemandMetrics';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
@@ -101,7 +101,7 @@ import {
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
-import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';

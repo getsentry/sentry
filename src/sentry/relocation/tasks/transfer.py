@@ -21,7 +21,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import relocation_control_tasks, relocation_tasks
 from sentry.taskworker.task import Task
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 
 logger = logging.getLogger("sentry.relocation")
 

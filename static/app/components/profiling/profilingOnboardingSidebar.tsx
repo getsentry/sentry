@@ -26,11 +26,12 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {SelectValue} from 'sentry/types/core';

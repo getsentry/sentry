@@ -68,7 +68,7 @@ import {
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {WidgetBuilderV2} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
@@ -80,9 +80,9 @@ import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {Controls} from './controls';
-import Dashboard from './dashboard';
+import {Dashboard} from './dashboard';
 import {DEFAULT_STATS_PERIOD} from './data';
-import FiltersBar from './filtersBar';
+import {FiltersBar} from './filtersBar';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -237,6 +237,14 @@ class DashboardDetail extends Component<Props, State> {
     if (prevProps.initialState !== this.props.initialState) {
       // Widget builder can toggle Edit state when saving
       this.setState({dashboardState: this.props.initialState});
+    }
+
+    // Update modified dashboard to trigger re-render when dashboard prop changes in preview state
+    if (prevProps.dashboard !== this.props.dashboard && this.isPreview) {
+      this.setState({
+        modifiedDashboard: cloneDashboard(this.props.dashboard),
+        widgetLimitReached: this.props.dashboard.widgets.length >= MAX_WIDGETS,
+      });
     }
 
     if (
@@ -1393,7 +1401,7 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'queryClient'
 > {}
 
-export default function DashboardDetailWithInjectedProps(
+export function DashboardDetailWithInjectedProps(
   props: DashboardDetailWithInjectedPropsProps
 ) {
   const theme = useTheme();

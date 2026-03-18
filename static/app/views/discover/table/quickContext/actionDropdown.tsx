@@ -39,7 +39,7 @@ type Props = {
   value: string | number | string[];
 };
 
-function ActionDropDown(props: Props) {
+export function ActionDropDown(props: Props) {
   const navigate = useNavigate();
   const menuItems: MenuItemProps[] = [];
   const {location, eventView, queryKey, value, organization, contextValueType, dataRow} =
@@ -171,5 +171,3 @@ function ActionDropDown(props: Props) {
 const StyledTrigger = styled(Button)`
   margin-left: ${p => p.theme.space.xs};
 `;
-
-export default ActionDropDown;

@@ -23,7 +23,7 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -33,7 +33,8 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {OverviewSpansTable} from 'sentry/views/performance/eap/overviewSpansTable';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
-import Filter, {
+import {
+  Filter,
   filterToSearchConditions,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';

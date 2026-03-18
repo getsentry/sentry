@@ -3,8 +3,8 @@ import {Fragment, useState} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Pagination from 'sentry/components/pagination';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SimilarSpectrum} from 'sentry/components/similarSpectrum';

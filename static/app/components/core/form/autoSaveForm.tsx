@@ -110,7 +110,9 @@ interface AutoSaveFormProps<
   /**
    * Render prop that receives field props and additional props
    */
-  children: (field: AutoSaveFormRenderArg<TSchema, TFieldName>) => React.ReactElement;
+  children: (
+    field: AutoSaveFormRenderArg<TSchema, TFieldName>
+  ) => React.ReactElement | null;
 
   /**
    * Initial value - must match the schema's type for this field

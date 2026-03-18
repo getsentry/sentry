@@ -5,12 +5,12 @@ import {AlertLink} from '@sentry/scraps/alert';
 import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

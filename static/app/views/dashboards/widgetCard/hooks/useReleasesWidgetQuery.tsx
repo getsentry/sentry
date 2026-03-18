@@ -8,11 +8,13 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import {useApi} from 'sentry/utils/useApi';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import {getWidgetInterval} from 'sentry/views/dashboards/utils';
+import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
@@ -198,7 +200,15 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
         return;
       }
 
+      const seriesQueryPrefix = getSeriesQueryPrefix(
+        filteredWidget.queries[requestIndex]!,
+        filteredWidget
+      );
+
       transformedResult.forEach((result: Series, resultIndex: number) => {
+        if (seriesQueryPrefix) {
+          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
+        }
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
     });

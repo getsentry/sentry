@@ -24,7 +24,7 @@ import {
 import {ExplorerAutofixStart} from 'sentry/components/events/autofix/v2/autofixStart';
 import {ExplorerStatusCard} from 'sentry/components/events/autofix/v2/autofixStatusCard';
 import {ExplorerNextSteps} from 'sentry/components/events/autofix/v2/nextSteps';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';

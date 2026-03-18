@@ -1,6 +1,6 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -21,7 +21,7 @@ export default function SeerAutomationRepos() {
             {
               code: <code />,
               code_review: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/ai-code-review/" />
+                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/" />
               ),
               docs: (
                 <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />
