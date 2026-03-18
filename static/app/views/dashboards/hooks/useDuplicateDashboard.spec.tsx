@@ -8,6 +8,8 @@ import {
   useDuplicateDashboard,
   useDuplicatePrebuiltDashboard,
 } from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
+import type {DashboardFilters} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 describe('useDuplicateDashboard', () => {
@@ -87,10 +89,10 @@ describe('useDuplicatePrebuiltDashboard', () => {
   });
 
   it('fetches saved dashboard details and duplicates with saved filters', async () => {
-    const savedFilters = {
+    const savedFilters: DashboardFilters = {
       globalFilter: [
         {
-          dataset: 'spans' as const,
+          dataset: WidgetType.SPANS,
           tag: {key: 'db.normalized_description', name: 'db.normalized_description'},
           value: '*billing*',
         },
