@@ -57,6 +57,14 @@ type FileStatus = Literal[
 type ArchiveFormat = Literal["tar.gz", "zip"]
 """Normalized archive format identifiers shared across all SCM providers."""
 
+
+class ArchiveLink(TypedDict):
+    """A download URL bundled with the authentication headers required to fetch it."""
+
+    url: str
+    headers: dict[str, str]
+
+
 type BuildStatus = Literal["pending", "running", "completed"]
 """The lifecycle stage of a CI build.
 

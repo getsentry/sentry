@@ -4,6 +4,7 @@ from sentry.scm.types import (
     SHA,
     ActionResult,
     ArchiveFormat,
+    ArchiveLink,
     BranchName,
     BuildConclusion,
     BuildStatus,
@@ -411,7 +412,7 @@ class GetArchiveLinkProtocol(Protocol):
         self,
         ref: str,
         archive_format: ArchiveFormat = "tar.gz",
-    ) -> ActionResult[str]: ...
+    ) -> ActionResult[ArchiveLink]: ...
 
 
 # Check Run Protocols

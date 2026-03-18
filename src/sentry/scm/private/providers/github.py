@@ -9,6 +9,7 @@ from sentry.scm.types import (
     SHA,
     ActionResult,
     ArchiveFormat,
+    ArchiveLink,
     Author,
     BranchName,
     BuildConclusion,
@@ -713,11 +714,13 @@ class GitHubProvider:
         self,
         ref: str,
         archive_format: ArchiveFormat = "tar.gz",
-    ) -> ActionResult[str]:
+    ) -> ActionResult[ArchiveLink]:
         github_format = GITHUB_ARCHIVE_FORMAT_MAP[archive_format]
         url = self.client.get_archive_link(self.repository["name"], github_format, ref)
+        token_data = self.client.get_access_token()
+        token = token_data["access_token"] if token_data else ""
         return ActionResult(
-            data=url,
+            data=ArchiveLink(url=url, headers={"Authorization": f"token {token}"}),
             type="github",
             raw=url,
             meta={},

@@ -13071,27 +13071,41 @@ def test_forward_to_client(client, provider: GitLabProvider, param: ForwardToCli
 class TestGetArchiveLink:
     def test_returns_tar_gz_url(self, provider: GitLabProvider, client: GitLabApiClient):
         client.base_url = "https://gitlab.example.com"
+        client.get_access_token.return_value = {
+            "access_token": "fake-gitlab-token",
+            "permissions": None,
+        }
 
         result = provider.get_archive_link("main")
 
         assert result["type"] == "gitlab"
-        assert result["data"] == (
+        assert result["data"]["url"] == (
             "https://gitlab.example.com/api/v4/projects/79787061/repository/archive.tar.gz?sha=main"
         )
+        assert result["data"]["headers"] == {"Authorization": "Bearer fake-gitlab-token"}
 
     def test_returns_zip_url(self, provider: GitLabProvider, client: GitLabApiClient):
         client.base_url = "https://gitlab.example.com"
+        client.get_access_token.return_value = {
+            "access_token": "fake-gitlab-token",
+            "permissions": None,
+        }
 
         result = provider.get_archive_link("main", "zip")
 
         assert result["type"] == "gitlab"
-        assert result["data"] == (
+        assert result["data"]["url"] == (
             "https://gitlab.example.com/api/v4/projects/79787061/repository/archive.zip?sha=main"
         )
+        assert result["data"]["headers"] == {"Authorization": "Bearer fake-gitlab-token"}
 
     def test_empty_ref_omits_sha_param(self, provider: GitLabProvider, client: GitLabApiClient):
         client.base_url = "https://gitlab.example.com"
+        client.get_access_token.return_value = {
+            "access_token": "fake-gitlab-token",
+            "permissions": None,
+        }
 
         result = provider.get_archive_link("")
 
-        assert "?sha=" not in result["data"]
+        assert "?sha=" not in result["data"]["url"]

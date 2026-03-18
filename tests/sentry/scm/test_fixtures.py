@@ -1559,6 +1559,10 @@ class FakeGitHubApiClient(GitHubApiClient):
             conclusion=data.get("conclusion"),
         )
 
+    def get_access_token(self, token_minimum_validity_time=None):
+        self._record_call("get_access_token")
+        return {"access_token": "fake-github-token", "permissions": None}
+
     def get_archive_link(self, repo: str, archive_format: str, ref: str) -> str:
         self._record_call("get_archive_link", repo, archive_format, ref)
         self._maybe_raise()

@@ -32,6 +32,7 @@ from sentry.scm.types import (
     SHA,
     ActionResult,
     ArchiveFormat,
+    ArchiveLink,
     Author,
     BranchName,
     Comment,
@@ -333,14 +334,16 @@ class GitLabProvider:
         self,
         ref: str,
         archive_format: ArchiveFormat = "tar.gz",
-    ) -> ActionResult[str]:
+    ) -> ActionResult[ArchiveLink]:
         fmt = GITLAB_ARCHIVE_FORMAT_MAP[archive_format]
         path = GitLabApiClientPath.archive.format(project=self._repo_id, format=fmt)
         url = GitLabApiClientPath.build_api_url(self.client.base_url, path)
         if ref:
             url = f"{url}?sha={ref}"
+        token_data = self.client.get_access_token()
+        token = token_data["access_token"] if token_data else ""
         return ActionResult(
-            data=url,
+            data=ArchiveLink(url=url, headers={"Authorization": f"Bearer {token}"}),
             type="gitlab",
             raw=url,
             meta={},

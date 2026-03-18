@@ -1354,7 +1354,8 @@ class TestGetArchiveLink:
 
         result = provider.get_archive_link("main")
 
-        assert result["data"] == client.archive_link_data
+        assert result["data"]["url"] == client.archive_link_data
+        assert result["data"]["headers"] == {"Authorization": "token fake-github-token"}
         assert result["type"] == "github"
         assert ("get_archive_link", ("test-org/test-repo", "tarball", "main"), {}) in client.calls
 

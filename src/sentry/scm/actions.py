@@ -19,6 +19,7 @@ from sentry.scm.types import (
     SHA,
     ActionResult,
     ArchiveFormat,
+    ArchiveLink,
     BranchName,
     BuildConclusion,
     BuildStatus,
@@ -382,7 +383,7 @@ class SourceCodeManager:
         self,
         ref: str,
         archive_format: ArchiveFormat = "tar.gz",
-    ) -> ActionResult[str]:
+    ) -> ActionResult[ArchiveLink]:
         """Get a URL to download a repository archive."""
         return self._exec(
             ActionMap.get_archive_link,  # type: ignore[type-abstract]
