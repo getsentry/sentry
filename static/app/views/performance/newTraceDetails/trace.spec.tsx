@@ -76,7 +76,7 @@ function mockTracePreferences(preferences: Partial<StoredTracePreferences>) {
 
 function mockTraceResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-trace/trace-id/',
+    url: '/organizations/org-slug/trace/trace-id/',
     method: 'GET',
     asyncDelay: 1,
     ...(resp ?? {body: {}}),
@@ -94,18 +94,18 @@ function mockPerformanceSubscriptionDetailsResponse(resp?: Partial<ResponseType>
 
 function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-trace-meta/trace-id/',
+    url: '/organizations/org-slug/trace-meta/trace-id/',
     method: 'GET',
     asyncDelay: 1,
     ...(resp ?? {
       body: {
         errors: 0,
+        logs: 0,
         performance_issues: 0,
-        projects: 0,
-        transactions: 0,
         transaction_child_count_map: [],
         span_count: 200,
         span_count_map: {},
+        uptime_checks: 0,
       },
     }),
   });
