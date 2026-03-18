@@ -1,7 +1,10 @@
 import {createContext, useContext} from 'react';
 import type {DistributedOmit} from 'type-fest';
 
-import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
+import type {
+  DO_NOT_USE_ButtonProps as ButtonProps,
+  DO_NOT_USE_CommonButtonProps as CommonButtonProps,
+} from './types';
 
 const ButtonDefaultsContext = createContext<
   DistributedOmit<ButtonProps, 'children'> | undefined
@@ -18,6 +21,6 @@ export function ButtonDefaultsProvider(props: ButtonProps & {children: React.Rea
 /**
  * Provides default props for ButtonProps via
  */
-export function useButtonDefaults(props: ButtonProps) {
-  return {...useContext(ButtonDefaultsContext), ...props};
+export function useButtonDefaults<T extends CommonButtonProps>(props: T): T {
+  return {...useContext(ButtonDefaultsContext), ...props} as T;
 }
