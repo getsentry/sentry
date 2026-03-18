@@ -110,11 +110,11 @@ async function validateDashboardAndRecordMetrics(
 ) {
   try {
     await validateDashboard(organization.slug, newDashboard);
-    Sentry.metrics.distribution('dashboards.seer.validation', 1, {
+    Sentry.metrics.count('dashboards.seer.validation', 1, {
       attributes: {status: 'success', ...(seerRunId ? {seer_run_id: seerRunId} : {})},
     });
   } catch (error) {
-    Sentry.metrics.distribution('dashboards.seer.validation', 1, {
+    Sentry.metrics.count('dashboards.seer.validation', 1, {
       attributes: {status: 'failure', ...(seerRunId ? {seer_run_id: seerRunId} : {})},
     });
   }
