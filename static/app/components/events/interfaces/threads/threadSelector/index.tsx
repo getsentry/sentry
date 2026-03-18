@@ -12,7 +12,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import filterThreadInfo, {type ThreadInfo} from './filterThreadInfo';
+import {filterThreadInfo, type ThreadInfo} from './filterThreadInfo';
 import {Option} from './option';
 import {ThreadSelectorGrid, ThreadSelectorGridCell} from './styles';
 import {getMappedThreadState} from './threadStates';

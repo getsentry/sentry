@@ -25,7 +25,7 @@ export type DropdownButtonProps = DistributedOmit<
   showChevron?: boolean;
 };
 
-function DropdownButton({
+export function DropdownButton({
   children,
   prefix,
   size,
@@ -101,5 +101,3 @@ const LabelText = styled('span')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   padding-right: ${p => p.theme.space.sm};
 `;
-
-export default DropdownButton;

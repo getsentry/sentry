@@ -9,7 +9,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
+import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';

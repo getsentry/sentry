@@ -6,10 +6,10 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';

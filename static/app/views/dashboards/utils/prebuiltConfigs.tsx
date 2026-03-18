@@ -64,7 +64,7 @@ export enum PrebuiltDashboardId {
 /** Boolean flags on Project that indicate whether telemetry data has been received. */
 type ProjectTelemetryFlag = Extract<
   keyof Project,
-  `hasInsights${string}` | 'hasSessions'
+  `hasInsights${string}` | 'hasSessions' | 'firstTransactionEvent'
 >;
 
 export type OnboardingConfig =

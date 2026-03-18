@@ -6,7 +6,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {IconChevron} from 'sentry/icons/iconChevron';

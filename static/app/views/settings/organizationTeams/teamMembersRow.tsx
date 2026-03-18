@@ -24,7 +24,7 @@ interface Props {
   user: User;
 }
 
-function TeamMembersRow({
+export function TeamMembersRow({
   organization,
   team,
   member,
@@ -132,5 +132,3 @@ const TeamRolesPanelItem = styled(PanelItem)`
     margin-left: auto;
   }
 `;
-
-export default TeamMembersRow;

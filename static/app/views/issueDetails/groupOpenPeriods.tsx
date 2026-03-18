@@ -3,14 +3,15 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 import {DateTime} from 'sentry/components/dateTime';
-import GridEditable, {
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
 import {getShortEventId} from 'sentry/utils/events';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

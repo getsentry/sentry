@@ -1,4 +1,4 @@
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 
 type Props = React.ComponentProps<typeof Confirm>;

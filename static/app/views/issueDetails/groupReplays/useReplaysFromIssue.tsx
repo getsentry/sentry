@@ -8,7 +8,7 @@ import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';

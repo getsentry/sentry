@@ -9,7 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
 import {FileSize} from 'sentry/components/fileSize';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
@@ -23,7 +23,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 
 import {Divider} from './divider';
 import {Features} from './features';
-import ProcessingIcon, {getProcessingInfoTooltip} from './processingIcon';
+import {getProcessingInfoTooltip, ProcessingIcon} from './processingIcon';
 
 type Props = {
   candidate: ImageCandidate;

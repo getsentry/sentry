@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
