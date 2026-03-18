@@ -511,10 +511,10 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
     default:
       icons = (
         <Fragment>
-          <Container position="absolute" top="0" right="7px" width="14px" height="14px">
+          <Container position="absolute" top="0" right="6px" width="12px" height="12px">
             {p => <PlatformIcon {...p} platform={props.projectPlatforms[0]!} size={12} />}
           </Container>
-          <Container position="absolute" bottom="0" right="0" width="14px" height="14px">
+          <Container position="absolute" bottom="0" right="0" width="12px" height="12px">
             {p => <PlatformIcon {...p} platform={props.projectPlatforms[1]!} size={12} />}
           </Container>
         </Fragment>
