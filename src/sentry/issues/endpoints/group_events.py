@@ -173,6 +173,7 @@ class GroupEventsEndpoint(GroupEndpoint):
                         "group_id": evt["issue.id"],
                         "project_id": evt["project.id"],
                         "timestamp": evt["timestamp"],
+                        "platform": evt.get("platform"),
                     },
                 )
                 for evt in data

@@ -73,7 +73,7 @@ def get_query_builder_for_group(
     dataset = Dataset.IssuePlatform
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
-    selected_columns = ["id", "project.id", "issue.id", "timestamp"]
+    selected_columns = ["id", "project.id", "issue.id", "timestamp", "platform"]
 
     if orderby is None:
         orderby_list = ["-timestamp", "id"]
