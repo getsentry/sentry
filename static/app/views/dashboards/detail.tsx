@@ -772,15 +772,6 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  // clean up session storage from non-url params in the widget builder
-  cleanupWidgetBuilderSessionStorage = () => {
-    for (const param of Object.keys(SESSION_STORAGE_CONTENT_KEY_MAP) as Array<
-      keyof typeof SESSION_STORAGE_CONTENT_KEY_MAP
-    >) {
-      sessionStorage.removeItem(SESSION_STORAGE_CONTENT_KEY_MAP[param]);
-    }
-  };
-
   handleCloseWidgetBuilder = (newWidgets?: Widget[]) => {
     const {organization, navigate, location, params, dashboard} = this.props;
     const {dashboardState, modifiedDashboard} = this.state;
