@@ -349,7 +349,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         }
 
         const name = aliases[seriesName] ?? seriesName;
-        return truncationFormatter(name, true);
+        return truncationFormatter(name, true, false);
       },
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
