@@ -34,12 +34,12 @@ const PLAN_CHOICES = [
   ['m1_baa', 'Medium (BAA)'],
   ['l1', 'Large'],
   ['e1', 'Enterprise'],
-];
+] as const;
 
 const PERIOD_CHOICES = [
   ['monthly', 'Monthly'],
   ['annual', 'Annual'],
-];
+] as const;
 
 export function CustomerUpgradeRequest() {
   const {orgId} = useParams<{orgId: string}>();
@@ -121,7 +121,7 @@ export function CustomerUpgradeRequest() {
               choices={PLAN_CHOICES}
               clearable={false}
               required
-              onChange={(v: any) => setSelectedPlan(v)}
+              onChange={v => setSelectedPlan(v)}
             />
             {selectedPlan === 'e1' && (
               <TextField

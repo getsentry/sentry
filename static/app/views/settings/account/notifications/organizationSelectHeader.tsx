@@ -22,7 +22,6 @@ export function OrganizationSelectHeader({
     <Flex align="center" flexGrow={1} gap="md">
       {t('Settings for Organization')}
       <StyledSelectControl
-        allowEmpty
         options={organizations.map(org => {
           return {
             label: org.name,

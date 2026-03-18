@@ -399,7 +399,7 @@ export default function ChoiceMapperField({
                 <Control>
                   <Select
                     {...(perItemMapping
-                      ? mappedSelectors[itemKey]![fieldKey]
+                      ? (mappedSelectors[itemKey] as any)[fieldKey]
                       : mappedSelectors[fieldKey])}
                     height={30}
                     disabled={disabled}

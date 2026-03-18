@@ -314,7 +314,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
             label={t('Environment')}
             placeholder={t('Select an environment')}
             noOptionsMessage={() => t('Start typing to create an environment')}
-            onCreateOption={(env: any) => {
+            onCreateOption={env => {
               setNewEnvironment(env);
               formModel.setValue('environment', env);
             }}

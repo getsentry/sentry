@@ -117,23 +117,9 @@ export function NewProviderForm({
     defaultValues,
     validators: {onDynamic: schema},
     onSubmit: ({value, formApi}) => {
-      return mutation.mutateAsync(schema.parse(value)).catch((error: RequestError) => {
-        const responseJSON = error.responseJSON;
-        if (responseJSON?.secret || responseJSON?.provider) {
-          const extractMessage = (val: unknown): string => {
-            if (Array.isArray(val)) {
-              return typeof val[0] === 'string' ? val[0] : JSON.stringify(val[0]);
-            }
-            return typeof val === 'string' ? val : JSON.stringify(val);
-          };
-          const errors: Record<string, {message: string}> = {};
-          if (responseJSON.secret) {
-            errors.secret = {message: extractMessage(responseJSON.secret)};
-          }
-          if (responseJSON.provider) {
-            errors.provider = {message: extractMessage(responseJSON.provider)};
-          }
-          setFieldErrors(formApi, errors);
+      return mutation.mutateAsync(schema.parse(value)).catch(error => {
+        if (error instanceof RequestError) {
+          setFieldErrors(formApi, error);
         }
       });
     },
