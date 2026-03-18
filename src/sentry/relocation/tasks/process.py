@@ -80,7 +80,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import relocation_tasks
 from sentry.taskworker.retry import LastAction, Retry
 from sentry.taskworker.task import Task
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.users.services.lost_password_hash import lost_password_hash_service

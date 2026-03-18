@@ -229,21 +229,18 @@ class TestResolveClient(TestCase):
         mock_validate.assert_called_once_with(self.organization, 1)
 
     @patch(f"{MOCK_HANDOFF_PATH}._validate_and_get_integration")
-    def test_returns_client_for_claude_code(self, mock_validate):
+    def test_returns_installation_for_claude_code(self, mock_validate):
         mock_integration = MagicMock()
         mock_integration.provider = "claude_code"
         mock_installation = MagicMock()
-        mock_client = MagicMock()
-        mock_installation.get_client.return_value = mock_client
         mock_validate.return_value = (mock_integration, mock_installation)
 
         client, installation = _resolve_client(
             self.organization, integration_id=1, provider=None, user_id=None
         )
 
-        assert client is mock_client
-        assert installation is None
-        mock_installation.get_client.assert_called_once()
+        assert client is None
+        assert installation is mock_installation
 
     @patch(f"{MOCK_HANDOFF_PATH}.features.has", return_value=True)
     @patch(f"{MOCK_HANDOFF_PATH}.github_copilot_identity_service")

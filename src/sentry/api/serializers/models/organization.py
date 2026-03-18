@@ -515,7 +515,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
 class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
-    experiments: Any
+    experiments: dict[str, str]
     isDefault: bool
     defaultRole: str  # TODO: replace with enum/literal
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
@@ -637,9 +637,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         context: DetailedOrganizationSerializerResponse = {
             **base,
-            # TODO(epurkhiser): This can be removed once we confirm the
-            # frontend does not use it
-            "experiments": {},
+            "experiments": features.get_experiment_assignments(obj, actor=user),
             "isDefault": obj.is_default,
             "defaultRole": obj.default_role,
             "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],  # Deprecated

@@ -32,7 +32,7 @@ from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.types.region import Cell, CellMappingNotFound
+from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
 
@@ -62,14 +62,14 @@ class RpcMethodSignature(SerializableFunctionSignature):
     """Represent the contract for an RPC method.
 
     This class is responsible for serializing and deserializing arguments. If the
-    base service runs in the region silo, this class is also responsible for
-    resolving the arguments to the correct region for a remote call.
+    base service runs in the cell silo, this class is also responsible for
+    resolving the arguments to the correct cell for a remote call.
     """
 
     def __init__(self, base_service_cls: type[RpcService], base_method: Callable[..., Any]) -> None:
         self.base_service_cls = base_service_cls
         super().__init__(base_method, is_instance_method=True)
-        self._region_resolution = self._extract_region_resolution()
+        self._cell_resolution = self._extract_cell_resolution()
 
     def _setup_exception(self, message: str) -> RpcServiceSetupException:
         return RpcServiceSetupException(
@@ -97,26 +97,26 @@ class RpcMethodSignature(SerializableFunctionSignature):
     def get_name_segments(self) -> Sequence[str]:
         return self.service_name, self.method_name
 
-    def _extract_region_resolution(self) -> CellResolutionStrategy | None:
-        region_resolution = getattr(self.base_function, _REGION_RESOLUTION_ATTR, None)
+    def _extract_cell_resolution(self) -> CellResolutionStrategy | None:
+        cell_resolution = getattr(self.base_function, _REGION_RESOLUTION_ATTR, None)
 
-        is_region_service = self.base_service_cls.local_mode == SiloMode.CELL
-        if not is_region_service and region_resolution is not None:
+        is_cell_service = self.base_service_cls.local_mode == SiloMode.CELL
+        if not is_cell_service and cell_resolution is not None:
             raise self._setup_exception(
                 "@cell_rpc_method should be used only on a service with "
                 "`local_mode = SiloMode.CELL`"
             )
-        if is_region_service and region_resolution is None:
+        if is_cell_service and cell_resolution is None:
             raise self._setup_exception("Needs @cell_rpc_method")
 
-        return region_resolution
+        return cell_resolution
 
     def resolve_to_region(self, arguments: ArgumentDict) -> _RegionResolutionResult:
-        if self._region_resolution is None:
+        if self._cell_resolution is None:
             raise self._setup_exception("Does not run on the region silo")
 
         try:
-            region = self._region_resolution.resolve(arguments)
+            region = self._cell_resolution.resolve(arguments)
             return _RegionResolutionResult(region)
         except CellMappingNotFound:
             if getattr(self.base_function, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
@@ -198,10 +198,6 @@ def cell_rpc_method(
         return rpc_method(method)
 
     return decorator
-
-
-# TODO(cells): remove once getsentry updated
-regional_rpc_method = cell_rpc_method
 
 
 _global_service_registry: dict[str, DelegatingRpcService] = {}

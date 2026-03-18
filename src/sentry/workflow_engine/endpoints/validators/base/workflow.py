@@ -1,4 +1,4 @@
-from typing import Any, TypeVar
+from typing import Any, NotRequired, TypedDict, TypeVar
 
 from django.db import router, transaction
 from rest_framework import serializers
@@ -16,9 +16,10 @@ from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
     WORKFLOW_CONFIG_HELP_TEXT,
     WORKFLOW_TRIGGERS_HELP_TEXT,
 )
-from sentry.workflow_engine.endpoints.validators.base import (
-    BaseActionValidator,
+from sentry.workflow_engine.endpoints.validators.base.action import ActionInput, BaseActionValidator
+from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
     BaseDataConditionGroupValidator,
+    DataConditionGroupInput,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     log_alerting_quota_hit,
@@ -37,6 +38,21 @@ from sentry.workflow_engine.models import (
 InputData = dict[str, Any]
 ListInputData = list[InputData]
 ModelType = TypeVar("ModelType", bound=models.Model)
+
+
+class ActionFilterInput(DataConditionGroupInput):
+    actions: list[ActionInput]
+
+
+class WorkflowInput(TypedDict):
+    id: NotRequired[str]
+    name: str
+    enabled: NotRequired[bool]
+    config: NotRequired[dict[str, Any]]
+    environment: NotRequired[str | None]
+    triggers: NotRequired[DataConditionGroupInput]
+    actionFilters: NotRequired[list[ActionFilterInput]]
+    owner: NotRequired[str | int | None]
 
 
 class WorkflowValidator(CamelSnakeSerializer[Any]):
@@ -323,7 +339,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
             # TODO -- can we bulk create: actions, dcga's and the workflow dcg?
             # Create actions and action filters, then associate them to the workflow
-            for action_filter in validated_value["action_filters"]:
+            for action_filter in validated_value.get("action_filters", []):
                 actions, condition_group = self._split_action_and_condition_group(action_filter)
                 new_condition_group = condition_group_validator.create(condition_group)
 

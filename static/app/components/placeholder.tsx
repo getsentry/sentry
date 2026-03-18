@@ -14,7 +14,7 @@ export interface PlaceholderProps {
   width?: string;
 }
 
-const Placeholder = styled(
+export const Placeholder = styled(
   ({
     className,
     children,
@@ -44,5 +44,3 @@ const Placeholder = styled(
   ${({bottomGutter, theme}) =>
     bottomGutter ? `margin-bottom: ${theme.space[bottomGutter]};` : ''}
 `;
-
-export default Placeholder;

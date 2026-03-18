@@ -7,7 +7,7 @@ import responses
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -563,6 +563,19 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             event=audit_log.get_event_id("WORKFLOW_ADD"),
             data=new_workflow.get_audit_log_data(),
         )
+
+    def test_create_workflow__with_owner(self) -> None:
+        self.valid_workflow["owner"] = f"user:{self.user.id}"
+        response = self.get_success_response(
+            self.organization.slug,
+            raw_data=self.valid_workflow,
+        )
+
+        assert response.status_code == 201
+        new_workflow = Workflow.objects.get(id=response.data["id"])
+        assert response.data == serialize(new_workflow)
+        assert response.data["owner"] == f"user:{self.user.id}"
+        assert new_workflow.owner_user_id == self.user.id
 
     def test_create_workflow__with_environment(self) -> None:
         self.valid_workflow["environment"] = self.environment.name
@@ -1277,11 +1290,11 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         self.workflow_two.refresh_from_db()
         assert self.workflow.status == ObjectStatus.PENDING_DELETION
         assert self.workflow_two.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow_two.id,
         ).exists()
@@ -1308,7 +1321,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         # Ensure the workflow is scheduled for deletion
         self.workflow.refresh_from_db()
         assert self.workflow.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
@@ -1346,11 +1359,11 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         self.workflow_two.refresh_from_db()
         assert self.workflow.status == ObjectStatus.PENDING_DELETION
         assert self.workflow_two.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow.id,
         ).exists()
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow_two.id,
         ).exists()
@@ -1431,7 +1444,7 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
         # Ensure the workflow is scheduled for deletion
         self.workflow_two.refresh_from_db()
         assert self.workflow_two.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.workflow_two.id,
         ).exists()
@@ -1660,7 +1673,7 @@ class OrganizationWorkflowDeleteProjectAccessTest(
         # Verify the workflow was NOT deleted
         self.other_workflow.refresh_from_db()
         assert self.other_workflow.status != ObjectStatus.PENDING_DELETION
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.other_workflow.id,
         ).exists()
@@ -1682,7 +1695,7 @@ class OrganizationWorkflowDeleteProjectAccessTest(
         # Verify the workflow WAS scheduled for deletion
         self.user_workflow.refresh_from_db()
         assert self.user_workflow.status == ObjectStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Workflow",
             object_id=self.user_workflow.id,
         ).exists()

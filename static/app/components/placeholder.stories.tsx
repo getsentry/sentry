@@ -1,4 +1,4 @@
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('Placeholder', story => {

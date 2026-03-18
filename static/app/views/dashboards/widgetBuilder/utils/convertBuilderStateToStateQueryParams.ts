@@ -5,8 +5,7 @@ import {
   serializeFields,
   serializeSorts,
   serializeThresholds,
-  serializeTraceMetric,
-  stateParamsNotInUrl,
+  WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP,
   type WidgetBuilderState,
   type WidgetBuilderStateQueryParams,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -14,17 +13,17 @@ import {
 export function convertBuilderStateToStateQueryParams(
   state: WidgetBuilderState
 ): WidgetBuilderStateQueryParams {
-  const {fields, yAxis, sort, thresholds, traceMetric, ...rest} = state;
-  const allowedRemainingParams = omit(rest, stateParamsNotInUrl);
+  const {fields, yAxis, sort, thresholds, ...rest} = state;
+  const allowedRemainingParams = omit(
+    rest,
+    // all state params that use session storage instead of url query params
+    Object.keys(WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP)
+  );
   return {
     ...allowedRemainingParams,
     field: serializeFields(fields ?? []),
     yAxis: serializeFields(yAxis ?? []),
     sort: serializeSorts(WidgetType.SPANS)(sort ?? []),
     thresholds: thresholds ? serializeThresholds(thresholds) : undefined,
-    traceMetric:
-      traceMetric?.name && traceMetric?.type
-        ? serializeTraceMetric(traceMetric)
-        : undefined,
   };
 }

@@ -7,6 +7,9 @@ export const NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE =
   'data-secondary-navigation-sidebar';
 
 export const PRIMARY_SIDEBAR_WIDTH = 74;
+// 52 + 1px border
+export const PRIMARY_HEADER_HEIGHT = 53;
+
 export const SECONDARY_SIDEBAR_WIDTH = 190;
 export const SECONDARY_SIDEBAR_MIN_WIDTH = 150;
 export const SECONDARY_SIDEBAR_MAX_WIDTH = 450;

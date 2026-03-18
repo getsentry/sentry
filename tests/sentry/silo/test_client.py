@@ -21,9 +21,9 @@ from sentry.silo.client import (
 )
 from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.hybrid_cloud import override_allowed_cell_silo_ip_addresses
-from sentry.testutils.region import override_regions
-from sentry.types.region import Cell, CellResolutionError, RegionCategory
+from sentry.types.cell import Cell, CellResolutionError, RegionCategory
 from sentry.utils import json
 
 
@@ -42,7 +42,7 @@ class SiloClientTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_init_clients_from_control(self) -> None:
-        with override_regions(self.cell_config):
+        with override_cells(self.cell_config):
             with raises(SiloClientError):
                 CellSiloClient("atlantis")  # type: ignore[arg-type]
 
@@ -64,7 +64,7 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_success(self, mock_cache: MagicMock) -> None:
-        with override_regions(self.cell_config):
+        with override_cells(self.cell_config):
             client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
@@ -88,7 +88,7 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_success_with_retry(self, mock_cache: MagicMock) -> None:
-        with override_regions(self.cell_config):
+        with override_cells(self.cell_config):
             client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
@@ -113,7 +113,7 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_retry_limit_reached(self, mock_cache: MagicMock) -> None:
-        with override_regions(self.cell_config):
+        with override_cells(self.cell_config):
             client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
@@ -174,7 +174,7 @@ class SiloClientTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @mock.patch("sentry.silo.client.cache")
     def test_client_request_retry_within_limit(self, mock_cache: MagicMock) -> None:
-        with override_regions(self.cell_config):
+        with override_cells(self.cell_config):
             client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
@@ -235,7 +235,7 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_request_on_3xx(self) -> None:
-        with override_regions(self.cell_config):
+        with override_cells(self.cell_config):
             client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
@@ -254,7 +254,7 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_request_on_4xx(self) -> None:
-        with override_regions(self.cell_config):
+        with override_cells(self.cell_config):
             client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
@@ -270,7 +270,7 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_request_on_5xx(self) -> None:
-        with override_regions(self.cell_config):
+        with override_cells(self.cell_config):
             client = CellSiloClient(self.cell)
             path = "/api/0/imaginary-public-endpoint/"
             responses.add(
@@ -286,7 +286,7 @@ class SiloClientTest(TestCase):
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_client_proxy_request(self) -> None:
-        with override_regions(self.cell_config):
+        with override_cells(self.cell_config):
             client = CellSiloClient(self.cell)
             path = f"{self.dummy_address}/api/0/imaginary-public-endpoint/"
             responses.add(
@@ -312,7 +312,7 @@ class SiloClientTest(TestCase):
 
         # Disallow any cell silo ip address by default.
         with (
-            override_regions((cell,)),
+            override_cells((cell,)),
             patch("sentry_sdk.capture_exception") as mock_capture_exception,
             raises(ApiHostError),
         ):
@@ -331,7 +331,7 @@ class SiloClientTest(TestCase):
         assert err.args == ("Disallowed Cell Silo IP address: 172.31.255.255",)
 
         with (
-            override_regions((cell,)),
+            override_cells((cell,)),
             patch("sentry_sdk.capture_exception") as mock_capture_exception,
             override_allowed_cell_silo_ip_addresses("172.31.255.255"),
             raises(ApiHostError),
@@ -357,7 +357,7 @@ class SiloClientTest(TestCase):
         cell_config = (cell,)
 
         with (
-            override_regions(cell_config),
+            override_cells(cell_config),
             patch("sentry.silo.client.validate_cell_ip_address") as mock_validate_cell_ip_address,
         ):
             client = CellSiloClient(cell)
@@ -416,7 +416,7 @@ def test_get_cell_ip_addresses() -> None:
     cell_config = (cell,)
 
     with (
-        override_regions(cell_config),
+        override_cells(cell_config),
         patch("socket.gethostbyname") as mock_gethostbyname,
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
     ):
@@ -425,7 +425,7 @@ def test_get_cell_ip_addresses() -> None:
         assert mock_capture_exception.call_count == 0
 
     with (
-        override_regions(cell_config),
+        override_cells(cell_config),
         patch("socket.gethostbyname") as mock_gethostbyname,
         patch("urllib3.util.parse_url") as mock_parse_url,
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
@@ -460,7 +460,7 @@ def test_get_cell_ip_addresses_when_single_host_invalid(mock_incr: MagicMock) ->
             raise Exception(f"Unexpected hostname: {hostname}")
 
     with (
-        override_regions(cell_config),
+        override_cells(cell_config),
         patch("socket.gethostbyname") as mock_gethostbyname,
         patch("sentry_sdk.capture_exception") as mock_capture_exception,
     ):

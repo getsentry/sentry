@@ -39,7 +39,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
-import UsageStatsOrg from './usageStatsOrg';
+import {UsageStatsOrganization as UsageStatsOrg} from './usageStatsOrg';
 import {UsageStatsProjects} from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
@@ -286,9 +286,6 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
       }
       if (opt.value === DataCategory.PROFILES) {
         return !hasProfilingStats;
-      }
-      if (opt.value === DataCategory.SIZE_ANALYSIS) {
-        return organization.features.includes('expose-category-size-analysis');
       }
       if (opt.value === DataCategory.INSTALLABLE_BUILD) {
         return organization.features.includes('expose-category-installable-build');

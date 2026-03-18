@@ -31,7 +31,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.ratelimits import backend as ratelimiter
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import CellSiloClient, SiloClientError
-from sentry.types.region import Cell, find_cells_for_orgs, get_cell_by_name
+from sentry.types.cell import Cell, find_cells_for_orgs, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.options import sample_modulo
 
@@ -116,79 +116,80 @@ class BaseRequestParser(ABC):
             response = self.response_handler(self.request)
             return response
 
-    def get_response_from_region_silo(self, region: Cell) -> HttpResponseBase:
+    def get_response_from_cell_silo(self, cell: Cell) -> HttpResponseBase:
         with metrics.timer(
-            "integration_proxy.control.get_response_from_region_silo",
-            tags={"destination_region": region.name},
+            "integration_proxy.control.get_response_from_cell_silo",
+            tags={"destination_cell": cell.name},
             sample_rate=1.0,
         ):
-            cell_client = CellSiloClient(region, retry=True)
+            cell_client = CellSiloClient(cell, retry=True)
             with MiddlewareOperationEvent(
                 operation_type=MiddlewareOperationType.GET_REGION_RESPONSE,
                 integration_name=self.provider,
-                region=region.name,
+                region=cell.name,
             ).capture() as lifecycle:
                 lifecycle.add_extras(
                     {
                         "path": self.request.path,
-                        "region": region.name,
+                        "region": cell.name,
                     }
                 )
 
                 http_response = cell_client.proxy_request(incoming_request=self.request)
                 return http_response
 
-    def get_responses_from_region_silos(self, regions: list[Cell]) -> dict[str, RegionResult]:
+    def get_responses_from_cell_silos(self, cells: list[Cell]) -> dict[str, RegionResult]:
         """
-        Used to handle the requests on a given list of regions (synchronously).
-        Returns a dict of region name to response/exception.
+        Used to handle the requests on a given list of cells (synchronously).
+        Returns a dict of cell name to response/exception.
         """
         self.ensure_control_silo()
 
-        region_to_response_map = {}
+        cell_to_response_map = {}
 
-        with ThreadPoolExecutor(max_workers=len(regions)) as executor:
-            future_to_region = {
-                executor.submit(self.get_response_from_region_silo, region): region
-                for region in regions
+        with ThreadPoolExecutor(max_workers=len(cells)) as executor:
+            future_to_cell = {
+                executor.submit(self.get_response_from_cell_silo, cell): cell for cell in cells
             }
-            for future in as_completed(future_to_region):
-                region = future_to_region[future]
+            for future in as_completed(future_to_cell):
+                cell = future_to_cell[future]
                 try:
-                    region_response = future.result()
+                    cell_response = future.result()
                 except Exception as e:
-                    region_to_response_map[region.name] = RegionResult(error=e)
+                    cell_to_response_map[cell.name] = RegionResult(error=e)
                 else:
-                    region_to_response_map[region.name] = RegionResult(response=region_response)
+                    cell_to_response_map[cell.name] = RegionResult(response=cell_response)
 
-        return region_to_response_map
+        return cell_to_response_map
 
     def get_response_from_webhookpayload(
         self,
-        regions: list[Cell],
+        cells: list[Cell] | None = None,  # TODO(cells): make required once getsentry is updated
         identifier: int | str | None = None,
         integration_id: int | None = None,
+        regions: list[Cell] | None = None,  # TODO(cells): remove once getsentry is updated
     ) -> HttpResponseBase:
         """
-        Used to create webhookpayloads for provided regions to handle the webhooks asynchronously.
+        Used to create webhookpayloads for provided cells to handle the webhooks asynchronously.
         Responds to the webhook provider with a 202 Accepted status.
         """
-        if len(regions) < 1:
+        cells = cells or regions or []
+        if len(cells) < 1:
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         shard_identifier = identifier or self.webhook_identifier.value
-        # mailbox_name is provider:identifier, which is constant for all regions in
+        # mailbox_name is provider:identifier, which is constant for all cells in
         # this loop. Create all payloads first, then trigger a single drain.
         payloads = [
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.SENTRY_REGION,
-                region=region.name,
+                cell=cell.name,
                 provider=self.provider,
                 identifier=shard_identifier,
                 integration_id=integration_id,
                 request=self.request,
             )
-            for region in regions
+            for cell in cells
         ]
         if payloads:
             maybe_trigger_drain(payloads[0].mailbox_name)
@@ -252,30 +253,30 @@ class BaseRequestParser(ABC):
             "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
 
-    def get_response_from_first_region(self):
-        regions = self.get_regions_from_organizations()
-        first_region = regions[0]
-        response_map = self.get_responses_from_region_silos(regions=[first_region])
-        region_result = response_map[first_region.name]
+    def get_response_from_first_cell(self):
+        cells = self.get_cells_from_organizations()
+        first_cell = cells[0]
+        response_map = self.get_responses_from_cell_silos(cells=[first_cell])
+        cell_result = response_map[first_cell.name]
         with MiddlewareOperationEvent(
             operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_FIRST_REGION,
             integration_name=self.provider,
-            region=first_region.name,
+            region=first_cell.name,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
                     "path": self.request.path,
-                    "region": first_region.name,
+                    "region": first_cell.name,
                 }
             )
-            if region_result.error is not None:
-                # We want to fail loudly so that devs know this error happened on the region silo (for now)
-                raise SiloClientError(region_result.error)
-            return region_result.response
+            if cell_result.error is not None:
+                # We want to fail loudly so that devs know this error happened on the cell silo (for now)
+                raise SiloClientError(cell_result.error)
+            return cell_result.response
 
-    def get_response_from_all_regions(self):
-        regions = self.get_regions_from_organizations()
-        response_map = self.get_responses_from_region_silos(regions=regions)
+    def get_response_from_all_cells(self):
+        cells = self.get_cells_from_organizations()
+        response_map = self.get_responses_from_cell_silos(cells=cells)
         successful_responses = [
             result for result in response_map.values() if result.response is not None
         ]
@@ -286,9 +287,9 @@ class BaseRequestParser(ABC):
             lifecycle.add_extra("path", self.request.path)
             if len(successful_responses) == 0:
                 error_map_str = ", ".join(
-                    f"{region}: {result.error}" for region, result in response_map.items()
+                    f"{cell}: {result.error}" for cell, result in response_map.items()
                 )
-                raise SiloClientError("No successful region responses", error_map_str)
+                raise SiloClientError("No successful cell responses", error_map_str)
             return successful_responses[0].response
 
     # Required Overrides
@@ -362,11 +363,11 @@ class BaseRequestParser(ABC):
         """
         return organizations
 
-    def get_regions_from_organizations(
+    def get_cells_from_organizations(
         self, organizations: list[RpcOrganizationMapping] | None = None
     ) -> list[Cell]:
         """
-        Use the get_organizations_from_integration() method to identify forwarding regions.
+        Use the get_organizations_from_integration() method to identify forwarding cells.
         """
         if not organizations:
             organizations = self.get_organizations_from_integration()
@@ -374,8 +375,8 @@ class BaseRequestParser(ABC):
         if len(organizations) == 0:
             return []
 
-        region_names = find_cells_for_orgs([org.id for org in organizations])
-        return sorted([get_cell_by_name(name) for name in region_names], key=lambda r: r.name)
+        cell_names = find_cells_for_orgs([org.id for org in organizations])
+        return sorted([get_cell_by_name(name) for name in cell_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
         return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
@@ -415,7 +416,7 @@ class BaseRequestParser(ABC):
             # create webhookpayloads for each service
             WebhookPayload.create_from_request(
                 destination_type=DestinationType.CODECOV,
-                region=None,
+                cell=None,
                 provider=self.provider,
                 identifier=shard_identifier,
                 integration_id=None,
