@@ -241,11 +241,11 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
         )
         org_cells = find_cells_for_orgs(organization_ids)
         for cell_name in org_cells:
-            region_groups = issue_service.get_external_issue_groups(
-                region_name=cell_name, external_issue_key=issue_key, integration_id=integration.id
+            cell_groups = issue_service.get_external_issue_groups(
+                cell_name=cell_name, external_issue_key=issue_key, integration_id=integration.id
             )
-            if region_groups is not None:
-                groups.extend(region_groups)
+            if cell_groups is not None:
+                groups.extend(cell_groups)
                 has_groups = True
 
         if not has_groups:

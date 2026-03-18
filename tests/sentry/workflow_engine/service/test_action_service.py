@@ -278,7 +278,7 @@ class TestActionService(TestCase):
         self.create_data_condition_group_action(action=sentry_app_id_action2, condition_group=dcg)
 
         action_service.update_action_status_for_sentry_app_installation(
-            region_name="us",
+            cell_name="us",
             organization_id=self.organization.id,
             sentry_app_id=sentry_app_installation.sentry_app.id,
             status=ObjectStatus.DISABLED,
@@ -311,7 +311,7 @@ class TestActionService(TestCase):
             },
         )
         action_service.update_action_status_for_sentry_app_via_sentry_app_id(
-            region_name="us",
+            cell_name="us",
             sentry_app_id=self.sentry_app.id,
             status=ObjectStatus.DISABLED,
         )
@@ -330,7 +330,7 @@ class TestActionService(TestCase):
             },
         )
         action_service.update_action_status_for_webhook_via_sentry_app_slug(
-            region_name="us",
+            cell_name="us",
             sentry_app_slug=self.sentry_app.slug,
             status=ObjectStatus.DISABLED,
         )

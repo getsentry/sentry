@@ -602,17 +602,15 @@ class User(Model, AbstractBaseUser):
         from sentry.hybridcloud.rpc.caching import cell_caching_service
         from sentry.users.services.user.service import get_many_by_id, get_user
 
-        cell_caching_service.clear_key(key=get_user.key_from(identifier), region_name=cell_name)
-        cell_caching_service.clear_key(
-            key=get_many_by_id.key_from(identifier), region_name=cell_name
-        )
+        cell_caching_service.clear_key(key=get_user.key_from(identifier), cell_name=cell_name)
+        cell_caching_service.clear_key(key=get_many_by_id.key_from(identifier), cell_name=cell_name)
 
     def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.hybridcloud.rpc.caching import cell_caching_service
         from sentry.users.services.user.service import get_many_by_id, get_user
 
-        cell_caching_service.clear_key(key=get_user.key_from(self.id), region_name=cell_name)
-        cell_caching_service.clear_key(key=get_many_by_id.key_from(self.id), region_name=cell_name)
+        cell_caching_service.clear_key(key=get_user.key_from(self.id), cell_name=cell_name)
+        cell_caching_service.clear_key(key=get_many_by_id.key_from(self.id), cell_name=cell_name)
         organization_service.update_cell_user(
             user=RpcRegionUser(
                 id=self.id,
