@@ -933,6 +933,7 @@ function GrabHandle(props: FlexProps<'div'>) {
       justify="center"
       align="center"
       style={{cursor: isDragging ? 'grabbing' : 'grab'}}
+      onClick={e => e.stopPropagation()}
     >
       <IconGrabbable variant="muted" />
     </StyledGrabHandle>
