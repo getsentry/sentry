@@ -28,15 +28,15 @@ You receive scoped code chunks from Warden's diff pipeline. Each chunk is a chan
 
 Determine what you are reviewing and load the relevant reference.
 
-| Code Type                                                               | Load Reference                                               |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Null/undefined property access, optional chaining, object destructuring | `${CLAUDE_SKILL_ROOT}/references/null-reference-errors.md`   |
-| Dashboard widgets, chart visualization, widget URL generation           | `${CLAUDE_SKILL_ROOT}/references/dashboard-widget-errors.md` |
-| Trace views, span details, trace tree rendering                         | `${CLAUDE_SKILL_ROOT}/references/trace-view-errors.md`       |
-| API calls, response handling, error states, fetch wrappers              | `${CLAUDE_SKILL_ROOT}/references/api-response-handling.md`   |
-| React hooks, context providers, render loops, component lifecycle       | `${CLAUDE_SKILL_ROOT}/references/react-lifecycle-errors.md`  |
-| AI Insights, LLM prompt parsing, gen_ai span data                       | `${CLAUDE_SKILL_ROOT}/references/ai-insights-parsing.md`     |
-| Array operations, date/time values, numeric formatting                  | `${CLAUDE_SKILL_ROOT}/references/range-and-bounds-errors.md` |
+| Code Type                                                               | Load Reference                          |
+| ----------------------------------------------------------------------- | --------------------------------------- |
+| Null/undefined property access, optional chaining, object destructuring | `references/null-reference-errors.md`   |
+| Dashboard widgets, chart visualization, widget URL generation           | `references/dashboard-widget-errors.md` |
+| Trace views, span details, trace tree rendering                         | `references/trace-view-errors.md`       |
+| API calls, response handling, error states, fetch wrappers              | `references/api-response-handling.md`   |
+| React hooks, context providers, render loops, component lifecycle       | `references/react-lifecycle-errors.md`  |
+| AI Insights, LLM prompt parsing, gen_ai span data                       | `references/ai-insights-parsing.md`     |
+| Array operations, date/time values, numeric formatting                  | `references/range-and-bounds-errors.md` |
 
 If the code spans multiple categories, load all relevant references.
 

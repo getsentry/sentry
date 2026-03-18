@@ -28,16 +28,16 @@ You receive scoped code chunks from Warden's diff pipeline. Each chunk is a chan
 
 Determine what you are reviewing and load the relevant reference.
 
-| Code Type                                                         | Load Reference                                            |
-| ----------------------------------------------------------------- | --------------------------------------------------------- |
-| ORM queries, model lookups, `.objects.get()`, FK access           | `${CLAUDE_SKILL_ROOT}/references/missing-records.md`      |
-| Type conversions, None handling, option reads, serializer returns | `${CLAUDE_SKILL_ROOT}/references/null-and-type-errors.md` |
-| Data input parsing, field lengths, request bodies, decompression  | `${CLAUDE_SKILL_ROOT}/references/data-validation.md`      |
-| `get_or_create`, `save()`, unique constraints, integer overflow   | `${CLAUDE_SKILL_ROOT}/references/database-integrity.md`   |
-| Integration webhooks, external API calls, SentryApp hooks         | `${CLAUDE_SKILL_ROOT}/references/integration-errors.md`   |
-| Dict iteration, shared state, concurrent access                   | `${CLAUDE_SKILL_ROOT}/references/concurrency-bugs.md`     |
-| Snuba queries, metric subscriptions, search filters               | `${CLAUDE_SKILL_ROOT}/references/query-validation.md`     |
-| Redirect URLs, URL construction, routing                          | `${CLAUDE_SKILL_ROOT}/references/url-safety.md`           |
+| Code Type                                                         | Load Reference                       |
+| ----------------------------------------------------------------- | ------------------------------------ |
+| ORM queries, model lookups, `.objects.get()`, FK access           | `references/missing-records.md`      |
+| Type conversions, None handling, option reads, serializer returns | `references/null-and-type-errors.md` |
+| Data input parsing, field lengths, request bodies, decompression  | `references/data-validation.md`      |
+| `get_or_create`, `save()`, unique constraints, integer overflow   | `references/database-integrity.md`   |
+| Integration webhooks, external API calls, SentryApp hooks         | `references/integration-errors.md`   |
+| Dict iteration, shared state, concurrent access                   | `references/concurrency-bugs.md`     |
+| Snuba queries, metric subscriptions, search filters               | `references/query-validation.md`     |
+| Redirect URLs, URL construction, routing                          | `references/url-safety.md`           |
 
 If the code spans multiple categories, load all relevant references.
 
