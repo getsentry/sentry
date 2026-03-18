@@ -4,6 +4,7 @@ from functools import cached_property
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.incident import IncidentStatus
@@ -11,6 +12,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
 from sentry.types.group import PriorityLevel
@@ -326,3 +328,50 @@ class IncidentListDeltaTest(IncidentListEndpointTest):
         assert incident_data["projects"] == [self.project.slug]
         # Should have a fake ID since no IncidentGroupOpenPeriod bridge exists
         assert incident_data["id"] is not None
+
+    @with_feature(
+        [
+            "organizations:incidents",
+            "organizations:performance-view",
+            "organizations:workflow-engine-rule-serializers",
+        ]
+    )
+    def test_filter_by_fake_alert_rule_id(self) -> None:
+        """Test that we can filter by fake alert rule ID (detector_id + OFFSET)."""
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        # Create alert rule and migrate to get detector
+        alert_rule = self.create_alert_rule()
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        _, _, _, detector, _, _, _, _ = migrate_alert_rule(alert_rule)
+        migrate_metric_data_conditions(trigger)
+        migrate_resolve_threshold_data_condition(alert_rule)
+
+        # Create a group linked to the detector
+        with assume_test_silo_mode(SiloMode.CELL):
+            group = self.create_group(type=MetricIssue.type_id, project=self.project)
+            group.priority = PriorityLevel.HIGH.value
+            group.save()
+            DetectorGroup.objects.create(detector=detector, group=group)
+
+        # Generate fake alert rule ID from detector ID
+        fake_alert_rule_id = get_fake_id_from_object_id(detector.id)
+
+        # Query using fake alert rule ID (workflow engine-only detectors)
+        resp = self.get_success_response(self.organization.slug, alertRule=str(fake_alert_rule_id))
+
+        # Should return the group linked to this detector
+        assert len(resp.data) == 1
+        incident_data = resp.data[0]
+        assert incident_data["status"] == IncidentStatus.CRITICAL.value
+        assert incident_data["organizationId"] == str(self.organization.id)
+        assert incident_data["projects"] == [self.project.slug]
+
+        # Query with non-existent fake alert rule ID should return empty
+        fake_nonexistent_id = get_fake_id_from_object_id(999999)
+        resp_empty = self.get_success_response(
+            self.organization.slug, alertRule=str(fake_nonexistent_id)
+        )
+
+        assert len(resp_empty.data) == 0

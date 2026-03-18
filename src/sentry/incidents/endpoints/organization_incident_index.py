@@ -19,14 +19,17 @@ from sentry.api.serializers import serialize
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidParams
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
+from sentry.incidents.endpoints.serializers.utils import get_object_id_from_fake_id
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
     WorkflowEngineIncidentSerializer,
 )
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleActivity, AlertRuleActivityType
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.models.environment import Environment
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.types.group import PriorityLevel
@@ -162,8 +165,8 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
-        projects: Sequence,
-        envs: Sequence,
+        projects: Sequence[Project],
+        envs: Sequence[Environment],
         expand: list[str],
         title: str | None,
         query_alert_rule: str | None,
@@ -190,21 +193,23 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         # Alert rule filter
         if query_alert_rule is not None:
             query_alert_rule_id = to_valid_int_id("alertRule", query_alert_rule)
-            alert_rule_ids = [query_alert_rule_id]
 
-            # Handle snapshot alerts (legacy)
             if query_include_snapshots:
-                snapshot_alerts = AlertRuleActivity.objects.filter(
-                    previous_alert_rule=query_alert_rule_id,
-                    type=AlertRuleActivityType.SNAPSHOT.value,
-                )
-                for snapshot_alert in snapshot_alerts:
-                    alert_rule_ids.append(snapshot_alert.alert_rule_id)
+                # Snapshot alerts are not supported in workflow engine as they rely on
+                # AlertRuleActivity, which is a legacy model.
+                pass
 
-            # Translate alert rule IDs to detector IDs
-            detector_ids = AlertRuleDetector.objects.filter(
-                alert_rule_id__in=alert_rule_ids
-            ).values_list("detector_id", flat=True)
+            # Find detector IDs from alert rule ID mapping
+            detector_ids = list(
+                AlertRuleDetector.objects.filter(alert_rule_id=query_alert_rule_id).values_list(
+                    "detector_id", flat=True
+                )
+            )
+
+            # Also try extracting detector ID from fake alert rule ID (detector_id + OFFSET)
+            extracted_detector_id = get_object_id_from_fake_id(query_alert_rule_id)
+            if extracted_detector_id > 0:
+                detector_ids.append(extracted_detector_id)
 
             open_periods = open_periods.filter(group__detectorgroup__detector_id__in=detector_ids)
 
@@ -267,7 +272,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         )
 
     def _filter_by_environment(
-        self, open_periods: BaseQuerySet[GroupOpenPeriod], envs: Sequence
+        self, open_periods: BaseQuerySet[GroupOpenPeriod], envs: Sequence[Environment]
     ) -> BaseQuerySet[GroupOpenPeriod]:
         """
         Filter open periods by environment via Detector → DataSource → QuerySubscription → SnubaQuery.
