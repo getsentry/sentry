@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from typing import Any
 
 import jsonschema
@@ -383,6 +384,38 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "image_count": len(images),
             },
         )
+
+        has_vcs = commit_comparison is not None
+
+        metrics.distribution(
+            "preprod.snapshots.upload.image_count",
+            len(images),
+            sample_rate=1.0,
+            tags={"has_vcs": has_vcs},
+        )
+
+        file_name_counts: Counter[str] = Counter(
+            v["image_file_name"] for v in images.values() if v.get("image_file_name")
+        )
+        duplicate_count = sum(c - 1 for c in file_name_counts.values() if c > 1)
+        metrics.distribution(
+            "preprod.snapshots.upload.duplicate_image_file_names",
+            duplicate_count,
+            sample_rate=1.0,
+        )
+
+        if has_vcs:
+            # No composite index on (commit_comparison, project) — acceptable at current
+            # Snapshots customer volume (rate-limited to 100 req/min/org).
+            bundle_count = PreprodArtifact.objects.filter(
+                commit_comparison=commit_comparison,
+                project=project,
+            ).count()
+            metrics.distribution(
+                "preprod.snapshots.upload.bundles_per_commit",
+                bundle_count,
+                sample_rate=1.0,
+            )
 
         create_preprod_snapshot_status_check_task.apply_async(
             kwargs={
