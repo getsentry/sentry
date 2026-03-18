@@ -929,10 +929,10 @@ export function CustomerDetails() {
             content: <CustomerPolicies orgId={orgId} />,
           },
           {
-            name: 'Contract',
+            name: 'Platform View',
             content: (
-              <Link to={`/_admin/customers/${orgId}/contract/`}>
-                View Contract Details
+              <Link to={`/_admin/customers/${orgId}/platform/`}>
+                View Platform Details
               </Link>
             ),
           },

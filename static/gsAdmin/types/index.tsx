@@ -142,3 +142,6 @@ export type Contract = {
   metadata?: ContractMetadata;
   pricingConfig?: ContractPricingConfig;
 };
+
+// Placeholder type — refine once the API response shape is known
+export type Trial = Record<string, unknown>;

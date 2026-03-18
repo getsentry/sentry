@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {CustomerContractDetails} from 'admin/views/customerContractDetails';
+import {CustomerPlatformView} from 'admin/views/customerContractDetails';
 
 const MOCK_CONTRACT = {
   metadata: {id: 'contract-123', organizationId: 'org-456'},
@@ -31,11 +31,11 @@ const MOCK_CONTRACT = {
 };
 
 const ROUTER_CONFIG = {
-  location: {pathname: '/_admin/customers/test-org/contract/'},
-  route: '/_admin/customers/:orgId/contract/',
+  location: {pathname: '/_admin/customers/test-org/platform/'},
+  route: '/_admin/customers/:orgId/platform/',
 };
 
-describe('CustomerContractDetails', () => {
+describe('CustomerPlatformView', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -46,7 +46,7 @@ describe('CustomerContractDetails', () => {
       body: MOCK_CONTRACT,
     });
 
-    render(<CustomerContractDetails />, {
+    render(<CustomerPlatformView />, {
       initialRouterConfig: ROUTER_CONFIG,
     });
 
@@ -81,7 +81,7 @@ describe('CustomerContractDetails', () => {
       statusCode: 404,
     });
 
-    render(<CustomerContractDetails />, {
+    render(<CustomerPlatformView />, {
       initialRouterConfig: ROUTER_CONFIG,
     });
 
@@ -110,7 +110,7 @@ describe('CustomerContractDetails', () => {
       body: contractWithBudgets,
     });
 
-    render(<CustomerContractDetails />, {
+    render(<CustomerPlatformView />, {
       initialRouterConfig: ROUTER_CONFIG,
     });
 
@@ -132,7 +132,7 @@ describe('CustomerContractDetails', () => {
       body: minimalContract,
     });
 
-    render(<CustomerContractDetails />, {
+    render(<CustomerPlatformView />, {
       initialRouterConfig: ROUTER_CONFIG,
     });
 

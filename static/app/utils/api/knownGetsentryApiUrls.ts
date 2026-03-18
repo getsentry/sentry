@@ -21,6 +21,7 @@ export type KnownGetsentryApiUrls =
   | '/copilot/webhook/'
   | '/customers/'
   | '/_admin/customers/$organizationIdOrSlug/contract/'
+  | '/_admin/customers/$organizationIdOrSlug/trials/'
   | '/customers/$organizationIdOrSlug/'
   | '/customers/$organizationIdOrSlug/balancechanges/'
   | '/customers/$organizationIdOrSlug/billing-config/'
