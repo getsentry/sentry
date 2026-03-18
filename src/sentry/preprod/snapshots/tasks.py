@@ -517,11 +517,18 @@ def compare_snapshots(
 
         time_now = timezone.now()
 
+        metric_tags = {
+            "org_id": str(org_id),
+            "project_id": str(project_id),
+            "app_id": head_artifact.app_id or "",
+        }
+
         diff_duration_s = (time_now - task_start_time).total_seconds()
         metrics.distribution(
             "preprod.snapshots.diff.duration_s",
             diff_duration_s,
             sample_rate=1.0,
+            tags=metric_tags,
         )
 
         e2e_duration_s = (time_now - head_artifact.date_added).total_seconds()
@@ -529,6 +536,7 @@ def compare_snapshots(
             "preprod.snapshots.e2e_duration_s",
             e2e_duration_s,
             sample_rate=1.0,
+            tags=metric_tags,
         )
 
         if total_fetched_count > 0:
@@ -536,6 +544,7 @@ def compare_snapshots(
                 "preprod.snapshots.image.avg_size_bytes",
                 total_fetched_bytes / total_fetched_count,
                 sample_rate=1.0,
+                tags=metric_tags,
             )
 
         if (
@@ -545,7 +554,7 @@ def compare_snapshots(
             and not renamed_pairs
             and not error_count
         ):
-            metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0)
+            metrics.incr("preprod.snapshots.diff.zero_changes", sample_rate=1.0, tags=metric_tags)
 
         create_preprod_snapshot_status_check_task.apply_async(
             kwargs={

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from collections import Counter
 from typing import Any
 
 import jsonschema
@@ -387,21 +386,17 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         has_vcs = commit_comparison is not None
 
+        metric_tags = {
+            "org_id": str(project.organization_id),
+            "project_id": str(project.id),
+            "app_id": artifact.app_id or "",
+        }
+
         metrics.distribution(
             "preprod.snapshots.upload.image_count",
             len(images),
             sample_rate=1.0,
-            tags={"has_vcs": has_vcs},
-        )
-
-        file_name_counts: Counter[str] = Counter(
-            v["image_file_name"] for v in images.values() if v.get("image_file_name")
-        )
-        duplicate_count = sum(c - 1 for c in file_name_counts.values() if c > 1)
-        metrics.distribution(
-            "preprod.snapshots.upload.duplicate_image_file_names",
-            duplicate_count,
-            sample_rate=1.0,
+            tags={**metric_tags, "has_vcs": has_vcs},
         )
 
         if has_vcs:
@@ -416,6 +411,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     "preprod.snapshots.upload.bundles_per_commit",
                     bundle_count,
                     sample_rate=1.0,
+                    tags=metric_tags,
                 )
             except Exception:
                 logger.exception("Failed to record bundles_per_commit metric")
