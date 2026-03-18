@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel
 
 
@@ -85,10 +87,17 @@ class GithubCopilotTask(BaseModel):
 class GithubCopilotTaskResponse(BaseModel):
     """
     Response from GitHub Copilot Tasks API.
-    The API wraps the task object in a {"task": {...}} envelope.
+    Handles both wrapped {"task": {...}} and unwrapped (direct task fields) formats.
     """
 
     task: GithubCopilotTask
+
+    def __init__(self, **data: Any) -> None:
+        # If 'task' key is not present but 'id' is (unwrapped format),
+        # treat the entire payload as the task object.
+        if "task" not in data and "id" in data:
+            data = {"task": data}
+        super().__init__(**data)
 
 
 class GithubPRFromGraphQL(BaseModel):

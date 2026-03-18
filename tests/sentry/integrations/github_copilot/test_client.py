@@ -232,6 +232,50 @@ class GithubCopilotAgentClientTest(TestCase):
         assert len(sent_prompt) == 25000
 
     @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_unwrapped_response(self, mock_post: Mock) -> None:
+        """Test launch handles unwrapped API response (task fields at top level)"""
+        mock_response = Mock()
+        mock_response.json = {
+            "id": "task-789",
+            "status": "in_progress",
+            "created_at": "2024-06-01T12:00:00Z",
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+
+        assert result.id == "getsentry:sentry:task-789"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert result.provider == CodingAgentProviderType.GITHUB_COPILOT_AGENT
+        assert result.started_at == datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
+
+    @patch.object(GithubCopilotAgentClient, "post")
+    def test_launch_with_unwrapped_response_no_created_at(self, mock_post: Mock) -> None:
+        """Test launch handles unwrapped response without created_at"""
+        mock_response = Mock()
+        mock_response.json = {
+            "id": "task-abc",
+            "status": "in_progress",
+        }
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        before = datetime.now(UTC)
+        result = self.copilot_client.launch(
+            webhook_url="https://example.com/webhook",
+            request=self._make_launch_request(),
+        )
+        after = datetime.now(UTC)
+
+        assert result.id == "getsentry:sentry:task-abc"
+        assert result.status == CodingAgentStatus.RUNNING
+        assert before <= result.started_at <= after
+
+    @patch.object(GithubCopilotAgentClient, "post")
     def test_launch_does_not_truncate_short_prompt(self, mock_post: Mock) -> None:
         """Short prompts are sent as-is without truncation"""
         prompt = "Fix this bug please."
