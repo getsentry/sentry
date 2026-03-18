@@ -179,14 +179,11 @@ class DatabaseBackedControlOrganizationProvisioningService(
     def update_organization_slug(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         organization_id: int,
         desired_slug: str,
         require_exact: bool = True,
     ) -> RpcOrganizationSlugReservation:
-        resolved_cell_name = cell_name or region_name
-        assert resolved_cell_name is not None, "cell_name or region_name must be provided"
         existing_slug_reservations = list(
             OrganizationSlugReservation.objects.filter(organization_id=organization_id)
         )
@@ -205,14 +202,14 @@ class DatabaseBackedControlOrganizationProvisioningService(
         )
 
         # If there's already a matching primary slug reservation for the org,
-        # just replicate it to the region to kick off the organization sync process
+        # just replicate it to the cell to kick off the organization sync process
         if existing_primary_alias and existing_primary_alias.slug == desired_slug:
-            existing_primary_alias.handle_async_replication(resolved_cell_name, organization_id)
+            existing_primary_alias.handle_async_replication(cell_name, organization_id)
             return serialize_slug_reservation(existing_primary_alias)
 
         slug_base = desired_slug
         if not require_exact:
-            slug_base = self._generate_org_slug(region_name=resolved_cell_name, slug=slug_base)
+            slug_base = self._generate_org_slug(region_name=cell_name, slug=slug_base)
 
         try:
             with outbox_context(
@@ -222,7 +219,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
                     slug=slug_base,
                     organization_id=organization_id,
                     user_id=-1,
-                    cell_name=resolved_cell_name,
+                    cell_name=cell_name,
                     reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
                 ).save(unsafe_write=True)
 
