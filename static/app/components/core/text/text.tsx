@@ -157,9 +157,40 @@ type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time' | 'legend';
 export type TextProps<T extends TextPrimitive> = TextAttributes<T> &
   ExclusiveTextEllipsisProps;
 
+export type TextPropsWithRenderFunction<T extends TextPrimitive = 'span'> =
+  BaseTextProps &
+    ExclusiveTextEllipsisProps & {
+      children: (props: {className: string}) => React.ReactNode | undefined;
+      as?: never;
+      color?: never;
+      dateTime?: never;
+      htmlFor?: never;
+      ref?: never;
+      size?: Responsive<TextSize>;
+    } & Partial<
+      Record<
+        // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
+        // Therefore, we need to exclude it from the map, or the children will produce a never type.
+        Exclude<
+          keyof React.DetailedHTMLProps<
+            React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+            HTMLElementTagNameMap[T]
+          >,
+          'children'
+        >,
+        never
+      >
+    >;
+
 export const Text = styled(
-  <T extends TextPrimitive = 'span'>(props: TextProps<T>) => {
-    const {children, ...rest} = props;
+  <T extends TextPrimitive = 'span'>(
+    props: TextProps<T> | TextPropsWithRenderFunction<T>
+  ) => {
+    if (typeof props.children === 'function') {
+      // When using render prop, only pass className to the child function
+      return props.children({className: (props as any).className});
+    }
+    const {children, ...rest} = props as TextProps<T>;
     const Component = props.as || 'span';
     return <Component {...(rest as any)}>{children}</Component>;
   },
@@ -228,5 +259,5 @@ export const Text = styled(
    * https://github.com/styled-components/styled-components/issues/1803
    */
 ` as unknown as <T extends TextPrimitive = 'span'>(
-  props: TextProps<T>
+  props: TextProps<T> | TextPropsWithRenderFunction<T>
 ) => React.ReactElement;
