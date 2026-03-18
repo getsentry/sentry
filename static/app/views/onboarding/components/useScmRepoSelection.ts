@@ -134,5 +134,13 @@ export function useScmRepoSelection({
     }
   };
 
-  return {adding, handleSelect, handleRemove};
+  return {
+    // Busy while adding a new repo OR while existing repos are still loading.
+    // The UI disables the CompactSelect and remove button when true, which
+    // prevents selecting an installed repo before we have its Sentry ID and
+    // prevents removal from racing with an in-flight add.
+    adding: adding || existingReposPending,
+    handleSelect,
+    handleRemove,
+  };
 }
