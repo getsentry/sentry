@@ -22,8 +22,8 @@ import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import testableTransition from 'sentry/utils/testableTransition';
-import useOrganization from 'sentry/utils/useOrganization';
+import {testableTransition} from 'sentry/utils/testableTransition';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
@@ -285,6 +285,7 @@ export function AutofixSteps({data, groupId, runId, event}: AutofixStepsProps) {
         <CodingAgentCard
           key={`coding-agent-${codingAgentState.id}`}
           codingAgentState={codingAgentState}
+          groupId={groupId}
           repo={repo}
         />
       ))}

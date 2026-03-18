@@ -17,7 +17,7 @@ import min from 'lodash/min';
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
-import BaseChart from 'sentry/components/charts/baseChart';
+import {BaseChart} from 'sentry/components/charts/baseChart';
 import ChartZoom, {type ZoomRenderProps} from 'sentry/components/charts/chartZoom';
 import type {FormatterOptions} from 'sentry/components/charts/components/tooltip';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -33,7 +33,7 @@ import {
   createIngestionSeries,
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,
@@ -114,7 +114,7 @@ type Props = {
   tooltipFormatterOptions?: FormatterOptions;
 };
 
-function Chart({
+export function Chart({
   data,
   dataMax,
   previousData,
@@ -578,8 +578,6 @@ function Chart({
     </TransitionChart>
   );
 }
-
-export default Chart;
 
 function computeMax(data: Series[]) {
   const valuesDict = data.map(value => value.data.map(point => point.value));

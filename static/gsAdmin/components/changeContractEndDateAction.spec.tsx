@@ -6,7 +6,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 
 import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDateAction';
 

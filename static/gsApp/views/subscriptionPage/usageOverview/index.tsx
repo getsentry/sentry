@@ -8,7 +8,7 @@ import {Heading} from '@sentry/scraps/text';
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
@@ -17,7 +17,7 @@ import {
   checkIsAddOnChildCategory,
   getActiveProductTrial,
 } from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {UsageOverviewActions} from 'getsentry/views/subscriptionPage/usageOverview/components/actions';
 import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import {UsageOverviewTable} from 'getsentry/views/subscriptionPage/usageOverview/components/table';

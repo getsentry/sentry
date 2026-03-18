@@ -447,3 +447,39 @@ class FeatureManagerTest(TestCase):
 
         assert list(manager.all().keys()) == ["feat:org", "feat:project", "feat:system"]
         assert list(manager.all(OrganizationFeature).keys()) == ["feat:org"]
+
+    def test_get_experiment_assignments_delegates_to_entity_handler(self) -> None:
+        test_org = self.create_organization()
+
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.get_experiment_assignments.return_value = {"experiment-test": "active"}
+
+        manager = features.FeatureManager()
+        manager.add_entity_handler(handler)
+
+        result = manager.get_experiment_assignments(test_org, actor=None)
+
+        assert result == {"experiment-test": "active"}
+        handler.get_experiment_assignments.assert_called_once_with(test_org, None)
+
+    def test_get_experiment_assignments_returns_empty_without_entity_handler(self) -> None:
+        test_org = self.create_organization()
+
+        manager = features.FeatureManager()
+        result = manager.get_experiment_assignments(test_org)
+
+        assert result == {}
+
+    def test_get_experiment_assignments_handles_exception(self) -> None:
+        test_org = self.create_organization()
+
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.get_experiment_assignments.side_effect = Exception("boom")
+
+        manager = features.FeatureManager()
+        manager.add_entity_handler(handler)
+
+        with override_options({"features.error.capture_rate": 1.0}):
+            result = manager.get_experiment_assignments(test_org)
+
+        assert result == {}

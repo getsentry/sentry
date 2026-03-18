@@ -6,7 +6,7 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {ChartWithIssues} from 'sentry/views/insights/sessions/charts/chartWithIssues';
 import {ChartSelectionTitle} from 'sentry/views/insights/sessions/components/chartSelectionTitle';
-import useNewAndResolvedIssues from 'sentry/views/insights/sessions/queries/useNewAndResolvedIssues';
+import {useNewAndResolvedIssues} from 'sentry/views/insights/sessions/queries/useNewAndResolvedIssues';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
 export default function NewAndResolvedIssueChartWidget(props: LoadableChartWidgetProps) {

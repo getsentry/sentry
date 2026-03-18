@@ -19,10 +19,11 @@ from django.conf import settings
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
-from sentry.testutils.region import TestEnvRegionDirectory
+from sentry.testutils.cell import TestEnvCellDirectory
+from sentry.testutils.pytest import xdist
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
-from sentry.types import region
-from sentry.types.region import Cell, RegionCategory
+from sentry.types import cell
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
 
 K = TypeVar("K")
@@ -31,8 +32,6 @@ V = TypeVar("V")
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
 )
-
-TEST_REDIS_DB = 9
 
 
 def _use_monolith_dbs() -> bool:
@@ -44,11 +43,11 @@ def configure_split_db() -> None:
     if already_configured or _use_monolith_dbs():
         return
 
-    # Add connections for the region & control silo databases.
+    # Add connections for the cell & control silo databases.
     settings.DATABASES["control"] = settings.DATABASES["default"].copy()
     settings.DATABASES["control"]["NAME"] = "control"
 
-    # Use the region database in the default connection as region
+    # Use the cell database in the default connection as cell
     # silo database is the 'default' elsewhere in application logic.
     settings.DATABASES["default"]["NAME"] = "region"
 
@@ -60,28 +59,39 @@ def configure_split_db() -> None:
 
 
 def get_default_silo_mode_for_test_cases() -> SiloMode:
-    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.REGION
+    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.CELL
 
 
-def _configure_test_env_regions() -> None:
+def _configure_test_env_cells() -> None:
     settings.SILO_MODE = get_default_silo_mode_for_test_cases()
 
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
-    # depends on region attributes, use `override_regions` in your test case.
-    region_name = "testregion" + "".join(random.choices(string.digits, k=6))
+    # depends on cell attributes, use `override_cells` in your test case.
+    # Under xdist, seed deterministically so all workers generate the same name
+    # (divergent names break xdist's requirement for identical test collection).
+    xdist_uid = os.environ.get("PYTEST_XDIST_TESTRUNUID")
+    r = random.Random(xdist_uid) if xdist_uid else random
+    cell_name = "testregion" + "".join(r.choices(string.digits, k=6))
 
-    default_region = Cell(
-        region_name, 0, settings.SENTRY_OPTIONS["system.url-prefix"], RegionCategory.MULTI_TENANT
+    # Under xdist, each worker gets a unique snowflake_id (1, 2, 3, ...) so
+    # concurrent model creation doesn't produce colliding IDs.
+    cell_snowflake_id = xdist._worker_num + 1 if xdist._worker_num is not None else 0
+
+    default_cell = Cell(
+        cell_name,
+        cell_snowflake_id,
+        settings.SENTRY_OPTIONS["system.url-prefix"],
+        RegionCategory.MULTI_TENANT,
     )
 
-    settings.SENTRY_REGION = region_name
-    settings.SENTRY_MONOLITH_REGION = region_name
+    settings.SENTRY_REGION = cell_name
+    settings.SENTRY_MONOLITH_REGION = cell_name
 
-    # This not only populates the environment with the default region, but also
-    # ensures that a TestEnvRegionDirectory instance is injected into global state.
-    # See sentry.testutils.region.get_test_env_directory, which relies on it.
-    region.set_global_directory(TestEnvRegionDirectory([default_region]))
+    # This not only populates the environment with the default cell, but also
+    # ensures that a TestEnvCellDirectory instance is injected into global state.
+    # See sentry.testutils.cell.get_test_env_directory, which relies on it.
+    cell.set_global_directory(TestEnvCellDirectory([default_cell]))
 
     settings.SENTRY_SUBNET_SECRET = "secret"
     settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"
@@ -134,6 +144,14 @@ def pytest_configure(config: pytest.Config) -> None:
     integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
 
     configure_split_db()
+
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        # On the rare case we hit a PostgreSQL deadlock, fail fast and let
+        # pytest --reruns retry it.
+        for alias in settings.DATABASES:
+            settings.DATABASES[alias].setdefault("OPTIONS", {})[  # type: ignore[index]
+                "options"
+            ] = "-c lock_timeout=180000"
 
     # Ensure we can test secure ssl settings
     settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -198,6 +216,9 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
     settings.SENTRY_RATELIMITER_OPTIONS = {}
 
+    if snuba_url := xdist.get_snuba_url():
+        settings.SENTRY_SNUBA = snuba_url
+
     settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 1
 
     if not hasattr(settings, "SENTRY_OPTIONS"):
@@ -205,7 +226,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
+            "redis.clusters": {"default": {"hosts": {0: {"db": xdist.get_redis_db()}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
@@ -246,7 +267,7 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
 
-    _configure_test_env_regions()
+    _configure_test_env_cells()
 
     # ID controls
     settings.SENTRY_USE_SNOWFLAKE = True
@@ -339,23 +360,33 @@ def register_extensions() -> None:
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
+    from taskbroker_client.registry import TaskNamespace as TaskbrokerClientNamespace
+
     from sentry.taskworker.registry import TaskNamespace
 
     # Store original send_task so tests that need it can restore it
     TaskNamespace._original_send_task = TaskNamespace.send_task  # type: ignore[attr-defined]
+    TaskbrokerClientNamespace._original_send_task = TaskbrokerClientNamespace.send_task  # type: ignore[attr-defined]
 
     # Prevent tests from producing real Kafka messages via the taskworker pipeline.
     # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
     # (_signal_send hook) which both operate before send_task in the call chain.
     TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+    TaskbrokerClientNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
+    from taskbroker_client.registry import TaskNamespace as TaskbrokerClientNamespace
+
     from sentry.taskworker.registry import TaskNamespace
 
     if hasattr(TaskNamespace, "_original_send_task"):
         TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
         del TaskNamespace._original_send_task
+
+    if hasattr(TaskbrokerClientNamespace, "_original_send_task"):
+        TaskbrokerClientNamespace.send_task = TaskbrokerClientNamespace._original_send_task  # type: ignore[method-assign]
+        del TaskbrokerClientNamespace._original_send_task
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:

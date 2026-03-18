@@ -25,7 +25,7 @@ type Options = {
  * Returns an API client that will have its requests canceled when the owning
  * React component is unmounted (may be disabled via options).
  */
-function useApi({persistInFlight, api: providedApi}: Options = {}) {
+export function useApi({persistInFlight, api: providedApi}: Options = {}) {
   const localApi = useRef<Client | undefined>(undefined);
 
   // Lazily construct the client if we weren't provided with one
@@ -47,5 +47,3 @@ function useApi({persistInFlight, api: providedApi}: Options = {}) {
 
   return api;
 }
-
-export default useApi;

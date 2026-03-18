@@ -50,10 +50,10 @@ import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
@@ -1195,7 +1195,13 @@ const CardValueText = styled('span')`
   overflow-wrap: anywhere;
 `;
 
-function MultilineText({children}: {children: string}) {
+function MultilineText({
+  children,
+  renderFormatted,
+}: {
+  children: string;
+  renderFormatted?: (text: string) => React.ReactNode;
+}) {
   const [showRaw, setShowRaw] = useState<boolean>(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
@@ -1218,11 +1224,11 @@ function MultilineText({children}: {children: string}) {
               </SegmentedControl>
             )}
           </Container>
-          {showRaw ? (
-            children.trim()
-          ) : (
-            <MarkedText as={MarkdownContainer} text={children} />
-          )}
+          {showRaw
+            ? children.trim()
+            : (renderFormatted?.(children) ?? (
+                <MarkedText as={MarkdownContainer} text={children} />
+              ))}
         </MultilineTextWrapper>
       </StyledClippedBox>
     </Fragment>

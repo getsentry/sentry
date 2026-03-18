@@ -11,7 +11,6 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useTraceItemAttributeKeys} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
@@ -49,10 +48,6 @@ interface AggregatesTabProps {
 export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTabProps) {
   const topEvents = useTopEvents();
   const tableRef = useRef<HTMLDivElement>(null);
-  const organization = useOrganization();
-  const hasBooleanFilters = organization.features.includes(
-    'search-query-builder-explicit-boolean-filters'
-  );
 
   const {result, eventView, fields} = useMetricAggregatesTable({
     enabled: Boolean(traceMetric.name) && !isMetricOptionsEmpty,
@@ -85,7 +80,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   const {attributes: booleanTags} = useTraceItemAttributeKeys({
     traceItemType: TraceItemDataset.TRACEMETRICS,
     type: 'boolean',
-    enabled: Boolean(traceMetricFilter) && hasBooleanFilters,
+    enabled: Boolean(traceMetricFilter),
     query: traceMetricFilter,
   });
 

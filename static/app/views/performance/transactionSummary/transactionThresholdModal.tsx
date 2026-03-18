@@ -17,7 +17,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
 
 import {useEventViewProject} from './useEventViewProject';
@@ -27,11 +27,6 @@ export enum TransactionThresholdMetric {
   TRANSACTION_DURATION = 'duration',
   LARGEST_CONTENTFUL_PAINT = 'lcp',
 }
-
-const METRIC_CHOICES = [
-  {label: t('Transaction Duration'), value: 'duration'},
-  {label: t('Largest Contentful Paint'), value: 'lcp'},
-];
 
 type Props = {
   api: Client;
@@ -167,12 +162,19 @@ function TransactionThresholdModal({
           required
         >
           <Select
-            required
-            options={METRIC_CHOICES.slice()}
+            options={[
+              {
+                label: t('Transaction Duration'),
+                value: TransactionThresholdMetric.TRANSACTION_DURATION,
+              },
+              {
+                label: t('Largest Contentful Paint'),
+                value: TransactionThresholdMetric.LARGEST_CONTENTFUL_PAINT,
+              },
+            ]}
             name="responseMetric"
-            label={t('Calculation Method')}
             value={metric}
-            onChange={(option: {value: TransactionThresholdMetric}) => {
+            onChange={option => {
               setMetric(option.value);
             }}
           />

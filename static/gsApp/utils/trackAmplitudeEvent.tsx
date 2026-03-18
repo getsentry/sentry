@@ -1,11 +1,11 @@
 import * as Amplitude from '@amplitude/analytics-browser';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 // keep track of the last org id so we can update the group if it changes
 let lastOrganizationId: number | null = null;
 
-function trackAmplitudeEvent(
+export function trackAmplitudeEvent(
   event_type: string,
   organization_id: number | null | undefined,
   data: Record<PropertyKey, unknown>,
@@ -33,5 +33,3 @@ function trackAmplitudeEvent(
   }
   Amplitude.track(event_type, data, eventOptions);
 }
-
-export default trackAmplitudeEvent;

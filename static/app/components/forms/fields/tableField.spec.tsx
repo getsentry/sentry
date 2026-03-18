@@ -5,10 +5,10 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
 
-import TableField from './tableField';
+import {TableField} from './tableField';
 
 describe('TableField', () => {
   const mockSubmit = jest.fn();

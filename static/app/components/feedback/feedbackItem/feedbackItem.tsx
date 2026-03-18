@@ -1,11 +1,11 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
-import ContextCard from 'sentry/components/events/contexts/contextCard';
-import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
+import {ContextCard} from 'sentry/components/events/contexts/contextCard';
+import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
 import {CrashReportSection} from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import {FeedbackActivitySection} from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
 import {FeedbackItemHeader} from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
@@ -24,7 +24,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;

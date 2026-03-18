@@ -6,23 +6,24 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useApi} from 'sentry/utils/useApi';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 
 import {
   openAM2UpsellModal,
   openAM2UpsellModalSamePrice,
 } from 'getsentry/actionCreators/modal';
 import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
-import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData';
+import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {redirectToManage} from './upgradeNowModal/utils';
 

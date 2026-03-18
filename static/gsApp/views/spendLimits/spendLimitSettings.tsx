@@ -15,7 +15,7 @@ import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {
@@ -652,7 +652,7 @@ function BudgetModeSettings({
   );
 }
 
-function SpendLimitSettings({
+export function SpendLimitSettings({
   header,
   activePlan,
   onDemandBudgets,
@@ -703,8 +703,6 @@ function SpendLimitSettings({
     </Flex>
   );
 }
-
-export default SpendLimitSettings;
 
 const InnerContainer = styled(Flex)`
   border-bottom: 3px solid ${p => p.theme.tokens.border.primary};

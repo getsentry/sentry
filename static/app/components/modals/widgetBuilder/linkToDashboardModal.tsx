@@ -11,8 +11,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Spinner} from 'sentry/components/forms/spinner';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import type {
@@ -111,7 +111,7 @@ export function LinkToDashboardModal({
       limitMessage: ReactNode | null
     ) => {
       if (dashboards === null) {
-        return null;
+        return [];
       }
 
       return [
@@ -169,7 +169,7 @@ export function LinkToDashboardModal({
                   placeholder={t('Select Dashboard')}
                   value={selectedDashboardId}
                   options={getOptions(hasReachedDashboardLimit, isLoading, limitMessage)}
-                  onChange={(option: SelectValue<string>) => {
+                  onChange={option => {
                     if (option.disabled) {
                       return;
                     }

@@ -6,7 +6,8 @@ import {IssueDiff} from 'sentry/components/issueDiff';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Theme} from 'sentry/utils/theme';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props extends ModalRenderProps, React.ComponentProps<typeof IssueDiff> {
   project: Project;
@@ -46,11 +47,11 @@ function DiffModal({
   );
 }
 
-const modalCss = css`
+const modalCss = (theme: Theme) => css`
   position: absolute;
   padding: 0;
-  inset: 24px;
-  width: calc(100% - 2 * 24px);
+  inset: ${theme.space['2xl']};
+  width: calc(100% - 2 * ${theme.space['2xl']});
 
   [role='document'] {
     height: 100%;

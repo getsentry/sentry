@@ -7,7 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 
-import ActionDropDown, {ContextValueType} from './actionDropdown';
+import {ActionDropDown, ContextValueType} from './actionDropdown';
 
 const dataRow: EventData = {
   id: '6b43e285de834ec5b5fe30d62d549b20',

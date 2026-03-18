@@ -1,9 +1,10 @@
 import type {ReactNode} from 'react';
 import pickBy from 'lodash/pickBy';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -29,6 +30,12 @@ import {
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
+import {
+  extractTraceMetricFromAggregates,
+  extractTraceMetricFromColumn,
+  getTraceMetricAggregateSource,
+} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {
   useTraceMetricsSeriesQuery,
   useTraceMetricsTableQuery,
@@ -78,24 +85,57 @@ function TraceMetricsSearchBar({
     selection: {projects},
   } = usePageFilters();
   const {state: widgetBuilderState} = useWidgetBuilderContext();
+  const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
 
-  const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
+  const aggregateSource = getTraceMetricAggregateSource(
+    widgetBuilderState.displayType,
+    widgetBuilderState.yAxis,
+    widgetBuilderState.fields
+  );
+  const traceMetrics =
+    aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
 
+  // Create a set of the trace metrics in a consistent string format to
+  // check if there are multiple metrics
+  const countUniqueMetrics = new Set(
+    traceMetrics.map(({name, type, unit}) => `${name},${type},${unit}`)
+  ).size;
+  const hasMultipleMetrics = hasMultiMetricSelection && countUniqueMetrics > 1;
+
+  // In the case of multiple metrics, wipe the query so it fetches all attributes
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: createTraceMetricFilter(traceMetric)},
+      {
+        query:
+          !hasMultipleMetrics && traceMetrics[0]
+            ? createTraceMetricFilter(traceMetrics[0])
+            : undefined,
+        enabled: defined(traceMetrics[0]), // Only enable if there is at least one metric
+      },
       'string',
       HiddenTraceMetricSearchFields
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: createTraceMetricFilter(traceMetric)},
+      {
+        query:
+          !hasMultipleMetrics && traceMetrics[0]
+            ? createTraceMetricFilter(traceMetrics[0])
+            : undefined,
+        enabled: defined(traceMetrics[0]),
+      },
       'number',
       HiddenTraceMetricSearchFields
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {query: createTraceMetricFilter(traceMetric)},
+      {
+        query:
+          !hasMultipleMetrics && traceMetrics[0]
+            ? createTraceMetricFilter(traceMetrics[0])
+            : undefined,
+        enabled: defined(traceMetrics[0]),
+      },
       'boolean',
       HiddenTraceMetricSearchFields
     );
@@ -117,7 +157,8 @@ function TraceMetricsSearchBar({
       onChange={(query, state) => {
         onClose?.(query, {validSearch: state.queryIsValid});
       }}
-      namespace={traceMetric?.name}
+      namespace={hasMultipleMetrics ? undefined : traceMetrics?.[0]?.name}
+      disableRecentSearches={hasMultipleMetrics}
     />
   );
 }
@@ -128,7 +169,15 @@ function useTraceMetricsSearchBarDataProvider(
   const {pageFilters, widgetQuery} = props;
   const {state: widgetBuilderState} = useWidgetBuilderContext();
 
-  const traceMetric = widgetBuilderState.traceMetric ?? {name: '', type: ''};
+  const aggregateSource = getTraceMetricAggregateSource(
+    widgetBuilderState.displayType,
+    widgetBuilderState.yAxis,
+    widgetBuilderState.fields
+  );
+  const traceMetric = extractTraceMetricFromAggregates(aggregateSource) ?? {
+    name: '',
+    type: '',
+  };
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useTraceMetricItemAttributes({query: createTraceMetricFilter(traceMetric)}, 'string');
@@ -177,6 +226,39 @@ export function formatTraceMetricsFunction(
     return `${parsedFunction.name}(${parsedFunction.arguments[1] ?? '…'})`;
   }
   return defaultValue ?? valueToParse;
+}
+
+export function useGlobalFilterTraceMetricsSearchBarDataProvider(
+  props: Pick<SearchBarDataProviderProps, 'pageFilters'>
+): SearchBarData {
+  const {pageFilters} = props;
+
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useTraceMetricItemAttributes({}, 'string', HiddenTraceMetricSearchFields);
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useTraceMetricItemAttributes({}, 'number', HiddenTraceMetricSearchFields);
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useTraceMetricItemAttributes({}, 'boolean', HiddenTraceMetricSearchFields);
+
+  const {filterKeys, filterKeySections, getTagValues} =
+    useTraceItemSearchQueryBuilderProps({
+      itemType: TraceItemDataset.TRACEMETRICS,
+      booleanAttributes,
+      numberAttributes,
+      stringAttributes,
+      booleanSecondaryAliases,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
+      searchSource: 'dashboards',
+      initialQuery: '',
+      projects: pageFilters.projects,
+    });
+
+  return {
+    getFilterKeySections: () => filterKeySections,
+    getFilterKeys: () => filterKeys,
+    getTagValues,
+  };
 }
 
 export const TraceMetricsConfig: DatasetConfig<

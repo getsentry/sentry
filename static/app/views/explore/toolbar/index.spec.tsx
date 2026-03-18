@@ -12,7 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   useQueryParamsAggregateFields,
@@ -75,6 +75,12 @@ describe('ExploreToolbar', () => {
         },
       ],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({attributeType: 'boolean'})],
     });
   });
 

@@ -3,34 +3,36 @@ import {useCallback, useMemo, useRef} from 'react';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useJumpButtons, {
+import {
+  useJumpButtons,
   type VisibleRange,
 } from 'sentry/components/replays/useJumpButtons';
 import {GridTable} from 'sentry/components/replays/virtualizedGrid/gridTable';
 import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflowHidden';
 import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
-import useDetailsSplit from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
+import {useDetailsSplit} from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {FilterLoadingIndicator} from 'sentry/views/replays/detail/filterLoadingIndicator';
 import {NetworkDetails} from 'sentry/views/replays/detail/network/details';
 import {NetworkFilters} from 'sentry/views/replays/detail/network/networkFilters';
-import NetworkHeaderCell, {
+import {
   COLUMN_COUNT,
+  NetworkHeaderCell,
 } from 'sentry/views/replays/detail/network/networkHeaderCell';
 import {NetworkTableCell} from 'sentry/views/replays/detail/network/networkTableCell';
-import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
-import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
+import {useNetworkFilters} from 'sentry/views/replays/detail/network/useNetworkFilters';
+import {useSortNetwork} from 'sentry/views/replays/detail/network/useSortNetwork';
 import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
-import useVirtualizedGrid from 'sentry/views/replays/detail/useVirtualizedGrid';
+import {useVirtualizedGrid} from 'sentry/views/replays/detail/useVirtualizedGrid';
 import {VirtualTable} from 'sentry/views/replays/detail/virtualizedTableLayout';
 import {
   getTimelineRowClassName,

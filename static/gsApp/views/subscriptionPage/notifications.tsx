@@ -22,11 +22,11 @@ import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconCheckmark, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
@@ -214,7 +214,7 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
         multiple
         value={thresholds}
         options={availableThresholdValues.map(value => ({label: `${value}%`, value}))}
-        onChange={(option: Array<{label: string; value: number}>) => {
+        onChange={option => {
           updateThresholds(option.map(o => o.value));
         }}
       />

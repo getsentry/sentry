@@ -15,7 +15,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {DetectorDetailsAutomations} from './automations';
 

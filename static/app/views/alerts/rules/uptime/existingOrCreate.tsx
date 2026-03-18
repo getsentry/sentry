@@ -1,10 +1,10 @@
 import {useEffect} from 'react';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {CombinedAlertType, type UptimeAlert} from 'sentry/views/alerts/types';
 

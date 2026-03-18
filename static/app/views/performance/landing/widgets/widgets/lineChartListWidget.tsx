@@ -13,7 +13,7 @@ import {Count} from 'sentry/components/count';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {Truncate} from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -23,9 +23,9 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
@@ -42,11 +42,12 @@ import {Chart as DurationChart} from 'sentry/views/performance/charts/chart';
 import {excludeTransaction} from 'sentry/views/performance/landing/utils';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
-import SelectableList, {
+import {
   GrowLink,
   HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
   ListClose,
   RightAlignedCell,
+  SelectableList,
   Subtitle,
   TimeConsumingDomainsWidgetEmptyStateWarning,
   TimeSpentInDatabaseWidgetEmptyStateWarning,

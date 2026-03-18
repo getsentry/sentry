@@ -12,7 +12,7 @@ import {IconSeer} from 'sentry/icons/iconSeer';
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 interface SeerDrawerNavigatorProps {
@@ -44,7 +44,7 @@ export function SeerDrawerNavigator({
       <Flex align="center" gap="md">
         <IconSeer animation={undefined} size="md" />
         <Heading as="h3" size="xl">
-          {t('Seer')}
+          {t('Seer Autofix')}
         </Heading>
         <QuestionTooltip
           isHoverable

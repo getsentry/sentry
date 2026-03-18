@@ -3,7 +3,7 @@ import {useCallback, useMemo} from 'react';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
+import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import {filterItems, operationName} from 'sentry/views/replays/detail/utils';
@@ -59,7 +59,7 @@ const FILTERS = {
     JSON.stringify(item.description).toLowerCase().includes(searchTerm),
 };
 
-function useNetworkFilters({networkFrames}: Options): Return {
+export function useNetworkFilters({networkFrames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   const method = useMemo(() => decodeList(query.f_n_method), [query.f_n_method]);
@@ -171,5 +171,3 @@ function useNetworkFilters({networkFrames}: Options): Return {
     setSearchTerm,
   };
 }
-
-export default useNetworkFilters;

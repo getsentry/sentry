@@ -139,7 +139,7 @@ def _handle_pr_webhook_for_autofix_processor(
 
 class GitHubWebhook(SCMWebhook, ABC):
     """
-    Base class for GitHub webhooks handled in region silos.
+    Base class for GitHub webhooks handled in cell silos.
     """
 
     EVENT_TYPE: IntegrationWebhookEventType
@@ -1121,7 +1121,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         #
         # NOTE: Publication of the event assumes the event has been properly authorized (as it has
         #       been above).
-        # NOTE: We are in the correct region silo at this stage. The IntegrationControlMiddleware
+        # NOTE: We are in the correct cell silo at this stage. The IntegrationControlMiddleware
         #       middleware has handled routing.
         produce_event_to_scm_stream(
             {
@@ -1132,7 +1132,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                 "sentry_meta": None,
                 "type": IntegrationProviderSlug.GITHUB.value,
             },
-            silo="region" if SiloMode.get_current_mode() == SiloMode.REGION else "control",
+            silo="region" if SiloMode.get_current_mode() == SiloMode.CELL else "control",
         )
 
         return HttpResponse(status=204)

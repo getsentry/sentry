@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import Confirm, {openConfirmModal} from 'sentry/components/confirm';
+import {Confirm, openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -18,9 +18,10 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {DASHBOARD_SAVING_MESSAGE} from 'sentry/views/dashboards/constants';
@@ -31,9 +32,9 @@ import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
-import exportDashboard from './exportDashboard';
+import {exportDashboard} from './exportDashboard';
 import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
-import {DashboardState, MAX_WIDGETS} from './types';
+import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
 
 type Props = {
   dashboard: DashboardDetails;
@@ -87,22 +88,18 @@ export function Controls({
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
   const navigate = useNavigate();
-  const hasPrebuiltControlsFeature = organization.features.includes(
-    'dashboards-prebuilt-controls'
-  );
-
   const {duplicatePrebuiltDashboard, isLoading: isLoadingDuplicatePrebuiltDashboard} =
     useDuplicatePrebuiltDashboard({
       onSuccess: (newDashboard: DashboardDetails) => {
-        navigate(`/organizations/${organization.slug}/dashboard/${newDashboard.id}/`);
+        navigate(
+          normalizeUrl(
+            `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`
+          )
+        );
       },
     });
 
   const isPrebuiltDashboard = defined(dashboard.prebuiltId);
-
-  if (isPrebuiltDashboard && !hasPrebuiltControlsFeature) {
-    return null;
-  }
 
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
@@ -221,7 +218,22 @@ export function Controls({
       return null;
     }
     if (isPrebuiltDashboard) {
-      return null;
+      return (
+        <Button
+          data-test-id="dashboard-edit"
+          aria-label={t('edit-dashboard')}
+          icon={<IconEdit />}
+          disabled
+          tooltipProps={{
+            title: tct(
+              'This is a [label] dashboard and cannot be edited. Duplicate it to make changes.',
+              {label: PREBUILT_DASHBOARD_LABEL}
+            ),
+          }}
+          priority="default"
+          size="sm"
+        />
+      );
     }
     const isDisabled = !hasFeature || hasUnsavedFilters || !hasEditAccess || isSaving;
     const toolTipMessage = isSaving

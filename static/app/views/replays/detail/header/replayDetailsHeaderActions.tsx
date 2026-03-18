@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ConfigureReplayCard} from 'sentry/components/replays/header/configureReplayCard';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
-import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {ReplayItemDropdown} from 'sentry/views/replays/detail/header/replayItemDropdown';
 
 interface Props {

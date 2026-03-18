@@ -22,13 +22,17 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
         "sentry.OrganizationIntegration", on_delete="CASCADE"
     )
     organization_id = BoundedBigIntegerField(db_index=True)
-    # From a region point of view, you really only have per organization scoping.
+    # From a cell point of view, you really only have per organization scoping.
     integration_id = BoundedBigIntegerField(db_index=False)
     stack_root = models.TextField()
     source_root = models.TextField()
     default_branch = models.TextField(null=True)
     # Indicates if Sentry created this mapping
     automatically_generated = models.BooleanField(default=False, db_default=False)
+
+    # Transient flag: when True, the post_save signal skips side effects.
+    # Used by the bulk endpoint to fire side effects once per batch.
+    _skip_post_save: bool = False
 
     class Meta:
         app_label = "sentry"
@@ -45,6 +49,9 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
 
 
 def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs):
+    if instance._skip_post_save:
+        return
+
     from sentry.models.group import Group
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
@@ -86,4 +93,5 @@ post_save.connect(
     lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=RepositoryProjectPathConfig,
     weak=False,
+    dispatch_uid="repository_project_path_config_post_save",
 )

@@ -11,7 +11,7 @@ import {logs} from './logs';
 import {onboarding} from './onboarding';
 import {platformOptions, type PlatformOptions} from './utils';
 
-const docs: Docs<PlatformOptions> = {
+export const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   crashReportOnboarding: feedback,
@@ -21,5 +21,3 @@ const docs: Docs<PlatformOptions> = {
   metricsOnboarding: metrics,
   profilingOnboarding: profiling,
 };
-
-export default docs;

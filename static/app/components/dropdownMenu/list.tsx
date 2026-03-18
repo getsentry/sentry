@@ -13,11 +13,11 @@ import type {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type useOverlay from 'sentry/utils/useOverlay';
+import type {useOverlay} from 'sentry/utils/useOverlay';
 
 import {DropdownMenu} from './index';
 import type {MenuItemProps} from './item';
-import DropdownMenuItem from './item';
+import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
 
 type OverlayState = ReturnType<typeof useOverlay>['state'];
@@ -74,7 +74,7 @@ export interface DropdownMenuListProps
   zIndex?: number;
 }
 
-function DropdownMenuList({
+export function DropdownMenuList({
   closeOnSelect = true,
   onClose,
   size,
@@ -259,8 +259,6 @@ function DropdownMenuList({
     </FocusScope>
   );
 }
-
-export default DropdownMenuList;
 
 const StyledOverlay = styled(Overlay)`
   display: flex;

@@ -1,7 +1,8 @@
 import {useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import BooleanField, {
+import {
+  BooleanField,
   type BooleanFieldProps,
 } from 'sentry/components/forms/fields/booleanField';
 import {Panel} from 'sentry/components/panels/panel';
@@ -9,8 +10,8 @@ import {PanelAlert} from 'sentry/components/panels/panelAlert';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function DataSecrecy() {
   const api = useApi();

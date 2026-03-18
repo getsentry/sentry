@@ -7,6 +7,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -36,6 +37,11 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         help_text="Optional context from the user's screen.",
+    )
+    override_ce_enable = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="Override context engine rollout flag (applies to reasoning platform only).",
     )
 
 
@@ -120,9 +126,14 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         query = validated_data["query"]
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
+        override_ce_enable = validated_data["override_ce_enable"]
 
         try:
-            enable_coding = organization.get_option("sentry:enable_seer_coding", True)
+            enable_coding = organization.get_option(
+                "sentry:enable_seer_coding", False
+            ) and features.has(
+                "organizations:seer-explorer-chat-coding", organization, actor=request.user
+            )
             client = SeerExplorerClient(
                 organization,
                 request.user,
@@ -142,6 +153,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                 result_run_id = client.start_run(
                     prompt=query,
                     on_page_context=on_page_context,
+                    override_ce_enable=override_ce_enable,
                 )
 
             return Response({"run_id": result_run_id})

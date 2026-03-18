@@ -7,7 +7,7 @@ import {Container} from '@sentry/scraps/layout';
 import {LoadingError} from 'sentry/components/loadingError';
 import {ORGANIZATION_FETCH_ERROR_TYPES, ROOT_ELEMENT} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 function OrganizationLoadingIndicator() {
@@ -94,7 +94,7 @@ export function OrganizationContainer({children}: Props) {
 /**
  * Route component version of OrganizationContainer that uses <Outlet />.
  */
-export default function OrganizationContainerRoute() {
+export function OrganizationContainerRoute() {
   return (
     <OrganizationContainer>
       <Outlet />

@@ -10,8 +10,8 @@ import {ProgressRing} from 'sentry/components/progressRing';
 import {IconClock, IconLock, IconPlay, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import useMedia from 'sentry/utils/useMedia';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {useMedia} from 'sentry/utils/useMedia';
 
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';

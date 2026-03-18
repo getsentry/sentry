@@ -32,7 +32,7 @@ import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
-import DebugMetaStore from 'sentry/stores/debugMetaStore';
+import {DebugMetaStore} from 'sentry/stores/debugMetaStore';
 import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
@@ -49,7 +49,7 @@ import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSectio
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {combineStatus} from './debugMeta/utils';
-import Context from './frame/context';
+import {Context} from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {

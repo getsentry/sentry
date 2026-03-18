@@ -7,7 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {HighlightModalContainer} from 'sentry/components/highlightModalContainer';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -17,7 +17,7 @@ import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 import {ActionButtons} from './actionButtons';
 import {PlanTable} from './planTable';
 import type {Reservations} from './types';
-import useLogUpgradeNowViewed from './useLogUpgradeNowViewed';
+import {useLogUpgradeNowViewed} from './useLogUpgradeNowViewed';
 
 type Props = ModalRenderProps & {
   organization: Organization;

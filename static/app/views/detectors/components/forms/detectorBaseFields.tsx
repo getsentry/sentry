@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import {EditableText} from 'sentry/components/editableText';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import FormField from 'sentry/components/forms/formField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import {FormField} from 'sentry/components/forms/formField';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 
@@ -121,8 +121,8 @@ function EnvironmentField({
   return (
     <StyledEnvironmentField
       choices={[
-        ...(includeAllEnvironments ? [['', t('All Environments')]] : []),
-        ...(environments?.map(environment => [environment, environment]) ?? []),
+        ...(includeAllEnvironments ? [['', t('All Environments')] as const] : []),
+        ...(environments?.map(environment => [environment, environment] as const) ?? []),
       ]}
       inline={false}
       flexibleControlStateSize

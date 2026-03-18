@@ -7,6 +7,7 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -17,21 +18,22 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import GridEditable, {
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import TimeSince from 'sentry/components/timeSince';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
@@ -41,6 +43,7 @@ import type {
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 type Props = {
   api: Client;
@@ -145,10 +148,9 @@ function DashboardTable({
 
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
+  const {query: _searchQuery, ...queryWithoutSearch} = location.query;
   const queryLocation = {
-    ...(location.query && Object.keys(location.query).length > 0
-      ? {query: location.query}
-      : {}),
+    ...(Object.keys(queryWithoutSearch).length > 0 ? {query: queryWithoutSearch} : {}),
   };
 
   function renderHeadCell(column: GridColumnOrder<string>) {
@@ -209,14 +211,16 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.NAME) {
       return (
-        <Link
-          to={{
-            pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
-            ...queryLocation,
-          }}
-        >
-          {dataRow[ResponseKeys.NAME]}
-        </Link>
+        <Text ellipsis variant="accent">
+          <Link
+            to={{
+              pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
+              ...queryLocation,
+            }}
+          >
+            {dataRow[ResponseKeys.NAME]}
+          </Link>
+        </Text>
       );
     }
 
@@ -231,7 +235,7 @@ function DashboardTable({
         </Flex>
       ) : (
         <Flex justify="between" align="center" gap="3xl">
-          <Tooltip title="Sentry">
+          <Tooltip title={PREBUILT_DASHBOARD_LABEL}>
             <ActivityAvatar type="system" size={26} />
           </Tooltip>
         </Flex>
@@ -296,18 +300,9 @@ function DashboardTable({
                   data-test-id="dashboard-duplicate"
                   icon={<IconCopy />}
                   size="sm"
-                  disabled={
-                    hasReachedDashboardLimit ||
-                    isLoadingDashboardsLimit ||
-                    (defined(dataRow.prebuiltId) &&
-                      !organization.features.includes('dashboards-prebuilt-controls'))
-                  }
+                  disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
                   tooltipProps={{
-                    title:
-                      defined(dataRow.prebuiltId) &&
-                      !organization.features.includes('dashboards-prebuilt-controls')
-                        ? t('Prebuilt dashboards cannot be duplicated')
-                        : limitMessage,
+                    title: limitMessage,
                   }}
                 />
               )}
@@ -331,7 +326,9 @@ function DashboardTable({
               }
               tooltipProps={{
                 title: defined(dataRow.prebuiltId)
-                  ? t('Prebuilt dashboards cannot be deleted')
+                  ? tct('[label] dashboards cannot be deleted', {
+                      label: PREBUILT_DASHBOARD_LABEL,
+                    })
                   : undefined,
               }}
             />

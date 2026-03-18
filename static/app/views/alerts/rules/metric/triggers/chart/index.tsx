@@ -24,9 +24,9 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
-import LoadingMask from 'sentry/components/loadingMask';
+import {LoadingMask} from 'sentry/components/loadingMask';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
@@ -46,7 +46,7 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {getIsMigratedExtrapolationMode} from 'sentry/views/alerts/rules/metric/details/utils';
 import {

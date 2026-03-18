@@ -10,7 +10,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
@@ -18,6 +18,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   parseJsonWithFix,
@@ -488,12 +489,8 @@ export function AIInputSection({
       disableCollapsePersistence
       initialCollapse={initialCollapse}
     >
-      {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (
-        // We set the key to the node id to ensure the internal collapse state is reset when the user switches between nodes
-        <TraceDrawerComponents.MultilineText key={node.id}>
-          {messages}
-        </TraceDrawerComponents.MultilineText>
+        <AIContentRenderer key={node.id} text={messages} />
       ) : null}
       {Array.isArray(messages) ? (
         <MessagesArrayRenderer
@@ -585,9 +582,7 @@ function MessagesArrayRenderer({
       <Fragment key={index}>
         <RoleLabel>{message.role}</RoleLabel>
         {typeof message.content === 'string' ? (
-          <TraceDrawerComponents.MultilineText>
-            {message.content}
-          </TraceDrawerComponents.MultilineText>
+          <AIContentRenderer text={message.content} />
         ) : (
           <TraceDrawerComponents.MultilineJSON
             value={message.content}

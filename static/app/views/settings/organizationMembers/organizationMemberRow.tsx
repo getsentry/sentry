@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels/panelItem';
@@ -14,7 +14,7 @@ import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry
 import {t, tct} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 type Props = {

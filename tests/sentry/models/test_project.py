@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from unittest.mock import MagicMock, patch
 
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -127,7 +127,7 @@ class ProjectTest(APITestCase, TestCase):
         assert updated_rule.environment_id == Environment.get_or_create(project, "production").id
 
         # check to make sure old monitor is scheduled for deletion
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=monitor.id, model_name="Monitor"
         ).exists()
 

@@ -2,7 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Stacked} from 'sentry/components/container/stacked';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {
   MajorGridlines,
   MinorGridlines,
@@ -11,9 +11,9 @@ import {ReplayTimelineEvents} from 'sentry/components/replays/breadcrumbs/replay
 import {TimelineGaps} from 'sentry/components/replays/breadcrumbs/timelineGaps';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import divide from 'sentry/utils/number/divide';
-import toPercent from 'sentry/utils/number/toPercent';
-import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
+import {divide} from 'sentry/utils/number/divide';
+import {toPercent} from 'sentry/utils/number/toPercent';
+import {useTimelineScale} from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 

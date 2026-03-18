@@ -15,11 +15,11 @@ import userMiseryImg from 'getsentry-images/features/user-misery.svg';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength, hasPerformance, isTrialPlan} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {FeatureList} from './featureList';
 import {Footer} from './footer';

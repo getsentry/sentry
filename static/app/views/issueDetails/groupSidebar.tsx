@@ -6,22 +6,23 @@ import {AvatarList} from '@sentry/scraps/avatar';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
-import AssignedTo from 'sentry/components/group/assignedTo';
+import {AssignedTo} from 'sentry/components/group/assignedTo';
 import type {OnAssignCallback} from 'sentry/components/group/assigneeSelector';
 import {ExternalIssueList} from 'sentry/components/group/externalIssuesList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
-import TagFacets, {
+import {
   BACKEND_TAGS,
   DEFAULT_TAGS,
   FRONTEND_TAGS,
   MOBILE_TAGS,
+  TagFacets,
   TAGS_FORMATTER,
 } from 'sentry/components/group/tagFacets';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
-import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
+import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
@@ -29,7 +30,7 @@ import type {Project} from 'sentry/types/project';
 import type {CurrentRelease} from 'sentry/types/release';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {userDisplayName} from 'sentry/utils/formatters';
@@ -77,13 +78,7 @@ function useFetchCurrentRelease(organization: OrganizationSummary, group: Group)
   );
 }
 
-export default function GroupSidebar({
-  event,
-  group,
-  project,
-  organization,
-  environments,
-}: Props) {
+export function GroupSidebar({event, group, project, organization, environments}: Props) {
   const activeUser = useUser();
   const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(organization, group);
   const {data: currentRelease} = useFetchCurrentRelease(organization, group);

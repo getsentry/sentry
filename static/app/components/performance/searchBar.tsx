@@ -2,7 +2,7 @@ import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import BaseSearchBar from 'sentry/components/searchBar';
+import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
 import {SearchDropdown} from 'sentry/components/searchBar/searchDropdown';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {ItemType} from 'sentry/components/searchBar/types';
@@ -15,9 +15,9 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const TRANSACTION_SEARCH_PERIOD = '14d';
@@ -32,7 +32,7 @@ export type SearchBarProps = {
   placeholder?: string;
 };
 
-function SearchBar(props: SearchBarProps) {
+export function SearchBar(props: SearchBarProps) {
   const {
     organization,
     eventView: _eventView,
@@ -309,5 +309,3 @@ export const wrapQueryInWildcards = (query: string) => {
 const Container = styled('div')`
   position: relative;
 `;
-
-export default SearchBar;

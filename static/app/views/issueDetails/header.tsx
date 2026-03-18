@@ -11,9 +11,9 @@ import {TabList} from '@sentry/scraps/tabs';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Count} from 'sentry/components/count';
-import {EventOrGroupTitle} from 'sentry/components/eventOrGroupTitle';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
+import {GroupTitle} from 'sentry/components/groupTitle';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {ReplayCountBadge} from 'sentry/components/replays/replayCountBadge';
@@ -26,11 +26,11 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 
@@ -239,7 +239,7 @@ export function GroupHeader({baseUrl, group, organization, event, project}: Prop
                 <StyledFeatureBadge type="new" />
               )}
               <h3>
-                <StyledEventOrGroupTitle data={group} />
+                <StyledGroupTitle data={group} />
               </h3>
               <GroupStatusBadge
                 status={group.status}
@@ -320,7 +320,7 @@ const TitleHeading = styled('div')`
   gap: ${p => p.theme.space.md};
 `;
 
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+const StyledGroupTitle = styled(GroupTitle)`
   font-size: inherit;
 `;
 

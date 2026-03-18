@@ -5,12 +5,12 @@ import {Stack} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ReplayController} from 'sentry/components/replays/replayController';
 import {ReplayView} from 'sentry/components/replays/replayView';
-import useReplayLayout, {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
+import {LayoutKey, useReplayLayout} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useFullscreen from 'sentry/utils/window/useFullscreen';
+import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {FocusArea} from 'sentry/views/replays/detail/layout/focusArea';
 import {FocusTabs} from 'sentry/views/replays/detail/layout/focusTabs';
 import {ReplaySplitPanel as SplitPanel} from 'sentry/views/replays/detail/layout/splitPanel';

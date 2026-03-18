@@ -1,11 +1,11 @@
 import type {Group} from 'sentry/types/group';
 import type {Committer} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
-import useOrganization from './useOrganization';
+import {useOrganization} from './useOrganization';
 
 interface UseCommittersProps {
   eventId: string;
@@ -34,7 +34,7 @@ const makeCommittersQueryKey = (
   ),
 ];
 
-function useCommitters(
+export function useCommitters(
   {eventId, projectSlug, group}: UseCommittersProps,
   options: Partial<UseApiQueryOptions<CommittersResponse>> = {}
 ) {
@@ -53,5 +53,3 @@ function useCommitters(
     }
   );
 }
-
-export default useCommitters;

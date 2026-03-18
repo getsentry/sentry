@@ -13,7 +13,7 @@ import {BarChart} from 'sentry/components/charts/barChart';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {getInterval} from 'sentry/components/charts/utils';
-import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import type {Series} from 'sentry/types/echarts';
@@ -25,7 +25,7 @@ import type {PlotType} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 type Props = {
   api: Client;

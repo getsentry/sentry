@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
 export interface DrawerOptions {
   /**
@@ -249,6 +249,6 @@ export function GlobalDrawer({children}: any) {
  * openDrawer(() => <button onClick={closeDrawer}>Close!</button>)
  * ```
  */
-export default function useDrawer() {
+export function useDrawer() {
   return useContext(DrawerContext);
 }

@@ -10,7 +10,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {
@@ -19,7 +19,7 @@ import {
   MinimapBackground,
 } from 'sentry/components/events/interfaces/spans/minimap';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
-import OpsBreakdown from 'sentry/components/events/opsBreakdown';
+import {OpsBreakdown} from 'sentry/components/events/opsBreakdown';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconChevron, IconOpen} from 'sentry/icons';
@@ -27,7 +27,7 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -35,7 +35,7 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const BUTTON_ICON_SIZE = 'sm';
 const BUTTON_SIZE = 'sm';

@@ -6,7 +6,7 @@ import keyBy from 'lodash/keyBy';
 
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingError} from 'sentry/components/loadingError';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
@@ -14,7 +14,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {generateQueryWithTag} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   useGroupTagsReadable,
@@ -84,7 +84,7 @@ type Props = {
   tagFormatter?: (tagsData: Record<string, GroupTag>) => Record<string, GroupTag>;
 };
 
-export default function TagFacets({
+export function TagFacets({
   tagKeys,
   environments,
   groupId,

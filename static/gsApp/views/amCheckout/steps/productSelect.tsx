@@ -17,7 +17,7 @@ import {
   getCategoryInfoFromPlural,
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {CheckoutOption} from 'getsentry/views/amCheckout/components/checkoutOption';
 import {type StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
@@ -38,7 +38,7 @@ export function getProductCheckoutDescription({
   return '';
 }
 
-function ProductSelect({
+export function ProductSelect({
   activePlan,
   formData,
   onUpdate,
@@ -280,8 +280,6 @@ function ProductSelect({
     </Fragment>
   );
 }
-
-export default ProductSelect;
 
 const FeatureItem = styled('div')`
   font-size: ${p => p.theme.font.size.sm};

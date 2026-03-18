@@ -4,18 +4,18 @@
 
 import {useMemo} from 'react';
 
-import type {ControlProps} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
+import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 type Props = {
   disabled: boolean;
   filteredIdList: string[];
-  onChange: ControlProps['onChange'];
+  onChange: (option: SelectValue<string>) => void;
   value: string; // project ID
 };
 

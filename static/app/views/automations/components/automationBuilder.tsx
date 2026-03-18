@@ -17,9 +17,9 @@ import {
   DataConditionHandlerGroupType,
   type DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';
 import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
 import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
@@ -68,7 +68,6 @@ export function AutomationBuilder() {
                           height: '21px',
                         }),
                       }}
-                      inline={false}
                       isSearchable={false}
                       isClearable={false}
                       name={`${state.triggers.id}.logicType`}
@@ -81,8 +80,6 @@ export function AutomationBuilder() {
                       onChange={(option: SelectValue<DataConditionGroupLogicType>) =>
                         actions.updateWhenLogicType(option.value)
                       }
-                      required
-                      flexibleControlStateSize
                       options={TRIGGER_MATCH_OPTIONS}
                       size="xs"
                     />
@@ -185,12 +182,9 @@ function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
                         height: '21px',
                       }),
                     }}
-                    inline={false}
                     isSearchable={false}
                     isClearable={false}
                     name={`actionFilters.${actionFilter.id}.logicType`}
-                    required
-                    flexibleControlStateSize
                     options={FILTER_MATCH_OPTIONS}
                     size="xs"
                     value={

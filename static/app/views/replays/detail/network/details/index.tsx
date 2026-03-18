@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 
 import {DetailsSplitDivider} from 'sentry/components/replays/virtualizedGrid/detailsSplitDivider';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import useUrlParams from 'sentry/utils/url/useUrlParams';
+import {useUrlParams} from 'sentry/utils/url/useUrlParams';
 import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {NetworkDetailsContent} from 'sentry/views/replays/detail/network/details/content';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
-import NetworkDetailsTabs from 'sentry/views/replays/detail/network/details/tabs';
+import {StyledNetworkDetailsTabs as NetworkDetailsTabs} from 'sentry/views/replays/detail/network/details/tabs';
 
 type Props = {
   isCaptureBodySetup: boolean;

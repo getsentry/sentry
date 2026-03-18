@@ -3,13 +3,11 @@ import styled from '@emotion/styled';
 
 import {Select, SelectOption} from '@sentry/scraps/select';
 
-import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   providerDetails,
   type IssueAlertNotificationProps,
@@ -138,9 +136,7 @@ export function MessagingIntegrationAlertRule({
                 isLoading={isPending || validateChannel.isFetching}
                 disabled={!integration}
                 value={channel ? {label: channel.label, value: channel.value} : undefined}
-                onChange={(
-                  option: (SelectValue<string> & {label: string}) | undefined
-                ) => {
+                onChange={option => {
                   if (option) {
                     setChannel({value: option.value, label: option.label, new: false});
                   } else {
@@ -156,14 +152,11 @@ export function MessagingIntegrationAlertRule({
                 // This allows them to add a channel that is not present in the results.
                 creatable
                 formatCreateLabel={(inputValue: string) => inputValue}
-                menuPlacement="auto"
                 components={{
-                  Option: (
-                    optionProps: React.ComponentProps<typeof SelectComponents.Option>
-                  ) => {
+                  Option: optionProps => {
                     return (
                       <SelectOption
-                        {...optionProps}
+                        {...(optionProps as any)}
                         data={{
                           ...optionProps.data,
                           // Hide IconAdd for new channel options by setting __isNew__ to false

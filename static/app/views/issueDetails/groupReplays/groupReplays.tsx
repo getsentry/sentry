@@ -7,7 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {
   SelectedReplayIndexProvider,
   useSelectedReplayIndex,
@@ -35,19 +35,19 @@ import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
+import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
-import useReplaysFromIssue from './useReplaysFromIssue';
+import {useReplaysFromIssue} from './useReplaysFromIssue';
 
 type Props = {
   group: Group;

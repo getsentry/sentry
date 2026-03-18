@@ -6,7 +6,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
 import Feature from 'sentry/components/acl/feature';
-import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup, type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
@@ -95,9 +95,8 @@ export function ThresholdTypeForm({
               }),
             }}
             value={comparisonDelta}
-            onChange={({value}: any) => onComparisonDeltaChange(value)}
+            onChange={({value}) => onComparisonDeltaChange(value)}
             options={comparisonDeltaOptions}
-            required={comparisonType === AlertRuleComparisonType.CHANGE}
           />
         </Flex>
       ) : (

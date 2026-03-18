@@ -4,12 +4,12 @@ import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {withApi} from 'sentry/utils/withApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -18,7 +18,8 @@ import TrialStarter from 'getsentry/components/trialStarter';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics, {
+import {
+  trackGetsentryAnalytics,
   type GetsentryEventKey,
 } from 'getsentry/utils/trackGetsentryAnalytics';
 

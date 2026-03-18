@@ -6,8 +6,8 @@ import {
   type AggregationOutputType,
 } from 'sentry/utils/discover/fields';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   Dataset,
   EventTypes,

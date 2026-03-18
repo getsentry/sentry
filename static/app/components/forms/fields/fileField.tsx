@@ -4,9 +4,9 @@ import omit from 'lodash/omit';
 
 import {InputGroup} from '@sentry/scraps/input';
 
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
-import type FormModel from 'sentry/components/forms/model';
+import type {FormModel} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
@@ -26,7 +26,7 @@ export interface FileFieldProps extends Omit<InputFieldProps, 'type' | 'accept'>
 // Until that is done though if you try to submit the form while this is uploading
 // you will just submit the form without the field.
 
-export default function FileField({accept, hideControlState, ...props}: FileFieldProps) {
+export function FileField({accept, hideControlState, ...props}: FileFieldProps) {
   const [fileName, setFileName] = useState('');
   const handleFile = (
     model: FormModel,

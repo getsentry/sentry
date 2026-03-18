@@ -9,11 +9,11 @@ import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import Histogram from 'sentry/utils/performance/histogram';
-import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import {Histogram} from 'sentry/utils/performance/histogram';
+import {HistogramQuery} from 'sentry/utils/performance/histogram/histogramQuery';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,

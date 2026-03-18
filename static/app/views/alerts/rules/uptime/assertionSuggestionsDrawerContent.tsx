@@ -8,9 +8,9 @@ import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/component
 import {LoadingError} from 'sentry/components/loadingError';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AssertionSuggestionCard,
   AssertionSuggestionCardPlaceholder,

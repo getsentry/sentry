@@ -14,8 +14,9 @@ import {
   getContextSummary,
   getContextTitle,
 } from 'sentry/components/events/contexts/utils';
-import ScreenshotModal, {
+import {
   modalCss,
+  ScreenshotModal,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {getRuntimeLabelAndTooltip} from 'sentry/components/events/highlights/util';
 import {Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';
@@ -28,7 +29,7 @@ import type {Event, EventTag} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 
@@ -115,7 +116,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   return items.length || screenshot ? (
     <Fragment>
       <IconBar>
-        <ScrollCarousel gap={2} aria-label={t('Icon highlights')}>
+        <ScrollCarousel gap="xl" aria-label={t('Icon highlights')}>
           {runtimeInfo && (
             <Fragment>
               <Tooltip title={runtimeInfo.tooltip} isHoverable>

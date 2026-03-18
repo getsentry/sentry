@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay} from 'sentry/types/relay';
 
-import createTrustedRelaysResponseError from './createTrustedRelaysResponseError';
+import {createTrustedRelaysResponseError} from './createTrustedRelaysResponseError';
 import {Form} from './form';
 import {Modal} from './modal';
 

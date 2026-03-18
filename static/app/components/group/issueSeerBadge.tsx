@@ -11,7 +11,7 @@ import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IssueSeerBadgeProps {
   group: Group;
@@ -51,7 +51,7 @@ export function IssueSeerBadge({group}: IssueSeerBadgeProps) {
         }}
       >
         <IconSeer size="xs" />
-        {seerFixable && <p>{t('Quick Fix')}</p>}
+        {seerFixable && <span>{t('Quick Fix')}</span>}
       </SeerLink>
     </Tooltip>
   );

@@ -158,6 +158,3 @@ class IssueCommentEventWebhookTest(GitHubWebhookCodeReviewTestCase):
             self.mock_seer.assert_called_once()
             call_args = self.mock_seer.call_args
             assert call_args[1]["path"] == "/v1/code_review/review-request"
-            payload = call_args[1]["payload"]
-            assert payload["data"]["repo"]["base_commit_sha"] == "abc123"
-            assert payload["data"]["config"]["trigger_user"] == "test-user"

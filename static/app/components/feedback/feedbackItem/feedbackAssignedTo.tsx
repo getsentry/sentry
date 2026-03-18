@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
+import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import type {EventOwners} from 'sentry/components/group/assignedTo';
 import {getOwnerList} from 'sentry/components/group/assignedTo';
 import {
@@ -9,11 +9,11 @@ import {
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
 import type {Group} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   feedbackEvent: FeedbackEvent;

@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
-import getOutputType, {
+import {
+  getOutputType,
   Output,
 } from 'sentry/views/replays/detail/network/details/getOutputType';
 import {

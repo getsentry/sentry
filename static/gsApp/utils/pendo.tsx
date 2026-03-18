@@ -2,8 +2,8 @@ import pick from 'lodash/pick';
 
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import getOrganizationAge from 'sentry/utils/getOrganizationAge';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {getOrganizationAge} from 'sentry/utils/getOrganizationAge';
 
 import type {PromotionClaimed, Subscription} from 'getsentry/types';
 

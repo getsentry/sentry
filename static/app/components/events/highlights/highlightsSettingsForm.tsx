@@ -3,7 +3,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contexts/utils';
-import Form, {type FormProps} from 'sentry/components/forms/form';
+import {Form, type FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -14,7 +14,7 @@ import {
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 interface HighlightsSettingsFormProps {

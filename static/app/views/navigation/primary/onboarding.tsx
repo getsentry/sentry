@@ -8,23 +8,21 @@ import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardi
 import {ProgressRing} from 'sentry/components/progressRing';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useNavigationContext} from 'sentry/views/navigation/navigationContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  PrimaryButtonOverlay,
-  SidebarButton,
-  SidebarItemUnreadIndicator,
-  usePrimaryButtonOverlay,
+  PrimaryNavigation,
+  usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
-import {NavigationLayout} from 'sentry/views/navigation/types';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 function OnboardingItem({
@@ -41,8 +39,8 @@ function OnboardingItem({
   refetch: () => void;
 }) {
   const theme = useTheme();
-  const {layout} = useNavigationContext();
-  const isMobile = layout === NavigationLayout.MOBILE;
+  const {layout} = usePrimaryNavigation();
+  const isMobile = layout === 'mobile';
   const demoMode = isDemoModeActive();
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
@@ -52,7 +50,7 @@ function OnboardingItem({
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryButtonOverlay({
+  } = usePrimaryNavigationButtonOverlay({
     isOpen: isActive,
     onOpenChange: newIsOpen => {
       if (newIsOpen) {
@@ -69,7 +67,7 @@ function OnboardingItem({
 
   return (
     <GuideAnchor target="onboarding_sidebar" position="right">
-      <SidebarButton
+      <PrimaryNavigation.Button
         analyticsKey="onboarding"
         buttonProps={{
           ...overlayTriggerProps,
@@ -104,18 +102,12 @@ function OnboardingItem({
           ),
         }}
         label={label}
-      >
-        {pendingCompletionSeen && (
-          <SidebarItemUnreadIndicator
-            data-test-id="pending-seen-indicator"
-            isMobile={isMobile}
-          />
-        )}
-      </SidebarButton>
+        indicator={pendingCompletionSeen ? 'accent' : undefined}
+      />
       {isOpen && (
-        <PrimaryButtonOverlay overlayProps={overlayProps}>
+        <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>
           <OnboardingSidebarContent onClose={OnboardingDrawerStore.close} />
-        </PrimaryButtonOverlay>
+        </PrimaryNavigation.ButtonOverlay>
       )}
     </GuideAnchor>
   );

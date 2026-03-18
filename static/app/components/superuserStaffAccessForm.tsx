@@ -6,15 +6,15 @@ import {Button} from '@sentry/scraps/button';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {Client} from 'sentry/api';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {WebAuthn} from 'sentry/components/webAuthn';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Authenticator} from 'sentry/types/auth';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 
 interface WebAuthnParams {
   challenge: string;

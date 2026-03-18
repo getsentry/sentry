@@ -22,8 +22,8 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response, is_streaming_response
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
-from sentry.types.region import subdomain_is_locality
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
+from sentry.types.cell import subdomain_is_locality
 from sentry.utils.cursors import Cursor
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -309,7 +309,7 @@ class EndpointTest(APITestCase):
             request.META["HTTP_AUTHORIZATION"] = f"Bearer {token_str}"
             _dummy_endpoint(request=request)
 
-        with self.tasks(), assume_test_silo_mode(SiloMode.REGION):
+        with self.tasks(), assume_test_silo_mode(SiloMode.CELL):
             schedule_hybrid_cloud_foreign_key_jobs()
 
         token.refresh_from_db()
@@ -507,7 +507,7 @@ class PaginateTest(APITestCase):
         close_streaming_response(response)
 
 
-@all_silo_test(regions=create_test_regions("us", "eu"))
+@all_silo_test(cells=create_test_cells("us", "eu"))
 class CustomerDomainTest(APITestCase):
     def test_resolve_region(self) -> None:
         def request_with_subdomain(subdomain):
@@ -547,28 +547,28 @@ class EndpointSiloLimitTest(APITestCase):
                     # TODO: Make work with EndpointWithDecoratedMethod
 
     def test_with_active_mode(self) -> None:
-        self._test_active_on(SiloMode.REGION, SiloMode.REGION, True)
+        self._test_active_on(SiloMode.CELL, SiloMode.CELL, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.CONTROL, True)
 
     def test_with_inactive_mode(self) -> None:
-        self._test_active_on(SiloMode.REGION, SiloMode.CONTROL, False)
-        self._test_active_on(SiloMode.CONTROL, SiloMode.REGION, False)
+        self._test_active_on(SiloMode.CELL, SiloMode.CONTROL, False)
+        self._test_active_on(SiloMode.CONTROL, SiloMode.CELL, False)
 
     def test_with_monolith_mode(self) -> None:
-        self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
+        self._test_active_on(SiloMode.CELL, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
 
     def test_internal_option(self) -> None:
-        decorator = EndpointSiloLimit(SiloMode.REGION)
-        assert decorator.modes == frozenset([SiloMode.REGION])
+        decorator = EndpointSiloLimit(SiloMode.CELL)
+        assert decorator.modes == frozenset([SiloMode.CELL])
         assert not decorator.internal
 
-        decorator = EndpointSiloLimit(SiloMode.REGION, internal=True)
-        assert decorator.modes == frozenset([SiloMode.REGION])
+        decorator = EndpointSiloLimit(SiloMode.CELL, internal=True)
+        assert decorator.modes == frozenset([SiloMode.CELL])
         assert decorator.internal
 
-        decorator = EndpointSiloLimit([SiloMode.REGION, SiloMode.CONTROL], internal=True)
-        assert decorator.modes == frozenset([SiloMode.REGION, SiloMode.CONTROL])
+        decorator = EndpointSiloLimit([SiloMode.CELL, SiloMode.CONTROL], internal=True)
+        assert decorator.modes == frozenset([SiloMode.CELL, SiloMode.CONTROL])
         assert decorator.internal
 
 
@@ -586,15 +586,15 @@ class FunctionSiloLimitTest(APITestCase):
                     decorated_function()
 
     def test_with_active_mode(self) -> None:
-        self._test_active_on(SiloMode.REGION, SiloMode.REGION, True)
+        self._test_active_on(SiloMode.CELL, SiloMode.CELL, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.CONTROL, True)
 
     def test_with_inactive_mode(self) -> None:
-        self._test_active_on(SiloMode.REGION, SiloMode.CONTROL, False)
-        self._test_active_on(SiloMode.CONTROL, SiloMode.REGION, False)
+        self._test_active_on(SiloMode.CELL, SiloMode.CONTROL, False)
+        self._test_active_on(SiloMode.CONTROL, SiloMode.CELL, False)
 
     def test_with_monolith_mode(self) -> None:
-        self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
+        self._test_active_on(SiloMode.CELL, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
 
 

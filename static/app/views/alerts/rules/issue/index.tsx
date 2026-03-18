@@ -22,21 +22,21 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
-import FormField from 'sentry/components/forms/formField';
+import {Form} from 'sentry/components/forms/form';
+import {FormField} from 'sentry/components/forms/formField';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import LoadingMask from 'sentry/components/loadingMask';
+import {ListItem} from 'sentry/components/list/listItem';
+import {LoadingMask} from 'sentry/components/loadingMask';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -44,7 +44,6 @@ import {TeamSelector} from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IssueAlertConfiguration,
   IssueAlertRule,
@@ -64,14 +63,15 @@ import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {withOrganization} from 'sentry/utils/withOrganization';
 import {withProjects} from 'sentry/utils/withProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {FeedbackAlertBanner} from 'sentry/views/alerts/rules/issue/feedbackAlertBanner';
 import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
-import SetupMessagingIntegrationButton, {
+import {
   MessagingIntegrationAnalyticsView,
+  SetupMessagingIntegrationButton,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {getProjectOptions} from 'sentry/views/alerts/rules/utils';
 import {
@@ -1093,7 +1093,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
               styles={{
                 container: (provided: Record<string, string | number | boolean>) => ({
                   ...provided,
-                  marginBottom: space(1),
+                  marginBottom: '8px',
                 }),
               }}
               options={projectOptions}

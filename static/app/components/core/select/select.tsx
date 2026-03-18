@@ -2,6 +2,8 @@ import {useMemo} from 'react';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
+import type {AsyncProps} from 'react-select/src/Async';
+import type {CreatableProps} from 'react-select/src/Creatable';
 import {css, useTheme} from '@emotion/react';
 import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -25,7 +27,8 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
-import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
+import {defined} from 'sentry/utils';
+import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
@@ -400,48 +403,91 @@ function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   );
 }
 
-export interface ControlProps<
-  OptionType extends OptionTypeBase = GeneralSelectValue,
-> extends Omit<ReactSelectProps<OptionType>, 'onChange' | 'value' | 'menuPlacement'> {
-  /**
-   * Backwards compatible shim to work with select2 style choice type.
-   */
-  choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
-  /**
-   * Set to true to prefix selected values with content
-   */
-  inFieldLabel?: string;
-  /**
-   * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
-   */
-  isInsideModal?: boolean;
-  /**
-   * Maximum width of the menu component. Menu item labels that overflow the
-   * menu's boundaries will automatically be truncated.
-   */
-  maxMenuWidth?: number | string;
-  /**
-   * Used by MultiSelectControl.
-   */
-  multiple?: boolean;
-  /**
-   * Handler for changes. Narrower than the types in react-select.
-   */
-  onChange?: (value?: OptionType | null) => void;
-  ref?: React.Ref<typeof ReactSelect>;
-  /**
-   * Show line dividers between options
-   */
-  showDividers?: boolean;
-  size?: FormSize;
-  /**
-   * Unlike react-select which expects an OptionType as its value
-   * we accept the option.value and resolve the option object.
-   * Because this type is embedded in the OptionType generic we
-   * can't have a good type here.
-   */
-  value?: any;
-}
+type MultipleProps<OptionType extends OptionTypeBase> = {
+  multiple: true;
+  clearable?: boolean;
+  onChange?: (option: OptionType[]) => void;
+};
+
+type SingleProps<OptionType extends OptionTypeBase> = {
+  clearable?: false;
+  multiple?: false;
+  onChange?: (option: OptionType) => void;
+};
+
+type SingleClearableProps<OptionType extends OptionTypeBase> = {
+  clearable: true;
+  multiple?: false;
+  onChange?: (option: OptionType | null) => void;
+};
+
+type SelectProps<OptionType extends OptionTypeBase> =
+  | MultipleProps<OptionType>
+  | SingleProps<OptionType>
+  | SingleClearableProps<OptionType>;
+
+export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue> =
+  SelectProps<OptionType> &
+    AsyncProps<OptionType> &
+    CreatableProps<OptionType, boolean> &
+    Omit<
+      ReactSelectProps<OptionType, boolean>,
+      'onChange' | 'value' | 'menuPlacement' | 'theme'
+    > & {
+      /**
+       * Enable async option loading.
+       */
+      async?: boolean;
+      cache?: Record<string, unknown>;
+      /**
+       * Backwards compatible shim to work with select2 style choice type.
+       */
+      choices?: Choices | ((props: ControlProps<OptionType>) => Choices);
+      /**
+       * Enable 'create' mode which allows values to be created inline.
+       */
+      creatable?: boolean;
+      disabled?: boolean;
+      /**
+       * Set to true to prefix selected values with content
+       */
+      inFieldLabel?: string;
+      inputRef?: React.Ref<any>;
+      /**
+       * Whether this selector is being rendered inside a modal. If true, the menu will have a higher z-index.
+       */
+      isInsideModal?: boolean;
+      /**
+       * custom value comparator function
+       * defaults to === comparison of the option values
+       */
+      isValueEqual?: (
+        optionA: OptionType['value'],
+        optionB: OptionType['value']
+      ) => boolean;
+
+      /**
+       * Maximum width of the menu component. Menu item labels that overflow the
+       * menu's boundaries will automatically be truncated.
+       */
+      maxMenuWidth?: number | string;
+      onClear?: () => void;
+      ref?: React.Ref<any>;
+      searchable?: boolean;
+      /**
+       * Show line dividers between options
+       */
+      showDividers?: boolean;
+      size?: FormSize;
+
+      /**
+       * Unlike react-select which expects an OptionType as its value
+       * we accept the option.value and resolve the option object.
+       * Because this type is embedded in the OptionType generic we
+       * can't have a good type here.
+       */
+      value?: any;
+    };
 
 // TODO(ts) The exported component uses forwardRef.
 // This means we cannot fill the SelectValue generic
@@ -449,9 +495,11 @@ export interface ControlProps<
 // controls that have custom option structures
 export type GeneralSelectValue = SelectValue<any>;
 
-function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
-  props: ControlProps<OptionType>
+export function Select<OptionType extends GeneralSelectValue = GeneralSelectValue>(
+  p: ControlProps<OptionType>
 ) {
+  // todo(tkdodo): typing `p` and keeping `any` localized avoids leaking it
+  const props = p as any;
   const theme = useTheme();
   const {size, maxMenuWidth, isInsideModal} = props;
 
@@ -474,7 +522,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       content: `"${label}"`,
       color: theme.colors.gray800,
       fontWeight: 600,
-      marginRight: selectSpacing[size ?? 'md'],
+      marginRight: selectSpacing[p.size ?? 'md'],
     },
   });
 
@@ -501,7 +549,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     options;
 
   // It's possible that `choicesOrOptions` does not exist (e.g. in the case of AsyncSelect)
-  let mappedValue = value;
+  // When isValueEqual is provided, the value is a raw domain object (e.g.
+  // {id, name}) that react-select can't handle directly — it would call
+  // callbacks like getOptionValue on it expecting a full option shape. In that
+  // case, fall back to null instead of passing the raw object through.
+  // Otherwise the value is a primitive or option-shaped object that
+  // react-select can handle directly.
+  const noMatchFallback = props.isValueEqual ? (props.multiple ? [] : null) : value;
+  let mappedValue = noMatchFallback;
 
   if (choicesOrOptions) {
     /**
@@ -516,10 +571,21 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     } else {
       flatOptions = choicesOrOptions.flatMap((option: any) => option);
     }
+
+    const compare = (
+      a: OptionType['value'] | null | undefined,
+      b: OptionType['value'] | null | undefined
+    ) => {
+      if (props.isValueEqual && defined(a) && defined(b)) {
+        return props.isValueEqual(a, b);
+      }
+      return a === b;
+    };
+
     mappedValue =
       props.multiple && Array.isArray(value)
-        ? value.map(val => flatOptions.find(option => option.value === val))
-        : flatOptions.find(opt => opt.value === value) || value;
+        ? value.map(val => flatOptions.find(option => compare(option.value, val)))
+        : flatOptions.find(opt => compare(opt.value, value)) || noMatchFallback;
   }
 
   // Override the default style with in-field labels if they are provided
@@ -586,29 +652,12 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
-interface PickerProps<
-  OptionType extends OptionTypeBase,
-> extends ControlProps<OptionType> {
-  /**
-   * Enable async option loading.
-   */
-  async?: boolean;
-  /**
-   * Enable 'clearable' which allows values to be removed.
-   */
-  clearable?: boolean;
-  /**
-   * Enable 'create' mode which allows values to be created inline.
-   */
-  creatable?: boolean;
-}
-
 function SelectPicker<OptionType extends OptionTypeBase>({
   async,
   creatable,
   ref,
   ...props
-}: PickerProps<OptionType>) {
+}: ControlProps<OptionType>) {
   // Pick the right component to use
   // Using any here as react-select types also use any
   let Component: React.ComponentType<any> | undefined;
@@ -624,11 +673,3 @@ function SelectPicker<OptionType extends OptionTypeBase>({
 
   return <Component ref={ref as any} {...props} menuPlacement="auto" />;
 }
-
-// XXX (tkdodo): this type assertion is a leftover from when we had forwardRef
-// Omit on the ControlProps messes up the union type
-// the fix is to remove this type assertion, export Select directly and fix the type issues
-export const Select = SelectControl as (
-  props: Omit<ControlProps, 'ref'> &
-    React.RefAttributes<typeof ReactSelect<GeneralSelectValue>>
-) => React.JSX.Element;

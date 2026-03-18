@@ -6,14 +6,14 @@ import {Flex} from '@sentry/scraps/layout';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingError} from 'sentry/components/loadingError';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import getStacktraceBody from 'sentry/utils/getStacktraceBody';
+import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const SplitDiffLazy = lazy(() => import('../splitDiff'));
 const STACKTRACE_SECTION_SEPARATOR = '\n\n';

@@ -1,16 +1,16 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {useGenAiConsentButtonAccess} from 'getsentry/hooks/genAiAccess';
 import type {Subscription} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import DataConsentFields from 'getsentry/views/legalAndCompliance/dataConsent';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+import {formGroups as dataConsentFields} from 'getsentry/views/legalAndCompliance/dataConsent';
 
 function DataConsentForm({subscription}: {subscription: Subscription}) {
   const organization = useOrganization();
@@ -60,7 +60,7 @@ function DataConsentForm({subscription}: {subscription: Subscription}) {
           isSuperuser,
           isTouchCustomerAndNeedsMsaUpdate,
         }}
-        forms={DataConsentFields}
+        forms={dataConsentFields}
       />
     </Form>
   );

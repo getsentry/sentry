@@ -1,12 +1,12 @@
 import {useCallback, type ReactNode} from 'react';
 
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import DetectorListTable from 'sentry/views/detectors/components/detectorListTable';
+import {DetectorListTable} from 'sentry/views/detectors/components/detectorListTable';
 
 interface DetectorListContentProps {
   data: Detector[] | undefined;

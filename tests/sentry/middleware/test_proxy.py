@@ -9,7 +9,7 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils import json
 
 
@@ -43,7 +43,7 @@ test_region = Cell(
 )
 
 
-@control_silo_test(regions=[test_region])
+@control_silo_test(cells=[test_region])
 class FakedAPIProxyTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
     method = "post"
@@ -63,6 +63,6 @@ class FakedAPIProxyTest(APITestCase):
             )
 
         result = json.loads(resp.getvalue())
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             team = Team.objects.get(id=result["id"])
             assert team.idp_provisioned

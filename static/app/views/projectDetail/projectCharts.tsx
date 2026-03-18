@@ -22,7 +22,7 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -33,7 +33,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {
   getANRRateText,
@@ -47,7 +47,7 @@ import {
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
-import ProjectErrorsBasicChart from './charts/projectErrorsBasicChart';
+import {ProjectErrorsBasicChart} from './charts/projectErrorsBasicChart';
 
 export enum DisplayModes {
   APDEX = 'apdex',

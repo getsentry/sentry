@@ -35,6 +35,7 @@ class TestWorkflowSerializer(TestCase):
             "detectorIds": [],
             "enabled": workflow.enabled,
             "lastTriggered": None,
+            "owner": None,
         }
 
     def test_serialize_full(self) -> None:
@@ -155,4 +156,5 @@ class TestWorkflowSerializer(TestCase):
             "detectorIds": [str(detector.id)],
             "enabled": workflow.enabled,
             "lastTriggered": history.date_added,
+            "owner": None,
         }
