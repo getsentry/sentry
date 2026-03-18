@@ -387,22 +387,6 @@ class NotificationServiceThreadingTest(TestCase):
         assert error_record.thread is not None
 
     @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
-    def test_notify_target_with_threading_failure_on_first_message(
-        self, mock_send: mock.MagicMock
-    ) -> None:
-        """Failed send on the first message (no thread exists) raises."""
-        mock_send.return_value = SendResult(
-            status=SendStatus.HALT,
-            exception=IntegrationConfigurationError(message="channel_not_found"),
-            error_code=404,
-            error_details={"msg": "channel_not_found"},
-        )
-
-        service = NotificationService(data=MockNotification(message="test"))
-        with pytest.raises(NotificationServiceError):
-            service.notify_target(target=self.target, threading_options=self.threading_options)
-
-    @mock.patch("sentry.notifications.platform.slack.provider.SlackNotificationProvider.send")
     def test_notify_async_threading_end_to_end(self, mock_send: mock.MagicMock) -> None:
         """Full async flow: notify_async → task → resolve → send → store."""
         mock_send.return_value = SendResult(

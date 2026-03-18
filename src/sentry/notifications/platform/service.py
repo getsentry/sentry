@@ -246,14 +246,10 @@ class NotificationService[T: NotificationData]:
                 target_id=target.resource_id,
                 error_details=result.error_details or {},
             )
-        else:
-            logger.error(
-                "notifications.platform.service.invalid_threading_result",
-                extra={"result": result, "notification_thread": thread, "target": target},
-            )
-            raise NotificationServiceError(
-                "Failed to store threading result due to malformed result"
-            )
+
+        # If we hit this point, it either means the result is malformed
+        # or the provider was requested to use threading but didn't (e.g Discord, Email, MSTeams)
+        return None
 
 
 @instrumented_task(
