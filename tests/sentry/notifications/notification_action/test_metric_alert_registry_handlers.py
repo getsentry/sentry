@@ -156,7 +156,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         )
         self.event_data = WorkflowEventData(
             event=self.group_event,
-            workflow_env=self.workflow.environment,
+            workflow_env=None,
             group=self.group,
         )
 
@@ -512,7 +512,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         # Create event data with Activity instead of GroupEvent
         event_data_with_activity = WorkflowEventData(
             event=activity,
-            workflow_env=self.workflow.environment,
+            workflow_env=None,
             group=self.group,
         )
 
@@ -586,7 +586,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         # Create event data with Activity instead of GroupEvent
         event_data_with_activity = WorkflowEventData(
             event=activity,
-            workflow_env=self.workflow.environment,
+            workflow_env=None,
             group=self.group,
         )
 
@@ -654,7 +654,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
         event_data_with_activity = WorkflowEventData(
             event=activity,
-            workflow_env=self.workflow.environment,
+            workflow_env=None,
             group=self.group,
         )
 
@@ -681,7 +681,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
         event_data_with_activity = WorkflowEventData(
             event=activity,
-            workflow_env=self.workflow.environment,
+            workflow_env=None,
             group=self.group,
         )
 

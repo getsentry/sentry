@@ -303,7 +303,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
 
     def test_workflow_environment(self, mock_trigger: MagicMock) -> None:
         env = self.create_environment(self.project, name="production")
-        self.workflow.update(environment=env)
+        self.workflow.update(environment_id=env.id)
 
         event_with_env = self.create_error_event(environment="production")
         event_without_env = self.create_error_event()
@@ -384,7 +384,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
 
     def test_slow_condition_subqueries(self, mock_trigger: MagicMock) -> None:
         env = self.create_environment(self.project, name="production")
-        self.workflow.update(environment=env)
+        self.workflow.update(environment_id=env.id)
         self.create_data_condition(
             condition_group=self.workflow_triggers,
             type=Condition.EVENT_FREQUENCY_COUNT,

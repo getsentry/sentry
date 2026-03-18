@@ -70,7 +70,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         "workflow_engine.DataConditionGroup", null=True, blank=True, db_index=False
     )
 
-    environment = FlexibleForeignKey("sentry.Environment", null=True, blank=True)
+    environment_id = models.BigIntegerField(null=True, blank=True)
 
     created_by_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete="SET_NULL"
@@ -112,14 +112,10 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group:
             when_condition_group = self.when_condition_group.get_snapshot()
 
-        environment_id = None
-        if self.environment:
-            environment_id = self.environment.id
-
         return {
             "id": self.id,
             "enabled": self.enabled,
-            "environment_id": environment_id,
+            "environment_id": self.environment_id,
             "status": self.status,
             "triggers": when_condition_group,
         }
@@ -139,7 +135,15 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group_id is None:
             return TriggerResult.TRUE, []
 
-        workflow_event_data = replace(event_data, workflow_env=self.environment)
+        from sentry.models.environment import Environment
+
+        workflow_env = None
+        if self.environment_id is not None:
+            try:
+                workflow_env = Environment.objects.get_from_cache(id=self.environment_id)
+            except Environment.DoesNotExist:
+                pass
+        workflow_event_data = replace(event_data, workflow_env=workflow_env)
         try:
             group = DataConditionGroup.objects.get_from_cache(id=self.when_condition_group_id)
         except DataConditionGroup.DoesNotExist:

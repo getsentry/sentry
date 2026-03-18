@@ -165,7 +165,7 @@ class TestUpdater(TestCase):
         assert workflow.config["frequency"] == 5
         assert workflow.owner_user_id == new_user_id
         assert workflow.owner_team_id is None
-        assert workflow.environment is None
+        assert workflow.environment_id is None
 
         when_dcg = workflow.when_condition_group
         assert when_dcg

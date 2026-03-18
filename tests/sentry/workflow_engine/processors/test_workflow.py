@@ -204,7 +204,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.action.filter_recently_fired_workflow_actions")
     def test_populate_workflow_env_for_filters(self, mock_filter: MagicMock) -> None:
         # this should not pass because the environment is not None
-        self.error_workflow.update(environment=self.group_event.get_environment())
+        self.error_workflow.update(environment_id=self.group_event.get_environment().id)
         error_workflow_filters = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
         )
@@ -264,7 +264,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         # only processes workflows with the same env or no env specified
-        self.error_workflow.update(environment=None)
+        self.error_workflow.update(environment_id=None)
 
         dcg = self.create_data_condition_group()
         non_matching_env_workflow = self.create_workflow(

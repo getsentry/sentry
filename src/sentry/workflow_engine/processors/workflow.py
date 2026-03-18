@@ -418,9 +418,7 @@ def _get_associated_workflows(
             environment_filter,
             detectorworkflow__detector_id__in=detector_ids,
             enabled=True,
-        )
-        .select_related("environment")
-        .distinct()
+        ).distinct()
     )
 
 

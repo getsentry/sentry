@@ -172,7 +172,7 @@ def _query_workflows_by_detector_ids(
         environment_filter,
         detector_id__in=detector_ids,
         workflow__enabled=True,
-    ).select_related("workflow", "workflow__environment")
+    ).select_related("workflow")
 
     # Split results by actual environment_id
     global_by_detector: dict[int, set[Workflow]] = {d_id: set() for d_id in detector_ids}

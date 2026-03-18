@@ -300,7 +300,7 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
 
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
         workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
-        assert workflow.environment is None
+        assert workflow.environment_id is None
         assert workflow.owner_user_id is None
         assert workflow.owner_team_id is None
         assert workflow.config == {"frequency": 5}  # not migrated

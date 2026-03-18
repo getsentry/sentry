@@ -273,6 +273,11 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                     validated_data.pop("owner")
                 )
 
+            # Convert environment object to environment_id
+            if "environment" in validated_data:
+                env = validated_data.pop("environment")
+                validated_data["environment_id"] = env.id if env else None
+
             # Update the workflow
             instance.update(**validated_data)
             instance.save()

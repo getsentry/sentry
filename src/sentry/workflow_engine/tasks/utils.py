@@ -101,9 +101,12 @@ def build_workflow_event_data_from_event(
     # Fetch environment from workflow, if provided
     workflow_env: Environment | None = None
     if workflow_id:
-        workflow_env = (
-            Workflow.objects.filter(id=workflow_id).select_related("environment").get().environment
-        )
+        workflow = Workflow.objects.filter(id=workflow_id).get()
+        if workflow.environment_id is not None:
+            try:
+                workflow_env = Environment.objects.get_from_cache(id=workflow.environment_id)
+            except Environment.DoesNotExist:
+                pass
 
     return WorkflowEventData(
         event=group_event,

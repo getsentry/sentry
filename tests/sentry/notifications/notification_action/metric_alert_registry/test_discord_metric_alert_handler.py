@@ -169,7 +169,7 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
         # Create event data with Activity instead of GroupEvent
         event_data_with_activity = WorkflowEventData(
             event=activity,
-            workflow_env=self.workflow.environment,
+            workflow_env=None,
             group=self.group,
         )
 

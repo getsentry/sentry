@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.models.environment import Environment
 from sentry.workflow_engine.models import (
     DataConditionGroup,
     DetectorWorkflow,
@@ -91,6 +92,9 @@ class WorkflowSerializer(Serializer):
         for detector_id, workflow_id in detector_workflows:
             detectors_map[workflow_id].append(str(detector_id))
 
+        env_ids = {item.environment_id for item in item_list if item.environment_id}
+        env_by_id = {env.id: env for env in Environment.objects.get_many_from_cache(env_ids)}
+
         for item in item_list:
             attrs[item]["triggers"] = trigger_condition_map.get(
                 item.when_condition_group_id
@@ -100,6 +104,8 @@ class WorkflowSerializer(Serializer):
             )  # The data condition groups for filtering actions
             attrs[item]["detectorIds"] = detectors_map[item.id]
             attrs[item]["lastTriggered"] = last_triggered_map.get(item.id)
+            env = env_by_id.get(item.environment_id) if item.environment_id else None
+            attrs[item]["environment"] = env.name if env else None
         return attrs
 
     def serialize(
@@ -114,7 +120,7 @@ class WorkflowSerializer(Serializer):
             "dateUpdated": obj.date_updated,
             "triggers": attrs.get("triggers"),
             "actionFilters": attrs.get("actionFilters"),
-            "environment": obj.environment.name if obj.environment else None,
+            "environment": attrs.get("environment"),
             "config": convert_dict_key_case(obj.config, snake_to_camel_case),
             "detectorIds": attrs.get("detectorIds"),
             "enabled": obj.enabled,
