@@ -596,6 +596,9 @@ function navigationItemStyles(p: {layout: 'mobile' | 'sidebar'; theme: Theme}) {
     align-items: center;
     position: relative;
     color: ${p.theme.tokens.interactive.link.neutral.rest};
+    // We need to cap the height at 32px as some items like the reorderable link with icons
+    // will otherwise cause the links to be taller, visually standing out when they are laid out in a list
+    height: 32px;
     padding: ${p.layout === 'mobile'
       ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`
       : `${p.theme.space.md} ${p.theme.space.lg}`};
