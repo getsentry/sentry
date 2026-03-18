@@ -170,8 +170,8 @@ interface NavigationOverlayPortalProps {
 function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement | null>(null);
-  const organization = useOrganization();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const organization = useOrganization({allowNull: true});
+  const hasPageFrame = organization?.features.includes('page-frame');
 
   useOnClickOutside(ref, e => {
     // Without this check the menu will reopen when the click event triggers
