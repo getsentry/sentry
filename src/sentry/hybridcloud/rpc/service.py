@@ -44,8 +44,8 @@ logger = logging.getLogger(__name__)
 _T = TypeVar("_T")
 
 _IS_RPC_METHOD_ATTR = "__is_rpc_method"
-_REGION_RESOLUTION_ATTR = "__region_resolution"
-_REGION_RESOLUTION_OPTIONAL_RETURN_ATTR = "__region_resolution_optional_return"
+_CELL_RESOLUTION_ATTR = "__cell_resolution"
+_CELL_RESOLUTION_OPTIONAL_RETURN_ATTR = "__cell_resolution_optional_return"
 
 
 class RpcException(Exception):
@@ -98,7 +98,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
         return self.service_name, self.method_name
 
     def _extract_cell_resolution(self) -> CellResolutionStrategy | None:
-        cell_resolution = getattr(self.base_function, _REGION_RESOLUTION_ATTR, None)
+        cell_resolution = getattr(self.base_function, _CELL_RESOLUTION_ATTR, None)
 
         is_cell_service = self.base_service_cls.local_mode == SiloMode.CELL
         if not is_cell_service and cell_resolution is not None:
@@ -119,7 +119,7 @@ class RpcMethodSignature(SerializableFunctionSignature):
             cell = self._cell_resolution.resolve(arguments)
             return _CellResolutionResult(cell=cell)
         except CellMappingNotFound:
-            if getattr(self.base_function, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
+            if getattr(self.base_function, _CELL_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
                 return _CellResolutionResult(cell=None, is_early_halt=True)
             else:
                 raise
@@ -183,18 +183,18 @@ def cell_rpc_method(
 ) -> Callable[[Callable[..., _T]], Callable[..., _T]]:
     """Decorate methods to be exposed as part of the RPC interface.
 
-    In addition, resolves the region based on the resolve callback function.
+    In addition, resolves the cell based on the resolve callback function.
     Should be applied only to methods of an RpcService subclass.
 
     The `return_none_if_mapping_not_found` option indicates that, if we fail to find
-    a region in which to look for the queried object, the decorated method should
+    a cell in which to look for the queried object, the decorated method should
     return `None` indicating that the queried object does not exist. This should be
     set only on methods with an `Optional[...]` return type.
     """
 
     def decorator(method: Callable[..., _T]) -> Callable[..., _T]:
-        setattr(method, _REGION_RESOLUTION_ATTR, resolve)
-        setattr(method, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, return_none_if_mapping_not_found)
+        setattr(method, _CELL_RESOLUTION_ATTR, resolve)
+        setattr(method, _CELL_RESOLUTION_OPTIONAL_RETURN_ATTR, return_none_if_mapping_not_found)
         return rpc_method(method)
 
     return decorator
