@@ -143,10 +143,9 @@ describe('parseXmlTagSegments', () => {
   it('handles multiline content inside tags', () => {
     const text = '<thinking>\nline1\nline2\n</thinking>';
     const segments = parseXmlTagSegments(text);
-    expect(segments).toHaveLength(1);
-    expect(segments[0]!.type).toBe('xml-tag');
-    expect(segments[0]!.tagName).toBe('thinking');
-    expect(segments[0]!.content).toBe('\nline1\nline2\n');
+    expect(segments).toEqual([
+      {type: 'xml-tag', tagName: 'thinking', content: '\nline1\nline2\n'},
+    ]);
   });
 
   it('returns single text segment when no XML tags', () => {

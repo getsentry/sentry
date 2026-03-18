@@ -1,6 +1,6 @@
 import {parseJsonWithFix} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
-export type AIContentType =
+type AIContentType =
   | 'json'
   | 'fixed-json'
   | 'python-dict'
@@ -8,11 +8,11 @@ export type AIContentType =
   | 'markdown'
   | 'plain-text';
 
-export type ContentSegment =
+type ContentSegment =
   | {content: string; type: 'text'}
   | {content: string; tagName: string; type: 'xml-tag'};
 
-export interface AIContentDetectionResult {
+interface AIContentDetectionResult {
   type: AIContentType;
   parsedData?: unknown;
   wasFixed?: boolean;
