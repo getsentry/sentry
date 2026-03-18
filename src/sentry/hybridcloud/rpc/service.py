@@ -111,28 +111,28 @@ class RpcMethodSignature(SerializableFunctionSignature):
 
         return cell_resolution
 
-    def resolve_to_region(self, arguments: ArgumentDict) -> _RegionResolutionResult:
+    def resolve_to_cell(self, arguments: ArgumentDict) -> _CellResolutionResult:
         if self._cell_resolution is None:
             raise self._setup_exception("Does not run on the region silo")
 
         try:
-            region = self._cell_resolution.resolve(arguments)
-            return _RegionResolutionResult(region)
+            cell = self._cell_resolution.resolve(arguments)
+            return _CellResolutionResult(cell=cell)
         except CellMappingNotFound:
             if getattr(self.base_function, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
-                return _RegionResolutionResult(None, is_early_halt=True)
+                return _CellResolutionResult(cell=None, is_early_halt=True)
             else:
                 raise
 
 
 @dataclass(frozen=True)
-class _RegionResolutionResult:
-    region: Cell | None
+class _CellResolutionResult:
+    cell: Cell | None
     is_early_halt: bool = False
 
     def __post_init__(self) -> None:
-        if (self.region is None) != self.is_early_halt:
-            raise ValueError("region must be supplied if and only if not halting early")
+        if (self.cell is None) != self.is_early_halt:
+            raise ValueError("cell must be supplied if and only if not halting early")
 
 
 class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
@@ -343,16 +343,16 @@ class RpcService(abc.ABC):
                     )
 
                 if cls.local_mode == SiloMode.CELL:
-                    result = signature.resolve_to_region(kwargs)
+                    result = signature.resolve_to_cell(kwargs)
                     if result.is_early_halt:
                         return None
-                    region = result.region
+                    cell = result.cell
                 else:
-                    region = None
+                    cell = None
 
                 serial_arguments = signature.serialize_arguments(kwargs)
                 return dispatch_remote_call(
-                    region, cls.key, method_name, serial_arguments, use_test_client=use_test_client
+                    cell, cls.key, method_name, serial_arguments, use_test_client=use_test_client
                 )
 
             return remote_method
