@@ -219,7 +219,7 @@ __all__ = (
     "MonitorIngestTestCase",
 )
 
-from ..types.region import get_cell_by_name
+from ..types.cell import get_cell_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
