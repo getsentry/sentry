@@ -86,13 +86,63 @@ describe('useDuplicatePrebuiltDashboard', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('resolves and duplicates a prebuilt dashboard', async () => {
+  it('fetches saved dashboard details and duplicates with saved filters', async () => {
+    const savedFilters = {
+      globalFilter: [
+        {
+          dataset: 'spans' as const,
+          tag: {key: 'db.normalized_description', name: 'db.normalized_description'},
+          value: '*billing*',
+        },
+      ],
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/55/`,
+      body: DashboardFixture([], {
+        id: '55',
+        prebuiltId: PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY,
+        filters: savedFilters,
+      }),
+    });
+    const createMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      method: 'POST',
+      body: DashboardFixture([], {id: '300'}),
+    });
+
+    const onSuccess = jest.fn();
+    const {result} = renderHookWithProviders(
+      () => useDuplicatePrebuiltDashboard({onSuccess}),
+      {organization}
+    );
+
+    await act(async () => {
+      await result.current.duplicatePrebuiltDashboard('55');
+    });
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        data: expect.objectContaining({filters: savedFilters}),
+      })
+    );
+    expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({id: '300'}));
+  });
+
+  it('resolves linked dashboard IDs from static config', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/55/`,
+      body: DashboardFixture([], {
+        id: '55',
+        prebuiltId: PrebuiltDashboardId.WEB_VITALS,
+      }),
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/dashboards/`,
       method: 'GET',
       body: [
         DashboardFixture([], {
-          id: '55',
+          id: '77',
           prebuiltId: PrebuiltDashboardId.WEB_VITALS_SUMMARY,
         }),
       ],
@@ -110,20 +160,20 @@ describe('useDuplicatePrebuiltDashboard', () => {
     );
 
     await act(async () => {
-      await result.current.duplicatePrebuiltDashboard(PrebuiltDashboardId.WEB_VITALS);
+      await result.current.duplicatePrebuiltDashboard('55');
     });
 
     expect(createMock).toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({id: '300'}));
   });
 
-  it('throws when no prebuiltId is provided', async () => {
+  it('throws when no dashboardId is provided', async () => {
     const {result} = renderHookWithProviders(() => useDuplicatePrebuiltDashboard({}), {
       organization,
     });
 
     await expect(result.current.duplicatePrebuiltDashboard(undefined)).rejects.toThrow(
-      'Prebuilt dashboard ID is required'
+      'Dashboard ID is required'
     );
   });
 });
