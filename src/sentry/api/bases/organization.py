@@ -712,20 +712,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         Does the given request have permission to access this release, based
         on the projects to which the release is attached?
 
-        By default (require_all_projects=False), access is granted if the user
-        has access to *any* project linked to the release. This is appropriate
-        for read operations.
+        By default, access is granted if the user has access to *any* project
+        on the release (suitable for reads). When require_all_projects=True,
+        the user must have access to *all* projects on the release (use for
+        mutations). Without this, a user with access to one project on a
+        multi-project release could modify or delete it, affecting projects
+        they cannot access. The all-projects check respects Open Membership
+        via has_global_access.
 
-        When require_all_projects=True and a release is provided, access is
-        only granted if the user has access to *all* projects linked to the
-        release. Use this for mutations (PUT, DELETE, POST) that affect the
-        entire release across all its projects. This check respects Open
-        Membership: when allow_joinleave is True, has_project_access grants
-        access to all active org projects via has_global_access.
-
-        If the given request has an actor (user or ApiKey), cache the results
-        for a minute on the unique combination of actor, org, release, project
-        ids, and require_all_projects.
+        Results are cached for 60s per actor/org/release/project-ids/mode.
         """
         actor_id = None
         has_perms = None
