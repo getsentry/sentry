@@ -1102,19 +1102,15 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
     transform: scale(0.95);
   }
 
-  ${p =>
-    p.isDragging &&
-    `
-      [data-drag-icon] {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-        pointer-events: auto;
-      }
-      [data-reorderable-handle-slot] {
-        opacity: 0;
-        transform: scale(0.95);
-      }
-    `}
+  [data-drag-icon] {
+    opacity: ${p => (p.isDragging ? 1 : undefined)};
+    transform: ${p => (p.isDragging ? 'translate(-50%, -50%) scale(1)' : undefined)};
+    pointer-events: ${p => (p.isDragging ? 'auto' : undefined)};
+  }
+  [data-reorderable-handle-slot] {
+    opacity: ${p => (p.isDragging ? 0 : undefined)};
+    transform: ${p => (p.isDragging ? 'scale(0.95)' : undefined)};
+  }
 `;
 
 const SidebarNavigationLink = styled(Link)`
