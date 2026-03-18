@@ -168,12 +168,9 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.disallowUnsupportedFilters).toBe(false);
   });
 
-  it('disables recent searches regardless of item type when disableRecentSearches is true', () => {
-    for (const itemType of [
-      TraceItemDataset.SPANS,
-      TraceItemDataset.LOGS,
-      TraceItemDataset.TRACEMETRICS,
-    ]) {
+  it.each([TraceItemDataset.SPANS, TraceItemDataset.LOGS, TraceItemDataset.TRACEMETRICS])(
+    'disables recent searches when disableRecentSearches is true for item type %s',
+    itemType => {
       const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
         initialProps: {
           ...defaultInitialProps,
@@ -186,7 +183,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
       expect(result.current.recentSearches).toBeUndefined();
       expect(result.current.namespace).toBeUndefined();
     }
-  });
+  );
 
   it('enables recent searches by default', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
