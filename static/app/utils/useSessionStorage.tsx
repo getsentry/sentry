@@ -58,8 +58,10 @@ export function useSessionStorage<T>(
   );
 
   const removeItem = useCallback(() => {
-    setState(initialValue);
-    sessionStorageWrapper.removeItem(key);
+    setState(() => {
+      sessionStorageWrapper.removeItem(key);
+      return initialValue;
+    });
   }, [key, initialValue]);
 
   if (!isBrowser) {
