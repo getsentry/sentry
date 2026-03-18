@@ -67,22 +67,21 @@ jobs:
           install-cmd: uv sync --only-dev --frozen --active
       - uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
-          path: ~/.cache/pre-commit
+          path: ~/.cache/prek
           key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
-      - name: Setup pre-commit
-        # We don't need pre-commit install --install-hooks since we're just interested
-        # in running the hooks.
+      - name: Setup prek
         run: |
-          pre-commit install-hooks
+          .venv/bin/prek prepare-hooks
 
-      - name: Run pre-commit on PR commits
+      - name: Run prek on PR commits
+        env:
+          ALL_FILES: ${{ steps.changes.outputs.all_files }}
         run: |
-          jq '.[]' --raw-output <<< '${{steps.changes.outputs.all_files}}' |
-            # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
-            xargs pre-commit run --files
+          jq '.[]' --raw-output <<< "$ALL_FILES" |
+            xargs .venv/bin/prek run -q --files
 
       - name: Apply any pre-commit fixed files
-        # note: this runs "always" or else it's skipped when pre-commit fails
+        # note: this runs "always" or else it's skipped when prek fails
         if: env.SECRET_ACCESS == 'true' && startsWith(github.ref, 'refs/pull') && !github.event.pull_request.draft && always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:

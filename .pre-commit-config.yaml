@@ -22,13 +22,13 @@ repos:
       # Configuration for ruff exists in pyproject.toml.
       - id: ruff-check
         name: ruff check
-        entry: .venv/bin/ruff check --force-exclude --fix
+        entry: .venv/bin/ruff check --force-exclude --fix --quiet
         language: system
         types: [python]
         require_serial: true
       - id: ruff-format
         name: ruff format
-        entry: .venv/bin/ruff format --force-exclude
+        entry: .venv/bin/ruff format --force-exclude --quiet
         language: system
         types_or: [python, pyi]
         require_serial: true
@@ -37,7 +37,7 @@ repos:
       # Configuration for flake8 S* rules exists in setup.cfg.
       - id: flake8-sentry
         name: flake8 (sentry rules)
-        entry: .venv/bin/flake8 --select=S
+        entry: .venv/bin/flake8 --select=S --quiet
         language: system
         types: [python]
         log_file: '.artifacts/flake8.pycodestyle.log'
@@ -139,7 +139,7 @@ repos:
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
-        args: [--verbose]
+        args: []
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
