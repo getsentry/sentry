@@ -27,17 +27,17 @@ const BUTTONS = [
   {
     label: t('Triage issues'),
     imageSrc: seerConfigHand2,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/autofix/',
   },
   {
     label: t('Run root cause analysis'),
     imageSrc: seerConfigConnect2,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/#root-cause-analysis',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#root-cause-analysis',
   },
   {
     label: t('Make code changes'),
     imageSrc: seerConfigBug1,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/#code-generation',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#code-generation',
   },
   {
     label: t('Review your code'),
