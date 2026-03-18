@@ -279,7 +279,6 @@ export function ChoiceMapperTable({
                 <Select
                   {...getSelector(itemKey, fieldKey)}
                   options={transformMappedChoices(getSelector(itemKey, fieldKey))}
-                  height={30}
                   disabled={disabled}
                   onChange={(v: {value: string | number | null} | null) =>
                     setValue(itemKey, fieldKey, v ? v.value : null)
