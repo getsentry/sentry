@@ -370,6 +370,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
+    defaultCodingAgent = serializers.CharField(required=False, allow_null=True)
+    defaultCodingAgentIntegrationId = serializers.IntegerField(required=False, allow_null=True)
     autoOpenPrs = serializers.BooleanField(required=False)
     autoEnableCodeReview = serializers.BooleanField(required=False)
     defaultCodeReviewTriggers = serializers.ListField(

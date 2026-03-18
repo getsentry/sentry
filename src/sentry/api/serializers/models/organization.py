@@ -557,6 +557,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
+    defaultCodingAgent: str | None
+    defaultCodingAgentIntegrationId: int | None
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
@@ -735,6 +737,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     "sentry:enable_seer_coding",
                     ENABLE_SEER_CODING_DEFAULT,
                 )
+            ),
+            "defaultCodingAgent": obj.get_option(
+                "sentry:seer_default_coding_agent",
+                None,
+            ),
+            "defaultCodingAgentIntegrationId": obj.get_option(
+                "sentry:seer_default_coding_agent_integration_id",
+                None,
             ),
             "autoOpenPrs": bool(
                 obj.get_option(

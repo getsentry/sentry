@@ -1510,6 +1510,28 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         assert self.organization.get_option("sentry:enable_seer_coding") is False
 
+    def test_default_coding_agent_default_none(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["defaultCodingAgent"] is None
+
+    def test_default_coding_agent_can_be_set(self) -> None:
+        data = {"defaultCodingAgent": "seer"}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
+        assert response.data["defaultCodingAgent"] == "seer"
+
+    def test_default_coding_agent_integration_id_default_none(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["defaultCodingAgentIntegrationId"] is None
+
+    def test_default_coding_agent_integration_id_can_be_set(self) -> None:
+        data = {"defaultCodingAgentIntegrationId": 123}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id") == 123
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] == 123
+
     def test_granular_replay_permissions_flag_set(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
