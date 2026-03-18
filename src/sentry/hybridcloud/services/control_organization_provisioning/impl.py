@@ -129,17 +129,13 @@ class DatabaseBackedControlOrganizationProvisioningService(
     def provision_organization(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         org_provision_args: OrganizationProvisioningOptions,
     ) -> RpcOrganizationSlugReservation:
-        resolved_cell_name = cell_name or region_name
-        assert resolved_cell_name is not None, "cell_name or region_name must be provided"
-
         # Generate a new non-conflicting slug and org ID
-        org_id = self._generate_org_snowflake_id(region_name=resolved_cell_name)
+        org_id = self._generate_org_snowflake_id(region_name=cell_name)
         slug = self._generate_org_slug(
-            region_name=resolved_cell_name, slug=org_provision_args.provision_options.slug
+            region_name=cell_name, slug=org_provision_args.provision_options.slug
         )
 
         # Generate a provisioning outbox for the region and drain
@@ -158,13 +154,13 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 slug=slug,
                 organization_id=org_id,
                 user_id=org_provision_args.provision_options.owning_user_id,
-                cell_name=resolved_cell_name,
+                cell_name=cell_name,
             )
 
             org_slug_res.save(unsafe_write=True)
             create_organization_provisioning_outbox(
                 organization_id=org_id,
-                cell_name=resolved_cell_name,
+                cell_name=cell_name,
                 org_provision_payload=provision_payload,
             ).save()
 
