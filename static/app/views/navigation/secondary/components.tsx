@@ -1089,15 +1089,6 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
     }
   }
 
-  ${p =>
-    p.isDragging &&
-    css`
-      [data-drag-icon] {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-      }
-    `}
-
   [data-reorderable-handle-slot] {
     transform: scale(1);
     transition:
@@ -1113,7 +1104,12 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
 
   ${p =>
     p.isDragging &&
-    css`
+    `
+      [data-drag-icon] {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+        pointer-events: auto;
+      }
       [data-reorderable-handle-slot] {
         opacity: 0;
         transform: scale(0.95);
