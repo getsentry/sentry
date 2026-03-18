@@ -511,6 +511,8 @@ class GitHubBaseClient(
             allow_redirects=False,
             raw_response=True,
         )
+        if resp.status_code != 302 or "Location" not in resp.headers:
+            raise ApiError.from_response(resp)
         return resp.headers["Location"]
 
     def get_repo(self, repo: str) -> Any:
