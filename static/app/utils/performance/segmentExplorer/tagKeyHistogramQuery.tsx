@@ -72,7 +72,7 @@ function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
   );
 }
 
-function TagKeyHistogramQuery(props: QueryProps) {
+export function TagKeyHistogramQuery(props: QueryProps) {
   return (
     <GenericDiscoverQuery<TableData, QueryProps>
       route="events-facets-performance-histogram"
@@ -82,5 +82,3 @@ function TagKeyHistogramQuery(props: QueryProps) {
     />
   );
 }
-
-export default TagKeyHistogramQuery;

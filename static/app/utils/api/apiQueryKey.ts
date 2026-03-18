@@ -1,4 +1,4 @@
-import type getApiUrl from 'sentry/utils/api/getApiUrl';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 export type RequestMethod = 'DELETE' | 'GET' | 'POST' | 'PUT';
 

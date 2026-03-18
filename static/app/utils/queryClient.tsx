@@ -17,8 +17,8 @@ import type {
   InfiniteApiQueryKey,
   QueryKeyEndpointOptions,
 } from 'sentry/utils/api/apiQueryKey';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export type {
   /**

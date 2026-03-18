@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';

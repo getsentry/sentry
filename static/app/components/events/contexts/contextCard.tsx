@@ -76,13 +76,7 @@ export function ContextCardContent({
   );
 }
 
-export default function ContextCard({
-  alias,
-  event,
-  type,
-  project,
-  value = {},
-}: ContextCardProps) {
+export function ContextCard({alias, event, type, project, value = {}}: ContextCardProps) {
   const location = useLocation();
   const organization = useOrganization();
   const theme = useTheme();

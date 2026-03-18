@@ -780,6 +780,4 @@ export const otherPlatform: PlatformIntegration = {
 /**
  * Array of all platforms that are displayed in the project creation flow.
  */
-const allPlatforms = [...platforms, otherPlatform];
-
-export default allPlatforms;
+export const allPlatforms = [...platforms, otherPlatform];

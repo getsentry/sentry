@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import {GridBodyCell, GridHeadCell} from 'sentry/components/tables/gridEditable/styles';

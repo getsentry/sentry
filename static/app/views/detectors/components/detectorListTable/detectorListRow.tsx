@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IssueCell} from 'sentry/components/workflowEngine/gridCell/issueCell';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';

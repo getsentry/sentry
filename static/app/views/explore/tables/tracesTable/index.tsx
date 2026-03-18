@@ -8,10 +8,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning, EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons/iconArrow';

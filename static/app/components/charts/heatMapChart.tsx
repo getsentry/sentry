@@ -6,7 +6,7 @@ import type {Series} from 'sentry/types/echarts';
 
 import {HeatMapSeries} from './series/heatMapSeries';
 import type {BaseChartProps} from './baseChart';
-import BaseChart from './baseChart';
+import {BaseChart} from './baseChart';
 
 interface HeatmapSeries
   extends Series, Omit<HeatmapSeriesOption, 'data' | 'name' | 'color' | 'id'> {

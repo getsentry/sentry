@@ -7,7 +7,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';

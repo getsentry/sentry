@@ -35,7 +35,7 @@ import type {
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
-import LogsTimestampTooltip from 'sentry/views/explore/logs/logsTimeTooltip';
+import {LogsTimestampTooltip} from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
   ColoredLogCircle,

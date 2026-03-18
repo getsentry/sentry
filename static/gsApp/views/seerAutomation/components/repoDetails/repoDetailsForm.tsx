@@ -1,7 +1,7 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {t, tct} from 'sentry/locale';
 import {type RepositoryWithSettings} from 'sentry/types/integrations';

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Stack, type StackProps} from '@sentry/scraps/layout';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 
 const HeaderLayout = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};

@@ -26,7 +26,7 @@ import {
   getExceptionGroupHeight,
   getExceptionGroupWidth,
 } from 'sentry/utils/eventExceptionGroup';
-import getDaysSinceDate, {getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
+import {getDaysSinceDate, getDaysSinceDatePrecise} from 'sentry/utils/getDaysSinceDate';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 

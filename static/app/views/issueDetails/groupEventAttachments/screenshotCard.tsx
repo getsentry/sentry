@@ -12,8 +12,9 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ImageVisualization} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
-import ScreenshotModal, {
+import {
   modalCss,
+  ScreenshotModal,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

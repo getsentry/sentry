@@ -28,6 +28,8 @@ WidgetType = Literal[
     "tracemetrics",
 ]
 
+Intervals = Literal["5m", "15m", "30m", "1h", "4h", "12h", "24h"]
+
 # Blocklist for frequently hallucinated functions or functions we want to avoid using
 FUNCTION_BLOCKLIST: set[str] = {"spm", "apdex"}
 
@@ -122,6 +124,7 @@ class GeneratedWidget(BaseModel):
     queries: list[GeneratedWidgetQuery]
     layout: GeneratedWidgetLayout
     limit: int | None = Field(default=None, le=10, ge=1)
+    interval: Intervals = Field(default="1h")
 
 
 class GeneratedDashboard(BaseModel):

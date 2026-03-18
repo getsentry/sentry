@@ -6,12 +6,12 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import CreateAlertButton from 'sentry/components/createAlertButton';
+import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import Hook from 'sentry/components/hook';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';

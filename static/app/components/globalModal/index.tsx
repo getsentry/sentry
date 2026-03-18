@@ -111,7 +111,7 @@ type Props = {
   onClose?: () => void;
 };
 
-function GlobalModal({onClose}: Props) {
+export function GlobalModal({onClose}: Props) {
   const {renderer, options, visible} = useGlobalModal();
   const location = useLocation();
 
@@ -320,5 +320,3 @@ const Content = styled('div')`
     padding: ${p => p.theme.space['3xl']};
   }
 `;
-
-export default GlobalModal;

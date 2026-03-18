@@ -1,8 +1,9 @@
 import {useCallback, useEffect} from 'react';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

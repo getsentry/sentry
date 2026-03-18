@@ -5,7 +5,7 @@ import {Radio} from '@sentry/scraps/radio';
 
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {EventType, type RecordingFrame} from 'sentry/utils/replays/types';
 
 interface Props {

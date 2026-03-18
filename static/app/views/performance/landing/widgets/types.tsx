@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import type BaseChart from 'sentry/components/charts/baseChart';
+import type {BaseChart} from 'sentry/components/charts/baseChart';
 import type {DateString} from 'sentry/types/core';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';

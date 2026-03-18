@@ -7,6 +7,7 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -17,13 +18,14 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import GridEditable, {
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
-import TimeSince from 'sentry/components/timeSince';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -209,14 +211,16 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.NAME) {
       return (
-        <Link
-          to={{
-            pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
-            ...queryLocation,
-          }}
-        >
-          {dataRow[ResponseKeys.NAME]}
-        </Link>
+        <Text ellipsis variant="accent">
+          <Link
+            to={{
+              pathname: `/organizations/${organization.slug}/dashboard/${dataRow.id}/`,
+              ...queryLocation,
+            }}
+          >
+            {dataRow[ResponseKeys.NAME]}
+          </Link>
+        </Text>
       );
     }
 
