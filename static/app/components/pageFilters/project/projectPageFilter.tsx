@@ -246,7 +246,7 @@ export function ProjectPageFilter({
                     ({projects.length})
                   </Text>
                   {/* Show separator if we are not displaying My Projects */}
-                  {memberProjectList.length > 0 ? null : (
+                  {memberProjectList.length > 0 && !isOpenMembership ? null : (
                     <Separator
                       orientation="horizontal"
                       aria-hidden
@@ -510,7 +510,9 @@ export function ProjectPageFilter({
 
   const handleReset = () => {
     clearDraftSelectionState();
-    commitSelection(memberProjectIds(projects));
+    commitSelection(
+      isOpenMembership ? [ALL_ACCESS_PROJECTS] : memberProjectIds(projects)
+    );
     onReset?.();
 
     trackAnalytics('projectselector.clear', {
@@ -619,7 +621,10 @@ export function ProjectPageFilter({
       }
       onOpenChange={handleOpenChange}
       menuHeaderTrailingItems={
-        xor(stagedSelect.value, memberProjectIds(projects)).length > 0 ? (
+        xor(
+          stagedSelect.value,
+          isOpenMembership ? allProjectIds(projects) : memberProjectIds(projects)
+        ).length > 0 ? (
           <MenuComponents.ResetButton onClick={handleReset} />
         ) : null
       }
@@ -759,9 +764,14 @@ function toURLSelection({
     value.includes(project)
   );
 
-  // "My Projects" — applies regardless of showNonMemberProjects so closed-org
-  // selections round-trip correctly through the compact [] URL encoding.
-  if (value.length === memberProjectIds(projects).length && memberProjectsSelected) {
+  // "My Projects" — applies only in closed-membership orgs. In open-membership orgs,
+  // [] means "All Projects", so we must not collapse a member-project selection to []
+  // or it will silently expand back to all projects on the next page load.
+  if (
+    !isOpenMembership &&
+    value.length === memberProjectIds(projects).length &&
+    memberProjectsSelected
+  ) {
     return [];
   }
 

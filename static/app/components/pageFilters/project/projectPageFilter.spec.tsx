@@ -938,6 +938,44 @@ describe('ProjectPageFilter', () => {
 
       expect(screen.getByRole('button', {name: 'All Projects'})).toBeInTheDocument();
     });
+
+    it('does not show Reset button when All Projects is the default state', async () => {
+      // In an open-membership org, the default is All Projects (empty URL).
+      // The Reset button must not appear just because memberProjectIds != [ALL_ACCESS_PROJECTS].
+      render(<ProjectPageFilter />, {
+        organization: openOrg,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+
+      expect(screen.queryByRole('button', {name: 'Reset'})).not.toBeInTheDocument();
+    });
+
+    it('selecting exactly member projects preserves explicit project IDs in the URL', async () => {
+      // Bug: toURLSelection would collapse [1, 2] (member projects) to [] because
+      // value.length === memberProjectIds.length. In open-membership orgs [] means
+      // "All Projects", silently re-expanding the user's explicit selection on reload.
+      const {router} = render(<ProjectPageFilter />, {
+        organization: openOrg,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      // Default is All Projects — open the menu and uncheck the non-member project,
+      // leaving exactly the two member projects (1 and 2) selected.
+      await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      // URL must carry explicit IDs — an undefined project param would mean All Projects.
+      await waitFor(() => {
+        expect(router.location.query.project).toBeDefined();
+      });
+    });
   });
 
   describe('closed-membership org defaults', () => {
