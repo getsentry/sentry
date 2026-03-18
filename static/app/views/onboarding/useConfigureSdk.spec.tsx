@@ -3,17 +3,17 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import * as OnboardingContext from 'sentry/components/onboarding/onboardingContext';
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {useConfigureSdk} from './useConfigureSdk';
 
 jest.mock('sentry/actionCreators/modal');
 jest.mock('sentry/components/onboarding/useCreateProject');
 
-const mockUseOnboardingContext = jest.spyOn(OnboardingContext, 'useOnboardingContext');
 const mockCreateProject = jest.fn();
 const mockOpenModal = openModal as jest.Mock;
 
@@ -64,14 +64,8 @@ describe('useConfigureSdk', () => {
   };
 
   beforeEach(() => {
+    sessionStorageWrapper.clear();
     ProjectsStore.loadInitialData([ProjectFixture()]);
-
-    mockUseOnboardingContext.mockReturnValue({
-      setSelectedPlatform: jest.fn(),
-      setSelectedIntegration: jest.fn(),
-      setSelectedRepository: jest.fn(),
-      setSelectedFeatures: jest.fn(),
-    });
 
     createProjectInstance = mockCreateProjectHook();
     mockUseCreateProject.mockReturnValue(createProjectInstance);
@@ -82,13 +76,17 @@ describe('useConfigureSdk', () => {
   });
 
   it('returns loading state correctly', () => {
-    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}));
+    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
+      additionalWrapper: OnboardingContextProvider,
+    });
 
     expect(result.current.isLoadingData).toBe(true);
   });
 
   it('opens the framework suggestion modal if platform is supported', async () => {
-    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}));
+    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
+      additionalWrapper: OnboardingContextProvider,
+    });
 
     await act(async () => {
       await result.current.configureSdk(frameworkModalSupportedPlatform);
@@ -98,7 +96,9 @@ describe('useConfigureSdk', () => {
   });
 
   it('does not open the framework suggestion modal if platform is not supported', async () => {
-    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}));
+    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
+      additionalWrapper: OnboardingContextProvider,
+    });
 
     await act(async () => {
       await result.current.configureSdk(notFrameworkModalSupportedPlatform);
@@ -109,7 +109,9 @@ describe('useConfigureSdk', () => {
   });
 
   it('creates project only once even if called multiple times', async () => {
-    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}));
+    const {result} = renderHookWithProviders(() => useConfigureSdk({onComplete}), {
+      additionalWrapper: OnboardingContextProvider,
+    });
 
     mockCreateProject.mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 10))

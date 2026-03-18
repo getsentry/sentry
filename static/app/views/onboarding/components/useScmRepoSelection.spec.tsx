@@ -2,12 +2,24 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as OnboardingContext from 'sentry/components/onboarding/onboardingContext';
+import {
+  OnboardingContextProvider,
+  type OnboardingSessionState,
+} from 'sentry/components/onboarding/onboardingContext';
 import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {useScmRepoSelection} from './useScmRepoSelection';
 
-const mockUseOnboardingContext = jest.spyOn(OnboardingContext, 'useOnboardingContext');
+function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
+  return function OnboardingWrapper({children}: {children?: React.ReactNode}) {
+    return (
+      <OnboardingContextProvider value={initialState}>
+        {children}
+      </OnboardingContextProvider>
+    );
+  };
+}
 
 describe('useScmRepoSelection', () => {
   const organization = OrganizationFixture();
@@ -32,6 +44,9 @@ describe('useScmRepoSelection', () => {
     },
   };
 
+  let onSelect: jest.Mock;
+  let reposByIdentifier: Map<string, IntegrationRepository>;
+
   const mockRepo: IntegrationRepository = {
     identifier: 'getsentry/sentry',
     name: 'sentry',
@@ -44,26 +59,10 @@ describe('useScmRepoSelection', () => {
     isInstalled: true,
   };
 
-  let onSelect: jest.Mock;
-  let reposByIdentifier: Map<string, IntegrationRepository>;
-
-  function setupContext(overrides = {}) {
-    mockUseOnboardingContext.mockReturnValue({
-      selectedIntegration: mockIntegration,
-      selectedRepository: undefined,
-      setSelectedPlatform: jest.fn(),
-      setSelectedIntegration: jest.fn(),
-      setSelectedRepository: jest.fn(),
-      setSelectedFeatures: jest.fn(),
-      ...overrides,
-    });
-  }
-
   beforeEach(() => {
+    sessionStorageWrapper.clear();
     onSelect = jest.fn();
     reposByIdentifier = new Map([['getsentry/sentry', mockRepo]]);
-
-    setupContext();
 
     // Default: no existing repos
     MockApiClient.addMockResponse({
@@ -90,7 +89,12 @@ describe('useScmRepoSelection', () => {
 
     const {result} = renderHookWithProviders(
       () => useScmRepoSelection({onSelect, reposByIdentifier}),
-      {organization}
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedIntegration: mockIntegration,
+        }),
+      }
     );
 
     await act(async () => {
@@ -133,7 +137,12 @@ describe('useScmRepoSelection', () => {
 
     const {result} = renderHookWithProviders(
       () => useScmRepoSelection({onSelect, reposByIdentifier}),
-      {organization}
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedIntegration: mockIntegration,
+        }),
+      }
     );
 
     // Wait for existing repos query to resolve
@@ -159,7 +168,12 @@ describe('useScmRepoSelection', () => {
 
     const {result} = renderHookWithProviders(
       () => useScmRepoSelection({onSelect, reposByIdentifier}),
-      {organization}
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedIntegration: mockIntegration,
+        }),
+      }
     );
 
     await act(async () => {
@@ -193,7 +207,12 @@ describe('useScmRepoSelection', () => {
 
     const {result} = renderHookWithProviders(
       () => useScmRepoSelection({onSelect, reposByIdentifier}),
-      {organization}
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedIntegration: mockIntegration,
+        }),
+      }
     );
 
     // First selection
@@ -229,14 +248,6 @@ describe('useScmRepoSelection', () => {
   });
 
   it('does not call hideRepository on remove if repo was pre-existing', async () => {
-    setupContext({
-      selectedRepository: {
-        id: '99',
-        name: 'sentry',
-        externalSlug: 'getsentry/sentry',
-      },
-    });
-
     const hideRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/99/`,
       method: 'PUT',
@@ -245,7 +256,17 @@ describe('useScmRepoSelection', () => {
 
     const {result} = renderHookWithProviders(
       () => useScmRepoSelection({onSelect, reposByIdentifier}),
-      {organization}
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedIntegration: mockIntegration,
+          selectedRepository: {
+            id: '99',
+            name: 'sentry',
+            externalSlug: 'getsentry/sentry',
+          } as any,
+        }),
+      }
     );
 
     await act(async () => {

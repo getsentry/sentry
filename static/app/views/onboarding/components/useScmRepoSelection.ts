@@ -45,7 +45,6 @@ export function useScmRepoSelection({
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const {selectedIntegration, selectedRepository} = useOnboardingContext();
-  const selectedRepo = selectedRepository ?? null;
   const [adding, setAdding] = useState(false);
 
   // Fetch repos already registered in Sentry for this integration, so we
@@ -69,6 +68,8 @@ export function useScmRepoSelection({
   // it up if the user switches to a different repo.
   const addedRepoIdRef = useRef<string | null>(null);
 
+  // Best-effort cleanup: fire-and-forget the hide request. If it fails the
+  // repo stays registered in Sentry but is non-critical for the onboarding flow.
   const cleanupPreviousAdd = () => {
     if (addedRepoIdRef.current) {
       try {
@@ -116,11 +117,11 @@ export function useScmRepoSelection({
   };
 
   const handleRemove = async () => {
-    if (!selectedRepo) {
+    if (!selectedRepository) {
       return;
     }
 
-    const previous = selectedRepo;
+    const previous = selectedRepository;
     onSelect(undefined);
 
     if (addedRepoIdRef.current && addedRepoIdRef.current === previous.id) {

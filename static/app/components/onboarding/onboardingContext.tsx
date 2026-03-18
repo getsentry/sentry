@@ -16,7 +16,7 @@ type OnboardingContextProps = {
   selectedRepository?: Repository;
 };
 
-type OnboardingSessionState = {
+export type OnboardingSessionState = {
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
@@ -40,18 +40,16 @@ const OnboardingContext = createContext<OnboardingContextProps>({
 type ProviderProps = {
   children: React.ReactNode;
   /**
-   * This is only used in our frontend tests to set the initial value of the context.
+   * Optional initial session state. Primarily used in tests to seed the context
+   * without touching session storage directly.
    */
-  value?: Pick<OnboardingContextProps, 'selectedPlatform'>;
+  value?: OnboardingSessionState;
 };
 
 export function OnboardingContextProvider({children, value}: ProviderProps) {
   const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
     OnboardingSessionState | undefined
-  >(
-    'onboarding',
-    value?.selectedPlatform ? {selectedPlatform: value.selectedPlatform} : undefined
-  );
+  >('onboarding', value);
 
   const contextValue = useMemo(
     () => ({

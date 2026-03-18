@@ -10,7 +10,7 @@ interface ScmRepoSearchResult {
   repos: IntegrationRepository[];
 }
 
-export function useScmRepoSearch(integrationId: string, selectedRepo: Repository | null) {
+export function useScmRepoSearch(integrationId: string, selectedRepo?: Repository) {
   const organization = useOrganization();
   const [search, setSearch] = useState<string>();
   const debouncedSearch = useDebouncedValue(search, 200);

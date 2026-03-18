@@ -15,10 +15,19 @@ import type {StepProps} from './types';
 import {useScmProviders} from './useScmProviders';
 
 export function ScmConnect({onComplete}: StepProps) {
-  const onboardingContext = useOnboardingContext();
-  const {selectedIntegration, setSelectedIntegration} = onboardingContext;
-  const {scmProviders, isPending, refetchIntegrations, activeIntegrationExisting} =
-    useScmProviders();
+  const {
+    selectedIntegration,
+    setSelectedIntegration,
+    selectedRepository,
+    setSelectedRepository,
+  } = useOnboardingContext();
+  const {
+    scmProviders,
+    isPending,
+    isError,
+    refetchIntegrations,
+    activeIntegrationExisting,
+  } = useScmProviders();
 
   // If an existing SCM integration is detected and context doesn't have one
   // yet, persist it to context so downstream steps and child components can
@@ -31,17 +40,26 @@ export function ScmConnect({onComplete}: StepProps) {
 
   const handleInstall = useCallback(
     (data: Integration) => {
-      onboardingContext.setSelectedIntegration(data);
-      onboardingContext.setSelectedRepository(undefined);
+      setSelectedIntegration(data);
+      setSelectedRepository(undefined);
       refetchIntegrations();
     },
-    [onboardingContext, refetchIntegrations]
+    [setSelectedIntegration, setSelectedRepository, refetchIntegrations]
   );
 
   if (isPending) {
     return (
       <Flex justify="center" align="center" flexGrow={1}>
         <LoadingIndicator />
+      </Flex>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Flex direction="column" align="center" gap="lg" flexGrow={1}>
+        <Text variant="muted">{t('Failed to load integrations.')}</Text>
+        <Button onClick={() => refetchIntegrations()}>{t('Retry')}</Button>
       </Flex>
     );
   }
@@ -56,7 +74,7 @@ export function ScmConnect({onComplete}: StepProps) {
       </Stack>
 
       <Stack gap="lg" width="100%" maxWidth="600px">
-        {onboardingContext.selectedIntegration ? (
+        {selectedIntegration ? (
           <ScmConnectedView />
         ) : (
           <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
@@ -68,7 +86,7 @@ export function ScmConnect({onComplete}: StepProps) {
         <Button
           priority="primary"
           onClick={() => onComplete()}
-          disabled={!onboardingContext.selectedRepository}
+          disabled={!selectedRepository}
         >
           {t('Continue')}
         </Button>
