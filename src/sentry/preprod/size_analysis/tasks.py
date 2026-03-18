@@ -49,7 +49,7 @@ def compare_preprod_artifact_size_analysis(
 ) -> None:
     logger.info(
         "preprod.size_analysis.compare.start",
-        extra={"artifact_id": artifact_id},
+        extra={"artifact_id": artifact_id, "project_id": project_id, "org_id": org_id},
     )
 
     try:
@@ -229,6 +229,15 @@ def compare_preprod_artifact_size_analysis(
                 },
             )
             _run_size_analysis_comparison(org_id, head_metric, base_metric)
+
+        logger.info(
+            "preprod.size_analysis.compare.dispatching_status_checks",
+            extra={
+                "artifact_id": artifact.id,
+                "commit_comparison_id": artifact.commit_comparison_id,
+                "status_check_artifact_ids": list(preprod_artifact_status_check_updates),
+            },
+        )
 
         for artifact_id in preprod_artifact_status_check_updates:
             # Update all artifact's status check with the new comparison

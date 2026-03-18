@@ -172,7 +172,11 @@ def create_preprod_status_check_task(
 
     logger.info(
         "preprod.status_checks.create.start",
-        extra={"artifact_id": preprod_artifact.id, "caller": caller},
+        extra={
+            "artifact_id": preprod_artifact.id,
+            "caller": caller,
+            "commit_comparison_id": preprod_artifact.commit_comparison_id,
+        },
     )
 
     if not preprod_artifact.commit_comparison:
@@ -207,6 +211,16 @@ def create_preprod_status_check_task(
 
     # Get all artifacts for this commit across all projects in the organization
     all_artifacts = list(preprod_artifact.get_sibling_artifacts_for_commit())
+
+    logger.info(
+        "preprod.status_checks.create.sibling_artifacts",
+        extra={
+            "artifact_id": preprod_artifact.id,
+            "commit_comparison_id": commit_comparison.id,
+            "sibling_artifact_ids": [a.id for a in all_artifacts],
+            "sibling_count": len(all_artifacts),
+        },
+    )
 
     client, repository = get_status_check_client(preprod_artifact.project, commit_comparison)
     if not client or not repository:
@@ -324,6 +338,7 @@ def create_preprod_status_check_task(
     except Exception as e:
         extra: dict[str, Any] = {
             "artifact_id": preprod_artifact.id,
+            "commit_comparison_id": commit_comparison.id,
             "organization_id": preprod_artifact.project.organization_id,
             "organization_slug": preprod_artifact.project.organization.slug,
             "error_type": type(e).__name__,
@@ -342,6 +357,7 @@ def create_preprod_status_check_task(
             "preprod.status_checks.create.failed",
             extra={
                 "artifact_id": preprod_artifact.id,
+                "commit_comparison_id": commit_comparison.id,
                 "organization_id": preprod_artifact.project.organization_id,
                 "organization_slug": preprod_artifact.project.organization.slug,
                 "error_type": "null_check_id",
@@ -366,6 +382,7 @@ def create_preprod_status_check_task(
         "preprod.status_checks.create.success",
         extra={
             "artifact_id": preprod_artifact.id,
+            "commit_comparison_id": commit_comparison.id,
             "status": status.value,
             "check_id": check_id,
             "organization_id": preprod_artifact.project.organization_id,

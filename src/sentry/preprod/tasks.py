@@ -637,6 +637,14 @@ def _assemble_preprod_artifact_size_analysis(
         )
 
         # Always trigger status check update (success or failure)
+        logger.info(
+            "preprod.status_checks.dispatching",
+            extra={
+                "preprod_artifact_id": artifact_id,
+                "commit_comparison_id": preprod_artifact.commit_comparison_id,
+                "caller": "assemble_completion",
+            },
+        )
         create_preprod_status_check_task.apply_async(
             kwargs={
                 "preprod_artifact_id": artifact_id,
