@@ -12,9 +12,9 @@ from pytest_django.live_server_helper import LiveServer
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.region import override_regions
-from sentry.testutils.silo import cell_silo_test, create_test_regions
+from sentry.testutils.silo import cell_silo_test, create_test_cells
 from sentry.testutils.skips import requires_objectstore
 from sentry.types.cell import Cell
 from sentry.utils import json
@@ -160,10 +160,10 @@ class OrganizationObjectstoreEndpointTest(TransactionTestCase):
         assert retrieved.payload.read() == data
 
 
-test_region = create_test_regions("us")[0]
+test_region = create_test_cells("us")[0]
 
 
-@cell_silo_test(regions=(test_region,))
+@cell_silo_test(cells=(test_region,))
 @requires_objectstore
 @with_feature("organizations:objectstore-endpoint")
 @pytest.mark.usefixtures("local_live_server")
@@ -198,7 +198,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
     def test_health(self):
         config = asdict(test_region)
         config["address"] = self.live_server.url
-        with override_regions([Cell(**config)]):
+        with override_cells([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 response = self.client.get(
                     self.get_endpoint_url() + "health",
@@ -213,7 +213,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         config["address"] = self.live_server.url
         auth_header = self.create_basic_auth_header(self.api_key.key).decode()
 
-        with override_regions([Cell(**config)]):
+        with override_cells([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
 
@@ -284,7 +284,7 @@ class OrganizationObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
         ctx = zstandard.ZstdCompressor()
         compressed = ctx.compress(data)
 
-        with override_regions([Cell(**config)]):
+        with override_cells([Cell(**config)]):
             with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 base_url = f"{self.get_endpoint_url()}v1/objects/test/org={self.organization.id}/"
 

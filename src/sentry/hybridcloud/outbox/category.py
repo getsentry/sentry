@@ -70,7 +70,7 @@ class OutboxCategory(IntEnum):
     def as_choices(cls) -> Sequence[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
 
-    def connect_region_model_updates(self, model: type[ReplicatedCellModel]) -> None:
+    def connect_cell_model_updates(self, model: type[ReplicatedCellModel]) -> None:
         def receiver(
             object_identifier: int,
             payload: Mapping[str, Any] | None,
