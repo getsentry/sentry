@@ -928,8 +928,8 @@ function GrabHandle(props: FlexProps<'div'>) {
       {...attributes}
       radius="xs"
       aria-label={t('Drag to reorder')}
-      width="18px"
-      height="18px"
+      width="24px"
+      height="24px"
       justify="center"
       align="center"
       style={{cursor: isDragging ? 'grabbing' : 'grab'}}
