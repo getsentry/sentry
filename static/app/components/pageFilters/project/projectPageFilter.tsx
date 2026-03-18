@@ -667,11 +667,11 @@ interface SelectionIntent {
 function urlSelectionToIntent({
   projects,
   urlSelection,
-  isOpenMembership = false,
+  isOpenMembership,
 }: {
+  isOpenMembership: boolean;
   projects: Project[];
   urlSelection: number[];
-  isOpenMembership?: boolean;
 }): SelectionIntent {
   if (urlSelection.includes(ALL_ACCESS_PROJECTS)) {
     return {kind: 'all', ids: allProjectIds(projects)};
@@ -738,11 +738,11 @@ function selectionToIntent({
 function toURLSelection({
   projects,
   value,
-  isOpenMembership = false,
+  isOpenMembership,
 }: {
+  isOpenMembership: boolean;
   projects: Project[];
   value: number[];
-  isOpenMembership?: boolean;
 }): number[] {
   if (value.includes(ALL_ACCESS_PROJECTS)) {
     // In open-membership orgs keep using [] (no param) so the URL stays clean and
