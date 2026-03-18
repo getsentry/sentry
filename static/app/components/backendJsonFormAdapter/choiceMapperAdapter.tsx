@@ -28,6 +28,7 @@ interface ChoiceMapperDropdownProps {
   onChange: (value: Record<string, Record<string, unknown>>) => void;
   onLabelAdd: (value: string, label: ReactNode) => void;
   value: Record<string, Record<string, unknown>>;
+  disabled?: boolean;
   indicator?: React.ReactNode;
 }
 
@@ -48,12 +49,14 @@ function AsyncSearchCompactSelect({
   searchField,
   defaultOptions,
   noResultsMessage,
+  disabled,
   onChange,
   ...triggerProps
 }: {
   defaultOptions: Array<SelectOption<string>>;
   onChange: (option: SelectOption<string>) => void;
   url: string;
+  disabled?: boolean;
   noResultsMessage?: string;
   searchField?: string;
 } & DistributedPick<SelectProps<string>, 'trigger'>) {
@@ -80,7 +83,7 @@ function AsyncSearchCompactSelect({
       value={undefined}
       search={{filter: false, onChange: setSearch}}
       clearable={false}
-      disabled={false}
+      disabled={disabled}
       options={options}
       onChange={option => {
         setSearch('');
@@ -114,6 +117,7 @@ export function ChoiceMapperDropdown({
   value,
   onChange,
   onLabelAdd,
+  disabled,
   indicator,
 }: ChoiceMapperDropdownProps) {
   const {columnLabels = {}} = config;
@@ -146,6 +150,7 @@ export function ChoiceMapperDropdown({
           searchField={config.addDropdown?.searchField}
           defaultOptions={selectableValues.map(i => ({value: i.value, label: i.label}))}
           noResultsMessage={config.addDropdown?.noResultsMessage ?? t('No results found')}
+          disabled={disabled}
           onChange={addRow}
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps}>
@@ -171,7 +176,7 @@ export function ChoiceMapperDropdown({
         }
         size="xs"
         search
-        disabled={false}
+        disabled={disabled}
         options={selectableValues.map(i => ({value: i.value, label: i.label}))}
         menuWidth={250}
         onChange={addRow}

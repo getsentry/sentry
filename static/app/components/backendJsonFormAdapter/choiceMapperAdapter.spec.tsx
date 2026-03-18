@@ -497,6 +497,7 @@ describe('ChoiceMapperAdapter', () => {
 
     // Controls should be disabled while mutation is pending
     expect(screen.getByRole('button', {name: 'Delete'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: /Add Repo/i})).toBeDisabled();
 
     // Resolve the mutation
     resolveMutation();
@@ -505,5 +506,6 @@ describe('ChoiceMapperAdapter', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Delete'})).toBeEnabled();
     });
+    expect(screen.getByRole('button', {name: /Add Repo/i})).toBeEnabled();
   });
 });

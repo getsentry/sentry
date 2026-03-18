@@ -203,6 +203,7 @@ export function BackendJsonFormAdapter<
                       setLabels(prev => ({...prev, [key]: label}));
                     }}
                     onChange={fieldApi.handleChange}
+                    disabled={field.disabled || baseProps.disabled}
                     indicator={indicator}
                   />
                 </fieldApi.Layout.Row>
