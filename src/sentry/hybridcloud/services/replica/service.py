@@ -99,8 +99,7 @@ class CellReplicaService(RpcService):
         self,
         *,
         api_token: RpcApiToken,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         pass
 

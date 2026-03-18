@@ -151,8 +151,7 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         self,
         *,
         api_token: RpcApiToken,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         organization: Organization | None = None
         if api_token.organization_id is not None:
