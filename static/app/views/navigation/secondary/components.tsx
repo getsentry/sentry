@@ -1098,6 +1098,8 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
     transition:
       opacity ${p => p.theme.motion.smooth.moderate},
       transform ${p => p.theme.motion.smooth.moderate};
+    opacity: ${p => (p.isDragging ? 0 : undefined)};
+    transform: ${p => (p.isDragging ? 'scale(0.95)' : undefined)};
   }
 
   :hover [data-reorderable-handle-slot],
@@ -1110,10 +1112,6 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
     opacity: ${p => (p.isDragging ? 1 : undefined)};
     transform: ${p => (p.isDragging ? 'translate(-50%, -50%) scale(1)' : undefined)};
     pointer-events: ${p => (p.isDragging ? 'auto' : undefined)};
-  }
-  [data-reorderable-handle-slot] {
-    opacity: ${p => (p.isDragging ? 0 : undefined)};
-    transform: ${p => (p.isDragging ? 'scale(0.95)' : undefined)};
   }
 `;
 
