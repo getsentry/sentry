@@ -390,10 +390,6 @@ class SlackExplorerEntrypoint(
         return has_seer_slack_feature_flag and has_explorer_access
 
     def on_trigger_explorer_error(self, *, error: str) -> None:
-        self.install.clear_thread_status(
-            channel_id=self.thread["channel_id"],
-            thread_ts=self.thread["thread_ts"],
-        )
         send_thread_update(
             install=self.install,
             thread=self.thread,
@@ -417,10 +413,6 @@ class SlackExplorerEntrypoint(
         summary: str | None,
         run_id: int,
     ) -> None:
-        from sentry.integrations.services.integration import integration_service
-        from sentry.integrations.slack.integration import SlackIntegration
-        from sentry.integrations.types import IntegrationProviderSlug
-
         organization_id = cache_payload["organization_id"]
         try:
             organization = Organization.objects.get(id=organization_id)
@@ -433,21 +425,6 @@ class SlackExplorerEntrypoint(
         explorer_link = organization.absolute_url(
             path="", query=urlencode({"explorerRunId": run_id})
         )
-
-        # Clear the "Thinking..." status now that we have the actual response.
-        # This is defensive — the status also auto-clears when the bot posts a reply.
-        integration = integration_service.get_integration(
-            integration_id=cache_payload["integration_id"],
-            organization_id=organization_id,
-            provider=IntegrationProviderSlug.SLACK.value,
-            status=ObjectStatus.ACTIVE,
-        )
-        if integration:
-            install = SlackIntegration(model=integration, organization_id=organization_id)
-            install.clear_thread_status(
-                channel_id=cache_payload["thread"]["channel_id"],
-                thread_ts=cache_payload["thread"]["thread_ts"],
-            )
 
         data = SeerExplorerResponse(
             run_id=run_id,
