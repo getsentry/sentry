@@ -365,7 +365,7 @@ class SlackExplorerEntrypoint(
             limit=1,
         )
         if not ois:
-            raise ValueError(
+            raise EntrypointSetupError(
                 f"Slack integration {integration_id} is not active for org {organization_id}"
             )
 
