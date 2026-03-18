@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -19,17 +20,24 @@ interface AIContentRendererProps {
 }
 
 function XmlTagBlock({tagName, content}: {content: string; tagName: string}) {
+  const theme = useTheme();
+
   return (
-    <XmlTagWrapper>
-      <XmlTagLabel>
+    <Flex
+      direction="column"
+      padding="0 0 0 md"
+      margin="sm 0"
+      style={{borderLeft: `3px solid ${theme.tokens.border.accent.moderate}`}}
+    >
+      <Container margin="0 0 xs 0">
         <Text size="xs" variant="muted">
           {tagName}
         </Text>
-      </XmlTagLabel>
-      <XmlTagContent>
+      </Container>
+      <Text italic>
         <MarkedText as={TraceDrawerComponents.MarkdownContainer} text={content} />
-      </XmlTagContent>
-    </XmlTagWrapper>
+      </Text>
+    </Flex>
   );
 }
 
@@ -108,17 +116,3 @@ export function AIContentRenderer({
       );
   }
 }
-
-const XmlTagWrapper = styled('div')`
-  border-left: 3px solid ${p => p.theme.tokens.border.accent.moderate};
-  padding-left: ${p => p.theme.space.md};
-  margin: ${p => p.theme.space.sm} 0;
-`;
-
-const XmlTagLabel = styled('div')`
-  margin-bottom: ${p => p.theme.space.xs};
-`;
-
-const XmlTagContent = styled('div')`
-  font-style: italic;
-`;
