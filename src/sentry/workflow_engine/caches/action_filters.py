@@ -73,7 +73,6 @@ def _populate_cache(action_filters_by_workflow: ActionFiltersByWorkflow) -> None
         for workflow_id, action_filters in action_filters_by_workflow.items()
     }
 
-    # TODO -- Add cache invalidation
     _action_filters_cache.set_many(cache_items, CACHE_TTL)
 
 
@@ -94,7 +93,7 @@ def get_action_filters_by_workflows(
         dict[WorkflowId, list[DataConditionGroup]] mapping workflow IDs to their action filters.
             Each list contains the DataConditionGroups with prefetched conditions.
     """
-    # TODO - use this hook in `processors/workflow.py`'s evaluate_workflows_action_filters
+    # TODO - use this hook in `processors/workflow.py`'s evaluate_workflows_action_filters <- last item.
     if not workflows:
         return {}
 
