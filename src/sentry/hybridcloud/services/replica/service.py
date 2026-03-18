@@ -106,7 +106,10 @@ class CellReplicaService(RpcService):
     @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def delete_replicated_api_token(
-        self, *, apitoken_id: int, cell_name: str | None = None, region_name: str | None = None
+        self,
+        *,
+        apitoken_id: int,
+        cell_name: str,
     ) -> None:
         pass
 
@@ -116,8 +119,7 @@ class CellReplicaService(RpcService):
         self,
         *,
         token: RpcOrgAuthToken,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         pass
 

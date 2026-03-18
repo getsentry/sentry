@@ -178,7 +178,10 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         handle_replication(ApiToken, destination)
 
     def delete_replicated_api_token(
-        self, *, apitoken_id: int, cell_name: str | None = None, region_name: str | None = None
+        self,
+        *,
+        apitoken_id: int,
+        cell_name: str,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(ApiTokenReplica))):
             api_token_qs = ApiTokenReplica.objects.filter(apitoken_id=apitoken_id)
@@ -188,8 +191,7 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         self,
         *,
         token: RpcOrgAuthToken,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         try:
             organization = Organization.objects.get(id=token.organization_id)
