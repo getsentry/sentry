@@ -147,7 +147,10 @@ class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
     # Org options are org options as set via OrganizationOption.objects.set_value
     ORG_OPTIONS: dict[str, Any] = {}
     # Code review triggers are the allowed triggers as set via RepositorySettings.objects.create
-    _triggers: list[CodeReviewTrigger] = []
+    _triggers: list[CodeReviewTrigger] = [
+        CodeReviewTrigger.ON_NEW_COMMIT,
+        CodeReviewTrigger.ON_READY_FOR_REVIEW,
+    ]
 
     @contextmanager
     def code_review_setup(
