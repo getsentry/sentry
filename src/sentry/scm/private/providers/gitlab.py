@@ -74,7 +74,7 @@ REACTION_BY_AWARD_NAME: dict[str, Reaction] = {
 }
 
 GITLAB_ARCHIVE_FORMAT_MAP: dict[ArchiveFormat, str] = {
-    "tar.gz": ".tar.gz",
+    "tarball": ".tar.gz",
     "zip": ".zip",
 }
 
@@ -333,7 +333,7 @@ class GitLabProvider:
     def get_archive_link(
         self,
         ref: str,
-        archive_format: ArchiveFormat = "tar.gz",
+        archive_format: ArchiveFormat = "tarball",
     ) -> ActionResult[ArchiveLink]:
         fmt = GITLAB_ARCHIVE_FORMAT_MAP[archive_format]
         path = GitLabApiClientPath.archive.format(project=self._repo_id, format=fmt)
@@ -341,9 +341,10 @@ class GitLabProvider:
         if ref:
             url = f"{url}?sha={ref}"
         token_data = self.client.get_access_token()
-        token = token_data["access_token"] if token_data else ""
+        token = token_data["access_token"] if token_data else None
+        data = ArchiveLink(url=url, headers={"Authorization": f"Bearer {token}"} if token else {})
         return ActionResult(
-            data=ArchiveLink(url=url, headers={"Authorization": f"Bearer {token}"}),
+            data=data,
             type="gitlab",
             raw=url,
             meta={},

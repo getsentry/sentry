@@ -54,7 +54,7 @@ type FileStatus = Literal[
 - unknown: file status could not be positively identified
 """
 
-type ArchiveFormat = Literal["tar.gz", "zip"]
+type ArchiveFormat = Literal["tarball", "zip"]
 """Normalized archive format identifiers shared across all SCM providers."""
 
 

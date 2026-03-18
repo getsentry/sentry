@@ -382,7 +382,7 @@ class SourceCodeManager:
     def get_archive_link(
         self,
         ref: str,
-        archive_format: ArchiveFormat = "tar.gz",
+        archive_format: ArchiveFormat = "tarball",
     ) -> ActionResult[ArchiveLink]:
         """Get a URL to download a repository archive."""
         return self._exec(

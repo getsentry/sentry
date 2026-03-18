@@ -108,7 +108,7 @@ REACTION_MAP = {
 }
 
 GITHUB_ARCHIVE_FORMAT_MAP: dict[ArchiveFormat, str] = {
-    "tar.gz": "tarball",
+    "tarball": "tarball",
     "zip": "zipball",
 }
 
