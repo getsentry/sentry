@@ -19,8 +19,8 @@ from django.conf import settings
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
+from sentry.testutils.cell import TestEnvCellDirectory
 from sentry.testutils.pytest import xdist
-from sentry.testutils.region import TestEnvRegionDirectory
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import cell
 from sentry.types.cell import Cell, RegionCategory
@@ -43,11 +43,11 @@ def configure_split_db() -> None:
     if already_configured or _use_monolith_dbs():
         return
 
-    # Add connections for the region & control silo databases.
+    # Add connections for the cell & control silo databases.
     settings.DATABASES["control"] = settings.DATABASES["default"].copy()
     settings.DATABASES["control"]["NAME"] = "control"
 
-    # Use the region database in the default connection as region
+    # Use the cell database in the default connection as cell
     # silo database is the 'default' elsewhere in application logic.
     settings.DATABASES["default"]["NAME"] = "region"
 
@@ -62,36 +62,36 @@ def get_default_silo_mode_for_test_cases() -> SiloMode:
     return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.CELL
 
 
-def _configure_test_env_regions() -> None:
+def _configure_test_env_cells() -> None:
     settings.SILO_MODE = get_default_silo_mode_for_test_cases()
 
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
-    # depends on region attributes, use `override_regions` in your test case.
+    # depends on cell attributes, use `override_cells` in your test case.
     # Under xdist, seed deterministically so all workers generate the same name
     # (divergent names break xdist's requirement for identical test collection).
     xdist_uid = os.environ.get("PYTEST_XDIST_TESTRUNUID")
     r = random.Random(xdist_uid) if xdist_uid else random
-    region_name = "testregion" + "".join(r.choices(string.digits, k=6))
+    cell_name = "testregion" + "".join(r.choices(string.digits, k=6))
 
     # Under xdist, each worker gets a unique snowflake_id (1, 2, 3, ...) so
     # concurrent model creation doesn't produce colliding IDs.
-    region_snowflake_id = xdist._worker_num + 1 if xdist._worker_num is not None else 0
+    cell_snowflake_id = xdist._worker_num + 1 if xdist._worker_num is not None else 0
 
-    default_region = Cell(
-        region_name,
-        region_snowflake_id,
+    default_cell = Cell(
+        cell_name,
+        cell_snowflake_id,
         settings.SENTRY_OPTIONS["system.url-prefix"],
         RegionCategory.MULTI_TENANT,
     )
 
-    settings.SENTRY_REGION = region_name
-    settings.SENTRY_MONOLITH_REGION = region_name
+    settings.SENTRY_REGION = cell_name
+    settings.SENTRY_MONOLITH_REGION = cell_name
 
     # This not only populates the environment with the default cell, but also
-    # ensures that a TestEnvRegionDirectory instance is injected into global state.
-    # See sentry.testutils.region.get_test_env_directory, which relies on it.
-    cell.set_global_directory(TestEnvRegionDirectory([default_region]))
+    # ensures that a TestEnvCellDirectory instance is injected into global state.
+    # See sentry.testutils.cell.get_test_env_directory, which relies on it.
+    cell.set_global_directory(TestEnvCellDirectory([default_cell]))
 
     settings.SENTRY_SUBNET_SECRET = "secret"
     settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"
@@ -259,7 +259,7 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
 
-    _configure_test_env_regions()
+    _configure_test_env_cells()
 
     # ID controls
     settings.SENTRY_USE_SNOWFLAKE = True

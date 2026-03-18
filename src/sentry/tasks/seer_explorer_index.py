@@ -123,7 +123,7 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
 )
 def schedule_explorer_index() -> None:
     """
-    Main periodic task that runs daily to schedule explorer indexing for active projects
+    Main periodic task that runs every hour to schedule explorer indexing for active projects
     in seer-enabled organizations. Spreads the load throughout the day.
     """
     logger.info("Started schedule_explorer_index task")

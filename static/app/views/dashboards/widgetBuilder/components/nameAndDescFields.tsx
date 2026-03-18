@@ -2,14 +2,15 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {TextArea} from '@sentry/scraps/textarea';
 
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
+import {WidgetBuilderDescriptionField} from 'sentry/views/dashboards/widgetBuilder/components/descriptionField';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
@@ -29,6 +30,7 @@ export function WidgetBuilderNameAndDescription({
   const [isDescSelected, setIsDescSelected] = useState(state.description ? true : false);
   const isEditing = useIsEditingWidget();
   const source = useDashboardWidgetSource();
+  const isTextWidget = state.displayType === DisplayType.TEXT;
 
   return (
     <Fragment>
@@ -73,7 +75,7 @@ export function WidgetBuilderNameAndDescription({
         error={error?.title}
         inline={false}
       />
-      {!isDescSelected && (
+      {!isTextWidget && !isDescSelected && (
         <Button
           priority="link"
           aria-label={t('Add Description')}
@@ -85,40 +87,7 @@ export function WidgetBuilderNameAndDescription({
           {t('+ Add Description')}
         </Button>
       )}
-      {isDescSelected && (
-        <TextArea
-          autoComplete="off"
-          placeholder={t('Description')}
-          aria-label={t('Description')}
-          autosize
-          rows={4}
-          value={state.description}
-          onChange={e => {
-            dispatch(
-              {type: BuilderStateAction.SET_DESCRIPTION, payload: e.target.value},
-              {updateUrl: false}
-            );
-          }}
-          onBlur={e => {
-            dispatch(
-              {
-                type: BuilderStateAction.SET_DESCRIPTION,
-                payload: e.target.value,
-              },
-              {updateUrl: true}
-            );
-            trackAnalytics('dashboards_views.widget_builder.change', {
-              from: source,
-              widget_type: state.dataset ?? '',
-              builder_version: WidgetBuilderVersion.SLIDEOUT,
-              field: 'description',
-              value: '',
-              new_widget: !isEditing,
-              organization,
-            });
-          }}
-        />
-      )}
+      {!isTextWidget && isDescSelected && <WidgetBuilderDescriptionField rows={4} />}
     </Fragment>
   );
 }

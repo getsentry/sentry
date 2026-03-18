@@ -70,7 +70,7 @@ class SingleProcessSiloModeState(threading.local):
 
     @staticmethod
     @contextlib.contextmanager
-    def enter(mode: SiloMode, region: Cell | None = None) -> Generator[None]:
+    def enter(mode: SiloMode, cell: Cell | None = None) -> Generator[None]:
         """
         Prevents re-entrant cases unless the exit_single_process_silo_context is
         explicitly embedded, ensuring that this single process silo mode simulates
@@ -96,7 +96,7 @@ class SingleProcessSiloModeState(threading.local):
         return None
 
     @staticmethod
-    def get_region() -> Cell | None:
+    def get_cell() -> Cell | None:
         return None
 
 
