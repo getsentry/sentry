@@ -13,37 +13,26 @@ import {
 import type {WidgetLayout, WidgetPreview} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
-import {AreaPreview as WidgetArea} from './chartPreviews/area';
-import {BarPreview as WidgetBar} from './chartPreviews/bar';
-import {LinePreview as WidgetLine} from './chartPreviews/line';
-import {NumberPreview as WidgetBigNumber} from './chartPreviews/number';
-import {TablePreview as WidgetTable} from './chartPreviews/table';
+import {AreaPreview} from './chartPreviews/area';
+import {BarPreview} from './chartPreviews/bar';
+import {LinePreview} from './chartPreviews/line';
+import {NumberPreview} from './chartPreviews/number';
+import {TablePreview} from './chartPreviews/table';
 
-function miniWidget(
-  displayType: DisplayType,
-  chartColor: string
-): () => React.JSX.Element {
+function MiniWidget({displayType, color}: {color: string; displayType: DisplayType}) {
   switch (displayType) {
     case DisplayType.BAR:
-      return function () {
-        return <WidgetBar color={chartColor} />;
-      };
+      return <BarPreview color={color} />;
     case DisplayType.AREA:
     case DisplayType.TOP_N:
-      return function () {
-        return <WidgetArea color={chartColor} />;
-      };
+      return <AreaPreview color={color} />;
     case DisplayType.BIG_NUMBER:
-      return function () {
-        return <WidgetBigNumber color={chartColor} />;
-      };
+      return <NumberPreview color={color} />;
     case DisplayType.TABLE:
-      return WidgetTable;
+      return <TablePreview />;
     case DisplayType.LINE:
     default:
-      return function () {
-        return <WidgetLine color={chartColor} />;
-      };
+      return <LinePreview color={color} />;
   }
 }
 
@@ -73,11 +62,10 @@ export function GridPreview({widgetPreview}: Props) {
     >
       {renderPreview.map(({displayType, layout}, index) => {
         const color = chartPalette[index % chartPalette.length]!;
-        const Preview = miniWidget(displayType, color);
         return (
           <Chart key={uniqueId()} data-grid={{...layout}}>
             <PreviewWrapper>
-              <Preview />
+              <MiniWidget displayType={displayType} color={color} />
             </PreviewWrapper>
           </Chart>
         );
@@ -109,7 +97,7 @@ const Chart = styled('div')`
     width: max(30px, 30%);
     height: 4px;
     background-color: ${p => p.theme.tokens.background.tertiary};
-    border-radius: 8px;
+    border-radius: ${p => p.theme.radius.lg};
   }
 `;
 
