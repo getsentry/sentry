@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {TOP_N} from 'sentry/utils/discover/types';
-import type {QueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation, type QueryClient} from 'sentry/utils/queryClient';
 import {getQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
   DisplayType,
@@ -86,6 +86,41 @@ export function createDashboard(
   });
 
   return promise;
+}
+
+export function validateDashboard(
+  orgSlug: string,
+  dashboard: DashboardDetails
+): Promise<void> {
+  const {title, widgets, projects, environment, period, start, end, filters, utc} =
+    dashboard;
+
+  const url = getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+    path: {organizationIdOrSlug: orgSlug},
+  });
+
+  return fetchMutation({
+    url,
+    method: 'POST',
+    data: {
+      title,
+      widgets: widgets.map(widget => omit(widget, ['tempId'])),
+      projects,
+      environment,
+      period,
+      start,
+      end,
+      filters,
+      utc,
+    },
+    options: {
+      query: {
+        validateOnly: '1',
+        project: projects,
+        environment,
+      },
+    },
+  });
 }
 
 export function updateDashboardVisit(

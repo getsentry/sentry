@@ -5,11 +5,13 @@ import * as Sentry from '@sentry/react';
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
+import {validateDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -101,6 +103,27 @@ function extractMessages(
   return messages;
 }
 
+async function validateDashboardAndRecordMetrics(
+  organization: Organization,
+  newDashboard: DashboardDetails,
+  seerRunId: number | null
+) {
+  try {
+    await validateDashboard(organization.slug, newDashboard);
+    Sentry.metrics.distribution('dashboards.seer.validation', 1, {
+      attributes: {status: 'success', ...(seerRunId ? {seer_run_id: seerRunId} : {})},
+    });
+  } catch (error) {
+    Sentry.metrics.distribution('dashboards.seer.validation', 1, {
+      attributes: {status: 'failure', ...(seerRunId ? {seer_run_id: seerRunId} : {})},
+    });
+  }
+}
+
+function statusIsTerminal(status?: string | null) {
+  return status === 'completed' || status === 'error' || status === 'awaiting_user_input';
+}
+
 export default function CreateFromSeer() {
   const organization = useOrganization();
   const location = useLocation();
@@ -127,7 +150,7 @@ export default function CreateFromSeer() {
           return POLL_INTERVAL_MS;
         }
         const status = query.state.data?.[0]?.session?.status;
-        if (status === 'completed' || status === 'error') {
+        if (statusIsTerminal(status)) {
           return false;
         }
         return POLL_INTERVAL_MS;
@@ -143,7 +166,7 @@ export default function CreateFromSeer() {
     const prevUpdatedAt = prevUpdatedAtRef.current;
     prevUpdatedAtRef.current = sessionUpdatedAt;
 
-    const isTerminal = sessionStatus === 'completed' || sessionStatus === 'error';
+    const isTerminal = statusIsTerminal(sessionStatus);
 
     // Only trigger Dashboard rerender when transition to a new completed state
     if (prevUpdatedAt !== sessionUpdatedAt && isTerminal && session) {
@@ -152,22 +175,26 @@ export default function CreateFromSeer() {
       }
       const dashboardData = extractDashboardFromSession(session);
       if (dashboardData) {
-        setDashboard({
+        const newDashboard = {
           ...EMPTY_DASHBOARD,
           title: dashboardData.title,
           widgets: dashboardData.widgets,
-        });
+        };
+        setDashboard(newDashboard);
+
+        if (prevUpdatedAt !== null && prevUpdatedAt !== sessionUpdatedAt) {
+          validateDashboardAndRecordMetrics(organization, newDashboard, seerRunId);
+        }
       }
     }
-  }, [isUpdating, sessionStatus, session, sessionUpdatedAt]);
+  }, [organization, seerRunId, isUpdating, sessionStatus, session, sessionUpdatedAt]);
 
   const blockMessages = useMemo(
     () => (session ? extractMessages(session) : []),
     [session]
   );
 
-  const isLoading =
-    !!seerRunId && sessionStatus !== 'completed' && sessionStatus !== 'error' && !isError;
+  const isLoading = !!seerRunId && !statusIsTerminal(sessionStatus) && !isError;
 
   // Prevent repeat errors on the same widget
   const reportedWidgetErrors = useRef(new Set<string>());
