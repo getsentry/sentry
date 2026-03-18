@@ -11,13 +11,17 @@ import type {Integration, Repository} from 'sentry/types/integrations';
 import {useRepoSearch} from './useRepoSearch';
 import {useRepoSelection} from './useRepoSelection';
 
-interface RepoSelectorProps {
+interface ScmRepoSelectorProps {
   integration: Integration;
   onSelect: (repo: Repository | null) => void;
   selectedRepo: Repository | null;
 }
 
-export function RepoSelector({integration, selectedRepo, onSelect}: RepoSelectorProps) {
+export function ScmRepoSelector({
+  integration,
+  selectedRepo,
+  onSelect,
+}: ScmRepoSelectorProps) {
   const {reposByIdentifier, dropdownItems, isFetching, debouncedSearch, setSearch} =
     useRepoSearch(integration.id, selectedRepo);
 

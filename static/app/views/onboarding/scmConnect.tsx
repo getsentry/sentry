@@ -9,8 +9,8 @@ import {useOnboardingContext} from 'sentry/components/onboarding/onboardingConte
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 
-import {ConnectedView} from './components/scmConnectedView';
-import {ProviderPills} from './components/scmProviderPills';
+import {ScmConnectedView} from './components/scmConnectedView';
+import {ScmProviderPills} from './components/scmProviderPills';
 import type {StepProps} from './types';
 import {useScmProviders} from './useScmProviders';
 
@@ -50,7 +50,7 @@ export function ScmConnect({onComplete}: StepProps) {
 
       <Stack gap="lg" width="100%" maxWidth="600px">
         {effectiveIntegration ? (
-          <ConnectedView
+          <ScmConnectedView
             integration={effectiveIntegration}
             selectedRepo={onboardingContext.selectedRepository ?? null}
             onSelectRepo={repo =>
@@ -58,7 +58,7 @@ export function ScmConnect({onComplete}: StepProps) {
             }
           />
         ) : (
-          <ProviderPills providers={scmProviders} onInstall={handleInstall} />
+          <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
         )}
       </Stack>
 

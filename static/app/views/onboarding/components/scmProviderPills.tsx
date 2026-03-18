@@ -7,12 +7,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
-interface ProviderPillsProps {
+interface ScmProviderPillsProps {
   onInstall: (data: Integration) => void;
   providers: IntegrationProvider[];
 }
 
-export function ProviderPills({providers, onInstall}: ProviderPillsProps) {
+export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) {
   const organization = useOrganization();
 
   return (

@@ -8,19 +8,19 @@ import type {Integration, Repository} from 'sentry/types/integrations';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {RepoSelector} from './scmRepoSelector';
+import {ScmRepoSelector} from './scmRepoSelector';
 
-interface ConnectedViewProps {
+interface ScmConnectedViewProps {
   integration: Integration;
   onSelectRepo: (repo: Repository | null) => void;
   selectedRepo: Repository | null;
 }
 
-export function ConnectedView({
+export function ScmConnectedView({
   integration,
   selectedRepo,
   onSelectRepo,
-}: ConnectedViewProps) {
+}: ScmConnectedViewProps) {
   const organization = useOrganization();
 
   return (
@@ -36,7 +36,7 @@ export function ConnectedView({
           {t('Manage in Settings')}
         </Link>
       </Flex>
-      <RepoSelector
+      <ScmRepoSelector
         integration={integration}
         selectedRepo={selectedRepo}
         onSelect={onSelectRepo}
