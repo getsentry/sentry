@@ -81,7 +81,7 @@ export function renderArchiveReason({
 
   return t('This issue has been archived forever.');
 }
-function ArchivedBox({substatus, statusDetails, organization}: ArchivedBoxProps) {
+export function ArchivedBox({substatus, statusDetails, organization}: ArchivedBoxProps) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
@@ -90,5 +90,3 @@ function ArchivedBox({substatus, statusDetails, organization}: ArchivedBoxProps)
     </BannerContainer>
   );
 }
-
-export default ArchivedBox;

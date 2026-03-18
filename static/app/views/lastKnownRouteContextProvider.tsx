@@ -17,7 +17,7 @@ export function useLastKnownRoute() {
  * This provider tracks the last known route that the user has navigated to.
  * This is used to better group issues when we hit "route not found" errors.
  */
-export default function LastKnownRouteContextProvider({children}: Props) {
+export function LastKnownRouteContextProvider({children}: Props) {
   const route = useRoutes();
 
   // We could use `usePrevious` here if we didn't need the additional logic to

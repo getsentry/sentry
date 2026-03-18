@@ -54,7 +54,7 @@ export interface EventTagsTreeRowProps {
   spacerCount?: number;
 }
 
-export default function EventTagsTreeRow({
+export function EventTagsTreeRow({
   event,
   content,
   tagKey,

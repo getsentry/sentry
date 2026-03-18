@@ -9,7 +9,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelFooter} from 'sentry/components/panels/panelFooter';

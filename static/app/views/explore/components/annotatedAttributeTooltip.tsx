@@ -3,7 +3,7 @@ import React from 'react';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';

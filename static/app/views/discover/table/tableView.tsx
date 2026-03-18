@@ -8,8 +8,8 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import GridEditable, {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {COL_WIDTH_MINIMUM, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {Truncate} from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
@@ -61,8 +61,8 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';
-import CellAction, {Actions, updateQuery} from './cellAction';
-import ColumnEditModal, {modalCss} from './columnEditModal';
+import {Actions, CellAction, updateQuery} from './cellAction';
+import {ColumnEditModal, modalCss} from './columnEditModal';
 import {TableActions} from './tableActions';
 import {TopResultsIndicator} from './topResultsIndicator';
 import type {TableColumn} from './types';
@@ -103,7 +103,7 @@ type TableViewProps = {
  * In most cases, the new EventView object differs from the previous EventView
  * object. The new EventView object is pushed to the location object.
  */
-export default function TableView(props: TableViewProps) {
+export function TableView(props: TableViewProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const {projects} = useProjects();
