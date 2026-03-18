@@ -108,13 +108,7 @@ export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
     const allowedFiles = allowedFilesLazy(parserServices.program);
     const currentFileName = ts.sys.resolvePath(context.filename);
 
-    if (
-      allowedFiles.has(currentFileName) ||
-      // TODO: Eventually, it'd be nice to fully ban all default exports...
-      context.sourceCode.ast.body.some(
-        statement => statement.type === AST_NODE_TYPES.ExportNamedDeclaration
-      )
-    ) {
+    if (allowedFiles.has(currentFileName)) {
       return {};
     }
 

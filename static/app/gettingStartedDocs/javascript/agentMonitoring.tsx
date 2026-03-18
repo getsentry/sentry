@@ -7,7 +7,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {
   getAgentIntegration,
   getInstallStep,
@@ -381,7 +381,11 @@ export function agentMonitoring({
 } = {}): OnboardingConfig {
   return {
     introduction: params => (
-      <SdkUpdateAlert projectId={params.project.id} minVersion={minVersion} />
+      <SdkUpdateAlert
+        projectId={params.project.id}
+        minVersion={minVersion}
+        packageName={packageName}
+      />
     ),
     install: params =>
       getInstallStep(params, {

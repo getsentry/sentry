@@ -16,7 +16,7 @@ import type {ControlProps} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 
 import {Client} from 'sentry/api';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -218,7 +218,7 @@ function hasValue(value: InputFieldProps['value']) {
   return defined(value) && !isEmptyObject(value);
 }
 
-export default function ChoiceMapperField({
+export function ChoiceMapperField({
   addButtonText = t('Add Item'),
   perItemMapping = false,
   allowEmpty = false,
@@ -399,7 +399,7 @@ export default function ChoiceMapperField({
                 <Control>
                   <Select
                     {...(perItemMapping
-                      ? mappedSelectors[itemKey]![fieldKey]
+                      ? (mappedSelectors[itemKey] as any)[fieldKey]
                       : mappedSelectors[fieldKey])}
                     height={30}
                     disabled={disabled}

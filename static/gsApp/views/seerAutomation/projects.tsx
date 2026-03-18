@@ -1,6 +1,6 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';

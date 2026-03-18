@@ -42,7 +42,7 @@ type Props = {
   pageLinks: string | undefined;
 };
 
-function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
+export function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);
 
   const location = useLocation();
@@ -153,5 +153,3 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
     />
   );
 }
-
-export default ScreensOverviewTable;

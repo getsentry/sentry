@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
+from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.explorer.client import SeerExplorerClient
@@ -73,7 +74,9 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
         prompt = serializer.validated_data["prompt"]
 
         try:
-            client = SeerExplorerClient(organization, request.user)
+            client = SeerExplorerClient(
+                organization, request.user, on_completion_hook=DashboardOnCompletionHook
+            )
             run_id = client.start_run(
                 prompt=prompt,
                 on_page_context="The user is on the dashboard generation page. This session must ONLY generate a dashboard artifact. Do not perform code inspection, code changes, or any tasks unrelated to dashboard generation.",

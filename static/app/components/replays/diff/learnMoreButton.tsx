@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
-import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';

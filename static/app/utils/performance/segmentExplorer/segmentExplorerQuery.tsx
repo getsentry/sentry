@@ -76,7 +76,7 @@ function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
   );
 }
 
-function SegmentExplorerQuery(props: QueryProps) {
+export function SegmentExplorerQuery(props: QueryProps) {
   return (
     <GenericDiscoverQuery<TableData, QueryProps>
       route="events-facets-performance"
@@ -86,5 +86,3 @@ function SegmentExplorerQuery(props: QueryProps) {
     />
   );
 }
-
-export default SegmentExplorerQuery;
