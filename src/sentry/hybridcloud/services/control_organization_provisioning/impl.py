@@ -288,23 +288,19 @@ class DatabaseBackedControlOrganizationProvisioningService(
     def bulk_create_organization_slug_reservations(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         slug_mapping: dict[int, str],
     ) -> None:
-        resolved_cell_name = cell_name or region_name
-        assert resolved_cell_name is not None, "cell_name or region_name must be provided"
-
         slug_reservations_to_create: list[OrganizationSlugReservation] = []
 
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
             for org_id, slug in slug_mapping.items():
                 slug_reservation = OrganizationSlugReservation(
-                    slug=self._generate_org_slug(slug=slug, region_name=resolved_cell_name),
+                    slug=self._generate_org_slug(slug=slug, region_name=cell_name),
                     organization_id=org_id,
                     reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
                     user_id=-1,
-                    cell_name=resolved_cell_name,
+                    cell_name=cell_name,
                 )
                 slug_reservation.save(unsafe_write=True)
 

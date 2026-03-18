@@ -64,8 +64,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     def bulk_create_organization_slug_reservations(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         slug_mapping: dict[int, str],
     ) -> None:
         """
