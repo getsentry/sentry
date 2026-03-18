@@ -213,8 +213,7 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         self,
         *,
         auth_provider: RpcAuthProvider,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         try:
             organization = Organization.objects.get(id=auth_provider.organization_id)
@@ -238,8 +237,7 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         self,
         *,
         auth_identity: RpcAuthIdentity,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         destination = AuthIdentityReplica(
             auth_identity_id=auth_identity.id,
@@ -253,7 +251,10 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         handle_replication(AuthIdentity, destination)
 
     def upsert_replicated_api_key(
-        self, *, api_key: RpcApiKey, cell_name: str | None = None, region_name: str | None = None
+        self,
+        *,
+        api_key: RpcApiKey,
+        cell_name: str,
     ) -> None:
         try:
             organization = Organization.objects.get(id=api_key.organization_id)
@@ -276,8 +277,7 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         self,
         *,
         slug_reservation: RpcOrganizationSlugReservation,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         with enforce_constraints(
             transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
@@ -305,8 +305,7 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         self,
         *,
         organization_slug_reservation_id: int,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name,
     ) -> None:
         with enforce_constraints(
             transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
@@ -317,7 +316,10 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
             org_slug_qs.delete()
 
     def delete_replicated_auth_provider(
-        self, *, auth_provider_id: int, cell_name: str | None = None, region_name: str | None = None
+        self,
+        *,
+        auth_provider_id: int,
+        cell_name: str,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
             AuthProviderReplica.objects.filter(auth_provider_id=auth_provider_id).delete()
