@@ -166,10 +166,27 @@ def _trigger_autofix_task(
     """
     # Convert deserialized string parameters back to their enum types
     if isinstance(referrer, str):
-        referrer = AutofixReferrer(referrer)
+        try:
+            referrer = AutofixReferrer(referrer)
+        except ValueError as e:
+            logger.warning(
+                "_trigger_autofix_task.unknown_referrer",
+                extra={"group_id": group_id, "referrer": referrer},
+            )
+            sentry_sdk.capture_exception(e)
+            return
+
     if isinstance(stopping_point, str):
-        stopping_point = AutofixStoppingPoint(stopping_point)
-    
+        try:
+            stopping_point = AutofixStoppingPoint(stopping_point)
+        except ValueError as e:
+            logger.warning(
+                "_trigger_autofix_task.unknown_stopping_point",
+                extra={"group_id": group_id, "stopping_point": stopping_point},
+            )
+            sentry_sdk.capture_exception(e)
+            return
+
     with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
         try:
             group = Group.objects.get(id=group_id)
