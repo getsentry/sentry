@@ -33,7 +33,7 @@ from sentry.silo.client import CellSiloClient, SiloClientError
 from sentry.silo.util import clean_proxy_headers
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import hybridcloud_control_tasks
-from sentry.types.region import Cell, get_cell_by_name
+from sentry.types.cell import Cell, get_cell_by_name
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -633,7 +633,7 @@ def perform_request(payload: WebhookPayload) -> None:
 
 def perform_region_request(region: Cell, payload: WebhookPayload) -> None:
     try:
-        client = CellSiloClient(region=region)
+        client = CellSiloClient(cell=region)
         with metrics.timer(
             "hybridcloud.deliver_webhooks.send_request",
             tags={"destination_region": region.name},

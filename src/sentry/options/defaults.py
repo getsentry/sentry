@@ -1359,14 +1359,6 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
-# {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
-register(
-    "ai-agent-monitoring.custom-model-mapping",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -2648,6 +2640,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Hard timeout for webhook requests to prevent indefinite hangs.
+# Must be strictly less than the shortest task processing_deadline_duration that
+# calls send_and_save_webhook_request (currently 8s for send_alert_webhook_v2 and
+# send_resource_change_webhook), otherwise timeout_alarm raises ValueError.
+register(
+    "sentry-apps.webhook.hard-timeout.sec",
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables statistical detectors for a project
 register(
     "statistical_detectors.enable",
@@ -3263,15 +3265,6 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set
-# exceeds this many bytes (via MEMORY USAGE). This avoids the expensive
-# re-serialisation of the entire destination set during SUNIONSTORE.
-register(
-    "spans.buffer.zero-copy-dest-threshold-bytes",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Latency threshold in milliseconds for logging slow EVALSHA pipeline operations
 register(
     "spans.buffer.evalsha-latency-threshold",
@@ -3318,6 +3311,11 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "spans.buffer.done-flush-conditional-zrem",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Segments consumer
@@ -3784,6 +3782,12 @@ register(
 
 register(
     "demo-mode.users",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-org-ids",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

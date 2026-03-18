@@ -62,7 +62,7 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -212,7 +212,7 @@ function AddToDashboardModal({
     const pathname =
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
-    const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
+    const widgetAsQueryParams = convertWidgetToQueryParams(widget);
 
     navigate(
       normalizeUrl({
@@ -361,7 +361,7 @@ function AddToDashboardModal({
       limitMessage: ReactNode | null
     ) => {
       if (dashboards === null) {
-        return null;
+        return [];
       }
 
       return [
@@ -432,7 +432,7 @@ function AddToDashboardModal({
                 placeholder={t('Select Dashboard')}
                 value={selectedDashboardId}
                 options={getOptions(hasReachedDashboardLimit, isLoading, limitMessage)}
-                onChange={(option: SelectValue<string>) => {
+                onChange={option => {
                   if (option.disabled) {
                     return;
                   }

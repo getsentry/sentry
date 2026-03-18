@@ -4,7 +4,6 @@ from typing import Any
 
 from django.conf import settings
 
-from sentry import options
 from sentry.http import safe_urlopen
 from sentry.relay.config.ai_model_costs import (
     AI_MODEL_COSTS_CACHE_KEY,
@@ -144,17 +143,6 @@ def fetch_ai_model_costs() -> None:
         )
         # re-raise to fail the task
         raise
-
-    # Custom model mapping for models pricing - often times the same models are named differently
-    # in different hosting providers. This allows us to map the alternative model id to the existing model id.
-    for model_mapping in options.get("ai-agent-monitoring.custom-model-mapping"):
-        alternative_model_id = model_mapping.get("alternative_model_id")
-        existing_model_id = model_mapping.get("existing_model_id")
-
-        if existing_model_id not in models_dict or alternative_model_id in models_dict:
-            continue
-
-        models_dict[alternative_model_id] = models_dict[existing_model_id]
 
     # Add glob versions of model names for flexible matching
     _add_glob_model_names(models_dict)

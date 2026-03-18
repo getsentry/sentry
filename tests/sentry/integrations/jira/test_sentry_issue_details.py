@@ -16,7 +16,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils.http import absolute_uri
 
 pytestmark = [requires_snuba]

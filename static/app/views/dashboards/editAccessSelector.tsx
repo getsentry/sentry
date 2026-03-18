@@ -29,6 +29,7 @@ import type {
   DashboardListItem,
   DashboardPermissions,
 } from 'sentry/views/dashboards/types';
+import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 interface EditAccessSelectorProps {
   dashboard: DashboardDetails | DashboardListItem;
@@ -374,7 +375,7 @@ export function EditAccessSelector({
   );
 
   const tooltipTitle = disabled
-    ? t('Prebuilt dashboards cannot be edited')
+    ? tct('[label] dashboards cannot be edited', {label: PREBUILT_DASHBOARD_LABEL})
     : t('Only the creator of this dashboard can manage editor access');
 
   return (

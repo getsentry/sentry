@@ -20,7 +20,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import integration_added
-from sentry.types.region import find_cells_for_orgs
+from sentry.types.cell import find_cells_for_orgs
 
 if TYPE_CHECKING:
     from sentry.integrations.base import (

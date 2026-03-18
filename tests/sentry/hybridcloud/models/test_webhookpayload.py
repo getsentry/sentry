@@ -25,7 +25,7 @@ class WebhookPayloadTest(TestCase):
         )
         hook = WebhookPayload.create_from_request(
             destination_type=DestinationType.SENTRY_REGION,
-            region="us",
+            cell="us",
             provider="github",
             identifier=123,
             request=request,
@@ -50,7 +50,7 @@ class WebhookPayloadTest(TestCase):
         )
         hook = WebhookPayload.create_from_request(
             destination_type=DestinationType.CODECOV,
-            region=None,
+            cell=None,
             provider="github",
             identifier="installation",
             request=request,

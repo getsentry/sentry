@@ -32,7 +32,7 @@ from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.types.region import Cell, CellMappingNotFound
+from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
 
@@ -198,10 +198,6 @@ def cell_rpc_method(
         return rpc_method(method)
 
     return decorator
-
-
-# TODO(cells): remove once getsentry updated
-regional_rpc_method = cell_rpc_method
 
 
 _global_service_registry: dict[str, DelegatingRpcService] = {}

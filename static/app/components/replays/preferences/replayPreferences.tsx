@@ -1,4 +1,4 @@
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 const LOCAL_STORAGE_KEY = 'replay-config';
 

@@ -44,7 +44,6 @@ function ScheduleTypeField() {
       hideLabel
       options={SCHEDULE_OPTIONS}
       defaultValue={CRON_DEFAULT_SCHEDULE_TYPE}
-      orientInline
       required
       stacked
       inline={false}

@@ -22,7 +22,20 @@ import type {InputFieldProps} from './inputField';
 const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
-  extends InputFieldProps, Omit<ControlProps<OptionType>, 'onChange'> {
+  extends
+    InputFieldProps,
+    Omit<
+      ControlProps<OptionType>,
+      | 'onChange'
+      | 'defaultValue'
+      | 'disabled'
+      | 'name'
+      | 'onBlur'
+      | 'onFocus'
+      | 'onKeyDown'
+      | 'placeholder'
+      | 'tabIndex'
+    > {
   /**
    * Should the select be clearable?
    */
@@ -51,7 +64,7 @@ export interface SelectFieldProps<OptionType extends OptionTypeBase>
 function getChoices<T extends OptionTypeBase>(props: SelectFieldProps<T>): Choices {
   const choices = props.choices;
   if (typeof choices === 'function') {
-    return choices(props);
+    return choices(props as any);
   }
   if (choices === undefined) {
     return [];

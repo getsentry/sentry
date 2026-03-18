@@ -25,7 +25,7 @@ export interface QueryFieldProps {
   ref?: React.Ref<HTMLDivElement>;
   renderTagOverride?: (
     kind: FieldValueKind,
-    label: string,
+    label: ReactNode,
     meta: FieldValue['meta']
   ) => ReactNode;
   style?: React.CSSProperties;

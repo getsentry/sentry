@@ -4,7 +4,7 @@ import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
-import type {NamedProps as ReactSelectProps} from 'sentry/components/forms/controls/reactSelectWrapper';
+import type {Props as ReactSelectProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {SelectValue} from 'sentry/types/core';
 
@@ -14,20 +14,18 @@ function SelectInput({
   selectProps,
   ...props
 }: React.ComponentProps<typeof components.Input> & {
-  selectProps: {'aria-invalid': boolean; inputRef: Ref<{input: HTMLInputElement}>};
+  selectProps?: {'aria-invalid'?: boolean; inputRef?: Ref<{input: HTMLInputElement}>};
 }) {
   return (
     <components.Input
       {...props}
-      {...{ref: selectProps.inputRef}}
-      aria-invalid={selectProps['aria-invalid']}
+      {...{ref: selectProps?.inputRef}}
+      aria-invalid={selectProps?.['aria-invalid']}
     />
   );
 }
 
-function SelectIndicatorsContainer({
-  children,
-}: React.ComponentProps<typeof components.IndicatorsContainer>) {
+function SelectIndicatorsContainer({children}: {children: React.ReactNode}) {
   const indicator = useAutoSaveIndicator();
   return (
     <Flex padding="0 sm" gap="sm" align="center">
@@ -137,11 +135,13 @@ export function SelectField<TValue>({
             multiple={multiple}
             value={value}
             inputRef={applyInputToRef(fieldRef)}
-            components={{
-              ...props.components,
-              Input: SelectInput,
-              IndicatorsContainer: SelectIndicatorsContainer,
-            }}
+            components={
+              {
+                ...props.components,
+                Input: SelectInput,
+                IndicatorsContainer: SelectIndicatorsContainer,
+              } as never
+            }
             onMenuOpen={() => {
               isMenuOpenRef.current = true;
               props.onMenuOpen?.();
