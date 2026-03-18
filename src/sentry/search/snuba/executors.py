@@ -701,37 +701,26 @@ def trends_aggregation_impl(
             ]
 
 
-def _get_recommended_weights() -> dict[str, float | int]:
-    """Read recommended sort weights from options, falling back to defaults."""
-    return {
-        "activity_weight": options.get("snuba.search.recommended.activity-weight"),
-        "severity_weight": options.get("snuba.search.recommended.severity-weight"),
-        "momentum_weight": options.get("snuba.search.recommended.momentum-weight"),
-        "user_impact_weight": options.get("snuba.search.recommended.user-impact-weight"),
-        "recency_halflife_hours": options.get("snuba.search.recommended.recency-halflife-hours"),
-    }
-
-
 def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
     """Build a Snuba aggregation expression for the recommended sort.
 
-    Combines four normalized [0, 1] components additively:
+    Combines five normalized [0, 1] components additively:
     - activity_score: recency (24hr halflife) + volume spike (6hr vs 7d)
     - severity_score: max log level (fatal=1.0, error=0.75, warning=0.5, info=0.25, debug=0.0)
     - momentum_score: recent vs prior event count ratio
     - user_impact_score: log-scaled unique user count
+    - event_volume_score: log-scaled total event count
     """
+    activity_weight = options.get("snuba.search.recommended.activity-weight")
+    severity_weight = options.get("snuba.search.recommended.severity-weight")
+    momentum_weight = options.get("snuba.search.recommended.momentum-weight")
+    user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
+    event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
+    recency_halflife_hours = options.get("snuba.search.recommended.recency-halflife-hours")
+
     hour = 3600
-
-    w = _get_recommended_weights()
-    activity_weight = w["activity_weight"]
-    severity_weight = w["severity_weight"]
-    momentum_weight = w["momentum_weight"]
-    user_impact_weight = w["user_impact_weight"]
-    halflife_hours = w["recency_halflife_hours"]
-
     age = f"divide(minus(now(), max({timestamp_column})), {hour})"
-    recency = f"divide(1, pow(2, divide({age}, {halflife_hours})))"
+    recency = f"divide(1, pow(2, divide({age}, {recency_halflife_hours})))"
 
     recent_6h = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {6 * hour}))"
     total_7d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {7 * 24 * hour}))"
@@ -756,20 +745,20 @@ def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
     # ln(uniq(tags[sentry:user]) + 1) / ln(1001) — maps 1→~0, 10→0.33, 100→0.67, 1000→1.0
     user_impact = "least(1.0, divide(log(plus(uniq(tags[sentry:user]), 1)), log(1001)))"
 
+    # ln(count() + 1) / ln(10001) — maps 1→~0, 10→0.25, 100→0.50, 1000→0.75, 10000+→1.0
+    event_volume = "least(1.0, divide(log(plus(count(), 1)), log(10001)))"
+
     return [
         (
-            f"plus(plus(plus("
+            f"plus(plus(plus(plus("
             f"multiply({activity_weight}, {activity}), "
             f"multiply({severity_weight}, {severity})), "
             f"multiply({momentum_weight}, {momentum})), "
-            f"multiply({user_impact_weight}, {user_impact}))"
+            f"multiply({user_impact_weight}, {user_impact})), "
+            f"multiply({event_volume_weight}, {event_volume}))"
         ),
         "",
     ]
-
-
-_RECOMMENDED_AGGREGATION_TIMESTAMP = _recommended_aggregation("timestamp")
-_RECOMMENDED_AGGREGATION_CLIENT_TIMESTAMP = _recommended_aggregation("client_timestamp")
 
 
 def recommended_aggregation(
@@ -777,7 +766,7 @@ def recommended_aggregation(
     end: datetime,
     aggregate_kwargs: Any = None,
 ) -> Sequence[str]:
-    return _RECOMMENDED_AGGREGATION_TIMESTAMP
+    return _recommended_aggregation("timestamp")
 
 
 def recommended_issue_platform_aggregation(
@@ -785,7 +774,7 @@ def recommended_issue_platform_aggregation(
     end: datetime,
     aggregate_kwargs: Any = None,
 ) -> Sequence[str]:
-    return _RECOMMENDED_AGGREGATION_CLIENT_TIMESTAMP
+    return _recommended_aggregation("client_timestamp")
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):

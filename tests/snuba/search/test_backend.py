@@ -4088,3 +4088,51 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
         assert len(results) == 1
         _, score = results[0]
         assert 0.0 <= score <= 1.0
+
+    def test_recommended_sort_event_volume(self) -> None:
+        """Test that higher event volume produces a higher recommended score."""
+        base_datetime = before_now(hours=1)
+
+        # Store 5 events for the high-volume group
+        for i in range(5):
+            self.store_event(
+                data={
+                    "fingerprint": ["high-volume-group"],
+                    "event_id": f"{'a' * 31}{i}",
+                    "message": "high volume",
+                    "timestamp": base_datetime.isoformat(),
+                    "level": "error",
+                },
+                project_id=self.project.id,
+            )
+
+        # Store 1 event for the low-volume group
+        self.store_event(
+            data={
+                "fingerprint": ["low-volume-group"],
+                "event_id": "b" * 32,
+                "message": "low volume",
+                "timestamp": base_datetime.isoformat(),
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        high_volume_group = Group.objects.get(project=self.project, message="high volume")
+        low_volume_group = Group.objects.get(project=self.project, message="low volume")
+
+        query_executor = self.backend._get_query_executor()
+        results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=[high_volume_group.id, low_volume_group.id],
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+
+        scores = {group_id: score for group_id, score in results}
+        assert scores[high_volume_group.id] > scores[low_volume_group.id]
