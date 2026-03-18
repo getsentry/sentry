@@ -113,9 +113,17 @@ describe('tryParsePythonDict', () => {
     expect(tryParsePythonDict('{key: value}')).toBeNull();
   });
 
-  it('bails out when mixed quotes are present', () => {
-    expect(tryParsePythonDict("{'msg': \"it's broken\", 'n': 1}")).toBeNull();
-    expect(tryParsePythonDict('{\'key\': "value"}')).toBeNull();
+  it('returns null when mixed quotes produce invalid JSON', () => {
+    expect(tryParsePythonDict("{'key': 'text with \"inner\" quotes'}")).toBeNull();
+  });
+
+  it('handles Python dicts where values contain markdown', () => {
+    const result = tryParsePythonDict(
+      "{'content': 'Given a query, you should **determine** if the passage is relevant'}"
+    );
+    expect(result).toEqual({
+      content: 'Given a query, you should **determine** if the passage is relevant',
+    });
   });
 });
 

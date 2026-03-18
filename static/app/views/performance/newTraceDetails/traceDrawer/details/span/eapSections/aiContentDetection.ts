@@ -32,11 +32,6 @@ export function tryParsePythonDict(text: string): Record<PropertyKey, unknown> |
     return null;
   }
 
-  // Mixed quotes make the blanket ' → " replacement unsafe
-  if (trimmed.includes("'") && trimmed.includes('"')) {
-    return null;
-  }
-
   try {
     let converted = trimmed;
     converted = converted.replace(/\bTrue\b/g, 'true');
