@@ -2,7 +2,11 @@ import {useMemo, useRef, useState} from 'react';
 
 import {addRepository, hideRepository} from 'sentry/actionCreators/integrations';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import type {IntegrationRepository, Repository} from 'sentry/types/integrations';
+import type {
+  Integration,
+  IntegrationRepository,
+  Repository,
+} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import getApiUrl from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -12,6 +16,26 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 interface UseScmRepoSelectionOptions {
   onSelect: (repo?: Repository) => void;
   reposByIdentifier: Map<string, IntegrationRepository>;
+}
+
+function buildOptimisticRepo(
+  repo: IntegrationRepository,
+  integration: Integration
+): Repository {
+  return {
+    id: '',
+    externalId: repo.identifier,
+    name: repo.name,
+    externalSlug: repo.identifier,
+    url: '',
+    provider: {
+      id: integration.provider.key,
+      name: integration.provider.name,
+    },
+    status: RepositoryStatus.ACTIVE,
+    dateCreated: '',
+    integrationId: integration.id,
+  };
 }
 
 export function useScmRepoSelection({
@@ -63,20 +87,7 @@ export function useScmRepoSelection({
 
     cleanupPreviousAdd();
 
-    const optimistic: Repository = {
-      id: '',
-      externalId: repo.identifier,
-      name: repo.name,
-      externalSlug: repo.identifier,
-      url: '',
-      provider: {
-        id: selectedIntegration.provider.key,
-        name: selectedIntegration.provider.name,
-      },
-      status: RepositoryStatus.ACTIVE,
-      dateCreated: '',
-      integrationId: selectedIntegration.id,
-    };
+    const optimistic = buildOptimisticRepo(repo, selectedIntegration);
     onSelect(optimistic);
 
     if (repo.isInstalled) {

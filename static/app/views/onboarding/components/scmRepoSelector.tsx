@@ -63,6 +63,7 @@ export function ScmRepoSelector() {
             icon={<IconClose size="xs" />}
             aria-label={t('Remove %s', selectedRepo.name)}
             onClick={handleRemove}
+            disabled={adding}
           />
         </Flex>
       )}

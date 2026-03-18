@@ -58,36 +58,33 @@ export function OnboardingContextProvider({children, value}: ProviderProps) {
       selectedPlatform: onboarding?.selectedPlatform,
       setSelectedPlatform: (selectedPlatform?: OnboardingSelectedSDK) => {
         if (selectedPlatform === undefined) {
-          // Clear platform but preserve other SCM state (integration, repos, features).
-          // Full reset only happens if no other state remains.
-          const nextState = {
-            ...onboarding,
-            selectedPlatform: undefined,
-          };
+          // Check current state to decide clear vs preserve. Reading
+          // `onboarding` from the memo closure is safe here because
+          // setSelectedPlatform is recreated whenever onboarding changes.
           const hasOtherState =
-            nextState.selectedIntegration ||
-            nextState.selectedRepository ||
-            nextState.selectedFeatures;
+            onboarding?.selectedIntegration ||
+            onboarding?.selectedRepository ||
+            onboarding?.selectedFeatures;
           if (hasOtherState) {
-            setOnboarding(nextState);
+            setOnboarding(prev => ({...prev, selectedPlatform: undefined}));
           } else {
             removeOnboarding();
           }
         } else {
-          setOnboarding({...onboarding, selectedPlatform});
+          setOnboarding(prev => ({...prev, selectedPlatform}));
         }
       },
       selectedIntegration: onboarding?.selectedIntegration,
       setSelectedIntegration: (selectedIntegration?: Integration) => {
-        setOnboarding({...onboarding, selectedIntegration});
+        setOnboarding(prev => ({...prev, selectedIntegration}));
       },
       selectedRepository: onboarding?.selectedRepository,
       setSelectedRepository: (selectedRepository?: Repository) => {
-        setOnboarding({...onboarding, selectedRepository});
+        setOnboarding(prev => ({...prev, selectedRepository}));
       },
       selectedFeatures: onboarding?.selectedFeatures,
       setSelectedFeatures: (selectedFeatures?: ProductSolution[]) => {
-        setOnboarding({...onboarding, selectedFeatures});
+        setOnboarding(prev => ({...prev, selectedFeatures}));
       },
     }),
     [onboarding, setOnboarding, removeOnboarding]
