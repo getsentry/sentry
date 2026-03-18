@@ -94,13 +94,6 @@ export const ARTIFACT_TYPE_OPTIONS: Array<{label: string; value: ArtifactType}> 
     value,
   }));
 
-export const STATUS_CHECK_ALLOWED_FILTER_KEYS = [
-  'app_id',
-  'git_head_ref',
-  'build_configuration_name',
-  'platform_name',
-];
-
 export function guessPlatformForProject(project: Project): Platform | undefined {
   const platform = project.platform;
   if (!platform) {
