@@ -71,15 +71,12 @@ export function useScmRepoSelection({
   // repo stays registered in Sentry but is non-critical for the onboarding flow.
   const cleanupPreviousAdd = () => {
     if (addedRepoIdRef.current) {
-      try {
-        fetchMutation({
-          url: `/organizations/${organization.slug}/repos/${addedRepoIdRef.current}/`,
-          method: 'PUT',
-          data: {status: 'hidden'},
-        });
-      } finally {
-        addedRepoIdRef.current = null;
-      }
+      fetchMutation({
+        url: `/organizations/${organization.slug}/repos/${addedRepoIdRef.current}/`,
+        method: 'PUT',
+        data: {status: 'hidden'},
+      });
+      addedRepoIdRef.current = null;
     }
   };
 
