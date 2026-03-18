@@ -17,7 +17,7 @@ import PageFiltersStore from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
-const organization = OrganizationFixture({features: ['open-membership']});
+const organization = OrganizationFixture({openMembership: true});
 const projects = [
   ProjectFixture({id: '1', slug: 'project-1', isMember: true}),
   ProjectFixture({id: '2', slug: 'project-2', isMember: true}),
@@ -203,7 +203,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('clicking My Projects when All Projects is active selects only non-member projects', async () => {
-    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+    const closedOrg = OrganizationFixture({orgRole: 'member'});
 
     // Start with All Projects active from URL
     PageFiltersStore.onInitializeUrlState({
@@ -235,7 +235,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('clicking My Projects while All Projects is staged selects only non-member projects', async () => {
-    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+    const closedOrg = OrganizationFixture({orgRole: 'member'});
 
     // Start with a single project selected
     PageFiltersStore.onInitializeUrlState({
@@ -270,7 +270,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('All Projects toggles all projects on; clicking again deselects everything', async () => {
-    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+    const closedOrg = OrganizationFixture({orgRole: 'member'});
 
     // Start with a single project selected
     PageFiltersStore.onInitializeUrlState({
@@ -307,7 +307,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('unchecking all project checkboxes from All Projects leaves everything unchecked', async () => {
-    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+    const closedOrg = OrganizationFixture({orgRole: 'member'});
 
     // Start with All Projects active from URL
     PageFiltersStore.onInitializeUrlState({
@@ -339,7 +339,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('My Projects toggles member projects on; clicking again deselects everything', async () => {
-    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+    const closedOrg = OrganizationFixture({orgRole: 'member'});
 
     // Start with a single project selected
     PageFiltersStore.onInitializeUrlState({
@@ -376,7 +376,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('does not show All Projects separator when My Projects is visible', async () => {
-    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+    const closedOrg = OrganizationFixture({orgRole: 'member'});
 
     render(<ProjectPageFilter />, {
       organization: closedOrg,
@@ -414,7 +414,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('does not show All Projects or My Projects options when only one project exists', async () => {
-    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+    const closedOrg = OrganizationFixture({orgRole: 'member'});
 
     const singleProject = [ProjectFixture({id: '3', slug: 'project-3', isMember: false})];
     ProjectsStore.loadInitialData(singleProject);
@@ -613,7 +613,7 @@ describe('ProjectPageFilter', () => {
     'shows selection limit warning when $label is active and a single project is unchecked',
     async ({memberCount, nonMemberCount, urlProjects, urlQuery, triggerName}) => {
       // My Projects sentinel only exists in closed-membership orgs
-      const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+      const closedOrg = OrganizationFixture({orgRole: 'member'});
 
       const manyProjects = [
         ...Array.from({length: memberCount}, (_, index) =>
@@ -856,7 +856,7 @@ describe('ProjectPageFilter', () => {
   });
 
   it('deselecting My Projects does not select All Projects in the URL', async () => {
-    const closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+    const closedOrg = OrganizationFixture({orgRole: 'member'});
 
     // Start with default empty URL = "My Projects" state in a closed org
     const {router} = render(<ProjectPageFilter />, {
@@ -958,7 +958,7 @@ describe('ProjectPageFilter', () => {
 
     beforeEach(() => {
       // Org without open-membership; user is a regular member
-      closedOrg = OrganizationFixture({features: [], orgRole: 'member'});
+      closedOrg = OrganizationFixture({orgRole: 'member'});
       OrganizationStore.onUpdate(closedOrg, {replace: true});
     });
 

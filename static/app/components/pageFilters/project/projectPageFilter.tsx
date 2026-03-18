@@ -94,7 +94,7 @@ export function ProjectPageFilter({
   //   has_project_membership(), but has_global_access=True (set for open-membership
   //   orgs) means every project passes has_project_access(), making the two sentinel
   //   values return identical result sets.
-  const isOpenMembership = organization.features.includes('open-membership');
+  const isOpenMembership = organization.openMembership;
 
   const committedSelectionIntent = useMemo(
     () =>
