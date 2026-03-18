@@ -138,10 +138,6 @@ class BaseRequestParser(ABC):
                 http_response = cell_client.proxy_request(incoming_request=self.request)
                 return http_response
 
-    # TODO(cells): Remove once no longer needed by getsentry
-    def get_response_from_region_silo(self, region: Cell) -> HttpResponseBase:
-        return self.get_response_from_cell_silo(cell=region)
-
     def get_responses_from_cell_silos(self, cells: list[Cell]) -> dict[str, RegionResult]:
         """
         Used to handle the requests on a given list of cells (synchronously).

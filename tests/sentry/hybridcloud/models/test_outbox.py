@@ -453,7 +453,7 @@ class CellOutboxTest(TestCase):
 
             assert last_call_count == 2
 
-    def test_region_sharding_keys(self) -> None:
+    def test_cell_sharding_keys(self) -> None:
         org1 = Factories.create_organization()
         org2 = Factories.create_organization()
 
