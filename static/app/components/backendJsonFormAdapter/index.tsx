@@ -18,13 +18,15 @@ function getZodType(fieldType: JsonFormAdapterFieldConfig['type']) {
       return z.boolean();
     case 'string':
     case 'text':
-    case 'url':
-    case 'email':
     case 'secret':
     case 'textarea':
       return z.string();
     case 'number':
       return z.number();
+    case 'email':
+      return z.email();
+    case 'url':
+      return z.url();
     case 'choice_mapper':
       return z.object({});
     case 'project_mapper':
@@ -295,6 +297,9 @@ export function BackendJsonFormAdapter<
                   onChange={fieldApi.handleChange}
                   placeholder={field.placeholder}
                   disabled={field.disabled}
+                  type={
+                    field.type === 'string' || field.type === 'text' ? 'text' : field.type
+                  }
                 />
               </fieldApi.Layout.Row>
             );
