@@ -132,7 +132,7 @@ describe('GroupHeaderRow', () => {
 
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `${baseIssuesPath}${groupDefault.id}/?sort=freq&_allp=1&referrer=event-or-group-header`
+      `${baseIssuesPath}${groupDefault.id}/?_allp=1&project=2&referrer=event-or-group-header&sort=freq`
     );
   });
 
@@ -146,7 +146,7 @@ describe('GroupHeaderRow', () => {
 
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      `${baseIssuesPath}${groupDefault.id}/?_allp=1&referrer=event-or-group-header`
+      `${baseIssuesPath}${groupDefault.id}/?_allp=1&project=2&referrer=event-or-group-header`
     );
   });
 
