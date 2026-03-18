@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import tempfile
 from copy import deepcopy
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from functools import cached_property, cmp_to_key
 from pathlib import Path
 from typing import Any
@@ -77,7 +77,6 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
-from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewProject
@@ -519,17 +518,6 @@ class ExhaustiveFixtures(Fixtures):
             disable_date=timezone.now(),
             sent_initial_email_date=timezone.now(),
             sent_final_email_date=timezone.now(),
-        )
-        CustomDynamicSamplingRule.update_or_create(
-            created_by_id=owner_id,
-            condition={"op": "equals", "name": "environment", "value": "prod"},
-            start=timezone.now(),
-            end=timezone.now() + timedelta(hours=1),
-            project_ids=[project.id],
-            organization_id=org.id,
-            num_samples=100,
-            sample_rate=0.5,
-            query="environment:prod event.type:transaction",
         )
 
         # Environment*
