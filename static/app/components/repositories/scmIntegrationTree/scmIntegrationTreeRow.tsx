@@ -12,6 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
+import {ProviderConfigLink} from 'sentry/components/repositories/scmIntegrationTree/providerConfigLink';
 import type {TreeNode} from 'sentry/components/repositories/scmIntegrationTree/types';
 import {IconAdd, IconChevron, IconClose, IconDelete, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -171,13 +172,16 @@ export function ScmIntegrationTreeRow({
                   )}
                 </Text>
               </Flex>
-              {node.isReposPending ? (
-                <LoadingReposMessage />
-              ) : (
-                <Badge variant="muted">
-                  {t('%s/%s repos connected', node.connectedRepoCount, node.repoCount)}
-                </Badge>
-              )}
+              <Flex align="center" gap="sm">
+                {node.isReposPending ? (
+                  <LoadingReposMessage />
+                ) : (
+                  <Badge variant="muted">
+                    {t('%s/%s repos connected', node.connectedRepoCount, node.repoCount)}
+                  </Badge>
+                )}
+                <ProviderConfigLink integration={node.integration} />
+              </Flex>
             </Flex>
           </Flex>
         </RowButton>
@@ -378,7 +382,7 @@ function LoadingReposMessage() {
   return (
     <Flex align="center" gap="sm">
       <Text size="sm" variant="muted">
-        {messages[messageIndex]}
+        {messages[Math.min(messageIndex, messages.length - 1)]}
       </Text>
       <LoadingIndicator size={16} />
     </Flex>

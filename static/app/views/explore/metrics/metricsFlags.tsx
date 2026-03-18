@@ -27,3 +27,10 @@ export const canUseMetricsMultiAggregateUI = (organization: Organization) => {
     organization.features.includes('tracemetrics-overlay-charts-ui')
   );
 };
+
+export const canUseMetricsSidePanelUI = (organization: Organization) => {
+  return (
+    canUseMetricsUI(organization) &&
+    organization.features.includes('tracemetrics-attributes-dropdown-side-panel')
+  );
+};

@@ -23,7 +23,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import RpcUserInviteContext, organization_service
-from sentry.types.region import CellResolutionError, get_cell_by_name
+from sentry.types.cell import CellResolutionError, get_cell_by_name
 from sentry.utils import auth
 
 logger = logging.getLogger(__name__)

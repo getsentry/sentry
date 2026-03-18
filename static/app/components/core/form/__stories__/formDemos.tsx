@@ -39,7 +39,8 @@ export function QuickStartDemo() {
     validators: {
       onDynamic: quickStartSchema,
     },
-    onSubmit: ({value}) => {
+    onSubmit: async ({value}) => {
+      await sleep(1000);
       // eslint-disable-next-line no-alert
       alert(JSON.stringify(value, null, 2));
     },

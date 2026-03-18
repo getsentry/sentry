@@ -10,6 +10,7 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -250,30 +251,29 @@ interface PrimaryNavigationUnreadIndicatorProps extends React.HTMLAttributes<HTM
   variant: 'accent' | 'danger' | 'warning';
 }
 
-const PrimaryNavigationUnreadIndicator = styled(
-  (props: PrimaryNavigationUnreadIndicatorProps) => {
-    const theme = useTheme();
-    const {layout} = usePrimaryNavigation();
-    return (
-      <Container
-        position="absolute"
-        top={layout === 'mobile' ? `-${theme.space.xs}` : '0'}
-        right={layout === 'mobile' ? 'auto' : '0px'}
-        left={layout === 'mobile' ? '11px' : 'auto'}
-        width="10px"
-        height="10px"
-        radius="full"
-      >
-        {p => <div {...mergeProps(p, props)} data-unread-indicator />}
-      </Container>
-    );
-  }
-)<{
-  variant?: 'accent' | 'danger' | 'warning';
-}>`
-  background: ${p => p.theme.tokens.graphics[p.variant ?? 'accent'].vibrant};
-  border: 2px solid ${p => p.theme.tokens.border[p.variant ?? 'accent'].muted};
-`;
+function PrimaryNavigationUnreadIndicator({
+  variant,
+  ...props
+}: PrimaryNavigationUnreadIndicatorProps) {
+  const theme = useTheme();
+  const {layout} = usePrimaryNavigation();
+  return (
+    <Container
+      position="absolute"
+      top={layout === 'mobile' ? `-${theme.space.xs}` : '0'}
+      right={layout === 'mobile' ? 'auto' : '0px'}
+      left={layout === 'mobile' ? '11px' : 'auto'}
+    >
+      {p => (
+        <StatusIndicator
+          {...mergeProps(p, props)}
+          variant={variant === 'accent' ? 'info' : variant}
+          data-unread-indicator
+        />
+      )}
+    </Container>
+  );
+}
 
 interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   items: MenuItemProps[];
@@ -560,8 +560,9 @@ function ScrollableOverlay(props: OverlayProps) {
       overscrollBehavior="none"
       maxHeight={layout === 'mobile' ? '80vh' : '60vh'}
       width={layout === 'mobile' ? `calc(100vw - ${theme.space['3xl']})` : '400px'}
+      padding="lg"
     >
-      <Overlay {...props} />
+      {p => <Overlay {...mergeProps(p, props)} />}
     </Container>
   );
 }

@@ -6,7 +6,7 @@ import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/ty
 import {PackageManager} from 'sentry/gettingStartedDocs/java/utils';
 
 import {SpringVersion} from './utils';
-import docs from '.';
+import {docs} from '.';
 
 describe('GettingStartedWithSpring', () => {
   it('renders gradle docs correctly', async () => {

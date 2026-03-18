@@ -180,7 +180,7 @@ describe('DashboardTable', () => {
       expect.objectContaining({
         method: 'POST',
         data: expect.objectContaining({
-          title: 'Dashboard',
+          title: 'Dashboard copy',
           widgets: [],
         }),
       })

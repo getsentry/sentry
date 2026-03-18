@@ -190,6 +190,10 @@ describe('Dashboards > Detail', () => {
         url: '/organizations/org-slug/measurements-meta/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace-items/attributes/',
+        body: [],
+      });
     });
 
     afterEach(() => {
@@ -463,6 +467,10 @@ describe('Dashboards > Detail', () => {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/measurements-meta/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace-items/attributes/',
         body: [],
       });
 
