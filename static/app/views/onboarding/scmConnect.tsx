@@ -16,6 +16,7 @@ import {useScmProviders} from './useScmProviders';
 
 export function ScmConnect({onComplete}: StepProps) {
   const onboardingContext = useOnboardingContext();
+  const {selectedIntegration, setSelectedIntegration} = onboardingContext;
   const {scmProviders, isPending, refetchIntegrations, activeIntegrationExisting} =
     useScmProviders();
 
@@ -23,10 +24,10 @@ export function ScmConnect({onComplete}: StepProps) {
   // yet, persist it to context so downstream steps and child components can
   // read it without prop drilling.
   useEffect(() => {
-    if (!onboardingContext.selectedIntegration && activeIntegrationExisting) {
-      onboardingContext.setSelectedIntegration(activeIntegrationExisting);
+    if (!selectedIntegration && activeIntegrationExisting) {
+      setSelectedIntegration(activeIntegrationExisting);
     }
-  }, [onboardingContext, activeIntegrationExisting]);
+  }, [selectedIntegration, setSelectedIntegration, activeIntegrationExisting]);
 
   const handleInstall = useCallback(
     (data: Integration) => {
