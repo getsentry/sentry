@@ -47,7 +47,7 @@ export function useWidgetBuilderTraceItemConfig(): TraceItemAttributeConfig {
 
     return {
       traceItemType: TraceItemDataset.TRACEMETRICS,
-      enabled: true,
+      enabled: traceMetrics.length > 0 && defined(traceMetrics?.[0]?.name),
       query:
         !hasMultipleMetrics && traceMetrics[0]
           ? createTraceMetricFilter(traceMetrics[0])
