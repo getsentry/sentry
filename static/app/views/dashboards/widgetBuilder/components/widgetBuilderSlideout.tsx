@@ -3,11 +3,13 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type RefCallback,
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {metrics} from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -95,6 +97,8 @@ export function WidgetBuilderSlideout({
   onDataFetched,
   thresholdMetaState,
 }: WidgetBuilderSlideoutProps) {
+  const mountTimeRef = useRef(performance.now());
+
   const organization = useOrganization();
   const location = useLocation();
   const {state, dispatch} = useWidgetBuilderContext();
@@ -266,6 +270,21 @@ export function WidgetBuilderSlideout({
       position="left"
       data-test-id="widget-slideout"
       transitionProps={animationTransitionSettings}
+      onAnimationComplete={definition => {
+        if (definition === 'animate') {
+          metrics.distribution(
+            'dashboards.widget_builder.slideout_open_duration',
+            performance.now() - mountTimeRef.current,
+            {
+              unit: 'ms',
+              attributes: {
+                org_slug: organization.slug,
+                dashboard_id: dashboard.id,
+              },
+            }
+          );
+        }
+      }}
     >
       {({isOpening}) => {
         if (isOpening) {

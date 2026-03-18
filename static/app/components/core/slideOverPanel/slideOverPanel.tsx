@@ -2,7 +2,7 @@ import {useEffect, useId, useState, useTransition} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion, type Transition} from 'framer-motion';
+import {motion, type AnimationDefinition, type Transition} from 'framer-motion';
 
 import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
 
@@ -33,6 +33,7 @@ type SlideOverPanelProps = {
   ariaLabel?: string;
   className?: string;
   'data-test-id'?: string;
+  onAnimationComplete?: (definition: AnimationDefinition) => void;
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
   ref?: React.Ref<HTMLDivElement>;
@@ -47,6 +48,7 @@ export function SlideOverPanel({
   ariaLabel,
   children,
   className,
+  onAnimationComplete,
   position,
   transitionProps = {},
   panelWidth,
@@ -110,6 +112,7 @@ export function SlideOverPanel({
         className={className}
         data-test-id={testId}
         panelWidth={panelWidth}
+        onAnimationComplete={onAnimationComplete}
       >
         {/* Render the child content. If it's a render prop, pass the `isOpening`
       prop. We expect the render prop to render a skeleton UI if `isOpening` is
