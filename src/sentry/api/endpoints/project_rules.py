@@ -755,7 +755,6 @@ def format_request_data(
         "enabled": data.get("status", "active") == "active",
         "environment": data.get("environment"),
         "config": {"frequency": data.get("frequency")},
-        "owner": data.get("owner"),  # XXX: this is a placeholder and will need to be rebased
     }
     owner = data.get("owner", "")
     if owner:

@@ -53,6 +53,8 @@ UNSUPPORTED_CONDITIONS = [
     Condition.ISSUE_RESOLVED_TRIGGER.value,
 ]
 
+EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
+
 
 def generate_rule_label(project, rule, data):
     from sentry.rules import rules
@@ -281,27 +283,27 @@ class RuleSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
+        from sentry.rules.conditions.event_frequency import EventFrequencyPercentCondition
+
         # Mark that we're using legacy Rule models
         report_used_legacy_models()
 
         environment = attrs["environment"]
         all_conditions = []
         for o in obj.data.get("conditions", []):
-            normalized_o = dict(o)
+            normalized_data_condition = dict(o)
             # EventFrequencyPercentCondition stores float values (e.g. 100.0) but the
             # WorkflowEngineRuleSerializer normalizes integer-valued floats to int when
             # rendering labels. Normalize here so both serializers produce consistent labels.
-            if (
-                normalized_o.get("id")
-                == "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
-                and isinstance(normalized_o.get("value"), float)
-            ):
-                if normalized_o["value"].is_integer():
-                    normalized_o["value"] = int(normalized_o["value"])
+            normalized_value = normalized_data_condition.get("value")
+            if normalized_data_condition.get(
+                "id"
+            ) == EventFrequencyPercentCondition.id and isinstance(normalized_value, float):
+                normalized_data_condition["value"] = int(normalized_value)
             all_conditions.append(
                 dict(
-                    list(normalized_o.items())
-                    + [("name", generate_rule_label(obj.project, obj, normalized_o))]
+                    list(normalized_data_condition.items())
+                    + [("name", generate_rule_label(obj.project, obj, normalized_data_condition))]
                 )
             )
 
@@ -312,9 +314,7 @@ class RuleSerializer(Serializer):
                     list(action.items()) + [("name", generate_rule_label(obj.project, obj, action))]
                 )
                 # Normalize email Member/Team actions to match WorkflowEngineRuleSerializer output
-                if action_data.get(
-                    "id"
-                ) == "sentry.mail.actions.NotifyEmailAction" and action_data.get("targetType") in (
+                if action_data.get("id") == EMAIL_ACTION and action_data.get("targetType") in (
                     ActionTargetType.MEMBER.value,
                     ActionTargetType.TEAM.value,
                 ):
