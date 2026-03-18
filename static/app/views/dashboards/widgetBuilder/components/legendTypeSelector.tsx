@@ -1,7 +1,6 @@
-import {useTheme} from '@emotion/react';
-
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
@@ -10,7 +9,6 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 export function LegendTypeSelector() {
-  const theme = useTheme();
   const {state, dispatch} = useWidgetBuilderContext();
 
   const columns = state.fields?.filter(field => field.kind === FieldValueKind.FIELD);
@@ -27,11 +25,7 @@ export function LegendTypeSelector() {
         as="label"
         align="center"
         gap="sm"
-        style={{
-          marginTop: theme.space.md,
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          color: disabled ? theme.tokens.content.disabled : undefined,
-        }}
+        cursor={disabled ? 'not-allowed' : 'pointer'}
       >
         <Checkbox
           checked={state.legendType === 'breakdown'}
@@ -43,7 +37,7 @@ export function LegendTypeSelector() {
             });
           }}
         />
-        {t('Show legend breakdown')}
+        <Text variant={disabled ? 'muted' : undefined}>{t('Show legend breakdown')}</Text>
       </Flex>
     </Tooltip>
   );
