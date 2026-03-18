@@ -23,7 +23,7 @@ from django.test import override_settings
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
 from sentry.testutils.region import get_test_env_directory, override_regions
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils.snowflake import uses_snowflake_id
 
 if typing.TYPE_CHECKING:
@@ -339,9 +339,6 @@ cell_silo_test = SiloModeTestDecorator(SiloMode.CELL)
 Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to REGION.
 """
-
-# TODO(cells): Remove alias once no longer used in getsentry
-region_silo_test = cell_silo_test
 
 
 # assume_test_silo_mode vs assume_test_silo_mode_of: What's the difference?

@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';

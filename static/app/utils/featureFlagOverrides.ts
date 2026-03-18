@@ -1,7 +1,7 @@
 import type {FlagMap} from '@sentry/toolbar';
 
 import type {Organization} from 'sentry/types/organization';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 type OverrideState = Record<string, boolean>;
 

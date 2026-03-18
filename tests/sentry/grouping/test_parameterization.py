@@ -15,6 +15,7 @@ from sentry.grouping.variants import ComponentVariant, CustomFingerprintVariant
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.mocking import count_matching_calls
 
 standard_cases = [
     ("email", "test@email.com", "<email>"),
@@ -266,16 +267,101 @@ def test_parameterized_message_stored_on_context(default_project: Project) -> No
         context = mock_get_variants.call_args.args[1]
 
         assert isinstance(context, GroupingContext)
-        assert context.canonical_event_message == "Dog number 1, #1 dog"
-        assert context.canonical_message_parameterized == "Dog number <int>, #<int> dog"
+        assert len(context.message_parameterization_map) == 1
+        assert (
+            context.message_parameterization_map["Dog number 1, #1 dog"]
+            == "Dog number <int>, #<int> dog"
+        )
+
+
+@django_db_all
+def test_parameterized_error_message_stored_on_context(default_project: Project) -> None:
+    with patch(
+        "sentry.grouping.api._get_variants_from_strategies", wraps=_get_variants_from_strategies
+    ) as mock_get_variants:
+        event = Event(
+            default_project.id,
+            "11211231",
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "FailedToFetchError",
+                            "value": "That's ball number 6 that Charlie hasn't brought back!",
+                        }
+                    ]
+                },
+            },
+        )
+        event.get_grouping_variants()
+
+        context = mock_get_variants.call_args.args[1]
+
+        assert isinstance(context, GroupingContext)
+        assert len(context.message_parameterization_map) == 1
+        assert (
+            context.message_parameterization_map[
+                "That's ball number 6 that Charlie hasn't brought back!"
+            ]
+            == "That's ball number <int> that Charlie hasn't brought back!"
+        )
+
+
+@django_db_all
+def test_parameterized_chained_error_messages_stored_on_context(default_project: Project) -> None:
+    with patch(
+        "sentry.grouping.api._get_variants_from_strategies", wraps=_get_variants_from_strategies
+    ) as mock_get_variants:
+        event = Event(
+            default_project.id,
+            "11211231",
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "DogSourcingError",
+                            "value": "Adopt don't shop!",
+                        },
+                        {
+                            "type": "FailedToFetchError",
+                            "value": "That's ball number 6 that Charlie hasn't brought back!",
+                        },
+                        {
+                            "type": "DestroyedShoeError",
+                            "value": "Oh, no! Maisey ate Dad's slippers!",
+                        },
+                    ]
+                },
+            },
+        )
+        event.get_grouping_variants()
+
+        context = mock_get_variants.call_args.args[1]
+
+        assert isinstance(context, GroupingContext)
+        assert len(context.message_parameterization_map) == 3
+        assert context.message_parameterization_map["Adopt don't shop!"] == "Adopt don't shop!"
+        assert (
+            context.message_parameterization_map[
+                "That's ball number 6 that Charlie hasn't brought back!"
+            ]
+            == "That's ball number <int> that Charlie hasn't brought back!"
+        )
+        assert (
+            context.message_parameterization_map["Oh, no! Maisey ate Dad's slippers!"]
+            == "Oh, no! Maisey ate Dad's slippers!"
+        )
 
 
 @django_db_all
 def test_stored_parameterized_message_used(default_project: Project) -> None:
-    with patch(
-        "sentry.grouping.parameterization.parameterizer.parameterize",
-        wraps=parameterizer.parameterize,
-    ) as parameterize_spy:
+    with (
+        patch("sentry.grouping.utils.metrics.incr") as mock_metrics_incr,
+        patch(
+            "sentry.grouping.parameterization.parameterizer.parameterize",
+            wraps=parameterizer.parameterize,
+        ) as parameterize_spy,
+    ):
         event = Event(
             default_project.id,
             "11211231",
@@ -300,3 +386,4 @@ def test_stored_parameterized_message_used(default_project: Project) -> None:
         # Even though the parameterized message was used in two places, the parameterizer only ran
         # once, meaning the stored value must have been used
         assert parameterize_spy.call_count == 1
+        assert count_matching_calls(mock_metrics_incr, "grouping.cached_param_result_used") == 1

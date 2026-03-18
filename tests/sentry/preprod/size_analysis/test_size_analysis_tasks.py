@@ -269,4 +269,4 @@ class ArtifactToTagsTest(TestCase):
 
         tags = _artifact_to_tags(artifact)
 
-        assert tags == {"app_id": "com.example.app"}
+        assert tags == {"app_id": "com.example.app", "artifact_id": str(artifact.id)}

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import type {EventGroupComponent} from 'sentry/types/event';
 
-import GroupingComponent from './groupingComponent';
+import {GroupingComponent} from './groupingComponent';
 import {GroupingComponentListItem} from './groupingComponentFrames';
 import {groupingComponentFilter} from './utils';
 

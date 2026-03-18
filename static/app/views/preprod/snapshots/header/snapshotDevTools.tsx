@@ -9,7 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {Client} from 'sentry/api';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {
   ComparisonState,
   type SnapshotComparisonRunInfo,

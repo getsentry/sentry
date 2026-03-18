@@ -12,7 +12,7 @@ from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc import OptionValue, logger
@@ -79,7 +79,7 @@ from sentry.projects.services.project import RpcProjectFlags
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth.auth import email_unlink_notifications
-from sentry.types.region import find_cells_for_orgs
+from sentry.types.cell import find_cells_for_orgs
 from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_org_delete_log
 
@@ -310,7 +310,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 return serialize_member(org_member)
             except OrganizationMember.DoesNotExist:
                 try:
-                    org_member = OrganizationMember.objects.get(
+                    org_member = OrganizationMember.objects.select_for_update().get(
                         id=organization_member_id, organization_id=organization_id
                     )
                     org_member.set_user(user_id)
@@ -727,13 +727,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 response_state=RpcOrganizationDeleteState.OWNS_PUBLISHED_INTEGRATION
             )
 
-        with transaction.atomic(router.db_for_write(RegionScheduledDeletion)):
+        with transaction.atomic(router.db_for_write(CellScheduledDeletion)):
             updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
                 org_id=orm_organization.id
             )
 
             if updated_organization is not None:
-                schedule = RegionScheduledDeletion.schedule(orm_organization, days=1, actor=user)
+                schedule = CellScheduledDeletion.schedule(orm_organization, days=1, actor=user)
 
                 Organization.objects.uncache_object(updated_organization.id)
                 return RpcOrganizationDeleteResponse(
@@ -768,7 +768,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
 class ControlOrganizationCheckService(OrganizationCheckService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
-        # See RegionOrganizationCheckService below
+        # See CellOrganizationCheckService below
         try:
             org = OrganizationMapping.objects.get(slug=slug)
             if only_visible and org.status != OrganizationStatus.ACTIVE:
@@ -780,7 +780,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
         return None
 
     def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
-        # See RegionOrganizationCheckService below
+        # See CellOrganizationCheckService below
         org_mapping = OrganizationMapping.objects.filter(organization_id=id).first()
         if org_mapping is None:
             return False
@@ -789,7 +789,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
         return True
 
 
-class RegionOrganizationCheckService(OrganizationCheckService):
+class CellOrganizationCheckService(OrganizationCheckService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
         # See ControlOrganizationCheckService above
         try:

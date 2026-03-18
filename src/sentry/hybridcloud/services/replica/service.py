@@ -7,6 +7,7 @@ from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_meth
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
+from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
 from sentry.notifications.services import RpcExternalActor
 from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.silo.base import SiloMode
@@ -38,6 +39,20 @@ class ControlReplicaService(RpcService):
     def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
         pass
 
+    @rpc_method
+    @abc.abstractmethod
+    def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
+        """
+        Returns True if the mapping was successfully created or updated, False if there was a
+        conflict (e.g. a duplicate public_key).
+        """
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def delete_project_key_mapping(self, *, project_key_id: int, cell_name: str) -> None:
+        pass
+
     @classmethod
     def get_local_implementation(cls) -> RpcService:
         from .impl import DatabaseBackedControlReplicaService
@@ -45,7 +60,7 @@ class ControlReplicaService(RpcService):
         return DatabaseBackedControlReplicaService()
 
 
-class RegionReplicaService(RpcService):
+class CellReplicaService(RpcService):
     key = "region_replica"
     local_mode = SiloMode.CELL
 
@@ -138,10 +153,10 @@ class RegionReplicaService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from .impl import DatabaseBackedRegionReplicaService
+        from .impl import DatabaseBackedCellReplicaService
 
-        return DatabaseBackedRegionReplicaService()
+        return DatabaseBackedCellReplicaService()
 
 
-region_replica_service = RegionReplicaService.create_delegation()
+cell_replica_service = CellReplicaService.create_delegation()
 control_replica_service = ControlReplicaService.create_delegation()

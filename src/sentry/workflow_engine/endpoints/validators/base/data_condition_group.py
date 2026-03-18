@@ -1,13 +1,22 @@
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from django.db import router, transaction
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.workflow_engine.endpoints.validators.base import BaseDataConditionValidator
+from sentry.workflow_engine.endpoints.validators.base.data_condition import (
+    BaseDataConditionValidator,
+    DataConditionInput,
+)
 from sentry.workflow_engine.endpoints.validators.utils import remove_items_by_api_input
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import TRIGGER_CONDITIONS, DataCondition
+
+
+class DataConditionGroupInput(TypedDict):
+    id: NotRequired[str]
+    logicType: str
+    conditions: NotRequired[list[DataConditionInput]]
 
 
 class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
