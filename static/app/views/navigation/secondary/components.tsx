@@ -1058,12 +1058,12 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
 
   :hover {
     [data-reorderable-handle-slot] {
-      ${p => p.theme.visuallyHidden}
+      visibility: hidden;
     }
   }
 
   [data-reorderable-handle-slot] {
-    ${p => p.isDragging && p.theme.visuallyHidden}
+    ${p => p.isDragging && 'visibility: hidden;'}
   }
 `;
 
