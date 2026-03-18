@@ -16,7 +16,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
-import RequestError from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
 import {ConfigStore} from './stores/configStore';

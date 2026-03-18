@@ -14,7 +14,7 @@ import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 // Mock GroupList as it throws act warnings
 jest.mock('sentry/components/issues/groupList', () => ({
   __esModule: true,
-  default: () => <div>GroupList</div>,
+  GroupList: () => <div>GroupList</div>,
 }));
 
 // Mock the hooks

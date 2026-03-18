@@ -149,7 +149,7 @@ function getLimit(displayType: DisplayType, limit?: number) {
   }
 }
 
-function ReleaseWidgetQueries({
+export function ReleaseWidgetQueries({
   widget,
   dashboardFilters,
   cursor,
@@ -346,5 +346,3 @@ function ReleaseWidgetQueries({
     ...rest,
   });
 }
-
-export default ReleaseWidgetQueries;

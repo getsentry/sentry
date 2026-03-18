@@ -768,7 +768,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
 class ControlOrganizationCheckService(OrganizationCheckService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
-        # See RegionOrganizationCheckService below
+        # See CellOrganizationCheckService below
         try:
             org = OrganizationMapping.objects.get(slug=slug)
             if only_visible and org.status != OrganizationStatus.ACTIVE:
@@ -780,7 +780,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
         return None
 
     def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
-        # See RegionOrganizationCheckService below
+        # See CellOrganizationCheckService below
         org_mapping = OrganizationMapping.objects.filter(organization_id=id).first()
         if org_mapping is None:
             return False
@@ -789,7 +789,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
         return True
 
 
-class RegionOrganizationCheckService(OrganizationCheckService):
+class CellOrganizationCheckService(OrganizationCheckService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
         # See ControlOrganizationCheckService above
         try:

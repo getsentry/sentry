@@ -67,7 +67,7 @@ type WidgetBuilderV2Props = {
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
 
-function WidgetBuilderV2({
+export function WidgetBuilderV2({
   isOpen,
   onClose,
   onSave,
@@ -226,8 +226,6 @@ function WidgetBuilderV2({
     </AnimatePresence>
   );
 }
-
-export default WidgetBuilderV2;
 
 export function WidgetPreviewContainer({
   dashboardFilters,

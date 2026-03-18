@@ -551,11 +551,11 @@ describe('TraceTree', () => {
               // we have no data for child transaction
             },
             errors: 0,
+            logs: 0,
             performance_issues: 0,
-            projects: 0,
-            transactions: 0,
             span_count: 0,
             span_count_map: {},
+            uptime_checks: 0,
           },
           replay: null,
           organization,

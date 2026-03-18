@@ -5,6 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {
   getOrderedAutofixSections,
   isCodeChangesSection,
+  isCodingAgentsSection,
   isPullRequestSection,
   isRootCauseSection,
   isSolutionSection,
@@ -13,12 +14,13 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesCard,
+  CodingAgentCard,
   PullRequestsCard,
   RootCauseCard,
   SolutionCard,
 } from 'sentry/components/events/autofix/v3/autofixCards';
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
 interface SeerDrawerContentProps {
@@ -81,6 +83,12 @@ function SeerDrawerArtifacts({autofix, sections}: SeerDrawerArtifactsProps) {
         if (isPullRequestSection(section)) {
           return (
             <PullRequestsCard key={section.step} autofix={autofix} section={section} />
+          );
+        }
+
+        if (isCodingAgentsSection(section)) {
+          return (
+            <CodingAgentCard key={section.step} autofix={autofix} section={section} />
           );
         }
 

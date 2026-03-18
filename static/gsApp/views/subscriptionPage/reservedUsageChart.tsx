@@ -11,8 +11,9 @@ import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
-import UsageChart, {
+import {
   ChartDataTransform,
+  UsageChart,
   type ChartStats,
 } from 'sentry/views/organizationStats/usageChart';
 import {

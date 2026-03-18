@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
 import {ReplayViewers} from 'sentry/components/replays/header/replayViewers';
 import {IconCursorArrow} from 'sentry/icons';

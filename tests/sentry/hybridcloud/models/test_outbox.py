@@ -140,7 +140,7 @@ class ControlOutboxTest(TestCase):
 
 
 class OutboxDrainTest(TransactionTestCase):
-    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
+    @patch("sentry.hybridcloud.models.outbox.process_cell_outbox.send")
     def test_draining_with_disabled_shards(self, mock_send: Mock) -> None:
         outbox1 = Organization(id=1).outbox_for_update()
         outbox2 = Organization(id=1).outbox_for_update()
@@ -190,9 +190,9 @@ class OutboxDrainTest(TransactionTestCase):
         assert not CellOutbox.objects.filter(id=outbox1.id).first()
         assert CellOutbox.objects.filter(id=outbox2.id).first()
 
-    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
+    @patch("sentry.hybridcloud.models.outbox.process_cell_outbox.send")
     def test_drain_shard_not_flush_all__concurrent_processing(
-        self, mock_process_region_outbox: Mock
+        self, mock_process_cell_outbox: Mock
     ) -> None:
         outbox1 = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
         outbox2 = OrganizationMember(id=2, organization_id=3, user_id=2).outbox_for_update()
@@ -228,7 +228,7 @@ class OutboxDrainTest(TransactionTestCase):
         assert not CellOutbox.objects.filter(id=outbox1.id).first()
         assert not CellOutbox.objects.filter(id=outbox2.id).first()
 
-        assert mock_process_region_outbox.call_count == 2
+        assert mock_process_cell_outbox.call_count == 2
 
     def test_drain_shard_flush_all__upper_bound(self) -> None:
         outbox1 = Organization(id=1).outbox_for_update()
@@ -259,9 +259,9 @@ class OutboxDrainTest(TransactionTestCase):
         assert not CellOutbox.objects.filter(id=outbox1.id).first()
         assert not CellOutbox.objects.filter(id=outbox2.id).first()
 
-    @patch("sentry.hybridcloud.models.outbox.process_region_outbox.send")
+    @patch("sentry.hybridcloud.models.outbox.process_cell_outbox.send")
     def test_drain_shard_flush_all__concurrent_processing__cooperation(
-        self, mock_process_region_outbox: Mock
+        self, mock_process_cell_outbox: Mock
     ) -> None:
         outbox1 = OrganizationMember(id=1, organization_id=3, user_id=1).outbox_for_update()
         outbox2 = OrganizationMember(id=2, organization_id=3, user_id=2).outbox_for_update()
@@ -296,7 +296,7 @@ class OutboxDrainTest(TransactionTestCase):
         assert not CellOutbox.objects.filter(id=outbox1.id).first()
         assert not CellOutbox.objects.filter(id=outbox2.id).first()
 
-        assert mock_process_region_outbox.call_count == 2
+        assert mock_process_cell_outbox.call_count == 2
 
 
 class CellOutboxTest(TestCase):
@@ -370,28 +370,28 @@ class CellOutboxTest(TestCase):
 
     def test_outbox_rescheduling(self) -> None:
         with patch(
-            "sentry.hybridcloud.models.outbox.process_region_outbox.send"
-        ) as mock_process_region_outbox:
+            "sentry.hybridcloud.models.outbox.process_cell_outbox.send"
+        ) as mock_process_cell_outbox:
 
             def raise_exception(**kwargs: Any) -> None:
                 raise ValueError("This is just a test mock exception")
 
             def run_with_error(concurrency: int = 1) -> None:
-                mock_process_region_outbox.side_effect = raise_exception
-                mock_process_region_outbox.reset_mock()
+                mock_process_cell_outbox.side_effect = raise_exception
+                mock_process_cell_outbox.reset_mock()
                 with self.tasks():
                     with raises(OutboxFlushError):
                         enqueue_outbox_jobs(concurrency=concurrency, process_outbox_backfills=False)
-                    assert mock_process_region_outbox.call_count == 1
+                    assert mock_process_cell_outbox.call_count == 1
 
             def ensure_converged() -> None:
-                mock_process_region_outbox.reset_mock()
+                mock_process_cell_outbox.reset_mock()
                 with self.tasks():
                     enqueue_outbox_jobs(process_outbox_backfills=False)
-                    assert mock_process_region_outbox.call_count == 0
+                    assert mock_process_cell_outbox.call_count == 0
 
             def assert_called_for_org(org: int) -> None:
-                mock_process_region_outbox.assert_called_with(
+                mock_process_cell_outbox.assert_called_with(
                     sender=OutboxCategory.ORGANIZATION_UPDATE,
                     payload=None,
                     object_identifier=org,
@@ -433,8 +433,8 @@ class CellOutboxTest(TestCase):
     def test_outbox_converges(self) -> None:
         with (
             patch(
-                "sentry.hybridcloud.models.outbox.process_region_outbox.send"
-            ) as mock_process_region_outbox,
+                "sentry.hybridcloud.models.outbox.process_cell_outbox.send"
+            ) as mock_process_cell_outbox,
             outbox_context(flush=False),
         ):
             Organization(id=10001).outbox_for_update().save()
@@ -447,9 +447,9 @@ class CellOutboxTest(TestCase):
             while True:
                 with self.tasks():
                     enqueue_outbox_jobs(process_outbox_backfills=False)
-                    if last_call_count == mock_process_region_outbox.call_count:
+                    if last_call_count == mock_process_cell_outbox.call_count:
                         break
-                    last_call_count = mock_process_region_outbox.call_count
+                    last_call_count = mock_process_cell_outbox.call_count
 
             assert last_call_count == 2
 

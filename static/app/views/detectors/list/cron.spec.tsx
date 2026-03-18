@@ -14,7 +14,7 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {StatusPageComponent} from 'sentry/types/system';
 import CronDetectorsList from 'sentry/views/detectors/list/cron';

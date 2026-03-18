@@ -15,7 +15,7 @@ import {IssueReplayCount} from 'sentry/components/group/issueReplayCount';
 import {IssueSeerBadge} from 'sentry/components/group/issueSeerBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

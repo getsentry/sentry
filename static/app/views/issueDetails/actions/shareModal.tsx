@@ -42,7 +42,7 @@ export function getShareUrl(organization: Organization, group: Group) {
   return `${window.location.origin}${normalizeUrl(path)}`;
 }
 
-export default function ShareIssueModal({
+export function ShareIssueModal({
   Header,
   Body,
   organization,
