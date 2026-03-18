@@ -92,7 +92,7 @@ type IssuesTotals = {
   unhandled: number;
 } | null;
 
-export default function ReleaseComparisonChart({
+export function ReleaseComparisonChart({
   release,
   project,
   releaseSessions,

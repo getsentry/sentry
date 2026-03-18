@@ -42,6 +42,7 @@ from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
+from sentry.types.actor import parse_and_validate_actor
 from sentry.workflow_engine.endpoints.validators.base.action import ActionInput
 from sentry.workflow_engine.endpoints.validators.base.data_condition import DataConditionInput
 from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
@@ -747,6 +748,7 @@ class ProjectRulePostData(TypedDict):
 
 def format_request_data(
     data: ProjectRulePostData,
+    project: Project,
 ) -> WorkflowInput:
     workflow_payload: WorkflowInput = {
         "name": data.get("name", ""),
@@ -754,6 +756,13 @@ def format_request_data(
         "environment": data.get("environment"),
         "config": {"frequency": data.get("frequency")},
     }
+    owner = data.get("owner", "")
+    if owner:
+        actor = parse_and_validate_actor(str(owner), project.organization_id)
+        if actor is not None:
+            workflow_payload["owner"] = actor.identifier
+    elif owner is None:  # user has explicitly passed None so as to clear the owner field
+        workflow_payload["owner"] = None
 
     triggers: DataConditionGroupInput = {"logicType": "any-short", "conditions": []}
     translated_filter_list: list[DataConditionInput] = []
@@ -905,7 +914,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
         if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            request_data = format_request_data(cast(ProjectRulePostData, request.data))
+            request_data = format_request_data(cast(ProjectRulePostData, request.data), project)
             validator = WorkflowValidator(
                 data=request_data,
                 context={"organization": project.organization, "request": request},

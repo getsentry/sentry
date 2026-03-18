@@ -3,9 +3,9 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {useFormTypingAnimation} from 'sentry/components/forms/useFormTypingAnimation';

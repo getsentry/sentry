@@ -1,6 +1,6 @@
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 
 describe('DiscoverQuery', () => {

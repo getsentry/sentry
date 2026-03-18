@@ -25,10 +25,10 @@ import {
   STATIC_SPAN_TAGS,
 } from 'sentry/components/events/searchBarFieldConstants';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import FormField from 'sentry/components/forms/formField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
+import {FormField} from 'sentry/components/forms/formField';
 import {IdBadge} from 'sentry/components/idBadge';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -535,9 +535,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               options={getTimeWindowOptions(dataset, comparisonType)}
               isDisabled={disabled || this.disableTransactionAlertType}
               value={timeWindow}
-              onChange={({value}: any) => onTimeWindowChange(value)}
-              inline={false}
-              flexibleControlStateSize
+              onChange={({value}) => onTimeWindowChange(value)}
             />
           </Tooltip>
         </FormRow>

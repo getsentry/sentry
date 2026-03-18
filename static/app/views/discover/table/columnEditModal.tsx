@@ -41,7 +41,7 @@ type Props = {
   spanOperationBreakdownKeys?: string[];
 } & ModalRenderProps;
 
-function ColumnEditModal(props: Props) {
+export function ColumnEditModal(props: Props) {
   const theme = useTheme();
 
   const {
@@ -199,5 +199,4 @@ const modalCss = (theme: Theme) => css`
   }
 `;
 
-export default ColumnEditModal;
 export {modalCss};

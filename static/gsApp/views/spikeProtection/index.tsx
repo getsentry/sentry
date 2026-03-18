@@ -12,8 +12,9 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import trackSpendVisibilityAnaltyics, {
+import {
   SpendVisibilityEvents,
+  trackSpendVisibilityAnaltyics,
 } from 'getsentry/utils/trackSpendVisibilityAnalytics';
 import {SPIKE_PROTECTION_DOCS_LINK} from 'getsentry/views/spikeProtection/constants';
 import SpikeProtectionProjects from 'getsentry/views/spikeProtection/spikeProtectionProjects';

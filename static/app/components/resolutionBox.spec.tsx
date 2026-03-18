@@ -8,7 +8,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import {GroupActivityType} from 'sentry/types/group';
 
-import ResolutionBox from './resolutionBox';
+import {ResolutionBox} from './resolutionBox';
 
 describe('ResolutionBox', () => {
   const organization = OrganizationFixture();

@@ -20,7 +20,7 @@ import {
   SolutionCard,
 } from 'sentry/components/events/autofix/v3/autofixCards';
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
 interface SeerDrawerContentProps {

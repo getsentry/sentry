@@ -35,7 +35,7 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
-from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics import SpanMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -576,16 +576,16 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         self.login_as(user=member_user)
 
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction", "decision": "keep"},
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"is_segment": "true", "decision": "keep"},
             minutes_before_now=60 * 24 * 12,
             value=1,
             project_id=project_1.id,
             org_id=self.organization.id,
         )
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction", "decision": "keep"},
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"is_segment": "true", "decision": "keep"},
             minutes_before_now=60 * 24 * 12,
             value=1,
             project_id=project_2.id,

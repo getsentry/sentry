@@ -535,9 +535,9 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         self.context["workflow"] = self.workflow
 
-        serializer = WorkflowSerializer()
-        attrs = serializer.get_attrs([self.workflow], self.user)
-        self.valid_saved_data: WorkflowSerializerResponse = serializer.serialize(
+        self.serializer = WorkflowSerializer()
+        attrs = self.serializer.get_attrs([self.workflow], self.user)
+        self.valid_saved_data: WorkflowSerializerResponse = self.serializer.serialize(
             self.workflow, attrs[self.workflow], self.user
         )
 
@@ -849,6 +849,11 @@ class TestWorkflowValidatorUpdate(TestCase):
         workflow.refresh_from_db()
         assert workflow.owner_team_id == team.id
         assert workflow.owner_user_id is None
+        attrs = self.serializer.get_attrs([workflow], self.user)
+        response: WorkflowSerializerResponse = self.serializer.serialize(
+            workflow, attrs[workflow], self.user
+        )
+        assert response["owner"] == self.valid_data["owner"]
 
         self.valid_data["owner"] = f"user:{self.user.id}"
         validator = WorkflowValidator(data=self.valid_data, context=context)
@@ -857,6 +862,9 @@ class TestWorkflowValidatorUpdate(TestCase):
         workflow = validator.update(self.workflow, validator.validated_data)
         assert workflow.owner_user_id == self.user.id
         assert workflow.owner_team_id is None
+        attrs = self.serializer.get_attrs([workflow], self.user)
+        response = self.serializer.serialize(workflow, attrs[workflow], self.user)
+        assert response["owner"] == self.valid_data["owner"]
 
     def test_team_owner_not_member(self, mock_action_validator: mock.MagicMock) -> None:
         self.organization.flags.allow_joinleave = False
