@@ -178,7 +178,6 @@ export interface IssueStreamDetector extends BaseDetector {
 interface PreprodDetectorConfig {
   measurement: PreprodMeasurement;
   thresholdType: PreprodThresholdType;
-  query?: string;
 }
 
 export interface PreprodDetector extends BaseDetector {
@@ -258,7 +257,6 @@ export interface PreprodDetectorUpdatePayload extends BaseDetectorUpdatePayload 
   config: {
     measurement: PreprodMeasurement;
     thresholdType: PreprodThresholdType;
-    query?: string;
   };
   type: 'preprod_size_analysis';
 }

@@ -6,7 +6,6 @@ import {t} from 'sentry/locale';
 import type {EventOrGroupType, Level} from 'sentry/types/event';
 import {eventTypeHasLogLevel} from 'sentry/utils/events';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   message: React.ReactNode;
@@ -23,7 +22,6 @@ export function EventMessage({
   type,
   showUnhandled = false,
 }: Props) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const showEventLevel = level && eventTypeHasLogLevel(type);
   const renderedMessage = message ? (
     <Message>{message}</Message>
@@ -35,7 +33,7 @@ export function EventMessage({
     <LevelMessageContainer className={className}>
       {showEventLevel && <ErrorLevelWithMargin level={level} />}
       {showUnhandled ? <UnhandledTag /> : null}
-      {hasStreamlinedUI && showUnhandled ? <Divider /> : null}
+      {showUnhandled ? <Divider /> : null}
       {renderedMessage}
     </LevelMessageContainer>
   );
