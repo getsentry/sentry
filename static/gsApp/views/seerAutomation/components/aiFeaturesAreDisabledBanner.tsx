@@ -32,7 +32,7 @@ export function AiFeaturesAreDisabledBanner() {
       });
     },
     onSuccess: updated => {
-      addSuccessMessage(t('Generative AI Features enabled'));
+      addSuccessMessage(t('Generative AI features enabled'));
       updateOrganization(updated);
     },
     onError: () => addErrorMessage(t('Unable to save change')),
@@ -42,14 +42,14 @@ export function AiFeaturesAreDisabledBanner() {
     <Container border="warning" radius="md" overflow="hidden">
       <Stack>
         <Alert system showIcon={false} variant="warning">
-          {t('Generative AI Features are disabled for your organization.')}
+          {t('Generative AI features are disabled for your organization.')}
         </Alert>
         <Flex align="center" gap="xl" padding="2xl">
           {hasWriteAccess ? (
             <Fragment>
               <Text>
                 {tct(
-                  'Seer is part of your plan, but you need to enable Generative AI Features in your organization in order to use it. Seer includes Autofix and Code Review. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
+                  'Seer is part of your plan, but you need to enable generative AI features in your organization in order to use it. Seer includes Autofix and Code Review. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
                   {
                     seer: (
                       <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/" />
@@ -67,7 +67,7 @@ export function AiFeaturesAreDisabledBanner() {
           ) : (
             <Text>
               {tct(
-                'Seer is part of your plan, but you need an admin to enable Generative AI Features in your organization in order to use it. Seer includes Autofix and Code Review. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
+                'Seer is part of your plan, but you need an admin to enable generative AI features in your organization in order to use it. Seer includes Autofix and Code Review. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
                 {
                   seer: (
                     <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/" />
