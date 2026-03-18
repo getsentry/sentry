@@ -280,10 +280,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
-            if use_issue_platform and alias == "trends":
-                aggregation = self.aggregation_defs["trends_issue_platform"]
-            elif use_issue_platform and alias == "recommended":
-                aggregation = self.aggregation_defs["recommended_issue_platform"]
+            if use_issue_platform and alias in ("trends", "recommended"):
+                aggregation = self.aggregation_defs[f"{alias}_issue_platform"]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
@@ -335,10 +333,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 else:
                     conditions.append(converted_filter)
 
-        use_issue_platform = (
-            sort_field in ("trends", "recommended")
-            and group_category is not GroupCategory.ERROR.value
-        )
+        use_issue_platform = group_category is not GroupCategory.ERROR.value
         aggregations = self._prepare_aggregations(
             sort_field, start, end, having, aggregate_kwargs, use_issue_platform
         )
@@ -716,11 +711,10 @@ def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
     severity_weight = options.get("snuba.search.recommended.severity-weight")
     user_impact_weight = options.get("snuba.search.recommended.user-impact-weight")
     event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
-    recency_halflife_hours = options.get("snuba.search.recommended.recency-halflife-hours")
 
     hour = 3600
-    age = f"divide(minus(now(), max({timestamp_column})), {hour})"
-    recency = f"divide(1, pow(2, divide({age}, {recency_halflife_hours})))"
+    age_hours = f"divide(minus(now(), max({timestamp_column})), {hour})"
+    recency = f"divide(1, pow(2, divide({age_hours}, 24)))"
 
     recent_6h = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {6 * hour}))"
     total_3d = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {3 * 24 * hour}))"

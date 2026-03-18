@@ -944,11 +944,6 @@ register(
     default=0.25,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "snuba.search.recommended.recency-halflife-hours",
-    default=24,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
