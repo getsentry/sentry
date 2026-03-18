@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -6,7 +8,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {useMedia} from 'sentry/utils/useMedia';
 
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import type {Subscription} from 'getsentry/types';
@@ -55,9 +57,10 @@ export function BillingInfoCard({
 }
 
 function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
-  const {layout} = usePrimaryNavigation();
-  const isMobile = layout === 'mobile';
   const {data: billingDetails, isLoading} = useBillingDetails();
+
+  const theme = useTheme();
+  const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
 
   if (isLoading) {
     return (

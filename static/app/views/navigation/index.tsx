@@ -90,7 +90,11 @@ export function Navigation() {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
-    return <UserOnlyNavigation />;
+    return (
+      <PrimaryNavigationContextProvider>
+        <UserOnlyNavigation />
+      </PrimaryNavigationContextProvider>
+    );
   }
 
   return (

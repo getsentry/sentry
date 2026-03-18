@@ -8,14 +8,12 @@ import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useMedia} from 'sentry/utils/useMedia';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function UsageOverviewActions({organization}: {organization: Organization}) {
-  const {layout} = usePrimaryNavigation();
   const {view} = useSecondaryNavigation();
   const navIsCollapsed = view !== 'expanded';
   const theme = useTheme();
@@ -23,8 +21,10 @@ export function UsageOverviewActions({organization}: {organization: Organization
     useMedia(
       `(min-width: ${theme.breakpoints.lg}) and (max-width: ${theme.breakpoints.xl})`
     ) && !navIsCollapsed;
+
+  const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
   const shouldCollapseOnMobile =
-    useMedia(`(max-width: ${theme.breakpoints.sm})`) && layout === 'mobile';
+    useMedia(`(max-width: ${theme.breakpoints.sm})`) && isMobile;
 
   const shouldCollapseActions = shouldCollapseOnLargeScreen || shouldCollapseOnMobile;
 

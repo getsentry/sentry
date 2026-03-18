@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -67,7 +68,7 @@ function AppDrawers() {
 
 function AppLayout({organization}: LayoutProps) {
   return (
-    <PrimaryNavigationContextProvider>
+    <Fragment>
       <Flex
         flex="1"
         minWidth="0"
@@ -88,7 +89,7 @@ function AppLayout({organization}: LayoutProps) {
         </Stack>
       </Flex>
       {organization ? <AppDrawers /> : null}
-    </PrimaryNavigationContextProvider>
+    </Fragment>
   );
 }
 
