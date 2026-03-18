@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, Subquery
 
 from sentry.api.serializers import Serializer, serialize
-from sentry.incidents.endpoints.serializers.alert_rule import (
-    AlertRuleSerializerResponse,
-    DetailedAlertRuleSerializerResponse,
-)
+
+if TYPE_CHECKING:
+    from sentry.incidents.endpoints.serializers.alert_rule import (
+        AlertRuleSerializerResponse,
+        DetailedAlertRuleSerializerResponse,
+    )
+
 from sentry.incidents.endpoints.serializers.utils import (
     get_fake_id_from_object_id,
     get_object_id_from_fake_id,

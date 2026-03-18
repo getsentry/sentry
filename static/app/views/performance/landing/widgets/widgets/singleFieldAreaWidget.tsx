@@ -6,7 +6,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';

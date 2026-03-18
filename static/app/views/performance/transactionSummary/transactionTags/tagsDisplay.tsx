@@ -6,8 +6,8 @@ import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
-import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
-import TagKeyHistogramQuery from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
+import {SegmentExplorerQuery} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {TagKeyHistogramQuery} from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -97,7 +97,7 @@ export const TAGS_TABLE_COLUMN_ORDER: TagsTableColumn[] = [
   },
 ];
 
-function TagsDisplay(props: Props) {
+export function TagsDisplay(props: Props) {
   const navigate = useNavigate();
   const {eventView: _eventView, location, organization, aggregateColumn, tagKey} = props;
   const eventView = _eventView.clone();
@@ -201,5 +201,3 @@ function TagsDisplay(props: Props) {
     </Fragment>
   );
 }
-
-export default TagsDisplay;

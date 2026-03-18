@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -14,7 +14,7 @@ import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';

@@ -13,7 +13,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
@@ -149,7 +149,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
             for monitor_object in monitor_objects_list:
                 if isinstance(monitor_object, Monitor):
                     ensure_cron_detector_deletion(monitor_object)
-                schedule = RegionScheduledDeletion.schedule(
+                schedule = CellScheduledDeletion.schedule(
                     monitor_object, days=0, actor=request.user
                 )
                 self.create_audit_entry(
@@ -180,7 +180,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                     RuleActivity.objects.create(
                         rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
                     )
-                    scheduled_rule = RegionScheduledDeletion.schedule(
+                    scheduled_rule = CellScheduledDeletion.schedule(
                         rule, days=0, actor=request.user
                     )
                     self.create_audit_entry(

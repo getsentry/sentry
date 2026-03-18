@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import {
   platformEventLinkMap,

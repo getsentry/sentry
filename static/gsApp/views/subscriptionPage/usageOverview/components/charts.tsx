@@ -15,7 +15,7 @@ import {
   getChunkCategoryFromDuration,
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {
   ProductUsageChart,
   selectedTransform,

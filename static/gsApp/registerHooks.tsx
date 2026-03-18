@@ -39,8 +39,9 @@ import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerC
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
-import SuperuserWarning, {
+import {
   shouldExcludeOrg,
+  SuperuserWarning,
 } from 'getsentry/components/superuser/superuserWarning';
 import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
 import {analyticsInitUser} from 'getsentry/hooks/analyticsInitUser';
@@ -61,6 +62,7 @@ import {getOrgRoles} from 'getsentry/hooks/organizationRoles';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import {OrgStatsProfilingBanner} from 'getsentry/hooks/orgStatsProfilingBanner';
 import {rootRoutes} from 'getsentry/hooks/rootRoutes';
+import {seerSettingsRoutes} from 'getsentry/hooks/seerSettingsRoutes';
 import {ComponentWrapper as EnhancedOrganizationStats} from 'getsentry/hooks/spendVisibility/enhancedIndex';
 import {SpikeProtectionProjectSettings} from 'getsentry/hooks/spendVisibility/spikeProtectionProjectSettings';
 import {subscriptionSettingsRoutes} from 'getsentry/hooks/subscriptionSettingsRoutes';
@@ -108,10 +110,12 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
    * Additional routes to be inserted into sentrys route tree
    */
   'routes:root': rootRoutes,
+  'routes:org-settings': seerSettingsRoutes,
   'routes:legacy-organization-redirects': legacyOrganizationRedirectRoutes,
 
   /**
-   *
+   * This has more than just subscriptions...
+   * and it uses it's own layout which makes it different from the other settings routes.
    */
   'routes:subscription-settings': subscriptionSettingsRoutes,
 

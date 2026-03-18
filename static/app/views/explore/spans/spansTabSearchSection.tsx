@@ -32,7 +32,7 @@ import {
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles';
 import {

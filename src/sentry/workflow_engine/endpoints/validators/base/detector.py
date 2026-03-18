@@ -10,7 +10,7 @@ from sentry import audit_log
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
@@ -236,7 +236,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         They should call super().delete() to perform the actual deletion.
         """
         assert self.instance is not None
-        RegionScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
+        CellScheduledDeletion.schedule(self.instance, days=0, actor=self.context["request"].user)
         self.instance.update(status=ObjectStatus.PENDING_DELETION)
 
     def _create_data_source(

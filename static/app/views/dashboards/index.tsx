@@ -6,7 +6,7 @@ import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import DashboardDetail from './detail';
+import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
 import {OrgDashboards} from './orgDashboards';
 import {DashboardState} from './types';
 import {DashboardBasicFeature} from './view';

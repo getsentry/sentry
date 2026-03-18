@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,18 +8,24 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {IconChevron, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
 import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
+import type {PendingUserInput} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
+
+const MAX_CHAT_HISTORY_HEIGHT = 500;
 
 interface DashboardChatPanelProps {
   blocks: Block[];
   isUpdating: boolean;
   onSend: (message: string) => void;
+  pendingUserInput?: PendingUserInput | null;
 }
 
 export function DashboardChatPanel({
   blocks,
+  pendingUserInput,
   onSend,
   isUpdating,
 }: DashboardChatPanelProps) {
@@ -40,12 +46,12 @@ export function DashboardChatPanel({
     }
   }, [isUpdating]);
 
-  // Scroll chat to bottom when new blocks arrive
+  // Scroll chat to bottom when new blocks arrive or pending input appears
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [blocks.length]);
+  }, [blocks.length, pendingUserInput]);
 
   const handleSubmit = useCallback(() => {
     const trimmed = inputValue.trim();
@@ -109,24 +115,12 @@ export function DashboardChatPanel({
         </ChatHistoryToggle>
       )}
       {hasHistory && isHistoryExpanded && (
-        <Container
+        <ChatHistory
           ref={chatContainerRef}
-          maxHeight="300px"
-          overflowY="auto"
-          overflowX="hidden"
-          border="primary"
-        >
-          <Stack>
-            {blocks.map((block, index) => (
-              <BlockComponent
-                key={block.id}
-                block={block}
-                blockIndex={index}
-                runId={seerRunId}
-              />
-            ))}
-          </Stack>
-        </Container>
+          blocks={blocks}
+          pendingUserInput={pendingUserInput}
+          seerRunId={seerRunId}
+        />
       )}
       <InputGroup>
         {!hasHistory && <IconSeer size="md" />}
@@ -150,6 +144,44 @@ export function DashboardChatPanel({
     </Container>
   );
 }
+
+const ChatHistory = memo(function ChatHistoryInner({
+  ref,
+  blocks,
+  pendingUserInput,
+  seerRunId,
+}: {
+  blocks: Block[];
+  ref: React.Ref<HTMLDivElement>;
+  pendingUserInput?: PendingUserInput | null;
+  seerRunId?: number;
+}) {
+  return (
+    <Container
+      ref={ref}
+      maxHeight={`${MAX_CHAT_HISTORY_HEIGHT}px`}
+      overflowY="auto"
+      overflowX="hidden"
+      border="primary"
+    >
+      <Stack>
+        {blocks.map((block, index) => (
+          <BlockComponent
+            key={block.id}
+            block={block}
+            blockIndex={index}
+            runId={seerRunId}
+          />
+        ))}
+        {pendingUserInput && pendingUserInput.data.questions?.length > 0 && (
+          <Container padding="xl" style={{paddingLeft: '40px'}}>
+            <MarkedText text={pendingUserInput.data.questions[0].question} inline />
+          </Container>
+        )}
+      </Stack>
+    </Container>
+  );
+});
 
 const ChatHistoryToggle = styled(Button)`
   &:hover {

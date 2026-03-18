@@ -17,9 +17,7 @@ export enum BrowserType {
   OPERA_MOBILE = 'Opera Mobile',
 }
 
-export default function decode(
-  value: string | string[] | undefined | null
-): BrowserType[] {
+export function decode(value: string | string[] | undefined | null): BrowserType[] {
   const decodedList = decodeList(value);
 
   if (decodedList.every(decodedValue => isAValidOption(decodedValue))) {

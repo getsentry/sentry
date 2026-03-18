@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import type {Actor} from 'sentry/types/core';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';

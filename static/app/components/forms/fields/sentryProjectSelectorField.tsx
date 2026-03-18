@@ -7,7 +7,7 @@ import type {Project} from 'sentry/types/project';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
-import SelectField from './selectField';
+import {SelectField} from './selectField';
 
 const OVERRIDE_COMPONENTS = {
   MultiValueLabel: SelectedProjectMultiValueLabel,
@@ -62,7 +62,7 @@ function SelectedProjectMultiValueLabel({
   );
 }
 
-function SentryProjectSelectorField({
+export function SentryProjectSelectorField({
   projects,
   groupProjects,
   groups,
@@ -108,5 +108,3 @@ function SentryProjectSelectorField({
     />
   );
 }
-
-export default SentryProjectSelectorField;

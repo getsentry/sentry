@@ -3,7 +3,7 @@ import {Fragment, useMemo} from 'react';
 import {t} from 'sentry/locale';
 import {type QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';

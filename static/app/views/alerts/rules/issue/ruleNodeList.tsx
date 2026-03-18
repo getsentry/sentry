@@ -23,7 +23,7 @@ import {
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
 
-import RuleNode from './ruleNode';
+import {RuleNode} from './ruleNode';
 
 type Props = {
   disabled: boolean;

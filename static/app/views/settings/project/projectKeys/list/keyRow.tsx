@@ -4,7 +4,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';

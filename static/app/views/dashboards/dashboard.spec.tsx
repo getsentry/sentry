@@ -8,13 +8,13 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MemberListStore} from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
-import Dashboard from 'sentry/views/dashboards/dashboard';
-import FiltersBar from 'sentry/views/dashboards/filtersBar';
+import {Dashboard} from 'sentry/views/dashboards/dashboard';
+import {FiltersBar} from 'sentry/views/dashboards/filtersBar';
 import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
@@ -139,6 +139,10 @@ describe('Dashboards > Dashboard', () => {
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: TagsFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
     });
   });
 

@@ -413,7 +413,7 @@ function OrganizationMembershipSettingsBase({
   );
 }
 
-function OrganizationSettingsForm({initialData, onSave}: Props) {
+export function OrganizationSettingsForm({initialData, onSave}: Props) {
   const organization = useOrganization();
   const endpoint = `/organizations/${organization.slug}/`;
 
@@ -736,8 +736,6 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
     </Fragment>
   );
 }
-
-export default OrganizationSettingsForm;
 
 const PoweredByCodecov = styled('div')`
   display: flex;
