@@ -234,7 +234,7 @@ Use the `textWrap` prop to control how the text wraps, and the `wordBreak` prop 
     <Container width="200px" padding="md" border="primary">
       <Text wordBreak="break-word">
         A URL string that breaks on word boundaries:
-        https://example.com/path/?marketingParam1=value1&marketingParam2=some-awkward-long-value
+        https://example.com/path/?marketingParam1=value1&amp;marketingParam2=some-awkward-long-value
       </Text>
     </Container>
     <Container width="200px" padding="md" border="primary">
@@ -265,13 +265,13 @@ Use `monospace` for fixed-width text.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <Flex align="center" gap="xl">
+    <Flex align="center" gap="xl" marginBottom="2xl">
       <Text>1234567890</Text>
       <Text size="sm" variant="muted">
         Regular
       </Text>
     </Flex>
-    <Flex align="center" gap="xl">
+    <Flex align="center" gap="xl" marginBottom="2xl">
       <Text monospace>1234567890</Text>
       <Text size="sm" variant="muted">
         Monospace
@@ -290,19 +290,19 @@ Use `tabular` for consistent number alignment and `fraction` for diagonal fracti
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
-    <Flex align="center" gap="xl">
+    <Flex align="center" gap="xl" marginBottom="2xl">
       <Text>1234567890</Text>
       <Text size="sm" variant="muted">
         Regular numbers
       </Text>
     </Flex>
-    <Flex align="center" gap="xl">
+    <Flex align="center" gap="xl" marginBottom="2xl">
       <Text tabular>1234567890</Text>
       <Text size="sm" variant="muted">
         Tabular numbers
       </Text>
     </Flex>
-    <Flex align="center" gap="xl">
+    <Flex align="center" gap="xl" marginBottom="2xl">
       <Text>1/2 3/4 5/8</Text>
       <Text size="sm" variant="muted">
         Regular fractions
