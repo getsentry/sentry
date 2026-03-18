@@ -275,7 +275,7 @@ jobs:
       MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
       # xdist: enabled on master pushes and workflow_dispatch, disabled on PRs
-      PYTHONHASHSEED: ${{ github.event_name != 'pull_request' && '0' || '' }}
+      PYTHONHASHSEED: ${{ github.event_name != 'pull_request' && '0' || 'random' }}
       XDIST_PER_WORKER_SNUBA: ${{ github.event_name != 'pull_request' && '1' || '' }}
       XDIST_WORKERS: ${{ github.event_name != 'pull_request' && '3' || '' }}
 
