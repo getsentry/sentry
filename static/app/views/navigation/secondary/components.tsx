@@ -944,13 +944,12 @@ const StyledGrabHandle = styled(Flex)`
   position: absolute;
   top: 50%;
   left: 50%;
-  translate: -50% -50%;
-  scale: 0.95;
+  transform: translate(-50%, -50%) scale(0.95);
   opacity: 0;
   pointer-events: none;
   transition:
     opacity 150ms ease,
-    scale 150ms ease;
+    transform 150ms ease;
   &:active {
     cursor: grabbing;
   }
@@ -1084,7 +1083,7 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
   :has(:focus-visible) {
     [data-drag-icon] {
       opacity: 1;
-      scale: 1;
+      transform: translate(-50%, -50%) scale(1);
       pointer-events: auto;
     }
   }
@@ -1094,7 +1093,7 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
     css`
       [data-drag-icon] {
         opacity: 1;
-        scale: 1;
+        transform: translate(-50%, -50%) scale(1);
         pointer-events: auto;
       }
     `}
@@ -1102,12 +1101,12 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
   [data-reorderable-handle-slot] {
     transition:
       opacity 150ms ease,
-      scale 150ms ease;
+      transform 150ms ease;
   }
 
   :hover [data-reorderable-handle-slot] {
     opacity: 0;
-    scale: 0.95;
+    transform: scale(0.95);
   }
 
   ${p =>
@@ -1115,7 +1114,7 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
     css`
       [data-reorderable-handle-slot] {
         opacity: 0;
-        scale: 0.95;
+        transform: scale(0.95);
       }
     `}
 `;
