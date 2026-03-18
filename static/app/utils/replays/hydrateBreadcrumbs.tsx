@@ -8,7 +8,7 @@ import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/typ
 import {isBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
-export default function hydrateBreadcrumbs(
+export function hydrateBreadcrumbs(
   replayRecord: HydratedReplayRecord,
   breadcrumbFrames: RawBreadcrumbFrame[]
 ): BreadcrumbFrame[] {

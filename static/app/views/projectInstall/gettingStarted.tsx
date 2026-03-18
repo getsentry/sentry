@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
-import allPlatforms from 'sentry/data/platforms';
+import {allPlatforms} from 'sentry/data/platforms';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';

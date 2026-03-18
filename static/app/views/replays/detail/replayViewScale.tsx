@@ -1,6 +1,6 @@
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconRuler} from 'sentry/icons/iconRuler';

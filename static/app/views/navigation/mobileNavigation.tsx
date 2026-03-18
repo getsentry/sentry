@@ -170,6 +170,8 @@ interface NavigationOverlayPortalProps {
 function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement | null>(null);
+  const organization = useOrganization({allowNull: true});
+  const hasPageFrame = organization?.features.includes('page-frame');
 
   useOnClickOutside(ref, e => {
     // Without this check the menu will reopen when the click event triggers
@@ -184,6 +186,7 @@ function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
       ref={ref}
       as="nav"
       aria-label={props.label}
+      justify={hasPageFrame ? 'between' : undefined}
       direction="column"
       background="tertiary"
       position="fixed"

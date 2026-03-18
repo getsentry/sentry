@@ -25,6 +25,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
+  PRIMARY_HEADER_HEIGHT,
   SECONDARY_SIDEBAR_MAX_WIDTH,
   SECONDARY_SIDEBAR_MIN_WIDTH,
   SECONDARY_SIDEBAR_WIDTH,
@@ -78,10 +79,10 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
     >
       {({ref, ...props}) => (
         <Container
-          width={size}
           height="100%"
           right="0"
           {...props}
+          width={`${size}px`}
           ref={mergeRefs(resizableContainerRef, ref)}
           {...{
             [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
@@ -227,14 +228,22 @@ interface SecondaryNavigationHeaderProps {
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
+  const organization = useOrganization();
   const isCollapsed = view !== 'expanded';
+  const hasPageFrame = organization.features.includes('page-frame');
 
   return (
     <Grid
       columns="1fr auto"
       align="center"
       borderBottom="muted"
-      height={layout === 'mobile' ? undefined : '44px'}
+      height={
+        layout === 'mobile'
+          ? undefined
+          : hasPageFrame
+            ? `${PRIMARY_HEADER_HEIGHT}px`
+            : '44px'
+      }
       padding={layout === 'mobile' ? 'md xl' : '0 md 0 xl'}
     >
       <div>
@@ -390,34 +399,45 @@ function SecondaryNavigationLink({
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
 
-  return (
-    <NavigationLink
-      {...linkProps}
-      state={{source: SIDEBAR_NAVIGATION_SOURCE}}
-      to={to}
-      aria-current={isActive ? 'page' : undefined}
-      aria-selected={isActive}
-      layout={layout}
-      onClick={e => {
-        if (analyticsItemName) {
-          trackAnalytics('navigation.secondary_item_clicked', {
-            item: analyticsItemName,
-            organization,
-          });
-        }
+  const sharedLinkProps = {
+    ...linkProps,
+    state: {source: SIDEBAR_NAVIGATION_SOURCE},
+    to,
+    'aria-current': isActive ? ('page' as const) : undefined,
+    'aria-selected': isActive,
+    onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (analyticsItemName) {
+        trackAnalytics('navigation.secondary_item_clicked', {
+          item: analyticsItemName,
+          organization,
+        });
+      }
 
-        // When this is rendered inside a hovercard (when the nav is collapsed)
-        // this will dismiss it when clicking on a link.
-        closeCollapsedNavigationHovercard();
-        onClick?.(e);
-      }}
-    >
+      // When this is rendered inside a hovercard (when the nav is collapsed)
+      // this will dismiss it when clicking on a link.
+      closeCollapsedNavigationHovercard();
+      onClick?.(e);
+    },
+  };
+
+  if (layout === 'mobile') {
+    return (
+      <MobileNavigationLink {...sharedLinkProps}>
+        {leadingItems}
+        <Text ellipsis>{children}</Text>
+        {trailingItems}
+      </MobileNavigationLink>
+    );
+  }
+
+  return (
+    <SidebarNavigationLink {...sharedLinkProps}>
       {leadingItems}
-      <Text ellipsis variant={layout === 'sidebar' ? 'muted' : undefined}>
+      <Text ellipsis variant="inherit">
         {children}
       </Text>
       {trailingItems}
-    </NavigationLink>
+    </SidebarNavigationLink>
   );
 }
 
@@ -528,22 +548,16 @@ function Collapsible(props: CollapsibleProps) {
 
 const MotionFlex = motion.create(Flex);
 
-interface NavigationLink extends LinkProps {
-  layout: 'mobile' | 'sidebar';
-}
-
-const NavigationLink = styled(Link)<NavigationLink>`
+const MobileNavigationLink = styled(Link)`
   display: flex;
   gap: ${p => p.theme.space.sm};
   justify-content: center;
   align-items: center;
   position: relative;
-  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
-    p.layout === 'mobile'
-      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`
-      : `${p.theme.space.md} ${p.theme.space.lg}`};
-  border-radius: ${p => p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
+    `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`};
+  border-radius: ${p => p.theme.radius['0']};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 
   /* Disable interaction state layer */
   > [data-isl] {
@@ -579,7 +593,60 @@ const NavigationLink = styled(Link)<NavigationLink>`
     &::before {
       opacity: 1;
     }
-    /* Override the default hover styles */
+
+    &:hover {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+    }
+  }
+`;
+
+const SidebarNavigationLink = styled(Link)`
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
+  border-radius: ${p => p.theme.radius.md};
+
+  /* Disable interaction state layer */
+  > [data-isl] {
+    display: none;
+  }
+
+  /* Renders the active state indicator */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 20px;
+    left: -${p => p.theme.space.sm};
+    border-radius: ${p => p.theme.radius['2xs']};
+    background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
+    transition: opacity 0.1s ease-in-out;
+    opacity: 0;
+  }
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &[aria-selected='true'] {
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+
+    &::before {
+      opacity: 1;
+    }
+
     &:hover {
       color: ${p => p.theme.tokens.interactive.link.accent.hover};
       background-color: ${p =>

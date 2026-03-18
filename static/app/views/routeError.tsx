@@ -8,7 +8,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
