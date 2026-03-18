@@ -32,7 +32,6 @@ export function CollapsedAvatars({
   children,
 }: {
   children: React.ReactNode;
-  size: number;
   ref?: React.Ref<HTMLDivElement>;
 }) {
   return (
@@ -85,10 +84,7 @@ export function AvatarList({
           renderCollapsedAvatars(avatarSize, numCollapsedAvatars)
         ) : (
           <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
-            <CollapsedAvatars
-              size={avatarSize}
-              data-test-id="avatarList-collapsedavatars"
-            >
+            <CollapsedAvatars data-test-id="avatarList-collapsedavatars">
               {numCollapsedAvatars < 99 && '+'}
               {numCollapsedAvatars}
             </CollapsedAvatars>

@@ -220,7 +220,6 @@ export function EventTagsTree(props: EventTagsTreeProps) {
 }
 
 export const TreeContainer = styled('div')<{columnCount: number}>`
-  margin-top: 0;
   display: grid;
   grid-template-columns: repeat(${p => p.columnCount}, 1fr);
   align-items: start;
