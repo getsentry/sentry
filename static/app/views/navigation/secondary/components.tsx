@@ -665,6 +665,28 @@ const MobileNavigationLink = styled(Link)`
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  &[aria-selected='true'] {
+    color: ${p => p.theme.tokens.interactive.link.accent.rest};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+
+    &::before {
+      opacity: 1;
+    }
+
+    &:hover {
+      color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+    }
+  }
 `;
 
 /**
