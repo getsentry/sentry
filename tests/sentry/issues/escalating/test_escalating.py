@@ -108,7 +108,7 @@ class HistoricGroupCounts(
         )
         assert profile_error_event.group is not None
         assert profile_issue_occurrence is not None
-        assert len(Group.objects.all()) == 2
+        assert len(Group.objects.all()) == 3
 
         perf_event = self.create_performance_issue()
         error_event = self._create_events_for_group()
