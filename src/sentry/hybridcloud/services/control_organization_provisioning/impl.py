@@ -44,12 +44,12 @@ def create_post_provision_outbox(
 
 def create_organization_provisioning_outbox(
     organization_id: int,
-    region_name: str,
+    cell_name: str,
     org_provision_payload: OrganizationProvisioningOptions | None,
 ) -> ControlOutbox:
     payload = org_provision_payload.dict() if org_provision_payload is not None else None
     return ControlOutbox(
-        cell_name=region_name,
+        cell_name=cell_name,
         shard_scope=OutboxScope.PROVISION_SCOPE,
         category=OutboxCategory.PROVISION_ORGANIZATION,
         shard_identifier=organization_id,
@@ -164,7 +164,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
             org_slug_res.save(unsafe_write=True)
             create_organization_provisioning_outbox(
                 organization_id=org_id,
-                region_name=resolved_cell_name,
+                cell_name=resolved_cell_name,
                 org_provision_payload=provision_payload,
             ).save()
 
@@ -179,15 +179,6 @@ class DatabaseBackedControlOrganizationProvisioningService(
         ), "Organization slug reservation does not match after provisioning the org"
 
         return serialize_slug_reservation(org_slug_res)
-
-    def idempotent_provision_organization(
-        self,
-        *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
-        org_provision_args: OrganizationProvisioningOptions,
-    ) -> RpcOrganizationSlugReservation | None:
-        raise NotImplementedError()
 
     def update_organization_slug(
         self,

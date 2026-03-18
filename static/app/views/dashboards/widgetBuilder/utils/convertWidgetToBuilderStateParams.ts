@@ -7,15 +7,12 @@ import {
 } from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
-import {extractTraceMetricFromWidget} from 'sentry/views/dashboards/utils/extractTraceMetricFromWidget';
 import {
   serializeFields,
   serializeThresholds,
-  serializeTraceMetric,
   type WidgetBuilderStateParams,
   type WidgetBuilderStateQueryParams,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 function stringifyFields(
   query: WidgetQuery,
@@ -53,11 +50,6 @@ export function convertWidgetToQueryParams(
     legendAlias = [];
   }
 
-  let traceMetric: TraceMetric | null = null;
-  if (widget.widgetType === WidgetType.TRACEMETRICS) {
-    traceMetric = extractTraceMetricFromWidget(widget);
-  }
-
   const isTextWidget = widget.displayType === DisplayType.TEXT;
 
   const description = isTextWidget ? undefined : (widget.description ?? '');
@@ -76,8 +68,8 @@ export function convertWidgetToQueryParams(
     sort,
     legendAlias,
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
+    legendType: widget.legendType,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,
-    traceMetric: traceMetric ? serializeTraceMetric(traceMetric) : undefined,
     axisRange: getAxisRange(widget.axisRange) ?? 'auto',
   };
 }

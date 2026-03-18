@@ -6,13 +6,12 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
 import type {TraceFullDetailed, TraceSplitResults} from './types';
 
@@ -26,10 +25,9 @@ type TraceQueryParamOptions = {
 };
 
 function getTargetIdParams(
-  traceType: 'eap' | 'non-eap',
   options: TraceQueryParamOptions,
   normalizedParams: ReturnType<typeof normalizeDateTimeParams>
-): {targetId?: string} | {errorId?: string} {
+): {errorId?: string} {
   // Node params occur in the format `${event-type}-${eventId}`, where the most relevant event is the last one in the array.
   // If not an array, it is a string with the same format.
   const nodeParams = normalizedParams.node;
@@ -51,11 +49,7 @@ function getTargetIdParams(
     return {};
   }
 
-  if (traceType === 'eap') {
-    return isValidEventUUID(targetId) ? {errorId: targetId} : {};
-  }
-
-  return {targetId};
+  return isValidEventUUID(targetId) ? {errorId: targetId} : {};
 }
 
 type TraceQueryParams = {
@@ -65,10 +59,9 @@ type TraceQueryParams = {
   pageStart?: string;
   statsPeriod?: string;
   timestamp?: string;
-} & ({targetId?: string} | {errorId?: string});
+} & {errorId?: string};
 
 export function getTraceQueryParams(
-  traceType: 'eap' | 'non-eap',
   query: Location['query'],
   filters?: Partial<PageFilters>,
   options: TraceQueryParamOptions = {}
@@ -102,7 +95,7 @@ export function getTraceQueryParams(
     delete timeRangeParams.statsPeriod;
   }
 
-  const targetEventParams = getTargetIdParams(traceType, options, normalizedParams);
+  const targetEventParams = getTargetIdParams(options, normalizedParams);
 
   const queryParams = {
     ...timeRangeParams,
@@ -239,50 +232,25 @@ export function useTrace(
   const organization = useOrganization();
   const query = qs.parse(location.search);
 
-  const isEAPEnabled = useIsEAPTraceEnabled();
   const hasValidTrace = Boolean(options.traceSlug && organization.slug);
 
   const queryParams = useMemo(() => {
-    return getTraceQueryParams(
-      isEAPEnabled ? 'eap' : 'non-eap',
-      query,
-      filters.selection,
-      {
-        limit: options.limit,
-        timestamp: options.timestamp,
-        targetId: options.targetEventId,
-      }
-    );
+    return getTraceQueryParams(query, filters.selection, {
+      limit: options.limit,
+      timestamp: options.timestamp,
+      targetId: options.targetEventId,
+    });
 
     // Only re-run this if the view query param changes, otherwise if we pass location.search
     // as a dependency, the query will re-run every time we perform actions on the trace view; like
     // clicking on a span, that updates the url.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    options.limit,
-    options.timestamp,
-    options.targetEventId,
-    isEAPEnabled,
-    filters.selection,
-  ]);
+  }, [options.limit, options.timestamp, options.targetEventId, filters.selection]);
 
   const isDemoMode = Boolean(queryParams.demo);
   const demoTrace = useDemoTrace(queryParams.demo, organization);
 
-  const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
-    [
-      getApiUrl(`/organizations/$organizationIdOrSlug/events-trace/$traceId/`, {
-        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
-      }),
-      {query: queryParams},
-    ],
-    {
-      staleTime: Infinity,
-      enabled: hasValidTrace && !isDemoMode && !isEAPEnabled,
-    }
-  );
-
-  const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
+  const traceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
       getApiUrl(`/organizations/$organizationIdOrSlug/trace/$traceId/`, {
         path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
@@ -298,11 +266,11 @@ export function useTrace(
     {
       staleTime: Infinity,
       retry: false,
-      enabled: hasValidTrace && !isDemoMode && isEAPEnabled,
+      enabled: hasValidTrace && !isDemoMode,
     }
   );
 
-  return isDemoMode ? demoTrace : isEAPEnabled ? eapTraceQuery : traceQuery;
+  return isDemoMode ? demoTrace : traceQuery;
 }
 
 const isValidEventUUID = (id: string): boolean => {

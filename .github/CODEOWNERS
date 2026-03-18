@@ -566,6 +566,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/search/events/builder/errors.py                 @getsentry/issue-workflow
 /src/sentry/search/snuba/                                   @getsentry/issue-workflow
 /src/sentry/seer/similarity/                                @getsentry/issue-detection-backend
+/src/sentry/seer/supergroups/                               @getsentry/issue-detection-backend
 /src/sentry/similarity/                                     @getsentry/issue-detection-backend
 /src/sentry/tasks/auto_ongoing_issues.py                    @getsentry/issue-detection-backend
 /src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issue-detection-backend
@@ -589,6 +590,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/events/highlights/                   @getsentry/issue-workflow
 /static/app/components/issues/                              @getsentry/issue-workflow
 /static/app/views/issueList/                                @getsentry/issue-workflow
+/static/app/views/issueList/pages/supergroups.tsx           @getsentry/issue-detection-frontend
+/static/app/views/issueList/supergroups/                    @getsentry/issue-detection-frontend
 /static/app/views/issueDetails/                             @getsentry/issue-workflow
 /static/app/views/nav/secondary/sections/issues/            @getsentry/issue-workflow
 /static/app/components/events/interfaces/performance/spanEvidenceKeyValueList.tsx @getsentry/issue-detection-frontend
@@ -607,6 +610,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/issues/test_status_change.py                  @getsentry/issue-detection-backend
 /tests/sentry/search/                                       @getsentry/issue-workflow
 /tests/sentry/seer/similarity/                              @getsentry/issue-detection-backend
+/tests/sentry/seer/supergroups/                             @getsentry/issue-detection-backend
 /tests/sentry/similarity/                                   @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_auto_ongoing_issues.py             @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_auto_remove_inbox.py               @getsentry/issue-detection-backend

@@ -8,7 +8,7 @@ import {slugify} from 'sentry/utils/slugify';
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';
 
-const formGroups: JsonFormObject[] = [
+export const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: t('General'),
@@ -52,5 +52,3 @@ const formGroups: JsonFormObject[] = [
     ],
   },
 ];
-
-export default formGroups;

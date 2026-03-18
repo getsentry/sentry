@@ -13,7 +13,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
 import {IconFocus} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -106,7 +106,7 @@ function Supergroups() {
     }
   );
 
-  const supergroups = response?.data ?? [];
+  const supergroups = (response?.data ?? []).filter(sg => sg.group_ids.length > 1);
 
   const handleSupergroupClick = (supergroup: SupergroupDetail) => {
     openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {

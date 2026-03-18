@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import {SESSION_STORAGE_CONTENT_KEY_MAP} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
+import {WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
@@ -53,10 +53,20 @@ export function getResultsLimit(numQueries: number, numYAxes: number) {
 // for the widget builder params that are not in the url
 // we need to store them in session storage
 export function addWidgetBuilderSessionStorageParams(widget: Widget): void {
-  if (widget.displayType === DisplayType.TEXT) {
-    sessionStorage.setItem(
-      SESSION_STORAGE_CONTENT_KEY_MAP.textContent,
-      JSON.stringify(widget.description ?? '')
-    );
+  for (const {key, storeCondition, widgetField} of Object.values(
+    WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP
+  )) {
+    if (storeCondition(widget)) {
+      sessionStorage.setItem(key, JSON.stringify(widget[widgetField] ?? ''));
+    }
+  }
+}
+
+// clean up session storage from non-url params in the widget builder
+export function cleanupWidgetBuilderSessionStorage(): void {
+  for (const param of Object.keys(WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP) as Array<
+    keyof typeof WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP
+  >) {
+    sessionStorage.removeItem(WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP[param].key);
   }
 }

@@ -33,7 +33,7 @@ from sentry.db.postgres.transactions import (
     in_test_assert_no_transaction,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.hybridcloud.outbox.signals import process_control_outbox, process_region_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
 from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -415,7 +415,7 @@ class OutboxBase(Model):
 # Outboxes bound from cell silo -> control silo
 class CellOutboxBase(OutboxBase):
     def send_signal(self) -> None:
-        process_region_outbox.send(
+        process_cell_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,
             object_identifier=self.object_identifier,
@@ -430,10 +430,6 @@ class CellOutboxBase(OutboxBase):
         abstract = True
 
     __repr__ = sane_repr("payload", *coalesced_columns)
-
-
-# TODO(cells): remove once getsentry updated
-RegionOutboxBase = CellOutboxBase
 
 
 @cell_silo_model
@@ -459,10 +455,6 @@ class CellOutbox(CellOutboxBase):
             ),
             models.Index(fields=("shard_scope", "shard_identifier", "id")),
         )
-
-
-# TODO(cells): remove once all usage is updated
-RegionOutbox = CellOutbox
 
 
 # Outboxes bound from control silo -> region silo

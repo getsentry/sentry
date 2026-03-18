@@ -374,7 +374,7 @@ function AddToDashboardModal({
       limitMessage: ReactNode | null
     ) => {
       if (dashboards === null) {
-        return null;
+        return [];
       }
 
       return [
@@ -445,7 +445,7 @@ function AddToDashboardModal({
                 placeholder={t('Select Dashboard')}
                 value={selectedDashboardId}
                 options={getOptions(hasReachedDashboardLimit, isLoading, limitMessage)}
-                onChange={(option: SelectValue<string>) => {
+                onChange={option => {
                   if (option.disabled) {
                     return;
                   }

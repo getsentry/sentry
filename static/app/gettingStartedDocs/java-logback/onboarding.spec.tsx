@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PackageManager} from 'sentry/gettingStartedDocs/java/utils';
 
-import docs from '.';
+import {docs} from '.';
 
 describe('getting started with logback', () => {
   it('renders gradle docs correctly', async () => {

@@ -1520,13 +1520,13 @@ class OrganizationEventsTraceMetaEndpointTest(
                     project=self.project,
                     group_id=first_group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 ),
                 self.create_eap_occurrence(
                     project=self.project,
                     group_id=second_group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 ),
             ]
         )

@@ -2,12 +2,12 @@ from sentry.constants import ObjectStatus
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.service.action.service import action_service
 
 
-@all_silo_test(regions=create_test_regions("us"))
+@all_silo_test(cells=create_test_cells("us"))
 class TestActionService(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)

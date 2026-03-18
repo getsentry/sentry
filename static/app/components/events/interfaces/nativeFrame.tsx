@@ -49,7 +49,7 @@ import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSectio
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {combineStatus} from './debugMeta/utils';
-import Context from './frame/context';
+import {Context} from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {

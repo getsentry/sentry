@@ -173,7 +173,7 @@ def _webhook_issue_data(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
-    processing_deadline_duration=5,
+    processing_deadline_duration=8,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator
@@ -697,7 +697,7 @@ def get_webhook_data(
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
     compression_type=CompressionType.ZSTD,
-    processing_deadline_duration=5,
+    processing_deadline_duration=8,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator

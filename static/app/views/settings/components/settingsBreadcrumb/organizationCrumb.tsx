@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

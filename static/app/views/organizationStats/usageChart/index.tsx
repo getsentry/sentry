@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
-import BaseChart from 'sentry/components/charts/baseChart';
+import {BaseChart} from 'sentry/components/charts/baseChart';
 import {Legend} from 'sentry/components/charts/components/legend';
 import {XAxis} from 'sentry/components/charts/components/xAxis';
 import {BarSeries} from 'sentry/components/charts/series/barSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -498,7 +498,7 @@ interface UsageChartPanelProps extends UsageChartProps {
   title?: React.ReactNode;
 }
 
-function UsageChart({title, footer, ...props}: UsageChartPanelProps) {
+export function UsageChart({title, footer, ...props}: UsageChartPanelProps) {
   return (
     <Panel id="usage-chart" data-test-id="usage-chart">
       <ChartContainer>
@@ -509,8 +509,6 @@ function UsageChart({title, footer, ...props}: UsageChartPanelProps) {
     </Panel>
   );
 }
-
-export default UsageChart;
 
 const ErrorMessages = styled('div')`
   display: flex;

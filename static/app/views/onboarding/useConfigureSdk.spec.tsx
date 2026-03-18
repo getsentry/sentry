@@ -68,6 +68,9 @@ describe('useConfigureSdk', () => {
 
     mockUseOnboardingContext.mockReturnValue({
       setSelectedPlatform: jest.fn(),
+      setSelectedIntegration: jest.fn(),
+      setSelectedRepositories: jest.fn(),
+      setSelectedFeatures: jest.fn(),
     });
 
     createProjectInstance = mockCreateProjectHook();
