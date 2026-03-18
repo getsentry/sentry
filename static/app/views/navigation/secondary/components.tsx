@@ -669,17 +669,17 @@ const PageFrameSidebarNavigationLink = styled(Link)`
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;
 
-  &:active {
-    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
-    background-color: ${p =>
-      p.theme.tokens.interactive.transparent.accent.background.active};
-  }
-
   &:hover {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
     border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
+
+  &:active {
+    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.background.active};
   }
 
   &[aria-selected='true'] {
