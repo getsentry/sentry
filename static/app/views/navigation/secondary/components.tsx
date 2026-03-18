@@ -413,7 +413,7 @@ function SecondaryNavigationLink({
       }}
     >
       {leadingItems}
-      <Text ellipsis variant={layout === 'sidebar' ? 'muted' : undefined}>
+      <Text ellipsis variant="inherit">
         {children}
       </Text>
       {trailingItems}
@@ -538,12 +538,12 @@ const NavigationLink = styled(Link)<NavigationLink>`
   justify-content: center;
   align-items: center;
   position: relative;
-  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p =>
     p.layout === 'mobile'
       ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`
       : `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 
   /* Disable interaction state layer */
   > [data-isl] {
