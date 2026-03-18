@@ -98,7 +98,7 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
         initial={{opacity: isLoading ? 0 : 1}}
         animate={{opacity: isFetching ? 0 : 1}}
       >
-        <Text variant="muted" size="xs">
+        <Text variant="muted" size="xs" align="center" tabular>
           {count > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : count}
         </Text>
       </motion.span>

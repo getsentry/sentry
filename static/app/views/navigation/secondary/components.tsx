@@ -665,11 +665,6 @@ const MobileNavigationLink = styled(Link)`
     transition: opacity 0.1s ease-in-out;
     opacity: 0;
   }
-
-  /* Disable interaction state layer */
-  > [data-isl] {
-    display: none;
-  }
 `;
 
 /**
@@ -908,6 +903,9 @@ function GrabHandle(props: FlexProps<'div'>) {
 }
 
 const StyledGrabHandle = styled(Flex)`
+  &:active {
+    cursor: grabbing;
+  }
   &:focus-visible {
     ${p => p.theme.focusRing()}
   }
