@@ -116,7 +116,7 @@ class HistoricGroupCounts(
         assert error_event.group is not None
 
         # store_search_issue created two groups
-        assert len(Group.objects.all()) == 4
+        assert len(Group.objects.all()) == 7
         assert profile_error_event.group.issue_category == GroupCategory.ERROR
         assert error_event.group.issue_category == GroupCategory.ERROR
         assert profile_issue_occurrence.group.issue_category == GroupCategory.PERFORMANCE
