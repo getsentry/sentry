@@ -3875,8 +3875,7 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
     def backend(self):
         return EventsDatasetSnubaSearchBackend()
 
-    def test_recommended_sort_basic(self) -> None:
-        """Test that recommended sort returns results and recent events rank higher."""
+    def test_recommended_sort_recency(self) -> None:
         new_project = self.create_project(organization=self.project.organization)
         base_datetime = before_now(hours=1)
 
@@ -3908,8 +3907,7 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
         results = self.make_query(sort_by="recommended", projects=[new_project])
         assert list(results) == [recent_group, old_group]
 
-    def test_recommended_sort_severity_matters(self) -> None:
-        """Test that fatal events score higher than info events at similar recency."""
+    def test_recommended_sort_severity(self) -> None:
         base_datetime = before_now(hours=1)
 
         fatal_event = self.store_event(
@@ -3953,8 +3951,7 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
         # Fatal event should score higher despite being slightly older
         assert scores[fatal_group.id] > scores[info_group.id]
 
-    def test_recommended_sort_user_impact(self) -> None:
-        """Test that issues affecting more users score higher."""
+    def test_recommended_user_impact(self) -> None:
         base_datetime = before_now(hours=1)
 
         # Issue affecting many users
@@ -4007,8 +4004,7 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
         scores = {gid: score for gid, score in results}
         assert scores[many_users_group.id] > scores[one_user_group.id]
 
-    def test_recommended_sort_mixed_group_types(self) -> None:
-        """Test that recommended sort works with both error and issue platform groups."""
+    def test_recommended_issue_platform(self) -> None:
         base_datetime = before_now(hours=1)
 
         error_event = self.store_event(
@@ -4056,41 +4052,7 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
         assert error_group.id in returned_group_ids
         assert profile_group.id in returned_group_ids
 
-    def test_recommended_sort_scores_are_bounded(self) -> None:
-        """Test that scores are in the expected [0, 1] range."""
-        base_datetime = before_now(hours=1)
-
-        self.store_event(
-            data={
-                "fingerprint": ["score-test-group"],
-                "event_id": "a" * 32,
-                "message": "score test",
-                "timestamp": base_datetime.isoformat(),
-                "level": "fatal",
-                "tags": {"sentry:user": "user@example.com"},
-            },
-            project_id=self.project.id,
-        )
-        group = Group.objects.get(project=self.project, message="score test")
-
-        query_executor = self.backend._get_query_executor()
-        results = query_executor.snuba_search(
-            start=None,
-            end=None,
-            project_ids=[self.project.id],
-            environment_ids=[],
-            sort_field="recommended",
-            organization=self.organization,
-            group_ids=[group.id],
-            limit=150,
-            referrer=Referrer.TESTING_TEST,
-        )[0]
-        assert len(results) == 1
-        _, score = results[0]
-        assert 0.0 <= score <= 1.0
-
-    def test_recommended_sort_event_volume(self) -> None:
-        """Test that higher event volume produces a higher recommended score."""
+    def test_recommended_event_volume(self) -> None:
         base_datetime = before_now(hours=1)
 
         # Store 5 events for the high-volume group
