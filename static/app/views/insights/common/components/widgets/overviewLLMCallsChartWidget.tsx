@@ -5,7 +5,7 @@ import {getAIGenerationsFilter} from 'sentry/views/insights/pages/agents/utils/q
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {BaseTrafficWidget} from 'sentry/views/insights/pages/platform/shared/baseTrafficWidget';
 
-export function OverviewLLMCallsChartWidget(props: LoadableChartWidgetProps) {
+export default function OverviewLLMCallsChartWidget(props: LoadableChartWidgetProps) {
   const query = useCombinedQuery(getAIGenerationsFilter());
 
   return (
