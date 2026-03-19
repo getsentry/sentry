@@ -235,7 +235,6 @@ class SeerSlackRendererExplorerTest(TestCase):
         return SeerExplorerResponse(
             run_id=MOCK_RUN_ID,
             organization_id=self.organization.id,
-            explorer_link=f"https://sentry.sentry.io/explore/seer/{MOCK_RUN_ID}/",
             summary=summary,
         )
 

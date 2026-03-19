@@ -414,15 +414,15 @@ class SlackExplorerEntrypoint(
     ) -> None:
         organization_id = cache_payload["organization_id"]
 
-        if summary:
+        if not summary:
+            data: SeerExplorerError | SeerExplorerResponse = SeerExplorerError(
+                error_message="Seer was unable to generate a response."
+            )
+        else:
             data = SeerExplorerResponse(
                 run_id=run_id,
                 organization_id=organization_id,
                 summary=summary,
-            )
-        else:
-            data = SeerExplorerError(
-                error_message="Seer was not able to generate a response. Please try again.",
             )
         schedule_all_thread_updates(
             threads=[cache_payload["thread"]],
