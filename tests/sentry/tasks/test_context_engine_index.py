@@ -125,7 +125,7 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
 
         TOTAL_SLOTS = 24
         target_slot = int(md5_text(str(org_ids[0])).hexdigest(), 16) % TOTAL_SLOTS
-        frozen_time = f"2024-01-15 {target_slot:02d}:00:00"
+        frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
 
         def feature_enabled_for_test_orgs(_flag_name: str, org, *args, **kwargs) -> bool:
             return org.id in org_ids
@@ -151,7 +151,7 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
 
         TOTAL_SLOTS = 24
         target_slot = int(md5_text(str(org_without_flag.id)).hexdigest(), 16) % TOTAL_SLOTS
-        frozen_time = f"2024-01-15 {target_slot:02d}:00:00"
+        frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
 
         with freeze_time(frozen_time):
             with self.feature(

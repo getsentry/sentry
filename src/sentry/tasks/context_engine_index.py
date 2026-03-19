@@ -40,7 +40,9 @@ from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
+INDEXING_DAY = 6  # Sunday
 CONTEXT_ENGINE_ENABLED_ORG_IDS = "context_engine_indexing:enabled_org_ids"
+CONTEXT_ENGINE_CACHE_TTL = 8 * 24 * 60 * 60  # 8 days
 
 
 @instrumented_task(
@@ -215,29 +217,32 @@ def get_allowed_org_ids_context_engine_indexing() -> tuple[list[int], list[int]]
     Get the list of allowed organizations for context engine indexing.
 
     Only includes orgs that have the seer-explorer-context-engine feature flag
-    enabled. Spreads orgs evenly across the 24 hours of each day. Each org is
-    deterministically assigned a slot via md5 hash so it is indexed exactly
-    once per day.
+    enabled. On the weekly indexing day (Sunday), spreads orgs evenly across
+    24 hourly slots via md5 hash. On other days, only newly-enabled orgs
+    (detected via cache diff) are returned as eligible.
     """
     now = datetime.now(UTC)
-    current_slot = now.hour
     TOTAL_HOURLY_SLOTS = 24
 
     eligible_org_ids: list[int] = []
-    feature_enabled_org_ids: list[int] = []
+    all_enabled_org_ids: list[int] = []
+
     for org in RangeQuerySetWrapper(
         Organization.objects.filter(status=ObjectStatus.ACTIVE),
         result_value_getter=lambda o: o.id,
     ):
         if features.has("organizations:seer-explorer-context-engine", org):
-            feature_enabled_org_ids.append(org.id)
-            if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == current_slot:
-                eligible_org_ids.append(org.id)
+            all_enabled_org_ids.append(org.id)
 
-    # Add recently enabled orgs that should not wait for their daily slot.
+    if now.weekday() == INDEXING_DAY:
+        slot = now.hour
+        for org_id in all_enabled_org_ids:
+            if int(md5_text(str(org_id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == slot:
+                eligible_org_ids.append(org_id)
+
     previous_enabled_org_ids = cache.get(CONTEXT_ENGINE_ENABLED_ORG_IDS)
     if previous_enabled_org_ids is not None:
-        newly_added_org_ids_set = set(feature_enabled_org_ids) - set(previous_enabled_org_ids)
+        newly_added_org_ids_set = set(all_enabled_org_ids) - set(previous_enabled_org_ids)
         if newly_added_org_ids_set:
             logger.info(
                 "Adding context engine index for recently enabled orgs",
@@ -245,7 +250,7 @@ def get_allowed_org_ids_context_engine_indexing() -> tuple[list[int], list[int]]
             )
             eligible_org_ids = list(set(eligible_org_ids).union(newly_added_org_ids_set))
 
-    return feature_enabled_org_ids, eligible_org_ids
+    return all_enabled_org_ids, eligible_org_ids
 
 
 @instrumented_task(
@@ -279,7 +284,7 @@ def schedule_context_engine_indexing_tasks() -> None:
             )
 
     # Store full currently-enabled orgs so next run can compute a stable diff.
-    cache.set(CONTEXT_ENGINE_ENABLED_ORG_IDS, feature_enabled_org_ids, 24 * 60 * 60)
+    cache.set(CONTEXT_ENGINE_ENABLED_ORG_IDS, feature_enabled_org_ids, CONTEXT_ENGINE_CACHE_TTL)
     logger.info(
         "Stored context engine enabled org ids cache size",
         extra={"size": len(feature_enabled_org_ids)},
