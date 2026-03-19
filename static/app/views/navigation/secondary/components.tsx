@@ -124,7 +124,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               initial={{x: -6, opacity: 0}}
               animate={{x: 0, opacity: 1}}
               exit={{x: 6, opacity: 0}}
-              transition={theme.motion.framer.smooth.fast}
+              transition={theme.motion.framer.enter.moderate}
             >
               <Grid
                 rows="auto 1fr auto"
