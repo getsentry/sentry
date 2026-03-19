@@ -3,11 +3,11 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test, create_test_regions
 
 
 @django_db_all(transaction=True)
-@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+@cell_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 def test_project_key_mapping_claimed_on_create() -> None:
     org = Factories.create_organization()
     project = Factories.create_project(organization=org)
@@ -20,7 +20,7 @@ def test_project_key_mapping_claimed_on_create() -> None:
 
 
 @django_db_all(transaction=True)
-@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+@cell_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 def test_project_key_mappings_deleted_on_project_delete() -> None:
     org = Factories.create_organization()
     project = Factories.create_project(organization=org)
@@ -35,7 +35,7 @@ def test_project_key_mappings_deleted_on_project_delete() -> None:
 
 
 @django_db_all(transaction=True)
-@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+@cell_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 def test_project_key_mapping_deleted_on_key_delete() -> None:
     org = Factories.create_organization()
     project = Factories.create_project(organization=org)
@@ -50,7 +50,7 @@ def test_project_key_mapping_deleted_on_key_delete() -> None:
 
 
 @django_db_all(transaction=True)
-@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+@cell_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 def test_project_key_mapping_no_orphan_when_delete_coalesces_with_key_update() -> None:
     """Deletion after a public_key change must not orphan the mapping when outboxes coalesce."""
     org = Factories.create_organization()
@@ -76,7 +76,7 @@ def test_project_key_mapping_no_orphan_when_delete_coalesces_with_key_update() -
 
 
 @django_db_all(transaction=True)
-@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+@cell_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 def test_project_key_mapping_no_orphan_on_public_key_override() -> None:
     """
     When write_relocation_import overwrites an auto-created ProjectKey with a different
