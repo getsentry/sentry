@@ -13,7 +13,7 @@ describe('Banner', () => {
     expect(localStorage.getItem('test-banner-dismissed')).toBe('true');
   });
 
-  it('is not dismissable', () => {
+  it('does not render a Close button when isDismissable is false', () => {
     render(<Banner isDismissable={false} />);
     expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
   });
