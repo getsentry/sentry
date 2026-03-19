@@ -1,7 +1,6 @@
 import type {Theme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import {DATA_TYPE_PLURAL as RESOURCES_DATA_TYPE_PLURAL} from 'sentry/views/insights/browser/resources/settings';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
@@ -70,17 +69,10 @@ export enum PerformanceWidgetSetting {
 }
 
 export const WIDGET_DEFINITIONS: ({
-  organization,
   theme,
 }: {
-  organization: Organization;
   theme: Theme;
-}) => Record<PerformanceWidgetSetting, ChartDefinition> = ({
-  theme,
-}: {
-  organization: Organization;
-  theme: Theme;
-}) => {
+}) => Record<PerformanceWidgetSetting, ChartDefinition> = ({theme}: {theme: Theme}) => {
   const useEap = useInsightsEap();
   const durationField = useEap ? 'span.duration' : 'transaction.duration';
 

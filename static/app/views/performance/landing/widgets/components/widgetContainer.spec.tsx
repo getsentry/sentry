@@ -24,7 +24,20 @@ const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   return data;
 };
 
+const DEFAULT_ALLOWED_CHARTS = [
+  PerformanceWidgetSetting.TPM_AREA,
+  PerformanceWidgetSetting.FAILURE_RATE_AREA,
+  PerformanceWidgetSetting.USER_MISERY_AREA,
+  PerformanceWidgetSetting.DURATION_HISTOGRAM,
+];
+
 function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
+  // Ensure the defaultChartSetting is always in allowedCharts so the
+  // interactive title dropdown can find it
+  const allowedCharts = rest.allowedCharts ?? [
+    ...new Set([...DEFAULT_ALLOWED_CHARTS, rest.defaultChartSetting].filter(Boolean)),
+  ];
+
   return (
     <OrganizationContext value={data.organization}>
       <MetricsCardinalityProvider
@@ -37,12 +50,7 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
           >
             <WidgetContainer
               chartHeight={100}
-              allowedCharts={[
-                PerformanceWidgetSetting.TPM_AREA,
-                PerformanceWidgetSetting.FAILURE_RATE_AREA,
-                PerformanceWidgetSetting.USER_MISERY_AREA,
-                PerformanceWidgetSetting.DURATION_HISTOGRAM,
-              ]}
+              allowedCharts={allowedCharts}
               rowChartSettings={[]}
               withStaticFilters={withStaticFilters}
               forceDefaultChartSetting
@@ -567,11 +575,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.LCP_HISTOGRAM}
-        allowedCharts={[
-          PerformanceWidgetSetting.LCP_HISTOGRAM,
-          PerformanceWidgetSetting.FCP_HISTOGRAM,
-          PerformanceWidgetSetting.DURATION_HISTOGRAM,
-        ]}
       />
     );
 
@@ -589,11 +592,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FCP_HISTOGRAM}
-        allowedCharts={[
-          PerformanceWidgetSetting.LCP_HISTOGRAM,
-          PerformanceWidgetSetting.FCP_HISTOGRAM,
-          PerformanceWidgetSetting.DURATION_HISTOGRAM,
-        ]}
       />
     );
 

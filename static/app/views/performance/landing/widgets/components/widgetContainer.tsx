@@ -127,7 +127,7 @@ function WidgetContainerInner(props: Props) {
     setChartSettingState(_chartSetting);
   }, [rest.defaultChartSetting, _chartSetting]);
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization, theme})[chartSetting];
+  const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];
 
   // Construct an EventView that matches this widget's definition. The
   // `eventView` from the props is the _landing page_ EventView, which is different
@@ -203,7 +203,7 @@ function WidgetInteractiveTitle({
   const menuOptions: Array<SelectOption<string>> = [];
   const useEap = useInsightsEap();
 
-  const settingsMap = WIDGET_DEFINITIONS({organization, theme});
+  const settingsMap = WIDGET_DEFINITIONS({theme});
   for (const setting of allowedCharts) {
     const options = settingsMap[setting];
     menuOptions.push({
@@ -213,7 +213,7 @@ function WidgetInteractiveTitle({
     });
   }
 
-  const chartDefinition = WIDGET_DEFINITIONS({organization, theme})[chartSetting];
+  const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];
 
   if (chartDefinition.allowsOpenInDiscover) {
     if (useEap) {
