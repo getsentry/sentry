@@ -44,10 +44,7 @@ export interface MetricQuery extends BaseMetricQuery {
   setTraceMetric: (traceMetric: TraceMetric) => void;
 }
 
-export function decodeMetricsQueryParams(
-  value: string,
-  multiVisualize = false
-): BaseMetricQuery | null {
+export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null {
   let json: any;
   try {
     json = JSON.parse(value);
@@ -61,7 +58,7 @@ export function decodeMetricsQueryParams(
 
   const metric = json.metric;
   const query = parseQuery(json.query);
-  const visualizes = parseVisualizes(json.aggregateFields, multiVisualize);
+  const visualizes = parseVisualizes(json.aggregateFields);
 
   if (!visualizes.length) {
     return null;
@@ -190,17 +187,12 @@ function parseQuery(value: unknown): string {
   return typeof value === 'string' ? value : defaultQuery();
 }
 
-function parseVisualizes(value: unknown, multiVisualize = false): Visualize[] {
+function parseVisualizes(value: unknown): Visualize[] {
   if (!Array.isArray(value)) {
     return [];
   }
 
-  if (multiVisualize) {
-    return value.filter(isBaseVisualize).flatMap(Visualize.fromJSON);
-  }
-
-  const baseVisualize = value.find(isBaseVisualize);
-  return baseVisualize ? Visualize.fromJSON(baseVisualize) : [];
+  return value.filter(isBaseVisualize).flatMap(Visualize.fromJSON);
 }
 
 function parseGroupBys(value: unknown): GroupBy[] {
