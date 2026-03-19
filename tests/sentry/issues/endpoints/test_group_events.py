@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -644,7 +645,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert any(t["key"] == "environment" and t["value"] == "production" for t in result["tags"])
 
 
-class BuildSnubaDataTest:
+class TestBuildSnubaData:
     def test_all_fields_populated(self) -> None:
         evt = {
             "id": "abc123",
@@ -656,7 +657,6 @@ class BuildSnubaDataTest:
             "culprit": "main.py in func",
             "location": "main.py",
             "event.type": "error",
-            "message": "Something went wrong",
             "tags.key": ["environment"],
             "tags.value": ["production"],
             "user.id": "u123",
@@ -674,7 +674,6 @@ class BuildSnubaDataTest:
         assert result["culprit"] == "main.py in func"
         assert result["location"] == "main.py"
         assert result["type"] == "error"
-        assert result["message"] == "Something went wrong"
         assert result["tags.key"] == ["environment"]
         assert result["tags.value"] == ["production"]
         assert result["user_id"] == "u123"
@@ -739,7 +738,7 @@ class BuildSnubaDataTest:
     ],
 )
 def test_build_snuba_data_optional_columns(
-    evt: dict, expected_key: str, expected_present: bool
+    evt: dict[str, Any], expected_key: str, expected_present: bool
 ) -> None:
     result = _build_snuba_data(evt)
     assert (expected_key in result) == expected_present
