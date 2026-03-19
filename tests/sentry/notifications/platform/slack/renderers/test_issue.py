@@ -8,11 +8,12 @@ import pytest
 from sentry.eventstore.models import GroupEvent
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
+from sentry.notifications.notification_action.utils import issue_notification_data_factory
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
-from sentry.notifications.platform.slack.renderers.issue_alert import IssueSlackRenderer
-from sentry.notifications.platform.templates.issue_alert import (
-    IssueAlertNotificationTemplate,
+from sentry.notifications.platform.slack.renderers.issue import IssueSlackRenderer
+from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
+    IssueNotificationTemplate,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -77,16 +78,16 @@ class IssueAlertInvocationMixin(TestCase):
 class IssueNotificationDataTest(IssueAlertInvocationMixin):
     def test_source(self) -> None:
         data = IssueNotificationData(group_id=self.group.id)
-        assert data.source == NotificationSource.ISSUE_ALERT
+        assert data.source == NotificationSource.ISSUE
 
     def test_from_action_invocation(self) -> None:
         invocation = self._create_invocation(
             tags="environment,level", notes="test note", notification_uuid="test-uuid-123"
         )
 
-        result = IssueNotificationData.from_action_invocation(invocation)
+        result = issue_notification_data_factory(invocation)
 
-        assert result.source == NotificationSource.ISSUE_ALERT
+        assert result.source == NotificationSource.ISSUE
         assert result.group_id == invocation.event_data.group.id
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result.event_id == invocation.event_data.event.event_id
@@ -102,9 +103,9 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
     def test_from_action_invocation_empty_tags(self) -> None:
         invocation = self._create_invocation(tags="", notes="")
 
-        result = IssueNotificationData.from_action_invocation(invocation)
+        result = issue_notification_data_factory(invocation)
 
-        assert result.source == NotificationSource.ISSUE_ALERT
+        assert result.source == NotificationSource.ISSUE
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result.event_id == invocation.event_data.event.event_id
         assert result.tags == set()
@@ -114,13 +115,13 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
 
 class IssueAlertNotificationTemplateTest(TestCase):
     def test_render_example(self) -> None:
-        template = IssueAlertNotificationTemplate()
+        template = IssueNotificationTemplate()
         result = template.render_example()
         assert isinstance(result, NotificationRenderedTemplate)
         assert result.subject == "Issue Alert"
 
     def test_hide_from_debugger(self) -> None:
-        assert IssueAlertNotificationTemplate.hide_from_debugger is True
+        assert IssueNotificationTemplate.hide_from_debugger is True
 
 
 class IssueSlackRendererTest(IssueAlertInvocationMixin):
@@ -253,7 +254,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
     )
     def test_render_produces_blocks(self, mock_summary: Any) -> None:
         invocation = self._create_invocation()
-        data = IssueNotificationData.from_action_invocation(invocation)
+        data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
         result = IssueSlackRenderer.render(
@@ -272,7 +273,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
     )
     def test_render_with_notes(self, mock_summary: Any) -> None:
         invocation = self._create_invocation(notes="important note")
-        data = IssueNotificationData.from_action_invocation(invocation)
+        data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
         result = IssueSlackRenderer.render(
@@ -295,7 +296,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
             tags="level",
             event_data={"message": "tagged event", "level": "error"},
         )
-        data = IssueNotificationData.from_action_invocation(invocation)
+        data = issue_notification_data_factory(invocation)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
         result = IssueSlackRenderer.render(
@@ -312,7 +313,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 
 
 class IssueAlertProviderDispatchTest(TestCase):
-    def test_provider_returns_issue_alert_renderer(self) -> None:
+    def test_provider_returns_issue_renderer(self) -> None:
         data = IssueNotificationData(group_id=self.group.id)
         renderer = SlackNotificationProvider.get_renderer(
             data=data,

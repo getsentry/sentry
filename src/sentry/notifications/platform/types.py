@@ -55,7 +55,7 @@ class NotificationSource(StrEnum):
     UNABLE_TO_DELETE_REPOSITORY = "unable-to-delete-repository"
 
     # ISSUE_ALERT
-    ISSUE_ALERT = "issue-alert"
+    ISSUE = "issue"
 
     # SEER
     SEER_AUTOFIX_ERROR = "seer-autofix-error"
@@ -87,7 +87,7 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.UNABLE_TO_DELETE_REPOSITORY,
     ],
     NotificationCategory.ISSUE_ALERT: [
-        NotificationSource.ISSUE_ALERT,
+        NotificationSource.ISSUE,
     ],
     NotificationCategory.SEER: [
         NotificationSource.SEER_AUTOFIX_TRIGGER,

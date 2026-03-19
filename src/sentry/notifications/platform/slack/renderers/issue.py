@@ -3,7 +3,7 @@ from __future__ import annotations
 from sentry.models.group import Group
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.templates.issue_alert import IssueNotificationData
+from sentry.notifications.platform.templates.issue import IssueNotificationData
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
