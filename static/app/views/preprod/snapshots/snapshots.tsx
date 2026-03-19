@@ -22,6 +22,7 @@ import type {
   SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
+import {computeSidebarBadges} from 'sentry/views/preprod/utils/sidebarUtils';
 
 import {SnapshotDevTools} from './header/snapshotDevTools';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
@@ -55,7 +56,7 @@ export default function SnapshotsPage() {
   );
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
+  const [selectedItemKey, setSelectedItemName] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayColor, setOverlayColor] = useState<string>(() => {
@@ -99,7 +100,7 @@ export default function SnapshotsPage() {
         }
       }
       for (const [name, pairs] of changedGroups) {
-        items.push({type: 'changed', name, pairs});
+        items.push({type: 'changed', key: `changed:${name}`, name, badge: null, pairs});
       }
 
       const groupImages = (
@@ -117,7 +118,7 @@ export default function SnapshotsPage() {
           }
         }
         for (const [name, images] of groups) {
-          items.push({type, name, images});
+          items.push({type, key: `${type}:${name}`, name, badge: null, images});
         }
       };
 
@@ -126,6 +127,7 @@ export default function SnapshotsPage() {
       groupImages(data.renamed ?? [], 'renamed');
       groupImages(data.unchanged, 'unchanged');
 
+      computeSidebarBadges(items);
       return items;
     }
 
@@ -142,7 +144,13 @@ export default function SnapshotsPage() {
 
     return [...groups.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([name, images]) => ({type: 'solo' as const, name, images}));
+      .map(([name, images]) => ({
+        type: 'solo' as const,
+        key: `solo:${name}`,
+        name,
+        badge: images.length > 1 ? String(images.length) : null,
+        images,
+      }));
   }, [data, comparisonType]);
 
   const filteredItems = useMemo(() => {
@@ -153,11 +161,11 @@ export default function SnapshotsPage() {
     return sidebarItems.filter(item => item.name.toLowerCase().includes(query));
   }, [sidebarItems, searchQuery]);
 
-  const currentItemName =
-    selectedItemName && filteredItems.some(i => i.name === selectedItemName)
-      ? selectedItemName
-      : (filteredItems[0]?.name ?? null);
-  const currentItem = filteredItems.find(i => i.name === currentItemName) ?? null;
+  const currentItem =
+    (selectedItemKey && filteredItems.find(i => i.key === selectedItemKey)) ||
+    filteredItems[0] ||
+    null;
+  const currentItemKey = currentItem?.key ?? null;
 
   // Clamp variantIndex to valid range when the selected item changes implicitly
   // (e.g. search filtering selects a new item with fewer variants)
@@ -175,8 +183,8 @@ export default function SnapshotsPage() {
   };
 
   // Ref so the keydown handler reads current state without re-registering
-  const stateRef = useRef({filteredItems, currentItemName});
-  stateRef.current = {filteredItems, currentItemName};
+  const stateRef = useRef({filteredItems, currentItemKey});
+  stateRef.current = {filteredItems, currentItemKey};
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -189,15 +197,15 @@ export default function SnapshotsPage() {
       }
       e.preventDefault();
 
-      const {filteredItems: items, currentItemName: current} = stateRef.current;
-      const currentIndex = items.findIndex(i => i.name === current);
+      const {filteredItems: items, currentItemKey: current} = stateRef.current;
+      const currentIndex = items.findIndex(i => i.key === current);
       const nextIndex =
         e.key === 'ArrowDown'
           ? Math.min(currentIndex + 1, items.length - 1)
           : Math.max(currentIndex - 1, 0);
 
       if (nextIndex !== currentIndex && items[nextIndex]) {
-        setSelectedItemName(items[nextIndex].name);
+        setSelectedItemName(items[nextIndex].key);
         setVariantIndex(0);
       }
     }
@@ -267,7 +275,7 @@ export default function SnapshotsPage() {
             <SnapshotSidebarContent
               items={filteredItems}
               totalItemCount={sidebarItems.length}
-              currentItemName={currentItemName}
+              currentItemKey={currentItemKey}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onSelectItem={handleSelectItem}

@@ -71,10 +71,16 @@ export function getImageGroup(image: SnapshotImage): string {
   return image.group ?? getImageName(image);
 }
 
+interface SidebarItemBase {
+  badge: string | null;
+  key: string;
+  name: string;
+}
+
 export type SidebarItem =
-  | {type: 'solo'; name: string; images: SnapshotImage[]}
-  | {type: 'changed'; name: string; pairs: SnapshotDiffPair[]}
-  | {type: 'added'; name: string; images: SnapshotImage[]}
-  | {type: 'removed'; name: string; images: SnapshotImage[]}
-  | {type: 'renamed'; name: string; images: SnapshotImage[]}
-  | {type: 'unchanged'; name: string; images: SnapshotImage[]};
+  | (SidebarItemBase & {type: 'solo'; images: SnapshotImage[]})
+  | (SidebarItemBase & {type: 'changed'; pairs: SnapshotDiffPair[]})
+  | (SidebarItemBase & {
+      type: 'added' | 'removed' | 'renamed' | 'unchanged';
+      images: SnapshotImage[];
+    });
