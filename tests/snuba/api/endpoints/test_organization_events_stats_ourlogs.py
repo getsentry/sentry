@@ -98,8 +98,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
         assert response.status_code == 200, response.content
         data = [attrs for time, attrs in response.data["data"]]
         assert all(attrs == [{"count": 0}] for attrs in data)
-        # 14d=336h, +1 from ceil rounding end to the hour, +1 from inclusive endpoints = 338.
-        # quantize_date_params jitter can push a boundary across an hour, giving 339.
+        # quantize_date_params applies a 0-60s jitter to end time which rounds up to the next hour
         assert 338 <= len(data) <= 339
 
     def test_top_events(self) -> None:
