@@ -653,6 +653,8 @@ describe('desktop navigation', () => {
             'false'
           );
 
+          // Tab once to focus the skip link, then again to reach a nav element
+          await userEvent.tab();
           await userEvent.tab();
 
           await waitFor(() => {
