@@ -9,18 +9,18 @@ type OnboardingContextProps = {
   setSelectedFeatures: (features?: ProductSolution[]) => void;
   setSelectedIntegration: (integration?: Integration) => void;
   setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
-  setSelectedRepositories: (repos?: Repository[]) => void;
+  setSelectedRepository: (repo?: Repository) => void;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
-  selectedRepositories?: Repository[];
+  selectedRepository?: Repository;
 };
 
-type OnboardingSessionState = {
+export type OnboardingSessionState = {
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
-  selectedRepositories?: Repository[];
+  selectedRepository?: Repository;
 };
 
 /**
@@ -31,8 +31,8 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   setSelectedPlatform: () => {},
   selectedIntegration: undefined,
   setSelectedIntegration: () => {},
-  selectedRepositories: undefined,
-  setSelectedRepositories: () => {},
+  selectedRepository: undefined,
+  setSelectedRepository: () => {},
   selectedFeatures: undefined,
   setSelectedFeatures: () => {},
 });
@@ -40,54 +40,38 @@ const OnboardingContext = createContext<OnboardingContextProps>({
 type ProviderProps = {
   children: React.ReactNode;
   /**
-   * This is only used in our frontend tests to set the initial value of the context.
+   * Optional initial session state. Primarily used in tests to seed the context
+   * without touching session storage directly.
    */
-  value?: Pick<OnboardingContextProps, 'selectedPlatform'>;
+  initialValue?: OnboardingSessionState;
 };
 
-export function OnboardingContextProvider({children, value}: ProviderProps) {
+export function OnboardingContextProvider({children, initialValue}: ProviderProps) {
   const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
     OnboardingSessionState | undefined
-  >(
-    'onboarding',
-    value?.selectedPlatform ? {selectedPlatform: value.selectedPlatform} : undefined
-  );
+  >('onboarding', initialValue);
 
   const contextValue = useMemo(
     () => ({
       selectedPlatform: onboarding?.selectedPlatform,
       setSelectedPlatform: (selectedPlatform?: OnboardingSelectedSDK) => {
         if (selectedPlatform === undefined) {
-          // Clear platform but preserve other SCM state (integration, repos, features).
-          // Full reset only happens if no other state remains.
-          const nextState = {
-            ...onboarding,
-            selectedPlatform: undefined,
-          };
-          const hasOtherState =
-            nextState.selectedIntegration ||
-            nextState.selectedRepositories ||
-            nextState.selectedFeatures;
-          if (hasOtherState) {
-            setOnboarding(nextState);
-          } else {
-            removeOnboarding();
-          }
+          removeOnboarding();
         } else {
-          setOnboarding({...onboarding, selectedPlatform});
+          setOnboarding(prev => ({...prev, selectedPlatform}));
         }
       },
       selectedIntegration: onboarding?.selectedIntegration,
       setSelectedIntegration: (selectedIntegration?: Integration) => {
-        setOnboarding({...onboarding, selectedIntegration});
+        setOnboarding(prev => ({...prev, selectedIntegration}));
       },
-      selectedRepositories: onboarding?.selectedRepositories,
-      setSelectedRepositories: (selectedRepositories?: Repository[]) => {
-        setOnboarding({...onboarding, selectedRepositories});
+      selectedRepository: onboarding?.selectedRepository,
+      setSelectedRepository: (selectedRepository?: Repository) => {
+        setOnboarding(prev => ({...prev, selectedRepository}));
       },
       selectedFeatures: onboarding?.selectedFeatures,
       setSelectedFeatures: (selectedFeatures?: ProductSolution[]) => {
-        setOnboarding({...onboarding, selectedFeatures});
+        setOnboarding(prev => ({...prev, selectedFeatures}));
       },
     }),
     [onboarding, setOnboarding, removeOnboarding]
