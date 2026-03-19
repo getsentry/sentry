@@ -73,7 +73,28 @@ def get_query_builder_for_group(
     dataset = Dataset.IssuePlatform
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
-    selected_columns = ["id", "project.id", "issue.id", "timestamp"]
+    selected_columns = [
+        "id",
+        "project.id",
+        "issue.id",
+        "timestamp",
+        # Additional columns used by SimpleEventSerializer so it can
+        # read from Snuba instead of falling through to nodestore.
+        "title",
+        "culprit",
+        "location",
+        "platform",
+        "event.type",
+        "tags.key",
+        "tags.value",
+        "user.id",
+        "user.email",
+        "user.username",
+        "user.ip",
+        # Note: "message" is intentionally excluded. The Snuba message
+        # column stores search_message (logentry + metadata + culprit),
+        # not the raw logentry that BaseEvent.message returns.
+    ]
 
     if orderby is None:
         orderby_list = ["-timestamp", "id"]

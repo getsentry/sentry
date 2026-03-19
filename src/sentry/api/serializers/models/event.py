@@ -651,8 +651,11 @@ class SimpleEventSerializer(EventSerializer):
             "groupID": str(obj.group_id) if obj.group_id else None,
             "eventID": str(obj.event_id),
             "projectID": str(obj.project_id),
-            # XXX for 'message' this doesn't do the proper resolution of logentry
-            # etc. that _get_legacy_message_with_meta does.
+            # Note: obj.message always accesses nodestore (no Snuba
+            # fallback). The Snuba "message" column stores search_message
+            # which includes metadata and culprit — not the same value.
+            # bind_nodes in get_attrs pre-fetches the data so this doesn't
+            # cause an N+1.
             "message": obj.message,
             "title": obj.title,
             "location": obj.location,

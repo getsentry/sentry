@@ -51,6 +51,48 @@ class GroupEventsError(Exception):
     pass
 
 
+# Mapping from Discover query column names to the event_name keys that
+# Event._get_column_name() uses to look up values in _snuba_data.
+_DISCOVER_TO_SNUBA_DATA: dict[str, str] = {
+    "title": "title",
+    "culprit": "culprit",
+    "location": "location",
+    "platform": "platform",
+    "event.type": "type",
+    "tags.key": "tags.key",
+    "tags.value": "tags.value",
+    "user.id": "user_id",
+    "user.email": "email",
+    "user.username": "username",
+    "user.ip": "ip_address",
+    # Note: "message" is intentionally excluded. The Snuba message column
+    # stores search_message, not the raw logentry that BaseEvent.message returns.
+}
+
+
+def _build_snuba_data(evt: dict[str, Any]) -> dict[str, Any]:
+    """Build the snuba_data dict for an Event, mapping Discover column
+    names to the event_name keys. Falsy values (None, empty string) are
+    excluded so that Event property accessors fall through to nodestore
+    instead of returning incorrect data. This handles both the EAP
+    experimental path (which returns fewer columns → None) and
+    ClickHouse empty strings for unset columns."""
+    data: dict[str, Any] = {
+        "event_id": evt["id"],
+        "group_id": evt["issue.id"],
+        "project_id": evt["project.id"],
+        "timestamp": evt["timestamp"],
+    }
+    for discover_col, snuba_key in _DISCOVER_TO_SNUBA_DATA.items():
+        value = evt.get(discover_col)
+        # Exclude None and empty strings — ClickHouse returns "" for
+        # unset String columns which would prevent the Event property
+        # from falling through to nodestore.
+        if value is not None and value != "":
+            data[snuba_key] = value
+    return data
+
+
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupEventsEndpoint(GroupEndpoint):
@@ -168,12 +210,7 @@ class GroupEventsEndpoint(GroupEndpoint):
                 Event(
                     event_id=evt["id"],
                     project_id=evt["project.id"],
-                    snuba_data={
-                        "event_id": evt["id"],
-                        "group_id": evt["issue.id"],
-                        "project_id": evt["project.id"],
-                        "timestamp": evt["timestamp"],
-                    },
+                    snuba_data=_build_snuba_data(evt),
                 )
                 for evt in data
             ]
