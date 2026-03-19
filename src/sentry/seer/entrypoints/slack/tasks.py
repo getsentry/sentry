@@ -20,8 +20,7 @@ def process_mention_for_slack(
     integration_id: int,
     organization_id: int,
     channel_id: str,
-    thread_ts: str | None,
-    message_ts: str,
+    thread_ts: str,
     text: str,
     slack_user_id: str,
 ) -> None:
@@ -40,7 +39,6 @@ def process_mention_for_slack(
             "organization_id": organization_id,
             "channel_id": channel_id,
             "thread_ts": thread_ts,
-            "message_ts": message_ts,
             "slack_user_id": slack_user_id,
         },
     )
