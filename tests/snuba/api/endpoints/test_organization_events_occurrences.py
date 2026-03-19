@@ -19,6 +19,16 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
     def setUp(self) -> None:
         super().setUp()
 
+    def _do_request(self, payload: dict) -> dict:
+        with self.options(
+            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+        ):
+            response = self.do_request(
+                payload,
+            )
+        assert response.status_code == 200, response.content
+        return response
+
     def test_simple(self) -> None:
         event_id = uuid.uuid4().hex
         trace_id = uuid.uuid4().hex
@@ -34,17 +44,13 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         )
         self.store_eap_items([occ])
 
-        with self.options(
-            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
-        ):
-            response = self.do_request(
-                {
-                    "field": ["id", "group_id", "trace"],
-                    "project": [self.project.id],
-                    "dataset": "occurrences",
-                }
-            )
-        assert response.status_code == 200
+        response = self._do_request(
+            {
+                "field": ["id", "group_id", "trace"],
+                "project": [self.project.id],
+                "dataset": "occurrences",
+            }
+        )
         assert len(response.data["data"]) == 1
         row = response.data["data"][0]
         assert row["id"] == event_id
@@ -66,18 +72,15 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         )
         self.store_eap_items([occ])
 
-        with self.options(
-            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
-        ):
-            response = self.do_request(
-                {
-                    "field": ["count()"],
-                    "statsPeriod": "1h",
-                    "query": f"project:{group.project.slug} group_id:{group.id}",
-                    "dataset": "occurrences",
-                }
-            )
-        assert response.status_code == 200, response.content
+        response = self._do_request(
+            {
+                "field": ["count()", "group_id"],
+                "statsPeriod": "1h",
+                "query": f"project:{group.project.slug} group_id:{group.id}",
+                "dataset": "occurrences",
+            }
+        )
+
         assert response.data["data"][0]["count()"] == 1
 
     def _request_table_rate(self, field: str):
@@ -96,22 +99,18 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
             ),
         ]
         self.store_eap_items(occurrences)
-        with self.options(
-            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
-        ):
-            return self.do_request(
-                {
-                    "field": [field],
-                    "statsPeriod": "2h",
-                    "project": [self.project.id],
-                    "dataset": "occurrences",
-                }
-            )
+        return self._do_request(
+            {
+                "field": [field],
+                "statsPeriod": "2h",
+                "project": [self.project.id],
+                "dataset": "occurrences",
+            }
+        )
 
     def test_eps_rate_aggregate(self) -> None:
         # 2 events / 7200 seconds (2h).
         response = self._request_table_rate("eps()")
-        assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["eps()"] == pytest.approx(2 / 7200, abs=0.0001)
@@ -122,13 +121,13 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
     def test_epm_rate_aggregate(self) -> None:
         # 2 events / (7200/60) = 2/120 per minute.
         response = self._request_table_rate("epm()")
-        assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["epm()"] == pytest.approx(2 / (7200 / 60), abs=0.001)
         meta = response.data["meta"]
         assert meta["fields"]["epm()"] == "rate"
         assert meta["units"]["epm()"] == "1/minute"
+
 
     def test_count_unique(self) -> None:
         group = self.create_group(project=self.project)
@@ -252,3 +251,131 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         # EAP returns last_seen as Unix timestamp in seconds (float).
         expected_seconds = (base + timedelta(minutes=10)).timestamp()
         assert data[0]["last_seen()"] == pytest.approx(expected_seconds, abs=1)
+
+    @pytest.mark.skip(reason="VCC Support for Integer is blocking: EAP-462")
+    def test_virtual_column_issue_in_fields(self):
+        """Test Virtual Column (issue) is in response fields"""
+        group = self.create_group(project=self.project)
+        occurrences = [
+            self.create_eap_occurrence(
+                group_id=group.id,
+                project=self.project,
+                attributes={"fingerprint": ["g1"]},
+            ),
+        ]
+        self.store_eap_items(occurrences)
+        response = self._do_request(
+            {
+                "field": [
+                    "issue",
+                    "group_id",
+                    "project",
+                    "project.name",
+                ],
+                "statsPeriod": "2h",
+                "project": [self.project.id],
+                "dataset": "occurrences",
+            }
+        )
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["issue"] == group.qualified_short_id
+
+    def test_issue_filter(self):
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        occurrences = [
+            self.create_eap_occurrence(
+                group_id=group1.id,
+                project=self.project,
+                attributes={"fingerprint": ["g1"]},
+            ),
+            self.create_eap_occurrence(
+                group_id=group2.id,
+                project=self.project,
+                attributes={"fingerprint": ["g2"]},
+            ),
+        ]
+        self.store_eap_items(occurrences)
+        response = self._do_request(
+            {
+                "query": f"issue:{group1.qualified_short_id}",
+                "field": ["group_id", "project", "project.name"],
+                "statsPeriod": "2h",
+                "project": [self.project.id],
+                "dataset": "occurrences",
+            }
+        )
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["group_id"] == group1.id
+
+    def test_has_filter_on_project(self) -> None:
+        group1 = self.create_group(project=self.project)
+        occurrences = [
+            self.create_eap_occurrence(
+                group_id=group1.id,
+                project=self.project,
+                attributes={"fingerprint": ["g1"]},
+            ),
+            self.create_eap_occurrence(
+                project=self.project,
+                attributes={"fingerprint": ["g2"]},
+            ),
+        ]
+        self.store_eap_items(occurrences)
+        response = self._do_request(
+            {
+                "query": "has:issue",
+                "field": ["group_id", "project", "project.name"],
+                "statsPeriod": "2h",
+                "project": [self.project.id],
+                "dataset": "occurrences",
+            }
+        )
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["group_id"] == group1.id
+
+    def test_additional_query_with_logs(self) -> None:
+        grp_a = self.create_group(project=self.project)
+        grp_b = self.create_group(project=self.project)
+        trace_id = uuid.uuid4().hex
+        excluded_trace_id = uuid.uuid4().hex
+        occurrences = [
+            self.create_eap_occurrence(
+                group_id=grp_a.id,
+                project=self.project,
+                tags={"foo": "five"},
+                title="baz",
+                trace_id=trace_id,
+            ),
+            self.create_eap_occurrence(
+                group_id=grp_b.id,
+                project=self.project,
+                tags={"foo": "eight"},
+                title="baz",
+                trace_id=excluded_trace_id,
+            ),
+        ]
+        logs = [
+            self.create_ourlog(
+                extra_data={"trace_id": trace_id, "body": "foo"},
+            ),
+            self.create_ourlog(
+                extra_data={"trace_id": excluded_trace_id, "body": "bar"},
+            ),
+        ]
+        self.store_eap_items(logs + occurrences)
+
+        response = self._do_request(
+            {
+                "query": "title:baz",
+                "field": ["title", "trace"],
+                "project": [self.project.id],
+                "dataset": "occurrences",
+                "logQuery": ["message:foo"],
+            }
+        )
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["trace"] == trace_id
