@@ -1,3 +1,4 @@
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {defined} from 'sentry/utils';
@@ -46,7 +47,9 @@ export function ExploreSavedQueryNavigationItems({queries}: Props) {
           }
         >
           <Tooltip title={query.name} position="top" showOnlyOnOverflow skipWrapper>
-            {query.name}
+            <Text ellipsis variant="inherit">
+              {query.name}
+            </Text>
           </Tooltip>
         </SecondaryNavigation.ReorderableLink>
       )}

@@ -49,6 +49,15 @@ export function IssueViewItem({view, isActive}: IssueViewItemProps) {
       trailingItems={
         <Flex align="center">
           <IssueViewQueryCount view={view} isActive={isActive} />
+          {isActive && hasUnsavedChanges && changedParams && (
+            <Tooltip
+              title={constructUnsavedTooltipTitle(changedParams)}
+              position="top"
+              skipWrapper
+            >
+              <SecondaryNavigation.Indicator variant="accent" />
+            </Tooltip>
+          )}
         </Flex>
       }
       onNavigate={() => {
@@ -59,17 +68,10 @@ export function IssueViewItem({view, isActive}: IssueViewItemProps) {
       }}
     >
       <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
-        {view.label}
+        <Text ellipsis variant="inherit">
+          {view.label}
+        </Text>
       </Tooltip>
-      {isActive && hasUnsavedChanges && changedParams && (
-        <Tooltip
-          title={constructUnsavedTooltipTitle(changedParams)}
-          position="top"
-          skipWrapper
-        >
-          <SecondaryNavigation.Indicator variant="accent" />
-        </Tooltip>
-      )}
     </SecondaryNavigation.ReorderableLink>
   );
 }

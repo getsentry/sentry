@@ -110,6 +110,7 @@ const StyledTag = styled(Tag)`
   background-color: ${p => p.theme.tokens.background.primary};
   padding: 0 ${p => p.theme.space.xs};
   min-width: 4ch;
+  justify-content: end;
 `;
 
 const AnimatedTag = motion.create(StyledTag);

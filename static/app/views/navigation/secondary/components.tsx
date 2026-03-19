@@ -900,12 +900,16 @@ function SecondaryNavigationReorderableLink({
           {icon}
         </Flex>
       </Flex>
-      <Text ellipsis variant="inherit">
-        {children}
-      </Text>
+      {children}
       {trailingItems}
     </Fragment>
   );
+
+  if (layout === 'mobile') {
+    return (
+      <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
+    );
+  }
 
   if (hasPageFrame) {
     return (
@@ -965,9 +969,11 @@ const StyledGrabHandle = styled(Flex)`
 
 interface SecondaryNavigationIndicatorProps {
   variant: 'accent' | 'danger' | 'warning';
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 function SecondaryNavigationIndicator(props: SecondaryNavigationIndicatorProps) {
+  const {ref, variant, ...rest} = props;
   return (
     <Container
       position="absolute"
@@ -976,8 +982,9 @@ function SecondaryNavigationIndicator(props: SecondaryNavigationIndicatorProps) 
       width="10px"
       height="10px"
       radius="full"
+      {...rest}
     >
-      {p => <DotIndicator {...p} variant={props.variant} />}
+      {p => <DotIndicator ref={ref} {...p} variant={variant} />}
     </Container>
   );
 }
