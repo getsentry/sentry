@@ -1,7 +1,12 @@
 import {useCallback} from 'react';
+import {useSortable} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
+import {IconGrabbable} from 'sentry/icons/iconGrabbable';
+import {t} from 'sentry/locale';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   useMetricVisualize,
@@ -17,12 +22,14 @@ import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visuali
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 
 interface MetricToolbarProps {
+  dragId: number;
   queryIndex: number;
   traceMetric: TraceMetric;
 }
 
-export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
+export function MetricToolbar({traceMetric, queryIndex, dragId}: MetricToolbarProps) {
   const metricQueries = useMultiMetricsQueryParams();
+  const hasMultipleQueries = metricQueries.length > 1;
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
   const toggleVisibility = useCallback(() => {
@@ -30,14 +37,32 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
   }, [setVisualize, visualize]);
   const setTraceMetric = useSetTraceMetric();
 
+  const {attributes, listeners, setNodeRef, transform} = useSortable({
+    id: dragId,
+    transition: null,
+    disabled: !hasMultipleQueries,
+  });
+
   return (
     <Grid
+      ref={setNodeRef}
+      style={{transform: CSS.Transform.toString(transform)}}
       width="100%"
       align="center"
       gap="md"
-      columns={`34px 2fr 3fr 6fr ${metricQueries.length > 1 ? '40px' : '0'}`}
+      columns={`${hasMultipleQueries ? '20px ' : ''}34px 2fr 3fr 6fr ${hasMultipleQueries ? '40px' : '0'}`}
       data-test-id="metric-toolbar"
+      {...attributes}
     >
+      {hasMultipleQueries && (
+        <Button
+          aria-label={t('Drag to reorder')}
+          priority="transparent"
+          size="zero"
+          icon={<IconGrabbable size="sm" />}
+          {...listeners}
+        />
+      )}
       <VisualizeLabel
         index={queryIndex}
         visualize={visualize}
@@ -57,7 +82,7 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
       <Flex minWidth={0}>
         <Filter traceMetric={traceMetric} />
       </Flex>
-      {metricQueries.length > 1 && <DeleteMetricButton />}
+      {hasMultipleQueries && <DeleteMetricButton />}
     </Grid>
   );
 }

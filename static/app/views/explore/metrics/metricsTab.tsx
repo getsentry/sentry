@@ -1,3 +1,4 @@
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -9,6 +10,8 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {
   ExploreBodyContent,
@@ -16,9 +19,14 @@ import {
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
+import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
+import {
+  encodeMetricQueryParams,
+  type BaseMetricQuery,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
@@ -72,23 +80,55 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
 function MetricsQueryBuilderSection() {
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const columns = useMemo(
+    () => metricQueries.map(mq => ({metric: mq.metric, queryParams: mq.queryParams})),
+    [metricQueries]
+  );
+
+  const setColumns = useCallback(
+    (newColumns: BaseMetricQuery[]) => {
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          metric: newColumns.map(encodeMetricQueryParams).filter(Boolean),
+        },
+      });
+    },
+    [location, navigate]
+  );
+
   return (
     <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
       <Flex direction="column" gap="lg" align="start">
-        {metricQueries.map((metricQuery, index) => {
-          return (
-            <MetricsQueryParamsProvider
-              key={`queryBuilder-${index}`}
-              queryParams={metricQuery.queryParams}
-              setQueryParams={metricQuery.setQueryParams}
-              traceMetric={metricQuery.metric}
-              setTraceMetric={metricQuery.setTraceMetric}
-              removeMetric={metricQuery.removeMetric}
-            >
-              <MetricToolbar traceMetric={metricQuery.metric} queryIndex={index} />
-            </MetricsQueryParamsProvider>
-          );
-        })}
+        <DragNDropContext columns={columns} setColumns={setColumns}>
+          {({editableColumns}) => (
+            <Fragment>
+              {editableColumns.map((column, index) => {
+                const metricQuery = metricQueries[index]!;
+                return (
+                  <MetricsQueryParamsProvider
+                    key={column.uniqueId}
+                    queryParams={metricQuery.queryParams}
+                    setQueryParams={metricQuery.setQueryParams}
+                    traceMetric={metricQuery.metric}
+                    setTraceMetric={metricQuery.setTraceMetric}
+                    removeMetric={metricQuery.removeMetric}
+                  >
+                    <MetricToolbar
+                      traceMetric={metricQuery.metric}
+                      queryIndex={index}
+                      dragId={column.id}
+                    />
+                  </MetricsQueryParamsProvider>
+                );
+              })}
+            </Fragment>
+          )}
+        </DragNDropContext>
         <ToolbarVisualizeAddChart
           add={addMetricQuery}
           disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
