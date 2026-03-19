@@ -1,20 +1,20 @@
 import {t} from 'sentry/locale';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
-import {getAgentRunsFilter} from 'sentry/views/insights/pages/agents/utils/query';
+import {getAIGenerationsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {BaseTrafficWidget} from 'sentry/views/insights/pages/platform/shared/baseTrafficWidget';
 
-export default function OverviewAgentsRunsChartWidget(props: LoadableChartWidgetProps) {
-  const query = useCombinedQuery(getAgentRunsFilter());
+export default function OverviewLLMCallsChartWidget(props: LoadableChartWidgetProps) {
+  const query = useCombinedQuery(getAIGenerationsFilter());
 
   return (
     <BaseTrafficWidget
-      id="overviewAgentsRunsChartWidget"
-      title={t('Agent Runs')}
-      trafficSeriesName={t('Runs')}
+      id="overviewLLMCallsChartWidget"
+      title={t('LLM Calls')}
+      trafficSeriesName={t('Calls')}
       query={query}
-      referrer={Referrer.AGENT_RUNS_WIDGET}
+      referrer={Referrer.LLM_CALLS_TRAFFIC_WIDGET}
       {...props}
     />
   );
