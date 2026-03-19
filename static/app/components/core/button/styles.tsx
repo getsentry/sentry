@@ -91,6 +91,9 @@ export function DO_NOT_USE_getButtonStyles(
     background: 'none',
 
     height: buttonSizes[p.size].height,
+    // Use min width as a progressive enhancement for square buttons.
+    // We can't yet swap to width because I'm not entirely condifent that
+    // that would not break existing buttons.
     minWidth: p.shapeVariant === 'square' ? buttonSizes[p.size].height : undefined,
 
     minHeight: buttonSizes[p.size].minHeight,
