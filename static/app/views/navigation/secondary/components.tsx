@@ -76,6 +76,7 @@ interface SecondarySidebarProps {
 }
 
 function SecondarySidebar({children}: SecondarySidebarProps) {
+  const theme = useTheme();
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
@@ -123,7 +124,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               initial={{x: -6, opacity: 0}}
               animate={{x: 0, opacity: 1}}
               exit={{x: 6, opacity: 0}}
-              transition={{duration: 0.06}}
+              transition={theme.motion.framer.smooth.fast}
             >
               <Grid
                 rows="auto 1fr auto"
@@ -201,7 +202,7 @@ const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
     width: 4px;
     opacity: 0.8;
     background: transparent;
-    transition: background 0.25s ease 0.1s;
+    transition: background ${p => p.theme.motion.smooth.slow} 0.1s;
   }
 `;
 
@@ -596,6 +597,9 @@ function navigationItemStyles(p: {layout: 'mobile' | 'sidebar'; theme: Theme}) {
     align-items: center;
     position: relative;
     color: ${p.theme.tokens.interactive.link.neutral.rest};
+    /* We need to cap the height at md size as some items like the reorderable link with icons
+     * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
+    height: ${p.theme.form.sm.height};
     padding: ${p.layout === 'mobile'
       ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`
       : `${p.theme.space.md} ${p.theme.space.lg}`};
@@ -612,7 +616,7 @@ function navigationItemStyles(p: {layout: 'mobile' | 'sidebar'; theme: Theme}) {
       left: -${p.theme.space.sm};
       border-radius: ${p.theme.radius['2xs']};
       background-color: ${p.theme.tokens.graphics.accent.vibrant};
-      transition: opacity 0.1s ease-in-out;
+      transition: opacity ${p.theme.motion.smooth.fast};
       opacity: 0;
     }
 
@@ -662,7 +666,7 @@ const MobileNavigationLink = styled(Link)`
     left: -${p => p.theme.space.sm};
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity 0.1s ease-in-out;
+    transition: opacity ${p => p.theme.motion.smooth.fast};
     opacity: 0;
   }
 
@@ -923,27 +927,45 @@ function SecondaryNavigationReorderableLink({
 function GrabHandle(props: FlexProps<'div'>) {
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
+
   return (
-    <StyledGrabHandle
-      {...props}
-      data-drag-icon
-      ref={setActivatorNodeRef}
-      {...listeners}
-      {...attributes}
+    <Flex
       radius="xs"
-      aria-label={t('Drag to reorder')}
-      width="18px"
-      height="18px"
+      width="24px"
+      height="24px"
       justify="center"
       align="center"
-      style={{cursor: isDragging ? 'grabbing' : 'grab'}}
+      position="absolute"
+      top="50%"
+      left="50%"
     >
-      <IconGrabbable variant="muted" />
-    </StyledGrabHandle>
+      {p => (
+        <GrabHandleAnimation
+          {...props}
+          {...p}
+          {...listeners}
+          {...attributes}
+          aria-label={t('Drag to reorder')}
+          data-drag-icon
+          ref={setActivatorNodeRef}
+          style={{cursor: isDragging ? 'grabbing' : 'grab'}}
+          onClick={e => e.stopPropagation()}
+        >
+          <IconGrabbable variant="muted" />
+        </GrabHandleAnimation>
+      )}
+    </Flex>
   );
 }
 
-const StyledGrabHandle = styled(Flex)`
+const GrabHandleAnimation = styled('div')`
+  pointer-events: none;
+  opacity: 0;
+  z-index: 1;
+  transition:
+    opacity ${p => p.theme.motion.smooth.moderate},
+    transform ${p => p.theme.motion.smooth.moderate};
+  transform: translate(-50%, -50%);
   &:active {
     cursor: grabbing;
   }
@@ -991,21 +1013,44 @@ const StyledReorderableFakeLink = styled('div')<{
     ${p => p.theme.focusRing()}
   }
 
-  :not(:hover):not(:has(:focus-visible)) {
+  :hover,
+  :has(:focus-visible) {
     [data-drag-icon] {
-      ${p => !p.isDragging && p.theme.visuallyHidden}
+      opacity: 1;
+      scale: 1;
+      pointer-events: auto;
     }
   }
 
-  :hover {
-    [data-reorderable-handle-slot] {
-      ${p => p.theme.visuallyHidden}
-    }
-  }
+  ${p =>
+    p.isDragging &&
+    css`
+      [data-drag-icon] {
+        opacity: 1;
+        scale: 1;
+        pointer-events: auto;
+      }
+    `}
 
   [data-reorderable-handle-slot] {
-    ${p => p.isDragging && p.theme.visuallyHidden}
+    transition:
+      opacity 150ms ease,
+      scale 150ms ease;
   }
+
+  :hover [data-reorderable-handle-slot] {
+    opacity: 0;
+    scale: 0.95;
+  }
+
+  ${p =>
+    p.isDragging &&
+    css`
+      [data-reorderable-handle-slot] {
+        opacity: 0;
+        scale: 0.95;
+      }
+    `}
 `;
 
 const StyledPageFrameReorderableFakeLink = styled('div')<{
@@ -1053,20 +1098,33 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
     }
   }
 
-  :not(:hover):not(:has(:focus-visible)) {
+  :hover,
+  :has(:focus-visible) {
     [data-drag-icon] {
-      ${p => !p.isDragging && p.theme.visuallyHidden}
-    }
-  }
-
-  :hover {
-    [data-reorderable-handle-slot] {
-      ${p => p.theme.visuallyHidden}
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
     }
   }
 
   [data-reorderable-handle-slot] {
-    ${p => p.isDragging && p.theme.visuallyHidden}
+    transition:
+      opacity ${p => p.theme.motion.smooth.moderate},
+      transform ${p => p.theme.motion.smooth.moderate};
+    opacity: ${p => (p.isDragging ? 0 : undefined)};
+    transform: ${p => (p.isDragging ? 'scale(0.95)' : 'scale(1)')};
+  }
+
+  :hover [data-reorderable-handle-slot],
+  :has(:focus-visible) [data-reorderable-handle-slot] {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  [data-drag-icon] {
+    opacity: ${p => (p.isDragging ? 1 : undefined)};
+    transform: ${p => (p.isDragging ? 'translate(-50%, -50%) scale(1)' : undefined)};
+    pointer-events: ${p => (p.isDragging ? 'auto' : undefined)};
   }
 `;
 
@@ -1091,7 +1149,7 @@ const SidebarNavigationLink = styled(Link)`
     left: -${p => p.theme.space.sm};
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity 0.1s ease-in-out;
+    transition: opacity ${p => p.theme.motion.smooth.fast};
     opacity: 0;
   }
 
