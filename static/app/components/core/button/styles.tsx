@@ -243,6 +243,7 @@ export function DO_NOT_USE_getButtonStyles(
       padding: '0',
       height: 'auto',
       minHeight: 'auto',
+      minWidth: 'auto',
       border: 'none',
       transform: 'translateY(0px)',
 
