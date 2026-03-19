@@ -6,15 +6,15 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {FunctionName} from 'sentry/components/events/interfaces/frame/functionName';
-import GroupingIndicator from 'sentry/components/events/interfaces/frame/groupingIndicator';
+import {GroupingIndicator} from 'sentry/components/events/interfaces/frame/groupingIndicator';
 import {
   getPlatform,
   isDotnet,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import Truncate from 'sentry/components/truncate';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {Truncate} from 'sentry/components/truncate';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -46,7 +46,7 @@ type Props = {
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
 
-function DefaultTitle({
+export function DefaultTitle({
   frame,
   platform,
   isHoverPreviewed,
@@ -249,8 +249,6 @@ function DefaultTitle({
 
   return <Fragment>{title}</Fragment>;
 }
-
-export default DefaultTitle;
 
 const StyledExternalLink = styled(ExternalLink)`
   position: relative;

@@ -60,8 +60,9 @@ def get_docker_client() -> Generator[docker.DockerClient]:
         yield client
 
 
-# compatibility stub
-@click.command()
-@click.argument("args", nargs=-1)
+# compatibility stub; can't remove because it's expected to have a click.command if in sentry.runner.commands
+@click.command(context_settings={"ignore_unknown_options": True})
+@click.argument("args", nargs=-1, type=click.UNPROCESSED)
 def devservices(args: tuple[str, ...]) -> None:
-    return
+    click.echo("note: sentry devservices is deprecated; execing devservices")
+    os.execvp("devservices", ("devservices", *args))

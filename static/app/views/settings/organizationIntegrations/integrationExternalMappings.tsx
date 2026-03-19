@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import Confirm from 'sentry/components/confirm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {Confirm} from 'sentry/components/confirm';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
@@ -18,14 +18,14 @@ import type {
   ExternalActorSuggestion,
   Integration,
 } from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import IntegrationExternalMappingForm from './integrationExternalMappingForm';
+import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 
 type CodeOwnersAssociationMappings = Record<
   string,
@@ -36,18 +36,15 @@ type CodeOwnersAssociationMappings = Record<
 >;
 
 type Props = Pick<
-  IntegrationExternalMappingForm['props'],
-  | 'dataEndpoint'
-  | 'getBaseFormEndpoint'
-  | 'sentryNamesMapper'
-  | 'onResults'
-  | 'defaultOptions'
+  React.ComponentProps<typeof IntegrationExternalMappingForm>,
+  'getBaseFormEndpoint' | 'defaultOptions'
 > & {
   integration: Integration;
   mappings: ExternalActorMapping[];
   onCreate: (mapping?: ExternalActorMappingOrSuggestion) => void;
   onDelete: (mapping: ExternalActorMapping) => void;
   type: 'team' | 'user';
+  onSubmitSuccess?: () => Promise<void>;
   pageLinks?: string;
 };
 
@@ -55,19 +52,17 @@ type LocationQuery = {
   cursor?: string;
 };
 
-function IntegrationExternalMappings(props: Props) {
+export function IntegrationExternalMappings(props: Props) {
   const {
     integration,
     type,
     mappings,
     pageLinks,
-    dataEndpoint,
     defaultOptions,
     onCreate,
-    onResults,
     onDelete,
+    onSubmitSuccess,
     getBaseFormEndpoint,
-    sentryNamesMapper,
   } = props;
 
   const [newlyAssociatedMappings, setNewlyAssociatedMappings] = useState<
@@ -134,18 +129,16 @@ function IntegrationExternalMappings(props: Props) {
       <IntegrationExternalMappingForm
         type={type}
         integration={integration}
-        dataEndpoint={dataEndpoint}
         getBaseFormEndpoint={getBaseFormEndpoint}
         mapping={mapping}
-        sentryNamesMapper={sentryNamesMapper}
-        onResults={onResults}
-        onSubmitSuccess={(newMapping: ExternalActorMapping) => {
+        onSubmitSuccess={async (newMapping: ExternalActorMapping) => {
           setNewlyAssociatedMappings([
             ...newlyAssociatedMappings.filter(
               map => map.externalName !== newMapping.externalName
             ),
             newMapping,
           ]);
+          await onSubmitSuccess?.();
         }}
         isInline
         defaultOptions={defaultOptions}
@@ -222,8 +215,6 @@ function IntegrationExternalMappings(props: Props) {
     </Fragment>
   );
 }
-
-export default IntegrationExternalMappings;
 
 const MappingTable = styled(PanelTable)`
   overflow: visible;

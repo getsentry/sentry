@@ -1,6 +1,6 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import GroupSimilarIssues from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
+import {GroupSimilarIssues} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssues';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 function GroupSimilarIssuesTab() {

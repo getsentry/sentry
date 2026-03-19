@@ -38,7 +38,7 @@ type Props = {
   transactionMethod?: string;
 };
 
-function DurationChart({
+export function DurationChart({
   groupId,
   transactionName,
   onClickSample,
@@ -182,5 +182,3 @@ function DurationChart({
     />
   );
 }
-
-export default DurationChart;

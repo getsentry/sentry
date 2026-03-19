@@ -62,7 +62,7 @@ class UserAvatarTest(APITestCase):
     def test_get_upload_file(self) -> None:
         user = self.create_user(email="a@example.com")
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             photo = File.objects.create(name="test.png", type="avatar.file")
             photo.putfile(BytesIO(b"test"))
         UserAvatar.objects.create(
@@ -81,7 +81,7 @@ class UserAvatarTest(APITestCase):
 
     def test_get_prefers_control_file(self) -> None:
         user = self.create_user(email="a@example.com")
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             photo = File.objects.create(name="test.png", type="avatar.file")
             photo.putfile(BytesIO(b"test"))
         controlphoto = ControlFile.objects.create(name="control_test.png", type="avatar.file")

@@ -4,11 +4,11 @@ import {Observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
 
-import FormContext from 'sentry/components/forms/formContext';
-import FormModel from 'sentry/components/forms/model';
+import {FormContext} from 'sentry/components/forms/formContext';
+import {FormModel} from 'sentry/components/forms/model';
 import type {Data} from 'sentry/components/forms/types';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
-import EditLayout from 'sentry/components/workflowEngine/layout/edit';
+import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,

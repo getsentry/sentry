@@ -10,14 +10,14 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStatsStore} from 'sentry/stores/projectsStatsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type UpdateParams = {
   orgId: string;
@@ -45,16 +45,6 @@ export function update(api: Client, params: UpdateParams) {
         throw err;
       }
     );
-}
-
-type StatsParams = Pick<UpdateParams, 'orgId' | 'data' | 'query'>;
-
-export function loadStats(api: Client, params: StatsParams) {
-  const endpoint = `/organizations/${params.orgId}/stats/`;
-  api.request(endpoint, {
-    query: params.query,
-    success: data => ProjectsStore.onStatsLoadSuccess(data),
-  });
 }
 
 // This is going to queue up a list of project ids we need to fetch stats for

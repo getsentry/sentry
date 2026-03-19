@@ -2,14 +2,14 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Group} from 'sentry/types/group';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {EventList} from 'sentry/views/issueDetails/streamline/eventList';
 import {EventSearch} from 'sentry/views/issueDetails/streamline/eventSearch';
@@ -20,7 +20,7 @@ import {
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
 
-import AllEventsTable from './allEventsTable';
+import {AllEventsTable} from './allEventsTable';
 
 interface GroupEventsProps {
   group: Group;

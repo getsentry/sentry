@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
@@ -11,7 +11,7 @@ from sentry.api.endpoints.release_thresholds.utils.get_errors_counts_timeseries 
     _get_errors_counts_timeseries_snuba,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 class GetErrorCountTimeseriesSnubaTest(TestCase):
@@ -60,7 +60,7 @@ class GetErrorCountTimeseriesSnubaTest(TestCase):
 
 
 class TestEAPGetErrorsCountsTimeseries(TestCase, SnubaTestCase):
-    FROZEN_TIME = datetime(2026, 2, 12, 6, 0, 0, tzinfo=UTC)
+    FROZEN_TIME = before_now(hours=24).replace(hour=6, minute=0, second=0)
 
     def _query_both(
         self,

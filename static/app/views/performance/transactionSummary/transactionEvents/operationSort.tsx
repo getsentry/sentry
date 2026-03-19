@@ -8,7 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
-import MenuItem from 'sentry/components/menuItem';
+import {MenuItem} from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -23,7 +23,7 @@ type Props = {
   title: React.ComponentType<TitleProps>;
 };
 
-function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
+export function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const menuEl = useRef<Element | null>(null);
 
@@ -246,5 +246,3 @@ const DropdownContent = styled('div')`
 const TitleWrapper = styled('div')`
   cursor: pointer;
 `;
-
-export default OperationSort;

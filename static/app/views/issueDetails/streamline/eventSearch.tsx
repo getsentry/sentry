@@ -10,8 +10,8 @@ import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types'
 import {t} from 'sentry/locale';
 import type {Group, Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind, ISSUE_EVENT_PROPERTY_FIELDS} from 'sentry/utils/fields';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';

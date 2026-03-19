@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
@@ -6,26 +6,28 @@ import partition from 'lodash/partition';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
-import ProgressRing from 'sentry/components/progressRing';
+import {ProgressRing} from 'sentry/components/progressRing';
 import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
+import {DemoWalkthroughStore} from 'sentry/stores/demoWalkthroughStore';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
 import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
-import {useStackedNavigationTour} from 'sentry/views/nav/tour/tour';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
 
 /**
  * How long (in ms) to delay before beginning to mark tasks complete
@@ -176,11 +178,12 @@ interface TaskProps {
 function Task({task, hidePanel}: TaskProps) {
   const organization = useOrganization();
   const mutateOnboardingTasks = useMutateOnboardingTasks();
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
   const tours = useDemoTours();
-  const sidebarTour = useStackedNavigationTour();
+  const sidebarTour = useNavigationTour();
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -213,7 +216,7 @@ function Task({task, hidePanel}: TaskProps) {
       }
 
       if (task.actionType === 'action') {
-        task.action(router);
+        task.action({navigate, location});
       }
 
       if (task.actionType === 'app') {
@@ -223,11 +226,11 @@ function Task({task, hidePanel}: TaskProps) {
         // Add referrer to all links
         to = {...to, query: {...to.query, referrer: 'onboarding_task'}};
 
-        navigateTo(to, router);
+        navigateTo(to, navigate, location);
       }
       hidePanel();
     },
-    [task, organization, router, hidePanel, tours, sidebarTour]
+    [task, organization, navigate, location, hidePanel, tours, sidebarTour]
   );
 
   const handleMarkSkipped = useCallback(() => {
@@ -375,14 +378,11 @@ function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
   }, [unseenDoneTasks, markSeenOnOpen]);
 
   return (
-    <Fragment>
-      <hr />
-      <TaskGroupBody>
-        {tasks.map(task => (
-          <Task key={task.task} task={task} hidePanel={hidePanel} />
-        ))}
-      </TaskGroupBody>
-    </Fragment>
+    <TaskGroupBody>
+      {tasks.map(task => (
+        <Task key={task.task} task={task} hidePanel={hidePanel} />
+      ))}
+    </TaskGroupBody>
   );
 }
 
@@ -392,6 +392,7 @@ interface TaskGroupProps {
    */
   group: 'getting_started' | 'beyond_basics';
   hidePanel: () => void;
+  separator: boolean;
   tasks: OnboardingTask[];
   title: string;
   expanded?: boolean;
@@ -402,6 +403,7 @@ function TaskGroup({
   title,
   tasks,
   expanded,
+  separator,
   hidePanel,
   toggleable = true,
   group,
@@ -446,7 +448,7 @@ function TaskGroup({
   ]);
 
   return (
-    <TaskGroupWrapper>
+    <Stack paddingBottom="0" gap="md">
       <TaskGroupHeader
         title={<strong>{title}</strong>}
         description={
@@ -486,8 +488,9 @@ function TaskGroup({
           />
         }
       />
-      {isExpanded && <ExpandedTaskGroup tasks={tasks} hidePanel={hidePanel} />}
-    </TaskGroupWrapper>
+      {isExpanded ? <ExpandedTaskGroup tasks={tasks} hidePanel={hidePanel} /> : null}
+      {separator && <Stack.Separator />}
+    </Stack>
   );
 }
 
@@ -511,7 +514,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
   );
 
   return (
-    <Content data-test-id="quick-start-content">
+    <Stack overscrollBehavior="none" data-test-id="quick-start-content">
       <TaskGroup
         title={t('Getting Started')}
         tasks={sortedGettingStartedTasks}
@@ -521,6 +524,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
         }
         toggleable={sortedBeyondBasicsTasks.length > 0}
         group="getting_started"
+        separator={sortedBeyondBasicsTasks.length > 0}
       />
       {sortedBeyondBasicsTasks.length > 0 && (
         <TaskGroup
@@ -533,47 +537,21 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
             groupTasksByCompletion(sortedBeyondBasicsTasks).incompletedTasks.length > 0
           }
           group="beyond_basics"
+          separator={allTasks.length === doneTasks.length}
         />
       )}
       {allTasks.length === doneTasks.length && (
-        <CompletionCelebrationText>
-          <div>{t('Good job, you’re all done here!')}</div>
-          {t('Now get out of here and write some broken code.')}
-        </CompletionCelebrationText>
+        <Container padding="2xl" paddingBottom="2xl">
+          <Text as="p" size="md" align="center">
+            {t(
+              'Good job, you’re all done here! Now get out of here and write some broken code.'
+            )}
+          </Text>
+        </Container>
       )}
-    </Content>
+    </Stack>
   );
 }
-
-const CompletionCelebrationText = styled('div')`
-  margin-top: ${p => p.theme.space.lg};
-  text-align: center;
-`;
-
-const Content = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  flex: 1;
-
-  p {
-    margin-bottom: ${p => p.theme.space.md};
-  }
-`;
-
-const TaskGroupWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.md};
-
-  background-color: ${p => p.theme.tokens.background.primary};
-
-  hr {
-    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
-    margin: ${p => p.theme.space.md} -${p => p.theme.space.md};
-  }
-`;
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   p {
@@ -603,7 +581,7 @@ const TaskCardWrapper = styled('div')`
   gap: ${p => p.theme.space.lg};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.md} 0;
   p {
     margin: 0;
     font-size: ${p => p.theme.font.size.sm};

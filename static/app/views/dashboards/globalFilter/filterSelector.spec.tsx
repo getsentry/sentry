@@ -2,8 +2,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {FieldKind} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import FilterSelector from 'sentry/views/dashboards/globalFilter/filterSelector';
+import {FilterSelector} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 describe('FilterSelector', () => {
   const mockOnUpdateFilter = jest.fn();
@@ -106,5 +107,42 @@ describe('FilterSelector', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove Filter'}));
 
     expect(mockOnRemoveFilter).toHaveBeenCalledWith(mockGlobalFilter);
+  });
+
+  it('translates subregion codes to human-readable names for spans dataset', async () => {
+    const subregionFilter: GlobalFilter = {
+      dataset: WidgetType.SPANS,
+      tag: {
+        key: SpanFields.USER_GEO_SUBREGION,
+        name: 'User Geo Subregion',
+        kind: FieldKind.FIELD,
+      },
+      value: '',
+    };
+
+    const subregionSearchBarData: SearchBarData = {
+      getFilterKeySections: () => [],
+      getFilterKeys: () => ({}),
+      getTagValues: () => Promise.resolve(['21', '154']),
+    };
+
+    render(
+      <FilterSelector
+        globalFilter={subregionFilter}
+        searchBarData={subregionSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {
+      name: SpanFields.USER_GEO_SUBREGION + ' :',
+    });
+    await userEvent.click(button);
+
+    expect(screen.getByRole('row', {name: 'North America'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Northern Europe'})).toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: '21'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: '154'})).not.toBeInTheDocument();
   });
 });

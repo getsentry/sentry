@@ -6,23 +6,23 @@ import {AlertBadge} from '@sentry/scraps/badge';
 import {Link} from '@sentry/scraps/link';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingError from 'sentry/components/loadingError';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingError} from 'sentry/components/loadingError';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import Placeholder from 'sentry/components/placeholder';
-import TimeSince from 'sentry/components/timeSince';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Incident} from 'sentry/views/alerts/types';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 
-import MissingAlertsButtons from './missingFeatureButtons/missingAlertsButtons';
+import {MissingAlertsButtons} from './missingFeatureButtons/missingAlertsButtons';
 import {SectionHeadingWrapper, SidebarSection} from './styles';
 
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '172px';
@@ -81,7 +81,7 @@ interface ProjectLatestAlertsProps {
   projectSlug: string;
 }
 
-function ProjectLatestAlerts({
+export function ProjectLatestAlerts({
   location,
   organization,
   isProjectStabilized,
@@ -265,5 +265,3 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   height: ${PLACEHOLDER_AND_EMPTY_HEIGHT};
   justify-content: center;
 `;
-
-export default ProjectLatestAlerts;

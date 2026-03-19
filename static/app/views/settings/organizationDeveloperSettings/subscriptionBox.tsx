@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import {withOrganization} from 'sentry/utils/withOrganization';
 import type {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {PERMISSIONS_MAP} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 

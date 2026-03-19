@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+import sentry_sdk
 import urllib3
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 from urllib3.fields import RequestField
@@ -216,7 +217,10 @@ class SnubaProtocolEventStream(EventStream):
         )
 
         if in_rollout_group("eventstream.eap_forwarding_rate", event.project_id):
-            self._forward_event_to_items(event, event_data, event_type, project)
+            try:
+                self._forward_event_to_items(event, event_data, event_type, project)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     def _missing_required_item_fields(self, event_data: Mapping[str, Any]) -> list[str]:
         root_level_fields = ["event_id", "timestamp"]
@@ -241,7 +245,7 @@ class SnubaProtocolEventStream(EventStream):
 
         missing_fields = self._missing_required_item_fields(event_data)
         if missing_fields:
-            logger.debug(
+            logger.info(
                 "Event data is missing required fields to forward to items: %s", missing_fields
             )
             return

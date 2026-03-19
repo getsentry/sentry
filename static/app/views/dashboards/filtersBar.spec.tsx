@@ -14,7 +14,7 @@ import {
 
 import type {Organization} from 'sentry/types/organization';
 import {FieldKind} from 'sentry/utils/fields';
-import FiltersBar, {type FiltersBarProps} from 'sentry/views/dashboards/filtersBar';
+import {FiltersBar, type FiltersBarProps} from 'sentry/views/dashboards/filtersBar';
 import {
   DashboardFilterKeys,
   WidgetType,
@@ -219,7 +219,7 @@ describe('FiltersBar', () => {
     expect(
       screen.getByRole('button', {name: /browser\.name.*Chrome/i})
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save for Everyone'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
 });
@@ -243,6 +243,10 @@ const mockNetworkRequests = () => {
         functions: ['p99'],
       },
     },
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/trace-items/attributes/',
+    body: [],
   });
 
   const mockSearchResponse = [

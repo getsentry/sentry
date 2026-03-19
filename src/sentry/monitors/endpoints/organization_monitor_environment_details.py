@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -21,7 +21,7 @@ from .base import MonitorEndpoint
 from .base_monitor_environment_details import MonitorEnvironmentDetailsMixin
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorEnvironmentDetailsEndpoint(
     MonitorEndpoint, MonitorEnvironmentDetailsMixin

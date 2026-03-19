@@ -10,7 +10,7 @@ interface PageFilterBarProps extends React.HTMLAttributes<HTMLDivElement> {
   condensed?: boolean;
 }
 
-const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) => {
+export const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) => {
   return (
     <StyledPageFilterBar listSize={Children.count(children)} {...props}>
       {children}
@@ -21,8 +21,6 @@ const PageFilterBar = styled(({children, ...props}: PageFilterBarProps) => {
 const StyledPageFilterBar = styled('div')<{listSize: number; condensed?: boolean}>`
   ${p => pageFilterBarStyles(p)};
 `;
-
-export default PageFilterBar;
 
 const getChildTransforms = (count: number) => {
   return Array.from(

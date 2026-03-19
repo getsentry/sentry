@@ -3,14 +3,14 @@ import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {t, tct} from 'sentry/locale';
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 
 interface Props {
   startTimestampMs: number;
   timestampMs: number;
 }
 
-export default function ReplayTooltipTime({startTimestampMs, timestampMs}: Props) {
+export function ReplayTooltipTime({startTimestampMs, timestampMs}: Props) {
   return (
     <Fragment>
       <TooltipTime>

@@ -4,8 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 

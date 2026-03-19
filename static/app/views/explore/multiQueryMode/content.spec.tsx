@@ -10,7 +10,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
@@ -55,6 +55,13 @@ describe('MultiQueryModeContent', () => {
       method: 'GET',
       body: [{key: 'span.duration', name: 'span.duration'}],
       match: [MockApiClient.matchQuery({attributeType: 'number'})],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({attributeType: 'boolean'})],
     });
 
     eventsRequest = MockApiClient.addMockResponse({

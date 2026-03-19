@@ -2,13 +2,13 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import slugify from 'sentry/utils/slugify';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {slugify} from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';
 
-const formGroups: JsonFormObject[] = [
+export const formGroups: JsonFormObject[] = [
   {
     // Form "section"/"panel"
     title: t('General'),
@@ -52,5 +52,3 @@ const formGroups: JsonFormObject[] = [
     ],
   },
 ];
-
-export default formGroups;

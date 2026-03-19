@@ -3,10 +3,10 @@ import {useMemo} from 'react';
 import {getTraceTimeRangeFromEvent} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
 import {HIDDEN_OCCURRENCE_TYPE_IDS} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface BaseEvent {
   culprit: string; // Used for default events & subtitles

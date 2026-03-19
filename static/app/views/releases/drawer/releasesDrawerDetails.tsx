@@ -17,16 +17,16 @@ import {
   NavigationCrumbs,
 } from 'sentry/components/events/eventDrawer';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseMeta} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {CommitsFilesSection} from 'sentry/views/releases/drawer/commitsFilesSection';
 import {DeploysCard} from 'sentry/views/releases/drawer/deploysCard';

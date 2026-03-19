@@ -1,7 +1,8 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tct} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   useMutation,
@@ -9,8 +10,8 @@ import {
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 import {
   ProviderLabels,
   type DataForwarder,
@@ -58,11 +59,15 @@ export function useMutateDataForwarder({
   const queryClient = useQueryClient();
   const method = dataForwarderId ? 'PUT' : 'POST';
   const listQueryKey = makeDataForwarderQueryKey({orgSlug});
-  const [endpoint] = dataForwarderId
+  const queryKey = dataForwarderId
     ? makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug})
     : listQueryKey;
+
   return useMutation<DataForwarder, RequestError, DataForwarder>({
-    mutationFn: data => api.requestPromise(endpoint, {method, data}),
+    mutationFn: data => {
+      const {url} = parseQueryKey(queryKey);
+      return api.requestPromise(url, {method, data});
+    },
     onSuccess: (dataForwarder: DataForwarder) => {
       addSuccessMessage(
         tct('[provider] data forwarder [action]', {
@@ -70,7 +75,7 @@ export function useMutateDataForwarder({
           action: dataForwarderId ? t('updated') : t('created'),
         })
       );
-      queryClient.invalidateQueries({queryKey: [endpoint]});
+      queryClient.invalidateQueries({queryKey});
       queryClient.invalidateQueries({queryKey: listQueryKey});
       onSuccess?.(dataForwarder);
     },
@@ -90,11 +95,12 @@ export function useDeleteDataForwarder({
   const api = useApi({persistInFlight: false});
   const queryClient = useQueryClient();
   return useMutation<void, RequestError, {dataForwarderId: string; orgSlug: string}>({
-    mutationFn: ({dataForwarderId, orgSlug}) =>
-      api.requestPromise(
-        makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug})[0],
-        {method: 'DELETE'}
-      ),
+    mutationFn: ({dataForwarderId, orgSlug}) => {
+      const {url} = parseQueryKey(
+        makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug})
+      );
+      return api.requestPromise(url, {method: 'DELETE'});
+    },
     onSuccess: () => {
       addSuccessMessage(t('Data forwarder deleted'));
       queryClient.invalidateQueries({queryKey: makeDataForwarderQueryKey(params)});
@@ -115,20 +121,23 @@ export function useMutateDataForwarderProject({
   const api = useApi({persistInFlight: false});
   const queryClient = useQueryClient();
   const listQueryKey = makeDataForwarderQueryKey({orgSlug});
-  const [endpoint] = makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug});
+  const queryKey = makeDataForwarderMutationQueryKey({dataForwarderId, orgSlug});
   return useMutation<
     void,
     RequestError,
     {is_enabled: boolean; overrides: Record<string, any>; project_id: string}
   >({
-    mutationFn: data => api.requestPromise(endpoint, {method: 'PUT', data}),
+    mutationFn: data => {
+      const {url} = parseQueryKey(queryKey);
+      return api.requestPromise(url, {method: 'PUT', data});
+    },
     onSuccess: () => {
       addSuccessMessage(
         tct('Updated project override for [project]', {
           project: project.slug,
         })
       );
-      queryClient.invalidateQueries({queryKey: [endpoint]});
+      queryClient.invalidateQueries({queryKey});
       queryClient.invalidateQueries({queryKey: listQueryKey});
       onSuccess?.();
     },

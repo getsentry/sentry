@@ -3,7 +3,6 @@ import {Fragment, useMemo} from 'react';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -11,20 +10,18 @@ import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import useOrganization from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
-import {canUseMetricsMultiAggregateUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
   useMetricName,
   useMetricVisualize,
   useMetricVisualizes,
-  useSetMetricVisualize,
+  useSetMetricVisualizes,
   useTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
@@ -66,13 +63,10 @@ export function MetricsGraph({
   infoContentHidden,
   isMetricOptionsEmpty,
 }: MetricsGraphProps) {
-  const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
   const visualizes = useMetricVisualizes();
-  const setVisualize = useSetMetricVisualize();
-
-  const hasMultiVisualize = canUseMetricsMultiAggregateUI(organization);
+  const setVisualizes = useSetMetricVisualizes();
 
   useSynchronizeCharts(
     metricQueries.length,
@@ -81,14 +75,13 @@ export function MetricsGraph({
   );
 
   function handleChartTypeChange(newChartType: ChartType) {
-    setVisualize(visualize.replace({chartType: newChartType}));
+    setVisualizes(visualizes.map(v => v.replace({chartType: newChartType})));
   }
 
   return (
     <Graph
       visualize={visualize}
       visualizes={visualizes}
-      hasMultiVisualize={hasMultiVisualize}
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
       orientation={orientation}
@@ -100,7 +93,6 @@ export function MetricsGraph({
 }
 
 interface GraphProps extends MetricsGraphProps {
-  hasMultiVisualize: boolean;
   onChartTypeChange: (chartType: ChartType) => void;
   visualize: ReturnType<typeof useMetricVisualize>;
   visualizes: ReturnType<typeof useMetricVisualizes>;
@@ -112,7 +104,6 @@ function Graph({
   orientation,
   visualize,
   visualizes,
-  hasMultiVisualize,
   infoContentHidden,
   additionalActions,
   isMetricOptionsEmpty,
@@ -132,14 +123,14 @@ function Graph({
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);
-    const yAxes = hasMultiVisualize ? visualizes.map(v => v.yAxis) : [visualize.yAxis];
+    const yAxes = visualizes.map(v => v.yAxis);
     const rawSeries = yAxes.flatMap(yAxis => timeseriesResult.data[yAxis] ?? []);
 
     // When displaying multiple aggregates, simplify the legend labels
     // to just show the function name (e.g., "p50" instead of "p50(metric.name)")
     // For series with groupBy, show "groupByValue : functionName"
     let series = rawSeries;
-    if (hasMultiVisualize && visualizes.length > 1) {
+    if (visualizes.length > 1) {
       series = rawSeries.map(s => {
         const parsed = parseFunction(s.yAxis);
         if (!parsed) {
@@ -176,22 +167,14 @@ function Graph({
       samplingMode: undefined,
       topEvents: isTopEvents ? series.filter(s => !s.meta.isOther).length : undefined,
     };
-  }, [
-    visualize.chartType,
-    visualize.yAxis,
-    timeseriesResult,
-    aggregate,
-    topEventsLimit,
-    hasMultiVisualize,
-    visualizes,
-  ]);
+  }, [visualize.chartType, timeseriesResult, aggregate, topEventsLimit, visualizes]);
 
   const chartTitle = useMemo(() => {
-    if (hasMultiVisualize && visualizes.length > 1) {
+    if (visualizes.length > 1) {
       return metricName;
     }
     return metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
-  }, [aggregate, hasMultiVisualize, metricLabel, metricName, visualizes.length]);
+  }, [aggregate, metricLabel, metricName, visualizes.length]);
 
   const Title = <Widget.WidgetTitle title={chartTitle} />;
 
@@ -204,40 +187,42 @@ function Graph({
 
   const Actions = (
     <Fragment>
-      <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
-        <CompactSelect
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              icon={<IconGraph type={chartIcon} />}
-              priority="transparent"
-              showChevron={false}
-              size="xs"
-            />
-          )}
-          value={visualize.chartType}
-          menuTitle="Type"
-          options={EXPLORE_CHART_TYPE_OPTIONS}
-          onChange={option => onChartTypeChange(option.value)}
-        />
-      </Tooltip>
-      <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
-        <CompactSelect
-          value={interval}
-          onChange={({value}) => setInterval(value)}
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              icon={<IconClock />}
-              priority="transparent"
-              showChevron={false}
-              size="xs"
-            />
-          )}
-          menuTitle="Interval"
-          options={intervalOptions}
-        />
-      </Tooltip>
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            tooltipProps={{
+              title: t('Type of chart displayed in this visualization (ex. line)'),
+            }}
+            icon={<IconGraph type={chartIcon} />}
+            priority="transparent"
+            showChevron={false}
+            size="xs"
+          />
+        )}
+        value={visualize.chartType}
+        menuTitle="Type"
+        options={EXPLORE_CHART_TYPE_OPTIONS}
+        onChange={option => onChartTypeChange(option.value)}
+      />
+      <CompactSelect
+        value={interval}
+        onChange={({value}) => setInterval(value)}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            tooltipProps={{
+              title: t('Time interval displayed in this visualization (ex. 5m)'),
+            }}
+            {...triggerProps}
+            icon={<IconClock />}
+            priority="transparent"
+            showChevron={false}
+            size="xs"
+          />
+        )}
+        menuTitle="Interval"
+        options={intervalOptions}
+      />
       {additionalActions}
     </Fragment>
   );

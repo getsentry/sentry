@@ -18,12 +18,12 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 
 
 @control_silo_test
@@ -149,19 +149,19 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def test_multi_region_organizationmember_id(self) -> None:
         org_region_name = OrganizationMapping.objects.get(
             organization_id=self.organization.id
-        ).region_name
+        ).cell_name
         regions = [
             Cell("some-region", 10, "http://blah", RegionCategory.MULTI_TENANT),
             Cell(org_region_name, 2, "http://moo", RegionCategory.MULTI_TENANT),
         ]
-        with override_regions(regions), override_settings(SENTRY_MONOLITH_REGION=org_region_name):
+        with override_cells(regions), override_settings(SENTRY_MONOLITH_REGION=org_region_name):
             with unguarded_write(using=router.db_for_write(OrganizationMapping)):
                 self.create_organization_mapping(
                     organization_id=101010,
                     slug="abcslug",
                     name="The Thing",
                     idempotency_key="",
-                    region_name="some-region",
+                    cell_name="some-region",
                 )
             self._require_2fa_for_organization()
             assert not self.user.has_2fa()

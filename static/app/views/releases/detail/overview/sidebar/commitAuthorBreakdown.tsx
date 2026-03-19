@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 
-import Collapsible from 'sentry/components/collapsible';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Collapsible} from 'sentry/components/collapsible';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
 import {percent} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -26,7 +26,7 @@ type Props = {
   version: string;
 };
 
-function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
+export function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
   const commitsEndpoint = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/commits/',
     {
@@ -136,5 +136,3 @@ const Percent = styled('div')`
   min-width: 40px;
   text-align: right;
 `;
-
-export default CommitAuthorBreakdown;

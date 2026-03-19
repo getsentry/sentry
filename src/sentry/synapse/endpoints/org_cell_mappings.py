@@ -10,7 +10,7 @@ from sentry.synapse.endpoints.authentication import (
     SynapseSignatureAuthentication,
 )
 from sentry.synapse.paginator import SynapsePaginator
-from sentry.types.region import get_global_directory
+from sentry.types.cell import get_global_directory
 
 
 @control_silo_endpoint
@@ -57,7 +57,7 @@ class OrgCellMappingsEndpoint(Endpoint):
         )
 
         mappings = [
-            {"id": str(item.organization_id), "slug": item.slug, "cell": item.region_name}
+            {"id": str(item.organization_id), "slug": item.slug, "cell": item.cell_name}
             for item in pagination_result.results
         ]
 

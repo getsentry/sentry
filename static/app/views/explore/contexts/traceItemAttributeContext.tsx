@@ -3,8 +3,8 @@ import {useMemo} from 'react';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {FieldKind} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
 import {
+  DASHBOARD_ONLY_SPAN_ATTRIBUTES,
   SENTRY_LOG_BOOLEAN_TAGS,
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
@@ -51,30 +51,36 @@ type TraceItemAttributeResult = {
 export type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
-  projects?: Project[];
+  projects?: Project[] | Array<string | number>;
   query?: string;
   search?: string;
 };
 
 type TraceItemAttributeOptions = Partial<Omit<TraceItemAttributeConfig, 'traceItemType'>>;
 
+function isProjectArray(
+  projects: Project[] | Array<string | number>
+): projects is Project[] {
+  return projects.length > 0 && typeof projects[0] === 'object';
+}
+
 function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
-  projects,
+  projects: rawProjects,
   search,
   query,
 }: TraceItemAttributeConfig): TypedTraceItemAttributesResult {
-  const organization = useOrganization();
-  const hasBooleanFilters = organization.features.includes(
-    'search-query-builder-explicit-boolean-filters'
-  );
+  const projects = rawProjects && isProjectArray(rawProjects) ? rawProjects : undefined;
+  const projectIds =
+    rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
 
   const {attributes: numberAttributes, isLoading: numberAttributesLoading} =
     useTraceItemAttributeKeys({
       enabled,
       type: 'number',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,
@@ -85,6 +91,7 @@ function useTraceItemAttributeConfig({
       enabled,
       type: 'string',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,
@@ -92,31 +99,61 @@ function useTraceItemAttributeConfig({
 
   const {attributes: booleanAttributes, isLoading: booleanAttributesLoading} =
     useTraceItemAttributeKeys({
-      enabled: enabled && hasBooleanFilters,
+      enabled,
       type: 'boolean',
       traceItemType,
+      projectIds,
       projects,
       search,
       query,
     });
 
+  const booleanBaseKeys = useMemo(() => {
+    const keys = new Set(getDefaultBooleanAttributes(traceItemType));
+    for (const key of Object.keys(booleanAttributes ?? {})) {
+      keys.add(extractBaseKey(key));
+    }
+
+    return keys;
+  }, [booleanAttributes, traceItemType]);
+
   const allNumberAttributes = useMemo(() => {
-    const measurements = getDefaultNumberAttributes(traceItemType).map(measurement => [
-      measurement,
-      {key: measurement, name: measurement, kind: FieldKind.MEASUREMENT},
-    ]);
+    const shouldRemove = booleanBaseKeys.size > 0;
+    const attributes: TagCollection = {};
+    const secondaryAliases: TagCollection = {};
 
-    const secondaryAliases: TagCollection = Object.fromEntries(
-      Object.values(numberAttributes ?? {})
-        .flatMap(value => value.secondaryAliases ?? [])
-        .map(alias => [alias, {key: alias, name: alias, kind: FieldKind.MEASUREMENT}])
-    );
+    for (const [key, value] of Object.entries(numberAttributes ?? {})) {
+      if (!shouldRemove || !shouldRemoveAttributeKey(key, booleanBaseKeys)) {
+        attributes[key] = value;
+      }
 
-    return {
-      attributes: {...numberAttributes, ...Object.fromEntries(measurements)},
-      secondaryAliases,
-    };
-  }, [numberAttributes, traceItemType]);
+      for (const alias of value.secondaryAliases ?? []) {
+        if (shouldRemove && shouldRemoveAttributeKey(alias, booleanBaseKeys)) {
+          continue;
+        }
+
+        secondaryAliases[alias] = {
+          key: alias,
+          name: alias,
+          kind: FieldKind.MEASUREMENT,
+        };
+      }
+    }
+
+    for (const measurement of getDefaultNumberAttributes(traceItemType)) {
+      if (shouldRemove && shouldRemoveAttributeKey(measurement, booleanBaseKeys)) {
+        continue;
+      }
+
+      attributes[measurement] = {
+        key: measurement,
+        name: measurement,
+        kind: FieldKind.MEASUREMENT,
+      };
+    }
+
+    return {attributes, secondaryAliases};
+  }, [numberAttributes, traceItemType, booleanBaseKeys]);
 
   const allStringAttributes = useMemo(() => {
     const tags = getDefaultStringAttributes(traceItemType).map(tag => [
@@ -136,10 +173,6 @@ function useTraceItemAttributeConfig({
   }, [stringAttributes, traceItemType]);
 
   const allBooleanAttributes = useMemo(() => {
-    if (!hasBooleanFilters) {
-      return {attributes: {}, secondaryAliases: {}};
-    }
-
     const tags = getDefaultBooleanAttributes(traceItemType).map(tag => [
       tag,
       {key: tag, name: tag, kind: FieldKind.BOOLEAN},
@@ -154,7 +187,7 @@ function useTraceItemAttributeConfig({
       attributes: {...booleanAttributes, ...Object.fromEntries(tags)},
       secondaryAliases,
     };
-  }, [booleanAttributes, hasBooleanFilters, traceItemType]);
+  }, [booleanAttributes, traceItemType]);
 
   return useMemo(
     () => ({
@@ -251,7 +284,19 @@ export function useSpanItemAttributes(
   type?: TraceItemAttributeType,
   hiddenKeys?: string[]
 ): TraceItemAttributeResult {
-  return useTraceItemDatasetAttributes(TraceItemDataset.SPANS, options, type, hiddenKeys);
+  const mergedHiddenKeys = useMemo(() => {
+    if (!hiddenKeys?.length) {
+      return DASHBOARD_ONLY_SPAN_ATTRIBUTES;
+    }
+    return [...hiddenKeys, ...DASHBOARD_ONLY_SPAN_ATTRIBUTES];
+  }, [hiddenKeys]);
+
+  return useTraceItemDatasetAttributes(
+    TraceItemDataset.SPANS,
+    options,
+    type,
+    mergedHiddenKeys
+  );
 }
 
 export function useLogItemAttributes(
@@ -286,6 +331,33 @@ export function usePreprodItemAttributes(
     type,
     hiddenKeys
   );
+}
+
+const TAGS_REGEX =
+  /^tags\[(?<tagKey>[a-zA-Z0-9_.:-]+),(?<attributeType>boolean|number|string)\]$/;
+
+/**
+ * Extracts the base key from a tag key, handling both plain keys and
+ * explicit format like `tags[key,type]`.
+ */
+export function extractBaseKey(key: string): string {
+  const match = TAGS_REGEX.exec(key);
+  if (!match?.groups) {
+    return key;
+  }
+
+  return match.groups.tagKey ?? key;
+}
+
+/**
+ * Returns true if an attribute key should be removed because an attribute with the same
+ * base key exists.
+ */
+export function shouldRemoveAttributeKey(
+  key: string,
+  booleanBaseKeys: Set<string>
+): boolean {
+  return booleanBaseKeys.has(extractBaseKey(key));
 }
 
 function getDefaultStringAttributes(itemType: TraceItemDataset) {

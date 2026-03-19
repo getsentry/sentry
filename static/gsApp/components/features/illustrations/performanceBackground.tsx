@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
-import testableTransition from 'sentry/utils/testableTransition';
+import {testableTransition} from 'sentry/utils/testableTransition';
 
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min)) + min;
@@ -86,7 +86,7 @@ type Props = {
   anchorRef: React.Ref<SVGForeignObjectElement>;
 };
 
-function PerformanceBackground({anchorRef}: Props) {
+export function PerformanceBackground({anchorRef}: Props) {
   return (
     <StyledSvg viewBox="0 0 754 553" xmlns="http://www.w3.org/2000/svg">
       <Background variants={backgroundAnimateIn} id="background">
@@ -1983,8 +1983,6 @@ function PerformanceBackground({anchorRef}: Props) {
     </StyledSvg>
   );
 }
-
-export default PerformanceBackground;
 
 const StyledSvg = styled('svg')`
   @media (max-height: 600px) and (max-width: 1000px) {

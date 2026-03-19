@@ -11,9 +11,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
-import GroupingStore from 'sentry/stores/groupingStore';
+import {GroupingStore} from 'sentry/stores/groupingStore';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
 interface Props {
@@ -21,7 +21,7 @@ interface Props {
   totalFingerprint: number;
 }
 
-function MergedItem({fingerprint, totalFingerprint}: Props) {
+export function MergedItem({fingerprint, totalFingerprint}: Props) {
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
@@ -205,5 +205,3 @@ const MergedEventList = styled('div')`
   border: none;
   background-color: ${p => p.theme.tokens.background.primary};
 `;
-
-export default MergedItem;

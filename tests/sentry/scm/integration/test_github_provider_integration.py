@@ -8,13 +8,19 @@ from django.utils import timezone
 from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.scm.errors import SCMProviderException
-from sentry.scm.helpers import map_integration_to_provider, map_repository_model_to_repository
+from sentry.scm.private.helpers import (
+    map_integration_to_provider,
+    map_repository_model_to_repository,
+)
+from sentry.scm.private.providers.github import GitHubProvider
 from sentry.testutils.cases import TestCase
 
 REPO_NAME = "test-org/test-repo"
 
 
 class TestGitHubProviderIntegration(TestCase):
+    provider: GitHubProvider
+
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def setUp(self, mock_get_jwt):
         super().setUp()
@@ -38,7 +44,7 @@ class TestGitHubProviderIntegration(TestCase):
             status=ObjectStatus.ACTIVE,
         )
         self.repository = map_repository_model_to_repository(self.repo_model)
-        self.provider = map_integration_to_provider(
+        self.provider = map_integration_to_provider(  # type: ignore[assignment]
             self.organization.id, self.integration, self.repository
         )
 
@@ -431,6 +437,7 @@ class TestGitHubProviderIntegration(TestCase):
         assert commit["message"] == "Fix bug"
         assert commit["author"] is not None
         assert commit["author"]["name"] == "Test User"
+        assert commit["files"] is not None
         assert len(commit["files"]) == 1
         assert commit["files"][0]["filename"] == "src/main.py"
         assert commit["files"][0]["status"] == "modified"
@@ -510,7 +517,7 @@ class TestGitHubProviderIntegration(TestCase):
         )
 
         pr = result["data"]
-        assert pr["number"] == 42
+        assert pr["number"] == "42"
         assert pr["title"] == "New Feature"
         assert pr["state"] == "open"
         assert pr["head"]["ref"] == "feature"
@@ -566,4 +573,4 @@ class TestGitHubProviderIntegration(TestCase):
         assert self.repository["name"] == REPO_NAME
         assert self.repository["organization_id"] == self.organization.id
         assert self.repository["integration_id"] == self.integration.id
-        assert self.repository["status"] == ObjectStatus.ACTIVE
+        assert self.repository["is_active"] is True

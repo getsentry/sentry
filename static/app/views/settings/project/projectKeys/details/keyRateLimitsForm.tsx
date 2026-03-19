@@ -5,14 +5,14 @@ import sortBy from 'lodash/sortBy';
 import {Input} from '@sentry/scraps/input';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
-import Form from 'sentry/components/forms/form';
-import FormField from 'sentry/components/forms/formField';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
+import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
+import {Form} from 'sentry/components/forms/form';
+import {FormField} from 'sentry/components/forms/formField';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t, tct, tn} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -42,7 +42,13 @@ type Props = {
   'params'
 >;
 
-function KeyRateLimitsForm({data, disabled, organization, params, updateData}: Props) {
+export function KeyRateLimitsForm({
+  data,
+  disabled,
+  organization,
+  params,
+  updateData,
+}: Props) {
   const initialRateLimit = useMemo(() => data.rateLimit, [data.rateLimit]);
 
   const {keyId, projectId} = params;
@@ -215,8 +221,6 @@ function KeyRateLimitsForm({data, disabled, organization, params, updateData}: P
     </Form>
   );
 }
-
-export default KeyRateLimitsForm;
 
 const RateLimitRow = styled('div')`
   display: grid;

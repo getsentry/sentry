@@ -8,7 +8,7 @@ from django.db import IntegrityError, router, transaction
 from sentry import options
 from sentry.audit_log.services.log import AuditLogEvent, LogService, UserIpEvent
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.hybridcloud.models.outbox import RegionOutbox
+from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.safety import unguarded_write
@@ -106,17 +106,17 @@ class DatabaseBackedLogService(LogService):
 
 class OutboxBackedLogService(LogService):
     def record_audit_log(self, *, event: AuditLogEvent) -> None:
-        outbox = RegionOutbox(
+        outbox = CellOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE,
             shard_identifier=event.organization_id,
             category=OutboxCategory.AUDIT_LOG_EVENT,
-            object_identifier=RegionOutbox.next_object_identifier(),
+            object_identifier=CellOutbox.next_object_identifier(),
             payload=event.to_json_encodable(),
         )
         outbox.save()
 
     def record_user_ip(self, *, event: UserIpEvent) -> None:
-        outbox = RegionOutbox(
+        outbox = CellOutbox(
             shard_scope=OutboxScope.USER_IP_SCOPE,
             shard_identifier=event.user_id,
             category=OutboxCategory.USER_IP_EVENT,

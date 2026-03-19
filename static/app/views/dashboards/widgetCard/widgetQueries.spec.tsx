@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {PageFilters} from 'sentry/types/core';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -15,7 +15,7 @@ import {
   DashboardsMEPProvider,
 } from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import WidgetQueries from 'sentry/views/dashboards/widgetCard/widgetQueries';
+import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
 
 describe('Dashboards > WidgetQueries', () => {
   const initialData = initializeOrg();

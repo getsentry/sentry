@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class PreprodArtifactSizeMetricsTest(TestCase):
     """Tests for PreprodArtifact size metrics related methods."""
 

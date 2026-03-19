@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
+import {WidgetBuilderNameAndDescription} from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 describe('WidgetBuilder', () => {
@@ -52,5 +52,24 @@ describe('WidgetBuilder', () => {
     expect(
       await screen.findByText('Title is required during creation.')
     ).toBeInTheDocument();
+  });
+
+  it('does not show the add description button for text widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderNameAndDescription />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {displayType: 'text'},
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
+    expect(screen.queryByTestId('add-description')).not.toBeInTheDocument();
   });
 });

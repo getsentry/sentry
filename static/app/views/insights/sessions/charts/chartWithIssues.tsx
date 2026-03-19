@@ -5,10 +5,10 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
 import {GroupSummary} from 'sentry/components/stream/group';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,8 +22,8 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/types';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/platform/laravel/widgetVisualizationStates';
 import {ModalChartContainer} from 'sentry/views/insights/pages/platform/shared/styles';
-import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
-import useRecentIssues from 'sentry/views/insights/sessions/queries/useRecentIssues';
+import {useProjectHasSessions} from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
+import {useRecentIssues} from 'sentry/views/insights/sessions/queries/useRecentIssues';
 import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
 interface Props extends WidgetTitleProps, Partial<LoadableChartWidgetProps> {
@@ -37,7 +37,7 @@ interface Props extends WidgetTitleProps, Partial<LoadableChartWidgetProps> {
   legendSelection?: LegendSelection | undefined;
 }
 
-export default function ChartWithIssues(props: Props) {
+export function ChartWithIssues(props: Props) {
   const {
     description,
     error,
@@ -102,8 +102,8 @@ export default function ChartWithIssues(props: Props) {
     <Stack>
       {recentIssues.map(group => (
         <GroupWrapper canSelect key={group.id}>
-          <EventOrGroupHeader data={group} source="session-health" />
-          <EventOrGroupExtraDetails data={group} showLifetime={false} />
+          <GroupHeaderRow data={group} source="session-health" />
+          <GroupMetaRow data={group} showLifetime={false} />
         </GroupWrapper>
       ))}
     </Stack>

@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import GenericField from 'sentry/components/deprecatedforms/genericField';
+import {GenericField} from 'sentry/components/deprecatedforms/genericField';
 import FormState from 'sentry/components/forms/state';
 
 describe('GenericField', () => {

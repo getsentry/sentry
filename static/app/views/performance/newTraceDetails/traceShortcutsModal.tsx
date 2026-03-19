@@ -5,7 +5,6 @@ import tracingKeyboardShortcuts from 'sentry-images/spot/tracing-keyboard-shortc
 
 import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 const KEYBOARD_SHORTCUTS: Array<[string, string]> = [
   ['\u2191 / \u2193', t('Navigate up or down')],
@@ -55,7 +54,7 @@ export function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
 const ShortcutsLayout = styled('div')`
   display: grid;
   grid-template-columns: 1fr 38%;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   img {
     width: 100%;
@@ -71,7 +70,7 @@ const Shortcuts = styled('ul')`
   font-size: ${p => p.theme.font.size.sm};
 
   &:not(:last-child) {
-    margin: 0 0 ${space(3)} 0;
+    margin: 0 0 ${p => p.theme.space['2xl']} 0;
   }
 `;
 

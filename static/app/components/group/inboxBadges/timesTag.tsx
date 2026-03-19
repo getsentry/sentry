@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -15,7 +15,7 @@ type Props = {
   lastSeen: string;
 };
 
-function TimesTag({lastSeen, firstSeen}: Props) {
+export function TimesTag({lastSeen, firstSeen}: Props) {
   return (
     <Wrapper>
       <StyledIconClock size="xs" variant="muted" />
@@ -56,5 +56,3 @@ const Separator = styled('span')`
 const StyledIconClock = styled(IconClock)`
   margin-right: ${p => p.theme.space.xs};
 `;
-
-export default TimesTag;

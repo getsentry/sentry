@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 from sentry.integrations.github.client import GitHubApiClient, GitHubReaction
 from sentry.integrations.models import Integration
+from sentry.scm.private.provider import Provider
 from sentry.scm.types import (
     ActionResult,
     BuildConclusion,
@@ -24,7 +25,6 @@ from sentry.scm.types import (
     PaginatedActionResult,
     PaginatedResponseMeta,
     PaginationParams,
-    Provider,
     PullRequest,
     PullRequestBranch,
     PullRequestCommit,
@@ -469,9 +469,10 @@ _DEFAULT_PAGINATED_META: PaginatedResponseMeta = PaginatedResponseMeta(next_curs
 
 
 class BaseTestProvider(Provider):
+    organization_id: int
     repository: Repository
 
-    def is_rate_limited(self, organization_id: int, referrer: Referrer) -> bool:
+    def is_rate_limited(self, referrer: Referrer) -> bool:
         return False
 
     # Pull request
@@ -490,7 +491,6 @@ class BaseTestProvider(Provider):
                 body=raw["body"],
                 state=raw["state"],
                 merged=raw["merged"],
-                url=raw["url"],
                 html_url=raw["html_url"],
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
@@ -788,8 +788,22 @@ class BaseTestProvider(Provider):
 
     def get_commits(
         self,
-        sha: str | None = None,
-        path: str | None = None,
+        ref: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        inner = self.get_commit("abc123")
+        return PaginatedActionResult(
+            data=[inner["data"]],
+            type="github",
+            raw={},
+            meta=_DEFAULT_PAGINATED_META,
+        )
+
+    def get_commits_by_path(
+        self,
+        path: str,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
@@ -968,7 +982,6 @@ class BaseTestProvider(Provider):
                     body=raw["body"],
                     state=raw["state"],
                     merged=raw["merged"],
-                    url=raw["url"],
                     html_url=raw["html_url"],
                     head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                     base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
@@ -985,7 +998,6 @@ class BaseTestProvider(Provider):
         body: str,
         head: str,
         base: str,
-        draft: bool = False,
     ) -> ActionResult[PullRequest]:
         raw = make_github_pull_request(title=title, body=body)
         return ActionResult(
@@ -996,7 +1008,31 @@ class BaseTestProvider(Provider):
                 body=raw["body"],
                 state=raw["state"],
                 merged=raw["merged"],
-                url=raw["url"],
+                html_url=raw["html_url"],
+                head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
+                base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
+            ),
+            type="github",
+            raw=raw,
+            meta={},
+        )
+
+    def create_pull_request_draft(
+        self,
+        title: str,
+        body: str,
+        head: str,
+        base: str,
+    ) -> ActionResult[PullRequest]:
+        raw = make_github_pull_request(title=title, body=body)
+        return ActionResult(
+            data=PullRequest(
+                id=str(raw["id"]),
+                number=raw["number"],
+                title=raw["title"],
+                body=raw["body"],
+                state=raw["state"],
+                merged=raw["merged"],
                 html_url=raw["html_url"],
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),
@@ -1026,7 +1062,6 @@ class BaseTestProvider(Provider):
                 body=raw["body"],
                 state=raw["state"],
                 merged=raw["merged"],
-                url=raw["url"],
                 html_url=raw["html_url"],
                 head=PullRequestBranch(sha=raw["head"]["sha"], ref=raw["head"]["ref"]),
                 base=PullRequestBranch(sha=raw["base"]["sha"], ref=raw["base"]["ref"]),

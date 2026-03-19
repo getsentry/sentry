@@ -1,5 +1,5 @@
 import {categoryList} from 'sentry/data/platformPickerCategories';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 
 export const REGIONCHOICES = [
   ['us', 'US'],

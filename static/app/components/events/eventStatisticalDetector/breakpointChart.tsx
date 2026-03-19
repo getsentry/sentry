@@ -1,14 +1,12 @@
-import snakeCase from 'lodash/snakeCase';
-
 import {LinkButton} from '@sentry/scraps/button';
 
 import {ChartType} from 'sentry/chartcuterie/types';
 import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventsStatsData} from 'sentry/types/organization';
-import toArray from 'sentry/utils/array/toArray';
+import {toArray} from 'sentry/utils/array/toArray';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -16,25 +14,26 @@ import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuer
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
+import type {BreakpointEvidenceData} from './breakpointChartOptions';
 import {RELATIVE_DAYS_WINDOW} from './consts';
-import Chart from './lineChart';
+import {LineChart as Chart} from './lineChart';
 
 type EventBreakpointChartProps = {
   event: Event;
 };
 
-function EventBreakpointChart({event}: EventBreakpointChartProps) {
+export function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();
   const location = useLocation();
 
-  const {transaction, breakpoint} = event?.occurrence?.evidenceData ?? {};
+  const occurrenceEvidenceData = event?.occurrence?.evidenceData;
+  const {transaction, breakpoint} = occurrenceEvidenceData ?? {};
 
   const eventView = EventView.fromLocation(location);
   eventView.query = `event.type:transaction transaction:"${transaction}"`;
@@ -60,7 +59,7 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     typeof transaction === 'string' && typeof breakpoint === 'number'
       ? getExploreUrl({
           organization,
-          mode: Mode.AGGREGATE,
+          mode: Mode.SAMPLES,
           query: `transaction:"${transaction}" is_transaction:True`,
           visualize: [{yAxes: ['p95(span.duration)']}],
           selection: {
@@ -71,14 +70,11 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
         })
       : undefined;
 
-  // The evidence data keys are returned to us in camelCase, but we need to
-  // convert them to snake_case to match the NormalizedTrendsTransaction type
-  const normalizedOccurrenceEvent = Object.entries(
-    event?.occurrence?.evidenceData ?? {}
-  ).reduce<Record<string, unknown>>((acc, [key, value]) => {
-    acc[snakeCase(key)] = value;
-    return acc;
-  }, {}) as NormalizedTrendsTransaction;
+  const normalizedOccurrenceEvent: BreakpointEvidenceData = {
+    aggregate_range_1: occurrenceEvidenceData?.aggregateRange1,
+    aggregate_range_2: occurrenceEvidenceData?.aggregateRange2,
+    breakpoint: occurrenceEvidenceData?.breakpoint,
+  };
 
   const {data, isPending} = useGenericDiscoverQuery<
     {
@@ -124,5 +120,3 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     </InterimSection>
   );
 }
-
-export default EventBreakpointChart;

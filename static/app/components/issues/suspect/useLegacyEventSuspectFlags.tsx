@@ -11,9 +11,9 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 /**
  * Legacy suspect flags implementation.
@@ -21,7 +21,7 @@ import type RequestError from 'sentry/utils/requestError/requestError';
  * Returns up to 3 recently changed flags from the intersection of A) the flags on one EVENT (rawFlagData) and
  * B) organization audit logs (queried from /logs/).
  */
-export default function useLegacyEventSuspectFlags({
+export function useLegacyEventSuspectFlags({
   enabled,
   event,
   firstSeen,

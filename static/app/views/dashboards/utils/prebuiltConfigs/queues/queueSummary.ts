@@ -4,7 +4,7 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
 import {SUMMARY_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const SPAN_OP_FILTER = `${SpanFields.SPAN_OP}:[queue.process,queue.publish]`;
 
@@ -65,7 +65,6 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
           ],
           columns: [],
           conditions: SPAN_OP_FILTER,
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
           orderby: `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
         },
       ],
@@ -79,11 +78,11 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
-          aggregates: [`count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
+          fields: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
+          aggregates: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`],
           columns: [],
           conditions: SPAN_OP_FILTER,
-          orderby: `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+          orderby: `equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
         },
       ],
     },
@@ -96,11 +95,11 @@ const FIRST_ROW_WIDGTS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [`count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
-          aggregates: [`count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
+          fields: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
+          aggregates: [`equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`],
           columns: [],
           conditions: SPAN_OP_FILTER,
-          orderby: `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+          orderby: `equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
         },
       ],
     },
@@ -140,17 +139,16 @@ const PRODUCER_TABLE: Widget = {
       fields: [
         SpanFields.TRANSACTION,
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
+        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.publish)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [t('Transaction'), t('Error rate'), t('Published'), t('Time spent')],
-      fieldMeta: [null, {valueType: 'percentage', valueUnit: null}, null, null],
       conditions: `${SpanFields.SPAN_OP}:queue.publish`,
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
@@ -176,16 +174,16 @@ const CONSUMER_TABLE: Widget = {
       fields: [
         SpanFields.TRANSACTION,
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       aggregates: [
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         `equation|1 - (count_if(${SpanFields.TRACE_STATUS},equals,ok) / count(${SpanFields.SPAN_DURATION}))`,
-        `count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|count_if(${SpanFields.SPAN_OP},equals,queue.process)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.TRANSACTION],
@@ -196,14 +194,6 @@ const CONSUMER_TABLE: Widget = {
         t('Error rate'),
         t('Processed'),
         t('Time spent'),
-      ],
-      fieldMeta: [
-        null,
-        null,
-        null,
-        {valueType: 'percentage', valueUnit: null},
-        null,
-        null,
       ],
       conditions: `${SpanFields.SPAN_OP}:queue.process`,
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
@@ -224,4 +214,5 @@ export const QUEUE_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: SUMMARY_DASHBOARD_TITLE,
   filters: {},
   widgets: [...FIRST_ROW_WIDGTS, ...SECOND_ROW_WIDGETS, CONSUMER_TABLE, PRODUCER_TABLE],
+  onboarding: {type: 'module', moduleName: ModuleName.QUEUE},
 };

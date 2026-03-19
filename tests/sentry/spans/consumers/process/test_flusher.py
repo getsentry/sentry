@@ -33,7 +33,9 @@ def test_backpressure() -> None:
         flusher = SpanFlusher(
             buffer,
             next_step=Noop(),
-            produce_to_pipe=append,
+            produce_to_pipe=lambda project_id, payload, dropped: append(
+                (project_id, payload, dropped)
+            ),
         )
 
         try:
@@ -50,7 +52,6 @@ def test_backpressure() -> None:
                         parent_span_id="b" * 16,
                         segment_id=None,
                         project_id=1,
-                        end_timestamp=now,
                     ),
                     Span(
                         payload=_payload("d" * 16),
@@ -59,7 +60,6 @@ def test_backpressure() -> None:
                         parent_span_id="b" * 16,
                         segment_id=None,
                         project_id=1,
-                        end_timestamp=now,
                     ),
                     Span(
                         payload=_payload("c" * 16),
@@ -68,7 +68,6 @@ def test_backpressure() -> None:
                         parent_span_id="b" * 16,
                         segment_id=None,
                         project_id=1,
-                        end_timestamp=now,
                     ),
                     Span(
                         payload=_payload("b" * 16),
@@ -78,7 +77,6 @@ def test_backpressure() -> None:
                         is_segment_span=True,
                         segment_id=None,
                         project_id=1,
-                        end_timestamp=now,
                     ),
                 ]
 
@@ -188,7 +186,7 @@ def test_flusher_waits_for_exited_processes_during_startup() -> None:
         SpanFlusher(
             buffer,
             next_step=Noop(),
-            produce_to_pipe=lambda _: None,
+            produce_to_pipe=lambda project_id, payload, dropped: None,
         )
 
 
@@ -216,5 +214,5 @@ def test_flusher_timeout_waiting_for_processes_startup() -> None:
         SpanFlusher(
             buffer,
             next_step=Noop(),
-            produce_to_pipe=lambda _: None,
+            produce_to_pipe=lambda project_id, payload, dropped: None,
         )

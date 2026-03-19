@@ -11,13 +11,13 @@ import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IssueSeerBadgeProps {
   group: Group;
 }
 
-function IssueSeerBadge({group}: IssueSeerBadgeProps) {
+export function IssueSeerBadge({group}: IssueSeerBadgeProps) {
   const organization = useOrganization();
   const issuesPath = `/organizations/${organization.slug}/issues/`;
   const location = useLocation();
@@ -51,7 +51,7 @@ function IssueSeerBadge({group}: IssueSeerBadgeProps) {
         }}
       >
         <IconSeer size="xs" />
-        {seerFixable && <p>{t('Quick Fix')}</p>}
+        {seerFixable && <span>{t('Quick Fix')}</span>}
       </SeerLink>
     </Tooltip>
   );
@@ -65,5 +65,3 @@ const SeerLink = styled(Link)`
   color: ${p => p.theme.tokens.content.primary};
   position: relative;
 `;
-
-export default IssueSeerBadge;

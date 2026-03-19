@@ -20,9 +20,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {IconSentry} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/compactSelect';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/compactSelect');
 
 `<CompositeSelect>` is a specialized dropdown component that allows you to combine multiple independent select sections, each with its own single or multi-select behavior. This is useful when users need to make selections across different categories within a single dropdown.
 

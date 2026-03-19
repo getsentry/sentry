@@ -6,21 +6,17 @@ import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconWarning} from 'sentry/icons';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
-import {
-  SERIES_NAME_PART_DELIMITER,
-  transformLegacySeriesToTimeSeries,
-} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {
   WidgetType,
@@ -33,14 +29,15 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
+  LegendSelection,
   TabularColumn,
   TimeSeries,
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
-import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
+import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
@@ -62,6 +59,7 @@ interface VisualizationWidgetProps {
   selection: PageFilters;
   widget: Widget;
   dashboardFilters?: DashboardFilters;
+  legendSelection?: LegendSelection;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
     pageLinks?: string;
@@ -71,8 +69,10 @@ interface VisualizationWidgetProps {
     timeseriesResultsUnits?: Record<string, DataUnit>;
     totalIssuesCount?: string;
   }) => void;
+  onLegendSelectionChange?: (selection: LegendSelection) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
+  onZoom?: EChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showConfidenceWarning?: boolean;
   showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
@@ -91,6 +91,9 @@ export function VisualizationWidget({
   renderErrorMessage,
   showReleaseAs = 'bubble',
   showConfidenceWarning,
+  onZoom,
+  legendSelection,
+  onLegendSelectionChange,
 }: VisualizationWidgetProps) {
   const {releases: releasesWithDate} = useReleaseStats(selection, {
     enabled: showReleaseAs !== 'none',
@@ -142,6 +145,9 @@ export function VisualizationWidget({
             dataScanned={dataScanned}
             isSampled={isSampled}
             sampleCount={sampleCount}
+            onZoom={onZoom}
+            legendSelection={legendSelection}
+            onLegendSelectionChange={onLegendSelectionChange}
           />
         );
       }}
@@ -160,6 +166,9 @@ interface VisualizationWidgetContentProps {
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   isSampled?: boolean | null;
+  legendSelection?: LegendSelection;
+  onLegendSelectionChange?: (selection: LegendSelection) => void;
+  onZoom?: EChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   sampleCount?: number;
   showConfidenceWarning?: boolean;
@@ -185,6 +194,9 @@ function VisualizationWidgetContent({
   dataScanned,
   isSampled,
   sampleCount,
+  onZoom,
+  legendSelection,
+  onLegendSelectionChange,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -194,59 +206,41 @@ function VisualizationWidgetContent({
   const firstWidgetQuery = widget.queries[0];
   const aggregates = firstWidgetQuery?.aggregates ?? []; // All widget queries have the same aggregates
   const columns = firstWidgetQuery?.columns ?? []; // All widget queries have the same columns
-  const fields = firstWidgetQuery?.fields ?? [...columns, ...aggregates];
-  const fieldAliases = firstWidgetQuery?.fieldAliases ?? [];
 
   const timeSeriesWithPlottable = timeseriesResults
     .map(series => {
-      const seriesName = series.seriesName ?? aggregates[0] ?? '';
-      const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
-
-      const yAxis =
-        aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
-        aggregates[0];
-
-      // This is the query name for the series, aka the legend alias from the UI
-      const queryName =
-        widget?.queries.find(({name}) => name && splitSeriesName.includes(name))?.name ||
-        undefined;
-
-      const timeSeries = transformLegacySeriesToTimeSeries(
+      const transformed = transformWidgetSeriesToTimeSeries(
         series,
+        widget,
         timeseriesResultsTypes,
-        timeseriesResultsUnits,
-        columns,
-        yAxis,
-        queryName
+        timeseriesResultsUnits
       );
 
-      if (!timeSeries) {
+      if (!transformed) {
         return null;
       }
 
-      const fieldIndex = yAxis === undefined ? -1 : fields.indexOf(yAxis);
-      // Only use field aliases for the yAxis if there are multiple yAxis and no group bys
-      const fieldAlias =
-        aggregates.length > 1 && columns.length === 0 && fieldIndex >= 0
-          ? fieldAliases[fieldIndex]
-          : undefined;
-
-      const labelParts = [queryName, fieldAlias ?? formatTimeSeriesLabel(timeSeries)];
-      // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
-      if (aggregates.length > 1 && columns.length > 1) {
-        labelParts.push(timeSeries.yAxis);
-      }
+      const {timeSeries, label, seriesName, widgetQuery} = transformed;
       const plottable = createPlottableFromTimeSeries(
         timeSeries,
         widget,
-        labelParts.filter(defined).join(SERIES_NAME_PART_DELIMITER),
+        label,
         seriesName,
         timeSeries.meta.isOther ? theme.tokens.dataviz.semantic.neutral : undefined
       );
       if (!plottable) {
         return null;
       }
-      return [timeSeries, plottable] satisfies [TimeSeries, Plottable];
+
+      // Match the timeseries to its corresponding table result by query index
+      const queryIndex = widget.queries.indexOf(widgetQuery);
+      const tableData = tableResults?.[queryIndex]?.data;
+
+      return [timeSeries, plottable, tableData] satisfies [
+        TimeSeries,
+        Plottable,
+        TableDataWithTitle['data'] | undefined,
+      ];
     })
     .filter(defined);
 
@@ -268,15 +262,13 @@ function VisualizationWidgetContent({
     tableResults &&
     tableResults.length > 0;
 
-  const tableDataRows = tableResults?.[0]?.data;
-
   // We only support one column for legend breakdown right now
   const firstColumn = columns[0];
   const linkedDashboard = findLinkedDashboardForField(firstWidgetQuery, firstColumn);
 
   const footerTable = showBreakdownData ? (
     <WidgetFooterTable>
-      {timeSeriesWithPlottable.map(([timeSeries, plottable], index) => {
+      {timeSeriesWithPlottable.map(([timeSeries, plottable, tableDataRows], index) => {
         if (timeSeries.meta.isOther) {
           return null;
         }
@@ -293,17 +285,18 @@ function VisualizationWidgetContent({
           if (columns.length === 1) {
             if (firstColumnGroupByValue !== undefined && firstColumn) {
               // for 20 series, this is only 20 x 20 lookups, which is negligible and worth it for code readability
-              value = tableDataRows.find(
-                row => row[firstColumn] === firstColumnGroupByValue
-              )?.[yAxis] as number;
+              value =
+                (tableDataRows.find(
+                  row => row[firstColumn] === firstColumnGroupByValue
+                )?.[yAxis] as number) ?? null;
             }
           }
           // If there is no columns, and only aggregates, the table result will be an array with a single element
           // [{aggregate1: 123}, {aggregate2: 345}]
-          else if (columns.length === 0 && aggregates.length > 1) {
+          else if (columns.length === 0 && aggregates.length > 0) {
             const row = tableDataRows[0];
             if (row) {
-              value = row[yAxis] as number;
+              value = (row[yAxis] as number) ?? null;
             }
           }
         }
@@ -377,7 +370,7 @@ function VisualizationWidgetContent({
               {labelContent}
             </Tooltip>
             <TextAlignRight>
-              {value === null ? '—' : formatYAxisValue(value, dataType, dataUnit)}
+              {value === null ? '—' : formatTooltipValue(value, dataType, dataUnit)}
             </TextAlignRight>
           </Fragment>
         );
@@ -451,6 +444,9 @@ function VisualizationWidgetContent({
             showReleaseAs={showReleaseAs}
             showLegend="never"
             axisRange={widget.axisRange}
+            onZoom={onZoom}
+            legendSelection={legendSelection}
+            onLegendSelectionChange={onLegendSelectionChange}
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
@@ -471,6 +467,9 @@ function VisualizationWidgetContent({
           releases={releases}
           showReleaseAs={showReleaseAs}
           axisRange={widget.axisRange}
+          onZoom={onZoom}
+          legendSelection={legendSelection}
+          onLegendSelectionChange={onLegendSelectionChange}
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>

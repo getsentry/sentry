@@ -1,6 +1,6 @@
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
-import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
+import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 
 jest.unmock('getsentry/utils/trackMarketingEvent');
 

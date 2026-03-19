@@ -6,8 +6,8 @@ import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {useSpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {NewQuery, Organization} from 'sentry/types/organization';
@@ -17,7 +17,7 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   LogsPageDataProvider,
   useLogsPageDataQueryResult,
@@ -45,7 +45,7 @@ import {MCPInputSection} from 'sentry/views/performance/newTraceDetails/traceDra
 import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {BreadCrumbs} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
-import ReplayPreview from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
+import {ReplayPreview} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
@@ -58,12 +58,12 @@ import {LogDetails} from './components/logDetails';
 import {ProfileDetails} from './components/profileDetails';
 import {SpanDescription as EAPSpanDescription} from './eapSections/description';
 import {TraceSpanLinks} from './eapSections/traceSpanLinks';
-import Alerts from './sections/alerts';
+import {Alerts} from './sections/alerts';
 import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
 import {hasSpanHTTPInfo, SpanHTTPInfo} from './sections/http';
 import {hasSpanKeys, SpanKeys} from './sections/keys';
-import Measurements, {hasSpanMeasurements} from './sections/measurements';
+import {hasSpanMeasurements, Measurements} from './sections/measurements';
 import {hasSpanTags, Tags} from './sections/tags';
 
 function SpanSections({

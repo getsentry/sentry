@@ -4,15 +4,15 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {
   CronsBannerOnDemandCTA,
   CronsBannerUpgradeCTA,
 } from 'getsentry/components/crons/cronsBannerUpgradeCTA';
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {
   BillingConfig,

@@ -6,10 +6,8 @@ import {
 
 import {onboarding} from './onboarding';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   feedbackOnboardingJsLoader,
 };
-
-export default docs;

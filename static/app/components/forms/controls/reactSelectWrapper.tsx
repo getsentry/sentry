@@ -27,7 +27,7 @@ const ReactSelectWrapper = (({ref, ...props}: any) => {
 export {ReactSelectWrapper as ReactSelect, ReactSelectWrapper as default, components};
 export {createFilter, mergeStyles} from 'react-select';
 export type {
-  Props,
+  NamedProps as Props,
   StylesConfig,
   SingleValueProps,
   GroupedOptionsType,

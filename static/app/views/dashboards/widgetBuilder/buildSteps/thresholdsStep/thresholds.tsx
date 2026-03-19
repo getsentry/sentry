@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import CircleIndicator from 'sentry/components/circleIndicator';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import type {NumberFieldProps} from 'sentry/components/forms/fields/numberField';
-import NumberField from 'sentry/components/forms/fields/numberField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
 import type {SelectFieldProps} from 'sentry/components/forms/fields/selectField';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Polarity} from 'sentry/components/percentChange';
 import {t} from 'sentry/locale';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';

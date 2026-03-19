@@ -14,7 +14,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
 )
 from sentry.db.models.base import sane_repr
 from sentry.db.models.manager.base import BaseManager
@@ -51,7 +51,12 @@ class GroupHashQuerySet(BaseQuerySet):
             )
         ]
 
-        cache.delete_many(cache_keys)
+        try:
+            cache.delete_many(cache_keys)
+        except Exception:
+            # If we can't delete from the cache, likely we couldn't have put the grouphashes there
+            # in the first place. Regardless, we don't want this to block the `update` call.
+            pass
 
         return len(cache_keys)
 
@@ -61,7 +66,7 @@ class GroupHashModelManager(BaseManager["GroupHash"]):
         return GroupHashQuerySet(self.model, using=self._db)
 
 
-@region_silo_model
+@cell_silo_model
 class GroupHash(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -97,7 +102,7 @@ class GroupHash(Model):
         except AttributeError:
             return None
 
-    __repr__ = sane_repr("group_id", "hash", "metadata")
+    __repr__ = sane_repr("group_id", "hash")
     __str__ = __repr__
 
     def get_associated_fingerprint(self) -> list[str] | None:

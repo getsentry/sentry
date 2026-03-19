@@ -9,13 +9,13 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
-import parseApiError from 'sentry/utils/parseApiError';
+import {parseApiError} from 'sentry/utils/parseApiError';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 import {BuildDetailsMetricCards} from 'sentry/views/preprod/buildDetails/main/buildDetailsMetricCards';
 import {AppSizeInsights} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsights';

@@ -19,7 +19,7 @@ import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/se
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
@@ -108,12 +108,11 @@ const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('3XX'),
-          conditions: `${FILTER_STRING}`,
+          conditions: FILTER_STRING,
           fields: [PERCENTAGE_3XX],
           aggregates: [PERCENTAGE_3XX],
           columns: [],
           orderby: PERCENTAGE_3XX,
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
         },
       ],
     },
@@ -126,12 +125,11 @@ const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('4XX'),
-          conditions: `${FILTER_STRING}`,
+          conditions: FILTER_STRING,
           fields: [PERCENTAGE_4XX],
           aggregates: [PERCENTAGE_4XX],
           columns: [],
           orderby: PERCENTAGE_4XX,
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
         },
       ],
     },
@@ -144,12 +142,11 @@ const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: t('5XX'),
-          conditions: `${FILTER_STRING}`,
+          conditions: FILTER_STRING,
           fields: [PERCENTAGE_5XX],
           aggregates: [PERCENTAGE_5XX],
           columns: [],
           orderby: PERCENTAGE_5XX,
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
         },
       ],
     },
@@ -219,31 +216,12 @@ const CHART_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       interval: '5m',
       queries: [
         {
-          name: '3XX',
+          name: '',
           conditions: FILTER_STRING,
-          fields: [PERCENTAGE_3XX],
-          aggregates: [PERCENTAGE_3XX],
+          fields: [PERCENTAGE_3XX, PERCENTAGE_4XX, PERCENTAGE_5XX],
+          aggregates: [PERCENTAGE_3XX, PERCENTAGE_4XX, PERCENTAGE_5XX],
           columns: [],
           orderby: PERCENTAGE_3XX,
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
-        },
-        {
-          name: '4XX',
-          conditions: FILTER_STRING,
-          fields: [PERCENTAGE_4XX],
-          aggregates: [PERCENTAGE_4XX],
-          columns: [],
-          orderby: PERCENTAGE_4XX,
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
-        },
-        {
-          name: '5XX',
-          conditions: FILTER_STRING,
-          fields: [PERCENTAGE_5XX],
-          aggregates: [PERCENTAGE_5XX],
-          columns: [],
-          orderby: PERCENTAGE_5XX,
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
         },
       ],
     },
@@ -286,13 +264,6 @@ const TRANSACTIONS_TABLE: Widget = {
         DataTitles.avg,
         DataTitles.timeSpent,
       ],
-      fieldMeta: [
-        null,
-        null,
-        {valueType: 'percentage', valueUnit: null},
-        {valueType: 'percentage', valueUnit: null},
-        {valueType: 'percentage', valueUnit: null},
-      ],
       conditions: FILTER_STRING,
       name: '',
       orderby: '-sum(span.self_time)',
@@ -330,4 +301,5 @@ export const HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
     ...CHART_ROW_WIDGETS,
     TRANSACTIONS_TABLE,
   ],
+  onboarding: {type: 'module', moduleName: ModuleName.HTTP},
 };

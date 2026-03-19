@@ -1,13 +1,13 @@
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import IssueWidgetQueries from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
+import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 
 describe('IssueWidgetQueries', () => {
   const selection = {

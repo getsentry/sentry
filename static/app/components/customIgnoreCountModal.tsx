@@ -4,8 +4,8 @@ import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {IgnoredStatusDetails} from 'sentry/types/group';
@@ -22,7 +22,7 @@ type Props = ModalRenderProps & {
   windowOptions: Array<SelectValue<number>>;
 };
 
-export default function CustomIgnoreCountModal(props: Props) {
+export function CustomIgnoreCountModal(props: Props) {
   const [count, setCount] = useState<number>(100);
   const [window, setWindow] = useState<number | null>(null);
   const {

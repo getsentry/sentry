@@ -9,15 +9,14 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconIssues} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {WebVital} from 'sentry/utils/fields';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -49,7 +48,7 @@ type Props = {
   transaction?: string;
 };
 
-export default function WebVitalMetersWithIssues({
+export function WebVitalMetersWithIssues({
   onClick,
   projectData,
   projectScore,
@@ -274,7 +273,7 @@ const Flex = styled('div')<{gap?: number}>`
   flex-direction: row;
   justify-content: center;
   width: 100%;
-  gap: ${p => (p.gap ? `${p.gap}px` : space(1))};
+  gap: ${p => (p.gap ? `${p.gap}px` : p.theme.space.md)};
   align-items: center;
   flex-wrap: wrap;
 `;

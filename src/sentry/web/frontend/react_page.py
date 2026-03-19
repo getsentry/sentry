@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from fnmatch import fnmatch
 
-import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
@@ -16,9 +15,9 @@ from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import customer_domain_path, generate_organization_url
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
-from sentry.types.region import (
+from sentry.types.cell import (
     find_all_multitenant_locality_names,
-    subdomain_is_region,
+    subdomain_is_locality,
 )
 from sentry.utils.http import is_using_customer_domain, query_string
 from sentry.web.client_config import get_client_config
@@ -134,7 +133,7 @@ class ReactMixin:
             return HttpResponseRedirect(redirect_url)
 
         # We don't allow HTML pages to be served from region domains.
-        if request.subdomain and subdomain_is_region(request):
+        if request.subdomain and subdomain_is_locality(request):
             redirect_url = resolve_activeorg_redirect_url(request)
             if redirect_url:
                 logger.info(
@@ -172,14 +171,7 @@ class ReactMixin:
 
         response = render_to_response("sentry/base-react.html", context=context, request=request)
 
-        try:
-            if "x-sentry-browser-profiling" in request.headers or (
-                organization is not None
-                and features.has("organizations:profiling-browser", organization)
-            ):
-                response["Document-Policy"] = "js-profiling"
-        except Exception as error:
-            sentry_sdk.capture_exception(error)
+        response["Document-Policy"] = "js-profiling"
 
         return response
 
@@ -198,7 +190,7 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         return super().handle_auth_required(request, *args, **kwargs)
 
     def handle(self, request: HttpRequest, organization, **kwargs) -> HttpResponse:
-        if SiloMode.get_current_mode() == SiloMode.REGION:
+        if SiloMode.get_current_mode() == SiloMode.CELL:
             # This shouldn't happen as all requests in production for HTML pages
             # should be in control.
             logger.info(

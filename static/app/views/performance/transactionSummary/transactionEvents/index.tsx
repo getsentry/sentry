@@ -1,9 +1,9 @@
 import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -19,7 +19,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/transactionOverview/latencyChart/utils';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 
-import EventsContent from './content';
+import {EventsContent} from './content';
 import {
   decodeEventsDisplayFilterFromLocation,
   EventsDisplayFilterName,

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
-import FormField from 'sentry/components/forms/formField';
-import type FormModel from 'sentry/components/forms/model';
+import {FormField} from 'sentry/components/forms/formField';
+import type {FormModel} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 import type {ChallengeData} from 'sentry/types/auth';
 

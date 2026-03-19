@@ -16,7 +16,7 @@ from sentry.hybridcloud.outbox.base import ControlOutboxProducingModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
-from sentry.types.region import find_all_cell_names
+from sentry.types.cell import find_all_cell_names
 
 MAX_USER_ROLE_NAME_LENGTH = 32
 
@@ -49,7 +49,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
             outbox
             for user_id in self.users.values_list("id", flat=True)
             for outbox in OutboxCategory.USER_UPDATE.as_control_outboxes(
-                region_names=regions,
+                cell_names=regions,
                 shard_identifier=user_id,
                 object_identifier=user_id,
             )
@@ -69,7 +69,7 @@ class UserRoleUser(ControlOutboxProducingModel):
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         regions = list(find_all_cell_names())
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
-            region_names=regions,
+            cell_names=regions,
             shard_identifier=self.user_id,
             object_identifier=self.user_id,
         )
