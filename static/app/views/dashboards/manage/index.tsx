@@ -5,6 +5,7 @@ import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
@@ -676,6 +677,7 @@ function ManageDashboards() {
                           icon={<IconSeer />}
                         >
                           {t('Create Dashboard with Seer')}
+                          <FeatureBadge type="experimental" />
                         </Button>
                       </Feature>
                       <Feature features="dashboards-import">

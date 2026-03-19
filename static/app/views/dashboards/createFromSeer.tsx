@@ -137,13 +137,17 @@ export default function CreateFromSeer() {
 
   const [dashboard, setDashboard] = useState<DashboardDetails>(EMPTY_DASHBOARD);
   const [isUpdating, setisUpdating] = useState(false); // State tracks if dashboard is being updated from user chat input
-  const prevUpdatedAtRef = useRef<string | null>(null);
+  const prevSessionStatusRef = useRef<{
+    status: string | null;
+    updated_at: string | null;
+  }>({status: null, updated_at: null});
 
   // Timestamp of when we observe a "completed" status.
   // This is required to poll for POST_COMPLETE_POLL_MS
   // since backend hooks can resume runs in case of
   // validation errors.
   const completedAtRef = useRef<number | null>(null);
+  const [pollingSettled, setPollingSettled] = useState(false);
 
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(organization.slug, seerRunId),
@@ -156,16 +160,19 @@ export default function CreateFromSeer() {
           return POLL_INTERVAL_MS;
         }
         const status = query.state.data?.[0]?.session?.status;
-        if (status === 'completed') {
+        if (statusIsTerminal(status)) {
           if (completedAtRef.current === null) {
             completedAtRef.current = Date.now();
           }
           if (Date.now() - completedAtRef.current < POST_COMPLETE_POLL_MS) {
             return POLL_INTERVAL_MS;
           }
+          setPollingSettled(true);
           return false;
         }
+        // Status left "completed" (hook triggered a re-run), reset
         completedAtRef.current = null;
+        setPollingSettled(false);
         if (statusIsTerminal(status)) {
           return false;
         }
@@ -174,18 +181,23 @@ export default function CreateFromSeer() {
     }
   );
 
-  const session = data?.session ?? null;
+  const session = data?.session;
   const sessionStatus = session?.status ?? null;
   const sessionUpdatedAt = session?.updated_at ?? null;
 
   useEffect(() => {
-    const prevUpdatedAt = prevUpdatedAtRef.current;
-    prevUpdatedAtRef.current = sessionUpdatedAt;
+    if (!session) {
+      return;
+    }
+    const prevUpdatedAt = prevSessionStatusRef.current.updated_at;
+    const prevStatus = prevSessionStatusRef.current.status;
+    prevSessionStatusRef.current = {status: sessionStatus, updated_at: sessionUpdatedAt};
 
     const isTerminal = statusIsTerminal(sessionStatus);
+    const wasTerminal = statusIsTerminal(prevStatus);
 
     // Only trigger Dashboard rerender when transition to a new completed state
-    if (prevUpdatedAt !== sessionUpdatedAt && isTerminal && session) {
+    if (prevUpdatedAt !== sessionUpdatedAt && isTerminal && !wasTerminal) {
       if (isUpdating) {
         setisUpdating(false);
       }
@@ -197,18 +209,22 @@ export default function CreateFromSeer() {
           widgets: dashboardData.widgets,
         };
         setDashboard(newDashboard);
-
-        validateDashboardAndRecordMetrics(organization, newDashboard, seerRunId);
       }
     }
   }, [organization, seerRunId, isUpdating, sessionStatus, session, sessionUpdatedAt]);
+
+  useEffect(() => {
+    if (pollingSettled && dashboard !== EMPTY_DASHBOARD) {
+      validateDashboardAndRecordMetrics(organization, dashboard, seerRunId);
+    }
+  }, [pollingSettled, dashboard, organization, seerRunId]);
 
   const blockMessages = useMemo(
     () => (session ? extractMessages(session) : []),
     [session]
   );
 
-  const isLoading = !!seerRunId && !statusIsTerminal(sessionStatus) && !isError;
+  const isLoading = !statusIsTerminal(sessionStatus) && !isError;
 
   // Prevent repeat errors on the same widget
   const reportedWidgetErrors = useRef(new Set<string>());
@@ -248,6 +264,7 @@ export default function CreateFromSeer() {
         return;
       }
       setisUpdating(true);
+      setPollingSettled(false);
       completedAtRef.current = null;
       try {
         const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
