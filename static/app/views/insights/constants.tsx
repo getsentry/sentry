@@ -1,3 +1,4 @@
+// test: verifying changedSince
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
