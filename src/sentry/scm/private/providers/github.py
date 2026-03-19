@@ -718,9 +718,9 @@ class GitHubProvider:
         github_format = GITHUB_ARCHIVE_FORMAT_MAP[archive_format]
         url = self.client.get_archive_link(self.repository["name"], github_format, ref)
         token_data = self.client.get_access_token()
-        token = token_data["access_token"] if token_data else ""
+        token = token_data["access_token"] if token_data else None
         return ActionResult(
-            data=ArchiveLink(url=url, headers={"Authorization": f"token {token}"}),
+            data=ArchiveLink(url=url, headers={"Authorization": f"token {token}"} if token else {}),
             type="github",
             raw=url,
             meta={},
