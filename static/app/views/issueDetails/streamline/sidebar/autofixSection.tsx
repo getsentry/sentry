@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -25,6 +25,7 @@ import {
   RootCausePreview,
   SolutionPreview,
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconBug} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
@@ -33,6 +34,8 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -89,18 +92,85 @@ export function AutofixSection({group, project, event}: AutofixSectionProps) {
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
     >
-      <AutofixContent group={group} project={project} event={event} />
+      <AutofixContentHook
+        aiConfig={aiConfig}
+        group={group}
+        project={project}
+        event={event}
+      />
     </SidebarFoldSection>
   );
 }
 
-interface AutofixContentProps {
+const AutofixContentHook = HookOrDefault({
+  hookName: 'component:ai-configure-seer-quota-sidebar',
+  defaultComponent: AutofixContent,
+});
+
+export interface AutofixContentProps extends AutofixArtifactsProps {
+  aiConfig: ReturnType<typeof useAiConfig>;
+}
+
+export function AutofixContent({aiConfig, group, project, event}: AutofixContentProps) {
+  const organization = useOrganization();
+  const {data: setupCheck} = useSeerOnboardingCheck();
+
+  const needOrgSetup =
+    // scm integration doesn't exist
+    !setupCheck?.hasSupportedScmIntegration;
+
+  const needProjSetup =
+    // scm integration not linked to project
+    !aiConfig.seerReposLinked ||
+    // autofix setting not enabled
+    !aiConfig.autofixEnabled;
+
+  if (needOrgSetup || needProjSetup) {
+    return (
+      <Flex direction="column" border="muted" radius="md" padding="lg" gap="lg">
+        <Text bold>{t('Finish Configuring Seer')}</Text>
+        <Text>
+          {t(
+            'Your organization has access to Seer, which will allow you to run Autofix on your issues, but you aren’t getting the most out of it.'
+          )}
+        </Text>
+        <Text>{t('Autofix can:')}</Text>
+        <Container as="ol" margin="0">
+          <li>{t('Determine the root cause of your issue and how to reproduce it')}</li>
+          <li>{t('Propose a solution')}</li>
+          <li>{t('Create a code fix')}</li>
+        </Container>
+        <Flex>
+          {needOrgSetup ? (
+            <LinkButton
+              to={`/settings/${organization.slug}/seer/onboarding/`}
+              icon={<IconSeer />}
+            >
+              {t('Set Up Seer')}
+            </LinkButton>
+          ) : needProjSetup ? (
+            <LinkButton
+              to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+              icon={<IconSeer />}
+            >
+              {t('Set Up Seer for This Project')}
+            </LinkButton>
+          ) : null}
+        </Flex>
+      </Flex>
+    );
+  }
+
+  return <AutofixArtifacts group={group} project={project} event={event} />;
+}
+
+interface AutofixArtifactsProps {
   group: Group;
   project: Project;
   event?: Event;
 }
 
-function AutofixContent({group, project, event}: AutofixContentProps) {
+function AutofixArtifacts({group, project, event}: AutofixArtifactsProps) {
   const autofix = useExplorerAutofix(group.id);
   const artifacts = useMemo(
     () => getOrderedAutofixArtifacts(autofix.runState),
