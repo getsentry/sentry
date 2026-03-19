@@ -37,6 +37,7 @@ import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layou
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
+import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconAllProjects, IconChevron, IconGrabbable, IconMyProjects} from 'sentry/icons';
@@ -795,25 +796,12 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
     setItems(props.items);
   }, [props.items]);
 
-  // During a keyboard-driven drag, dnd-kit's document keydown listener runs in
-  // the bubbling phase, which fires too late to stop the browser from scrolling
-  // the sidebar when the user presses ArrowUp/Down. A capture-phase listener
-  // registered here fires first and prevents that default scroll action.
-  const isKeyboardDraggingRef = useRef(false);
-  useEffect(() => {
-    if (!isKeyboardDraggingRef.current) return undefined;
-    const preventArrowScroll = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        e.preventDefault();
-      }
-    };
-    document.addEventListener('keydown', preventArrowScroll, {capture: true});
-    return () =>
-      document.removeEventListener('keydown', preventArrowScroll, {capture: true});
-  }, []);
+  // During a keyboard-driven drag, lock page scroll so ArrowUp/Down don't
+  // scroll the sidebar behind the dragged item.
+  const scrollLock = useScrollLock(document.body);
 
   function handleDragEnd(event: DragEndEvent) {
-    isKeyboardDraggingRef.current = false;
+    scrollLock.release();
     const {active, over} = event;
     if (over && active.id !== over.id) {
       const oldIndex = items.findIndex(item => item.id === active.id);
@@ -829,9 +817,9 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-      onDragStart={() => (isKeyboardDraggingRef.current = true)}
+      onDragStart={() => scrollLock.acquire()}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => (isKeyboardDraggingRef.current = false)}
+      onDragCancel={() => scrollLock.release()}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <Stack direction="column" padding="0" width="100%">
