@@ -411,7 +411,7 @@ class GetArchiveLinkProtocol(Protocol):
     def get_archive_link(
         self,
         ref: str,
-        archive_format: ArchiveFormat = "tar.gz",
+        archive_format: ArchiveFormat = "tarball",
     ) -> ActionResult[ArchiveLink]: ...
 
 

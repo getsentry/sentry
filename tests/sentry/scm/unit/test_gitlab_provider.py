@@ -13069,7 +13069,7 @@ def test_forward_to_client(client, provider: GitLabProvider, param: ForwardToCli
 
 
 class TestGetArchiveLink:
-    def test_returns_tar_gz_url(self, provider: GitLabProvider, client: GitLabApiClient):
+    def test_returns_tar_gz_url(self, provider: GitLabProvider, client: unittest.mock.MagicMock):
         client.base_url = "https://gitlab.example.com"
         client.get_access_token.return_value = {
             "access_token": "fake-gitlab-token",
@@ -13084,7 +13084,7 @@ class TestGetArchiveLink:
         )
         assert result["data"]["headers"] == {"Authorization": "Bearer fake-gitlab-token"}
 
-    def test_returns_zip_url(self, provider: GitLabProvider, client: GitLabApiClient):
+    def test_returns_zip_url(self, provider: GitLabProvider, client: unittest.mock.MagicMock):
         client.base_url = "https://gitlab.example.com"
         client.get_access_token.return_value = {
             "access_token": "fake-gitlab-token",
@@ -13099,7 +13099,9 @@ class TestGetArchiveLink:
         )
         assert result["data"]["headers"] == {"Authorization": "Bearer fake-gitlab-token"}
 
-    def test_empty_ref_omits_sha_param(self, provider: GitLabProvider, client: GitLabApiClient):
+    def test_empty_ref_omits_sha_param(
+        self, provider: GitLabProvider, client: unittest.mock.MagicMock
+    ):
         client.base_url = "https://gitlab.example.com"
         client.get_access_token.return_value = {
             "access_token": "fake-gitlab-token",
