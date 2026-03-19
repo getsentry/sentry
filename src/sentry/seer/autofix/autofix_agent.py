@@ -22,7 +22,7 @@ from sentry.seer.autofix.prompts import (
     triage_prompt,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
-from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerRepoDefinition
@@ -250,7 +250,7 @@ def trigger_autofix_explorer(
     event_type = f"seer.{event_name}"
     try:
         sentry_app_event_type = SentryAppEventType(event_type)
-        if SeerOperator.has_access(organization=group.organization):
+        if SeerAutofixOperator.has_access(organization=group.organization):
             process_autofix_updates.apply_async(
                 kwargs={
                     "event_type": sentry_app_event_type,
