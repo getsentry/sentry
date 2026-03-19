@@ -1,14 +1,16 @@
 import uuid
 
+import pytest
+
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
-from sentry.testutils.cases import BaseOccurrenceTestCase
+from sentry.testutils.cases import OccurrenceTestCase
 from tests.snuba.api.endpoints.test_organization_events import (
     OrganizationEventsEndpointTestBase,
 )
 
 
 class OrganizationEventsOccurrencesDatasetEndpointTest(
-    OrganizationEventsEndpointTestBase, BaseOccurrenceTestCase
+    OrganizationEventsEndpointTestBase, OccurrenceTestCase
 ):
     callsite_name = "api.events.endpoints"
 
@@ -18,11 +20,13 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
     def test_simple(self) -> None:
         event_id = uuid.uuid4().hex
         trace_id = uuid.uuid4().hex
-        occ, group = self.create_occurrence(
-            data={
-                "event_id": event_id,
+        group = self.create_group(project=self.project)
+        occ = self.create_eap_occurrence(
+            event_id=event_id,
+            group_id=group.id,
+            trace_id=trace_id,
+            attributes={
                 "fingerprint": ["group1"],
-                "contexts": {"trace": {"trace_id": trace_id}},
             },
             project=self.project,
         )
@@ -43,16 +47,18 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         row = response.data["data"][0]
         assert row["id"] == event_id
         assert row["trace"] == trace_id
-        assert row["group_id"] == group.group_id
+        assert row["group_id"] == group.id
 
     def test_group_id(self) -> None:
         event_id = uuid.uuid4().hex
         trace_id = uuid.uuid4().hex
-        occ, group = self.create_occurrence(
-            data={
-                "event_id": event_id,
+        group = self.create_group(project=self.project)
+        occ = self.create_eap_occurrence(
+            event_id=event_id,
+            group_id=group.id,
+            trace_id=trace_id,
+            attributes={
                 "fingerprint": ["group1"],
-                "contexts": {"trace": {"trace_id": trace_id}},
             },
             project=self.project,
         )
@@ -65,9 +71,59 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
                 {
                     "field": ["count()"],
                     "statsPeriod": "1h",
-                    "query": f"project:{group.project.slug} group_id:{group.group_id}",
+                    "query": f"project:{group.project.slug} group_id:{group.id}",
                     "dataset": "occurrences",
                 }
             )
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
+
+    def _request_table_rate(self, field: str):
+        """Store two occurrences in a 2h window and request /events/ with the given rate field."""
+        group = self.create_group(project=self.project)
+        occurrences = [
+            self.create_eap_occurrence(
+                group_id=group.id,
+                project=self.project,
+                attributes={"fingerprint": ["g1"]},
+            ),
+            self.create_eap_occurrence(
+                group_id=group.id,
+                project=self.project,
+                attributes={"fingerprint": ["g1"]},
+            ),
+        ]
+        self.store_eap_items(occurrences)
+        with self.options(
+            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+        ):
+            return self.do_request(
+                {
+                    "field": [field],
+                    "statsPeriod": "2h",
+                    "project": [self.project.id],
+                    "dataset": "occurrences",
+                }
+            )
+
+    def test_eps_rate_aggregate(self) -> None:
+        # 2 events / 7200 seconds (2h).
+        response = self._request_table_rate("eps()")
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["eps()"] == pytest.approx(2 / 7200, abs=0.0001)
+        meta = response.data["meta"]
+        assert meta["fields"]["eps()"] == "rate"
+        assert meta["units"]["eps()"] == "1/second"
+
+    def test_epm_rate_aggregate(self) -> None:
+        # 2 events / (7200/60) = 2/120 per minute.
+        response = self._request_table_rate("epm()")
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["epm()"] == pytest.approx(2 / (7200 / 60), abs=0.001)
+        meta = response.data["meta"]
+        assert meta["fields"]["epm()"] == "rate"
+        assert meta["units"]["epm()"] == "1/minute"

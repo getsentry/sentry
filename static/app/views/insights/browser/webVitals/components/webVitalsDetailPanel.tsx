@@ -10,15 +10,15 @@ import type {
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardFilters} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {getLinkedDashboardUrl} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
@@ -37,7 +37,7 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';

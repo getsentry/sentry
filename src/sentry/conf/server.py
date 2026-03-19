@@ -20,10 +20,10 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.bgtask import BgTaskConfig
+from sentry.conf.types.cell_config import CellConfig, LocalityConfig
 from sentry.conf.types.encrypted_field import EncryptedFieldSettings
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
-from sentry.conf.types.region_config import CellConfig, LocalityConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
@@ -426,7 +426,7 @@ TEMPLATES = [
 
 SENTRY_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
-    "REGION": ["sentry.RegionOutbox"],
+    "REGION": ["sentry.CellOutbox"],
 }
 
 # Do not modify reordering
@@ -490,8 +490,8 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
-    "sentry.prevent",
     "sentry.seer",
+    "sentry.scm",
 )
 
 # Silence internal hints from Django's system checks
@@ -772,6 +772,10 @@ SEER_RPC_SHARED_SECRET: list[str] | None = None
 # Shared secret used to sign cross-region RPC requests to the seer microservice.
 SEER_API_SHARED_SECRET: str = ""
 
+# Sign requests to the SCM RPC endpoint
+# First element is used to sign requests; request is accepted if signed with any element in the list.
+SCM_RPC_SHARED_SECRET: list[str] | None = None
+
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
@@ -902,6 +906,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.relocation.tasks.transfer",
     "sentry.replays.data_export",
     "sentry.replays.tasks",
+    "sentry.scm.private.ipc",
     "sentry.sentry_apps.tasks.sentry_apps",
     "sentry.sentry_apps.tasks.service_hooks",
     "sentry.seer.autofix.issue_summary",
@@ -953,7 +958,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer",
     "sentry.tasks.statistical_detectors",
     "sentry.tasks.store",
-    "sentry.tasks.summaries.daily_summary",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.symbolication",
     "sentry.tasks.unmerge",
@@ -1134,6 +1138,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "seer-explorer-index": {
         "task": "seer:sentry.tasks.seer_explorer_index.schedule_explorer_index",
         "schedule": task_crontab("0", "*/1", "*", "*", "*"),
+    },
+    "context-engine-index": {
+        "task": "seer:sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
+        # Offset by 30 minutes from seer-explorer-index to spread load
+        "schedule": task_crontab("30", "*/1", "*", "*", "*"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
@@ -2182,7 +2191,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.2.1"
+SELF_HOSTED_STABLE_VERSION = "26.3.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2657,6 +2666,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-cutover": "default",
     "taskworker-email": "default",
     "taskworker-email-dlq": "default",
+    "taskworker-example": "default",
     "taskworker-ingest": "default",
     "taskworker-ingest-dlq": "default",
     "taskworker-ingest-errors": "default",
@@ -2839,7 +2849,7 @@ if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     ZERO_DOWNTIME_MIGRATIONS_USE_NOT_NULL = False
 
 SEER_DEFAULT_URL = "http://127.0.0.1:9091"  # for local development
-SEER_DEFAULT_TIMEOUT = 5
+SEER_DEFAULT_TIMEOUT = 30
 
 SEER_BREAKPOINT_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_BREAKPOINT_DETECTION_TIMEOUT = 5
@@ -3096,9 +3106,6 @@ BROKEN_TIMEOUT_THRESHOLD = 1000
 OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
 
 OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
-
-SENTRY_METRICS_INTERFACE_BACKEND = "sentry.sentry_metrics.client.snuba.SnubaMetricsBackend"
-SENTRY_METRICS_INTERFACE_BACKEND_OPTIONS: dict[str, Any] = {}
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False

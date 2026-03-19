@@ -14,6 +14,8 @@ from sentry.workflow_engine.models.detector import Detector
 
 
 class ErrorDetectorValidator(BaseDetectorTypeValidator):
+    data_source_required = False
+
     fingerprinting_rules = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     resolve_age = EmptyIntegerField(
         required=False,

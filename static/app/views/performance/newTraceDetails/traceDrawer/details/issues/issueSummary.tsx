@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventTitleError from 'sentry/components/eventTitleError';
+import {EventTitleError} from 'sentry/components/eventTitleError';
+import {GroupTitle} from 'sentry/components/groupTitle';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
@@ -13,7 +13,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getLocation, isTombstone} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface EventOrGroupHeaderProps {
   data: Group;
@@ -39,7 +39,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
         </IconWrapper>
       )}
       <ErrorBoundary customComponent={() => <EventTitleError />} mini>
-        <StyledEventOrGroupTitle
+        <StyledGroupTitle
           data={props.data}
           // hasSeen is undefined for GroupTombstone
           hasSeen={hasSeen === undefined ? true : hasSeen}
@@ -154,7 +154,7 @@ const TitleWithoutLink = styled('span')`
   text-overflow: ellipsis;
 `;
 
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
+const StyledGroupTitle = styled(GroupTitle)<{
   hasSeen: boolean;
 }>`
   font-weight: ${p => (p.hasSeen ? 400 : 600)};

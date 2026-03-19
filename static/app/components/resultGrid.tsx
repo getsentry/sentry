@@ -7,10 +7,10 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {RequestOptions} from 'sentry/api';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -167,7 +167,7 @@ type State = {
   sortBy: string;
 };
 
-function ResultGrid(props: Props) {
+export function ResultGrid(props: Props) {
   const api = useApi({persistInFlight: true});
   const location = useLocation();
   const navigate = useNavigate();
@@ -348,8 +348,6 @@ function ResultGrid(props: Props) {
     </ResultGridContainer>
   );
 }
-
-export default ResultGrid;
 
 /**
  * Styles migrated from sentry/result-grid.less

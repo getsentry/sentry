@@ -6,7 +6,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {IconChevron, IconList} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 export const COLLAPSE_COUNT = 5;
 
@@ -31,7 +30,7 @@ type Props = {
  * expand button to be outside the list of children
  *
  */
-function CollapsePanel({
+export function CollapsePanel({
   items,
   children,
   buttonTitle,
@@ -90,8 +89,6 @@ function ShowMoreButton({
   );
 }
 
-export default CollapsePanel;
-
 const ShowMore = styled('div')<{disableBorder: boolean}>`
   display: flex;
   align-items: center;
@@ -109,7 +106,7 @@ const ShowMore = styled('div')<{disableBorder: boolean}>`
       border-bottom: 1px solid ${p.theme.tokens.border.primary};
       border-bottom-left-radius: ${p.theme.radius.md};
       border-bottom-right-radius: ${p.theme.radius.md};
-      margin-bottom: ${space(2)};
+      margin-bottom: ${p.theme.space.xl};
     `}
 `;
 

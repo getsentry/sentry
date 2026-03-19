@@ -4,7 +4,7 @@ import {motion} from 'framer-motion';
 
 import type {Widget} from './types';
 
-const WidgetWrapper = styled(motion.div, {
+export const WidgetWrapper = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'displayType',
 })<{displayType: Widget['displayType']}>`
   position: relative;
@@ -35,5 +35,3 @@ const WidgetWrapper = styled(motion.div, {
     }
   }};
 `;
-
-export default WidgetWrapper;

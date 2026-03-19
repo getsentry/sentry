@@ -9,11 +9,11 @@ import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import {SeerDrawerBody} from 'sentry/components/events/autofix/v1/body';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v1/content';
 import {AiSetupConfiguration} from 'sentry/components/events/autofix/v2/autofixConfigureSeer';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 

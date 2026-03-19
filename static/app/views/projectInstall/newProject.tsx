@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 
 import {CreateProject} from './createProject';
 

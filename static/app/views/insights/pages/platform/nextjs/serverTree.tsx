@@ -6,12 +6,12 @@ import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Hovercard} from 'sentry/components/hovercard';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import TextOverflow from 'sentry/components/textOverflow';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   IconChevron,
   IconCode,
@@ -22,9 +22,9 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -339,7 +339,7 @@ function TreeNodeRenderer({
                 showUnderline={!exploreLink}
                 body={
                   <OneLineCodeBlock>
-                    <code>{`${itemPath.join('/')}`}</code>
+                    <code>{itemPath.join('/')}</code>
                     <Button
                       size="zero"
                       priority="transparent"

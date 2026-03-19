@@ -5,7 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import type {LinkProps} from '@sentry/scraps/link';
 
 import Feature from 'sentry/components/acl/feature';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 
 interface Props {
   buttonText: string;

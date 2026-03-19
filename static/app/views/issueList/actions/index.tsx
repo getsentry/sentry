@@ -13,20 +13,20 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
+import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   useIssueSelectionActions,
@@ -35,8 +35,8 @@ import {
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
-import ActionSet from './actionSet';
-import Headers from './headers';
+import {ActionSet} from './actionSet';
+import {Headers} from './headers';
 import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 
 type IssueListActionsProps = {
@@ -152,7 +152,7 @@ function ActionsBarPriority({
   );
 }
 
-function IssueListActions({
+export function IssueListActions({
   allResultsVisible,
   displayReprocessingActions,
   groupIds,
@@ -486,7 +486,3 @@ const AnimatedHeaderItemsContainer = styled(motion.div)`
   display: flex;
   align-items: center;
 `;
-
-export {IssueListActions};
-
-export default IssueListActions;

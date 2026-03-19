@@ -220,7 +220,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         # SUPERUSER_ORG_ID defaults to None, don't override it
         # Even if user is in an org, they can't elevate without SUPERUSER_ORG_ID configured
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org = self.create_organization(name="Default Org")
             self.create_member(user=self.user, organization=org)
 
@@ -419,7 +419,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         self.login_as(user=self.superuser, superuser=True)
 
         # Create org and add user as member
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org = self.create_organization(name="Default Org")
             self.create_member(user=self.user, organization=org)
 
@@ -453,7 +453,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert not user.is_superuser
 
     def test_superuser_with_permission_can_add_staff(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org = self.create_organization(name="Default Org")
             self.create_member(user=self.user, organization=org)
 
@@ -615,7 +615,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     def test_superuser_with_permission_can_remove_superuser(self) -> None:
         """Test that superuser with permission can remove superuser status"""
         # Add user to org so they pass the user_can_elevate check
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org = self.create_organization(name="Default Org")
             self.create_member(user=self.user, organization=org)
 
@@ -637,7 +637,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
     def test_superuser_with_permission_can_remove_staff(self) -> None:
         """Test that superuser with permission can remove staff status"""
         # Add user to org so they pass the user_can_elevate check
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org = self.create_organization(name="Default Org")
             self.create_member(user=self.user, organization=org)
 
@@ -753,7 +753,7 @@ class UserDetailsStaffUpdateTest(UserDetailsTest):
         self.login_as(user=self.staff_user, staff=True)
 
         # Create org and add user as member
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org = self.create_organization(name="Default Org")
             self.create_member(user=self.user, organization=org)
 
@@ -890,7 +890,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         self.get_error_response(self.user.id, status_code=400)
         self.get_error_response(self.user.id, organizations=None, status_code=400)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert DeletedOrganization.objects.count() == 0
 
         # test actual delete
@@ -904,7 +904,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
             status_code=204,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # deletes org_single_owner even though it wasn't specified in array
             # because it has a single owner
             assert (
@@ -938,7 +938,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         self.create_member(user=user2, organization=org_with_other_owner, role="owner")
         self.create_member(user=self.user, organization=org_as_other_owner, role="owner")
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member_records = list(
                 OrganizationMember.objects.filter(
                     organization__in=[org_with_other_owner.id, org_as_other_owner.id],
@@ -960,7 +960,7 @@ class UserDetailsDeleteTest(UserDetailsTest, HybridCloudTestMixin):
         for member in member_records:
             self.assert_org_member_mapping_not_exists(org_member=member)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # deletes org_single_owner even though it wasn't specified in array
             # because it has a single owner
             assert (

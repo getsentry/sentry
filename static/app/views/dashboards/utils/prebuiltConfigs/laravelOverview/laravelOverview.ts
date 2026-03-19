@@ -123,7 +123,7 @@ const JOBS_TABLE: Widget = {
         'count()',
         'failure_rate()',
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME, 'transaction'],
@@ -131,7 +131,7 @@ const JOBS_TABLE: Widget = {
         'count()',
         'failure_rate()',
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       fieldAliases: [
@@ -179,4 +179,9 @@ export const LARAVEL_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
     COMMANDS_TABLE,
     JOBS_TABLE,
   ],
+  onboarding: {
+    type: 'overview',
+    requiredProjectFlags: ['firstTransactionEvent'],
+    description: 'Get started with Laravel tracing',
+  },
 };

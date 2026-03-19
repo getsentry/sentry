@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import SeerAutomation from 'getsentry/views/seerAutomation/seerAutomation';
 

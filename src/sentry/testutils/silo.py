@@ -22,8 +22,8 @@ from django.test import override_settings
 
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
-from sentry.testutils.region import get_test_env_directory, override_regions
-from sentry.types.region import Cell, RegionCategory
+from sentry.testutils.cell import get_test_env_directory, override_cells
+from sentry.types.cell import Cell, RegionCategory
 from sentry.utils.snowflake import uses_snowflake_id
 
 if typing.TYPE_CHECKING:
@@ -37,52 +37,52 @@ SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
 def monkey_patch_single_process_silo_mode_state():
     class LocalSiloModeState(threading.local):
         mode: SiloMode | None = None
-        region: Cell | None = None
+        cell: Cell | None = None
 
     state = LocalSiloModeState()
 
     @contextlib.contextmanager
-    def enter(mode: SiloMode, region: Cell | None = None) -> Generator[None]:
+    def enter(mode: SiloMode, cell: Cell | None = None) -> Generator[None]:
         assert state.mode is None, (
             "Re-entrant invariant broken! Use exit_single_process_silo_context "
             "to explicit pass 'fake' RPC boundaries."
         )
 
         old_mode = state.mode
-        old_region = state.region
+        old_cell = state.cell
         state.mode = mode
-        state.region = region
+        state.cell = cell
         try:
             yield
         finally:
             state.mode = old_mode
-            state.region = old_region
+            state.cell = old_cell
 
     @contextlib.contextmanager
     def exit() -> Generator[None]:
         old_mode = state.mode
-        old_region = state.region
+        old_cell = state.cell
         state.mode = None
-        state.region = None
+        state.cell = None
         try:
             yield
         finally:
             state.mode = old_mode
-            state.region = old_region
+            state.cell = old_cell
 
     def get_mode() -> SiloMode | None:
         return state.mode
 
-    def get_region() -> Cell | None:
-        return state.region
+    def get_cell() -> Cell | None:
+        return state.cell
 
     SingleProcessSiloModeState.enter = staticmethod(enter)  # type: ignore[method-assign]
     SingleProcessSiloModeState.exit = staticmethod(exit)  # type: ignore[method-assign]
     SingleProcessSiloModeState.get_mode = staticmethod(get_mode)  # type: ignore[method-assign]
-    SingleProcessSiloModeState.get_region = staticmethod(get_region)  # type: ignore[method-assign]
+    SingleProcessSiloModeState.get_cell = staticmethod(get_cell)  # type: ignore[method-assign]
 
 
-def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Cell, ...]:
+def create_test_cells(*names: str, single_tenants: Iterable[str] = ()) -> tuple[Cell, ...]:
     from sentry.api.utils import generate_locality_url
 
     single_tenants = frozenset(single_tenants)
@@ -99,6 +99,10 @@ def create_test_regions(*names: str, single_tenants: Iterable[str] = ()) -> tupl
         )
         for (index, name) in enumerate(names)
     )
+
+
+# TODO(cells): Remove alias once no longer used in getsentry
+create_test_regions = create_test_cells
 
 
 def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
@@ -135,7 +139,7 @@ class SiloModeTestDecorator:
     A test marked with a single silo mode runs only in that mode by default. An
     `include_monolith_run=True` will add a secondary run in monolith mode.
 
-    If a test is marked with both control and region modes, then the primary run will
+    If a test is marked with both control and cell modes, then the primary run will
     be in monolith mode and a secondary run will be generated in each silo mode.
 
     When testing on more than one mode, if the decorator is on a test case class,
@@ -166,21 +170,29 @@ class SiloModeTestDecorator:
             Callable[..., Any],
         )
     ](
-        self, *, regions: Sequence[Cell] = (), include_monolith_run: bool = False
+        self,
+        *,
+        cells: Sequence[Cell] = (),
+        # TODO(cells): Remove alias once no longer used in getsentry
+        regions: Sequence[Cell] | None = None,
+        include_monolith_run: bool = False,
     ) -> Callable[[T], T]: ...
 
     def __call__(
         self,
         decorated_obj: Any = None,
         *,
-        regions: Sequence[Cell] = (),
+        cells: Sequence[Cell] = (),
+        # TODO(cells): Remove alias once no longer used in getsentry
+        regions: Sequence[Cell] | None = None,
         include_monolith_run: bool = False,
     ) -> Any:
         silo_modes = self.silo_modes
         if include_monolith_run:
             silo_modes |= frozenset([SiloMode.MONOLITH])
 
-        mod = _SiloModeTestModification(silo_modes=silo_modes, regions=tuple(regions))
+        resolved_cells = tuple(cells or regions or ())
+        mod = _SiloModeTestModification(silo_modes=silo_modes, cells=resolved_cells)
         return mod.apply if decorated_obj is None else mod.apply(decorated_obj)
 
 
@@ -189,7 +201,7 @@ class _SiloModeTestModification:
     """Encapsulate the set of changes made to a test class by a SiloModeTestDecorator."""
 
     silo_modes: frozenset[SiloMode]
-    regions: tuple[Cell, ...]
+    cells: tuple[Cell, ...]
 
     def __post_init__(self) -> None:
         if not self.silo_modes:
@@ -198,7 +210,7 @@ class _SiloModeTestModification:
     @contextmanager
     def test_config(self, silo_mode: SiloMode):
         with (
-            override_regions(self.regions) if self.regions else nullcontext(),
+            override_cells(self.cells) if self.cells else nullcontext(),
             assume_test_silo_mode(silo_mode, can_be_monolith=False),
         ):
             yield
@@ -334,7 +346,7 @@ Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to CONTROL.
 """
 
-region_silo_test = SiloModeTestDecorator(SiloMode.REGION)
+cell_silo_test = SiloModeTestDecorator(SiloMode.CELL)
 """
 Apply to test functions/classes to indicate that tests are
 expected to pass with the current silo mode set to REGION.
@@ -351,7 +363,7 @@ expected to pass with the current silo mode set to REGION.
 
 @contextmanager
 def assume_test_silo_mode(
-    desired_silo: SiloMode, can_be_monolith: bool = True, region_name: str | None = None
+    desired_silo: SiloMode, can_be_monolith: bool = True, cell_name: str | None = None
 ) -> Any:
     """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
     test code in a special silo context.
@@ -369,13 +381,13 @@ def assume_test_silo_mode(
         desired_silo = SiloMode.MONOLITH
 
     with override_settings(SILO_MODE=desired_silo):
-        if desired_silo == SiloMode.REGION:
-            region_dir = get_test_env_directory()
-            if region_name is None:
-                with region_dir.swap_to_default_region():
+        if desired_silo == SiloMode.CELL:
+            cell_dir = get_test_env_directory()
+            if cell_name is None:
+                with cell_dir.swap_to_default_cell():
                     yield
             else:
-                with region_dir.swap_to_region_by_name(region_name):
+                with cell_dir.swap_to_cell_by_name(cell_name):
                     yield
         else:
             with override_settings(SENTRY_REGION=None):
@@ -388,7 +400,7 @@ def assume_test_silo_mode_of(*models: type[BaseModel], can_be_monolith: bool = T
 
     The argument should be one or more model classes that are scoped to exactly one
     non-monolith mode. That is, they must be tagged with `control_silo_model` or
-    `region_silo_model`. The enclosed context is swapped into the appropriate
+    `cell_silo_model`. The enclosed context is swapped into the appropriate
     mode, allowing the model to be accessed.
 
     If no silo-scoped models are provided, no mode swap is performed.
@@ -436,7 +448,7 @@ _protected_operations: list[re.Pattern] = []
 
 def get_protected_operations() -> list[re.Pattern]:
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.hybridcloud.outbox.base import ReplicatedControlModel, ReplicatedRegionModel
+    from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 
     if len(_protected_operations):
         return _protected_operations
@@ -455,9 +467,7 @@ def get_protected_operations() -> list[re.Pattern]:
                     continue
                 seen_models.add(fk_model)
                 _protected_operations.append(protected_table(fk_model._meta.db_table, "delete"))
-            if issubclass(model, ReplicatedControlModel) or issubclass(
-                model, ReplicatedRegionModel
-            ):
+            if issubclass(model, ReplicatedControlModel) or issubclass(model, ReplicatedCellModel):
                 _protected_operations.append(protected_table(model._meta.db_table, "insert"))
                 _protected_operations.append(protected_table(model._meta.db_table, "update"))
                 _protected_operations.append(protected_table(model._meta.db_table, "delete"))
@@ -554,7 +564,7 @@ def validate_models_have_silos(exemptions: set[type[Model]], app_name: str | Non
         if model in exemptions:
             continue
         silo_limit = _model_silo_limit(model)
-        if SiloMode.REGION not in silo_limit.modes and SiloMode.CONTROL not in silo_limit.modes:
+        if SiloMode.CELL not in silo_limit.modes and SiloMode.CONTROL not in silo_limit.modes:
             raise ValueError(
                 f"{model!r} is marked as a pending model, but either needs a placement or an exemption in this test."
             )
@@ -632,9 +642,9 @@ def validate_hcfk_has_global_id(model: type[Model], related_model: type[Model]):
         return
 
     # but they cannot point to region models otherwise.
-    if SiloMode.REGION in _model_silo_limit(related_model).modes:
+    if SiloMode.CELL in _model_silo_limit(related_model).modes:
         raise ValueError(
-            f"{related_model!r} runs in {SiloMode.REGION}, but is related to {model!r} via a HybridCloudForeignKey! Region model ids are not global, unless you use a snowflake id."
+            f"{related_model!r} runs in {SiloMode.CELL}, but is related to {model!r} via a HybridCloudForeignKey! Region model ids are not global, unless you use a snowflake id."
         )
 
 

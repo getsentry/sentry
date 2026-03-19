@@ -80,7 +80,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import relocation_tasks
 from sentry.taskworker.retry import LastAction, Retry
 from sentry.taskworker.task import Task
-from sentry.types.region import get_local_region
+from sentry.types.cell import get_local_cell
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.users.services.lost_password_hash import lost_password_hash_service
@@ -288,7 +288,7 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
             # Send out the cross-region request.
             control_relocation_export_service.request_new_export(
                 relocation_uuid=str(uuid),
-                requesting_region_name=get_local_region().name,
+                requesting_region_name=get_local_cell().name,
                 replying_region_name=replying_region_name,
                 org_slug=org_slug,
                 encrypt_with_public_key=public_key_pem,
@@ -313,7 +313,7 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
     namespace=relocation_tasks,
     processing_deadline_duration=60 * 10,
     retry=Retry(times=4, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def fulfill_cross_region_export_request(
     uuid_str: str,
@@ -422,7 +422,7 @@ def fulfill_cross_region_export_request(
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def cross_region_export_timeout_check(uuid: str) -> None:
     """
@@ -519,7 +519,7 @@ def uploading_complete(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def preprocessing_scan(uuid: str) -> None:
     """
@@ -692,7 +692,7 @@ def preprocessing_scan(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def preprocessing_transfer(uuid: str) -> None:
     """
@@ -777,7 +777,7 @@ def preprocessing_transfer(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def preprocessing_baseline_config(uuid: str) -> None:
     """
@@ -825,7 +825,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def preprocessing_colliding_users(uuid: str) -> None:
     """
@@ -871,7 +871,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def preprocessing_complete(uuid: str) -> None:
     """
@@ -1092,7 +1092,7 @@ def _update_relocation_validation_attempt(
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def validating_start(uuid: str) -> None:
     """
@@ -1164,7 +1164,7 @@ def validating_start(uuid: str) -> None:
             timeout=_parse_duration(cb_conf["timeout"]),
             options=convert_dict_key_case(cb_conf["options"], camel_to_snake_keep_underscores),
             tags=[
-                f"relocation-into-{get_local_region().name}",
+                f"relocation-into-{get_local_cell().name}",
                 f"relocation-id-{uuid}",
             ],
         )
@@ -1192,7 +1192,7 @@ def validating_start(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_VALIDATION_POLLS, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def validating_poll(uuid: str, build_id: str) -> None:
     """
@@ -1287,7 +1287,7 @@ def validating_poll(uuid: str, build_id: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def validating_complete(uuid: str, build_id: str) -> None:
     """
@@ -1367,7 +1367,7 @@ def validating_complete(uuid: str, build_id: str) -> None:
     # The main reason to have this at all is to guard against transient errors, especially with RPC
     # or task timeouts.
     retry=Retry(times=MAX_SLOW_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def importing(uuid: str) -> None:
     """
@@ -1426,7 +1426,7 @@ def importing(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def postprocessing(uuid: str) -> None:
     """
@@ -1515,7 +1515,7 @@ def postprocessing(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def notifying_unhide(uuid: str) -> None:
     """
@@ -1558,7 +1558,7 @@ def notifying_unhide(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def notifying_users(uuid: str) -> None:
     """
@@ -1628,7 +1628,7 @@ def notifying_users(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def notifying_owner(uuid: str) -> None:
     """
@@ -1672,7 +1672,7 @@ def notifying_owner(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def completed(uuid: str) -> None:
     """
@@ -1701,7 +1701,7 @@ def completed(uuid: str) -> None:
     name="sentry.relocation.noop",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def noop():
     pass

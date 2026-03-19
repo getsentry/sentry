@@ -6,10 +6,9 @@ import type {Crumb} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
@@ -409,7 +408,7 @@ function LeafBreadCrumbLabel({
 const Wrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   min-height: 24px;
 
   .trace-id-copy-button {

@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 
-import CommitLink from 'sentry/components/commitLink';
+import {CommitLink} from 'sentry/components/commitLink';
 import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
@@ -49,6 +49,9 @@ export function renderResolutionReason({
     activity => activity.type === GroupActivityType.SET_RESOLVED_IN_RELEASE
   );
 
+  const integrationName = relevantActivity?.sentry_app?.name ?? null;
+  const resolvedActor = integrationName ? <strong>{integrationName}</strong> : actor;
+
   // Resolved in next release has current_release_version (semver only)
   if (relevantActivity && 'current_release_version' in relevantActivity.data) {
     const releaseVersion =
@@ -62,9 +65,9 @@ export function renderResolutionReason({
         <VersionComponent version={releaseVersion} projectId={project.id} />
       </VersionHoverCard>
     );
-    return statusDetails.actor
+    return resolvedActor
       ? tct('[actor] marked this issue as resolved in versions greater than [version].', {
-          actor,
+          actor: resolvedActor,
           version,
         })
       : tct(
@@ -76,9 +79,9 @@ export function renderResolutionReason({
   }
 
   if (statusDetails.inNextRelease) {
-    return actor
+    return resolvedActor
       ? tct('[actor] marked this issue as resolved in the upcoming release.', {
-          actor,
+          actor: resolvedActor,
         })
       : t('This issue has been marked as resolved in the upcoming release.');
   }
@@ -92,9 +95,9 @@ export function renderResolutionReason({
         <VersionComponent version={statusDetails.inRelease} projectId={project.id} />
       </VersionHoverCard>
     );
-    return actor
+    return resolvedActor
       ? tct('[actor] marked this issue as resolved in version [version].', {
-          actor,
+          actor: resolvedActor,
           version,
         })
       : tct('This issue has been marked as resolved in version [version].', {version});
@@ -126,7 +129,7 @@ export function renderResolutionReason({
   return hasStreamlinedUI ? null : t('This issue has been marked as resolved.');
 }
 
-function ResolutionBox(props: Props) {
+export function ResolutionBox(props: Props) {
   return (
     <BannerContainer priority="default">
       <BannerSummary>
@@ -183,5 +186,3 @@ const StreamlinedCommitLink = styled(CommitLink)`
     text-decoration: none;
   }
 `;
-
-export default ResolutionBox;

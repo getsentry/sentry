@@ -9,11 +9,11 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
-import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
+import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -22,9 +22,9 @@ import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {isUrl} from 'sentry/utils/string/isUrl';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
@@ -54,7 +54,7 @@ export interface EventTagsTreeRowProps {
   spacerCount?: number;
 }
 
-export default function EventTagsTreeRow({
+export function EventTagsTreeRow({
   event,
   content,
   tagKey,
@@ -196,7 +196,7 @@ function EventTagsTreeRowDropdown({
       label: t('Search feedback with this tag value'),
       hidden: !isFeedback,
       to: {
-        pathname: `/organizations/${organization.slug}/feedback/`,
+        pathname: `/organizations/${organization.slug}/issues/feedback/`,
         query: {...globalSelectionParams, ...query},
       },
     },

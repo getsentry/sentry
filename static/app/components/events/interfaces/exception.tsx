@@ -14,7 +14,7 @@ import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {ExceptionContent} from './crashContent/exception';
-import NoStackTraceMessage from './noStackTraceMessage';
+import {NoStackTraceMessage} from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
 type Props = {

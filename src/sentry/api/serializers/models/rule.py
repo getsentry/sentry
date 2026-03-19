@@ -24,6 +24,7 @@ from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
+    Condition,
     DataCondition,
     DataConditionGroup,
     Workflow,
@@ -34,6 +35,19 @@ from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
+
+# Check for unsupported conditions which exist in Workflows, but are unsupported in Rules
+# if we're trying to return these in legacy APIs, it's best to skip over them and warn the user
+UNSUPPORTED_CONDITIONS = [
+    Condition.EVENT_CREATED_BY_DETECTOR.value,
+    Condition.EVENT_SEEN_COUNT.value,
+    Condition.ISSUE_OPEN_DURATION.value,
+    Condition.ISSUE_PRIORITY_EQUALS.value,
+    Condition.ISSUE_PRIORITY_DEESCALATING.value,
+    Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL.value,
+    Condition.ISSUE_RESOLUTION_CHANGE.value,
+    Condition.ISSUE_RESOLVED_TRIGGER.value,
+]
 
 
 def generate_rule_label(project, rule, data):
@@ -546,8 +560,20 @@ class WorkflowEngineRuleSerializer(Serializer):
             result[workflow]["action_match"] = (
                 workflow.when_condition_group.logic_type if workflow.when_condition_group else None
             )
+
+            # Check if workflow has at least one WorkflowDataConditionGroup
+            # prefetched_wdcgs is set by Prefetch(to_attr="prefetched_wdcgs") in _fetch_workflows
+            prefetched_wdcgs: list[WorkflowDataConditionGroup] = workflow.prefetched_wdcgs  # type: ignore[attr-defined]
+            if not prefetched_wdcgs:
+                # Workflow has no WorkflowDataConditionGroups - set defaults
+                result[workflow]["filter_match"] = None
+                result[workflow]["conditions"] = []
+                result[workflow]["filters"] = []
+                result[workflow]["actions"] = []
+                continue
+
             # pick first DCG for filter_match (rules only have 1)
-            workflow_dcg = workflow.prefetched_wdcgs[0]  # type: ignore[attr-defined]
+            workflow_dcg = prefetched_wdcgs[0]
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
             # build up actions data
@@ -621,16 +647,52 @@ class WorkflowEngineRuleSerializer(Serializer):
                 if action.data.get("notes") == "":
                     action_data.pop("notes", None)
 
+                # XXX: workspace needs to be returned as a string
+                if action_data.get("workspace"):
+                    action_data["workspace"] = str(action_data["workspace"])
+
                 serialized_actions.append(action_data)
+
+            # Generate conditions and filters
+            projects = result[workflow]["projects"]
+            if projects:
+                conditions, filters = self._generate_rule_conditions_filters(
+                    workflow, projects[0], workflow_dcg
+                )
+            else:
+                conditions, filters = [], []
+
+            for f in filters:
+                # IssueCategoryFilter stores numeric string choices and must stay as str
+                if (
+                    f.get("value")
+                    and f.get("id") != "sentry.rules.filters.issue_category.IssueCategoryFilter"
+                ):
+                    try:
+                        f["value"] = int(f["value"])
+                    except (ValueError, TypeError):
+                        continue
+
+            result[workflow]["conditions"] = conditions
+            result[workflow]["filters"] = filters
+
+            trigger_conditions = (
+                list(workflow.when_condition_group.conditions.all())
+                if workflow.when_condition_group
+                else []
+            )
+            filter_conditions = list(workflow_dcg.condition_group.conditions.all())
+
+            for condition in trigger_conditions:
+                if condition.type in UNSUPPORTED_CONDITIONS:
+                    errors.append({"detail": f"Condition not supported: {condition.type}"})
+
+            for filter_condition in filter_conditions:
+                if filter_condition.type in UNSUPPORTED_CONDITIONS:
+                    errors.append({"detail": f"Filter not supported: {filter_condition.type}"})
 
             if len(errors):
                 result[workflow]["errors"] = errors
-            # Generate conditions and filters
-            conditions, filters = self._generate_rule_conditions_filters(
-                workflow, result[workflow]["projects"][0], workflow_dcg
-            )
-            result[workflow]["conditions"] = conditions
-            result[workflow]["filters"] = filters
 
             if workflow.id in last_triggered_lookup:
                 result[workflow]["last_triggered"] = last_triggered_lookup[workflow.id]

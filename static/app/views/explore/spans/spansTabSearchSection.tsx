@@ -12,7 +12,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
@@ -30,9 +30,9 @@ import {
   type AggregationKey,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
+import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {ExploreSchemaHintsSection} from 'sentry/views/explore/components/styles';
 import {

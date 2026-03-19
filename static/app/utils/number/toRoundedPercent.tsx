@@ -3,6 +3,6 @@
  *
  * toRoundedPercent(0.42555) === '42%'
  */
-export default function toRoundedPercent(value: number) {
+export function toRoundedPercent(value: number) {
   return `${Math.round(value * 100)}%`;
 }

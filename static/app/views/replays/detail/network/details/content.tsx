@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
-import useOrganization from 'sentry/utils/useOrganization';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import getOutputType, {
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
+import {
+  getOutputType,
   Output,
 } from 'sentry/views/replays/detail/network/details/getOutputType';
 import {
@@ -25,7 +26,7 @@ import {
 
 type Props = Parameters<typeof getOutputType>[0] & SectionProps;
 
-export default function NetworkDetailsContent(props: Props) {
+export function NetworkDetailsContent(props: Props) {
   const {item, isSetup, visibleTab} = props;
 
   const output = getOutputType(props);

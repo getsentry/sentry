@@ -11,14 +11,14 @@ from django.urls import reverse
 from django.utils import timezone as django_timezone
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from sentry_sdk import capture_exception
 
 from bitfield.types import BitHandler
 from sentry import analytics, audit_log, features, options, roles
 from sentry.analytics.events.organization_removed import OrganizationRemoved
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import ONE_DAY, region_silo_endpoint
+from sentry.api.base import ONE_DAY, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
@@ -68,11 +68,12 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
     calculate_sample_rates_of_projects,
@@ -244,6 +245,18 @@ ORG_OPTIONS = (
         "sentry:enable_seer_coding",
         bool,
         ENABLE_SEER_CODING_DEFAULT,
+    ),
+    (
+        "defaultCodingAgent",
+        "sentry:seer_default_coding_agent",
+        str,
+        SEER_DEFAULT_CODING_AGENT_DEFAULT,
+    ),
+    (
+        "defaultCodingAgentIntegrationId",
+        "sentry:seer_default_coding_agent_integration_id",
+        int,
+        None,
     ),
     (
         # Informs UI default for automated_run_stopping_point in project preferences
@@ -500,11 +513,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return value
 
     def _validate_granular_replay_permissions(self):
-        organization = self.context["organization"]
         request = self.context["request"]
-
-        if not features.has("organizations:granular-replay-permissions", organization):
-            raise NotFound("This feature is not enabled for your organization.")
 
         if not request.access.has_scope("org:write"):
             raise PermissionDenied(
@@ -602,6 +611,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         for key, option, type_, default_value in ORG_OPTIONS:
             if key not in data:
+                continue
+            if key == "enableSeerCoding" and features.has(
+                "organizations:seer-disable-coding-setting", org
+            ):
                 continue
             try:
                 option_inst = OrganizationOption.objects.get(organization=org, key=option)
@@ -1069,7 +1082,7 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @extend_schema(tags=["Organizations"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
@@ -1251,7 +1264,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
-                RegionScheduledDeletion.cancel(organization)
+                CellScheduledDeletion.cancel(organization)
             elif changed_data:
                 if "enabledConsolePlatforms" in changed_data:
                     create_console_platform_audit_log(
@@ -1287,7 +1300,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         # TODO: this will take a long time for organizations with a lot of projects
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
-        measure = SamplingMeasure.TRANSACTIONS
+        measure = SamplingMeasure.SEGMENTS
         if options.get("dynamic-sampling.check_span_feature_flag"):
             span_org_ids = options.get("dynamic-sampling.measure.spans") or []
             if org_id in span_org_ids:

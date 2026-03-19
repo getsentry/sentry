@@ -3,22 +3,22 @@ import styled from '@emotion/styled';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import SeenInfo from 'sentry/components/group/seenInfo';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {SeenInfo} from 'sentry/components/group/seenInfo';
+import {Version} from 'sentry/components/version';
+import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
 import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-export default function FirstLastSeenSection({group}: {group: Group}) {
+export function FirstLastSeenSection({group}: {group: Group}) {
   const organization = useOrganization();
   const {project} = group;
   const issueTypeConfig = getConfigForIssueType(group, group.project);

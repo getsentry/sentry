@@ -1,15 +1,87 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
-import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import {
+  formatTraceMetricsFunction,
+  TraceMetricsConfig,
+} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
+import {DisplayType, WidgetType, type WidgetQuery} from 'sentry/views/dashboards/types';
+import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+
+jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
+  return {
+    ...jest.requireActual('sentry/views/explore/components/traceItemSearchQueryBuilder'),
+    TraceItemSearchQueryBuilder: jest.fn(props => (
+      <div
+        data-test-id="trace-item-search-query-builder"
+        data-namespace={props.namespace ?? ''}
+        data-disable-recent-searches={String(props.disableRecentSearches ?? false)}
+      />
+    )),
+  };
+});
+
+const DASHBOARD_WIDGET_BUILDER_PATHNAME =
+  '/organizations/org-slug/dashboards/new/widget/new/';
 
 describe('TraceMetricsConfig', () => {
   let organization: Organization;
   beforeEach(() => {
     organization = OrganizationFixture();
+
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1]}));
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
   });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  describe('formatTraceMetricsFunction', () => {
+    it('formats a single parseable function string', () => {
+      expect(formatTraceMetricsFunction('avg(value,test_metric,millisecond,-)')).toBe(
+        'avg(test_metric)'
+      );
+    });
+
+    it('returns default value for unparseable string input', () => {
+      expect(formatTraceMetricsFunction('not-a-function', 'fallback')).toBe('fallback');
+    });
+
+    it('returns the raw value for unparseable string input when default is not provided', () => {
+      expect(formatTraceMetricsFunction('not-a-function')).toBe('not-a-function');
+    });
+
+    it('formats a single parseable function in an array', () => {
+      expect(formatTraceMetricsFunction(['avg(value,test_metric,millisecond,-)'])).toBe(
+        'avg(test_metric)'
+      );
+    });
+
+    it('formats multiple parseable functions in an array', () => {
+      expect(
+        formatTraceMetricsFunction([
+          'p50(value,test_metric,millisecond,-)',
+          'p75(value,test_metric,millisecond,-)',
+        ])
+      ).toBe('p50, p75(test_metric)');
+    });
+
+    it('handles unparseable function arrays gracefully', () => {
+      expect(formatTraceMetricsFunction(['not-a-function'])).toBe('(…)');
+    });
+  });
+
   describe('transformSeries', () => {
     it('uniquely identifies series with single yAxis and no groupings', () => {
       const data: EventsTimeSeriesResponse = {
@@ -613,6 +685,113 @@ describe('TraceMetricsConfig', () => {
       expect(result2).toHaveLength(2);
       expect(result2[0]!.seriesName).toBe('Cache Metrics : prod');
       expect(result2[1]!.seriesName).toBe('Cache Metrics : dev');
+    });
+  });
+
+  describe('TraceMetricsSearchBar', () => {
+    const SearchBar = TraceMetricsConfig.SearchBar;
+
+    const defaultWidgetQuery: WidgetQuery = {
+      name: '',
+      fields: [],
+      columns: [],
+      fieldAliases: [],
+      aggregates: [],
+      conditions: '',
+      orderby: '',
+    };
+
+    const defaultSearchBarProps = {
+      widgetQuery: defaultWidgetQuery,
+      onSearch: jest.fn(),
+      portalTarget: null,
+      onClose: jest.fn(),
+      getFilterWarning: undefined,
+      pageFilters: PageFiltersFixture(),
+    };
+
+    it('disables recent searches and clears namespace when multiple metrics are selected', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <SearchBar {...defaultSearchBarProps} />
+        </WidgetBuilderProvider>,
+        {
+          organization: OrganizationFixture({
+            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
+          }),
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                yAxis: ['avg(value,metric_a,counter,-)', 'avg(value,metric_b,gauge,-)'],
+                dataset: WidgetType.TRACEMETRICS,
+                displayType: DisplayType.LINE,
+              },
+            },
+          },
+        }
+      );
+
+      const searchBar = await screen.findByTestId('trace-item-search-query-builder');
+      expect(searchBar).toHaveAttribute('data-disable-recent-searches', 'true');
+      expect(searchBar).toHaveAttribute('data-namespace', '');
+    });
+
+    it('sets namespace to metric name and enables recent searches for single metric', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <SearchBar {...defaultSearchBarProps} />
+        </WidgetBuilderProvider>,
+        {
+          organization: OrganizationFixture({
+            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
+          }),
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                yAxis: ['avg(value,my_metric,counter,-)'],
+                dataset: WidgetType.TRACEMETRICS,
+                displayType: DisplayType.LINE,
+              },
+            },
+          },
+        }
+      );
+
+      const searchBar = await screen.findByTestId('trace-item-search-query-builder');
+      expect(searchBar).toHaveAttribute('data-disable-recent-searches', 'false');
+      expect(searchBar).toHaveAttribute('data-namespace', 'my_metric');
+    });
+
+    it('does not treat duplicate metrics as multiple metrics', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <SearchBar {...defaultSearchBarProps} />
+        </WidgetBuilderProvider>,
+        {
+          organization: OrganizationFixture({
+            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
+          }),
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                yAxis: [
+                  'avg(value,same_metric,counter,-)',
+                  'p50(value,same_metric,counter,-)',
+                ],
+                dataset: WidgetType.TRACEMETRICS,
+                displayType: DisplayType.LINE,
+              },
+            },
+          },
+        }
+      );
+
+      const searchBar = await screen.findByTestId('trace-item-search-query-builder');
+      expect(searchBar).toHaveAttribute('data-disable-recent-searches', 'false');
+      expect(searchBar).toHaveAttribute('data-namespace', 'same_metric');
     });
   });
 });

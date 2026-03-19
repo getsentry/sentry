@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import type {InputFieldProps, OnEvent} from 'sentry/components/forms/fields/inputField';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 
 interface SegmentedRadioFieldProps<Choices extends string = string> extends Omit<
   InputFieldProps,
@@ -26,7 +26,7 @@ function handleChange(
   onBlur(id, e);
 }
 
-function SegmentedRadioField<Choices extends string = string>(
+export function SegmentedRadioField<Choices extends string = string>(
   props: SegmentedRadioFieldProps<Choices>
 ) {
   return (
@@ -180,5 +180,3 @@ const Description = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   line-height: 1.4em;
 `;
-
-export default SegmentedRadioField;

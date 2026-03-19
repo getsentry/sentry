@@ -2,7 +2,7 @@ import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRe
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -13,7 +13,7 @@ import {
 } from 'sentry/components/globalModal/components';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
-import Edit from 'sentry/views/settings/components/dataScrubbing/modals/edit';
+import {Edit} from 'sentry/views/settings/components/dataScrubbing/modals/edit';
 import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   getMethodLabel,

@@ -1,7 +1,7 @@
 import type {ComponentProps} from 'react';
 import {lazy, Suspense, useEffect, useState} from 'react';
 
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {HookName, Hooks} from 'sentry/types/hooks';
 
 interface Params<H extends HookName> {
@@ -43,7 +43,7 @@ interface Params<H extends HookName> {
  * [1] /sentry/app/stores/hookStore.tsx
  * [2] /sentry/app/types/hooks.ts
  */
-function HookOrDefault<H extends HookName>({
+export function HookOrDefault<H extends HookName>({
   hookName,
   defaultComponent,
   defaultComponentPromise,
@@ -101,5 +101,3 @@ function HookOrDefault<H extends HookName>({
 
   return HookOrDefaultComponent;
 }
-
-export default HookOrDefault;

@@ -10,7 +10,7 @@ import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import textStyles from 'sentry/styles/text';
+import {textStyles} from 'sentry/styles/text';
 import type {NoteType} from 'sentry/types/alerts';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useMembers} from 'sentry/utils/useMembers';

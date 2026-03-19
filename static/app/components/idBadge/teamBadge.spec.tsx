@@ -3,7 +3,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import TeamStore from 'sentry/stores/teamStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 
 describe('TeamBadge', () => {
   beforeEach(() => {

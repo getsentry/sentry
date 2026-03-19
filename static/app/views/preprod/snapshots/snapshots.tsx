@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -6,14 +6,13 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
@@ -137,14 +136,53 @@ export default function SnapshotsPage() {
       : (filteredItems[0]?.name ?? null);
   const currentItem = filteredItems.find(i => i.name === currentItemName) ?? null;
 
-  useEffect(() => {
-    setVariantIndex(0);
-  }, [currentItemName]);
+  // Clamp variantIndex to valid range when the selected item changes implicitly
+  // (e.g. search filtering selects a new item with fewer variants)
+  const safeVariantIndex =
+    currentItem?.type === 'solo'
+      ? Math.min(variantIndex, currentItem.images.length - 1)
+      : variantIndex;
 
   const handleSelectItem = (name: string) => {
     setSelectedItemName(name);
     setVariantIndex(0);
   };
+
+  // Ref so the keydown handler reads current state without re-registering
+  const stateRef = useRef({filteredItems, currentItemName});
+  stateRef.current = {filteredItems, currentItemName};
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
+        return;
+      }
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        return;
+      }
+      e.preventDefault();
+
+      const {filteredItems: items, currentItemName: current} = stateRef.current;
+      const currentIndex = items.findIndex(i => i.name === current);
+      const nextIndex =
+        e.key === 'ArrowDown'
+          ? Math.min(currentIndex + 1, items.length - 1)
+          : Math.max(currentIndex - 1, 0);
+
+      if (nextIndex !== currentIndex && items[nextIndex]) {
+        setSelectedItemName(items[nextIndex].name);
+        setVariantIndex(0);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Defer the item passed to main content so the sidebar stays responsive
+  // while the expensive image rendering catches up
+  const deferredItem = useDeferredValue(currentItem);
 
   const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
   const diffImageBaseUrl = data
@@ -197,7 +235,7 @@ export default function SnapshotsPage() {
           minHeight="0"
           width="100%"
           overflow="hidden"
-          style={{maxHeight: 'calc(100vh - 160px)'}}
+          style={{maxHeight: 'calc(100vh - 205px)'}}
         >
           <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
             <SnapshotSidebarContent
@@ -218,8 +256,8 @@ export default function SnapshotsPage() {
           </DragHandle>
           <Flex flex="1" minWidth={0} overflow="hidden">
             <SnapshotMainContent
-              selectedItem={currentItem}
-              variantIndex={variantIndex}
+              selectedItem={deferredItem}
+              variantIndex={safeVariantIndex}
               onVariantChange={setVariantIndex}
               imageBaseUrl={imageBaseUrl}
               diffImageBaseUrl={diffImageBaseUrl}
@@ -240,7 +278,7 @@ export default function SnapshotsPage() {
 const DragHandle = styled('div')`
   display: grid;
   place-items: center;
-  width: ${space(2)};
+  width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;
   user-select: inherit;

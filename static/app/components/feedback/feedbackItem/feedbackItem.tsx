@@ -1,30 +1,30 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
-import ContextCard from 'sentry/components/events/contexts/contextCard';
-import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
-import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
-import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
-import FeedbackItemHeader from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
-import FeedbackItemSection from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
-import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackReplay';
-import FeedbackUrl from 'sentry/components/feedback/feedbackItem/feedbackUrl';
-import MessageSection from 'sentry/components/feedback/feedbackItem/messageSection';
-import MessageTitle from 'sentry/components/feedback/feedbackItem/messageTitle';
-import TraceDataSection from 'sentry/components/feedback/feedbackItem/traceDataSection';
+import {ContextCard} from 'sentry/components/events/contexts/contextCard';
+import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
+import {CrashReportSection} from 'sentry/components/feedback/feedbackItem/crashReportSection';
+import {FeedbackActivitySection} from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
+import {FeedbackItemHeader} from 'sentry/components/feedback/feedbackItem/feedbackItemHeader';
+import {FeedbackItemSection} from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
+import {FeedbackReplay} from 'sentry/components/feedback/feedbackItem/feedbackReplay';
+import {FeedbackUrl} from 'sentry/components/feedback/feedbackItem/feedbackUrl';
+import {MessageSection} from 'sentry/components/feedback/feedbackItem/messageSection';
+import {MessageTitle} from 'sentry/components/feedback/feedbackItem/messageTitle';
+import {TraceDataSection} from 'sentry/components/feedback/feedbackItem/traceDataSection';
 import {KeyValueData} from 'sentry/components/keyValueData';
-import PanelItem from 'sentry/components/panels/panelItem';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconChat, IconFire, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   eventData: Event | undefined;
@@ -32,7 +32,7 @@ interface Props {
   onBackToList?: () => void;
 }
 
-export default function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
+export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
   const organization = useOrganization();
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 

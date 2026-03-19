@@ -16,7 +16,7 @@ from sentry.db.models import Model
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
 from sentry.silo.base import SiloMode
-from sentry.types.region import get_local_locality
+from sentry.types.cell import get_local_locality
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
 
@@ -121,7 +121,7 @@ class AvatarBase(Model):
 
         url_base = options.get("system.url-prefix")
         silo_limit = getattr(cls._meta, "silo_limit", None)
-        if silo_limit is not None and SiloMode.REGION in silo_limit.modes:
+        if silo_limit is not None and SiloMode.CELL in silo_limit.modes:
             url_base = get_local_locality().to_url("")
 
         return urljoin(url_base, f"/{self.url_path}/{self.ident}/")

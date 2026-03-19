@@ -3,7 +3,9 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveField, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+
+import type {SelectValue} from 'sentry/types/core';
 
 const OPTIONS = [
   {value: 'apple', label: 'Apple'},
@@ -73,7 +75,7 @@ function AutoSaveTestForm({
   label = 'Favorite Fruit',
 }: AutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="fruit"
       schema={testSchema}
       initialValue={initialValue}
@@ -88,7 +90,7 @@ function AutoSaveTestForm({
           />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 
@@ -260,6 +262,68 @@ describe('SelectField', () => {
       }
       void TypeTestNotClearable;
     });
+
+    it('should allow number values', () => {
+      function TypeTestNumberValues() {
+        const form = useScrapsForm({
+          defaultValues: {number: 0},
+        });
+
+        return (
+          <form.AppForm form={form}>
+            <form.AppField name="number">
+              {field => (
+                <field.Select
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<number>();
+                    field.handleChange(val);
+                  }}
+                  options={[{value: 1, label: 'Apple'}]}
+                  isOptionDisabled={opt => {
+                    expectTypeOf(opt).toEqualTypeOf<SelectValue<number>>();
+                    return false;
+                  }}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+
+      void TypeTestNumberValues;
+    });
+
+    it('should allow objects as values', () => {
+      function TypeTestNumberValues() {
+        const form = useScrapsForm({
+          defaultValues: {number: {id: 0}},
+        });
+
+        return (
+          <form.AppForm form={form}>
+            <form.AppField name="number">
+              {field => (
+                <field.Select
+                  value={field.state.value}
+                  onChange={val => {
+                    expectTypeOf(val).toEqualTypeOf<{id: number}>();
+                    field.handleChange(val);
+                  }}
+                  options={[{value: {id: 1}, label: 'Apple'}]}
+                  isOptionDisabled={opt => {
+                    expectTypeOf(opt).toEqualTypeOf<SelectValue<{id: number}>>();
+                    return false;
+                  }}
+                />
+              )}
+            </form.AppField>
+          </form.AppForm>
+        );
+      }
+
+      void TypeTestNumberValues;
+    });
   });
 
   it('renders with a label', () => {
@@ -293,6 +357,51 @@ describe('SelectField', () => {
 
     expect(screen.getByText('Cherry')).toBeInTheDocument();
   });
+});
+
+it('does not pass unmatched object values to react-select callbacks like getOptionValue', () => {
+  // When the current value is an object that doesn't match any option (e.g.
+  // options haven't loaded yet), Select should pass null to react-select —
+  // not the raw object. If the raw object were forwarded, react-select would
+  // treat it as an option and call getOptionValue on it. A custom
+  // getOptionValue that accesses option-specific properties (like `.value.id`)
+  // would crash because the raw form value has a different shape.
+  const OBJECT_OPTIONS: Array<SelectValue<{id: string; name: string}>> = [
+    {value: {id: '1', name: 'Apple'}, label: 'Apple'},
+    {value: {id: '2', name: 'Banana'}, label: 'Banana'},
+  ];
+
+  function GetOptionValueForm() {
+    const form = useScrapsForm({
+      ...defaultFormOptions,
+      defaultValues: {fruit: {id: '99', name: 'Mango'} as {id: string; name: string}},
+    });
+
+    return (
+      <form.AppForm form={form}>
+        <form.AppField name="fruit">
+          {field => (
+            <field.Select
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={OBJECT_OPTIONS}
+              isValueEqual={(a, b) => a.id === b.id}
+              getOptionValue={opt => opt.value.id}
+            />
+          )}
+        </form.AppField>
+      </form.AppForm>
+    );
+  }
+
+  // {id: '99', name: 'Mango'} doesn't match any option. Before the fix, the
+  // raw object was passed to react-select which called getOptionValue on it.
+  // getOptionValue expects a full option {value: {id, name}, label} but
+  // receives the raw {id, name}, so opt.value is undefined and .id throws.
+  render(<GetOptionValueForm />);
+
+  // Should render without crashing — no selected value is shown
+  expect(screen.getByRole('textbox')).toBeInTheDocument();
 });
 
 describe('SelectField disabled', () => {
@@ -647,7 +756,7 @@ function MultiAutoSaveTestForm({
   label = 'Tags',
 }: MultiAutoSaveTestFormProps) {
   return (
-    <AutoSaveField
+    <AutoSaveForm
       name="tags"
       schema={multiTestSchema}
       initialValue={initialValue}
@@ -664,7 +773,7 @@ function MultiAutoSaveTestForm({
           />
         </field.Layout.Row>
       )}
-    </AutoSaveField>
+    </AutoSaveForm>
   );
 }
 

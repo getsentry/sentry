@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 
 function Child({height}: {height: number}) {
   return <div style={{height}} />;

@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
+import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 
 import {BreadcrumbProvider} from './settingsBreadcrumb/context';
 

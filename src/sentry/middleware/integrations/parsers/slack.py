@@ -41,7 +41,7 @@ from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
-from sentry.types.region import Cell
+from sentry.types.cell import Cell
 from sentry.utils import json
 from sentry.utils.signing import unsign
 
@@ -59,14 +59,6 @@ class SlackRequestParser(BaseRequestParser):
     control_classes = [
         SlackLinkIdentityView,
         SlackUnlinkIdentityView,
-    ]
-
-    region_classes = [
-        SlackLinkTeamView,
-        SlackUnlinkTeamView,
-        SlackCommandsEndpoint,
-        SlackEventEndpoint,
-        SlackOptionsLoadEndpoint,
     ]
 
     webhook_endpoints = [
@@ -157,7 +149,7 @@ class SlackRequestParser(BaseRequestParser):
             }
             logger.info("slack.control.view.open.failure", extra=logger_params)
 
-    def get_async_region_response(self, regions: Sequence[Cell]) -> HttpResponseBase:
+    def get_async_cell_response(self, cells: Sequence[Cell]) -> HttpResponseBase:
         if self.response_url is None:
             return self.get_response_from_control_silo()
 
@@ -188,7 +180,7 @@ class SlackRequestParser(BaseRequestParser):
 
         convert_to_async_slack_response.apply_async(
             kwargs={
-                "region_names": [r.name for r in regions],
+                "region_names": [r.name for r in cells],
                 "payload": create_async_request_payload(self.request),
                 "response_url": self.response_url,
             }
@@ -318,13 +310,13 @@ class SlackRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         try:
-            regions = self.get_regions_from_organizations()
+            cells = self.get_cells_from_organizations()
         except Integration.DoesNotExist:
             # Alert, as there may be a misconfiguration issue
             sentry_sdk.capture_exception()
             return self.get_default_missing_integration_response()
 
-        if len(regions) == 0:
+        if len(cells) == 0:
             # Swallow this exception, as this is likely due to a user removing
             # their org's slack integration, and slack will continue to retry
             # this request until it succeeds.
@@ -337,20 +329,20 @@ class SlackRequestParser(BaseRequestParser):
             self.action_option, self.action_id = SlackActionEndpoint.get_action_option(
                 slack_request=slack_request
             )
-            # All actions other than those below are sent to every region
+            # All actions other than those below are sent to every cell
             if self.action_option not in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
                 return (
-                    self.get_async_region_response(regions=regions)
+                    self.get_async_cell_response(cells=cells)
                     if self.response_url
-                    else self.get_response_from_all_regions()
+                    else self.get_response_from_all_cells()
                 )
 
         # Slack webhooks can only receive one synchronous call/response, as there are many
         # places where we post to slack on their webhook request. This would cause multiple
-        # calls back to slack for every region we forward to.
-        # By convention, we use the first integration organization/region
+        # calls back to slack for every cell we forward to.
+        # By convention, we use the first integration organization/cell
         return (
-            self.get_async_region_response(regions=[regions[0]])
+            self.get_async_cell_response(cells=[cells[0]])
             if self.response_url
-            else self.get_response_from_first_region()
+            else self.get_response_from_first_cell()
         )

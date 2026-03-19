@@ -7,9 +7,9 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration/duration';
-import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
-import Version from 'sentry/components/version';
+import {Duration} from 'sentry/components/duration/duration';
+import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
+import {Version} from 'sentry/components/version';
 import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -21,9 +21,9 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {type ColumnValueType} from 'sentry/utils/discover/fields';
 import {VersionContainer} from 'sentry/utils/discover/styles';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useRelease} from 'sentry/utils/useRelease';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
@@ -35,7 +35,7 @@ import type {
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
-import LogsTimestampTooltip from 'sentry/views/explore/logs/logsTimeTooltip';
+import {LogsTimestampTooltip} from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
   ColoredLogCircle,

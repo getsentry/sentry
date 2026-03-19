@@ -9,17 +9,17 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {useRole} from 'sentry/components/acl/useRole';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
+import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {
   getImageAttachmentRenderer,
   imageMimeTypes,
   webmMimeTypes,
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelFooter from 'sentry/components/panels/panelFooter';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -42,7 +42,7 @@ type Props = {
   onlyRenderScreenshot?: boolean;
 };
 
-function Screenshot({
+export function Screenshot({
   eventId,
   organization,
   screenshot,
@@ -172,8 +172,6 @@ function Screenshot({
     </StyledPanel>
   );
 }
-
-export default Screenshot;
 
 const StyledPanel = styled(Panel)`
   display: flex;

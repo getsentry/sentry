@@ -1,11 +1,11 @@
 """
 Outbox messages are how we propagate state changes between Silos
 
-Region & Control Silos can publish outbox messages which are propagated asynchronously to
-the 'other' silo. This means that outbox messages created on a Region Silo are pushed to
-the Control Silo, and outbox messages created on the Control Silo are pushed to relevant Region Silos.
+Cell & Control Silos can publish outbox messages which are propagated asynchronously to
+the 'other' silo. This means that outbox messages created on a Cell Silo are pushed to
+the Control Silo, and outbox messages created on the Control Silo are pushed to relevant Cell Silos.
 
-Messages are considered relevant to a Region Silo if there is a chance that a region has
+Messages are considered relevant to a Cell Silo if there is a chance that a cell has
 a record that relies on the outbox message. Often this boils down to relations to organizations
 or users. However, SentryApps and ApiApplications are special.
 
@@ -13,8 +13,8 @@ or users. However, SentryApps and ApiApplications are special.
 
 Within the outbox functionality there are two outbox models:
 
-- `RegionOutbox` is for messages made in a Region that need to be delivered to Control Silo
-- `ControlOutbox` is for messages made in Control Silo that need to be propagated to Region Silos.
+- `CellOutbox` is for messages made in a Cell that need to be delivered to Control Silo
+- `ControlOutbox` is for messages made in Control Silo that need to be propagated to Cell Silos.
 
 ### Saving outbox messages
 
@@ -35,12 +35,12 @@ with transaction.atomic():
 ### Outbox message processing
 
 Outbox messages are delivered periodically (each minute) by the `sentry.tasks.enqueue_outbox_jobs`.
-This task runs in both Control and Region Silos and triggers the `send_signal()` method on outbox
+This task runs in both Control and Cell Silos and triggers the `send_signal()` method on outbox
 model records.
 
-Attached signal handlers are triggered in the region that the outbox message was generated in.
+Attached signal handlers are triggered in the cell that the outbox message was generated in.
 Signal handlers are responsible for doing any local changes (recording tombstones) and sending RPC
-calls to update state on the other region.
+calls to update state on the other cell.
 
 Should the signal handler raise an error for any reason, it will remain in the outbox until it can
 be successfully delivered.
@@ -55,8 +55,8 @@ from typing import TypeVar
 from sentry.db.models import Model
 from sentry.hybridcloud.services.tombstone import (
     RpcTombstone,
+    cell_tombstone_service,
     control_tombstone_service,
-    region_tombstone_service,
 )
 from sentry.silo.base import SiloMode
 
@@ -72,9 +72,7 @@ def maybe_process_tombstone(
     tombstone = RpcTombstone(table_name=model._meta.db_table, identifier=object_identifier)
     # tombstones sent from control must have a region name, and monolith needs to provide a region_name
     if region_name or SiloMode.get_current_mode() == SiloMode.CONTROL:
-        region_tombstone_service.record_remote_tombstone(
-            region_name=region_name, tombstone=tombstone
-        )
+        cell_tombstone_service.record_remote_tombstone(cell_name=region_name, tombstone=tombstone)
     else:
         control_tombstone_service.record_remote_tombstone(tombstone=tombstone)
     return None

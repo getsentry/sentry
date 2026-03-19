@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.utils.console_platforms import organization_has_console_platform_access
@@ -21,7 +21,7 @@ def normalize_symbol_source(key, source):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class BuiltinSymbolSourcesEndpoint(Endpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {

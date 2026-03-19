@@ -5,7 +5,6 @@ import {Stack} from '@sentry/scraps/layout';
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
@@ -54,7 +53,7 @@ function ReplaySection({
   ) : null;
 }
 
-export default function ReplayPreview({
+export function ReplayPreview({
   event,
   organization,
 }: {
@@ -83,5 +82,5 @@ export default function ReplayPreview({
 const ReplaySectionTitle = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

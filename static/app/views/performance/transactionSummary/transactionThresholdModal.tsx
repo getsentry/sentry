@@ -11,15 +11,14 @@ import {Select} from '@sentry/scraps/select';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
-import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
+import {withApi} from 'sentry/utils/withApi';
+import {withProjects} from 'sentry/utils/withProjects';
 
 import {useEventViewProject} from './useEventViewProject';
 import {transactionSummaryRouteWithQuery} from './utils';
@@ -28,11 +27,6 @@ export enum TransactionThresholdMetric {
   TRANSACTION_DURATION = 'duration',
   LARGEST_CONTENTFUL_PAINT = 'lcp',
 }
-
-const METRIC_CHOICES = [
-  {label: t('Transaction Duration'), value: 'duration'},
-  {label: t('Largest Contentful Paint'), value: 'lcp'},
-];
 
 type Props = {
   api: Client;
@@ -168,12 +162,19 @@ function TransactionThresholdModal({
           required
         >
           <Select
-            required
-            options={METRIC_CHOICES.slice()}
+            options={[
+              {
+                label: t('Transaction Duration'),
+                value: TransactionThresholdMetric.TRANSACTION_DURATION,
+              },
+              {
+                label: t('Largest Contentful Paint'),
+                value: TransactionThresholdMetric.LARGEST_CONTENTFUL_PAINT,
+              },
+            ]}
             name="responseMetric"
-            label={t('Calculation Method')}
             value={metric}
-            onChange={(option: {value: TransactionThresholdMetric}) => {
+            onChange={option => {
               setMetric(option.value);
             }}
           />
@@ -256,7 +257,7 @@ function TransactionThresholdModal({
 }
 
 const Instruction = styled('div')`
-  margin-bottom: ${space(4)};
+  margin-bottom: ${p => p.theme.space['3xl']};
 `;
 
 export const modalCss = css`

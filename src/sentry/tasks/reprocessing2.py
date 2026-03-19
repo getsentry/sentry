@@ -24,7 +24,7 @@ from sentry.utils.query import TaskBulkQueryState, task_run_batch_query
     name="sentry.tasks.reprocessing2.reprocess_group",
     namespace=issues_tasks,
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def reprocess_group(
     project_id: int,
@@ -140,7 +140,7 @@ def reprocess_group(
     namespace=issues_tasks,
     processing_deadline_duration=60 * 5,
     retry=Retry(times=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def handle_remaining_events(

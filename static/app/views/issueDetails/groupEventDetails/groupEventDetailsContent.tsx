@@ -6,23 +6,23 @@ import {Button} from '@sentry/scraps/button';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
+import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
-import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
+import {EventHydrationDiff} from 'sentry/components/events/eventHydrationDiff';
 import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
-import EventReplay from 'sentry/components/events/eventReplay';
+import {EventReplay} from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {AggregateSpanDiff} from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
-import EventBreakpointChart from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
-import EventComparison from 'sentry/components/events/eventStatisticalDetector/eventComparison';
+import {EventBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
+import {EventComparison} from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
@@ -33,7 +33,7 @@ import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventXrayDiff} from 'sentry/components/events/eventXrayDiff';
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
-import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
+import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
@@ -60,7 +60,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
@@ -72,7 +72,7 @@ import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isJavascriptPlatform, isMobilePlatform} from 'sentry/utils/platform';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {
   getHangProfileData,
@@ -484,7 +484,7 @@ export function EventDetailsContent({
   );
 }
 
-export default function GroupEventDetailsContent({
+export function GroupEventDetailsContent({
   group,
   event,
   project,

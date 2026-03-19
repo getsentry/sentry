@@ -6,13 +6,13 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
   getApiQueryData,
@@ -21,10 +21,10 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useApi} from 'sentry/utils/useApi';
+import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const PAGE_TITLE = t('Personal Tokens');
 const API_TOKEN_QUERY_KEY = [getApiUrl('/api-tokens/')] as const;

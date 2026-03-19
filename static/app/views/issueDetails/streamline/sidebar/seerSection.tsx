@@ -14,19 +14,18 @@ import {ExplorerArtifactPreviews} from 'sentry/components/events/autofix/v2/arti
 import {ExplorerSeerSectionCtaButton} from 'sentry/components/events/autofix/v2/autofixSidebarCtaButton';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
+import {Resources} from 'sentry/views/issueDetails/streamline/sidebar/resources';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {SeerSectionCtaButton} from './seerSectionCtaButton';
@@ -95,7 +94,7 @@ function SeerSectionContent({
   return null;
 }
 
-export default function SeerSection({
+export function SeerSection({
   group,
   project,
   event,
@@ -149,7 +148,7 @@ export default function SeerSection({
     <HeaderContainer>{t('Resources')}</HeaderContainer>
   ) : (
     <HeaderContainer>
-      {t('Seer')}
+      {t('Seer Autofix')}
       <IconSeer />
     </HeaderContainer>
   );
@@ -246,7 +245,7 @@ const ResourcesWrapper = styled('div')`
 
 const ResourcesContent = styled('div')`
   position: relative;
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const HeaderContainer = styled('div')`

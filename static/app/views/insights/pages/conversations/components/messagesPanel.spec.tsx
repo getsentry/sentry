@@ -7,16 +7,20 @@ import {MessagesPanel} from './messagesPanel';
 function createMockNode(overrides: {
   id: string;
   attributes?: Record<string, string | number>;
+  endTimestamp?: number;
   startTimestamp?: number;
 }) {
-  const {id, attributes = {}, startTimestamp = 1000} = overrides;
+  const {id, attributes = {}, startTimestamp = 1000, endTimestamp} = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
     type: 'span' as const,
     op: 'gen_ai.generate',
     startTimestamp,
+    endTimestamp: end,
     value: {
       start_timestamp: startTimestamp,
+      end_timestamp: end,
     },
     attributes: {
       // Must be 'ai_client' for getIsAiGenerationSpan to return true
@@ -30,16 +34,20 @@ function createMockNode(overrides: {
 function createMockToolNode(overrides: {
   id: string;
   toolName: string;
+  endTimestamp?: number;
   startTimestamp?: number;
 }) {
-  const {id, toolName, startTimestamp = 1000} = overrides;
+  const {id, toolName, startTimestamp = 1000, endTimestamp} = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
     type: 'span' as const,
     op: 'gen_ai.execute_tool',
     startTimestamp,
+    endTimestamp: end,
     value: {
       start_timestamp: startTimestamp,
+      end_timestamp: end,
     },
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',

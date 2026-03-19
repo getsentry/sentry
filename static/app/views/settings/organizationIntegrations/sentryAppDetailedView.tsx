@@ -12,10 +12,10 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'sentry/actionCreators/sentryAppInstallations';
-import CircleIndicator from 'sentry/components/circleIndicator';
-import Confirm from 'sentry/components/confirm';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
+import {Confirm} from 'sentry/components/confirm';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
@@ -23,7 +23,7 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getSentryAppInstallStatus,
@@ -38,13 +38,13 @@ import {
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
+import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 import {SplitInstallationIdModal} from 'sentry/views/settings/organizationIntegrations/SplitInstallationIdModal';
 
 function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {

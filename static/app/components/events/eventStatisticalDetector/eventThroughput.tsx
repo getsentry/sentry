@@ -27,8 +27,8 @@ import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEven
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {transformEventStats} from 'sentry/views/performance/trends/utils/transformEventStats';
 
 const BUCKET_SIZE = 6 * 60 * 60; // 6 hours in seconds;
 

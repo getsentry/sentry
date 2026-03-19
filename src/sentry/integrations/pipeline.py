@@ -62,9 +62,9 @@ def ensure_integration(key: str, data: IntegrationData) -> Integration:
     return integration
 
 
-def is_violating_region_restriction(organization_id: int, integration_id: int):
+def is_violating_cell_restriction(organization_id: int, integration_id: int):
     """
-    Returns True if the organization_id provided does NOT reside within the same region as other
+    Returns True if the organization_id provided does NOT reside within the same cell as other
     organizations which have installed the provided integration.
     """
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
@@ -80,14 +80,14 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
     }
 
     organization_ids = {oi.organization_id for oi in ois}
-    region_names = (
+    cell_names = (
         OrganizationMapping.objects.filter(organization_id__in=organization_ids)
         .values_list("cell_name", flat=True)
         .distinct()
     )
 
-    if len(region_names) > 1:
-        logger.warning("region_violation", extra={"regions": region_names, **logger_extra})
+    if len(cell_names) > 1:
+        logger.warning("cell_violation", extra={"cells": cell_names, **logger_extra})
 
     try:
         mapping = OrganizationMapping.objects.get(organization_id=organization_id)
@@ -95,7 +95,7 @@ def is_violating_region_restriction(organization_id: int, integration_id: int):
         logger.warning("mapping_missing", extra=logger_extra)
         return True
 
-    return mapping.region_name not in region_names
+    return mapping.cell_name not in cell_names
 
 
 class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
@@ -298,11 +298,11 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             if not (identity and identity_model):
                 raise NotImplementedError("Integration requires an identity")
             default_auth_id = identity_model.id
-        if self.provider.is_region_restricted and is_violating_region_restriction(
+        if self.provider.is_region_restricted and is_violating_cell_restriction(
             organization_id=self.organization.id, integration_id=self.integration.id
         ):
             self.get_logger().info(
-                "finish_pipeline.multi_region_install_error",
+                "finish_pipeline.multi_cell_install_error",
                 extra={
                     "organization_id": self.organization.id if self.organization else None,
                     "provider_key": self.provider.key,
@@ -310,7 +310,7 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
                 },
             )
             return self.error(
-                "This integration has already been installed on another Sentry organization which resides in a different region. Installation could not be completed."
+                "This integration has already been installed on another Sentry organization which resides in a different cell. Installation could not be completed."
             )
 
         org_integration = self.integration.add_organization(

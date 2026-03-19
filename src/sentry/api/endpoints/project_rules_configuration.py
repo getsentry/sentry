@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, TICKET_ACTIONS
 from sentry.models.project import Project
@@ -19,7 +19,7 @@ from sentry.rules.actions.notify_event_service import NotifyEventServiceAction
 from sentry.rules.actions.sentry_apps.base import SentryAppEventAction
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {

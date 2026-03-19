@@ -7,8 +7,8 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

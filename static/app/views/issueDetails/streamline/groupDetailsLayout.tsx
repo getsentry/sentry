@@ -16,8 +16,8 @@ import {
 } from 'sentry/views/issueDetails/streamline/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
-import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
-import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
+import {StreamlinedGroupHeader} from 'sentry/views/issueDetails/streamline/header/header';
+import {StreamlinedSidebar} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
 import {
   getGroupReprocessingStatus,

@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {AlertLink} from '@sentry/scraps/alert';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import GroupReleaseChart from 'sentry/components/group/releaseChart';
-import SeenInfo from 'sentry/components/group/seenInfo';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {GroupReleaseChart} from 'sentry/components/group/releaseChart';
+import {SeenInfo} from 'sentry/components/group/seenInfo';
+import {Placeholder} from 'sentry/components/placeholder';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -154,7 +154,7 @@ function GroupReleaseStats({
           )}
         </Fragment>
       ) : (
-        <Placeholder height="346px" bottomGutter={4} />
+        <Placeholder height="346px" bottomGutter="3xl" />
       )}
     </div>
   );

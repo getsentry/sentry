@@ -7,18 +7,17 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {BarChart} from 'sentry/components/charts/barChart';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import Placeholder from 'sentry/components/placeholder';
-import TimeSince from 'sentry/components/timeSince';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -53,7 +52,7 @@ const bucketLabels = {
   '> 1 year': t('> 1 year'),
 };
 
-function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
+export function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
   const {
     data: oldestIssues,
     isPending: isOldestIssuesLoading,
@@ -195,8 +194,6 @@ function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
   );
 }
 
-export default TeamIssuesAge;
-
 const ChartWrapper = styled('div')`
   padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0 ${p => p.theme.space.xl};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -218,7 +215,7 @@ const StyledPanelTable = styled(PanelTable)`
     p.isEmpty &&
     css`
       & > div:last-child {
-        padding: 48px ${space(2)};
+        padding: 48px ${p.theme.space.xl};
       }
     `}
 `;

@@ -1,4 +1,6 @@
 import type {ReactNode} from 'react';
+import {useSortable} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,6 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconAdd} from 'sentry/icons';
 import {IconDelete} from 'sentry/icons/iconDelete';
+import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
@@ -35,21 +38,21 @@ export function ToolbarVisualizeHeader() {
 
 interface ToolbarVisualizeDropdownProps {
   aggregateOptions: Array<SelectOption<SelectKey>>;
-  canDelete: boolean;
   fieldOptions: Array<SelectOption<SelectKey>>;
   onChangeAggregate: (option: SelectOption<SelectKey>) => void;
   onChangeArgument: (index: number, option: SelectOption<SelectKey>) => void;
-  onDelete: () => void;
   parsedFunction: ParsedFunction | null;
+  dragColumnId?: number;
   label?: ReactNode;
   loading?: boolean;
   onClose?: () => void;
+  onDelete?: () => void;
   onSearch?: (search: string) => void;
 }
 
 export function ToolbarVisualizeDropdown({
+  dragColumnId,
   aggregateOptions,
-  canDelete,
   fieldOptions,
   onChangeAggregate,
   onChangeArgument,
@@ -60,13 +63,31 @@ export function ToolbarVisualizeDropdown({
   label,
   loading,
 }: ToolbarVisualizeDropdownProps) {
+  const {attributes, listeners, setNodeRef, transform} = useSortable({
+    id: dragColumnId ?? 0,
+    transition: null,
+  });
+
   const aggregateFunc = parsedFunction?.name;
   const aggregateDefinition = aggregateFunc
     ? getFieldDefinition(aggregateFunc, 'span')
     : undefined;
 
   return (
-    <ToolbarRow>
+    <ToolbarRow
+      ref={setNodeRef}
+      style={{transform: CSS.Transform.toString(transform)}}
+      {...attributes}
+    >
+      {dragColumnId === undefined ? null : (
+        <Button
+          aria-label={t('Drag to reorder')}
+          priority="transparent"
+          size="zero"
+          icon={<IconGrabbable size="sm" />}
+          {...listeners}
+        />
+      )}
       {label}
       <AggregateCompactSelect
         search
@@ -99,7 +120,7 @@ export function ToolbarVisualizeDropdown({
           loading={loading}
         />
       )}
-      {canDelete ? (
+      {onDelete ? (
         <Button
           priority="transparent"
           icon={<IconDelete />}

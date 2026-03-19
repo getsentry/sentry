@@ -14,7 +14,7 @@ import {
 } from 'sentry/components/globalModal/components';
 import CommandPaletteModal from 'sentry/components/modals/deprecatedCommandPalette';
 import {setSearchMap} from 'sentry/components/search/sources/formSource';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 
 jest.mock('sentry/actionCreators/navigation');
 
@@ -88,6 +88,10 @@ describe('Command Palette Modal', () => {
 
     await userEvent.click(badges[0]!);
 
-    expect(navigateTo).toHaveBeenCalledWith('/test-1/', expect.anything());
+    expect(navigateTo).toHaveBeenCalledWith(
+      '/test-1/',
+      expect.anything(),
+      expect.anything()
+    );
   });
 });

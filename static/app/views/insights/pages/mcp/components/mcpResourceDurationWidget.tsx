@@ -1,9 +1,9 @@
 import {t} from 'sentry/locale';
-import GroupedDurationWidget from 'sentry/views/insights/pages/mcp/components/groupedDurationWidget';
+import {GroupedDurationWidget} from 'sentry/views/insights/pages/mcp/components/groupedDurationWidget';
 import {MCPReferrer} from 'sentry/views/insights/pages/mcp/utils/referrer';
 import {SpanFields} from 'sentry/views/insights/types';
 
-export default function McpResourceDurationWidget() {
+export function McpResourceDurationWidget() {
   return (
     <GroupedDurationWidget
       groupBy={SpanFields.MCP_RESOURCE_URI}

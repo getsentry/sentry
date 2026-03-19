@@ -7,28 +7,28 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
-import DetailLabel from 'admin/components/detailLabel';
-import DetailList from 'admin/components/detailList';
-import DetailsContainer from 'admin/components/detailsContainer';
-import DetailsPage from 'admin/components/detailsPage';
-import PromoCodeClaimants from 'admin/components/promoCodes/promoCodeClaimants';
-import PromoCodeModal from 'admin/components/promoCodes/promoCodeModal';
+import {DetailLabel} from 'admin/components/detailLabel';
+import {DetailList} from 'admin/components/detailList';
+import {DetailsContainer} from 'admin/components/detailsContainer';
+import {DetailsPage} from 'admin/components/detailsPage';
+import {PromoCodeClaimants} from 'admin/components/promoCodes/promoCodeClaimants';
+import {AddPromoCodeModal as PromoCodeModal} from 'admin/components/promoCodes/promoCodeModal';
 import type {PromoCode} from 'admin/types';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 
-function PromoCodeDetails() {
+export function PromoCodeDetails() {
   const {codeId} = useParams<{codeId: string}>();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -151,5 +151,3 @@ function PromoCodeDetails() {
     />
   );
 }
-
-export default PromoCodeDetails;

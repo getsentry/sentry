@@ -6,8 +6,8 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -24,7 +24,7 @@ import {isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   Table,
   TableBody,

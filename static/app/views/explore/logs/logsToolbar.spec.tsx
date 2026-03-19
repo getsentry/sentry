@@ -57,6 +57,13 @@ describe('LogsToolbar', () => {
       ],
       match: [MockApiClient.matchQuery({attributeType: 'string', itemType: 'logs'})],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({attributeType: 'boolean', itemType: 'logs'})],
+    });
   });
 
   describe('visualize section', () => {
@@ -301,6 +308,19 @@ describe('LogsToolbar', () => {
       match: [
         MockApiClient.matchQuery({
           attributeType: 'number',
+          itemType: 'logs',
+          substringMatch: 'searched',
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+      match: [
+        MockApiClient.matchQuery({
+          attributeType: 'boolean',
           itemType: 'logs',
           substringMatch: 'searched',
         }),

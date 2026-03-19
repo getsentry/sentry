@@ -6,12 +6,12 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
-import MonitorForm from 'sentry/views/insights/crons/components/monitorForm';
+import {MonitorForm} from 'sentry/views/insights/crons/components/monitorForm';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 jest.mock('sentry/utils/useTeams');

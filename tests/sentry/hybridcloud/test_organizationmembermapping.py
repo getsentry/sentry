@@ -88,7 +88,7 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
 
     def test_upsert_happy_path(self) -> None:
         inviter = self.create_user("foo@example.com")
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om_id = OrganizationMember.objects.get(
                 organization_id=self.organization.id, user_id=self.user.id
             ).id
@@ -135,14 +135,14 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
 
         with outbox_runner():
             org = self.create_organization("test", owner=self.user)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
         assert not om.user_is_active
 
     def test_save_user_pushes_is_active(self) -> None:
         with outbox_runner():
             org = self.create_organization("test", owner=self.user)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
         assert om.user_is_active
 
@@ -150,14 +150,14 @@ class OrganizationMappingTest(TransactionTestCase, HybridCloudTestMixin):
             self.user.is_active = False
             self.user.save()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om.refresh_from_db()
         assert not om.user_is_active
 
     def test_update_user_pushes_is_active(self) -> None:
         with outbox_runner():
             org = self.create_organization("test", owner=self.user)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             om = OrganizationMember.objects.get(organization_id=org.id, user_id=self.user.id)
         assert om.user_is_active
 

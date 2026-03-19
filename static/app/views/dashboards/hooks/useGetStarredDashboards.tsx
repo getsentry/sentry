@@ -1,8 +1,8 @@
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 export function getQueryKey(organization: Organization): ApiQueryKey {

@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import FormContext from 'sentry/components/forms/formContext';
-import FormField from 'sentry/components/forms/formField';
+import {FormContext} from 'sentry/components/forms/formContext';
+import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {
   METRIC_DETECTOR_FORM_FIELDS,

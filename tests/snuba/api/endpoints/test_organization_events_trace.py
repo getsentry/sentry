@@ -6,6 +6,12 @@ import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry import options
+from sentry.issues.grouptype import (
+    PerformanceFileIOMainThreadGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.group import Group
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.testutils.cases import OccurrenceTestCase, TraceTestCase
 from sentry.utils.samples import load_data
@@ -638,7 +644,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         assert response.status_code == 404
 
 
-class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
+class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase, OccurrenceTestCase):
     url_name = "sentry-api-0-organization-events-trace"
     check_generation = True
 
@@ -1434,6 +1440,86 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert "tags" not in trace_transaction
         assert "measurements" not in trace_transaction
 
+    def test_load_performance_issues_with_eap_as_source_of_truth(self) -> None:
+        self.load_trace()
+
+        group_ids = list(
+            Group.objects.filter(
+                project=self.project,
+                type__in=[
+                    PerformanceFileIOMainThreadGroupType.type_id,
+                    PerformanceSlowDBQueryGroupType.type_id,
+                ],
+            ).values_list("id", flat=True)
+        )
+        assert len(group_ids) == 2
+
+        issue_occ_id_1 = uuid4().hex
+        issue_occ_id_2 = uuid4().hex
+        offender_span_id = "0012" * 4
+
+        for occ_id in [issue_occ_id_1, issue_occ_id_2]:
+            IssueOccurrence(
+                id=occ_id,
+                project_id=self.project.id,
+                event_id=self.root_event.event_id,
+                fingerprint=[uuid4().hex],
+                issue_title="EAP Test Issue",
+                subtitle="eap test",
+                resource_id=None,
+                evidence_data={
+                    "parent_span_ids": [],
+                    "offender_span_ids": [offender_span_id],
+                },
+                evidence_display=[],
+                type=PerformanceFileIOMainThreadGroupType,
+                detection_time=self.day_ago,
+                level="info",
+                culprit="test",
+            ).save()
+
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    project=self.project,
+                    group_id=group_ids[0],
+                    trace_id=self.trace_id,
+                    event_id=self.root_event.event_id,
+                    issue_occurrence_id=issue_occ_id_1,
+                    timestamp=self.day_ago,
+                ),
+                self.create_eap_occurrence(
+                    project=self.project,
+                    group_id=group_ids[1],
+                    trace_id=self.trace_id,
+                    event_id=self.root_event.event_id,
+                    issue_occurrence_id=issue_occ_id_2,
+                    timestamp=self.day_ago,
+                ),
+            ]
+        )
+
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                    "api.trace.load_performance_issues"
+                ],
+            }
+        ):
+            with self.feature(self.FEATURES):
+                response = self.client_get(
+                    data={"project": -1},
+                )
+
+        assert response.status_code == 200, response.content
+        trace_transaction = response.data["transactions"][0]
+        assert len(trace_transaction["performance_issues"]) == 2
+        for perf_issue in trace_transaction["performance_issues"]:
+            assert perf_issue["event_id"] == self.root_event.event_id
+            assert perf_issue["project_id"] == self.project.id
+            assert perf_issue["suspect_spans"] == [offender_span_id]
+
 
 class OrganizationEventsTraceMetaEndpointTest(
     OrganizationEventsTraceEndpointBase, OccurrenceTestCase
@@ -1520,13 +1606,13 @@ class OrganizationEventsTraceMetaEndpointTest(
                     project=self.project,
                     group_id=first_group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 ),
                 self.create_eap_occurrence(
                     project=self.project,
                     group_id=second_group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 ),
             ]
         )

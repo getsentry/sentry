@@ -8,7 +8,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
 
 describe('OrganizationFeatureFlagsProviderRow', () => {

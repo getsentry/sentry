@@ -13,7 +13,7 @@ from sentry.hybridcloud.rpc.resolvers import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
 )
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.projects.services.project import ProjectFilterArgs, RpcProject, RpcProjectOptionValue
 from sentry.projects.services.project.model import ProjectUpdateArgs
 from sentry.silo.base import SiloMode
@@ -22,7 +22,7 @@ from sentry.users.services.user import RpcUser
 
 class ProjectService(RpcService):
     key = "project"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CELL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
@@ -30,42 +30,43 @@ class ProjectService(RpcService):
 
         return DatabaseBackedProjectService()
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
     def get_many_by_organizations(
         self,
         *,
-        region_name: str,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
         organization_ids: list[int],
     ) -> list[RpcProject]:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
+    @cell_rpc_method(resolve=ByOrganizationIdAttribute("project"))
     @abstractmethod
     def get_option(self, *, project: RpcProject, key: str) -> RpcProjectOptionValue:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
+    @cell_rpc_method(resolve=ByOrganizationIdAttribute("project"))
     @abstractmethod
     def update_option(self, *, project: RpcProject, key: str, value: OptionValue) -> bool:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
+    @cell_rpc_method(resolve=ByOrganizationIdAttribute("project"))
     @abstractmethod
     def delete_option(self, *, project: RpcProject, key: str) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_by_id(self, *, organization_id: int, id: int) -> RpcProject | None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_by_slug(self, *, organization_id: int, slug: str) -> RpcProject | None:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def serialize_many(
         self,
@@ -77,7 +78,7 @@ class ProjectService(RpcService):
     ) -> list[OpaqueSerializedResponse]:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def create_project_for_organization(
         self,
@@ -91,7 +92,7 @@ class ProjectService(RpcService):
     ) -> RpcProject:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_or_create_project_for_organization(
         self,
@@ -105,7 +106,7 @@ class ProjectService(RpcService):
     ) -> RpcProject:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def update_project(
         self,

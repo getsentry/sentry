@@ -1,6 +1,6 @@
 import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 
 describe('FeatureDisabled', () => {
   it('renders', () => {

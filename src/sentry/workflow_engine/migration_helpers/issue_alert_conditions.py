@@ -6,6 +6,7 @@ from sentry.notifications.types import AssigneeTargetType
 from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.match import MatchType
+from sentry.workflow_engine.endpoints.validators.base.data_condition import DataConditionInput
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 
@@ -16,6 +17,13 @@ class DataConditionKwargs:
     comparison: Any
     condition_result: bool
     condition_group: DataConditionGroup
+
+    def to_input(self) -> DataConditionInput:
+        return {
+            "type": self.type,
+            "comparison": self.comparison,
+            "conditionResult": self.condition_result,
+        }
 
 
 def create_every_event_data_condition(
@@ -411,9 +419,16 @@ data_condition_translator_mapping: dict[
 }
 
 
-def translate_to_data_condition(data: Mapping[str, Any], dcg: DataConditionGroup) -> DataCondition:
+def translate_to_data_condition_data(
+    data: Mapping[str, Any], dcg: DataConditionGroup
+) -> DataConditionKwargs:
     translator = data_condition_translator_mapping.get(data["id"])
     if not translator:
         raise ValueError(f"Unsupported condition: {data['id']}")
 
-    return DataCondition(**asdict(translator(data, dcg)))
+    return translator(data, dcg)
+
+
+def translate_to_data_condition(data: Mapping[str, Any], dcg: DataConditionGroup) -> DataCondition:
+    data_condition_data = translate_to_data_condition_data(data, dcg)
+    return DataCondition(**asdict(data_condition_data))

@@ -14,10 +14,10 @@ import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 export default function DataConsentModal({closeModal}: ModalRenderProps) {
   const organization = useOrganization();

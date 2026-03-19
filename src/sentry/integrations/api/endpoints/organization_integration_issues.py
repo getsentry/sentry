@@ -5,16 +5,16 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.integrations.api.bases.organization_integrations import (
-    RegionOrganizationIntegrationBaseEndpoint,
+    CellOrganizationIntegrationBaseEndpoint,
 )
 from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.models.organization import Organization
 
 
-@region_silo_endpoint
-class OrganizationIntegrationIssuesEndpoint(RegionOrganizationIntegrationBaseEndpoint):
+@cell_silo_endpoint
+class OrganizationIntegrationIssuesEndpoint(CellOrganizationIntegrationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,

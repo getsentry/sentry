@@ -18,7 +18,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {TourStep} from 'sentry/components/modals/featureTourModal';
 import {TourImage, TourText} from 'sentry/components/modals/featureTourModal';
 import {
@@ -26,16 +26,16 @@ import {
   CopySetupInstructionsGate,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
@@ -100,7 +100,7 @@ type Props = {
   project: Project;
 };
 
-function ReleasesPromo({organization, project}: Props) {
+export function ReleasesPromo({organization, project}: Props) {
   const {data, isPending} = useApiQuery<SentryApp[]>(
     [
       getApiUrl(`/organizations/$organizationIdOrSlug/sentry-apps/`, {
@@ -310,5 +310,3 @@ sentry-cli releases finalize "$VERSION"`;
     </Panel>
   );
 }
-
-export default ReleasesPromo;

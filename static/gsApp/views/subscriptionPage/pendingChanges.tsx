@@ -25,7 +25,7 @@ import {
   getReservedBudgetCategoryFromCategories,
   getReservedBudgetDisplayName,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {
   formatOnDemandBudget,
   hasOnDemandBudgetsFeature,
@@ -39,7 +39,7 @@ type Props = {
   subscription: Subscription;
 };
 
-function PendingChanges({organization, subscription}: Props) {
+export function PendingChanges({organization, subscription}: Props) {
   const {pendingChanges} = subscription;
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -466,5 +466,3 @@ const StyledAlert = styled(Alert)`
     padding: 0;
   }
 `;
-
-export default PendingChanges;

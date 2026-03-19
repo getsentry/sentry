@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 
 import {DateTime} from 'sentry/components/dateTime';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {DebugIdBundle, DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
