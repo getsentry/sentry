@@ -176,9 +176,9 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
 
 interface AutofixArtifactsProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
+  event: Event;
   group: Group;
   project: Project;
-  event?: Event;
 }
 
 function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProps) {
