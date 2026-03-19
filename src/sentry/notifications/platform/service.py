@@ -238,9 +238,9 @@ class NotificationService[T: NotificationData]:
         threading_options: ThreadingOptions,
         thread: NotificationThread | None,
         target: NotificationTarget,
-        result: SendResult,
+        result: SendResult | SendFailure,
     ) -> None:
-        if result.status == SendStatus.SUCCESS and result.provider_message_id is not None:
+        if isinstance(result, SendResult) and result.provider_message_id is not None:
             if thread is None:
                 threading_config = ThreadingConfig(
                     key_type=threading_options.thread_key.key_type,
@@ -261,7 +261,7 @@ class NotificationService[T: NotificationData]:
                 )
 
         # If the first send failed, then we don't create a record since it'll be orphaned
-        elif result.status in (SendStatus.HALT, SendStatus.FAILURE) and thread is not None:
+        elif isinstance(result, SendFailure) and thread is not None:
             ThreadingService.store_error(
                 thread=thread,
                 provider_key=target.provider_key,

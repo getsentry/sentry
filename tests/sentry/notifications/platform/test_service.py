@@ -368,7 +368,7 @@ class NotificationServiceThreadingTest(TestCase):
         service.notify_target(target=self.target, threading_options=self.threading_options)
 
         # Second message fails
-        mock_send.return_value = SendResult(
+        mock_send.return_value = SendFailure(
             status=SendStatus.HALT,
             exception=IntegrationConfigurationError(message="channel_not_found"),
             error_code=404,
