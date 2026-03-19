@@ -20,7 +20,7 @@ export default function SeerAutomationProjects() {
             `Configure [rca:Autofix] by connecting your repositories with projects. Connecting your source code is required and gives the coding agent context for Root Cause Analysis, Solution generation, and PR creation. Enable Autofix Handoff to automatically process and fix actionable issues as they are detected. [docs:Read the docs] to learn what Seer can do.`,
             {
               rca: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/root-cause-analysis/#root-cause-analysis" />
+                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#root-cause-analysis" />
               ),
               docs: (
                 <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/#seer-capabilities" />

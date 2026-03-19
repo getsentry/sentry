@@ -671,11 +671,11 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         conditions = [{"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}]
         payload = {
             "name": "hello world",
-            "owner": self.user.id,
             "actionMatch": "any",
             "filterMatch": "any",
             "actions": [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
             "conditions": conditions,
+            "owner": f"user:{self.user.id}",
         }
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
@@ -696,6 +696,23 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     def test_no_owner(self) -> None:
         conditions = [{"id": "sentry.rules.conditions.reappeared_event.ReappearedEventCondition"}]
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+
+        # first set it up so that it does have an owner
+        payload: dict[str, Any] = {
+            "name": "hello world",
+            "owner": f"user:{self.user.id}",
+            "actionMatch": "any",
+            "filterMatch": "any",
+            "actions": actions,
+            "conditions": conditions,
+        }
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        assert response.data["owner"] == f"user:{self.user.id}"
+
         payload = {
             "name": "hello world",
             "owner": None,
@@ -708,6 +725,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
         )
         assert response.data["id"] == str(self.rule.id)
+        assert response.data["owner"] is None
         assert_rule_from_payload(self.rule, payload)
 
         with self.feature("organizations:workflow-engine-rule-serializers"):
@@ -748,6 +766,10 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 **payload,
             )
         assert_serializer_results_match(response.data, workflow_response.data)
+        assert workflow_response.data.get("owner") == f"team:{team.id}"
+        self.dual_written_workflow.refresh_from_db()
+        assert self.dual_written_workflow.owner_team_id == team.id
+        assert self.dual_written_workflow.owner_user_id is None
 
         payload = {
             "name": "hello world 2",
@@ -774,6 +796,10 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
                 **payload,
             )
         assert_serializer_results_match(response.data, workflow_response.data)
+        assert workflow_response.data.get("owner") == f"user:{self.user.id}"
+        self.dual_written_workflow.refresh_from_db()
+        assert self.dual_written_workflow.owner_team_id is None
+        assert self.dual_written_workflow.owner_user_id == self.user.id
 
     def test_team_owner_not_member(self) -> None:
         self.organization.flags.allow_joinleave = False

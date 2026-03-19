@@ -2,6 +2,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {
   SERIES_NAME_PART_DELIMITER,
+  SERIES_QUERY_DELIMITER,
   transformLegacySeriesToTimeSeries,
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
@@ -35,24 +36,49 @@ export function transformWidgetSeriesToTimeSeries(
   const fieldAliases = firstQuery?.fieldAliases ?? [];
 
   const seriesName = series.seriesName ?? aggregates[0] ?? '';
+
+  // The query prefix (alias or conditions) is separated by ' > ' from the
+  // rest of the series name. This is set by transformEventsResponseToSeries
+  // (for aliases with group-by) and getSeriesQueryPrefix (for conditions).
+  const queryDelimiterIndex = seriesName.indexOf(SERIES_QUERY_DELIMITER);
+  const queryName =
+    queryDelimiterIndex >= 0 ? seriesName.slice(0, queryDelimiterIndex) : undefined;
+  const unprefixedName =
+    queryDelimiterIndex >= 0
+      ? seriesName.slice(queryDelimiterIndex + SERIES_QUERY_DELIMITER.length)
+      : seriesName;
+
+  // If no ' > ' delimiter, try matching by alias in the ' : ' delimited parts.
+  // This handles the alias-without-group-by case where transformEventsResponseToSeries
+  // uses ' : ' (e.g., "Chrome : count()").
   const splitSeriesName = seriesName.split(SERIES_NAME_PART_DELIMITER);
+  const splitUnprefixedName =
+    queryDelimiterIndex >= 0
+      ? unprefixedName.split(SERIES_NAME_PART_DELIMITER)
+      : splitSeriesName;
+  const widgetQuery =
+    widget.queries.find(({conditions}) => conditions && queryName === conditions) ??
+    widget.queries.find(({name}) => name && splitSeriesName.includes(name)) ??
+    firstQuery;
+  const effectiveQueryName = queryName ?? (widgetQuery?.name || undefined);
+
+  // Pass the unprefixed series name so transformLegacySeriesToTimeSeries
+  // doesn't misinterpret the query prefix as a group-by value.
+  const effectiveSeries =
+    queryDelimiterIndex >= 0 ? {...series, seriesName: unprefixedName} : series;
 
   const yAxis =
-    aggregates.find(aggregate => splitSeriesName.includes(aggregate)) ??
+    aggregates.find(aggregate => splitUnprefixedName.includes(aggregate)) ??
     aggregates[0] ??
     '';
 
-  const widgetQuery =
-    widget.queries.find(({name}) => name && splitSeriesName.includes(name)) ?? firstQuery;
-  const queryName = widgetQuery?.name || undefined;
-
   const timeSeries = transformLegacySeriesToTimeSeries(
-    series,
+    effectiveSeries,
     timeseriesResultsTypes,
     timeseriesResultsUnits,
     columns,
     yAxis,
-    queryName
+    effectiveQueryName
   );
 
   if (!timeSeries) {
@@ -66,10 +92,13 @@ export function transformWidgetSeriesToTimeSeries(
       ? fieldAliases[fieldIndex]
       : undefined;
 
-  const labelParts = [queryName, fieldAlias ?? formatTimeSeriesLabel(timeSeries)];
+  const labelParts = [
+    effectiveQueryName,
+    fieldAlias ?? formatTimeSeriesLabel(timeSeries),
+  ];
   // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
-  if (aggregates.length > 1 && columns.length > 1) {
-    labelParts.push(timeSeries.yAxis);
+  if (aggregates.length > 1 && columns.length > 0) {
+    labelParts.push(yAxis);
   }
 
   const label = labelParts

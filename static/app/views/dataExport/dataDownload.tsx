@@ -125,7 +125,7 @@ export default function DataDownload() {
       case ExportQueryType.ISSUES_BY_TAG:
         return `/organizations/${orgSlug}/issues/`;
       case ExportQueryType.DISCOVER:
-        return `/organizations/${orgSlug}/discover/queries/`;
+        return `/organizations/${orgSlug}/explore/discover/queries/`;
       case ExportQueryType.EXPLORE:
         if (traceItemDataset === TraceItemDataset.LOGS) {
           return `/organizations/${orgSlug}/explore/logs/`;
@@ -210,7 +210,7 @@ export default function DataDownload() {
     } = download;
 
     const to = {
-      pathname: `/organizations/${orgSlug}/discover/results/`,
+      pathname: `/organizations/${orgSlug}/explore/discover/results/`,
       query: info,
     };
 

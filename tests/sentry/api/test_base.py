@@ -22,7 +22,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response, is_streaming_response
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils.cursors import Cursor
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
@@ -507,7 +507,7 @@ class PaginateTest(APITestCase):
         close_streaming_response(response)
 
 
-@all_silo_test(regions=create_test_regions("us", "eu"))
+@all_silo_test(cells=create_test_cells("us", "eu"))
 class CustomerDomainTest(APITestCase):
     def test_resolve_region(self) -> None:
         def request_with_subdomain(subdomain):
