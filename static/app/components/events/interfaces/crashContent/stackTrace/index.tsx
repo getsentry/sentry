@@ -8,9 +8,9 @@ import {StackView} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import Content from './content';
+import {Content} from './content';
 import {NativeContent} from './nativeContent';
-import rawStacktraceContent from './rawContent';
+import {displayRawContent as rawStacktraceContent} from './rawContent';
 
 type Props = {
   event: Event;

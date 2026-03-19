@@ -1,17 +1,17 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {Image} from '@sentry/scraps/image';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -72,7 +72,8 @@ function WhatsNewContent({
     if (unseenPostIds.length === 0) {
       return undefined;
     }
-    const MARK_SEEN_DELAY = 1000;
+
+    const MARK_SEEN_DELAY = 2000;
     const markSeenTimeout = window.setTimeout(() => {
       markBroadcastsAsSeen(unseenPostIds);
     }, MARK_SEEN_DELAY);
@@ -85,48 +86,73 @@ function WhatsNewContent({
   }, [unseenPostIds, markBroadcastsAsSeen]);
 
   if (isPending) {
-    return <LoadingIndicator />;
+    return (
+      <Stack overscrollBehavior="contain" gap="xl">
+        {[1, 2, 3].map(item => (
+          <Stack key={item} gap="md">
+            <Flex align="center" justify="between" flex={1}>
+              <Placeholder height="24px" width="64%" />
+              <Placeholder height="24px" width="30%" />
+            </Flex>
+            <Placeholder height="124px" width="100%" />
+
+            {item < 3 && <Stack.Separator border="muted" />}
+          </Stack>
+        ))}
+      </Stack>
+    );
   }
 
   if (broadcasts.length === 0) {
     return (
-      <Flex padding="xl" justify="center" align="center" minHeight="150px">
+      <Flex justify="center" align="center" overscrollBehavior="contain">
         <Text variant="muted">{t('No recent updates from the Sentry team.')}</Text>
       </Flex>
     );
   }
 
   return (
-    <Fragment>
-      {broadcasts.map(item => {
+    <Stack overscrollBehavior="contain" gap="xl" as="ul" padding="0">
+      {broadcasts.map((item, idx) => {
         return (
-          <SidebarPanelItemRoot key={item.id}>
-            <Stack align="start" marginBottom="lg">
-              {item.category && (
-                <CategoryTag variant="muted">
-                  {BROADCAST_CATEGORIES[item.category]}
-                </CategoryTag>
-              )}
-              <Title
-                hasSeen={item.hasSeen}
-                href={item.link}
-                onClick={() =>
-                  trackAnalytics('whats_new.link_clicked', {
-                    organization,
-                    title: item.title,
-                    category: item.category,
-                  })
-                }
-              >
-                {item.title}
-              </Title>
-              <Message>{item.message}</Message>
+          <Stack key={item.id} as="li">
+            <Stack align="start" gap="md">
+              <Flex align="center" justify="between" width="100%" gap="md">
+                <Flex flex="0 1 auto" minWidth="0">
+                  {p => (
+                    <ExternalLink
+                      {...p}
+                      href={item.link}
+                      onClick={() =>
+                        trackAnalytics('whats_new.link_clicked', {
+                          organization,
+                          title: item.title,
+                          category: item.category,
+                        })
+                      }
+                    >
+                      <Text ellipsis bold size="md">
+                        {item.title}
+                      </Text>
+                    </ExternalLink>
+                  )}
+                </Flex>
+                {item.category ? (
+                  <Tag variant={item.category === 'feature' ? 'info' : 'muted'}>
+                    {BROADCAST_CATEGORIES[item.category]}
+                  </Tag>
+                ) : null}
+              </Flex>
+              <Text>{item.message}</Text>
+              {item.mediaUrl ? (
+                <Image width="100%" src={item.mediaUrl} alt={item.title} radius="md" />
+              ) : null}
+              {idx < broadcasts.length - 1 && <Stack.Separator />}
             </Stack>
-            {item.mediaUrl && <Media src={item.mediaUrl} alt={item.title} />}
-          </SidebarPanelItemRoot>
+          </Stack>
         );
       })}
-    </Fragment>
+    </Stack>
   );
 }
 
@@ -185,36 +211,3 @@ export function PrimaryNavigationWhatsNew() {
     </Fragment>
   );
 }
-
-const SidebarPanelItemRoot = styled('div')`
-  line-height: 1.5;
-  margin: 0 ${p => p.theme.space['2xl']};
-  padding: ${p => p.theme.space.xl} 0;
-
-  :not(:first-child) {
-    border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  }
-`;
-
-const Title = styled(ExternalLink)<{hasSeen: boolean}>`
-  font-size: ${p => p.theme.font.size.lg};
-  color: ${p => p.theme.tokens.content.accent};
-  ${p => !p.hasSeen && `font-weight: ${p.theme.font.weight.sans.medium}`};
-  &:focus-visible {
-    box-shadow: none;
-  }
-`;
-
-const Message = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const Media = styled('img')`
-  border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.colors.gray200};
-  max-width: 100%;
-`;
-
-const CategoryTag = styled(Tag)`
-  margin-bottom: ${p => p.theme.space.md};
-`;

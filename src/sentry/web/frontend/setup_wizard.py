@@ -27,7 +27,7 @@ from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project.service import project_service
 from sentry.projects.services.project_key.model import RpcProjectKey
 from sentry.projects.services.project_key.service import project_key_service
-from sentry.types.region import CellResolutionError, get_locality_name_for_cell
+from sentry.types.cell import CellResolutionError, get_locality_name_for_cell
 from sentry.types.token import AuthTokenType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser

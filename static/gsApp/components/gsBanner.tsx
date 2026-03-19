@@ -65,7 +65,7 @@ import {
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {getPendoAccountFields} from 'getsentry/utils/pendo';
 import {claimAvailablePromotion} from 'getsentry/utils/promotionUtils';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 import {withPromotions} from 'getsentry/utils/withPromotions';
 

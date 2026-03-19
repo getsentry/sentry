@@ -1,18 +1,18 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
-import {LinkButton} from '@sentry/scraps/button';
-import {Prose} from '@sentry/scraps/text';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import TimeSince from 'sentry/components/timeSince';
+import {ListItem} from 'sentry/components/list/listItem';
+import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconCheckmark,
   IconFatal,
@@ -29,6 +29,7 @@ import type {
 } from 'sentry/types/system';
 import {sanitizedMarked} from 'sentry/utils/marked/marked';
 import type {Theme} from 'sentry/utils/theme';
+import {unreachable} from 'sentry/utils/unreachable';
 
 interface Props {
   incident: StatuspageIncident;
@@ -44,11 +45,26 @@ const COMPONENT_STATUS_SORT: StatusPageServiceStatus[] = [
 export function ServiceIncidentDetails({incident}: Props) {
   const isResolved = incident.status === 'resolved';
   const start = incident.started_at ?? incident.created_at;
+  const hasComponents = incident.components.length > 0;
 
   const affectedText = isResolved
-    ? tct(
-        'From [start] until [end] we experienced problems with the following services',
-        {
+    ? hasComponents
+      ? tct(
+          'From [start] until [end] we experienced problems with the following services',
+          {
+            start: (
+              <strong>
+                <DateTime date={start} />
+              </strong>
+            ),
+            end: (
+              <strong>
+                <DateTime date={incident.resolved_at} />
+              </strong>
+            ),
+          }
+        )
+      : tct('From [start] until [end] we experienced problems.', {
           start: (
             <strong>
               <DateTime date={start} />
@@ -59,50 +75,63 @@ export function ServiceIncidentDetails({incident}: Props) {
               <DateTime date={incident.resolved_at} />
             </strong>
           ),
-        }
-      )
-    : tct(
-        "This incident started [timeAgo]. We're experiencing problems with the following services",
-        {
+        })
+    : hasComponents
+      ? tct(
+          "This incident started [timeAgo]. We're experiencing problems with the following services",
+          {
+            timeAgo: (
+              <strong>
+                <TimeSince date={start} />
+              </strong>
+            ),
+          }
+        )
+      : tct('This incident started [timeAgo].', {
           timeAgo: (
             <strong>
               <TimeSince date={start} />
             </strong>
           ),
-        }
-      );
+        });
 
   return (
-    <Fragment>
-      <Title>{incident.name}</Title>
-      <LinkButton
-        size="xs"
-        icon={<IconOpen />}
-        priority="link"
-        href={incident.shortlink}
-        external
-      >
-        {t('Full Incident Details')}
-      </LinkButton>
-      <AffectedServices>
-        {affectedText}
-        <ComponentList>
-          {sortBy(incident.components, i => COMPONENT_STATUS_SORT.indexOf(i.status)).map(
-            ({name, status}, key) => (
-              <ComponentStatus key={key} padding="20px" symbol={getStatusSymbol(status)}>
-                {name}
-              </ComponentStatus>
-            )
+    <Stack gap="md">
+      <Stack gap="xs">
+        <Text size="lg" bold>
+          {incident.name}{' '}
+        </Text>
+        <Flex align="center" gap="sm">
+          {p => (
+            <ExternalLink {...p} href={incident.shortlink}>
+              <IconOpen size="sm" /> {t('view incident details')}
+            </ExternalLink>
           )}
-        </ComponentList>
-      </AffectedServices>
+        </Flex>
+      </Stack>
+      <Container padding="md 0">
+        <Stack gap="md">
+          <Text size="md">{affectedText}</Text>
+          {incident.components.length > 0 && (
+            <ComponentList>
+              {sortBy(incident.components, i =>
+                COMPONENT_STATUS_SORT.indexOf(i.status)
+              ).map(({name, status}, key) => (
+                <ComponentStatus key={key} symbol={getStatusSymbol(status)}>
+                  {name}
+                </ComponentStatus>
+              ))}
+            </ComponentList>
+          )}
+        </Stack>
+      </Container>
 
       <UpdatesList>
         {incident.incident_updates.map(({status, body, display_at, created_at}, key) => (
           <ListItem key={key}>
             <UpdateHeading status={status}>
-              <StatusTitle>{startCase(status)}</StatusTitle>
-              <StatusDate>
+              <Text bold>{startCase(status)}</Text>
+              <Text variant="muted">
                 {tct('([time])', {
                   time: isResolved ? (
                     <DateTime date={display_at ?? created_at} />
@@ -110,13 +139,13 @@ export function ServiceIncidentDetails({incident}: Props) {
                     <TimeSince date={display_at ?? created_at} />
                   ),
                 })}
-              </StatusDate>
+              </Text>
             </UpdateHeading>
             <Prose dangerouslySetInnerHTML={{__html: sanitizedMarked(body)}} />
           </ListItem>
         ))}
       </UpdatesList>
-    </Fragment>
+    </Stack>
   );
 }
 
@@ -137,15 +166,6 @@ function getStatusSymbol(status: StatusPageServiceStatus) {
     </Tooltip>
   );
 }
-
-const Title = styled('h2')`
-  font-size: ${p => p.theme.font.size.lg};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const AffectedServices = styled('div')`
-  margin: ${p => p.theme.space.xl} 0;
-`;
 
 const UpdatesList = styled(List)`
   gap: ${p => p.theme.space['2xl']};
@@ -178,20 +198,48 @@ const UpdatesList = styled(List)`
   }
 `;
 
-function getIndicatorColor({
+function getIndicatorBackground({
   theme,
   status,
 }: {
   status: StatusPageIncidentUpdate['status'];
   theme: Theme;
 }): string {
-  const indicatorColor: Record<StatusPageIncidentUpdate['status'], string> = {
-    investigating: theme.tokens.background.transparent.danger.muted,
-    identified: theme.tokens.background.transparent.accent.muted,
-    monitoring: theme.tokens.background.transparent.warning.muted,
-    resolved: theme.tokens.background.transparent.success.muted,
-  };
-  return indicatorColor[status];
+  switch (status) {
+    case 'investigating':
+      return theme.tokens.graphics.danger.vibrant;
+    case 'identified':
+      return theme.tokens.graphics.accent.vibrant;
+    case 'monitoring':
+      return theme.tokens.graphics.warning.vibrant;
+    case 'resolved':
+      return theme.tokens.graphics.success.vibrant;
+    default:
+      unreachable(status);
+      throw new TypeError(`Invalid status, got ${status}`);
+  }
+}
+
+function getIndicatorBorder({
+  theme,
+  status,
+}: {
+  status: StatusPageIncidentUpdate['status'];
+  theme: Theme;
+}): string {
+  switch (status) {
+    case 'investigating':
+      return theme.tokens.border.danger.muted;
+    case 'identified':
+      return theme.tokens.border.accent.muted;
+    case 'monitoring':
+      return theme.tokens.border.warning.muted;
+    case 'resolved':
+      return theme.tokens.border.success.muted;
+    default:
+      unreachable(status);
+      throw new TypeError(`Invalid status, got ${status}`);
+  }
 }
 
 const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}>`
@@ -205,22 +253,13 @@ const UpdateHeading = styled('div')<{status: StatusPageIncidentUpdate['status']}
     content: '';
     display: block;
     position: absolute;
-    height: 8px;
-    width: 8px;
-    margin-left: -15px;
+    height: 10px;
+    width: 10px;
+    margin-left: -16px;
     border-radius: 50%;
-    background: ${getIndicatorColor};
+    background: ${getIndicatorBackground};
+    border: 2px solid ${getIndicatorBorder};
   }
-`;
-
-const StatusTitle = styled('div')`
-  color: ${p => p.theme.tokens.content.primary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const StatusDate = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const ComponentList = styled(List)`

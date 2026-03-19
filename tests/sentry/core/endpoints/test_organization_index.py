@@ -22,7 +22,7 @@ from sentry.testutils.silo import (
     assume_test_silo_mode,
     cell_silo_test,
     control_silo_test,
-    create_test_regions,
+    create_test_cells,
 )
 from sentry.users.models.authenticator import Authenticator
 from sentry.utils.slug import ORG_SLUG_PATTERN
@@ -332,7 +332,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert OrganizationOption.objects.get_value(organization, "sentry:streamline_ui_only")
 
 
-@cell_silo_test(regions=create_test_regions("de", "us"))
+@cell_silo_test(cells=create_test_cells("de", "us"))
 class OrganizationsCreateInRegionTest(OrganizationIndexTest):
     method = "post"
 

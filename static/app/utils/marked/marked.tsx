@@ -31,7 +31,8 @@ class SafeRenderer extends marked.Renderer {
 
     const out = super.link(tokens);
     return dompurify.sanitize(out, {
-      FORBID_ATTR: ['style'],
+      ALLOWED_TAGS,
+      ALLOWED_ATTR,
     });
   }
 
@@ -52,13 +53,53 @@ class NoParagraphRenderer extends SafeRenderer {
   }
 }
 
+/**
+ * Allowlist of HTML tags that markdown rendering can produce.
+ * Using an allowlist rather than a blocklist ensures unexpected tags
+ * (style, form, input, script, iframe, etc.) are stripped by default.
+ */
+const ALLOWED_TAGS = [
+  // Block elements
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'blockquote',
+  'pre',
+  'ul',
+  'ol',
+  'li',
+  'hr',
+  'br',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'th',
+  'td',
+  // Inline elements
+  'a',
+  'img',
+  'code',
+  'em',
+  'strong',
+  'del',
+  'span',
+  'b',
+  'i',
+  'sub',
+  'sup',
+];
+
+const ALLOWED_ATTR = ['href', 'title', 'src', 'alt', 'class', 'id', 'align'];
+
 function postprocess(html: string) {
   return dompurify.sanitize(html, {
-    // Forbid style attributes to prevent CSS injection attacks
-    // This is the primary security fix to prevent arbitrary CSS injection
-    FORBID_ATTR: ['style'],
-    // Keep default tag allowlist but remove dangerous attributes
-    // This prevents CSS injection while preserving markdown functionality
+    ALLOWED_TAGS,
+    ALLOWED_ATTR,
   });
 }
 

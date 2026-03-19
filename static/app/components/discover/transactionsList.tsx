@@ -9,13 +9,13 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {DiscoverButton} from 'sentry/components/discoverButton';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -478,7 +478,7 @@ const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${p => p.theme.space.md};
 `;
 
-function TransactionsList(
+export function TransactionsList(
   props: Omit<Props, 'cursorName' | 'limit'> & {
     cursorName?: Props['cursorName'];
     limit?: Props['limit'];
@@ -486,5 +486,3 @@ function TransactionsList(
 ) {
   return <_TransactionsList {...props} />;
 }
-
-export default TransactionsList;

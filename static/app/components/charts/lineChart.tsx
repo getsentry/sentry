@@ -4,7 +4,7 @@ import type {Series} from 'sentry/types/echarts';
 
 import {LineSeries} from './series/lineSeries';
 import type {BaseChartProps} from './baseChart';
-import BaseChart from './baseChart';
+import {BaseChart} from './baseChart';
 
 export interface LineChartSeries
   extends Series, Omit<LineSeriesOption, 'data' | 'name' | 'color' | 'id' | 'areaStyle'> {

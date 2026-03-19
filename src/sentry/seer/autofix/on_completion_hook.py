@@ -22,7 +22,7 @@ from sentry.seer.models import (
     SeerApiResponseValidationError,
     SeerAutomationHandoffConfiguration,
 )
-from sentry.seer.supergroups import trigger_supergroups_embedding
+from sentry.seer.supergroups.embeddings import trigger_supergroups_embedding
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType

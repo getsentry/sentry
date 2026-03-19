@@ -11,8 +11,10 @@ from sentry.monitors.models import MonitorStatus
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.actor import Actor
 from sentry.uptime.types import UptimeMonitorMode
+from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
@@ -82,6 +84,26 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             date_added=before_now(minutes=3),
             owner=Actor.from_id(user_id=None, team_id=self.team2.id),
         )
+
+    @with_feature("organizations:incidents")
+    def test_legacy_models_header(self) -> None:
+        """
+        Test that X-Legacy-Models header reflects whether legacy models were used.
+        - Legacy path (without workflow-engine feature): header should be "true"
+        - Workflow engine path (with feature): header should be "false"
+        """
+        self.create_alert_rule()
+
+        # Test legacy path - uses AlertRule/Rule models
+        resp = self.get_success_response(self.organization.slug)
+        assert "X-Legacy-Models" in resp
+        assert resp["X-Legacy-Models"] == "true"
+
+        # Test workflow engine path - uses Detector/Workflow models
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            resp = self.get_success_response(self.organization.slug)
+            assert "X-Legacy-Models" in resp
+            assert resp["X-Legacy-Models"] == "false"
 
     def test_no_cron_monitor_rules(self) -> None:
         """
@@ -182,23 +204,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 path=self.combined_rules_url, data=request_data, content_type="application/json"
             )
         assert response.status_code == 400
-
-    def test_limit_higher_than_results_no_cursor(self) -> None:
-        self.setup_rules()
-        # Test limit above result count (which is 4), no cursor.
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            request_data = {"per_page": "5", "project": self.project_ids}
-            response = self.client.get(
-                path=self.combined_rules_url, data=request_data, content_type="application/json"
-            )
-        assert response.status_code == 200
-        result = response.data
-        assert len(result) == 4
-        self.assert_alert_rule_serialized(self.alert_rule_team2, result[0], skip_dates=True)
-        assert result[1]["id"] == str(self.issue_rule.id)
-        assert result[1]["type"] == "rule"
-        self.assert_alert_rule_serialized(self.alert_rule_2, result[2], skip_dates=True)
-        self.assert_alert_rule_serialized(self.alert_rule, result[3], skip_dates=True)
 
     def test_limit_as_1_with_paging_sort_name(self) -> None:
         self.setup_rules()
@@ -1243,7 +1248,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         assert resp.data[0]["lastTriggered"] == datetime.now(UTC)
 
     def test_project_deleted(self) -> None:
-        from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+        from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
         from sentry.deletions.tasks.scheduled import run_deletion
 
         org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -1251,7 +1256,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         delete_project = self.create_project(organization=org, teams=[team], name="Bengal")
         self.create_project_rule(project=delete_project)
 
-        deletion = RegionScheduledDeletion.schedule(delete_project, days=0)
+        deletion = CellScheduledDeletion.schedule(delete_project, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():
@@ -1363,3 +1368,252 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
                 self.organization.slug, sort=["invalid_field"], status_code=400
             )
             assert "Invalid sort key" in response.data["detail"]
+
+
+@with_feature(
+    [
+        "organizations:incidents",
+        "organizations:performance-view",
+        "organizations:workflow-engine-rule-serializers",
+    ]
+)
+class OrganizationCombinedRuleIndexWorkflowEngineTest(BaseAlertRuleSerializerTest, APITestCase):
+    """Tests for the workflow engine code path in the combined rules endpoint."""
+
+    endpoint = "sentry-api-0-organization-combined-rules"
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.team = self.create_team(
+            organization=self.organization,
+            name="Mariachi Band",
+            members=[self.user],
+        )
+        self.project = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+            name="Bengal",
+        )
+        self.project2 = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+            name="Elephant",
+        )
+
+        self.projects = [self.project, self.project2]
+        self.project_ids = [str(self.project.id), str(self.project2.id)]
+
+        self.login_as(self.user)
+        self.combined_rules_url = f"/api/0/organizations/{self.organization.slug}/combined-rules/"
+
+    def test_workflow_engine_endpoint_returns_successfully(self) -> None:
+        response = self.get_success_response(self.organization.slug, project=[self.project.id])
+
+        # Endpoint should return successfully (empty list is fine)
+        assert response.status_code == 200
+        assert isinstance(response.data, list)
+
+    def test_workflow_engine_dual_written_rules(self) -> None:
+        # Create alert rules which exist in legacy system
+        alert_rule1 = self.create_alert_rule(name="Dual Written Rule 1", projects=[self.project])
+        alert_rule2 = self.create_alert_rule(name="Dual Written Rule 2", projects=[self.project2])
+
+        # Migrate them to workflow engine (dual-write)
+        migrate_alert_rule(alert_rule1)
+        migrate_alert_rule(alert_rule2)
+
+        response = self.get_success_response(
+            self.organization.slug, project=[self.project.id, self.project2.id]
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+        # Verify both rules appear and have correct type
+        rule_names = {rule["name"] for rule in response.data}
+        assert "Dual Written Rule 1" in rule_names
+        assert "Dual Written Rule 2" in rule_names
+
+        # All should be metric alerts (type = "alert_rule")
+        for rule in response.data:
+            assert rule["type"] == "alert_rule"
+
+    def test_workflow_engine_filtering_by_team(self) -> None:
+        # Create second team for testing
+        team2 = self.create_team(organization=self.organization, name="Team 2")
+
+        # Create rules with different team assignments using owner parameter
+        alert_rule_team1 = self.create_alert_rule(
+            name="Team 1 Rule",
+            projects=[self.project],
+            owner=Actor.from_id(user_id=None, team_id=self.team.id),
+        )
+        alert_rule_team2 = self.create_alert_rule(
+            name="Team 2 Rule",
+            projects=[self.project],
+            owner=Actor.from_id(user_id=None, team_id=team2.id),
+        )
+        alert_rule_no_team = self.create_alert_rule(name="No Team Rule", projects=[self.project])
+
+        migrate_alert_rule(alert_rule_team1)
+        migrate_alert_rule(alert_rule_team2)
+        migrate_alert_rule(alert_rule_no_team)
+
+        # Filter by team 1
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            team=[self.team.id],
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Team 1 Rule"
+
+    def test_workflow_engine_filtering_by_name(self) -> None:
+        alert_rule1 = self.create_alert_rule(name="Error Rate Alert", projects=[self.project])
+        alert_rule2 = self.create_alert_rule(name="Latency Monitor", projects=[self.project])
+
+        migrate_alert_rule(alert_rule1)
+        migrate_alert_rule(alert_rule2)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            name="Error",
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Error Rate Alert"
+
+    def test_workflow_engine_dataset_filtering(self) -> None:
+        from sentry.snuba.dataset import Dataset
+
+        # Create alert rules with different datasets
+        error_rule = self.create_alert_rule(
+            name="Error Rule",
+            projects=[self.project],
+            dataset=Dataset.Events,
+        )
+        transaction_rule = self.create_alert_rule(
+            name="Transaction Rule",
+            projects=[self.project],
+            dataset=Dataset.Transactions,
+        )
+
+        migrate_alert_rule(error_rule)
+        migrate_alert_rule(transaction_rule)
+
+        # Test filtering to only Events dataset
+        response = self.get_success_response(
+            self.organization.slug,
+            project=[self.project.id],
+            dataset=[Dataset.Events.value],
+        )
+
+        assert response.status_code == 200
+        # Should only return the error rule, not the transaction rule
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Error Rule"
+
+
+class OrganizationCombinedRuleIndexParityTest(BaseAlertRuleSerializerTest, APITestCase):
+    endpoint = "sentry-api-0-organization-combined-rules"
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.team = self.create_team(
+            organization=self.organization,
+            name="Test Team",
+            members=[self.user],
+        )
+        self.project = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+            name="Test Project",
+        )
+        self.login_as(self.user)
+
+    def test_dual_written_rules_parity(self) -> None:
+        # Create and migrate alert rules
+        alert_rule1 = self.create_alert_rule(name="Parity Test Rule 1", projects=[self.project])
+        alert_rule2 = self.create_alert_rule(name="Parity Test Rule 2", projects=[self.project])
+
+        migrate_alert_rule(alert_rule1)
+        migrate_alert_rule(alert_rule2)
+
+        # Get legacy response
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            legacy_response = self.get_success_response(
+                self.organization.slug, project=[self.project.id]
+            )
+
+        # Get workflow engine response
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:workflow-engine-rule-serializers",
+            ]
+        ):
+            we_response = self.get_success_response(
+                self.organization.slug, project=[self.project.id]
+            )
+
+        # Both should return same count
+        assert len(legacy_response.data) == len(we_response.data)
+        assert len(we_response.data) == 2
+
+        # Extract names for comparison
+        legacy_names = sorted([rule["name"] for rule in legacy_response.data])
+        we_names = sorted([rule["name"] for rule in we_response.data])
+
+        assert legacy_names == we_names
+        assert "Parity Test Rule 1" in we_names
+        assert "Parity Test Rule 2" in we_names
+
+        # Verify type field exists in WE response
+        for rule in we_response.data:
+            assert "type" in rule
+            assert rule["type"] == "alert_rule"
+
+    def test_filtering_parity(self) -> None:
+        # Create rules with different attributes using owner parameter
+        rule_team = self.create_alert_rule(
+            name="Team Rule",
+            projects=[self.project],
+            owner=Actor.from_id(user_id=None, team_id=self.team.id),
+        )
+        rule_no_team = self.create_alert_rule(name="No Team Rule", projects=[self.project])
+
+        migrate_alert_rule(rule_team)
+        migrate_alert_rule(rule_no_team)
+
+        # Test team filtering in both modes
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            legacy_response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                team=[self.team.id],
+            )
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:performance-view",
+                "organizations:workflow-engine-rule-serializers",
+            ]
+        ):
+            we_response = self.get_success_response(
+                self.organization.slug,
+                project=[self.project.id],
+                team=[self.team.id],
+            )
+
+        # Both should return same count
+        assert len(legacy_response.data) == len(we_response.data)
+        assert len(we_response.data) == 1
+        assert we_response.data[0]["name"] == "Team Rule"

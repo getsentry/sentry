@@ -1,5 +1,5 @@
 import type {FormFieldProps} from 'sentry/components/forms/formField';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import {uniqueId} from 'sentry/utils/guid';
 import {resolveErroredAssertionOp} from 'sentry/views/alerts/rules/uptime/formErrors';
 import {usePreviewCheckResult} from 'sentry/views/alerts/rules/uptime/previewCheckContext';

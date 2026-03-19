@@ -19,7 +19,8 @@ import {
   openProjectCreationModal,
   type ModalRenderProps,
 } from 'sentry/actionCreators/modal';
-import PlatformPicker, {
+import {
+  PlatformPicker,
   type Category,
   type Platform,
 } from 'sentry/components/platformPicker';
@@ -35,8 +36,9 @@ import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptions';
-import IssueAlertOptions, {
+import {
   getRequestDataFragment,
+  IssueAlertOptions,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
 type Props = ModalRenderProps & {

@@ -13,7 +13,7 @@ import sum from 'lodash/sum';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import {BaseChart} from 'sentry/components/charts/baseChart';
 import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -31,7 +31,7 @@ import type {
   EChartHighlightHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined, escape} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
@@ -348,8 +348,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        const name = aliases[seriesName] ?? seriesName;
-        return truncationFormatter(name, true);
+        const alias = aliases[seriesName];
+        if (alias) {
+          // The alias value comes from `plottable.label` and is not
+          // HTML-escaped. Escape it for safe insertion into raw HTML
+          // tooltip strings.
+          return escape(truncationFormatter(alias, true, false));
+        }
+        // `seriesName` is already HTML-escaped by `getFormatter`, so
+        // skip escaping to avoid double-encoding (e.g., `>` → `&gt;`
+        // → `&amp;gt;`).
+        return truncationFormatter(seriesName, true, false);
       },
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.

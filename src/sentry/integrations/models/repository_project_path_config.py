@@ -22,7 +22,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
         "sentry.OrganizationIntegration", on_delete="CASCADE"
     )
     organization_id = BoundedBigIntegerField(db_index=True)
-    # From a region point of view, you really only have per organization scoping.
+    # From a cell point of view, you really only have per organization scoping.
     integration_id = BoundedBigIntegerField(db_index=False)
     stack_root = models.TextField()
     source_root = models.TextField()
@@ -93,4 +93,5 @@ post_save.connect(
     lambda instance, **kwargs: process_resource_change(instance, **kwargs),
     sender=RepositoryProjectPathConfig,
     weak=False,
+    dispatch_uid="repository_project_path_config_post_save",
 )

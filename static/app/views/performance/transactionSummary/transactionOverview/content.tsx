@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
-import TransactionsList from 'sentry/components/discover/transactionsList';
+import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -32,7 +32,7 @@ import {
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -45,8 +45,9 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SegmentSpansTable} from 'sentry/views/performance/eap/segmentSpansTable';
-import Filter, {
+import {
   decodeFilterFromLocation,
+  Filter,
   filterToField,
   filterToSearchConditions,
   SpanOperationBreakdownFilter,

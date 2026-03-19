@@ -14,7 +14,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(regions=[ApiGatewayTestCase.REGION], include_monolith_run=True)
+@control_silo_test(cells=[ApiGatewayTestCase.REGION], include_monolith_run=True)
 class ApiGatewayTest(ApiGatewayTestCase):
     @responses.activate
     def test_simple(self) -> None:
@@ -62,7 +62,7 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert response_payload == b""
 
     @responses.activate
-    def test_region_pinned_urls_are_defined(self) -> None:
+    def test_cell_pinned_urls_are_defined(self) -> None:
         resolver = get_resolver()
         # Ensure that all urls in REGION_PINNED_URL_NAMES exist in api/urls.py
         for name in settings.REGION_PINNED_URL_NAMES:

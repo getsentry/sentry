@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {useMembers} from 'sentry/utils/useMembers';
 
 import type {InputFieldProps} from './inputField';
-import SelectField from './selectField';
+import {SelectField} from './selectField';
 
 export function SentryMemberSelectorField({
   placeholder = t('Choose a member'),

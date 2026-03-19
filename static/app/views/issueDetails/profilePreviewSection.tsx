@@ -10,7 +10,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EventOrGroupType} from 'sentry/types/event';

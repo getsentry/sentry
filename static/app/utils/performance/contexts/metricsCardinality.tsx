@@ -9,9 +9,9 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {MetricsCompatibilityData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
-import MetricsCompatibilityQuery from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
+import {MetricsCompatibilityQuery} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
 import type {MetricsCompatibilitySumData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
-import MetricsCompatibilitySumsQuery from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
+import {MetricsCompatibilitySumsQuery} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
 
 import {createDefinedContext} from './utils';
 
