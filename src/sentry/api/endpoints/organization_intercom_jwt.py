@@ -60,7 +60,7 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
 
         signing_secret = options.get("intercom.api-secret")
         if not signing_secret:
-            logger.warning("intercom.identity-verification-secret is not configured")
+            logger.warning("intercom.intercom.api-secret is not configured")
             return Response(
                 {"detail": "Intercom identity verification is not configured."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
