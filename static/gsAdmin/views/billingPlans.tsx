@@ -61,7 +61,6 @@ interface PriceTier {
   reserved_ppe: number;
   tier: number;
   volume: number;
-  raw_volume?: number;
 }
 
 function BillingPlans() {
@@ -619,10 +618,6 @@ function MergedPriceTiersTable({
   const renderBandCells = (tier: PriceTier, unitSize?: number) => (
     <Fragment>
       <td>{renderVolume(tier.volume, unitSize)}</td>
-      <td>
-        {tier.raw_volume === undefined ? '—' : tier.raw_volume.toLocaleString('en-US')}
-      </td>
-      <td>{formatUnitSize(unitSize)}</td>
       <td>{tier.monthly === 0 ? '' : formatCurrency(tier.monthly)}</td>
       <td>{tier.annual === 0 ? '' : formatCurrency(tier.annual)}</td>
       <td>
@@ -655,8 +650,6 @@ function MergedPriceTiersTable({
             <th>Category</th>
             <th>Tier</th>
             <th>Volume</th>
-            <th>Raw Volume</th>
-            <th>Unit Size</th>
             <th>Monthly</th>
             <th>Annual</th>
             <th>Reserved PPE</th>
@@ -743,7 +736,7 @@ function MergedPriceTiersTable({
                   ) : isExpanded ? null : (
                     <Fragment>
                       <td>{volumeRange}</td>
-                      <td colSpan={6} style={{color: 'var(--gray400)'}}>
+                      <td colSpan={4} style={{color: 'var(--gray400)'}}>
                         {bands.length} bands — click to expand
                       </td>
                     </Fragment>
@@ -873,6 +866,7 @@ const StyledResultTable = styled(ResultTable)`
   }
   td {
     padding: 12px 2px;
+    vertical-align: middle;
   }
   td code {
     padding: 0.45em 0 0 0;
@@ -899,82 +893,50 @@ const TOCContainer = styled('nav')`
   }
 `;
 
+const badgeStyle = {
+  width: '100%',
+  textAlign: 'center' as const,
+  padding: '4px 8px',
+  borderRadius: 4,
+  fontSize: 12,
+  fontWeight: 600,
+};
+
 function ReservedVolumeBadge() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={110}
-      height={24}
-      viewBox="0 0 110 24"
-      fill="none"
-      style={{display: 'block', verticalAlign: 'middle'}}
+    <div
+      style={{
+        ...badgeStyle,
+        backgroundColor: '#EBEFFC',
+        color: '#365EC8',
+      }}
     >
-      <rect width={110} height={24} rx={4} fill="#EBEFFC" />
-      <text
-        x="50%"
-        y="50%"
-        dominantBaseline="central"
-        textAnchor="middle"
-        fill="#365EC8"
-        fontFamily="Rubik, sans-serif"
-        fontWeight={600}
-        fontSize={12}
-      >
-        RESERVED
-      </text>
-    </svg>
+      RESERVED
+    </div>
   );
 }
 
 function UnlimitedVolumeBadge() {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={130}
-      height={24}
-      viewBox="0 0 130 24"
-      fill="none"
-      style={{display: 'block', verticalAlign: 'middle'}}
+    <div
+      style={{
+        ...badgeStyle,
+        backgroundColor: '#E2F6EF',
+        color: '#268D75',
+      }}
     >
-      <rect width={130} height={24} rx={4} fill="#E2F6EF" />
-      <text
-        x="50%"
-        y="50%"
-        dominantBaseline="central"
-        textAnchor="middle"
-        fill="#268D75"
-        fontFamily="Rubik, sans-serif"
-        fontWeight={600}
-        fontSize={12}
-      >
-        UNLIMITED
-      </text>
-    </svg>
+      UNLIMITED
+    </div>
   );
 }
 
 // Mirrors Python constants for unit_size (TERABYTE, GIGABYTE, etc.)
 const UNIT_SIZE_CONSTANTS: ReadonlyArray<[number, string]> = [
-  [10 ** 12, 'tb'],
-  [10 ** 9, 'gb'],
-  [10 ** 6, 'mb'],
-  [3_600_000, 'hour'], // MILLISECONDS_IN_HOUR
-  [1_000_000, 'million'],
-  [3600, 'hour'], // SECONDS_IN_HOUR
-  [10 ** 3, 'kb'],
+  [10 ** 12, 'TB'],
+  [10 ** 9, 'GB'],
+  [10 ** 6, 'MB'],
+  [10 ** 3, 'KB'],
 ];
-
-function formatUnitSize(value: number | undefined): string {
-  if (value === undefined || value === null) return '—';
-  if (value <= 1) return String(value);
-  for (const [constant, name] of UNIT_SIZE_CONSTANTS) {
-    if (value >= constant && value % constant === 0) {
-      const factor = value / constant;
-      return factor === 1 ? `1 ${name}` : `${factor} ${name}`;
-    }
-  }
-  return String(value);
-}
 
 function formatVolume(volume: number): string {
   const n = Number(volume);
@@ -993,6 +955,35 @@ function getUnitSizeLabel(unitSize: number | undefined): string | undefined {
     if (unitSize === constant) return name;
   }
   return undefined;
+}
+
+/** Format large volumes as K/M/B when no unit size (e.g. 1,000 → 1K, 1,000,000 → 1M) */
+function formatVolumeCompact(volume: number): string {
+  if (volume >= 1_000_000_000) {
+    const b = volume / 1_000_000_000;
+    const s =
+      b % 1 === 0
+        ? String(Math.round(b))
+        : b.toLocaleString('en-US', {maximumFractionDigits: 2, minimumFractionDigits: 0});
+    return `${s}B`;
+  }
+  if (volume >= 1_000_000) {
+    const m = volume / 1_000_000;
+    const s =
+      m % 1 === 0
+        ? String(Math.round(m))
+        : m.toLocaleString('en-US', {maximumFractionDigits: 2, minimumFractionDigits: 0});
+    return `${s}M`;
+  }
+  if (volume >= 1_000) {
+    const k = volume / 1_000;
+    const s =
+      k % 1 === 0
+        ? String(Math.round(k))
+        : k.toLocaleString('en-US', {maximumFractionDigits: 2, minimumFractionDigits: 0});
+    return `${s}K`;
+  }
+  return formatVolume(volume);
 }
 
 /** Convert volume+unitSize to largest appropriate unit (e.g. 1000 gb → 1 tb) */
@@ -1021,11 +1012,11 @@ function renderVolume(volume: number, unitSize?: number): ReactNode {
   const converted = toLargestUnit(volume, unitSize);
   if (converted) {
     const displayValue = formatVolume(converted.value);
-    return `${displayValue} ${converted.unit}`;
+    return `${displayValue}${converted.unit}`;
   }
   const unitLabel = getUnitSizeLabel(unitSize);
-  const withUnit = unitLabel ? `${formatted} ${unitLabel}` : formatted;
-  return withUnit;
+  if (unitLabel) return `${formatted}${unitLabel}`;
+  return formatVolumeCompact(volume);
 }
 
 function formatPlanTierId(planTierId: string): string {
