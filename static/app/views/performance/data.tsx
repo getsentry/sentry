@@ -456,8 +456,7 @@ export function generateFrontendOtherPerformanceEventView(
 export function generatePerformanceEventView(
   location: Location,
   projects: Project[],
-  {isTrends = false, withStaticFilters = false} = {},
-  organization: Organization
+  {isTrends = false, withStaticFilters = false} = {}
 ) {
   const eventView = generateGenericPerformanceEventView(location, withStaticFilters);
   if (isTrends) {
