@@ -79,7 +79,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     log_extra: dict[str, str | int]
     enforce_rate_limit = False
     """
-    This endpoint is used to proxy requests from region silos to the third-party
+    This endpoint is used to proxy requests from cell silos to the third-party
     integration on behalf of credentials stored in the control silo.
     """
 
