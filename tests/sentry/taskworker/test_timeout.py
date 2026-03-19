@@ -8,7 +8,7 @@ from types import FrameType
 
 import pytest
 
-from sentry.taskworker.workerchild import timeout_alarm
+from sentry.taskworker.timeout import timeout_alarm
 
 
 class AlarmFired(Exception):
