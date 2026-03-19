@@ -7,7 +7,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconWarning} from 'sentry/icons';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
@@ -42,6 +41,7 @@ import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/tim
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -73,7 +73,6 @@ interface VisualizationWidgetProps {
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   onZoom?: EChartDataZoomHandler;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   showConfidenceWarning?: boolean;
   showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
@@ -88,7 +87,6 @@ export function VisualizationWidget({
   onDataFetchStart,
   tableItemLimit,
   widgetInterval,
-  renderErrorMessage,
   showReleaseAs = 'bubble',
   showConfidenceWarning,
   onZoom,
@@ -138,7 +136,6 @@ export function VisualizationWidget({
             loading={loading}
             releases={releases}
             showReleaseAs={showReleaseAs}
-            renderErrorMessage={renderErrorMessage}
             dashboardFilters={dashboardFilters}
             showConfidenceWarning={showConfidenceWarning}
             confidence={confidence}
@@ -169,7 +166,6 @@ interface VisualizationWidgetContentProps {
   legendSelection?: LegendSelection;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   sampleCount?: number;
   showConfidenceWarning?: boolean;
   tableResults?: TableDataWithTitle[];
@@ -187,7 +183,6 @@ function VisualizationWidgetContent({
   loading,
   releases,
   showReleaseAs,
-  renderErrorMessage,
   dashboardFilters,
   showConfidenceWarning,
   confidence,
@@ -243,9 +238,6 @@ function VisualizationWidgetContent({
       ];
     })
     .filter(defined);
-
-  const errorDisplay =
-    renderErrorMessage && errorMessage ? renderErrorMessage(errorMessage) : null;
 
   const plottableWithNeedsColor = timeSeriesWithPlottable.filter(
     ([_, plottable]) => plottable.needsColor
@@ -381,8 +373,9 @@ function VisualizationWidgetContent({
   if (loading) {
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
-  if (errorDisplay) {
-    return errorDisplay;
+
+  if (errorMessage) {
+    return <Widget.WidgetError error={errorMessage} />;
   }
 
   const timeseriesContainerPadding: ContainerProps = {
@@ -411,13 +404,9 @@ function VisualizationWidgetContent({
   // This prevents TimeSeriesWidgetVisualization from throwing an error
   // that would get caught by ErrorBoundary and persist across filter changes
   const hasNoPlottableData = plottables.every(plottable => plottable.isEmpty);
+
   if (hasNoPlottableData) {
-    return (
-      <Flex align="center" justify="center" height="100%" gap="xs">
-        <IconWarning size="sm" variant="muted" />
-        <Text variant="muted">{MISSING_DATA_MESSAGE}</Text>
-      </Flex>
-    );
+    return <Widget.WidgetError error={MISSING_DATA_MESSAGE} />;
   }
 
   const confidenceFooter = showConfidenceWarning ? (

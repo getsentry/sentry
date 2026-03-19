@@ -355,7 +355,6 @@ function WidgetCard(props: Props) {
               onDataFetched={onDataFetched}
               onWidgetTableSort={onWidgetTableSort}
               onWidgetTableResizeColumn={onWidgetTableResizeColumn}
-              renderErrorMessage={renderErrorMessage}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
