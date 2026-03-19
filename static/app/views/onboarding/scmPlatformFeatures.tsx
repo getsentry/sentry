@@ -61,7 +61,15 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     hasScmConnected ? selectedRepository.id : undefined
   );
 
-  const detectedPlatformKey = detectedPlatforms?.[0]?.platform;
+  const resolvedPlatforms = useMemo(
+    () =>
+      detectedPlatforms
+        .map(detected => ({...detected, info: getPlatformInfo(detected.platform)}))
+        .filter(p => p.info !== undefined),
+    [detectedPlatforms]
+  );
+
+  const detectedPlatformKey = resolvedPlatforms[0]?.platform;
 
   // Auto-select the first detected platform when results load
   useEffect(() => {
@@ -124,22 +132,18 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
             ) : (
               <Stack gap="sm">
                 <Flex gap="md" wrap="wrap">
-                  {detectedPlatforms.map(detected => {
-                    const info = getPlatformInfo(detected.platform);
-                    if (!info) {
-                      return null;
-                    }
-                    const isSelected = currentPlatformKey === detected.platform;
+                  {resolvedPlatforms.map(({platform, info}) => {
+                    const isSelected = currentPlatformKey === platform;
                     return (
                       <button
-                        onClick={() => handleSelectDetectedPlatform(detected.platform)}
+                        onClick={() => handleSelectDetectedPlatform(platform)}
                         style={{
                           background: 'transparent',
                           textAlign: 'left',
                           border: 'none',
                           paddingInline: '0px',
                         }}
-                        key={detected.platform}
+                        key={platform}
                       >
                         <Container
                           border={isSelected ? 'accent' : 'secondary'}
@@ -147,11 +151,11 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                           radius="md"
                         >
                           <Flex gap="sm" align="center">
-                            <PlatformIcon platform={detected.platform} size={20} />
+                            <PlatformIcon platform={platform} size={20} />
                             <Stack gap="0">
-                              <Text bold>{info.name}</Text>
+                              <Text bold>{info!.name}</Text>
                               <Text variant="muted" size="sm">
-                                {info.type}
+                                {info!.type}
                               </Text>
                             </Stack>
                           </Flex>
