@@ -1,5 +1,9 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+
+import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {type QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -7,13 +11,20 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {WidgetType, type ValidateWidgetResponse} from 'sentry/views/dashboards/types';
+import {useHasDrillDownFlows} from 'sentry/views/dashboards/hooks/useHasDrillDownFlows';
+import {
+  WidgetType,
+  type LinkedDashboard,
+  type ValidateWidgetResponse,
+} from 'sentry/views/dashboards/types';
 import {GroupBySelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
@@ -27,6 +38,8 @@ export function WidgetBuilderGroupBySelector({
 }: WidgetBuilderGroupBySelectorProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const disableTransactionWidget = useDisableTransactionWidget();
+  const hasDrillDownFlows = useHasDrillDownFlows();
+  const source = useDashboardWidgetSource();
 
   const organization = useOrganization();
 
@@ -91,6 +104,46 @@ export function WidgetBuilderGroupBySelector({
     dispatch({type: BuilderStateAction.SET_FIELDS, payload: newValue});
   };
 
+  const renderExtraActions = useCallback(
+    (column: QueryFieldValue, _index: number) => {
+      if (!hasDrillDownFlows || state.legendType !== 'breakdown') {
+        return null;
+      }
+      if (column.kind !== FieldValueKind.FIELD || !column.field) {
+        return null;
+      }
+      const field = column.field;
+      const currentLinkedDashboards = state.linkedDashboards ?? [];
+      return (
+        <Button
+          priority="transparent"
+          icon={<IconLink />}
+          aria-label={t('Link field')}
+          size="zero"
+          onClick={() => {
+            openLinkToDashboardModal({
+              onLink: dashboardId => {
+                const newLinkedDashboards: LinkedDashboard[] = [
+                  ...currentLinkedDashboards,
+                  {dashboardId, field},
+                ];
+                dispatch({
+                  type: BuilderStateAction.SET_LINKED_DASHBOARDS,
+                  payload: newLinkedDashboards,
+                });
+              },
+              currentLinkedDashboard: currentLinkedDashboards.find(
+                ld => ld.field === field
+              ),
+              source,
+            });
+          }}
+        />
+      );
+    },
+    [hasDrillDownFlows, state.legendType, state.linkedDashboards, dispatch, source]
+  );
+
   return (
     <Fragment>
       <SectionHeader
@@ -109,6 +162,7 @@ export function WidgetBuilderGroupBySelector({
         style={{paddingRight: 0}}
         widgetType={state.dataset}
         disable={disableTransactionWidget}
+        renderExtraActions={renderExtraActions}
       />
     </Fragment>
   );

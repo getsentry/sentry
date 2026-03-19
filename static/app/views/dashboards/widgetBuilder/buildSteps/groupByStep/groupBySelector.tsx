@@ -42,6 +42,7 @@ interface Props {
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
   columns?: QueryFieldValue[];
   disable?: boolean;
+  renderExtraActions?: (column: QueryFieldValue, index: number) => ReactNode;
   style?: React.CSSProperties;
   widgetType?: WidgetType;
 }
@@ -54,6 +55,7 @@ export function GroupBySelector({
   style,
   widgetType,
   disable,
+  renderExtraActions,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
@@ -220,6 +222,7 @@ export function GroupBySelector({
                     canDrag={canDrag}
                     canDelete={canDelete}
                     disabled={disable}
+                    renderExtraActions={renderExtraActions?.(column, index)}
                     renderTagOverride={renderTagOverride}
                   />
                 ))}
