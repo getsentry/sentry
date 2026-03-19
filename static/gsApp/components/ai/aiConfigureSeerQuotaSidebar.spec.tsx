@@ -75,6 +75,11 @@ describe('AiConfigureSeerQuotaSidebar', () => {
       },
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: {autofix: null},
+    });
+
     render(
       <AiConfigureSeerQuotaSidebar
         aiConfig={makeAiConfig({hasAutofixQuota: true})}
@@ -102,6 +107,11 @@ describe('AiConfigureSeerQuotaSidebar', () => {
         isSeerConfigured: true,
         needsConfigReminder: false,
       },
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: {autofix: null},
     });
 
     render(
