@@ -116,8 +116,6 @@ class SizeAnalysisSummaryResponseDict(_SizeAnalysisBaseResponseDict):
 
 
 class SizeAnalysisResponseDict(_SizeAnalysisBaseResponseDict):
-    """Full public API response shape."""
-
     insights: dict[str, Any] | None
     appComponents: list[AppComponentResponseDict] | None
     comparisons: list[ComparisonResponseDict] | None
