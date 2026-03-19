@@ -34,8 +34,11 @@ def invalidate_action_filters_cache_by_condition_group(
         # TODO -- see if we can determine if the DataConditionGroup is
         # an ActionFilter, to skip querying for the workflow.
         workflow_ids = list(
-            WorkflowDataConditionGroup.objects.filter(condition_group_id=instance.id).values_list(
-                "workflow_id", flat=True
+            WorkflowDataConditionGroup.objects.filter(
+                condition_group_id=instance.id,
+            ).values_list(
+                "workflow_id",
+                flat=True,
             )
         )
     except WorkflowDataConditionGroup.DoesNotExist:
