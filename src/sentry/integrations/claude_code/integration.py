@@ -14,8 +14,6 @@ from typing import Any, Literal
 
 from django import forms
 from django.conf import settings as django_settings
-from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 from pydantic import BaseModel
 
@@ -43,6 +41,7 @@ logger = logging.getLogger(__name__)
 PROVIDER_KEY = "claude_code"
 PROVIDER_NAME = "Claude Agent"
 DESCRIPTION = "Connect your Sentry organization with Claude Agent."
+DEFAULT_ENVIRONMENT_NAME = "sentry-autofix-agents"
 
 
 def _get_client_class() -> type[Any]:
@@ -75,7 +74,9 @@ class ClaudeCodeIntegrationMetadata(BaseModel):
     api_key: str
     domain_name: Literal["anthropic.com"] = "anthropic.com"
     environment_id: str | None = None
-    workspace_name: str | None = None
+    workspace_name: str | None = "default"
+    agent_id: str | None = None
+    agent_version: str | None = None
 
 
 metadata = IntegrationMetadata(
@@ -89,6 +90,33 @@ metadata = IntegrationMetadata(
 )
 
 
+def _build_environment_choices(
+    environment_choices: list[tuple[str, str]] | None,
+) -> list[tuple[str, str]]:
+    """Build the environment dropdown choices, handling the default environment specially.
+
+    If an environment named ``sentry-autofix-agents`` exists, the default
+    option reads "Use Default Environment - 'sentry-autofix-agents'" and the
+    environment is removed from the individual choices. Otherwise the default
+    option reads "Create a Default Sentry Environment".
+    """
+    has_default = False
+    filtered: list[tuple[str, str]] = []
+    if environment_choices:
+        for env_id, env_name in environment_choices:
+            if env_name == DEFAULT_ENVIRONMENT_NAME:
+                has_default = True
+            else:
+                filtered.append((env_id, env_name))
+
+    if has_default:
+        default_label = str(_("Use Default Environment - '%s'") % DEFAULT_ENVIRONMENT_NAME)
+    else:
+        default_label = str(_("Create a Default Sentry Environment"))
+
+    return [("", default_label)] + filtered
+
+
 class ClaudeCodeApiKeyForm(forms.Form):
     """Step 1: Collect the Anthropic API key."""
 
@@ -98,40 +126,6 @@ class ClaudeCodeApiKeyForm(forms.Form):
         widget=forms.PasswordInput(attrs={"placeholder": _("sk-ant-...")}),
         max_length=255,
     )
-
-
-class ClaudeCodeEnvironmentForm(forms.Form):
-    """Step 2: Select an environment and optionally provide a workspace name."""
-
-    environment_id = forms.ChoiceField(
-        label=_("Environment"),
-        help_text=_(
-            "Select an existing environment, or leave as "
-            '"Create new automatically" to create one on first use.'
-        ),
-        required=False,
-    )
-    workspace_name = forms.CharField(
-        label=_("Workspace Name (optional)"),
-        help_text=_(
-            "Your Anthropic workspace name (from platform.claude.com URL). "
-            "Used to link to session details."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": _("my-workspace")}),
-        max_length=255,
-        required=False,
-    )
-
-    def __init__(
-        self, *args: Any, environment_choices: list[tuple[str, str]] | None = None, **kwargs: Any
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        choices: list[tuple[str, str]] = [("", str(_("Create new automatically")))]
-        if environment_choices:
-            choices += environment_choices
-        env_field = self.fields["environment_id"]
-        assert isinstance(env_field, forms.ChoiceField)
-        env_field.choices = choices
 
 
 class ClaudeCodeApiKeyPipelineView(CodingAgentPipelineView):
@@ -150,46 +144,6 @@ class ClaudeCodeApiKeyPipelineView(CodingAgentPipelineView):
         pipeline.bind_state(self.get_state_key(), form.cleaned_data["api_key"])
 
 
-class ClaudeCodeEnvironmentPipelineView(CodingAgentPipelineView):
-    """Pipeline step 2: Select environment and workspace name."""
-
-    def get_form_class(self) -> type[forms.Form]:
-        return ClaudeCodeEnvironmentForm
-
-    def get_template_name(self) -> str:
-        return "sentry/integrations/claude-code-environment.html"
-
-    def get_state_key(self) -> str:
-        return "environment"
-
-    def _fetch_environment_choices(self, api_key: str) -> list[tuple[str, str]]:
-        """Fetch environments from the Anthropic API and return as form choices."""
-        client_class = _get_client_class()
-        client = client_class(api_key=api_key)
-        environments = client.list_environments()
-        return [(env["id"], env.get("name") or env["id"]) for env in environments if env.get("id")]
-
-    def get_form_kwargs(
-        self, request: HttpRequest, pipeline: IntegrationPipeline
-    ) -> dict[str, Any]:
-        api_key: str | None = pipeline.fetch_state("api_key")
-        if not api_key:
-            return {"environment_choices": []}
-        try:
-            environment_choices = self._fetch_environment_choices(api_key)
-        except Exception:
-            logger.exception("claude_code.fetch_environments_failed")
-            environment_choices = []
-        return {"environment_choices": environment_choices}
-
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        api_key = pipeline.fetch_state("api_key")
-        if not api_key:
-            pipeline.state.step_index = 0
-            return pipeline.current_step()
-        return super().dispatch(request, pipeline)
-
-
 class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
     """
     Integration provider for Claude Code Agent.
@@ -203,7 +157,7 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
     metadata = metadata
 
     def get_pipeline_views(self):
-        return [ClaudeCodeApiKeyPipelineView(), ClaudeCodeEnvironmentPipelineView()]
+        return [ClaudeCodeApiKeyPipelineView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         api_key = state.get("api_key")
@@ -229,9 +183,8 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
                 "Unable to validate Anthropic API key. Please check your credentials."
             ) from e
 
-        environment_config = state.get("environment", {})
-        environment_id = environment_config.get("environment_id") or None
-        workspace_name = environment_config.get("workspace_name") or None
+        environment_id = None
+        workspace_name = "default"
 
         integration_metadata = ClaudeCodeIntegrationMetadata(
             domain_name="anthropic.com",
@@ -267,17 +220,16 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
     """
 
     def get_organization_config(self) -> list[dict[str, Any]]:
-        choices: list[tuple[str, str]] = [("", str(_("Create new automatically")))]
         client = self.get_client()
-        environments = []
+        environment_choices: list[tuple[str, str]] = []
         try:
             environments = client.list_environments()
+            environment_choices = [
+                (env["id"], env.get("name") or env["id"]) for env in environments if env.get("id")
+            ]
         except Exception:
             logger.exception("claude_code.get_organization_config.fetch_environments_failed")
-
-        choices.extend(
-            (env["id"], env.get("name") or env["id"]) for env in environments if env.get("id")
-        )
+        choices = _build_environment_choices(environment_choices)
 
         return [
             {
@@ -285,8 +237,8 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
                 "type": "select",
                 "label": _("Environment"),
                 "help": _(
-                    "Select an existing environment, or leave as "
-                    '"Create new automatically" to create one on first use.'
+                    "Select an existing environment, or leave as default "
+                    "to use the sentry-autofix-agents environment."
                 ),
                 "required": False,
                 "choices": choices,
@@ -294,13 +246,13 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             {
                 "name": "workspace_name",
                 "type": "text",
-                "label": _("Workspace Name (optional)"),
+                "label": _("Workspace Name"),
                 "help": _(
-                    "Your Anthropic workspace name (from platform.claude.com URL). "
-                    "Used to link to session details."
+                    "Your Anthropic workspace name (from platform.claude.com URL), used to link to session details. "
+                    "Defaults to 'default' — override this if your workspace has a different name."
                 ),
                 "required": False,
-                "placeholder": "my-workspace",
+                "placeholder": "default",
                 "formatMessageValue": False,
             },
         ]
@@ -335,31 +287,35 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             api_key=metadata.api_key,
             environment_id=metadata.environment_id,
             workspace_name=metadata.workspace_name,
+            agent_id=metadata.agent_id,
+            agent_version=metadata.agent_version,
         )
 
     def launch(self, request: CodingAgentLaunchRequest) -> CodingAgentState:
-        """Launch coding agent and persist the resolved environment ID."""
+        """Launch coding agent and persist resolved environment/agent IDs."""
         webhook_url = self.get_webhook_url()
         client = self.get_client()
 
         state = client.launch(webhook_url=webhook_url, request=request)
         state.integration_id = self.model.id
 
-        if client.environment_id and client.environment_id != self.environment_id:
-            self.update_environment_id(client.environment_id)
+        metadata = self._get_metadata()
+        metadata_changed = False
+
+        if client.environment_id and client.environment_id != metadata.environment_id:
+            metadata.environment_id = client.environment_id
+            metadata_changed = True
+
+        if client.agent_id and client.agent_id != metadata.agent_id:
+            metadata.agent_id = client.agent_id
+            metadata.agent_version = client.agent_version
+            metadata_changed = True
+
+        if metadata_changed:
+            self._persist_metadata(metadata)
 
         return state
 
     @property
     def api_key(self) -> str:
         return self._get_metadata().api_key
-
-    @property
-    def environment_id(self) -> str | None:
-        return self._get_metadata().environment_id
-
-    def update_environment_id(self, environment_id: str) -> None:
-        """Update the stored environment ID for this integration."""
-        metadata = self._get_metadata()
-        metadata.environment_id = environment_id
-        self._persist_metadata(metadata)

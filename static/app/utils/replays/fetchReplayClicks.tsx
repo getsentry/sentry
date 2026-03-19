@@ -15,7 +15,13 @@ type NodeMarker = {
   timestamp: string;
 };
 
-async function fetchReplayClicks({api, orgSlug, projectSlug, query, replayId}: Props) {
+export async function fetchReplayClicks({
+  api,
+  orgSlug,
+  projectSlug,
+  query,
+  replayId,
+}: Props) {
   const path = `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/clicks/`;
   try {
     const [{data}, _textStatus, resp] = await api.requestPromise(path, {
@@ -41,5 +47,3 @@ async function fetchReplayClicks({api, orgSlug, projectSlug, query, replayId}: P
     };
   }
 }
-
-export default fetchReplayClicks;

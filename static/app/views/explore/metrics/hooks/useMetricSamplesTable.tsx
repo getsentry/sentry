@@ -1,16 +1,16 @@
 import {useCallback, useMemo} from 'react';
 import moment from 'moment-timezone';
 
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
@@ -107,7 +107,11 @@ function useMetricsQueryKey({
             traceMetric.unit
           );
         } else if (traceMetric.unit === NONE_UNIT) {
+          newSearch.addOp('(');
           newSearch.addFilterValue('!has', TraceMetricKnownFieldKey.METRIC_UNIT);
+          newSearch.addOp('OR');
+          newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_UNIT, NONE_UNIT);
+          newSearch.addOp(')');
         }
       }
     }

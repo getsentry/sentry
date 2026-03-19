@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -8,13 +8,12 @@ import omit from 'lodash/omit';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import useDrawer from 'sentry/components/globalDrawer';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useDrawer} from 'sentry/components/globalDrawer';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
@@ -28,8 +27,8 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SchemaHintsDrawer} from 'sentry/views/explore/components/schemaHints/schemaHintsDrawer';
 import {
   getSchemaHintsListOrder,
   onlyShowSchemaHintsKeys,
@@ -139,7 +138,7 @@ function formatHintOperator(hint: Tag) {
   return 'is';
 }
 
-function SchemaHintsList({
+export function SchemaHintsList({
   supportedAggregates,
   booleanTags = {},
   numberTags,
@@ -148,6 +147,7 @@ function SchemaHintsList({
   source = SchemaHintsSources.EXPLORE,
   searchBarWidthOffset,
 }: SchemaHintsListProps) {
+  const theme = useTheme();
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const organization = useOrganization();
@@ -331,7 +331,7 @@ function SchemaHintsList({
               drawerKey: 'schema-hints-drawer',
               resizable: true,
               drawerCss: css`
-                height: calc(100% - ${space(4)});
+                height: calc(100% - ${theme.space['3xl']});
               `,
               shouldCloseOnLocationChange: newLocation => {
                 return (
@@ -416,6 +416,7 @@ function SchemaHintsList({
       fullFilterTagsSorted,
       location.pathname,
       location.query,
+      theme.space,
     ]
   );
 
@@ -467,8 +468,6 @@ function SchemaHintsList({
     </SchemaHintsContainer>
   );
 }
-
-export default SchemaHintsList;
 
 const SchemaHintsContainer = styled('div')`
   display: flex;

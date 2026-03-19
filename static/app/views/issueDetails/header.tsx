@@ -8,15 +8,15 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {TabList} from '@sentry/scraps/tabs';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import Count from 'sentry/components/count';
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
+import {Count} from 'sentry/components/count';
+import {EventMessage} from 'sentry/components/events/eventMessage';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
+import {GroupTitle} from 'sentry/components/groupTitle';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
+import {ReplayCountBadge} from 'sentry/components/replays/replayCountBadge';
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -26,12 +26,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 
 import {GroupActions} from './actions';
@@ -184,7 +184,7 @@ function GroupHeaderTabs({
   );
 }
 
-function GroupHeader({baseUrl, group, organization, event, project}: Props) {
+export function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   const location = useLocation();
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
@@ -239,7 +239,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
                 <StyledFeatureBadge type="new" />
               )}
               <h3>
-                <StyledEventOrGroupTitle data={group} />
+                <StyledGroupTitle data={group} />
               </h3>
               <GroupStatusBadge
                 status={group.status}
@@ -297,8 +297,6 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   );
 }
 
-export default GroupHeader;
-
 const HeaderRow = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.xl};
@@ -322,7 +320,7 @@ const TitleHeading = styled('div')`
   gap: ${p => p.theme.space.md};
 `;
 
-const StyledEventOrGroupTitle = styled(EventOrGroupTitle)`
+const StyledGroupTitle = styled(GroupTitle)`
   font-size: inherit;
 `;
 

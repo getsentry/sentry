@@ -33,13 +33,6 @@ class SeerCodeReviewTrigger(StrEnum):
         return cls.UNKNOWN
 
 
-class SeerCodeReviewRequestType(StrEnum):
-    """Request type for Seer code review requests."""
-
-    PR_REVIEW = "pr-review"
-    PR_CLOSED = "pr-closed"
-
-
 class SeerCodeReviewConfig(BaseModel):
     features: dict[SeerCodeReviewFeature, bool] = Field(default_factory=lambda: {})
     github_rate_limit_sensitive: bool = False
@@ -86,6 +79,7 @@ class SeerCodeReviewRepoDefinition(BaseModel):
     # Optional in base, overridden in subclasses based on request type
     organization_id: int | None = None
     integration_id: str | None = None
+    is_private: bool | None = None
 
 
 class SeerCodeReviewRepoForPrReview(SeerCodeReviewRepoDefinition):
@@ -142,7 +136,6 @@ class SeerCodeReviewTaskRequestForPrReview(BaseModel):
 
     data: SeerCodeReviewRequestForPrReview
     external_owner_id: str
-    request_type: SeerCodeReviewRequestType
 
 
 class SeerCodeReviewTaskRequestForPrClosed(BaseModel):
@@ -150,4 +143,3 @@ class SeerCodeReviewTaskRequestForPrClosed(BaseModel):
 
     data: SeerCodeReviewRequestForPrClosed
     external_owner_id: str
-    request_type: SeerCodeReviewRequestType

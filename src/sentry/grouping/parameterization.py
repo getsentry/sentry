@@ -1,7 +1,9 @@
 import dataclasses
 import re
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Iterable, Sequence
+
+from sentry.utils import metrics
 
 
 @dataclasses.dataclass
@@ -11,7 +13,6 @@ class ParameterizationRegex:
     raw_pattern_experimental: str | None = None
     lookbehind: str | None = None  # positive lookbehind prefix if needed
     lookahead: str | None = None  # positive lookahead postfix if needed
-    counter: int = 0
 
     # These need to be used with `(?x)`, to tell the regex compiler to ignore comments
     # and unescaped whitespace, so we can use newlines and indentation for better legibility.
@@ -254,20 +255,6 @@ EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
 }
 
 
-@dataclasses.dataclass
-class ParameterizationCallable:
-    """
-    Represents a callable that can be used to modify a string, which can give us more flexibility
-    than just using regex.
-
-    Note: Future-proofing. Not currently in use.
-    """
-
-    name: str  # name of the pattern (also used as group name in combined regex)
-    apply: Callable[[str], tuple[str, int]]  # function for modifying the input string
-    counter: int = 0
-
-
 class Parameterizer:
     def __init__(
         self,
@@ -276,13 +263,18 @@ class Parameterizer:
         regex_pattern_keys: Sequence[str] | None = None,
         # Whether to use experimental patterns, if available. (Pattern types without an experimental
         # pattern will fall back to the standard pattern.)
-        experimental: bool = False,
+        use_experimental_regexes: bool = False,
     ):
-        self._experimental = experimental
+        self._experimental = (
+            use_experimental_regexes
+            # Only mark the parameterizer as experimental if there are actually any experiments
+            # running. If there aren't, then both parameterizers use the default regex patterns, so
+            # the "experimental" parameterizer isn't actually experimental.
+            and EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP != DEFAULT_PARAMETERIZATION_REGEXES_MAP
+        )
         self._parameterization_regex = self._make_regex_from_patterns(
             regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
         )
-        self.matches_counter: defaultdict[str, int] = defaultdict(int)
 
     def _make_regex_from_patterns(self, pattern_keys: Iterable[str]) -> re.Pattern[str]:
         """
@@ -304,15 +296,15 @@ class Parameterizer:
 
         return re.compile(rf"(?x){'|'.join(regexes_map[k] for k in pattern_keys)}")
 
-    def parametrize_w_regex(self, input_str: str, parameterization_regex: re.Pattern[str]) -> str:
+    def parameterize(self, input_str: str) -> str:
         """
-        Replace all matches of the given regex in the input string with a placeholder.
+        Replace all regex matches in the input string with placeholder strings, using the regexes
+        with which the parameterizer was initialized.
 
-        @param input_str: The string to replace matches in.
-        @param parameterization_regex: The compiled regex pattern to match.
-
-        @returns: The input string with all matches replaced with placeholders.
+        For example, turn "Error with order #1231" into "Error with order #<int>".
         """
+
+        matches_counter: defaultdict[str, int] = defaultdict(int)
 
         def _handle_regex_match(match: re.Match[str]) -> str:
             # Find the first (should be only) non-None match entry, and sub in the placeholder. For
@@ -320,11 +312,22 @@ class Parameterizer:
             # replacement for the original value in the string.
             for key, value in match.groupdict().items():
                 if value is not None:
-                    self.matches_counter[key] += 1
+                    matches_counter[key] += 1
                     return f"<{key}>"
             return ""
 
-        return parameterization_regex.sub(_handle_regex_match, input_str)
+        with metrics.timer(
+            "grouping.parameterize", tags={"experimental": self._experimental}
+        ) as metric_tags:
+            parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
+            metric_tags["changed"] = parameterized != input_str
 
-    def parameterize_all(self, input_str: str) -> str:
-        return self.parametrize_w_regex(input_str, self._parameterization_regex)
+        for key, value in matches_counter.items():
+            # Track the kinds of replacements being made
+            metrics.incr("grouping.value_parameterized", amount=value, tags={"key": key})
+
+        return parameterized
+
+
+parameterizer = Parameterizer(use_experimental_regexes=False)
+experimental_parameterizer = Parameterizer(use_experimental_regexes=True)

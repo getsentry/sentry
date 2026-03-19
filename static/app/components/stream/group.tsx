@@ -10,24 +10,23 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
-import Count from 'sentry/components/count';
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
+import {Count} from 'sentry/components/count';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import PanelItem from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
-import ProgressBar from 'sentry/components/progressBar';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {Placeholder} from 'sentry/components/placeholder';
+import {ProgressBar} from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {
   Group,
@@ -43,13 +42,13 @@ import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import GroupPriority from 'sentry/views/issueDetails/groupPriority';
+import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {
@@ -265,7 +264,7 @@ export function LoadingStreamGroup({
   );
 }
 
-function StreamGroup({
+export function StreamGroup({
   group,
   customStatsPeriod,
   displayReprocessingLayout,
@@ -636,8 +635,8 @@ function StreamGroup({
           />
         )}
         <GroupSummary canSelect={selectionEnabled}>
-          <EventOrGroupHeader data={group} query={query} source={referrer} />
-          <EventOrGroupExtraDetails data={group} showLifetime={false} />
+          <GroupHeaderRow data={group} query={query} source={referrer} />
+          <GroupMetaRow data={group} showLifetime={false} />
         </GroupSummary>
       </Fragment>
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
@@ -717,8 +716,6 @@ function StreamGroup({
     </Wrapper>
   );
 }
-
-export default StreamGroup;
 
 const CheckboxLabel = styled('label')`
   position: absolute;
@@ -815,7 +812,7 @@ const Wrapper = styled(PanelItem)<{
 
 export const GroupSummary = styled('div')<{canSelect: boolean}>`
   overflow: hidden;
-  margin-left: ${p => space(p.canSelect ? 1 : 2)};
+  margin-left: ${p => (p.canSelect ? p.theme.space.md : p.theme.space.xl)};
   margin-right: ${p => p.theme.space['3xl']};
   flex: 1;
   display: flex;

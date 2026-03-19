@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
-import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
-import EventReplay from 'sentry/components/events/eventReplay';
+import {EventHydrationDiff} from 'sentry/components/events/eventHydrationDiff';
+import {EventReplay} from 'sentry/components/events/eventReplay';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';

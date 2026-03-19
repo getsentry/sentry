@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
-import ToolbarHeader from 'sentry/components/toolbarHeader';
+import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
+import {ToolbarHeader} from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
@@ -17,7 +17,7 @@ type Props = {
   isSavedSearchesOpen?: boolean;
 };
 
-function Headers({
+export function Headers({
   selection,
   statsPeriod,
   onSelectStatsPeriod,
@@ -77,8 +77,6 @@ function Headers({
     </Fragment>
   );
 }
-
-export default Headers;
 
 const GraphLabel = styled(IssueStreamHeaderLabel)`
   width: 175px;

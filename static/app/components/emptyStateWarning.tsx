@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
 
 type Props = {
@@ -10,7 +10,12 @@ type Props = {
   withIcon?: boolean;
 };
 
-function EmptyStateWarning({small = false, withIcon = true, children, className}: Props) {
+export function EmptyStateWarning({
+  small = false,
+  withIcon = true,
+  children,
+  className,
+}: Props) {
   return small ? (
     <EmptyMessage className={className}>
       <SmallMessage>
@@ -55,5 +60,3 @@ const SmallMessage = styled('div')`
 const StyledIconSearch = styled(IconSearch)`
   margin-right: ${p => p.theme.space.md};
 `;
-
-export default EmptyStateWarning;

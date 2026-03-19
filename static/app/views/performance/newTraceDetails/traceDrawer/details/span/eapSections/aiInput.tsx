@@ -8,10 +8,9 @@ import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   getIsAiNode,
@@ -19,6 +18,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
+import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
   parseJsonWithFix,
@@ -119,14 +119,7 @@ function parseAIMessages(messages: string): AIMessage[] | string {
         (message): message is Exclude<typeof message, null> =>
           message !== null && Boolean(message.content)
       );
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.prompt.messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return messages;
   }
 }
@@ -158,14 +151,7 @@ function transformInputMessages(inputMessages: string): {
       result: JSON.stringify(result),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing ai.input_messages', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,
@@ -198,12 +184,7 @@ function transformPrompt(prompt: string): {
       result: JSON.stringify(result),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(new Error('Error parsing ai.prompt', {cause: error}));
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,
@@ -266,14 +247,7 @@ export function transformPartsMessages(messages: string): {
       result: JSON.stringify(transformed),
       fixedInvalidJson,
     };
-  } catch (error) {
-    try {
-      Sentry.captureException(
-        new Error('Error parsing gen_ai messages with parts format', {cause: error})
-      );
-    } catch {
-      // ignore errors with browsers that don't support `cause`
-    }
+  } catch {
     return {
       result: undefined,
       fixedInvalidJson: false,
@@ -515,12 +489,8 @@ export function AIInputSection({
       disableCollapsePersistence
       initialCollapse={initialCollapse}
     >
-      {/* If parsing fails, we'll just show the raw string */}
       {typeof messages === 'string' ? (
-        // We set the key to the node id to ensure the internal collapse state is reset when the user switches between nodes
-        <TraceDrawerComponents.MultilineText key={node.id}>
-          {messages}
-        </TraceDrawerComponents.MultilineText>
+        <AIContentRenderer key={node.id} text={messages} />
       ) : null}
       {Array.isArray(messages) ? (
         <MessagesArrayRenderer
@@ -612,9 +582,7 @@ function MessagesArrayRenderer({
       <Fragment key={index}>
         <RoleLabel>{message.role}</RoleLabel>
         {typeof message.content === 'string' ? (
-          <TraceDrawerComponents.MultilineText>
-            {message.content}
-          </TraceDrawerComponents.MultilineText>
+          <AIContentRenderer text={message.content} />
         ) : (
           <TraceDrawerComponents.MultilineJSON
             value={message.content}
@@ -667,5 +635,5 @@ const ButtonDivider = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: ${space(4)} 0;
+  margin: ${p => p.theme.space['3xl']} 0;
 `;

@@ -10,7 +10,7 @@ from rediscluster import RedisCluster
 from sentry.adoption import manager
 from sentry.adoption.manager import UnknownFeature
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.utils.redis import (
@@ -227,7 +227,7 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
         ).first()
 
 
-@region_silo_model
+@cell_silo_model
 class FeatureAdoption(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

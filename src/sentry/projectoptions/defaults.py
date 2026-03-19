@@ -183,6 +183,13 @@ register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuning
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
 
+# Seer project preferences
+register(key="sentry:seer_automated_run_stopping_point", default="code_changes")
+register(key="sentry:seer_automation_handoff_point", default=None)
+register(key="sentry:seer_automation_handoff_target", default=None)
+register(key="sentry:seer_automation_handoff_integration_id", default=None)
+register(key="sentry:seer_automation_handoff_auto_create_pr", default=False)
+
 # Boolean to enable/disable preprod size analysis for this project.
 register(key="sentry:preprod_size_enabled_by_customer", default=True)
 
@@ -194,3 +201,6 @@ register(key="sentry:preprod_distribution_enabled_by_customer", default=True)
 
 # Structured search filter to determine which preprod builds get build distribution.
 register(key="sentry:preprod_distribution_enabled_query", default="")
+
+# Boolean to enable/disable build distribution PR comments for this project.
+register(key="sentry:preprod_distribution_pr_comments_enabled_by_customer", default=True)

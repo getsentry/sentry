@@ -7,15 +7,15 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {Placeholder} from 'sentry/components/placeholder';
 import {DifferentialFlamegraph} from 'sentry/components/profiling/flamegraph/differentialFlamegraph';
 import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/differentialFlamegraphToolbar';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -37,7 +37,7 @@ import type {DifferentialFlamegraphQueryResult} from 'sentry/utils/profiling/hoo
 import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDifferentialFlamegraphQuery';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
 
 interface EventDifferentialFlamegraphProps {
@@ -290,9 +290,7 @@ function paginationReducer(
 
 interface DifferentialFlamegraphChangedFunctionsProps {
   flamegraph: DifferentialFlamegraphModel;
-  functions:
-    | DifferentialFlamegraphModel['increasedFrames']
-    | DifferentialFlamegraphModel['newFrames'];
+  functions: FlamegraphFrame[];
   loading: boolean;
   makeFunctionLink: (frame: FlamegraphFrame) => LocationDescriptor;
   subtitle: string;

@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {
-  AutoSaveField,
+  AutoSaveForm,
   defaultFormOptions,
   FieldGroup,
   FormSearch,
@@ -14,23 +14,23 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthProvider} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   formatStoreCrashReports,
   getStoreCrashReportsValues,
   SettingScope,
 } from 'sentry/utils/crashReports';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
-import DataSecrecy from 'sentry/views/settings/components/dataSecrecy/index';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy/index';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 const securitySchema = z.object({
   require2FA: z.boolean(),
@@ -99,7 +99,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
       <SettingsPageHeader title={title} />
 
       <FieldGroup title={t('Security & Privacy')}>
-        <AutoSaveField
+        <AutoSaveForm
           name="require2FA"
           schema={securitySchema}
           initialValue={organization.require2FA}
@@ -131,9 +131,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="allowSharedIssues"
           schema={securitySchema}
           initialValue={organization.allowSharedIssues}
@@ -158,9 +158,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="enhancedPrivacy"
           schema={securitySchema}
           initialValue={organization.enhancedPrivacy}
@@ -187,9 +187,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="scrapeJavaScript"
           schema={securitySchema}
           initialValue={organization.scrapeJavaScript}
@@ -216,10 +216,10 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
         {features.has('event-attachments') && (
-          <AutoSaveField
+          <AutoSaveForm
             name="storeCrashReports"
             schema={securitySchema}
             initialValue={organization.storeCrashReports}
@@ -238,18 +238,18 @@ export default function OrganizationSecurityAndPrivacyContent() {
                   disabled={!hasOrgWrite}
                   options={getStoreCrashReportsValues(SettingScope.ORGANIZATION).map(
                     v => ({
-                      value: v,
+                      value: v!,
                       label: formatStoreCrashReports(v),
                     })
                   )}
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         )}
 
         {!hasSsoEnabled && (
-          <AutoSaveField
+          <AutoSaveForm
             name="allowJoinRequests"
             schema={securitySchema}
             initialValue={organization.allowJoinRequests}
@@ -277,12 +277,12 @@ export default function OrganizationSecurityAndPrivacyContent() {
                 />
               </field.Layout.Row>
             )}
-          </AutoSaveField>
+          </AutoSaveForm>
         )}
       </FieldGroup>
 
       <FieldGroup title={t('Data Scrubbing')}>
-        <AutoSaveField
+        <AutoSaveForm
           name="dataScrubber"
           schema={dataScrubBooleanSchema}
           initialValue={organization.dataScrubber}
@@ -310,9 +310,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="dataScrubberDefaults"
           schema={dataScrubBooleanSchema}
           initialValue={organization.dataScrubberDefaults}
@@ -342,9 +342,9 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
 
-        <AutoSaveField
+        <AutoSaveForm
           name="scrubIPAddresses"
           schema={dataScrubBooleanSchema}
           initialValue={organization.scrubIPAddresses}
@@ -374,7 +374,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
               />
             </field.Layout.Row>
           )}
-        </AutoSaveField>
+        </AutoSaveForm>
       </FieldGroup>
 
       <ScrubbingConfigurationFieldGroup hasOrgWrite={hasOrgWrite} />

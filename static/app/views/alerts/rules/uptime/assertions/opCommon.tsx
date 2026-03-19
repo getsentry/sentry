@@ -7,7 +7,7 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {AssertionFormError} from 'sentry/views/alerts/rules/uptime/formErrors';

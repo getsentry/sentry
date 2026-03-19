@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import Card from 'sentry/components/card';
+import {Card} from 'sentry/components/card';
 import {IconAdd, IconGeneric} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
@@ -16,7 +16,7 @@ type Props = {
   title: string;
 };
 
-function TemplateCard({title, description, onPreview, onAdd}: Props) {
+export function TemplateCard({title, description, onPreview, onAdd}: Props) {
   const [isAddingDashboardTemplate, setIsAddingDashboardTemplate] = useState(false);
 
   return (
@@ -82,5 +82,3 @@ const Detail = styled(Title)`
 const StyledButton = styled(Button)`
   flex-grow: 1;
 `;
-
-export default TemplateCard;

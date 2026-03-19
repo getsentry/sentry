@@ -9,7 +9,7 @@ interface Props {
 
 const POLLING_INTERVAL_MS = 10_000;
 
-export default function useFeedbackHasNewItems({listPrefetchQueryKey}: Props) {
+export function useFeedbackHasNewItems({listPrefetchQueryKey}: Props) {
   const [foundData, setFoundData] = useState(false);
 
   const {data} = useApiQuery<unknown[]>(

@@ -7,15 +7,15 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import Access from 'sentry/components/acl/access';
-import CircleIndicator from 'sentry/components/circleIndicator';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Access} from 'sentry/components/acl/access';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
@@ -34,7 +34,7 @@ type Props = {
 };
 
 // No longer a modal anymore but yea :)
-export default function SentryAppDetailsModal(props: Props) {
+export function SentryAppDetailsModal(props: Props) {
   const theme = useTheme();
   const {closeModal, organization, sentryApp, isInstalled, onInstall} = props;
 

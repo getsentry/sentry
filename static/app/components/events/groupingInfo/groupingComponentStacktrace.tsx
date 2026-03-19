@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import type {EventGroupComponent} from 'sentry/types/event';
 
-import GroupingComponent from './groupingComponent';
-import GroupingComponentFrames from './groupingComponentFrames';
+import {GroupingComponent} from './groupingComponent';
+import {GroupingComponentFrames} from './groupingComponentFrames';
 import {getFrameGroups} from './utils';
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
   showNonContributing: boolean;
 };
 
-function GroupingComponentStacktrace({component, showNonContributing}: Props) {
+export function GroupingComponentStacktrace({component, showNonContributing}: Props) {
   return (
     <Fragment>
       {getFrameGroups(component, showNonContributing).map((group, index) => (
@@ -30,5 +30,3 @@ function GroupingComponentStacktrace({component, showNonContributing}: Props) {
     </Fragment>
   );
 }
-
-export default GroupingComponentStacktrace;

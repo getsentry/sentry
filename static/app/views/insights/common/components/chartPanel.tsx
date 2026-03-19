@@ -4,7 +4,7 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
@@ -17,13 +17,7 @@ type Props = {
   title?: React.ReactNode;
 };
 
-export default function ChartPanel({
-  title,
-  children,
-  button,
-  subtitle,
-  className,
-}: Props) {
+export function ChartPanel({title, children, button, subtitle, className}: Props) {
   return (
     <PanelWithNoPadding className={className}>
       <PanelBody>

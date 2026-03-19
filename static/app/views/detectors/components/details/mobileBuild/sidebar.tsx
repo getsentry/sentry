@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';

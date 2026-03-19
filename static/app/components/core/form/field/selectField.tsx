@@ -4,6 +4,7 @@ import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
+import type {Props as ReactSelectProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import type {SelectValue} from 'sentry/types/core';
 
@@ -13,20 +14,18 @@ function SelectInput({
   selectProps,
   ...props
 }: React.ComponentProps<typeof components.Input> & {
-  selectProps: {'aria-invalid': boolean; inputRef: Ref<{input: HTMLInputElement}>};
+  selectProps?: {'aria-invalid'?: boolean; inputRef?: Ref<{input: HTMLInputElement}>};
 }) {
   return (
     <components.Input
       {...props}
-      {...{ref: selectProps.inputRef}}
-      aria-invalid={selectProps['aria-invalid']}
+      {...{ref: selectProps?.inputRef}}
+      aria-invalid={selectProps?.['aria-invalid']}
     />
   );
 }
 
-function SelectIndicatorsContainer({
-  children,
-}: React.ComponentProps<typeof components.IndicatorsContainer>) {
+function SelectIndicatorsContainer({children}: {children: React.ReactNode}) {
   const indicator = useAutoSaveIndicator();
   return (
     <Flex padding="0 sm" gap="sm" align="center">
@@ -37,26 +36,34 @@ function SelectIndicatorsContainer({
 }
 
 // Base props shared by all select variants
-type BaseSelectFieldProps = BaseFieldProps<HTMLInputElement> &
-  Omit<
-    React.ComponentProps<typeof Select>,
-    | 'value'
-    | 'onChange'
-    | 'onBlur'
-    | 'disabled'
-    | 'multiple'
-    | 'multi'
-    | 'clearable'
-    | 'id'
-  > & {
-    disabled?: boolean | string;
+type BaseSelectFieldProps<TValue, IsMulti extends boolean> = Omit<
+  ReactSelectProps<SelectValue<TValue>, IsMulti>,
+  | 'value'
+  | 'onChange'
+  | 'onBlur'
+  | 'isDisabled'
+  | 'isMulti'
+  | 'isClearable'
+  | 'id'
+  | 'options'
+> &
+  BaseFieldProps<HTMLInputElement> & {
+    options: ReadonlyArray<SelectValue<TValue>>;
+    /**
+     * custom value comparator function
+     * defaults to === comparison of the option values
+     */
+    isValueEqual?: (optionA: TValue, optionB: TValue) => boolean;
   };
 
 // Helper type for non-array constraint
 type NonArray<T> = T extends readonly unknown[] ? never : T;
 
 // Single select WITHOUT clearable - onChange receives TValue (never null)
-interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps {
+interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps<
+  TValue,
+  false
+> {
   onChange: (value: NonArray<TValue>) => void;
   value: NonArray<TValue> | null;
   clearable?: false;
@@ -64,7 +71,10 @@ interface SingleUnclearableSelectFieldProps<TValue> extends BaseSelectFieldProps
 }
 
 // Single select WITH clearable - onChange can receive TValue | null
-interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps {
+interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps<
+  TValue,
+  false
+> {
   clearable: true;
   onChange: (value: NonArray<TValue> | null) => void;
   value: NonArray<TValue> | null;
@@ -72,14 +82,16 @@ interface SingleClearableSelectFieldProps<TValue> extends BaseSelectFieldProps {
 }
 
 // Multiple select - TValue must be an array
-interface MultipleSelectFieldProps<TValue> extends BaseSelectFieldProps {
+interface MultipleSelectFieldProps<
+  TValue extends NonArray<any>,
+> extends BaseSelectFieldProps<TValue, true> {
   multiple: true;
-  onChange: (value: TValue extends readonly unknown[] ? TValue : never) => void;
-  value: TValue extends readonly unknown[] ? TValue : never;
+  onChange: (value: TValue[]) => void;
+  value: TValue[];
   clearable?: boolean;
 }
 
-export type SelectFieldProps<TValue = string> =
+export type SelectFieldProps<TValue> =
   | SingleUnclearableSelectFieldProps<TValue>
   | SingleClearableSelectFieldProps<TValue>
   | MultipleSelectFieldProps<TValue>;
@@ -99,7 +111,7 @@ const applyInputToRef =
     }
   };
 
-export function SelectField<TValue = string>({
+export function SelectField<TValue>({
   onChange,
   disabled,
   multiple,
@@ -123,11 +135,13 @@ export function SelectField<TValue = string>({
             multiple={multiple}
             value={value}
             inputRef={applyInputToRef(fieldRef)}
-            components={{
-              ...props.components,
-              Input: SelectInput,
-              IndicatorsContainer: SelectIndicatorsContainer,
-            }}
+            components={
+              {
+                ...props.components,
+                Input: SelectInput,
+                IndicatorsContainer: SelectIndicatorsContainer,
+              } as never
+            }
             onMenuOpen={() => {
               isMenuOpenRef.current = true;
               props.onMenuOpen?.();

@@ -4,7 +4,7 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {Widget} from 'sentry/views/dashboards/types';
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
 
@@ -195,14 +195,6 @@ const SLOW_FRAME_RATE_WIDGET: Widget = {
         `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|sum(${SpanFields.MOBILE_SLOW_FRAMES}) / sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
       ],
-      fieldMeta: [
-        null,
-        null,
-        {
-          valueType: 'percentage',
-          valueUnit: null,
-        },
-      ],
       selectedAggregate: 2,
       columns: [],
       conditions: TRANSACTION_OP_CONDITION,
@@ -238,14 +230,6 @@ const FROZEN_FRAME_RATE_WIDGET: Widget = {
         `sum(${SpanFields.MOBILE_FROZEN_FRAMES})`,
         `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|sum(${SpanFields.MOBILE_FROZEN_FRAMES}) / sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-      ],
-      fieldMeta: [
-        null,
-        null,
-        {
-          valueType: 'percentage',
-          valueUnit: null,
-        },
       ],
       selectedAggregate: 2,
       columns: [],
@@ -357,12 +341,6 @@ const SCREEN_RENDERING_TABLE: Widget = {
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: ['Transaction', 'Slow Frame %', 'Frozen Frame %', 'Screen Loads'],
-      fieldMeta: [
-        null,
-        {valueType: 'percentage', valueUnit: null},
-        {valueType: 'percentage', valueUnit: null},
-        null,
-      ],
       conditions: SCREEN_RENDERING_CONDITION,
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
       linkedDashboards: [
@@ -443,7 +421,7 @@ const SECOND_ROW_WIDGETS: Widget[] = [
 
 export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
-  title: t('Mobile Vitals as a Dashboard'),
+  title: t('Mobile Vitals'),
   projects: [],
   widgets: [
     ...FIRST_ROW_WIDGETS,
@@ -474,4 +452,5 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
       },
     ],
   },
+  onboarding: {type: 'module', moduleName: ModuleName.MOBILE_VITALS},
 };

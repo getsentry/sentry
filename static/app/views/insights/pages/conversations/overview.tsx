@@ -5,11 +5,11 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {
   useSpanSearchQueryBuilderProps,
   type UseSpanSearchQueryBuilderProps,
@@ -18,8 +18,8 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
-import useOrganization from 'sentry/utils/useOrganization';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';

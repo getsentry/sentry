@@ -25,9 +25,9 @@ from sentry.silo.util import (
     clean_outbound_headers,
     clean_proxy_headers,
 )
-from sentry.types.region import (
+from sentry.types.cell import (
     Cell,
-    RegionResolutionError,
+    CellResolutionError,
     get_cell_by_name,
     get_cell_for_organization,
 )
@@ -81,7 +81,7 @@ def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> H
 
     try:
         cell = get_cell_for_organization(org_id_or_slug)
-    except RegionResolutionError as e:
+    except CellResolutionError as e:
         logger.info("region_resolution_error", extra={"org_slug": org_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
@@ -105,8 +105,8 @@ def proxy_error_embed_request(
     app_segments = app_host.split(".")
     host_segments = host.split(".")
     if len(host_segments) - len(app_segments) < 3:
-        # If we don't have a o123.ingest.{region}.{app_host} style domain
-        # we forward to the monolith region
+        # If we don't have a o123.ingest.{cell}.{app_host} style domain
+        # we forward to the monolith cell
         cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
         return proxy_cell_request(request, cell, url_name)
     try:

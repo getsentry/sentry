@@ -43,7 +43,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.types.region import subdomain_is_region
+from sentry.types.cell import subdomain_is_locality
 from sentry.users.services.user.service import user_service
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
@@ -132,21 +132,21 @@ If a request is received and the application is not in CONTROL/MONOLITH
 mode a 404 will be returned.
 """
 
-region_silo_view = ViewSiloLimit([SiloMode.REGION])
+cell_silo_view = ViewSiloLimit([SiloMode.CELL])
 """
-Apply to frontend views that exist in REGION Silo
-If a request is received and the application is not in REGION/MONOLITH
+Apply to frontend views that exist in CELL Silo
+If a request is received and the application is not in CELL/MONOLITH
 mode a 404 will be returned.
 """
 
-all_silo_view = ViewSiloLimit([SiloMode.REGION, SiloMode.CONTROL, SiloMode.MONOLITH])
+all_silo_view = ViewSiloLimit([SiloMode.CELL, SiloMode.CONTROL, SiloMode.MONOLITH])
 """
-Apply to frontend views that respond in both CONTROL and REGION mode.
+Apply to frontend views that respond in both CONTROL and CELL mode.
 """
 
-internal_region_silo_view = ViewSiloLimit([SiloMode.REGION], internal=True)
+internal_cell_silo_view = ViewSiloLimit([SiloMode.CELL], internal=True)
 """
-Apply to frontend views that exist in REGION Silo
+Apply to frontend views that exist in CELL Silo
 and are not accessible via cell routing.
 This is generally for debug/development views.
 """
@@ -393,7 +393,7 @@ class BaseView(View, OrganizationMixin):
 
         """
         organization_slug = kwargs.get("organization_slug", None)
-        if request and is_using_customer_domain(request) and not subdomain_is_region(request):
+        if request and is_using_customer_domain(request) and not subdomain_is_locality(request):
             organization_slug = request.subdomain
         self.active_organization = determine_active_organization(request, organization_slug)
 

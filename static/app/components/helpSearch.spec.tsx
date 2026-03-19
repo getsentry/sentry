@@ -2,7 +2,7 @@ import {SentryGlobalSearch} from '@sentry-internal/global-search';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import HelpSearch from 'sentry/components/helpSearch';
+import {HelpSearch} from 'sentry/components/helpSearch';
 
 const mockResults = [
   {

@@ -11,16 +11,16 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 
-function LaunchpadAdminPage() {
+export function LaunchpadAdminPage() {
   const api = useApi();
   const [rerunArtifactId, setRerunArtifactId] = useState<string>('');
   const [deleteArtifactId, setDeleteArtifactId] = useState<string>('');
@@ -523,5 +523,3 @@ const InfoDisplay = styled('div')`
     word-break: break-word;
   }
 `;
-
-export default LaunchpadAdminPage;

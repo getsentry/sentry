@@ -5,7 +5,7 @@ import {TeamIssuesBreakdownFixture} from 'sentry-fixture/teamIssuesBreakdown';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import TeamIssuesBreakdown from 'sentry/views/organizationStats/teamInsights/teamIssuesBreakdown';
+import {TeamIssuesBreakdown} from 'sentry/views/organizationStats/teamInsights/teamIssuesBreakdown';
 
 describe('TeamIssuesBreakdown', () => {
   it('should render graph with table of issues reviewed', async () => {

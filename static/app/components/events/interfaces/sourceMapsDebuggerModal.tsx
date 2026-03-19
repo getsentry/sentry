@@ -18,7 +18,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
-import ProgressRing from 'sentry/components/progressRing';
+import {ProgressRing} from 'sentry/components/progressRing';
 import {
   IconCheckmark,
   IconCircle,
@@ -29,16 +29,15 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
 import {getSourceMapsWizardSnippet} from 'sentry/utils/getSourceMapsWizardSnippet';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
   not_found: {
@@ -1981,7 +1980,7 @@ function SourceMapStepNotRequiredNote() {
 }
 
 const StyledTabPanels = styled(TabPanels)<{hideAllTabs: boolean}>`
-  ${p => !p.hideAllTabs && `padding-top: ${space(2)};`}
+  ${p => !p.hideAllTabs && `padding-top: ${p.theme.space.xl};`}
 `;
 
 const CheckList = styled('ul')`

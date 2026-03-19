@@ -4,8 +4,8 @@ import {getRelativeDate} from 'sentry/components/timeSince';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useProjects from 'sentry/utils/useProjects';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {isEmptyTrace} from './traceApi/utils';
@@ -22,7 +22,7 @@ type Options = {
   meta?: TraceMetaQueryResults;
 };
 
-function useTraceStateAnalytics({
+export function useTraceStateAnalytics({
   trace,
   meta,
   organization,
@@ -98,5 +98,3 @@ function useTraceStateAnalytics({
     timestamp,
   ]);
 }
-
-export default useTraceStateAnalytics;

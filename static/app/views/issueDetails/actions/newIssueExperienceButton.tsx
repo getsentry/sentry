@@ -6,7 +6,7 @@ import issueDetailsPreview from 'sentry-images/issue_details/issue-details-previ
 import {Button} from '@sentry/scraps/button';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
@@ -17,8 +17,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,

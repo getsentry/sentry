@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log, options, roles
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.models.options.project_option import ProjectOption
@@ -29,7 +29,7 @@ class RelaxedProjectPermission(ProjectPermission):
     scope_map = {"POST": ["org:admin"]}
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectTransferEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.UNKNOWN,

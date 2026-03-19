@@ -10,12 +10,12 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import MemberListStore from 'sentry/stores/memberListStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import * as RegionUtils from 'sentry/utils/regions';
-import OrganizationSettingsForm from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
+import {OrganizationSettingsForm} from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
 
 jest.mock('sentry/utils/regions');
 
@@ -295,7 +295,7 @@ describe('OrganizationSettingsForm', () => {
       const aiCodeReviewLink = learnMoreLinks.find(
         link =>
           link.getAttribute('href') ===
-          'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/'
+          'https://docs.sentry.io/product/ai-in-sentry/seer/code-review/'
       );
       expect(aiCodeReviewLink).toBeInTheDocument();
     });
@@ -608,19 +608,9 @@ describe('OrganizationSettingsForm', () => {
   });
 
   describe('Replay access', () => {
-    it('does not render restrict replay access toggle if org does not have granular-replay-permissions', () => {
+    it('renders restrict replay access toggle', () => {
       render(
         <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />
-      );
-      expect(
-        screen.queryByRole('checkbox', {name: 'Restrict Replay Access'})
-      ).not.toBeInTheDocument();
-    });
-
-    it('renders restrict replay access toggle if org has granular-replay-permissions', () => {
-      render(
-        <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
-        {organization: {...organization, features: ['granular-replay-permissions']}}
       );
       expect(
         screen.getByRole('checkbox', {name: 'Restrict Replay Access'})
@@ -633,7 +623,7 @@ describe('OrganizationSettingsForm', () => {
         {
           organization: {
             ...organization,
-            features: ['granular-replay-permissions'],
+
             hasGranularReplayPermissions: false,
           },
         }
@@ -652,7 +642,7 @@ describe('OrganizationSettingsForm', () => {
         {
           organization: {
             ...organization,
-            features: ['granular-replay-permissions'],
+
             hasGranularReplayPermissions: true,
           },
         }
@@ -669,7 +659,7 @@ describe('OrganizationSettingsForm', () => {
           organization: {
             ...organization,
             access: [],
-            features: ['granular-replay-permissions'],
+
             hasGranularReplayPermissions: true,
           },
         }
@@ -688,7 +678,7 @@ describe('OrganizationSettingsForm', () => {
         {
           organization: {
             ...organization,
-            features: ['granular-replay-permissions'],
+
             hasGranularReplayPermissions: false,
           },
         }
@@ -718,7 +708,7 @@ describe('OrganizationSettingsForm', () => {
         {
           organization: {
             ...organization,
-            features: ['granular-replay-permissions'],
+
             hasGranularReplayPermissions: true,
           },
         }
@@ -753,7 +743,7 @@ describe('OrganizationSettingsForm', () => {
         {
           organization: {
             ...organization,
-            features: ['granular-replay-permissions'],
+
             hasGranularReplayPermissions: true,
           },
         }

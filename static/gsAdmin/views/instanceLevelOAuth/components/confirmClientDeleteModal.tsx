@@ -7,15 +7,15 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = ModalRenderProps & {
   clientID: string | null;
   name: string | null;
 };
 
-function ConfirmClientDeleteModal({Body, Header, clientID, name}: Props) {
+export function ConfirmClientDeleteModal({Body, Header, clientID, name}: Props) {
   const api = useApi();
 
   const deleteClientAndCloseModal = async () => {
@@ -44,8 +44,6 @@ function ConfirmClientDeleteModal({Body, Header, clientID, name}: Props) {
     </Fragment>
   );
 }
-
-export default ConfirmClientDeleteModal;
 
 const StyledButton = styled(Button)`
   margin-top: 10px;

@@ -3,23 +3,21 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {parseQueryKey} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
   onSortClick: (key: Sort) => void;
@@ -32,41 +30,19 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Auto-Triggered Fixes'), key: 'fixes'},
-  {
-    title: (organization: Organization) => (
-      <Flex gap="sm" align="center">
-        {t('PR Creation')}
-        {organization.enableSeerCoding === false && (
-          <QuestionTooltip
-            title={tct(
-              '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
-              {
-                settings: (
-                  <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
-                ),
-              }
-            )}
-            size="xs"
-          />
-        )}
-      </Flex>
-    ),
-    key: 'pr_creation',
-  },
+  {title: t('Autofix Handoff'), key: 'fixes'},
   {
     title: (
       <Flex gap="sm" align="center">
-        {t('Coding Agent')}
-        <QuestionTooltip
+        {t('PR Creation')}
+        <InfoTip
           title={t(
-            'Coding agent delegation can only be changed on the individual project settings page. Coding agents have more settings that are not shown here.'
+            'This setting only applies when an Autofix Handoff is configured to run automatically.'
           )}
-          size="xs"
         />
       </Flex>
     ),
-    key: 'is_delegated',
+    key: 'pr_creation',
   },
   {title: t('Repos'), key: 'repos'},
 ];
@@ -88,7 +64,7 @@ function getMutationCallbacks(count: number) {
   };
 }
 
-export default function ProjectTableHeader({
+export function ProjectTableHeader({
   projects,
   onSortClick,
   sort,
@@ -118,12 +94,12 @@ export default function ProjectTableHeader({
   return (
     <Fragment>
       <TableHeader>
-        <SimpleTable.HeaderCell>
+        {/* <SimpleTable.HeaderCell>
           <SelectAllCheckbox
             listItemCheckboxState={listItemCheckboxState}
             projects={projects}
           />
-        </SimpleTable.HeaderCell>
+        </SimpleTable.HeaderCell> */}
         {COLUMNS.map(({title, key, sortKey}) => (
           <SimpleTable.HeaderCell
             key={key}
@@ -143,7 +119,7 @@ export default function ProjectTableHeader({
             }
             sort={sort?.field === sortKey ? sort.kind : undefined}
           >
-            {typeof title === 'function' ? title(organization) : title}
+            {title}
           </SimpleTable.HeaderCell>
         ))}
       </TableHeader>
@@ -157,31 +133,6 @@ export default function ProjectTableHeader({
             />
           </TableCellFirst>
           <TableCellsRemainingContent align="center" gap="md">
-            <DropdownMenu
-              isDisabled={!canWrite}
-              size="xs"
-              items={[
-                {
-                  key: 'medium',
-                  label: t('On'),
-                  onAction: () =>
-                    updateBulkAutofixAutomationSettings(
-                      {projectIds, autofixAutomationTuning: 'medium'},
-                      getMutationCallbacks(projectIds.length)
-                    ),
-                },
-                {
-                  key: 'off',
-                  label: t('Off'),
-                  onAction: () =>
-                    updateBulkAutofixAutomationSettings(
-                      {projectIds, autofixAutomationTuning: 'off'},
-                      getMutationCallbacks(projectIds.length)
-                    ),
-                },
-              ]}
-              triggerLabel={t('Auto Fix')}
-            />
             <DropdownMenu
               isDisabled={!canWrite || organization.enableSeerCoding === false}
               size="xs"
@@ -205,7 +156,7 @@ export default function ProjectTableHeader({
                     ),
                 },
               ]}
-              triggerLabel={t('PR Creation')}
+              triggerLabel={t('Auto Create PRs')}
             />
           </TableCellsRemainingContent>
         </TableHeader>

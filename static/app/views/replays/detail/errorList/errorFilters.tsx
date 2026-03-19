@@ -2,17 +2,17 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
-import type useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
-import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
+import type {useErrorFilters} from 'sentry/views/replays/detail/errorList/useErrorFilters';
+import {FiltersGrid} from 'sentry/views/replays/detail/filtersGrid';
 
 interface Props extends ReturnType<typeof useErrorFilters> {
   errorFrames: undefined | ErrorFrame[];
 }
 
-export default function ErrorFilters({
+export function ErrorFilters({
   errorFrames,
   getLevelOptions,
   getProjectOptions,

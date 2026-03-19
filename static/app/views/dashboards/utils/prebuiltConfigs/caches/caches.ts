@@ -4,7 +4,7 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/caches/settings';
 import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
-import {SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const BASE_CONDITION = `${SpanFields.SPAN_OP}:[cache.get,cache.get_item]`;
 
@@ -28,7 +28,6 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           ],
           conditions: BASE_CONDITION,
           orderby: `equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
-          fieldMeta: [{valueType: 'percentage', valueUnit: null}],
         },
       ],
     },
@@ -85,14 +84,6 @@ const TRANSACTION_TABLE: Widget = {
         t('Miss Rate'),
         t('Time Spent'),
       ],
-      fieldMeta: [
-        null,
-        null,
-        null,
-        null,
-        {valueType: 'percentage', valueUnit: null},
-        null,
-      ],
       conditions: BASE_CONDITION,
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
@@ -112,4 +103,5 @@ export const CACHES_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: DASHBOARD_TITLE,
   filters: {},
   widgets: [...FIRST_ROW_WIDGETS, TRANSACTION_TABLE],
+  onboarding: {type: 'module', moduleName: ModuleName.CACHE},
 };

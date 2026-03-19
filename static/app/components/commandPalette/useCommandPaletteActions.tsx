@@ -1,6 +1,6 @@
 import {useEffect, useId} from 'react';
 
-import slugify from 'sentry/utils/slugify';
+import {slugify} from 'sentry/utils/slugify';
 
 import {useCommandPaletteRegistration} from './context';
 import type {

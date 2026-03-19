@@ -13,13 +13,12 @@ import type {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
-import type useOverlay from 'sentry/utils/useOverlay';
+import type {useOverlay} from 'sentry/utils/useOverlay';
 
 import {DropdownMenu} from './index';
 import type {MenuItemProps} from './item';
-import DropdownMenuItem from './item';
-import DropdownMenuSection from './section';
+import {DropdownMenuItem} from './item';
+import {DropdownMenuSection} from './section';
 
 type OverlayState = ReturnType<typeof useOverlay>['state'];
 
@@ -67,9 +66,15 @@ export interface DropdownMenuListProps
    */
   menuTitle?: React.ReactNode;
   size?: MenuItemProps['size'];
+  /**
+   * Style overrides applied to the position wrapper. Useful for overriding
+   * the default z-index (e.g. when the menu is inside a high z-index container
+   * like a sidebar).
+   */
+  zIndex?: number;
 }
 
-function DropdownMenuList({
+export function DropdownMenuList({
   closeOnSelect = true,
   onClose,
   size,
@@ -77,6 +82,7 @@ function DropdownMenuList({
   menuFooter,
   overlayState,
   overlayPositionProps,
+  zIndex,
   ...props
 }: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
@@ -229,7 +235,10 @@ function DropdownMenuList({
   );
   return (
     <FocusScope restoreFocus autoFocus>
-      <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
+      <PositionWrapper
+        zIndex={zIndex === undefined ? theme.zIndex.dropdown : Number(zIndex)}
+        {...overlayPositionProps}
+      >
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
@@ -251,8 +260,6 @@ function DropdownMenuList({
   );
 }
 
-export default DropdownMenuList;
-
 const StyledOverlay = styled(Overlay)`
   display: flex;
   flex-direction: column;
@@ -265,7 +272,7 @@ const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
   overflow-x: hidden;
   overflow-y: auto;
 
-  ${p => p.hasTitle && `padding-top: calc(${space(0.5)} + 1px);`}
+  ${p => p.hasTitle && `padding-top: calc(${p.theme.space.xs} + 1px);`}
 
   &:focus {
     outline: none;

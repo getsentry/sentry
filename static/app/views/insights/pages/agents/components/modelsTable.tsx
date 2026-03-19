@@ -3,18 +3,19 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import Count from 'sentry/components/count';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Pagination from 'sentry/components/pagination';
-import GridEditable, {
+import {Count} from 'sentry/components/count';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Pagination} from 'sentry/components/pagination';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
-import useStateBasedColumnResize from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
+import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -126,7 +127,7 @@ export function ModelsTable() {
     }
 
     return modelsRequest.data.map(span => ({
-      model: `${span['gen_ai.request.model']}`,
+      model: span['gen_ai.request.model'],
       requests: span['count()'] ?? 0,
       avg: span['avg(span.duration)'] ?? 0,
       p95: span['p95(span.duration)'] ?? 0,

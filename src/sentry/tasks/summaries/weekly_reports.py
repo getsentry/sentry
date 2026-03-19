@@ -102,7 +102,7 @@ class WeeklyReportProgressTracker:
     namespace=reports_tasks,
     retry=Retry(times=5),
     processing_deadline_duration=timedelta(minutes=30),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry(timeouts=True)
 def schedule_organizations(
@@ -162,7 +162,7 @@ def schedule_organizations(
     namespace=reports_tasks,
     processing_deadline_duration=60 * 10,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def prepare_organization_report(

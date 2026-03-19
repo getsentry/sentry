@@ -5,7 +5,7 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {
@@ -13,9 +13,9 @@ import {
   MIN_REPLAY_NETWORK_BODIES_SDK_KNOWN_BUG,
 } from 'sentry/utils/replays/sdkVersions';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
 

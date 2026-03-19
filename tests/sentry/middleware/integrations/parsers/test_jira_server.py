@@ -12,10 +12,10 @@ from fixtures.integrations.stub_service import StubService
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import Cell, RegionCategory
+from sentry.types.cell import Cell, RegionCategory
 
 region = Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)
 
@@ -32,7 +32,7 @@ class JiraServerRequestParserTest(TestCase):
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=status.HTTP_200_OK, content="passthrough")
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
@@ -57,7 +57,7 @@ class JiraServerRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_routing_endpoint_with_integration(self) -> None:
@@ -83,7 +83,7 @@ class JiraServerRequestParserTest(TestCase):
             region_names=[region.name],
         )
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_routing_endpoint_with_integration_no_organization_integration(self) -> None:
@@ -109,7 +109,7 @@ class JiraServerRequestParserTest(TestCase):
         assert response.content == b""
         assert len(responses.calls) == 0
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_routing_webhook_with_mailbox_buckets_low_volume(self) -> None:
@@ -135,7 +135,7 @@ class JiraServerRequestParserTest(TestCase):
             region_names=[region.name],
         )
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_routing_webhook_with_mailbox_buckets_high_volume(self) -> None:
@@ -168,7 +168,7 @@ class JiraServerRequestParserTest(TestCase):
             region_names=[region.name],
         )
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_routing_webhook_with_mailbox_bucket_mode_active(self) -> None:
@@ -201,7 +201,7 @@ class JiraServerRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_drop_request_without_changelog(self) -> None:
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})

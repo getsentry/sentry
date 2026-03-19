@@ -271,7 +271,7 @@ export const profilingFullStack = <
         {
           type: 'text',
           text: tct('For more information see the [link:node profiling documentation].', {
-            link: <ExternalLink href={`${nodeProfilingLink}`} />,
+            link: <ExternalLink href={nodeProfilingLink} />,
           }),
         },
       ],

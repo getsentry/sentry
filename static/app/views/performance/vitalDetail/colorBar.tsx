@@ -1,8 +1,6 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 type ColorStop = {
   color: string;
   percent: number;
@@ -14,7 +12,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   barHeight?: number;
 }
 
-function ColorBar(props: Props) {
+export function ColorBar(props: Props) {
   return (
     <VitalBar
       barHeight={props.barHeight}
@@ -43,12 +41,10 @@ const VitalBar = styled('div')<VitalBarProps>`
   background: ${p => p.theme.colors.gray100};
   display: grid;
   grid-template-columns: ${p => p.fractions.map(f => `${f}fr`).join(' ')};
-  margin-bottom: ${p => (p.barHeight ? '' : space(1))};
+  margin-bottom: ${p => (p.barHeight ? '' : p.theme.space.md)};
   border-radius: 2px;
 `;
 
 const BarStatus = styled('div')<{color: string}>`
   background-color: ${p => p.color};
 `;
-
-export default ColorBar;

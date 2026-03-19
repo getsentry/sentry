@@ -1,12 +1,12 @@
 import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import PlanFeatures from 'getsentry/views/amCheckout/components/planFeatures';
+import {PlanFeatures} from 'getsentry/views/amCheckout/components/planFeatures';
 
 describe('PlanFeatures', () => {
-  const freePlan = PlanDetailsLookupFixture('am3_f')!;
-  const teamPlan = PlanDetailsLookupFixture('am3_team')!;
-  const businessPlan = PlanDetailsLookupFixture('am3_business')!;
+  const freePlan = PlanDetailsLookupFixture('am3_f');
+  const teamPlan = PlanDetailsLookupFixture('am3_team');
+  const businessPlan = PlanDetailsLookupFixture('am3_business');
   const planOptions = [freePlan, teamPlan, businessPlan];
 
   it('renders for team plan', () => {

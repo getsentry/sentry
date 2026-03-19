@@ -9,7 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
@@ -31,27 +31,23 @@ import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingSt
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {
-  agentMonitoringPlatforms,
-  javascriptMetaFrameworks,
-} from 'sentry/data/platformCategories';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   CopyLLMPromptButton,
@@ -75,7 +71,6 @@ import {
   AgentIntegration,
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
-  SERVER_SIDE_NODE_INTEGRATIONS,
 } from './utils/agentIntegrations';
 
 function useAiSpanWaiter(project: Project) {
@@ -246,35 +241,21 @@ export function Onboarding() {
 
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
-  const isNodePlatform = (project?.platform ?? '').startsWith('node');
-  const isFullStackJsPlatform = javascriptMetaFrameworks.includes(
-    project?.platform ?? 'other'
-  );
-  const hasServerSideNode = isNodePlatform || isFullStackJsPlatform;
+
+  const integrations = isPythonPlatform
+    ? PYTHON_AGENT_INTEGRATIONS
+    : NODE_AGENT_INTEGRATIONS;
 
   const integrationOptions = {
     integration: {
       label: t('Integration'),
-      items: isPythonPlatform
-        ? PYTHON_AGENT_INTEGRATIONS.map(integration => ({
-            label: AGENT_INTEGRATION_LABELS[integration],
-            value: integration,
-            leadingItems: (
-              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
-            ),
-          }))
-        : (hasServerSideNode
-            ? NODE_AGENT_INTEGRATIONS
-            : NODE_AGENT_INTEGRATIONS.filter(
-                integration => !SERVER_SIDE_NODE_INTEGRATIONS.has(integration)
-              )
-          ).map(integration => ({
-            label: AGENT_INTEGRATION_LABELS[integration],
-            value: integration,
-            leadingItems: (
-              <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
-            ),
-          })),
+      items: integrations.map(integration => ({
+        label: AGENT_INTEGRATION_LABELS[integration],
+        value: integration,
+        leadingItems: (
+          <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+        ),
+      })),
     },
   };
 
@@ -596,15 +577,13 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
-const CONTENT_SPACING = space(1);
-
 const DescriptionWrapper = styled('div')`
   code:not([class*='language-']) {
     color: ${p => p.theme.colors.pink500};
   }
 
   :not(:last-child) {
-    margin-bottom: ${CONTENT_SPACING};
+    margin-bottom: ${p => p.theme.space.md};
   }
 
   && > h4,
@@ -618,7 +597,7 @@ const DescriptionWrapper = styled('div')`
   && > * {
     margin: 0;
     &:not(:last-child) {
-      margin-bottom: ${CONTENT_SPACING};
+      margin-bottom: ${p => p.theme.space.md};
     }
   }
 `;

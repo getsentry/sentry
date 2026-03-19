@@ -30,7 +30,7 @@ class TestSiloAwareTransactionPatchInSingleDbMode(TestCase):
 class TestSiloAwareTransactionPatchInSplitDbMode(TestCase):
     def test_fails_if_silo_mismatch_with_using_in_region_silo(self) -> None:
         with (
-            override_settings(SILO_MODE=SiloMode.REGION),
+            override_settings(SILO_MODE=SiloMode.CELL),
             pytest.raises(MismatchedSiloTransactionError),
         ):
             siloed_atomic(using=router.db_for_write(OrganizationMapping))
@@ -51,7 +51,7 @@ class TestSiloAwareTransactionPatchInSplitDbMode(TestCase):
             siloed_atomic(using=router.db_for_write(OrganizationMapping))
 
     def test_accepts_control_silo_routing_in_region_silo(self) -> None:
-        with override_settings(SILO_MODE=SiloMode.REGION):
+        with override_settings(SILO_MODE=SiloMode.CELL):
             siloed_atomic(using=router.db_for_write(Organization))
 
 

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Spinner from 'sentry/components/forms/spinner';
+import {Spinner} from 'sentry/components/forms/spinner';
 import {IconCheckmark, IconWarning} from 'sentry/icons';
 import {fadeOut, pulse} from 'sentry/styles/animations';
 

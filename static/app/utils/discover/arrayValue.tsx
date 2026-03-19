@@ -9,7 +9,7 @@ type Props = {
   value: Array<string | null>;
 };
 
-function ArrayValue(props: Props) {
+export function ArrayValue(props: Props) {
   const [expanded, setExpanded] = useState<boolean>(false);
   const {value} = props;
 
@@ -65,5 +65,3 @@ const ArrayItem = styled('span')`
 const ButtonContainer = styled('div')`
   white-space: nowrap;
 `;
-
-export default ArrayValue;

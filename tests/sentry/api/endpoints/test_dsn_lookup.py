@@ -1,8 +1,8 @@
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class DsnLookupEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-dsn-lookup"
 

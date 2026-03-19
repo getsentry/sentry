@@ -11,8 +11,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
-import withApi from 'sentry/utils/withApi';
-import withProjects from 'sentry/utils/withProjects';
+import {withApi} from 'sentry/utils/withApi';
+import {withProjects} from 'sentry/utils/withProjects';
 
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import TransactionThresholdModal, {modalCss} from './transactionThresholdModal';

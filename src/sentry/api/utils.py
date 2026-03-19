@@ -43,7 +43,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
-from sentry.types.region import get_local_locality, get_locality_name_for_cell
+from sentry.types.cell import get_local_locality, get_locality_name_for_cell
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope, set_span_attribute
@@ -304,23 +304,17 @@ def is_member_disabled_from_limit(
         return member.flags.member_limit__restricted
 
 
-def generate_region_url() -> str:
-    # Deprecated. Use generate_locality_url.
-    # This shim exists temporarily for getsentry compatibility.
-    return generate_locality_url()
-
-
 def generate_locality_url(locality_name: str | None = None) -> str:
     """
     Return the customer-facing base URL for a locality.
 
     If locality_name is not provided, it is inferred from the running silo:
-    in REGION mode the local cell's locality is used; in MONOLITH mode with
+    in CELL mode the local cell's locality is used; in MONOLITH mode with
     SENTRY_REGION set the corresponding locality is resolved from that cell name.
     Falls back to system.url-prefix when no template or locality name is available.
     """
     region_url_template: str | None = options.get("system.region-api-url-template")
-    if locality_name is None and SiloMode.get_current_mode() == SiloMode.REGION:
+    if locality_name is None and SiloMode.get_current_mode() == SiloMode.CELL:
         locality_name = get_local_locality().name
 
     if (

@@ -6,18 +6,18 @@ import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/pageFilters/container';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useHasPlatformizedInsights from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ScreenSummaryContentPage as AppStartPage} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {ScreenLoadSpansContent as ScreenLoadPage} from 'sentry/views/insights/mobile/screenload/views/screenLoadSpansPage';
 import {PlatformizedAppStartsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedAppStartsOverview';
@@ -132,7 +132,9 @@ function ScreenDetailsPage() {
               module={moduleName}
               hideDefaultTabs
               tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
-              headerActions={isProjectCrossPlatform && <PlatformSelector />}
+              headerActions={
+                isProjectCrossPlatform && !hasPlatformizedInsights && <PlatformSelector />
+              }
               headerTitle={transactionName}
               breadcrumbs={[
                 {

@@ -16,11 +16,11 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useCronDetectorFormField} from 'sentry/views/detectors/components/forms/cron/fields';
 import {
   platformGuides,

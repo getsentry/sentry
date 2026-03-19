@@ -3,7 +3,7 @@ import {useMemo, useState} from 'react';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
@@ -30,7 +30,7 @@ type OnCallServiceFormProps = {
   onSave: () => void;
 };
 
-function OnCallServiceForm({
+export function OnCallServiceForm({
   action,
   onCallService,
   onCancel,
@@ -136,5 +136,3 @@ function OnCallServiceForm({
     </Flex>
   );
 }
-
-export default OnCallServiceForm;

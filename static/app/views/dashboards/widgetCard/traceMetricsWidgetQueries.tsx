@@ -3,7 +3,7 @@ import {useCallback, useState} from 'react';
 import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {getDynamicText} from 'sentry/utils/getDynamicText';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
@@ -46,7 +46,7 @@ type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
   };
 };
 
-function TraceMetricsWidgetQueries(props: TraceMetricsWidgetQueriesProps) {
+export function TraceMetricsWidgetQueries(props: TraceMetricsWidgetQueriesProps) {
   const getConfidenceInformation = useCallback(
     (result: SeriesResult) => {
       const series = result.timeSeries ?? [];
@@ -141,5 +141,3 @@ function TraceMetricsWidgetQueriesSingleRequestImpl({
     fixed: <div />,
   });
 }
-
-export default TraceMetricsWidgetQueries;

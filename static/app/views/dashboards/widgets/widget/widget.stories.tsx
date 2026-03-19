@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import documentation from '!!type-loader!sentry/views/dashboards/widgets/widget/widget';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -13,9 +12,10 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 
 import {Widget} from './widget';
 
-export default Storybook.story('Widget', (story, APIReference) => {
-  APIReference(documentation.props?.Widget);
+export const documentation =
+  import('!!type-loader!sentry/views/dashboards/widgets/widget/widget');
 
+export default Storybook.story('Widget', story => {
   story('Getting Started', () => {
     return (
       <Fragment>
@@ -246,7 +246,11 @@ function InsightsLineChart() {
             </Button>
           </Widget.WidgetToolbar>
         }
-        Visualization={<Widget.WidgetError error={error} />}
+        Visualization={
+          <Container position="absolute" inset={0}>
+            <Widget.WidgetError error={error} />
+          </Container>
+        }
       />
     );
   }
@@ -260,9 +264,11 @@ function InsightsLineChart() {
       <Widget
         Title={Title}
         Visualization={
-          <Widget.WidgetError
-            error={'No data! This is unusual, consider contacting support'}
-          />
+          <Container position="absolute" inset={0}>
+            <Widget.WidgetError
+              error={'No data! This is unusual, consider contacting support'}
+            />
+          </Container>
         }
       />
     );

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DEEMPHASIS_VARIANT} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
-import {X_GUTTER, Y_GUTTER} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   ErrorPropWithResponseJSON,
   StateProps,
@@ -28,14 +27,11 @@ export function WidgetError({error}: WidgetErrorProps) {
   );
 }
 
-const Panel = styled('div')<{height?: string}>`
-  container-type: size;
+const Panel = styled('div')`
+  container-type: inline-size;
   container-name: error-panel;
 
-  position: absolute;
-  inset: 0;
-
-  padding: ${Y_GUTTER} ${X_GUTTER};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 
   display: flex;
   gap: ${p => p.theme.space.md};

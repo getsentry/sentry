@@ -2,18 +2,18 @@ import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
@@ -85,8 +85,8 @@ function Issue(props: IssueProps) {
         </IconBackground>
       </IconWrapper>
       <Stack justify="left" width="100%" overflow="hidden">
-        <EventOrGroupHeader data={fetchedIssue} eventId={props.issue.event_id} />
-        <EventOrGroupExtraDetails data={fetchedIssue} />
+        <GroupHeaderRow data={fetchedIssue} eventId={props.issue.event_id} />
+        <GroupMetaRow data={fetchedIssue} />
       </Stack>
     </StyledPanelItem>
   ) : isError ? (

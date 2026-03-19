@@ -31,8 +31,9 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {Timeline} from 'sentry/components/timeline';
+import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconCheckmark,
   IconChevron,
@@ -52,7 +53,7 @@ import type {Group} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/fileDiffViewer';
 import type {
@@ -740,14 +741,13 @@ export function CodeChangesCard({patches, prStates, onCreatePR}: CodeChangesCard
     <ArtifactCard title={t('Code Changes')} icon={getArtifactIcon('code_changes')}>
       {Array.from(patchesByRepo.entries()).map(([repoName, repoPatches]) => {
         const prState = prStates?.[repoName];
-        const hasPR = prState?.pr_url;
         const isCreatingPR = prState?.pr_creation_status === 'creating';
 
         return (
           <RepoSection key={repoName}>
             <Flex justify="between" align="center" marginBottom="xl">
               <RepoName>{repoName}</RepoName>
-              {hasPR ? (
+              {prState?.pr_url ? (
                 <a href={prState.pr_url} target="_blank" rel="noopener noreferrer">
                   {t('View PR #%s', prState.pr_number)}
                 </a>
@@ -835,7 +835,7 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
 
   return (
     <ArtifactCard
-      title={t('Coding Agent')}
+      title={getProviderDisplayName(agents[0]?.provider ?? 'Coding Agent')}
       icon={<IconCode size="md" variant="accent" />}
     >
       <Flex direction="column" gap="xl">
@@ -845,7 +845,7 @@ export function CodingAgentHandoffCard({codingAgents}: CodingAgentHandoffCardPro
               <Flex direction="column" gap="xs">
                 <Text size="lg">{agent.name}</Text>
                 <Text variant="muted" size="sm">
-                  {getProviderDisplayName(agent.provider)}
+                  <TimeSince date={agent.started_at} />
                 </Text>
               </Flex>
               <CodingAgentStatusTag $status={agent.status}>

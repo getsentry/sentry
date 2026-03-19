@@ -4,7 +4,7 @@ import {Badge} from '@sentry/scraps/badge';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -20,7 +20,7 @@ type FilterSelectorTriggerProps = {
   queryResult: UseQueryResult<string[], Error>;
 };
 
-function FilterSelectorTrigger({
+export function FilterSelectorTrigger({
   globalFilter,
   activeFilterValues,
   operator,
@@ -66,8 +66,6 @@ function FilterSelectorTrigger({
     </ButtonLabelWrapper>
   );
 }
-
-export default FilterSelectorTrigger;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   && {

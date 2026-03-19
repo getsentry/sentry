@@ -22,7 +22,7 @@ interface WorkflowEngineEditLayoutProps {
 /**
  * Precomposed layout for Monitors / Alerts edit pages with form handling.
  */
-function EditLayout({children, formProps}: WorkflowEngineEditLayoutProps) {
+function EditLayoutComponent({children, formProps}: WorkflowEngineEditLayoutProps) {
   return (
     <FullHeightForm hideFooter {...formProps}>
       <StyledPage>{children}</StyledPage>
@@ -142,7 +142,7 @@ function Footer({children, label, maxWidth}: FooterProps) {
   );
 }
 
-const WorkflowEngineEditLayout = Object.assign(EditLayout, {
+export const EditLayout = Object.assign(EditLayoutComponent, {
   Header,
   HeaderContent,
   Actions,
@@ -151,5 +151,3 @@ const WorkflowEngineEditLayout = Object.assign(EditLayout, {
   Footer,
   Title,
 });
-
-export default WorkflowEngineEditLayout;

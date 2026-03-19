@@ -10,23 +10,23 @@ import {Text} from '@sentry/scraps/text';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
-import Placeholder from 'sentry/components/placeholder';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
 import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
 import {ReplaySummaryLoading} from 'sentry/views/replays/detail/ai/replaySummaryLoading';
 import {NO_REPLAY_SUMMARY_MESSAGES} from 'sentry/views/replays/detail/ai/utils';
-import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
+import {TabItemContainer} from 'sentry/views/replays/detail/tabItemContainer';
 
 const MAX_SEGMENTS_TO_SUMMARIZE = 150;
 
-export default function Ai() {
+export function Ai() {
   const organization = useOrganization();
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
 

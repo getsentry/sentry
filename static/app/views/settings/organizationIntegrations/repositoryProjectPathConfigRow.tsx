@@ -5,9 +5,9 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Access from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
-import IdBadge from 'sentry/components/idBadge';
+import {Access} from 'sentry/components/acl/access';
+import {Confirm} from 'sentry/components/confirm';
+import {IdBadge} from 'sentry/components/idBadge';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
@@ -20,7 +20,7 @@ type Props = {
   project: Project;
 };
 
-export default function RepositoryProjectPathConfigRow({
+export function RepositoryProjectPathConfigRow({
   pathConfig,
   project,
   onEdit,

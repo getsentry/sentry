@@ -4,15 +4,15 @@ import styled from '@emotion/styled';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import NumberField from 'sentry/components/forms/fields/numberField';
-import SegmentedRadioField from 'sentry/components/forms/fields/segmentedRadioField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SegmentedRadioField} from 'sentry/components/forms/fields/segmentedRadioField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {t} from 'sentry/locale';
 import {
   DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   PREPROD_DETECTOR_FORM_FIELDS,
   usePreprodDetectorFormField,
@@ -116,6 +116,22 @@ type SupportedPriorityLevel = Extract<
   DetectorPriorityLevel.HIGH | DetectorPriorityLevel.LOW
 >;
 
+function validateAtLeastOneThreshold({
+  id,
+  form,
+}: {
+  form: Record<string, any>;
+  id: string;
+}): Array<[string, string]> {
+  const high = form[PREPROD_DETECTOR_FORM_FIELDS.highThreshold];
+  const low = form[PREPROD_DETECTOR_FORM_FIELDS.lowThreshold];
+
+  if (!high && !low) {
+    return [[id, t('At least one threshold is required')]];
+  }
+  return [];
+}
+
 function PriorityRow({
   priority,
   isPercentage,
@@ -123,19 +139,16 @@ function PriorityRow({
   isPercentage: boolean;
   priority: SupportedPriorityLevel;
 }) {
-  let required: boolean;
   let priorityLabel: string;
   let thresholdFieldName: string;
   switch (priority) {
     case DetectorPriorityLevel.HIGH:
       priorityLabel = t('High priority');
       thresholdFieldName = PREPROD_DETECTOR_FORM_FIELDS.highThreshold;
-      required = true;
       break;
     case DetectorPriorityLevel.LOW:
       priorityLabel = t('Low priority');
       thresholdFieldName = PREPROD_DETECTOR_FORM_FIELDS.lowThreshold;
-      required = false;
       break;
     default:
       return null;
@@ -144,17 +157,19 @@ function PriorityRow({
   return (
     <Flex align="center" gap="md">
       <PriorityDot priority={DETECTOR_PRIORITY_LEVEL_TO_PRIORITY_LEVEL[priority]} />
-      <PriorityLabel>
-        {priorityLabel}
-        {required && <RequiredAsterisk>*</RequiredAsterisk>}
-      </PriorityLabel>
+      <PriorityLabel>{priorityLabel}</PriorityLabel>
       <Flex align="center" gap="md">
         <ThresholdField
           name={thresholdFieldName}
           placeholder="-"
           hideLabel
           inline
-          required={required}
+          required={false}
+          validate={
+            priority === DetectorPriorityLevel.HIGH
+              ? validateAtLeastOneThreshold
+              : undefined
+          }
           preserveOnUnmount
         />
         <ThresholdSuffix>{isPercentage ? '%' : 'MB'}</ThresholdSuffix>
@@ -198,11 +213,6 @@ const DefineThresholdParagraph = styled('div')`
 const PriorityLabel = styled('span')`
   min-width: 120px;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
-const RequiredAsterisk = styled('span')`
-  color: ${p => p.theme.tokens.content.danger};
-  margin-left: ${p => p.theme.space['2xs']};
 `;
 
 const ThresholdField = styled(NumberField)`

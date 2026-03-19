@@ -15,25 +15,25 @@ import {
   TreeColumn,
   TreeContainer,
 } from 'sentry/components/events/eventTags/eventTagsTree';
-import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
+import {EditHighlightsModal} from 'sentry/components/events/highlights/editHighlightsModal';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
   HIGHLIGHT_DOCS_LINK,
 } from 'sentry/components/events/highlights/util';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -250,7 +250,7 @@ function HighlightsData({
   );
 }
 
-export default function HighlightsDataSection({
+export function HighlightsDataSection({
   viewAllRef,
   event,
   project,

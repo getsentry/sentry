@@ -8,8 +8,8 @@ from sentry_sdk import capture_exception
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.outbox.signals import process_control_outbox
-from sentry.hybridcloud.services.region_organization_provisioning import (
-    region_organization_provisioning_rpc_service,
+from sentry.hybridcloud.services.cell_organization_provisioning import (
+    cell_organization_provisioning_rpc_service,
 )
 from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
@@ -18,7 +18,7 @@ from sentry.models.organizationslugreservation import (
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
-from sentry.types.region import get_local_region
+from sentry.types.cell import get_local_cell
 
 
 class OrganizationProvisioningException(Exception):
@@ -33,7 +33,7 @@ class OrganizationProvisioningService:
                 "A region name must be provided when provisioning an organization from the Control Silo"
             )
         elif silo_mode != SiloMode.CONTROL:
-            local_region = get_local_region()
+            local_region = get_local_cell()
 
             assert not region_name or region_name == local_region.name, (
                 "Cannot provision an organization in another region"
@@ -55,7 +55,7 @@ class OrganizationProvisioningService:
 
         rpc_org_slug_reservation: RpcOrganizationSlugReservation = (
             control_organization_provisioning_rpc_service.provision_organization(
-                region_name=region_name, org_provision_args=provisioning_options
+                cell_name=region_name, org_provision_args=provisioning_options
             )
         )
 
@@ -66,31 +66,36 @@ class OrganizationProvisioningService:
 
         return rpc_org
 
+    def provision_organization_in_cell(
+        self,
+        provisioning_options: OrganizationProvisioningOptions,
+        cell_name: str | None = None,
+    ) -> RpcOrganization:
+        """
+        Creates a new Organization in the destination cell. If called from a
+        cell silo without a cell_name, the local cell name will be used.
+
+        :param provisioning_options: A provisioning payload containing all the necessary
+        data to fully provision an organization within the cell.
+
+        :param cell_name: The cell to provision the organization in
+        :return: RpcOrganization of the newly created org
+        """
+
+        destination_cell_name = self._validate_or_default_region(region_name=cell_name)
+        return self._control_based_provisioning(
+            provisioning_options=provisioning_options, region_name=destination_cell_name
+        )
+
+    # TODO(cells): Remove when all callers switch to `provision_organization_in_cell`
     def provision_organization_in_region(
         self,
         provisioning_options: OrganizationProvisioningOptions,
         region_name: str | None = None,
     ) -> RpcOrganization:
-        """
-        Creates a new Organization in the destination region. If called from a
-        region silo without a region_name, the local region name will be used.
-
-        :param provisioning_options: A provisioning payload containing all the necessary
-        data to fully provision an organization within the region.
-
-        :param region_name: The region to provision the organization in
-        :return: RpcOrganization of the newly created org
-        """
-
-        destination_region_name = self._validate_or_default_region(region_name=region_name)
-        return self._control_based_provisioning(
-            provisioning_options=provisioning_options, region_name=destination_region_name
+        return self.provision_organization_in_cell(
+            provisioning_options=provisioning_options, cell_name=region_name
         )
-
-    def idempotent_provision_organization_in_region(
-        self, provisioning_options: OrganizationProvisioningOptions, region_name: str | None
-    ) -> RpcOrganization:
-        raise NotImplementedError()
 
     def _control_based_slug_change(
         self, organization_id: int, slug: str, region_name: str | None = None
@@ -106,7 +111,7 @@ class OrganizationProvisioningService:
                 organization_id=organization_id,
                 desired_slug=slug,
                 require_exact=True,
-                region_name=destination_region_name,
+                cell_name=destination_region_name,
             )
         )
 
@@ -161,7 +166,7 @@ class OrganizationProvisioningService:
         )
 
         control_organization_provisioning_rpc_service.bulk_create_organization_slug_reservations(
-            slug_mapping=slug_mapping, region_name=destination_region_name
+            slug_mapping=slug_mapping, cell_name=destination_region_name
         )
 
 
@@ -200,10 +205,10 @@ def handle_organization_provisioning_outbox_payload(
 
     org_slug_reservation = org_slug_reservation_qs.get()
 
-    able_to_provision = region_organization_provisioning_rpc_service.create_organization_in_region(
+    able_to_provision = cell_organization_provisioning_rpc_service.create_organization_in_cell(
         organization_id=organization_id,
         provision_payload=provisioning_payload,
-        region_name=region_name,
+        cell_name=region_name,
     )
 
     if not able_to_provision:
@@ -261,8 +266,8 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
     )
 
     able_to_update_slug = (
-        region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-            region_name=region_name,
+        cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
+            cell_name=region_name,
             org_slug_temporary_alias_res=serialize_slug_reservation(
                 slug_reservation=org_slug_reservation
             ),
@@ -291,7 +296,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
                     organization_id=org_slug_reservation.organization_id,
                     reservation_type=OrganizationSlugReservationType.PRIMARY,
                     user_id=org_slug_reservation.user_id,
-                    region_name=region_name,
+                    cell_name=region_name,
                 ).save(unsafe_write=True)
 
 

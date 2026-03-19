@@ -80,68 +80,32 @@ ProjectVolumes = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
 OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount]
 
 
-def _use_segments_for_all_orgs() -> bool:
-    """
-    Returns True if segment metrics should be used for ALL orgs in this task.
-    """
-    return bool(options.get("dynamic-sampling.boost_low_volume_projects.segment-metric.enabled"))
-
-
-def _get_segments_org_ids() -> set[int]:
-    """
-    Returns the set of organization IDs that should use SEGMENTS measure.
-    """
-    return set(options.get("dynamic-sampling.boost_low_volume_projects.segment-metric-orgs") or [])
-
-
 @metrics.wraps("dynamic_sampling.partition_by_measure")
 def _partition_orgs_by_measure(
     org_ids: list[int],
 ) -> dict[SamplingMeasure, list[int]]:
     """
     Partition organizations by their sampling measure.
-    Returns (segments_orgs, span_orgs, transactions_orgs).
+    Project-mode orgs are filtered out. SPANS orgs (AM3/project-mode) are
+    split off when the check_span_feature_flag option is enabled.
+    All remaining orgs use SEGMENTS.
     """
     modes_per_org = OrganizationOption.objects.get_value_bulk_id(org_ids, "sentry:sampling_mode")
     filtered_org_ids = {
         org_id for org_id, mode in modes_per_org.items() if mode != DynamicSamplingMode.PROJECT
     }
 
-    use_segments_globally = _use_segments_for_all_orgs()
-
-    if use_segments_globally:
-        if not options.get("dynamic-sampling.check_span_feature_flag"):
-            return {
-                SamplingMeasure.TRANSACTIONS: [],
-                SamplingMeasure.SEGMENTS: sorted(filtered_org_ids),
-            }
-        span_org_ids: set[int] = set(options.get("dynamic-sampling.measure.spans") or [])
-        filtered_span_org_ids: set[int] = span_org_ids & filtered_org_ids
-        remaining_org_ids: set[int] = filtered_org_ids - filtered_span_org_ids
-        return {
-            SamplingMeasure.SEGMENTS: sorted(remaining_org_ids),
-            SamplingMeasure.SPANS: sorted(filtered_span_org_ids),
-            SamplingMeasure.TRANSACTIONS: [],
-        }
-
-    segments_org_ids: set[int] = _get_segments_org_ids()
-    filtered_segments_org_ids: set[int] = filtered_org_ids & segments_org_ids
-    transactions_org_ids: set[int] = filtered_org_ids - segments_org_ids
-
     if not options.get("dynamic-sampling.check_span_feature_flag"):
         return {
-            SamplingMeasure.TRANSACTIONS: sorted(transactions_org_ids),
-            SamplingMeasure.SEGMENTS: sorted(filtered_segments_org_ids),
+            SamplingMeasure.SEGMENTS: sorted(filtered_org_ids),
         }
-    span_org_ids = set(options.get("dynamic-sampling.measure.spans") or [])
-    filtered_span_org_ids = span_org_ids & filtered_org_ids
-    filtered_segments_org_ids = filtered_segments_org_ids - filtered_span_org_ids
-    filtered_transactions_org_ids = transactions_org_ids - filtered_span_org_ids
 
+    span_org_ids: set[int] = set(options.get("dynamic-sampling.measure.spans") or [])
+    filtered_span_org_ids: set[int] = span_org_ids & filtered_org_ids
+    remaining_org_ids: set[int] = filtered_org_ids - filtered_span_org_ids
     return {
-        SamplingMeasure.SEGMENTS: sorted(filtered_segments_org_ids),
+        SamplingMeasure.SEGMENTS: sorted(remaining_org_ids),
         SamplingMeasure.SPANS: sorted(filtered_span_org_ids),
-        SamplingMeasure.TRANSACTIONS: sorted(filtered_transactions_org_ids),
     }
 
 
@@ -150,49 +114,23 @@ def _partition_orgs_by_measure(
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=20 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects() -> None:
     """
     Task to adjusts the sample rates of all projects in all active organizations.
     """
-    processed_org_ids: set[int] = set()
+    for orgs in GetActiveOrgs(
+        max_projects=MAX_PROJECTS_PER_QUERY,
+        granularity=Granularity(60),
+        measure=SamplingMeasure.SEGMENTS,
+    ):
+        orgs_by_measure = _partition_orgs_by_measure(orgs)
 
-    use_segments_globally = _use_segments_for_all_orgs()
-    segments_org_ids = _get_segments_org_ids()
-    if use_segments_globally or segments_org_ids:
-        for orgs in GetActiveOrgs(
-            max_projects=MAX_PROJECTS_PER_QUERY,
-            granularity=Granularity(60),
-            measure=SamplingMeasure.SEGMENTS,
-        ):
-            orgs_by_measure = _partition_orgs_by_measure(orgs)
-
-            # Process SEGMENTS and SPANS from this scan. TRANSACTIONS orgs
-            # will be discovered by the TRANSACTIONS scan below.
-            for measure, org_ids in orgs_by_measure.items():
-                if measure == SamplingMeasure.TRANSACTIONS:
-                    continue
-                _record_partitioning_metrics({measure: org_ids})
-                _process_orgs_for_boost(org_ids, measure)
-                processed_org_ids.update(org_ids)
-
-    # Process orgs using transaction metrics (skip entirely when global switch is on)
-    if not use_segments_globally:
-        for orgs in GetActiveOrgs(
-            max_projects=MAX_PROJECTS_PER_QUERY,
-            granularity=Granularity(60),
-            measure=SamplingMeasure.TRANSACTIONS,
-        ):
-            orgs_by_measure = _partition_orgs_by_measure(orgs)
-
-            for measure, org_ids in orgs_by_measure.items():
-                if measure == SamplingMeasure.SEGMENTS:
-                    continue
-                remaining = [oid for oid in org_ids if oid not in processed_org_ids]
-                _record_partitioning_metrics({measure: remaining})
-                _process_orgs_for_boost(remaining, measure)
+        for measure, org_ids in orgs_by_measure.items():
+            _record_partitioning_metrics({measure: org_ids})
+            _process_orgs_for_boost(org_ids, measure)
 
 
 def _process_orgs_for_boost(
@@ -240,7 +178,7 @@ def _record_partitioning_metrics(orgs_by_measure: dict[SamplingMeasure, list[int
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=3 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
@@ -262,7 +200,7 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
     for m, org_ids in orgs_by_measure.items():
         for oid in org_ids:
             measures[oid] = m
-    measure = measures.get(org_id, SamplingMeasure.TRANSACTIONS)
+    measure = measures.get(org_id, SamplingMeasure.SEGMENTS)
 
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
         org_ids=[org_id],
@@ -280,7 +218,7 @@ def boost_low_volume_projects_of_org_with_query(org_id: OrganizationId) -> None:
     namespace=telemetry_experience_tasks,
     processing_deadline_duration=3 * 60 + 5,
     retry=Retry(times=5, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(

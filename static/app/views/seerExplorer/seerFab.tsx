@@ -4,7 +4,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import HotkeysLabel from 'sentry/components/hotkeysLabel';
+import {HotkeysLabel} from 'sentry/components/hotkeysLabel';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -13,7 +13,7 @@ interface AskSeerFabProps {
   onOpen: () => void;
 }
 
-function SeerFab({hide, onOpen}: AskSeerFabProps) {
+export function SeerFab({hide, onOpen}: AskSeerFabProps) {
   return (
     <AnimatePresence>
       {!hide && (
@@ -36,8 +36,6 @@ function SeerFab({hide, onOpen}: AskSeerFabProps) {
     </AnimatePresence>
   );
 }
-
-export default SeerFab;
 
 const FloatingActionButton = styled(motion.button)`
   position: fixed;

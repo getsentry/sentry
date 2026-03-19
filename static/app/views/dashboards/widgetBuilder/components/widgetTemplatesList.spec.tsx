@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {testableDebounce} from 'sentry/utils/url/testUtils';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
+import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';

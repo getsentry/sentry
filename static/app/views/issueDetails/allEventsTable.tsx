@@ -2,7 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import {
   PlatformCategory,
   profiling as PROFILING_PLATFORMS,
@@ -13,7 +13,7 @@ import type {Group} from 'sentry/types/group';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -23,7 +23,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+import {EventsTable} from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 interface Props {
   excludedTags: string[];
@@ -46,7 +46,7 @@ const makeGroupPreviewRequestUrl = ({
   );
 };
 
-function AllEventsTable({organization, excludedTags, group}: Props) {
+export function AllEventsTable({organization, excludedTags, group}: Props) {
   const location = useLocation();
   const theme = useTheme();
   const config = getConfigForIssueType(group, group.project);
@@ -239,5 +239,3 @@ const getPlatformColumns = (
 
   return platformColumns;
 };
-
-export default AllEventsTable;
