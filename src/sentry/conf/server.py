@@ -1139,7 +1139,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "context-engine-index": {
         "task": "seer:sentry.tasks.context_engine_index.schedule_context_engine_indexing_tasks",
         # Offset by 30 minutes from seer-explorer-index to spread load
-        "schedule": task_crontab("30", "*/1", "*", "*", "*"),
+        "schedule": crontab("30", "*/1", "*", "*", "*"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
