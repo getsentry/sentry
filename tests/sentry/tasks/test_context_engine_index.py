@@ -187,7 +187,12 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
     @mock.patch("sentry.tasks.context_engine_index.build_service_map.apply_async")
     @mock.patch("sentry.tasks.context_engine_index.index_org_project_knowledge.apply_async")
     def test_noop_when_no_allowed_orgs(self, mock_index, mock_build):
-        with override_options({"explorer.context_engine_indexing.enable": True}):
+        with override_options(
+            {
+                "explorer.context_engine_indexing.enable": True,
+                "explorer.context_engine_indexing.allowed_org_ids": [],
+            }
+        ):
             schedule_context_engine_indexing_tasks()
 
         mock_index.assert_not_called()
