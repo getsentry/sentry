@@ -159,8 +159,8 @@ function BillingPlans() {
               row.push(
                 tier.tier.toString(), // Tier
                 tier.volume.toString(), // Volume (max)
-                formatCurrency(tier.monthly), // Monthly
-                formatCurrency(tier.annual), // Annual
+                tier.monthly === 0 ? '' : formatCurrency(tier.monthly), // Monthly
+                tier.annual === 0 ? '' : formatCurrency(tier.annual), // Annual
                 displayUnitPrice({cents: tier.reserved_ppe, minDigits: 2, maxDigits: 10}), // Reserved PPE
                 displayUnitPrice({cents: tier.od_ppe, minDigits: 2, maxDigits: 10}), // PAYG PPE
                 ' ' // empty column
@@ -261,7 +261,7 @@ function TableOfContents({plans}: {plans: Plans}) {
             <tr>
               <th />
               {planColumnOrder.map(planName => (
-                <th key={planName}>{formatPlanName(planName)}</th>
+                <th key={planName}>{formatPlanName(planName, true)}</th>
               ))}
             </tr>
           </thead>
@@ -278,15 +278,15 @@ function TableOfContents({plans}: {plans: Plans}) {
                     <td>{planTierIdFormatted}</td>
                     {planColumnOrder.map(planName => {
                       const planDetails = planTier[planName];
-                      const planNameFormatted = formatPlanName(planName);
+                      const planNameFormattedForId = formatPlanName(planName);
                       return (
                         <td key={planName}>
                           {planDetails ? (
                             <span style={{display: 'block'}}>
                               <a
-                                href={`#${planDetails.id ?? `${planTierIdFormatted}-${planNameFormatted}`}`}
+                                href={`#${planDetails.id ?? `${planTierIdFormatted}-${planNameFormattedForId}`}`}
                               >
-                                {planNameFormatted}
+                                {formatPlanName(planName, true)}
                               </a>
                               {planDetails.id && (
                                 <span
@@ -618,26 +618,30 @@ function MergedPriceTiersTable({
 
   const renderBandCells = (tier: PriceTier, unitSize?: number) => (
     <Fragment>
-      <td>{renderVolume(tier.volume)}</td>
+      <td>{renderVolume(tier.volume, unitSize)}</td>
       <td>
         {tier.raw_volume === undefined ? '—' : tier.raw_volume.toLocaleString('en-US')}
       </td>
-      <td>{unitSize ?? '—'}</td>
-      <td>{formatCurrency(tier.monthly)}</td>
-      <td>{formatCurrency(tier.annual)}</td>
+      <td>{formatUnitSize(unitSize)}</td>
+      <td>{tier.monthly === 0 ? '' : formatCurrency(tier.monthly)}</td>
+      <td>{tier.annual === 0 ? '' : formatCurrency(tier.annual)}</td>
       <td>
-        {displayUnitPrice({
-          cents: tier.reserved_ppe,
-          minDigits: 2,
-          maxDigits: 10,
-        })}
+        {tier.reserved_ppe === 0
+          ? ''
+          : displayUnitPrice({
+              cents: tier.reserved_ppe,
+              minDigits: 2,
+              maxDigits: 10,
+            })}
       </td>
       <td>
-        {displayUnitPrice({
-          cents: tier.od_ppe,
-          minDigits: 2,
-          maxDigits: 10,
-        })}
+        {tier.od_ppe === 0
+          ? ''
+          : displayUnitPrice({
+              cents: tier.od_ppe,
+              minDigits: 2,
+              maxDigits: 10,
+            })}
       </td>
     </Fragment>
   );
@@ -694,8 +698,8 @@ function MergedPriceTiersTable({
             const volumeRange =
               bands.length > 0 ? (
                 <Fragment>
-                  {renderVolume(bands[0]!.volume)} –{' '}
-                  {renderVolume(bands[bands.length - 1]!.volume)}
+                  {renderVolume(bands[0]!.volume, group.unitSize)} –{' '}
+                  {renderVolume(bands[bands.length - 1]!.volume, group.unitSize)}
                 </Fragment>
               ) : (
                 '—'
@@ -895,7 +899,82 @@ const TOCContainer = styled('nav')`
   }
 `;
 
-const VOLUME_CONSTANTS = ['RESERVED_BUDGET_QUOTA', 'UNLIMITED_ONDEMAND'] as const;
+function ReservedVolumeBadge() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={110}
+      height={24}
+      viewBox="0 0 110 24"
+      fill="none"
+      style={{display: 'block', verticalAlign: 'middle'}}
+    >
+      <rect width={110} height={24} rx={4} fill="#EBEFFC" />
+      <text
+        x="50%"
+        y="50%"
+        dominantBaseline="central"
+        textAnchor="middle"
+        fill="#365EC8"
+        fontFamily="Rubik, sans-serif"
+        fontWeight={600}
+        fontSize={12}
+      >
+        RESERVED
+      </text>
+    </svg>
+  );
+}
+
+function UnlimitedVolumeBadge() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={130}
+      height={24}
+      viewBox="0 0 130 24"
+      fill="none"
+      style={{display: 'block', verticalAlign: 'middle'}}
+    >
+      <rect width={130} height={24} rx={4} fill="#E2F6EF" />
+      <text
+        x="50%"
+        y="50%"
+        dominantBaseline="central"
+        textAnchor="middle"
+        fill="#268D75"
+        fontFamily="Rubik, sans-serif"
+        fontWeight={600}
+        fontSize={12}
+      >
+        UNLIMITED
+      </text>
+    </svg>
+  );
+}
+
+// Mirrors Python constants for unit_size (TERABYTE, GIGABYTE, etc.)
+const UNIT_SIZE_CONSTANTS: ReadonlyArray<[number, string]> = [
+  [10 ** 12, 'tb'],
+  [10 ** 9, 'gb'],
+  [10 ** 6, 'mb'],
+  [3_600_000, 'hour'], // MILLISECONDS_IN_HOUR
+  [1_000_000, 'million'],
+  [3600, 'hour'], // SECONDS_IN_HOUR
+  [10 ** 3, 'kb'],
+];
+
+function formatUnitSize(value: number | undefined): string {
+  if (value === undefined || value === null) return '—';
+  if (value <= 1) return String(value);
+  for (const [constant, name] of UNIT_SIZE_CONSTANTS) {
+    if (value >= constant && value % constant === 0) {
+      const factor = value / constant;
+      return factor === 1 ? `1 ${name}` : `${factor} ${name}`;
+    }
+  }
+  return String(value);
+}
 
 function formatVolume(volume: number): string {
   const n = Number(volume);
@@ -908,26 +987,59 @@ function formatVolume(volume: number): string {
   return n.toLocaleString('en-US', {maximumFractionDigits: 10});
 }
 
-function renderVolume(volume: number): ReactNode {
-  const formatted = formatVolume(volume);
-  if (VOLUME_CONSTANTS.includes(formatted as (typeof VOLUME_CONSTANTS)[number])) {
-    return <code>{formatted}</code>;
+function getUnitSizeLabel(unitSize: number | undefined): string | undefined {
+  if (unitSize === undefined) return undefined;
+  for (const [constant, name] of UNIT_SIZE_CONSTANTS) {
+    if (unitSize === constant) return name;
   }
-  return formatted;
+  return undefined;
+}
+
+/** Convert volume+unitSize to largest appropriate unit (e.g. 1000 gb → 1 tb) */
+function toLargestUnit(
+  volume: number,
+  unitSize: number | undefined
+): {unit: string; value: number} | null {
+  if (volume === 0 || unitSize === undefined) return null;
+  const unitLabel = getUnitSizeLabel(unitSize);
+  if (!unitLabel) return null;
+  const total = volume * unitSize;
+  for (const [constant, name] of UNIT_SIZE_CONSTANTS) {
+    if (total >= constant && total % constant === 0) {
+      const value = total / constant;
+      return {value, unit: name};
+    }
+  }
+  return null;
+}
+
+function renderVolume(volume: number, unitSize?: number): ReactNode {
+  const formatted = formatVolume(volume);
+  if (formatted === 'RESERVED_BUDGET_QUOTA') return <ReservedVolumeBadge />;
+  if (formatted === 'UNLIMITED_ONDEMAND') return <UnlimitedVolumeBadge />;
+  if (volume === 0) return formatted;
+  const converted = toLargestUnit(volume, unitSize);
+  if (converted) {
+    const displayValue = formatVolume(converted.value);
+    return `${displayValue} ${converted.unit}`;
+  }
+  const unitLabel = getUnitSizeLabel(unitSize);
+  const withUnit = unitLabel ? `${formatted} ${unitLabel}` : formatted;
+  return withUnit;
 }
 
 function formatPlanTierId(planTierId: string): string {
   return planTierId.toUpperCase();
 }
 
-function formatPlanName(planType: string): string {
-  // Shorten "enterprise_" prefix to "Ent " for display
+function formatPlanName(planType: string, shortenEnterprise = false): string {
   if (planType.startsWith('enterprise_')) {
     const suffix = planType.slice('enterprise_'.length);
     const parts = suffix
       .split('_')
       .map(part => (part.length <= 2 ? part.toUpperCase() : capitalizeWords(part)));
-    return 'Ent ' + parts.join(' ');
+    const prefix = shortenEnterprise ? 'Ent ' : 'Enterprise ';
+    return prefix + parts.join(' ');
   }
   return planType.charAt(0).toUpperCase() + planType.slice(1);
 }
