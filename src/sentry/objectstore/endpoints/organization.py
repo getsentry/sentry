@@ -28,6 +28,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationReleasePermission
 from sentry.models.organization import Organization
 from sentry.objectstore import parse_accept_encoding
+from sentry.ratelimits.config import RateLimitConfig
 
 
 @cell_silo_endpoint
@@ -40,6 +41,7 @@ class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.FOUNDATIONAL_STORAGE
     permission_classes = (OrganizationReleasePermission,)
+    rate_limits = RateLimitConfig(group="CLI")
     parser_classes = ()  # don't attempt to parse request data, so we can access the raw body in wsgi.input
 
     def _check_flag(self, request: Request, organization: Organization) -> Response | None:
