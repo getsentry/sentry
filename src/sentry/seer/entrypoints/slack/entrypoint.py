@@ -414,7 +414,7 @@ class SlackExplorerEntrypoint(
     ) -> None:
         organization_id = cache_payload["organization_id"]
 
-        if not summary:
+        if summary:
             data = SeerExplorerResponse(
                 run_id=run_id,
                 organization_id=organization_id,
