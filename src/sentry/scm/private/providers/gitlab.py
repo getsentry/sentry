@@ -26,7 +26,7 @@ from collections.abc import Callable
 from typing import Any, Iterable
 
 from sentry.integrations.gitlab.client import GitLabApiClient
-from sentry.scm.errors import SCMProviderException
+from sentry.scm.errors import SCMCodedError, SCMProviderException
 from sentry.scm.types import (
     SHA,
     ActionResult,
@@ -96,9 +96,9 @@ class GitLabProvider:
         self.organization_id = organization_id
         self.repository = repository
         external_id = repository["external_id"]
-        assert external_id is not None
         # External ID format is "{netloc}:{repo_id}", where netloc might contain a colon before a port number
-        assert ":" in external_id
+        if external_id is None or ":" not in external_id:
+            raise SCMCodedError(code="malformed_external_id")
         self._repo_id = external_id.rsplit(":", maxsplit=1)[1]
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
