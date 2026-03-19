@@ -27,7 +27,6 @@ import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   ABYTE_UNITS,
   getAggregateAlias,
-  getAggregateArg,
   isEquation,
   isMeasurement,
   RATE_UNIT_MULTIPLIERS,
@@ -368,32 +367,6 @@ export function getNumEquations(possibleEquations: string[]) {
 const DEFINED_MEASUREMENTS = new Set(Object.keys(getMeasurements()));
 export function isCustomMeasurement(field: string) {
   return !DEFINED_MEASUREMENTS.has(field) && isMeasurement(field);
-}
-
-export function isWidgetUsingTransactionName(widget: Widget) {
-  return (
-    widget.widgetType === WidgetType.DISCOVER &&
-    widget.queries.some(({aggregates, columns, fields, conditions}) => {
-      const aggregateArgs = aggregates.reduce((acc: string[], aggregate) => {
-        const aggregateArg = getAggregateArg(aggregate);
-        if (aggregateArg) {
-          acc.push(aggregateArg);
-        }
-        return acc;
-      }, []);
-      const transactionSelected = [
-        ...aggregateArgs,
-        ...columns,
-        ...(fields ?? []),
-      ].includes('transaction');
-      const transactionUsedInFilter = parseSearch(conditions)?.some(
-        parsedCondition =>
-          parsedCondition.type === Token.FILTER &&
-          parsedCondition.key?.text === 'transaction'
-      );
-      return transactionSelected || transactionUsedInFilter;
-    })
-  );
 }
 
 export function hasSavedPageFilters(
