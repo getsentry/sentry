@@ -97,9 +97,9 @@ class GitLabProvider:
         self.repository = repository
         external_id = repository["external_id"]
         assert external_id is not None
-        # External ID format is "{gitlab_url}:{repo_id}"
+        # External ID format is "{netloc}:{repo_id}", where netloc might contain a colon before a port number
         assert ":" in external_id
-        self._repo_id = external_id.split(":", maxsplit=1)[1]
+        self._repo_id = external_id.rsplit(":", maxsplit=1)[1]
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
         return False  # Rate-limits temporarily disabled.
