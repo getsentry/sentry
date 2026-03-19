@@ -32,7 +32,6 @@ from sentry.objectstore import parse_accept_encoding
 
 @cell_silo_endpoint
 class OrganizationObjectstoreEndpoint(OrganizationEndpoint):
-    print("hi")
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
