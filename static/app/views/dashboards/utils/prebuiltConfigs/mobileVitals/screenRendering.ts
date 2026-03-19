@@ -37,13 +37,6 @@ const SPAN_OPERATIONS_TABLE: Widget = {
         'Frozen Frame %',
         'Delay',
       ],
-      fieldMeta: [
-        null,
-        null,
-        {valueType: 'percentage', valueUnit: null},
-        {valueType: 'percentage', valueUnit: null},
-        null,
-      ],
       conditions: SPAN_OPERATIONS_CONDITION,
       orderby: '-avg(mobile.frames_delay)',
     },

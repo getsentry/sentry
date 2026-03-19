@@ -6,11 +6,34 @@ import {BaseField, type BaseFieldProps} from './baseField';
 export interface InputFieldProps
   extends
     BaseFieldProps<HTMLInputElement>,
-    Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> {
+    Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'type'> {
   onChange: (value: string) => void;
   value: string;
   disabled?: boolean | string;
   trailingItems?: React.ReactNode;
+  type?:
+    | 'button'
+    | 'checkbox'
+    | 'color'
+    | 'date'
+    | 'datetime-local'
+    | 'email'
+    | 'file'
+    | 'hidden'
+    | 'image'
+    | 'month'
+    | 'number'
+    | 'password'
+    | 'radio'
+    | 'range'
+    | 'reset'
+    | 'search'
+    | 'submit'
+    | 'tel'
+    | 'text'
+    | 'time'
+    | 'url'
+    | 'week';
 }
 
 export function InputField({

@@ -4,7 +4,9 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {RedirectToProjectModal} from 'sentry/components/modals/redirectToProject';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
-jest.mock('sentry/utils/recreateRoute', () => jest.fn(() => '/org-slug/new-slug/'));
+jest.mock('sentry/utils/recreateRoute', () => ({
+  recreateRoute: jest.fn(() => '/org-slug/new-slug/'),
+}));
 
 describe('RedirectToProjectModal', () => {
   it('has timer to redirect to new slug after mounting', () => {

@@ -5,6 +5,9 @@
  * indentation inside exported functions when dotted component names are used
  * (e.g. form.AppForm, field.Layout.Row).
  */
+
+import {useState} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {
@@ -36,7 +39,8 @@ export function QuickStartDemo() {
     validators: {
       onDynamic: quickStartSchema,
     },
-    onSubmit: ({value}) => {
+    onSubmit: async ({value}) => {
+      await sleep(1000);
       // eslint-disable-next-line no-alert
       alert(JSON.stringify(value, null, 2));
     },
@@ -254,20 +258,24 @@ const basicSchema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
 });
 
-const basicMutationOptions = {
-  mutationFn: async (data: unknown) => {
-    await sleep(1000);
-    return data;
-  },
-};
-
 export function BasicAutoSaveDemo() {
+  // Simulated server state for demonstration
+  const [serverState, setServerState] = useState({displayName: 'Jane Doe'});
+
+  const basicMutationOptions = mutationOptions({
+    mutationFn: async (data: {displayName: string}) => {
+      await sleep(1000);
+      return data;
+    },
+    onSuccess: setServerState,
+  });
+
   return (
     <FieldGroup title={t('Profile Settings')}>
       <AutoSaveForm
         name="displayName"
         schema={basicSchema}
-        initialValue="Jane Doe"
+        initialValue={serverState.displayName}
         mutationOptions={basicMutationOptions}
       >
         {field => (

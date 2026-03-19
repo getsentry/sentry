@@ -29,7 +29,7 @@ from sentry.issues.services.issue.model import RpcExternalIssueGroupMetadata
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.region import find_cells_for_orgs
+from sentry.types.cell import find_cells_for_orgs
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import cell_silo_view, control_silo_view
 
@@ -239,13 +239,13 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
                 status=ObjectStatus.ACTIVE,
             ).values_list("organization_id", flat=True)
         )
-        org_regions = find_cells_for_orgs(organization_ids)
-        for region_name in org_regions:
-            region_groups = issue_service.get_external_issue_groups(
-                region_name=region_name, external_issue_key=issue_key, integration_id=integration.id
+        org_cells = find_cells_for_orgs(organization_ids)
+        for cell_name in org_cells:
+            cell_groups = issue_service.get_external_issue_groups(
+                cell_name=cell_name, external_issue_key=issue_key, integration_id=integration.id
             )
-            if region_groups is not None:
-                groups.extend(region_groups)
+            if cell_groups is not None:
+                groups.extend(cell_groups)
                 has_groups = True
 
         if not has_groups:

@@ -37,7 +37,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       title: state.title ?? '',
       description: state.textContent,
       displayType: state.displayType,
-      interval: '',
+      interval: '1h', // TODO: allow this field to be blank
       queries: [],
       widgetType: undefined,
       limit: undefined,
@@ -147,6 +147,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     queries: widgetQueries,
     widgetType: state.dataset,
     limit,
+    legendType: state.legendType,
     thresholds: state.thresholds,
     axisRange: getAxisRange(state.axisRange) ?? datasetConfig.axisRange,
   };

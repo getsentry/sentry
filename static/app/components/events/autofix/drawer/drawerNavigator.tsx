@@ -44,7 +44,7 @@ export function SeerDrawerNavigator({
       <Flex align="center" gap="md">
         <IconSeer animation={undefined} size="md" />
         <Heading as="h3" size="xl">
-          {t('Seer')}
+          {t('Seer Autofix')}
         </Heading>
         <QuestionTooltip
           isHoverable

@@ -62,7 +62,7 @@ def test_processing_awaits_options() -> None:
 
 
 @django_db_all
-def test_region_processing(task_runner: Callable[..., Any]) -> None:
+def test_cell_processing(task_runner: Callable[..., Any]) -> None:
     with outbox_context(flush=False):
         for i in range(5):
             Factories.create_organization()

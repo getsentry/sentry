@@ -169,7 +169,6 @@ def create_or_update_grouphash_metadata_if_needed(
             new_data["date_added"] = None
 
         grouphash_metadata.update(**new_data)
-        grouphash._metadata = grouphash_metadata
 
     # Update data in existing metadata record if needed
     else:

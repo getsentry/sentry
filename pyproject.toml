@@ -84,11 +84,11 @@ dependencies = [
     "sentry-arroyo>=2.38.1",
     "sentry-conventions>=0.3.0",
     "sentry-forked-email-reply-parser>=0.5.12.post1",
-    "sentry-kafka-schemas>=2.1.24",
+    "sentry-kafka-schemas>=2.1.26",
     "sentry-ophio>=1.1.3",
-    "sentry-protos>=0.8.3",
+    "sentry-protos>=0.8.6",
     "sentry-redis-tools>=0.5.0",
-    "sentry-relay>=0.9.24",
+    "sentry-relay>=0.9.25",
     "sentry-sdk[http2]>=2.47.0",
     "sentry-usage-accountant>=0.0.10",
     # remove once there are no unmarked transitive dependencies on setuptools
@@ -111,7 +111,7 @@ dependencies = [
     # note: we cannot resolve urllib3[brotli] but brotli is installed
     #       and will be used
     "urllib3>=2.2.2",
-    "vroomrs>=0.1.19",
+    "vroomrs>=0.1.20",
     "xmlsec>=1.3.14",
     "zstandard>=0.18.0",
     # [begin] getsentry
@@ -475,6 +475,7 @@ module = [
     "sentry.incidents.utils.*",
     "sentry.ingest.slicing",
     "sentry.insights.migrations.*",
+    "sentry.integrations.api.endpoints.organization_code_mappings_bulk",
     "sentry.integrations.api.parsers.*",
     "sentry.integrations.coding_agent.*",
     "sentry.integrations.discord.actions.*",

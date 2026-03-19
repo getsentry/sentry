@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import DropdownButton from 'sentry/components/dropdownButton';
+import {DropdownButton} from 'sentry/components/dropdownButton';
 
 import {CompactSelect, type SelectOption} from './';
 

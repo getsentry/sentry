@@ -8,7 +8,7 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {GroupActivityReprocess} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 type Props = {
   groupCount: number;

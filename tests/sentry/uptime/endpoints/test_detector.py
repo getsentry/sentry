@@ -1,5 +1,3 @@
-from unittest import mock
-
 from django.utils import timezone
 from rest_framework import status
 
@@ -49,10 +47,6 @@ class UptimeDetectorBaseTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
-        self.mock_invoke_checker_validator_ctx = mock.patch(
-            "sentry.uptime.checker_api.invoke_checker_validator", return_value=None
-        )
-        self.mock_invoke_checker_validator = self.mock_invoke_checker_validator_ctx.__enter__()
         self.environment = self.create_environment(
             organization_id=self.organization.id, name="production"
         )
@@ -74,10 +68,6 @@ class UptimeDetectorBaseTest(APITestCase):
             uptime_subscription=self.uptime_subscription,
             name="Test Detector",
         )
-
-    def tearDown(self) -> None:
-        super().tearDown()
-        self.mock_invoke_checker_validator_ctx.__exit__(None, None, None)
 
 
 class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
@@ -310,14 +300,6 @@ class OrganizationDetectorIndexPostTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-        self.mock_invoke_checker_validator_ctx = mock.patch(
-            "sentry.uptime.checker_api.invoke_checker_validator", return_value=None
-        )
-        self.mock_invoke_checker_validator = self.mock_invoke_checker_validator_ctx.__enter__()
-
-    def tearDown(self):
-        super().tearDown()
-        self.mock_invoke_checker_validator_ctx.__exit__(None, None, None)
 
     def test_create_detector_validation_error(self):
         invalid_data = _get_valid_data(

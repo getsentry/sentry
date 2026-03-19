@@ -23,7 +23,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import {Assembly} from './assembly';
-import ContextLineNumber from './contextLineNumber';
+import {ContextLineNumber} from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {usePrismTokensSourceContext} from './usePrismTokensSourceContext';
@@ -62,7 +62,7 @@ export function getLineCoverage(
   return [lineCoverage, hasCoverage];
 }
 
-function Context({
+export function Context({
   hasContextVars = false,
   hasContextSource = false,
   hasContextRegisters = false,
@@ -212,8 +212,6 @@ function Context({
     </Wrapper>
   );
 }
-
-export default Context;
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;

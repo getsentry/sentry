@@ -9,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.api.bases.organization_integrations import (
-    RegionOrganizationIntegrationBaseEndpoint,
+    CellOrganizationIntegrationBaseEndpoint,
 )
 from sentry.integrations.mixins import ServerlessMixin
 from sentry.models.organization import Organization
@@ -24,7 +24,7 @@ class ServerlessActionSerializer(CamelSnakeSerializer):
 
 
 @cell_silo_endpoint
-class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationIntegrationBaseEndpoint):
+class OrganizationIntegrationServerlessFunctionsEndpoint(CellOrganizationIntegrationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,

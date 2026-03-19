@@ -5,9 +5,9 @@ import type {
   ConfirmMessageRenderProps,
   OpenConfirmOptions,
 } from 'sentry/components/confirm';
-import Confirm, {openConfirmModal} from 'sentry/components/confirm';
-import InputField from 'sentry/components/forms/fields/inputField';
-import TextareaField from 'sentry/components/forms/fields/textareaField';
+import {Confirm, openConfirmModal} from 'sentry/components/confirm';
+import {InputField} from 'sentry/components/forms/fields/inputField';
+import {TextareaField} from 'sentry/components/forms/fields/textareaField';
 
 type ConfirmProps = React.ComponentProps<typeof Confirm>;
 
@@ -39,7 +39,7 @@ type Props = Omit<ConfirmProps, 'onConfirm'> & {
  * A variant of the Confirm component that also includes audit trail
  * information, including a `ticketURL` and `notes`
  */
-function AdminConfirmationModal({
+export function AdminConfirmationModal({
   children,
   onConfirm,
   renderModalSpecificContent,
@@ -216,5 +216,3 @@ class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
 const AuditFields = styled('div')`
   margin-top: ${p => p.theme.space.xl};
 `;
-
-export default AdminConfirmationModal;
