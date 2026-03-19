@@ -30,6 +30,7 @@ from sentry.shared_integrations.exceptions import IntegrationConfigurationError,
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
+from sentry.utils.registry import NoRegistrationExistsError
 
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
@@ -117,7 +118,7 @@ def process_thread_update(
     ).capture() as lifecycle:
         try:
             notification_data = deserialize_notification_data(serialized_data)
-        except (NotificationServiceError, ValidationError) as e:
+        except (NotificationServiceError, NoRegistrationExistsError, ValidationError) as e:
             lifecycle.record_failure(failure_reason=e)
             return
 
