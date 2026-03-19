@@ -30,7 +30,6 @@ export enum GenericPerformanceWidgetDataType {
 }
 
 export type PerformanceWidgetProps = {
-  ContainerActions: React.ComponentType<{isLoading: boolean}> | null;
   chartDefinition: ChartDefinition;
   chartHeight: number;
 
@@ -40,7 +39,6 @@ export type PerformanceWidgetProps = {
 
   organization: Organization;
   title: string;
-  titleTooltip: string;
   InteractiveTitle?: React.ComponentType<{isLoading: boolean}> | null;
 
   chartColor?: string;
@@ -138,7 +136,6 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
 
   // Header;
   title: string;
-  titleTooltip: string;
   EmptyComponent?: React.ComponentType<{height?: number}>;
   HeaderActions?: HeaderActions<T>;
 

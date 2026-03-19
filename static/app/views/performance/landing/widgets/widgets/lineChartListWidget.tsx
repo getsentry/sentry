@@ -107,7 +107,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions, organization, InteractiveTitle} = props;
+  const {organization, InteractiveTitle} = props;
   const {setPageDanger} = usePageAlert();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
@@ -842,11 +842,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           </LinkButton>
         </div>
       </Fragment>
-    ) : (
-      ContainerActions && (
-        <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
-      )
-    );
+    ) : null;
   };
 
   return (

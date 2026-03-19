@@ -150,7 +150,6 @@ function WidgetContainerInner(props: Props) {
             />
           )
         : null,
-    ContainerActions: null,
   };
 
   const passedProps = pick(props, [
@@ -161,33 +160,15 @@ function WidgetContainerInner(props: Props) {
     'withStaticFilters',
   ]);
 
-  const titleTooltip = '';
-
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.TRENDS:
-      return (
-        <TrendsWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
-      );
+      return <TrendsWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.AREA:
-      return (
-        <SingleFieldAreaWidget
-          {...passedProps}
-          {...widgetProps}
-          titleTooltip={titleTooltip}
-        />
-      );
+      return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.LINE_LIST:
-      return (
-        <LineChartListWidget
-          {...passedProps}
-          {...widgetProps}
-          titleTooltip={titleTooltip}
-        />
-      );
+      return <LineChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.HISTOGRAM:
-      return (
-        <HistogramWidget {...passedProps} {...widgetProps} titleTooltip={titleTooltip} />
-      );
+      return <HistogramWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.STACKED_AREA:
       return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE_LIST:

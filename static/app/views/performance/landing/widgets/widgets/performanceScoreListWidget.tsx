@@ -46,7 +46,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const theme = useTheme();
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions, InteractiveTitle} = props;
+  const {InteractiveTitle} = props;
 
   const {data: projectScoresData, isPending: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
@@ -154,27 +154,18 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
       );
     });
 
-  const getContainerActions = () => {
-    return (
-      <Fragment>
-        <div>
-          <LinkButton to={`${moduleURL}/`} size="sm">
-            {t('View All')}
-          </LinkButton>
-        </div>
-        {ContainerActions && (
-          <ContainerActions isLoading={isTransactionWebVitalsQueryLoading} />
-        )}
-      </Fragment>
-    );
-  };
-
   return (
     <GenericPerformanceWidget<DataType>
       {...props}
       location={location}
       Subtitle={() => <Subtitle>{props.subTitle}</Subtitle>}
-      HeaderActions={() => getContainerActions()}
+      HeaderActions={() => (
+        <div>
+          <LinkButton to={`${moduleURL}/`} size="sm">
+            {t('View All')}
+          </LinkButton>
+        </div>
+      )}
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData?.chart} />
