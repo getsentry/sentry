@@ -54,6 +54,7 @@ from sentry.scm.actions import (
     update_pull_request,
 )
 from sentry.scm.errors import (
+    SCMError,
     SCMProviderNotSupported,
     SCMRpcActionCallError,
     SCMRpcActionNotFound,
@@ -97,10 +98,8 @@ def dispatch(action_name: str, raw_request_data: dict[str, Any]):
 
     try:
         return scm_action_registry[action_name](scm, **request.args.get_extra_fields())
-    except AttributeError:
-        raise SCMProviderNotSupported(
-            f"{action_name} is not supported by service-provider {scm.provider.__class__.__name__}"
-        )
+    except AttributeError as e:
+        raise SCMError(str(e)) from e
     except TypeError as e:
         raise SCMRpcActionCallError(action_name, str(e)) from e
 
