@@ -23,7 +23,12 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.metrics import IntegrationProxyEvent, IntegrationProxyEventType
 from sentry.metrics.base import Tags
-from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.exceptions import (
+    ApiHostError,
+    ApiRateLimitedError,
+    ApiTimeoutError,
+    ApiUnauthorized,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
@@ -59,6 +64,8 @@ class IntegrationProxyFailureMetricType(StrEnum):
     INVALID_IDENTITY = "invalid_identity"
     HOST_UNREACHABLE_ERROR = "host_unreachable_error"
     HOST_TIMEOUT_ERROR = "host_timeout_error"
+    UNAUTHORIZED_ERROR = "unauthorized_error"
+    RATE_LIMITED_ERROR = "rate_limited_error"
     UNKNOWN_ERROR = "unknown_error"
     FAILED_VALIDATION = "failed_validation"
 
@@ -327,6 +334,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
             self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
             return self.respond(status=exc.code)
+        elif isinstance(exc, ApiUnauthorized):
+            logger.info("hybrid_cloud.integration_proxy.unauthorized_error", extra=self.log_extra)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.UNAUTHORIZED_ERROR)
+            return self.respond(status=exc.code)
+        elif isinstance(exc, ApiRateLimitedError):
+            logger.info("hybrid_cloud.integration_proxy.rate_limited_error", extra=self.log_extra)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.RATE_LIMITED_ERROR)
+            return self.respond(status=exc.code)
 
+        logger.warning(
+            "hybrid_cloud.integration_proxy.unknown_error",
+            extra={**self.log_extra, "exception_class": type(exc).__name__},
+        )
         self._add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
         return super().handle_exception_with_details(request, exc, handler_context, scope)

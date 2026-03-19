@@ -220,7 +220,7 @@ function VisualizationWidgetContent({
         return null;
       }
 
-      const {timeSeries, label, seriesName} = transformed;
+      const {timeSeries, label, seriesName, widgetQuery} = transformed;
       const plottable = createPlottableFromTimeSeries(
         timeSeries,
         widget,
@@ -231,7 +231,16 @@ function VisualizationWidgetContent({
       if (!plottable) {
         return null;
       }
-      return [timeSeries, plottable] satisfies [TimeSeries, Plottable];
+
+      // Match the timeseries to its corresponding table result by query index
+      const queryIndex = widget.queries.indexOf(widgetQuery);
+      const tableData = tableResults?.[queryIndex]?.data;
+
+      return [timeSeries, plottable, tableData] satisfies [
+        TimeSeries,
+        Plottable,
+        TableDataWithTitle['data'] | undefined,
+      ];
     })
     .filter(defined);
 
@@ -253,15 +262,13 @@ function VisualizationWidgetContent({
     tableResults &&
     tableResults.length > 0;
 
-  const tableDataRows = tableResults?.[0]?.data;
-
   // We only support one column for legend breakdown right now
   const firstColumn = columns[0];
   const linkedDashboard = findLinkedDashboardForField(firstWidgetQuery, firstColumn);
 
   const footerTable = showBreakdownData ? (
     <WidgetFooterTable>
-      {timeSeriesWithPlottable.map(([timeSeries, plottable], index) => {
+      {timeSeriesWithPlottable.map(([timeSeries, plottable, tableDataRows], index) => {
         if (timeSeries.meta.isOther) {
           return null;
         }
@@ -278,17 +285,18 @@ function VisualizationWidgetContent({
           if (columns.length === 1) {
             if (firstColumnGroupByValue !== undefined && firstColumn) {
               // for 20 series, this is only 20 x 20 lookups, which is negligible and worth it for code readability
-              value = tableDataRows.find(
-                row => row[firstColumn] === firstColumnGroupByValue
-              )?.[yAxis] as number;
+              value =
+                (tableDataRows.find(
+                  row => row[firstColumn] === firstColumnGroupByValue
+                )?.[yAxis] as number) ?? null;
             }
           }
           // If there is no columns, and only aggregates, the table result will be an array with a single element
           // [{aggregate1: 123}, {aggregate2: 345}]
-          else if (columns.length === 0 && aggregates.length > 1) {
+          else if (columns.length === 0 && aggregates.length > 0) {
             const row = tableDataRows[0];
             if (row) {
-              value = row[yAxis] as number;
+              value = (row[yAxis] as number) ?? null;
             }
           }
         }
