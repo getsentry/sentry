@@ -1,25 +1,18 @@
-import {useState} from 'react';
-
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import {AlertStore} from 'sentry/stores/alertStore';
 import type {Organization} from 'sentry/types/organization';
+import {useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
-type OrganizationProps = {
+interface OrganizationDeletionInProgressProps {
   organization: Organization;
-};
+}
 
-type BodyProps = {
-  children: React.ReactNode;
-};
-
-function DeletionInProgress({organization}: OrganizationProps) {
+function OrganizationDeletionInProgress(props: OrganizationDeletionInProgressProps) {
   return (
     <Layout.Body>
       <Layout.Main>
@@ -28,7 +21,7 @@ function DeletionInProgress({organization}: OrganizationProps) {
             {tct(
               'The [organization] organization is currently in the process of being deleted from Sentry.',
               {
-                organization: <strong>{organization.slug}</strong>,
+                organization: <strong>{props.organization.slug}</strong>,
               }
             )}
           </Alert>
@@ -38,28 +31,28 @@ function DeletionInProgress({organization}: OrganizationProps) {
   );
 }
 
-function DeletionPending({organization}: OrganizationProps) {
+interface OrganizatonDeletionPendingProps {
+  organization: Organization;
+}
+
+function OrganizationDeletionPending(props: OrganizatonDeletionPendingProps) {
   const api = useApi();
-  const [isRestoring, setIsRestoring] = useState(false);
 
-  const onRestore = async () => {
-    setIsRestoring(true);
-
-    try {
-      await api.requestPromise(`/organizations/${organization.slug}/`, {
+  const {mutate: onRestore, isPending: isRestoring} = useMutation({
+    mutationFn: () =>
+      api.requestPromise(`/organizations/${props.organization?.slug}/`, {
         method: 'PUT',
         data: {cancelDeletion: true},
-      });
-      window.location.reload();
-    } catch {
-      setIsRestoring(false);
+      }),
+    onSuccess: () => window.location.reload(),
+    onError: () => {
       AlertStore.addAlert({
         message:
           'We were unable to restore this organization. Please try again or contact support.',
         variant: 'danger',
       });
-    }
-  };
+    },
+  });
 
   return (
     <Layout.Body>
@@ -67,11 +60,11 @@ function DeletionPending({organization}: OrganizationProps) {
         <h3>{t('Deletion Scheduled')}</h3>
         <p>
           {tct('The [organization] organization is currently scheduled for deletion.', {
-            organization: <strong>{organization.slug}</strong>,
+            organization: <strong>{props.organization.slug}</strong>,
           })}
         </p>
 
-        {organization.access.includes('org:admin') ? (
+        {props.organization.access.includes('org:admin') ? (
           <div>
             <p>
               {t(
@@ -79,7 +72,11 @@ function DeletionPending({organization}: OrganizationProps) {
               )}
             </p>
             <p>
-              <Button priority="primary" onClick={onRestore} disabled={isRestoring}>
+              <Button
+                priority="primary"
+                onClick={() => onRestore()}
+                disabled={isRestoring}
+              >
                 {t('Restore Organization')}
               </Button>
             </p>
@@ -101,21 +98,4 @@ function DeletionPending({organization}: OrganizationProps) {
       </Layout.Main>
     </Layout.Body>
   );
-}
-
-export function OrganizationDetailsBody({children}: BodyProps) {
-  // Organization may be null in account settings
-  const organization = useOrganization({allowNull: true});
-
-  const status = organization?.status?.id;
-
-  if (organization && status === 'pending_deletion') {
-    return <DeletionPending organization={organization} />;
-  }
-
-  if (organization && status === 'deletion_in_progress') {
-    return <DeletionInProgress organization={organization} />;
-  }
-
-  return <ErrorBoundary>{children}</ErrorBoundary>;
 }
