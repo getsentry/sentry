@@ -166,7 +166,7 @@ organization_provisioning_service = OrganizationProvisioningService()
 def handle_organization_provisioning_outbox_payload(
     *,
     organization_id: int,
-    region_name: str,
+    cell_name: str,
     provisioning_payload: OrganizationProvisioningOptions,
 ):
     """
@@ -175,7 +175,7 @@ def handle_organization_provisioning_outbox_payload(
 
     Method for handling a provisioning payload
     :param organization_id: The desired ID for the organization
-    :param region_name: The region to provision the organization in
+    :param cell_name: The cell to provision the organization in
     :param provisioning_payload: The organization data used to provision the org
     :return:
     """
@@ -198,7 +198,7 @@ def handle_organization_provisioning_outbox_payload(
     able_to_provision = cell_organization_provisioning_rpc_service.create_organization_in_cell(
         organization_id=organization_id,
         provision_payload=provisioning_payload,
-        cell_name=region_name,
+        cell_name=cell_name,
     )
 
     if not able_to_provision:
@@ -224,7 +224,7 @@ def process_provision_organization_outbox(
 
     handle_organization_provisioning_outbox_payload(
         organization_id=object_identifier,
-        region_name=region_name,
+        cell_name=region_name,
         provisioning_payload=provision_payload,
     )
 
