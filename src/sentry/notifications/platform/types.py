@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from pydantic import BaseModel, ConfigDict
 
 from sentry.integrations.types import ExternalProviderEnum
+from sentry.models.rule import Rule
 
 
 class NotificationCategory(StrEnum):
@@ -113,6 +114,14 @@ class NotificationRuleInfo(BaseModel):
     label: str
     data: dict[str, Any]
     environment_id: int | None = None
+
+    def to_rule(self) -> Rule:
+        return Rule(
+            id=self.id,
+            label=self.label,
+            data=self.data,
+            environment_id=self.environment_id,
+        )
 
 
 class NotificationProviderKey(StrEnum):

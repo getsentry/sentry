@@ -56,7 +56,6 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
-from sentry.notifications.platform.types import NotificationRuleInfo
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
@@ -89,9 +88,7 @@ MAX_SUMMARY_HEADLINE_LENGTH = 50
 MAX_SUGGESTED_ASSIGNEES = 3
 
 
-def get_group_users_count(
-    group: Group, rules: list[Rule | NotificationRuleInfo] | None = None
-) -> int:
+def get_group_users_count(group: Group, rules: list[Rule] | None = None) -> int:
     environment_ids: list[int] | None = None
     if rules:
         environment_ids = [rule.environment_id for rule in rules if rule.environment_id is not None]
@@ -213,7 +210,7 @@ def get_tags(
     return fields
 
 
-def get_context(group: Group, rules: list[Rule | NotificationRuleInfo] | None = None) -> str:
+def get_context(group: Group, rules: list[Rule] | None = None) -> str:
     context_text = ""
 
     context = group.issue_type.notification_config.context.copy()
@@ -482,7 +479,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
         actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
-        rules: list[Rule | NotificationRuleInfo] | None = None,
+        rules: list[Rule] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
