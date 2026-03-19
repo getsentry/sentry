@@ -183,6 +183,14 @@ Cursor is configured to automatically load relevant AGENTS.md files based on the
 
 **Note**: These `.mdc` files only _reference_ AGENTS.md files—they don't duplicate content. All actual guidance should be added to the appropriate AGENTS.md file, not to Cursor rules.
 
+## Agent Skills
+
+Skills under `.agents/skills/` should follow the same current-practice conventions as the rest of the repo:
+
+- Prefer diff-first review workflows. When no explicit file or patch is provided, default to the current branch diff.
+- Keep skill descriptions aligned with natural user requests like PR review, branch audit, and Warden follow-up.
+- If a downstream review harness controls the final response shape, do not hardcode a competing output format in the skill. Specify required evidence instead.
+
 ## Backend
 
 For backend development patterns, security guidelines, and architecture, see `src/AGENTS.md`.

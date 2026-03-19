@@ -1,21 +1,21 @@
 ---
 name: sentry-backend-bugs
-description: 'Sentry backend bug pattern review based on real production errors. Use when reviewing Python/Django backend code for common bug patterns. Trigger keywords: "backend bug review", "common errors", "error patterns", "sentry bugs".'
-allowed-tools: Read, Grep, Glob, Bash
+description: 'Review Sentry Python and Django changes for bug patterns drawn from real production issues. Use when reviewing a backend diff or PR, checking Warden findings, auditing the current branch, reviewing production-error patterns, or looking for common regressions in `src/` and `tests/`.'
+allowed-tools: Read Grep Glob Bash
 ---
 
 # Sentry Backend Bug Pattern Review
 
-Find bugs in Sentry backend code by checking for the patterns that cause the most production errors.
+Find bugs in Sentry backend code by checking for the patterns that cause the most real production errors.
 
 This skill encodes patterns from 638 real production issues (393 resolved, 220 unresolved, 25 ignored) generating over 27 million error events across 65,000+ affected users. These are not theoretical risks -- they are the actual bugs that ship most often, with known fixes from resolved issues.
 
 ## Scope
 
-You receive scoped code chunks from Warden's diff pipeline. Each chunk is a changed hunk (or coalesced group of nearby hunks) with surrounding context.
+Review the code provided by the user, Warden, or the current branch diff. If the user does not provide a target, review the current branch diff. Start from the changed hunk or file, then read outward only as needed to confirm the behavior.
 
-1. Analyze the chunk against the pattern checks below.
-2. Use `Read` and `Grep` to trace data flow beyond the chunk when needed — follow function calls, check callers, verify types at boundaries.
+1. Analyze the changed code against the pattern checks below.
+2. Use `Read` and `Grep` to trace data flow beyond the initial diff when needed. Follow function calls, callers, serializers, tasks, and ORM boundaries until the behavior is confirmed.
 3. Report only **HIGH** and **MEDIUM** confidence findings.
 
 | Confidence | Criteria                                                              | Action                       |
@@ -251,14 +251,14 @@ Each code location should be reported once under the most specific matching patt
 
 ## Step 3: Report Findings
 
-For each finding, include:
+For each finding, provide the evidence the review harness needs:
 
-- **Title**: Short description of the bug
-- **Severity**: high, medium, or low
-- **Location**: File path and line number
-- **Description**: Root cause → consequences (2-4 sentences)
-- **Precedent**: A real production issue ID (e.g., "Similar to SENTRY-5D9J: Detector.DoesNotExist, 610K events")
-- **Fix**: A unified diff showing the code fix
+- precise location
+- severity and confidence
+- concrete triggering input or state
+- root cause and consequence
+- a matching production precedent when available
+- a concrete code fix, preferably as a unified diff when the harness supports it
 
 Fix suggestions must include actual code. Never suggest a comment or docstring as a fix.
 
