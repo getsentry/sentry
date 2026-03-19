@@ -21,7 +21,7 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {
   WidgetType,
   type DashboardFilters,
-  type Widget,
+  type Widget as TWidget,
 } from 'sentry/views/dashboards/types';
 import {applyDashboardFilters, usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
@@ -57,7 +57,7 @@ import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 interface VisualizationWidgetProps {
   selection: PageFilters;
-  widget: Widget;
+  widget: TWidget;
   dashboardFilters?: DashboardFilters;
   legendSelection?: LegendSelection;
   onDataFetchStart?: () => void;
@@ -160,7 +160,7 @@ interface VisualizationWidgetContentProps {
   releases: Array<{timestamp: string; version: string}>;
   showReleaseAs: LoadableChartWidgetProps['showReleaseAs'];
   timeseriesResults: Series[];
-  widget: Widget;
+  widget: TWidget;
   confidence?: Confidence;
   dashboardFilters?: DashboardFilters;
   dataScanned?: 'full' | 'partial';
