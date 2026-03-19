@@ -191,7 +191,6 @@ class OrganizationEventsTraceEndpointTest(
     OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase
 ):
     url_name = "sentry-api-0-organization-trace"
-    FEATURES = ["organizations:trace-spans-format"]
 
     def assert_event(self, result, event_data, message):
         assert result["transaction"] == event_data.transaction, message
@@ -274,11 +273,10 @@ class OrganizationEventsTraceEndpointTest(
             kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
         )
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                url,
-                format="json",
-            )
+        response = self.client.get(
+            url,
+            format="json",
+        )
 
         assert response.status_code == 404, response.content
 
