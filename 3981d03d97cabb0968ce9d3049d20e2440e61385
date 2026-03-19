@@ -1,0 +1,25 @@
+src/sentry/web/frontend/oauth_token.py
+  1a687d5cc1ac7faf 294,298,703-711,835,851-852,855-856,862
+tests/sentry/web/frontend/test_oauth_token.py
+  1a687d5cc1ac7faf 2,1876-1907
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.31",
+  "base_commit_sha": "3981d03d97cabb0968ce9d3049d20e2440e61385",
+  "prompts": {
+    "1a687d5cc1ac7faf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c016ed04-cfca-4198-9fc8-e1af0c5c42e5",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "David Cramer <dcramer@gmail.com>",
+      "messages": [],
+      "total_additions": 57,
+      "total_deletions": 20,
+      "accepted_lines": 50,
+      "overriden_lines": 0
+    }
+  }
+}
