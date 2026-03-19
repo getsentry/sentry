@@ -6,9 +6,10 @@ from typing import Literal, NotRequired, TypedDict, Union
 from django.conf import settings
 from redis import StrictRedis
 
-from sentry.models.dynamicsampling import CUSTOM_RULE_START
 from sentry.relay.types import RuleCondition
 from sentry.utils import redis
+
+CUSTOM_RULE_START = 3000
 
 BOOSTED_RELEASES_LIMIT = 10
 
