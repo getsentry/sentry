@@ -1,4 +1,4 @@
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventBreadcrumbsSection} from 'sentry/components/events/eventBreadcrumbsSection';
 import {t} from 'sentry/locale';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';

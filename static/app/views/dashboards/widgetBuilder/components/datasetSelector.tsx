@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/links/externalLink';
 import {t, tct, tctCode} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';

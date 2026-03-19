@@ -3,7 +3,7 @@ import type {Location} from 'history';
 
 import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';

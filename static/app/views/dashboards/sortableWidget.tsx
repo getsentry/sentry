@@ -25,7 +25,7 @@ import {
   type Widget,
   type WidgetQuery,
 } from './types';
-import type WidgetLegendSelectionState from './widgetLegendSelectionState';
+import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
 
