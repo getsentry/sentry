@@ -4,6 +4,7 @@ import logging
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
+from pydantic import ValidationError
 from slack_sdk.models.blocks.blocks import Block
 
 from sentry.constants import ObjectStatus
@@ -11,9 +12,10 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.service import (
-    NotificationDataDto,
     NotificationService,
     NotificationServiceError,
+    deserialize_notification_data,
+    serialize_notification_data,
 )
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
@@ -115,8 +117,8 @@ def process_thread_update(
         organization_id=organization_id,
     ).capture() as lifecycle:
         try:
-            data_dto = NotificationDataDto.from_dict(serialized_data)
-        except (NotificationServiceError, NoRegistrationExistsError) as e:
+            notification_data = deserialize_notification_data(serialized_data)
+        except (NotificationServiceError, NoRegistrationExistsError, ValidationError) as e:
             lifecycle.record_failure(failure_reason=e)
             return
 
@@ -133,7 +135,7 @@ def process_thread_update(
     send_thread_update(
         install=SlackIntegration(model=integration, organization_id=organization_id),
         thread=thread,
-        data=data_dto.notification_data,
+        data=notification_data,
         ephemeral_user_id=ephemeral_user_id,
     )
 
@@ -152,7 +154,7 @@ def schedule_all_thread_updates(
         integration_id=integration_id,
         organization_id=organization_id,
     ).capture() as lifecycle:
-        serialized_data = NotificationDataDto(notification_data=data).to_dict()
+        serialized_data = serialize_notification_data(data)
         lifecycle.add_extra("thread_count", len(threads))
         for thread in threads:
             process_thread_update.apply_async(

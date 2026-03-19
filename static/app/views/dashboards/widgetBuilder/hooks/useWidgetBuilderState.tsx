@@ -81,6 +81,7 @@ export type WidgetBuilderStateQueryParams = {
   legendAlias?: string[];
   legendType?: LegendType;
   limit?: number;
+  linkedDashboards?: string[];
   query?: string[];
   selectedAggregate?: number;
   sort?: string[];
@@ -915,7 +916,7 @@ export function useWidgetBuilderState(): {
           break;
         }
         case BuilderStateAction.SET_LINKED_DASHBOARDS:
-          if (displayType === DisplayType.TABLE) {
+          if (displayType === DisplayType.TABLE || legendType === 'breakdown') {
             setLinkedDashboards(action.payload, options);
           } else {
             setLinkedDashboards([], options);
@@ -929,6 +930,9 @@ export function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_LEGEND_TYPE:
           setLegendType(action.payload, options);
+          if (action.payload !== 'breakdown' && displayType !== DisplayType.TABLE) {
+            setLinkedDashboards([], options);
+          }
           break;
         case BuilderStateAction.SET_SELECTED_AGGREGATE:
           setSelectedAggregate(action.payload, options);
@@ -981,6 +985,12 @@ export function useWidgetBuilderState(): {
             setYAxis(deserializeFields(action.payload.yAxis), options);
           }
           setAxisRange(getAxisRange(action.payload.axisRange), options);
+          if (action.payload.linkedDashboards) {
+            setLinkedDashboards(
+              deserializeLinkedDashboards(action.payload.linkedDashboards),
+              options
+            );
+          }
           break;
         case BuilderStateAction.SET_THRESHOLDS:
           setThresholds(action.payload, options);
@@ -1263,7 +1273,9 @@ export function serializeFields(fields: Column[]): string[] {
   });
 }
 
-function serializeLinkedDashboards(linkedDashboards: LinkedDashboard[] = []): string[] {
+export function serializeLinkedDashboards(
+  linkedDashboards: LinkedDashboard[] = []
+): string[] {
   return linkedDashboards.map(linkedDashboard => {
     return JSON.stringify({
       dashboardId: linkedDashboard.dashboardId,

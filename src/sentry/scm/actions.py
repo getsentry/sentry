@@ -18,6 +18,8 @@ from sentry.scm.private.provider import ActionMap, Provider
 from sentry.scm.types import (
     SHA,
     ActionResult,
+    ArchiveFormat,
+    ArchiveLink,
     BranchName,
     BuildConclusion,
     BuildStatus,
@@ -375,6 +377,17 @@ class SourceCodeManager:
         return self._exec(
             ActionMap.get_file_content,  # type: ignore[type-abstract]
             lambda p: p.get_file_content(path, ref, request_options),
+        )
+
+    def get_archive_link(
+        self,
+        ref: str,
+        archive_format: ArchiveFormat = "tarball",
+    ) -> ActionResult[ArchiveLink]:
+        """Get a URL to download a repository archive."""
+        return self._exec(
+            ActionMap.get_archive_link,  # type: ignore[type-abstract]
+            lambda p: p.get_archive_link(ref, archive_format),
         )
 
     def get_commit(

@@ -10,9 +10,14 @@ import {
   CodingAgentStatus,
   getCodingAgentName,
 } from 'sentry/components/events/autofix/types';
-import type {
-  RootCauseArtifact,
-  SolutionArtifact,
+import {
+  getAutofixArtifactFromSection,
+  isCodeChangesArtifact,
+  isCodingAgentsArtifact,
+  isPullRequestsArtifact,
+  isRootCauseArtifact,
+  isSolutionArtifact,
+  type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {IconOpen} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
@@ -21,42 +26,44 @@ import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tn} from 'sentry/locale';
-import {
-  type Artifact,
-  type ExplorerCodingAgentState,
-  type ExplorerFilePatch,
-  type RepoPRState,
-} from 'sentry/views/seerExplorer/types';
+import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
-interface RootCausePreviewProps {
-  artifact: Artifact<RootCauseArtifact>;
+interface ArtifactPreviewProps {
+  section: AutofixSection;
 }
 
-export function RootCausePreview({artifact}: RootCausePreviewProps) {
+export function RootCausePreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
+
   return (
     <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
-      {artifact.data?.one_line_description}
+      {artifact?.data?.one_line_description}
     </ArtifactCard>
   );
 }
 
-interface SolutionPreviewProps {
-  artifact: Artifact<SolutionArtifact>;
-}
+export function SolutionPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isSolutionArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
-export function SolutionPreview({artifact}: SolutionPreviewProps) {
   return (
     <ArtifactCard icon={<IconList />} title={t('Implementation Plan')}>
-      {artifact.data?.one_line_summary}
+      {artifact?.data?.one_line_summary}
     </ArtifactCard>
   );
 }
 
-interface CodeChangesPreviewProps {
-  artifact: ExplorerFilePatch[];
-}
+export function CodeChangesPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : [];
+  }, [section]);
 
-export function CodeChangesPreview({artifact}: CodeChangesPreviewProps) {
   const patchesForRepos = useMemo(() => {
     const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
     for (const patch of artifact) {
@@ -100,11 +107,12 @@ export function CodeChangesPreview({artifact}: CodeChangesPreviewProps) {
   );
 }
 
-interface PullRequestsPreviewProps {
-  artifact: RepoPRState[];
-}
+export function PullRequestsPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : [];
+  }, [section]);
 
-export function PullRequestsPreview({artifact}: PullRequestsPreviewProps) {
   return (
     <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
       {artifact.map(pullRequest => {
@@ -122,11 +130,12 @@ export function PullRequestsPreview({artifact}: PullRequestsPreviewProps) {
   );
 }
 
-interface CodingAgentPreviewProps {
-  artifact: ExplorerCodingAgentState[];
-}
+export function CodingAgentPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isCodingAgentsArtifact(sectionArtifact) ? sectionArtifact : [];
+  }, [section]);
 
-export function CodingAgentPreview({artifact}: CodingAgentPreviewProps) {
   const provider = artifact[0]?.provider;
 
   const agentName = useMemo(() => getCodingAgentName(provider), [provider]);
