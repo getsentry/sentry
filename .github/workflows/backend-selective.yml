@@ -73,6 +73,11 @@ jobs:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
+      - name: Checkout sentry
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          path: sentry
+
       - name: Checkout getsentry
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -96,19 +101,19 @@ jobs:
         id: download-coverage
         run: |
           set -euo pipefail
-          mkdir -p .artifacts/coverage
+          mkdir -p "$GITHUB_WORKSPACE/.artifacts/coverage"
 
           GCS_PATH="gs://getsentry-coverage-data/latest/.coverage.combined"
           echo "Fetching coverage DB from: $GCS_PATH"
           gcloud storage ls -l "$GCS_PATH" 2>/dev/null || true
 
           if ! gcloud storage cp "$GCS_PATH" \
-            .artifacts/coverage/.coverage.combined 2>/dev/null; then
+            "$GITHUB_WORKSPACE/.artifacts/coverage/.coverage.combined" 2>/dev/null; then
             echo "Warning: Failed to download coverage from GCS, will run full test suite"
             echo "coverage-file=" >> "$GITHUB_OUTPUT"
           else
-            ls -lh .artifacts/coverage/.coverage.combined
-            echo "coverage-file=.artifacts/coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
+            ls -lh "$GITHUB_WORKSPACE/.artifacts/coverage/.coverage.combined"
+            echo "coverage-file=$GITHUB_WORKSPACE/.artifacts/coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Compute selected tests
@@ -123,7 +128,7 @@ jobs:
           set -euo pipefail
 
           python3 .github/workflows/scripts/compute-selected-tests.py \
-            --coverage-db "$GITHUB_WORKSPACE/$COVERAGE_DB" \
+            --coverage-db "$COVERAGE_DB" \
             --sentry-changed-files "$CHANGED_FILES" \
             --output-repo sentry \
             --output "$GITHUB_WORKSPACE/.artifacts/selected-tests.txt" \
