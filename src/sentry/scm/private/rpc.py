@@ -54,7 +54,6 @@ from sentry.scm.actions import (
     update_pull_request,
 )
 from sentry.scm.errors import (
-    SCMError,
     SCMProviderNotSupported,
     SCMRpcActionCallError,
     SCMRpcActionNotFound,
@@ -99,7 +98,9 @@ def dispatch(action_name: str, raw_request_data: dict[str, Any]):
     try:
         return scm_action_registry[action_name](scm, **request.args.get_extra_fields())
     except AttributeError as e:
-        raise SCMError(str(e)) from e
+        raise SCMProviderNotSupported(
+            "call_missing_provider_method is not supported by service-provider GitHubProvider"
+        ) from e
     except TypeError as e:
         raise SCMRpcActionCallError(action_name, str(e)) from e
 
