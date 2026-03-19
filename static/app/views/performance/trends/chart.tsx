@@ -119,9 +119,7 @@ export function Chart({
     navigate(to);
   };
 
-  const derivedTrendChangeType = organization.features.includes('performance-new-trends')
-    ? transaction?.change
-    : trendChangeType;
+  const derivedTrendChangeType = transaction?.change ?? trendChangeType;
 
   const trendToColor = makeTrendToColorMapping(theme);
   const lineColor =
