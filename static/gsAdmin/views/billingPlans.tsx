@@ -670,7 +670,7 @@ function MergedPriceTiersTable({
               <th style={{width: 0}} />
               <th>Data Category</th>
               <th>Tier</th>
-              <th>Volume</th>
+              <th>Volume (max)</th>
               <th style={{textAlign: 'right'}}>Monthly</th>
               <th style={{textAlign: 'right'}}>Annual</th>
               <th style={{textAlign: 'right'}}>Reserved PPE</th>
@@ -678,8 +678,12 @@ function MergedPriceTiersTable({
             </tr>
           </thead>
           <tbody>
-            {categoryGroups.map(([dataCategory, categoryTierGroups]) => {
+            {categoryGroups.map(([dataCategory, categoryTierGroups], categoryIndex) => {
               const firstGroup = categoryTierGroups[0];
+              const categoryBgStyle =
+                categoryIndex % 2 === 0
+                  ? {backgroundColor: '#fafbfc'}
+                  : {backgroundColor: '#f4f5f8'};
               if (!firstGroup) return null;
               const {categoryLabel, dataCategoryId} = firstGroup;
               const expandKey = dataCategory;
@@ -700,7 +704,10 @@ function MergedPriceTiersTable({
                   <tr
                     key={expandKey}
                     id={dataCategoryId}
-                    style={group.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                    style={{
+                      ...categoryBgStyle,
+                      ...(group.disabled ? {backgroundColor: '#e8e9ec'} : {}),
+                    }}
                   >
                     <td />
                     <td style={{textAlign: 'left'}}>
@@ -728,7 +735,10 @@ function MergedPriceTiersTable({
                   <tr
                     key={expandKey}
                     id={dataCategoryId}
-                    style={firstGroup.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                    style={{
+                      ...categoryBgStyle,
+                      ...(firstGroup.disabled ? {backgroundColor: '#e8e9ec'} : {}),
+                    }}
                   >
                     <td>
                       <button
@@ -788,9 +798,10 @@ function MergedPriceTiersTable({
                         <tr
                           key={groupKey}
                           id={groupIndex === 0 ? dataCategoryId : undefined}
-                          style={
-                            group.disabled ? {backgroundColor: '#f6f6f6'} : undefined
-                          }
+                          style={{
+                            ...categoryBgStyle,
+                            ...(group.disabled ? {backgroundColor: '#e8e9ec'} : {}),
+                          }}
                         >
                           <td>
                             {groupIndex === 0 ? (
@@ -846,9 +857,10 @@ function MergedPriceTiersTable({
                       <Fragment key={groupKey}>
                         <tr
                           id={groupIndex === 0 ? dataCategoryId : undefined}
-                          style={
-                            group.disabled ? {backgroundColor: '#f6f6f6'} : undefined
-                          }
+                          style={{
+                            ...categoryBgStyle,
+                            ...(group.disabled ? {backgroundColor: '#e8e9ec'} : {}),
+                          }}
                         >
                           <td>
                             {groupIndex === 0 ? (
@@ -899,9 +911,10 @@ function MergedPriceTiersTable({
                         {rest.map((tier, index) => (
                           <tr
                             key={`${groupKey}-band-${index}`}
-                            style={
-                              group.disabled ? {backgroundColor: '#f6f6f6'} : undefined
-                            }
+                            style={{
+                              ...categoryBgStyle,
+                              ...(group.disabled ? {backgroundColor: '#e8e9ec'} : {}),
+                            }}
                           >
                             <td />
                             <td />
@@ -964,7 +977,7 @@ function MergedPriceTiersTable({
                 {seatPricingRows.map(row => (
                   <tr
                     key={row.categoryCode ?? row.categoryLabel}
-                    style={row.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                    style={row.disabled ? {backgroundColor: '#e8e9ec'} : undefined}
                   >
                     <td style={{textAlign: 'left'}}>
                       <span style={{display: 'block'}}>{row.categoryLabel}</span>
