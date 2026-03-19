@@ -28,10 +28,7 @@ export function AiConfigureSeerQuotaSidebar({
     return <Placeholder height="160px" />;
   }
 
-  const hasAutofixQuota =
-    aiConfig.hasAutofixQuota || !organization.features.includes('seer-billing');
-
-  if (hasAutofixQuota) {
+  if (aiConfig.hasAutofixQuota) {
     return (
       <AutofixContent aiConfig={aiConfig} group={group} project={project} event={event} />
     );
