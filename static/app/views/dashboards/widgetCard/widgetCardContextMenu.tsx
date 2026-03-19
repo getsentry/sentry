@@ -42,10 +42,6 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
-export const useIndexedEventsWarning = (): string | null => {
-  return null;
-};
-
 export const useTransactionsDeprecationWarning = ({
   widget,
   selection,

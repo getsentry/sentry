@@ -66,7 +66,6 @@ import {
   getCurrentPageFilters,
   getMergedDashboardFilters,
   hasUnsavedFilterChanges,
-  isWidgetUsingTransactionName,
   resetPageFilters,
 } from 'sentry/views/dashboards/utils';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -83,8 +82,6 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
-import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
-import {DiscoverQueryPageSource} from 'sentry/views/performance/utils';
 
 import {PrebuiltDashboardOnboardingGate} from './components/prebuiltDashboardOnboardingGate';
 import {Controls} from './controls';
@@ -1176,10 +1173,6 @@ class DashboardDetail extends Component<Props, State> {
 
     const eventView = generatePerformanceEventView(location, projects, {});
 
-    const isDashboardUsingTransaction = dashboard.widgets.some(
-      isWidgetUsingTransactionName
-    );
-
     const pageContent = (
       <Stack flex={1}>
         <OnDemandControlProvider location={location}>
@@ -1263,15 +1256,6 @@ class DashboardDetail extends Component<Props, State> {
                           location={location}
                           forceTransactions={metricsDataSide.forceTransactionsOnly}
                         >
-                          {isDashboardUsingTransaction ? (
-                            <MetricsDataSwitcherAlert
-                              organization={organization}
-                              eventView={eventView}
-                              projects={projects}
-                              source={DiscoverQueryPageSource.DISCOVER}
-                              {...metricsDataSide}
-                            />
-                          ) : null}
                           <FiltersBar
                             dashboard={modifiedDashboard ?? dashboard}
                             filters={(modifiedDashboard ?? dashboard).filters}
