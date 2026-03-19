@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 from sentry.notifications.platform.provider import (
     NotificationProvider,
     NotificationProviderError,
-    SendFailure,
     SendResult,
+    SendSuccessResult,
     integration_error_result,
 )
 from sentry.notifications.platform.registry import provider_registry
@@ -142,7 +142,7 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
         target: NotificationTarget,
         renderable: MSTeamsRenderable,
         thread_context: ThreadContext | None = None,
-    ) -> SendResult | SendFailure:
+    ) -> SendResult:
         from sentry.integrations.msteams.integration import MsTeamsIntegration
 
         if not isinstance(target, cls.target_class):
@@ -159,4 +159,4 @@ class MSTeamsNotificationProvider(NotificationProvider[MSTeamsRenderable]):
             )
         except IntegrationError as e:
             return integration_error_result(e)
-        return SendResult()
+        return SendSuccessResult()

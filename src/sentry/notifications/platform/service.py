@@ -13,8 +13,8 @@ from sentry.notifications.platform.metrics import (
 from sentry.notifications.platform.provider import (
     NotificationProvider,
     SendFailure,
+    SendFailureStatus,
     SendResult,
-    SendStatus,
 )
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.rollout import NotificationRolloutService
@@ -50,7 +50,7 @@ class NotificationService[T: NotificationData]:
     ) -> bool:
         return NotificationRolloutService(organization=organization).should_notify(source=source)
 
-    def notify_target(self, *, target: NotificationTarget) -> SendResult | SendFailure:
+    def notify_target(self, *, target: NotificationTarget) -> SendResult:
         """
         Send a notification directly to a target synchronously.
         NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
@@ -89,9 +89,9 @@ class NotificationService[T: NotificationData]:
 
             if isinstance(result, SendFailure):
                 match result.status:
-                    case SendStatus.HALT:
+                    case SendFailureStatus.HALT:
                         lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
-                    case SendStatus.FAILURE:
+                    case SendFailureStatus.FAILURE:
                         lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
 
             return result
@@ -229,9 +229,9 @@ def notify_target_async(
 
         if isinstance(result, SendFailure):
             match result.status:
-                case SendStatus.HALT:
+                case SendFailureStatus.HALT:
                     lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
-                case SendStatus.FAILURE:
+                case SendFailureStatus.FAILURE:
                     lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
 
 

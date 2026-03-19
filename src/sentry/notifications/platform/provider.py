@@ -22,7 +22,10 @@ class NotificationProviderError(Exception):
     pass
 
 
-class SendStatus(Enum):
+type SendResult = SendSuccessResult | SendFailure
+
+
+class SendFailureStatus(Enum):
     HALT = "halt"
     """A known configuration or access issue — not actionable by our team."""
     FAILURE = "failure"
@@ -40,7 +43,7 @@ class ProviderThreadingContext:
 
 
 @dataclass(frozen=True)
-class SendResult:
+class SendSuccessResult:
     """Successful send outcome."""
 
     provider_message_id: str | None = None
@@ -54,7 +57,7 @@ class SendResult:
 class SendFailure:
     """Failed send outcome (halt or unexpected failure)."""
 
-    status: SendStatus
+    status: SendFailureStatus
     is_threaded: bool = False
     exception: Exception | None = None
     """The exception that caused the failure, for lifecycle recording."""
@@ -70,9 +73,9 @@ def integration_error_result(e: IntegrationError, *, is_threaded: bool = False) 
     Shared by all integration-backed notification providers.
     """
     if isinstance(e, IntegrationConfigurationError):
-        status = SendStatus.HALT
+        status = SendFailureStatus.HALT
     else:
-        status = SendStatus.FAILURE
+        status = SendFailureStatus.FAILURE
     return SendFailure(
         status=status,
         exception=e,
@@ -157,7 +160,7 @@ class NotificationProvider[RenderableT](Protocol):
         target: NotificationTarget,
         renderable: RenderableT,
         thread_context: ThreadContext | None = None,
-    ) -> SendResult | SendFailure:
+    ) -> SendResult:
         """
         Using the renderable format for the provider, send a notification to the target.
 

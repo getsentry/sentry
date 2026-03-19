@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
-from sentry.notifications.platform.provider import SendFailure, SendStatus
+from sentry.notifications.platform.provider import SendFailure, SendFailureStatus
 from sentry.notifications.platform.service import (
     NotificationDataDto,
     NotificationService,
@@ -93,7 +93,7 @@ class NotificationServiceTest(TestCase):
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     def test_notify_sync_collects_errors(self, mock_send: mock.MagicMock) -> None:
         mock_send.return_value = SendFailure(
-            status=SendStatus.HALT,
+            status=SendFailureStatus.HALT,
             exception=IntegrationConfigurationError(message="Provider error"),
             error_code=400,
         )
@@ -102,7 +102,7 @@ class NotificationServiceTest(TestCase):
         errors = service.notify_sync(targets=[self.target])
 
         assert len(errors[NotificationProviderKey.EMAIL]) == 1
-        assert errors[NotificationProviderKey.EMAIL][0].status == SendStatus.HALT
+        assert errors[NotificationProviderKey.EMAIL][0].status == SendFailureStatus.HALT
         assert str(errors[NotificationProviderKey.EMAIL][0].exception) == "Provider error"
 
     def test_render_template_classmethod(self) -> None:
@@ -131,7 +131,7 @@ class NotificationServiceTest(TestCase):
         self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
     ) -> None:
         mock_send.return_value = SendFailure(
-            status=SendStatus.FAILURE,
+            status=SendFailureStatus.FAILURE,
             exception=IntegrationError(message="API request failed"),
             error_code=400,
         )
@@ -162,7 +162,7 @@ class NotificationServiceTest(TestCase):
         self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
     ) -> None:
         mock_send.return_value = SendFailure(
-            status=SendStatus.FAILURE,
+            status=SendFailureStatus.FAILURE,
             exception=IntegrationError(message="Slack API request failed"),
             error_code=400,
         )

@@ -15,8 +15,8 @@ from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.provider import (
     NotificationProviderError,
     SendFailure,
-    SendResult,
-    SendStatus,
+    SendFailureStatus,
+    SendSuccessResult,
 )
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.target import (
@@ -145,7 +145,7 @@ class SlackNotificationProviderSendTest(TestCase):
 
         result = SlackNotificationProvider.send(target=target, renderable=renderable)
 
-        assert isinstance(result, SendResult)
+        assert isinstance(result, SendSuccessResult)
         assert result.provider_message_id is None
         mock_client_instance.chat_postMessage.assert_called_once_with(
             channel="C1234567890", blocks=renderable["blocks"], text=renderable["text"]
@@ -270,7 +270,7 @@ class SlackNotificationProviderThreadingTest(TestCase):
             target=target, renderable=renderable, thread_context=thread_context
         )
 
-        assert isinstance(result, SendResult)
+        assert isinstance(result, SendSuccessResult)
         assert result.provider_message_id == "2222222222.222222"
 
         mock_client_instance.chat_postMessage.assert_called_once_with(
@@ -308,7 +308,7 @@ class SlackNotificationProviderThreadingTest(TestCase):
             target=target, renderable=renderable, thread_context=thread_context
         )
 
-        assert isinstance(result, SendResult)
+        assert isinstance(result, SendSuccessResult)
         assert result.provider_message_id == "2222222222.222222"
         mock_client_instance.chat_postMessage.assert_called_once_with(
             channel="C1234567890",
@@ -343,7 +343,7 @@ class SlackNotificationProviderThreadingTest(TestCase):
             target=target, renderable=renderable, thread_context=thread_context
         )
 
-        assert isinstance(result, SendResult)
+        assert isinstance(result, SendSuccessResult)
         assert result.provider_message_id == "3333333333.333333"
         mock_client_instance.chat_postMessage.assert_called_once_with(
             channel="C1234567890",
@@ -380,7 +380,7 @@ class SlackNotificationProviderThreadingTest(TestCase):
         )
 
         assert isinstance(result, SendFailure)
-        assert result.status == SendStatus.HALT
+        assert result.status == SendFailureStatus.HALT
         assert result.error_code == 400
         assert result.exception is not None
         assert "channel_not_found" in str(result.exception)

@@ -19,8 +19,8 @@ from sentry.notifications.platform.provider import (
     NotificationProvider,
     NotificationProviderError,
     ProviderThreadingContext,
-    SendFailure,
     SendResult,
+    SendSuccessResult,
     integration_error_result,
 )
 from sentry.notifications.platform.registry import provider_registry
@@ -148,7 +148,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         target: NotificationTarget,
         renderable: SlackRenderable,
         thread_context: ThreadContext | None = None,
-    ) -> SendResult | SendFailure:
+    ) -> SendResult:
         from sentry.integrations.slack.integration import SlackIntegration
 
         if not isinstance(target, cls.target_class):
@@ -172,7 +172,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         except IntegrationError as e:
             return integration_error_result(e)
 
-        return SendResult()
+        return SendSuccessResult()
 
     @classmethod
     def _send_with_threading(
@@ -180,7 +180,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         slack_target: PreparedIntegrationNotificationTarget[SlackIntegration],
         renderable: SlackRenderable,
         thread_context: ThreadContext,
-    ) -> SendResult | SendFailure:
+    ) -> SendResult:
         provider_threading_ctx = SlackProviderThreadingContext(
             thread_ts=(thread_context.thread.thread_identifier if thread_context.thread else None),
             reply_broadcast=thread_context.reply_broadcast,
@@ -192,6 +192,6 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
                 payload=renderable,
                 threading_context=provider_threading_ctx,
             )
-            return SendResult(provider_message_id=response.get("ts"), is_threaded=True)
+            return SendSuccessResult(provider_message_id=response.get("ts"), is_threaded=True)
         except IntegrationError as e:
             return integration_error_result(e, is_threaded=True)
