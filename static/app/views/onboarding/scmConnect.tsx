@@ -2,19 +2,24 @@ import {useCallback, useEffect} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScmProviderPills} from './components/scmProviderPills';
-import {ScmView} from './components/scmView';
+import {ScmRepoSelector} from './components/scmRepoSelector';
 import type {StepProps} from './types';
 import {useScmProviders} from './useScmProviders';
 
 export function ScmConnect({onComplete}: StepProps) {
+  const organization = useOrganization();
   const {
     selectedIntegration,
     setSelectedIntegration,
@@ -77,7 +82,23 @@ export function ScmConnect({onComplete}: StepProps) {
 
       <Stack gap="lg" width="100%" maxWidth="600px">
         {selectedIntegration ? (
-          <ScmView />
+          <Stack gap="lg">
+            <Flex align="center" justify="between">
+              <Flex align="center" gap="sm">
+                <IconCheckmark variant="success" size="sm" />
+                <Text bold variant="success">
+                  {t(
+                    'Connected to %s',
+                    selectedIntegration.domainName || selectedIntegration.provider.name
+                  )}
+                </Text>
+              </Flex>
+              <Link to={normalizeUrl(`/settings/${organization.slug}/integrations/`)}>
+                {t('Manage in Settings')}
+              </Link>
+            </Flex>
+            <ScmRepoSelector />
+          </Stack>
         ) : (
           <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
         )}
