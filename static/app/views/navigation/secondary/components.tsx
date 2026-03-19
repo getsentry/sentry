@@ -795,7 +795,25 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
     setItems(props.items);
   }, [props.items]);
 
+  // During a keyboard-driven drag, dnd-kit's document keydown listener runs in
+  // the bubbling phase, which fires too late to stop the browser from scrolling
+  // the sidebar when the user presses ArrowUp/Down. A capture-phase listener
+  // registered here fires first and prevents that default scroll action.
+  const isKeyboardDraggingRef = useRef(false);
+  useEffect(() => {
+    if (!isKeyboardDraggingRef.current) return undefined;
+    const preventArrowScroll = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('keydown', preventArrowScroll, {capture: true});
+    return () =>
+      document.removeEventListener('keydown', preventArrowScroll, {capture: true});
+  }, []);
+
   function handleDragEnd(event: DragEndEvent) {
+    isKeyboardDraggingRef.current = false;
     const {active, over} = event;
     if (over && active.id !== over.id) {
       const oldIndex = items.findIndex(item => item.id === active.id);
@@ -811,7 +829,9 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      onDragStart={() => (isKeyboardDraggingRef.current = true)}
       onDragEnd={handleDragEnd}
+      onDragCancel={() => (isKeyboardDraggingRef.current = false)}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <Stack direction="column" padding="0" width="100%">
@@ -966,6 +986,7 @@ const GrabHandleAnimation = styled('div')`
     opacity ${p => p.theme.motion.smooth.moderate},
     transform ${p => p.theme.motion.smooth.moderate};
   transform: translate(-50%, -50%);
+
   &:active {
     cursor: grabbing;
   }
@@ -1038,7 +1059,8 @@ const StyledReorderableFakeLink = styled('div')<{
       scale 150ms ease;
   }
 
-  :hover [data-reorderable-handle-slot] {
+  :hover [data-reorderable-handle-slot],
+  :has(:focus-visible) [data-reorderable-handle-slot] {
     opacity: 0;
     scale: 0.95;
   }
