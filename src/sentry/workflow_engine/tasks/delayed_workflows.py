@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from taskbroker_client.retry import Retry
+
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import workflow_engine_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.workflow_engine.utils import log_context
 

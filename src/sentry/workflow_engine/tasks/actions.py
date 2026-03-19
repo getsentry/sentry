@@ -1,6 +1,7 @@
 from dataclasses import asdict
 
 from django.db.models import Value
+from taskbroker_client.retry import Retry
 
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
@@ -10,7 +11,6 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import namespaces
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.exceptions import timeout_grouping_context
 from sentry.workflow_engine.models import Action

@@ -20,6 +20,7 @@ from snuba_sdk import (
     Query,
     Request,
 )
+from taskbroker_client.retry import Retry
 
 from sentry import options, quotas
 from sentry.constants import ObjectStatus
@@ -64,7 +65,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.taskworker.namespaces import telemetry_experience_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.snuba import raw_snql_query
 

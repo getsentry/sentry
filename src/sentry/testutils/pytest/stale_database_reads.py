@@ -89,9 +89,8 @@ Or like this in pytest-based tests:
 
 @pytest.fixture(autouse=True)
 def stale_database_reads():
+    from taskbroker_client.task import Task
     from taskbroker_client.task import Task as TaskbrokerClientTask
-
-    from sentry.taskworker.task import Task
 
     _state = local()
 
