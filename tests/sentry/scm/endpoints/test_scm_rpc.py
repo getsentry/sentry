@@ -50,6 +50,15 @@ def add_raise_scm_error(error: SCMError):
         yield
 
 
+@contextlib.contextmanager
+def add_call_missing_provider_method():
+    def call_missing_provider_method(scm: SourceCodeManager) -> None:
+        scm.this_method_does_not_exist()
+
+    with add_method("call_missing_provider_method", call_missing_provider_method):
+        yield
+
+
 @override_settings(SCM_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
 class TestScmRpc(APITestCase):
     def setUp(self) -> None:
@@ -582,6 +591,24 @@ class TestScmRpc(APITestCase):
                     }
                 ]
             }
+
+    def test_attribute_error_in_provider_method_is_treated_as_provider_not_supported(self) -> None:
+        with add_call_missing_provider_method():
+            response = self.call(
+                "call_missing_provider_method",
+                {"args": {"organization_id": self.organization.id, "repository_id": self.repo.id}},
+            )
+
+        assert response.status_code == 400
+        assert response.json() == {
+            "errors": [
+                {
+                    "status": "400",
+                    "title": "Provider not supported.",
+                    "detail": "call_missing_provider_method is not supported by service-provider GitHubProvider",
+                }
+            ]
+        }
 
     def test_scm_provider_exception_in_provider_method(self) -> None:
         with add_raise_scm_error(SCMProviderException("Blah", 68)):
