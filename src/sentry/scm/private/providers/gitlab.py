@@ -24,6 +24,7 @@ import datetime
 import functools
 from collections.abc import Callable
 from typing import Any, Iterable
+from urllib.parse import urlencode
 
 from sentry.integrations.gitlab.client import GitLabApiClient
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
@@ -339,7 +340,7 @@ class GitLabProvider:
         path = GitLabApiClientPath.archive.format(project=self._repo_id, format=fmt)
         url = GitLabApiClientPath.build_api_url(self.client.base_url, path)
         if ref:
-            url = f"{url}?sha={ref}"
+            url = f"{url}?{urlencode({'sha': ref})}"
         token_data = self.client.get_access_token()
         token = token_data["access_token"] if token_data else None
         data = ArchiveLink(url=url, headers={"Authorization": f"Bearer {token}"} if token else {})
