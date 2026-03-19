@@ -11,6 +11,7 @@ import {LogoSentry} from 'sentry/components/logoSentry';
 import {t, tct} from 'sentry/locale';
 import {AlertStore} from 'sentry/stores/alertStore';
 import type {Organization} from 'sentry/types/organization';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -79,7 +80,7 @@ function DeletionPending({organization}: OrganizationProps) {
         method: 'PUT',
         data: {cancelDeletion: true},
       });
-      window.location.reload();
+      testableWindowLocation.reload();
     } catch {
       setIsRestoring(false);
       AlertStore.addAlert({
