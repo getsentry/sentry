@@ -114,6 +114,13 @@ def get_action_filters_by_workflows(
 def invalidate_action_filter_cache_by_workflow_ids(workflow_ids: list[int]) -> None:
     """
     Takes a list of workflow ids and clears the cached values for the stored information
+
+    Models that have receivers to invalidate the cache:
+    - ✅ WorkflowDataConditionGroup post_save - When an action filter is created on a workflow
+    - WorkflowDataConditionGroup pre_delete - When an action filter is removed from the workflow
+    - ✅ DataCondition post_save - When a condition on a filter is changed
+    - ✅ DataCondition pre_delete - When a condition on the filter being removed
+    - DataConditionGroup post_save - When an update to the logic type in the condition group
     """
     metrics_incr(f"{METRIC_PREFIX}.invalidated", value=len(workflow_ids))
     cache_keys = [_ActionFilterCacheKey(wid) for wid in workflow_ids]

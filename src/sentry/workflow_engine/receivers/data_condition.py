@@ -1,7 +1,7 @@
 from typing import Any
 
 from django.db import router, transaction
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
 from sentry.workflow_engine.caches.action_filters import (
@@ -17,14 +17,19 @@ from sentry.workflow_engine.types import WorkflowId
 
 @receiver(pre_save, sender=DataCondition)
 def enforce_comparison_schema(
-    sender: type[DataCondition], instance: DataCondition, **kwargs: Any
+    sender: type[DataCondition],
+    instance: DataCondition,
+    **kwargs: Any,
 ) -> None:
     enforce_data_condition_json_schema(instance)
 
 
+@receiver(pre_delete, sender=DataCondition)
 @receiver(post_save, sender=DataCondition)
 def invlidate_action_filter_cache_by_data_condition(
-    sender: type[DataCondition], instance: DataCondition, **kwargs: Any
+    sender: type[DataCondition],
+    instance: DataCondition,
+    **kwargs: Any,
 ) -> None:
     workflow_ids: list[WorkflowId] | None = None
 
@@ -37,7 +42,7 @@ def invlidate_action_filter_cache_by_data_condition(
     except WorkflowDataConditionGroup.DoesNotExist:
         pass
 
-    if workflow_ids is not None:
+    if workflow_ids:
         # ensure the execution is after the transaction is committed
         def execute_invalidation() -> None:
             invalidate_action_filter_cache_by_workflow_ids(workflow_ids)
