@@ -33,14 +33,16 @@ def _validate_with_serializer(
     """
 
     # Projects are unused in this check, but we need at least one project to satisfy the serializer
-    projects = [Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)[0]]
+    project = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).first()
 
+    if project is None:
+        return None
     serializer = DashboardSerializer(
         data=artifact.dict(),
         context={
             "organization": organization,
             "request": SimpleNamespace(user=None),  # mock request to satisfy serializer
-            "projects": projects,
+            "projects": [project],
             "environment": [],
         },
     )
@@ -89,7 +91,7 @@ class DashboardOnCompletionHook(ExplorerOnCompletionHook):
                 },
             )
 
-            if cls._within_retry_budget(state):
+            if cls._within_retry_budget(state, organization, run_id):
                 cls._request_fix(organization, run_id, str(validation_error))
             return
 
@@ -111,7 +113,7 @@ class DashboardOnCompletionHook(ExplorerOnCompletionHook):
                 },
             )
 
-            if cls._within_retry_budget(state):
+            if cls._within_retry_budget(state, organization, run_id):
                 cls._request_fix(organization, run_id, str(serializer_errors))
             return
 
@@ -121,7 +123,7 @@ class DashboardOnCompletionHook(ExplorerOnCompletionHook):
         )
 
     @classmethod
-    def _within_retry_budget(cls, state: Any) -> bool:
+    def _within_retry_budget(cls, state: Any, organization: Organization, run_id: int) -> bool:
         """
         Count consecutive fix requests in the current failure chain by
         scanning blocks in reverse. A non-fix user message (i.e. the user
@@ -143,6 +145,8 @@ class DashboardOnCompletionHook(ExplorerOnCompletionHook):
             logger.info(
                 "dashboards.on_completion_hook.max_retries_reached",
                 extra={
+                    "organization_id": organization.id,
+                    "run_id": run_id,
                     "retry_count": retry_count,
                 },
             )
