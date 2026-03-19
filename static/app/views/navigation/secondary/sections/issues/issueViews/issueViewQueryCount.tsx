@@ -71,10 +71,18 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
     ? 0
     : (queryCount?.[view.query] ?? queryCount?.[defaultQuery ?? ''] ?? 0);
 
+  // Only render the tag once data has loaded
+  if (isLoading) {
+    return null;
+  }
+
   return (
     <AnimatedTag
       variant="muted"
+      initial={{opacity: 0, scale: 0.95}}
       animate={{
+        opacity: 1,
+        scale: 1,
         backgroundColor: isFetching
           ? [
               theme.tokens.background.primary,
@@ -84,8 +92,15 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
           : undefined,
       }}
       transition={{
-        default: {
-          // Cuts animation short once the query has finished fetching
+        opacity: {
+          duration: 0.3,
+          ease: 'easeOut',
+        },
+        scale: {
+          duration: 0.3,
+          ease: 'easeOut',
+        },
+        backgroundColor: {
           duration: isFetching ? 2 : 0,
           repeat: isFetching ? Infinity : 0,
           ease: 'easeInOut',
@@ -93,15 +108,9 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
       }}
       data-issue-view-query-count
     >
-      <motion.span
-        // Prevents count from fading in if it's already cached on mount
-        initial={{opacity: isLoading ? 0 : 1}}
-        animate={{opacity: isFetching ? 0 : 1}}
-      >
-        <Text variant="muted" size="xs" align="center" tabular>
-          {count > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : count}
-        </Text>
-      </motion.span>
+      <Text variant="muted" size="xs" align="center" tabular>
+        {count > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : count}
+      </Text>
     </AnimatedTag>
   );
 }
