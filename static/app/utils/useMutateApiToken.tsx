@@ -1,5 +1,5 @@
 import type {InternalAppApiToken} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getApiQueryData,
   setApiQueryData,
@@ -7,7 +7,7 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
 const API_TOKEN_QUERY_KEY: ApiQueryKey = [getApiUrl('/api-tokens/')];

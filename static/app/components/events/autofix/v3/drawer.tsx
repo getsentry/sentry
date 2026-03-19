@@ -4,7 +4,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {SeerWelcomeScreen} from 'sentry/components/events/autofix/drawer/welcomeScreen';
 import {
-  getOrderedAutofixArtifacts,
+  getAutofixArtifactFromSection,
+  getOrderedAutofixSections,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AiSetupConfiguration} from 'sentry/components/events/autofix/v2/autofixConfigureSeer';
@@ -12,7 +13,7 @@ import {SeerDrawerBody} from 'sentry/components/events/autofix/v3/body';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
 import {SeerDrawerHeader} from 'sentry/components/events/autofix/v3/header';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -134,9 +135,12 @@ function useHandleCopyMarkdown({
     }
 
     return () => {
-      const artifacts = getOrderedAutofixArtifacts(aiAutofix.runState);
-      const markdown = artifacts.map(artifactToMarkdown).filter(defined).join('\n\n');
-
+      const markdown = getOrderedAutofixSections(aiAutofix.runState)
+        .map(getAutofixArtifactFromSection)
+        .filter(defined)
+        .map(artifactToMarkdown)
+        .filter(defined)
+        .join('\n\n');
       copy(markdown, {successMessage: t('Analysis copied to clipboard.')});
     };
   }, [aiAutofix, copy]);

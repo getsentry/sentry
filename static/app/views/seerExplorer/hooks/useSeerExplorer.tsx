@@ -9,7 +9,7 @@ import {
   useQueryClient,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -110,6 +110,7 @@ export const useSeerExplorer = () => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
+  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useState<boolean>(true);
 
   const [runId, setRunId] = useSessionStorage<number | null>(
     'seer-explorer-run-id',
@@ -252,6 +253,7 @@ export const useSeerExplorer = () => {
             query,
             insert_index: calculatedInsertIndex,
             on_page_context: screenshot,
+            override_ce_enable: overrideCtxEngEnable,
           },
         })) as SeerExplorerChatResponse;
 
@@ -289,6 +291,7 @@ export const useSeerExplorer = () => {
       setRunId,
       getPageReferrer,
       organization,
+      overrideCtxEngEnable,
     ]
   );
 
@@ -581,5 +584,7 @@ export const useSeerExplorer = () => {
     clearWasJustInterrupted: useCallback(() => setWasJustInterrupted(false), []),
     respondToUserInput,
     createPR,
+    overrideCtxEngEnable,
+    setOverrideCtxEngEnable,
   };
 };

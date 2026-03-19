@@ -3,11 +3,11 @@ import abc
 from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, RpcAuthProvider
 from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.hybridcloud.rpc.resolvers import ByCellName
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
-from sentry.hybridcloud.services.project_key_mapping import RpcProjectKey
+from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
 from sentry.notifications.services import RpcExternalActor
 from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.silo.base import SiloMode
@@ -41,7 +41,11 @@ class ControlReplicaService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def upsert_project_key_mapping(self, *, project_key: RpcProjectKey) -> None:
+    def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
+        """
+        Returns True if the mapping was successfully created or updated, False if there was a
+        conflict (e.g. a duplicate public_key).
+        """
         pass
 
     @rpc_method
@@ -56,11 +60,11 @@ class ControlReplicaService(RpcService):
         return DatabaseBackedControlReplicaService()
 
 
-class RegionReplicaService(RpcService):
+class CellReplicaService(RpcService):
     key = "region_replica"
     local_mode = SiloMode.CELL
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_auth_provider(
         self,
@@ -71,7 +75,7 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_auth_identity(
         self,
@@ -82,14 +86,14 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_api_key(
         self, *, api_key: RpcApiKey, cell_name: str | None = None, region_name: str | None = None
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_api_token(
         self,
@@ -100,14 +104,14 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def delete_replicated_api_token(
         self, *, apitoken_id: int, cell_name: str | None = None, region_name: str | None = None
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_org_auth_token(
         self,
@@ -118,7 +122,7 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_org_slug_reservation(
         self,
@@ -129,7 +133,7 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def delete_replicated_org_slug_reservation(
         self,
@@ -140,7 +144,7 @@ class RegionReplicaService(RpcService):
     ) -> None:
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def delete_replicated_auth_provider(
         self, *, auth_provider_id: int, cell_name: str | None = None, region_name: str | None = None
@@ -149,10 +153,10 @@ class RegionReplicaService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from .impl import DatabaseBackedRegionReplicaService
+        from .impl import DatabaseBackedCellReplicaService
 
-        return DatabaseBackedRegionReplicaService()
+        return DatabaseBackedCellReplicaService()
 
 
-region_replica_service = RegionReplicaService.create_delegation()
+cell_replica_service = CellReplicaService.create_delegation()
 control_replica_service = ControlReplicaService.create_delegation()

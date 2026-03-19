@@ -35,7 +35,7 @@ from sentry.db.pending_deletion import (
     rename_on_pending_deletion,
     reset_pending_deletion_field_names,
 )
-from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
@@ -493,7 +493,7 @@ class Project(Model):
         return self.slug
 
     def transfer_to(self, organization: Organization) -> None:
-        from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+        from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.integrations.models.repository_project_path_config import (
@@ -566,7 +566,7 @@ class Project(Model):
         )
         for monitor in monitors:
             if monitor.slug in new_monitors:
-                RegionScheduledDeletion.schedule(monitor, days=0)
+                CellScheduledDeletion.schedule(monitor, days=0)
             else:
                 for monitor_env_id, env_id in MonitorEnvironment.objects.filter(
                     monitor_id=monitor.id, status=MonitorStatus.ACTIVE
@@ -839,8 +839,8 @@ class Project(Model):
         return not value or value == "other" or value in GETTING_STARTED_DOCS_PLATFORMS
 
     @staticmethod
-    def outbox_for_update(project_identifier: int, organization_identifier: int) -> RegionOutbox:
-        return RegionOutbox(
+    def outbox_for_update(project_identifier: int, organization_identifier: int) -> CellOutbox:
+        return CellOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
             shard_identifier=organization_identifier,
             category=OutboxCategory.PROJECT_UPDATE,

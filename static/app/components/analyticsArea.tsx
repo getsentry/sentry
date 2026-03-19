@@ -40,7 +40,7 @@ export function useAnalyticsArea(): string {
  * </AnalyticsArea>
  * ```
  */
-export default function AnalyticsArea({
+export function AnalyticsArea({
   children,
   name,
   overrideParent = false,

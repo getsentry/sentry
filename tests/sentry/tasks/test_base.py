@@ -2,15 +2,16 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import override_settings
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.registry import TaskRegistry
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.constants import CompressionType
+from sentry.taskworker.adapters import SentryMetricsBackend, SentryRouter, make_producer
 from sentry.taskworker.namespaces import exampletasks, test_tasks
-from sentry.taskworker.registry import TaskRegistry
 from sentry.taskworker.retry import Retry, RetryTaskError
 from sentry.taskworker.state import CurrentTaskState
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 
 
 @instrumented_task(
@@ -192,7 +193,7 @@ def test_retry_timeout_enabled_taskbroker(capture_exception) -> None:
     assert capture_exception.call_count == 1
 
 
-@patch("sentry.taskworker.retry.current_task")
+@patch("taskbroker_client.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_timeout_disabled_taskbroker(capture_exception, current_task) -> None:
     @retry(timeouts=False)
@@ -218,7 +219,7 @@ def test_retry_timeout_enabled(capture_exception) -> None:
     assert capture_exception.call_count == 1
 
 
-@patch("sentry.taskworker.retry.current_task")
+@patch("taskbroker_client.retry.current_task")
 @patch("sentry_sdk.capture_exception")
 def test_retry_timeout_disabled(capture_exception, current_task) -> None:
     current_task.retry.side_effect = ExpectedException("retry called")
@@ -235,7 +236,12 @@ def test_retry_timeout_disabled(capture_exception, current_task) -> None:
 
 
 def test_instrumented_task_parameters() -> None:
-    registry = TaskRegistry(application="sentry")
+    registry = TaskRegistry(
+        application="sentry",
+        producer_factory=make_producer,
+        router=SentryRouter(),
+        metrics=SentryMetricsBackend(),
+    )
     namespace = registry.create_namespace("registertest")
 
     @instrumented_task(

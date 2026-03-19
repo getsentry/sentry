@@ -27,7 +27,7 @@ import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   ExploreBodyContent,
@@ -515,8 +515,9 @@ export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
           <LogsItemContainer>
             {tableTab === 'logs' ? (
               <LogsInfiniteTable
-                stringAttributes={stringAttributes}
+                booleanAttributes={booleanAttributes}
                 numberAttributes={numberAttributes}
+                stringAttributes={stringAttributes}
               />
             ) : (
               <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />

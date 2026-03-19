@@ -1,5 +1,7 @@
 import type React from 'react';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
@@ -26,7 +28,11 @@ export function WidgetVisualizationStates<T extends WidgetVisualization>({
     return <VisualizationType.LoadingPlaceholder />;
   }
   if (error) {
-    return <Widget.WidgetError error={error} />;
+    return (
+      <Container position="absolute" inset={0}>
+        <Widget.WidgetError error={error} />
+      </Container>
+    );
   }
   if (isEmpty) {
     return emptyMessage ? emptyMessage : <WidgetEmptyStateWarning />;

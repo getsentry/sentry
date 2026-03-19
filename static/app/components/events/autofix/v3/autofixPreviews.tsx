@@ -1,53 +1,69 @@
 import {useMemo, type ReactNode} from 'react';
 
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import type {
-  RootCauseArtifact,
-  SolutionArtifact,
+import {
+  CodingAgentStatus,
+  getCodingAgentName,
+} from 'sentry/components/events/autofix/types';
+import {
+  getAutofixArtifactFromSection,
+  isCodeChangesArtifact,
+  isCodingAgentsArtifact,
+  isPullRequestsArtifact,
+  isRootCauseArtifact,
+  isSolutionArtifact,
+  type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {IconOpen} from 'sentry/icons';
+import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tn} from 'sentry/locale';
-import {
-  type Artifact,
-  type ExplorerFilePatch,
-  type RepoPRState,
-} from 'sentry/views/seerExplorer/types';
+import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
-interface RootCausePreviewProps {
-  artifact: Artifact<RootCauseArtifact>;
+interface ArtifactPreviewProps {
+  section: AutofixSection;
 }
 
-export function RootCausePreview({artifact}: RootCausePreviewProps) {
+export function RootCausePreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
+
   return (
     <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
-      {artifact.data?.one_line_description}
+      {artifact?.data?.one_line_description}
     </ArtifactCard>
   );
 }
 
-interface SolutionPreviewProps {
-  artifact: Artifact<SolutionArtifact>;
-}
+export function SolutionPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isSolutionArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
-export function SolutionPreview({artifact}: SolutionPreviewProps) {
   return (
     <ArtifactCard icon={<IconList />} title={t('Implementation Plan')}>
-      {artifact.data?.one_line_summary}
+      {artifact?.data?.one_line_summary}
     </ArtifactCard>
   );
 }
 
-interface CodeChangesPreviewProps {
-  artifact: ExplorerFilePatch[];
-}
+export function CodeChangesPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : [];
+  }, [section]);
 
-export function CodeChangesPreview({artifact}: CodeChangesPreviewProps) {
   const patchesForRepos = useMemo(() => {
     const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
     for (const patch of artifact) {
@@ -91,11 +107,12 @@ export function CodeChangesPreview({artifact}: CodeChangesPreviewProps) {
   );
 }
 
-interface PullRequestsPreviewProps {
-  artifact: RepoPRState[];
-}
+export function PullRequestsPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : [];
+  }, [section]);
 
-export function PullRequestsPreview({artifact}: PullRequestsPreviewProps) {
   return (
     <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
       {artifact.map(pullRequest => {
@@ -107,6 +124,52 @@ export function PullRequestsPreview({artifact}: PullRequestsPreviewProps) {
           <ExternalLink key={label} href={pullRequest.pr_url}>
             {label}
           </ExternalLink>
+        );
+      })}
+    </ArtifactCard>
+  );
+}
+
+export function CodingAgentPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isCodingAgentsArtifact(sectionArtifact) ? sectionArtifact : [];
+  }, [section]);
+
+  const provider = artifact[0]?.provider;
+
+  const agentName = useMemo(() => getCodingAgentName(provider), [provider]);
+
+  return (
+    <ArtifactCard icon={<IconBot />} title={agentName}>
+      {artifact.map(codingAgent => {
+        const statusVariant =
+          codingAgent.status === CodingAgentStatus.PENDING
+            ? ('muted' as const)
+            : codingAgent.status === CodingAgentStatus.RUNNING
+              ? ('info' as const)
+              : codingAgent.status === CodingAgentStatus.FAILED
+                ? ('danger' as const)
+                : ('success' as const);
+
+        return (
+          <Flex key={codingAgent.id} direction="column" gap="md">
+            <Text>{codingAgent.name}</Text>
+            <Flex direction="row-reverse" align="center" justify="between">
+              <Tag variant={statusVariant}>{codingAgent.status}</Tag>
+              {codingAgent.agent_url ? (
+                <LinkButton
+                  priority="transparent"
+                  size="xs"
+                  icon={<IconOpen />}
+                  href={codingAgent.agent_url}
+                  external
+                >
+                  {t('Open in Agent')}
+                </LinkButton>
+              ) : null}
+            </Flex>
+          </Flex>
         );
       })}
     </ArtifactCard>

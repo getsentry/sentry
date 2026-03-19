@@ -9,7 +9,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'sentry/components/globalModal';
+import {GlobalModal} from 'sentry/components/globalModal';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import OrganizationSecurityAndPrivacy from 'sentry/views/settings/organizationSecurityAndPrivacy';
 
@@ -69,7 +69,7 @@ describe('OrganizationSecurityAndPrivacy', () => {
     // Confirm but has API failure
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-    // AutoSaveField calls onError and reverts the switch.
+    // AutoSaveForm calls onError and reverts the switch.
     // The checkbox should become enabled again after the mutation fails.
     await waitFor(() => {
       expect(

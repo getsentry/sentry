@@ -21,7 +21,6 @@ import {
   IconGraph,
   IconIssues,
   IconOpen,
-  IconPrevent,
   IconSettings,
   IconStar,
   IconUser,
@@ -255,30 +254,6 @@ function useNavigationActions(): CommandPaletteAction[] {
     makeCommandPaletteGroup({
       groupingKey: 'navigate',
       display: {
-        label: t('Prevent'),
-        icon: <IconPrevent />,
-      },
-      actions: [
-        makeCommandPaletteLink({
-          display: {
-            label: t('Tests'),
-          },
-          to: `${prefix}/prevent/tests/`,
-          hidden: !organization.features.includes('prevent-test-analytics'),
-        }),
-        makeCommandPaletteLink({
-          display: {
-            label: t('Tokens'),
-          },
-          to: `${prefix}/prevent/tokens/`,
-          hidden: !organization.features.includes('prevent-test-analytics'),
-        }),
-      ],
-      hidden: !organization.features.includes('prevent-test-analytics'),
-    }),
-    makeCommandPaletteGroup({
-      groupingKey: 'navigate',
-      display: {
         label: t('Settings'),
         icon: <IconSettings />,
       },
@@ -288,7 +263,8 @@ function useNavigationActions(): CommandPaletteAction[] {
 }
 
 function useNavigationToggleCollapsed(): CommandPaletteAction {
-  const {isCollapsed, setIsCollapsed} = useSecondaryNavigation();
+  const {view, setView} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
 
   return {
     type: 'callback',
@@ -299,7 +275,7 @@ function useNavigationToggleCollapsed(): CommandPaletteAction {
       icon: <IconChevron isDouble direction={isCollapsed ? 'right' : 'left'} />,
     },
     onAction: () => {
-      setIsCollapsed(!isCollapsed);
+      setView(view === 'expanded' ? 'collapsed' : 'expanded');
     },
   };
 }

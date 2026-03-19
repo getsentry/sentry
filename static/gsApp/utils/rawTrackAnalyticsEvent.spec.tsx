@@ -6,7 +6,7 @@ import {setWindowLocation} from 'sentry-test/utils';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {uniqueId} from 'sentry/utils/guid';
-import sessionStorageWrapper from 'sentry/utils/sessionStorage';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
 import {trackAmplitudeEvent} from 'getsentry/utils/trackAmplitudeEvent';

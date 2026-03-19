@@ -17,10 +17,11 @@ from sentry.hybridcloud.rpc.resolvers import (
     ByOrganizationSlug,
     RequireSingleOrganization,
 )
-from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
+from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.organizations.services.organization.model import (
     OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
+    RpcCellUser,
     RpcOrganization,
     RpcOrganizationDeleteResponse,
     RpcOrganizationFlagsUpdate,
@@ -29,7 +30,6 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationMemberSummary,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
-    RpcRegionUser,
     RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
@@ -61,7 +61,7 @@ class OrganizationService(RpcService):
 
         return org_context.organization if org_context else None
 
-    @regional_rpc_method(resolve=ByOrganizationId("id"))
+    @cell_rpc_method(resolve=ByOrganizationId("id"))
     @abstractmethod
     def serialize_organization(
         self,
@@ -73,13 +73,13 @@ class OrganizationService(RpcService):
         Fetch an organization's API serialized form
 
         Note that this can be None if the organization is already deleted
-        in the corresponding region silo.
+        in the corresponding cell silo.
 
         :param id: The organization id
         :param as_user: The user making the request, used for authorization on the output.
         """
 
-    @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
+    @cell_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_organization_by_id(
         self,
@@ -104,7 +104,7 @@ class OrganizationService(RpcService):
         :param include_teams: Whether you want teams in the response.
         """
 
-    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
+    @cell_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_org_by_slug(
         self,
@@ -123,7 +123,7 @@ class OrganizationService(RpcService):
         :param user_id: The user to check membership with
         """
 
-    @regional_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
+    @cell_rpc_method(resolve=ByOrganizationId("id"), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_org_by_id(
         self,
@@ -142,7 +142,7 @@ class OrganizationService(RpcService):
         :param user_id: The user to check membership with
         """
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
     def get_organizations_by_user_and_scope(
         self,
@@ -159,7 +159,7 @@ class OrganizationService(RpcService):
         :param scope: The api scopes to search by
         """
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
         """
@@ -170,7 +170,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_aggregate_project_flags(self, *, organization_id: int) -> RpcProjectFlags:
         """
@@ -179,7 +179,7 @@ class OrganizationService(RpcService):
         :param organization_id: The organization id
         """
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def check_membership_by_email(
         self, *, organization_id: int, email: str
@@ -188,7 +188,7 @@ class OrganizationService(RpcService):
         Used to look up an organization membership by an email
         """
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def check_membership_by_id(
         self, *, organization_id: int, user_id: int
@@ -200,7 +200,7 @@ class OrganizationService(RpcService):
         :param user_id: The user to check membership with
         """
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_member_summaries_by_ids(
         self, *, organization_id: int, user_ids: list[int]
@@ -212,7 +212,7 @@ class OrganizationService(RpcService):
         :param user_ids: The userids to get membership data on.
         """
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_invite_by_id(
         self,
@@ -234,7 +234,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
+    @cell_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_invite_by_slug(
         self,
@@ -256,7 +256,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def delete_organization_member(
         self, *, organization_id: int, organization_member_id: int
@@ -268,7 +268,7 @@ class OrganizationService(RpcService):
         :param organization_member_id: The id of the membership
         """
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def set_user_for_organization_member(
         self,
@@ -339,7 +339,7 @@ class OrganizationService(RpcService):
             return None
         return org_context
 
-    @regional_rpc_method(resolve=RequireSingleOrganization())
+    @cell_rpc_method(resolve=RequireSingleOrganization())
     @abstractmethod
     def get_default_organization(self) -> RpcOrganization:
         """
@@ -349,7 +349,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def add_organization_member(
         self,
@@ -377,7 +377,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def update_organization_member(
         self, *, organization_id: int, member_id: int, attrs: OrganizationMemberUpdateArgs
@@ -391,7 +391,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_single_team(self, *, organization_id: int) -> RpcTeam | None:
         """If the organization has exactly one team, return it.
@@ -399,7 +399,7 @@ class OrganizationService(RpcService):
         Return None if the organization has no teams or more than one.
         """
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def add_team_member(
         self, *, organization_id: int, team_id: int, organization_member_id: int
@@ -409,7 +409,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_or_create_team_member(
         self,
@@ -429,7 +429,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_or_create_default_team(
         self,
@@ -442,7 +442,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
+    @cell_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
     @abstractmethod
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         """
@@ -450,7 +450,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
         """
@@ -467,7 +467,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         """
@@ -475,7 +475,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember | None:
         """
@@ -483,14 +483,13 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByCellName())
+    @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
-    def update_region_user(
+    def update_cell_user(
         self,
         *,
-        user: RpcRegionUser,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        user: RpcCellUser,
+        cell_name: str,
     ) -> None:
         """
         Update all memberships in a cell to reflect changes in user details.
@@ -499,7 +498,23 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    # TODO(cells): Remove when callers updated
+    @cell_rpc_method(resolve=ByCellName())
+    @abstractmethod
+    def update_region_user(
+        self,
+        *,
+        user: RpcCellUser,
+        cell_name: str,
+    ) -> None:
+        """
+        Update all memberships in a cell to reflect changes in user details.
+
+        Will sync is_active and email attributes.
+        """
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def reset_idp_flags(self, *, organization_id: int) -> None:
         """
@@ -507,7 +522,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_option(self, *, organization_id: int, key: str) -> OptionValue:
         """
@@ -515,7 +530,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
         """
@@ -523,7 +538,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def delete_option(self, *, organization_id: int, key: str) -> None:
         """
@@ -531,7 +546,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def send_sso_link_emails(
         self, *, organization_id: int, sending_user_email: str, provider_key: str
@@ -545,7 +560,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def send_sso_unlink_emails(
         self, *, organization_id: int, sending_user_email: str, provider_key: str
@@ -559,13 +574,13 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def count_members_without_sso(self, *, organization_id: int) -> int:
         """Get the number of users without SSO flags set"""
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def delete_organization(
         self, *, organization_id: int, user: RpcUser
@@ -573,7 +588,7 @@ class OrganizationService(RpcService):
         """Delete an organization"""
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def create_org_delete_log(
         self, *, organization_id: int, audit_log_actor: RpcAuditLogEntryActor
@@ -581,7 +596,7 @@ class OrganizationService(RpcService):
         """Record an audit log for an organization deletion"""
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def send_signal(
         self,
@@ -604,7 +619,7 @@ class OrganizationService(RpcService):
             signal=signal, organization_id=organization_id, args=args
         )
 
-    @regional_rpc_method(resolve=ByOrganizationId())
+    @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_organization_owner_members(
         self, *, organization_id: int
@@ -633,10 +648,10 @@ def _control_check_organization() -> OrganizationCheckService:
     return ControlOrganizationCheckService()
 
 
-def _region_check_organization() -> OrganizationCheckService:
-    from sentry.organizations.services.organization.impl import RegionOrganizationCheckService
+def _cell_check_organization() -> OrganizationCheckService:
+    from sentry.organizations.services.organization.impl import CellOrganizationCheckService
 
-    return RegionOrganizationCheckService()
+    return CellOrganizationCheckService()
 
 
 class OrganizationSignalService(abc.ABC):
@@ -668,9 +683,9 @@ def _signal_from_on_commit() -> OrganizationSignalService:
 
 _organization_check_service: OrganizationCheckService = silo_mode_delegation(
     {
-        SiloMode.CELL: _region_check_organization,
+        SiloMode.CELL: _cell_check_organization,
         SiloMode.CONTROL: _control_check_organization,
-        SiloMode.MONOLITH: _region_check_organization,
+        SiloMode.MONOLITH: _cell_check_organization,
     }
 )
 

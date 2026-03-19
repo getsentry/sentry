@@ -240,6 +240,7 @@ class SeerExplorerClient:
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
         request: Request | None = None,
+        override_ce_enable: bool = True,
     ) -> int:
         """
         Start a new Seer Explorer session.
@@ -314,6 +315,13 @@ class SeerExplorerClient:
         ):
             if random.random() < options.get("seer.explorer.context-engine-rollout"):
                 chat_body["is_context_engine_enabled"] = True
+
+        if features.has(
+            "organizations:seer-explorer-context-engine-allow-fe-override",
+            self.organization,
+            actor=self.user,
+        ):
+            chat_body["is_context_engine_enabled"] = override_ce_enable
 
         response = make_explorer_chat_request(chat_body, viewer_context=self.viewer_context)
 

@@ -106,7 +106,7 @@ STEP_CONFIGS: dict[AutofixStep, StepConfig] = {
 }
 
 
-def build_step_prompt(step: AutofixStep, group: Group) -> str:
+def build_step_prompt(step: AutofixStep, group: Group, user_context: str | None = None) -> str:
     """
     Build the prompt for a step using issue details.
 
@@ -118,12 +118,23 @@ def build_step_prompt(step: AutofixStep, group: Group) -> str:
         Formatted prompt string
     """
     config = STEP_CONFIGS[step]
-    return config.prompt_fn(
+    prompt = config.prompt_fn(
         short_id=group.qualified_short_id or str(group.id),
         title=group.title or "Unknown error",
         culprit=group.culprit or "unknown",
         artifact_key=step.value,
     )
+
+    parts = [prompt]
+
+    user_context = user_context or ""
+    user_context = user_context.strip()
+    if user_context:
+        parts.append("")
+        parts.append("Use the following user context to aid your thinking")
+        parts.append(user_context)
+
+    return "\n".join(parts)
 
 
 def get_step_webhook_action_type(step: AutofixStep, is_completed: bool) -> SeerActionType:
@@ -179,6 +190,7 @@ def trigger_autofix_explorer(
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "low",
+    user_context: str | None = None,
 ) -> int:
     """
     Start or continue an Explorer-based autofix run.
@@ -200,7 +212,7 @@ def trigger_autofix_explorer(
         enable_coding=config.enable_coding,
     )
 
-    prompt = build_step_prompt(step, group)
+    prompt = build_step_prompt(step, group, user_context)
     prompt_metadata = {"step": step.value}
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
@@ -315,7 +327,7 @@ def generate_autofix_handoff_prompt(
     parts = ["Please fix the following issue. Ensure that your fix is fully working."]
 
     if short_id:
-        parts.append(f"Include 'Fixes {short_id}' in the pull request description.")
+        parts.append(f"Include 'Fixes {short_id}' in the commit message.")
 
     if instruction and instruction.strip():
         parts.append(instruction.strip())
@@ -349,6 +361,37 @@ def generate_autofix_handoff_prompt(
                     parts.append(f"- **{title}**: {desc}")
 
     return "\n\n".join(parts)
+
+
+def _get_relevant_repo(
+    state: SeerRunState,
+    repo_definitions: list[SeerRepoDefinition],
+    run_id: int,
+    group: Group,
+) -> SeerRepoDefinition:
+    root_cause_artifact = state.get_artifacts().get("root_cause")
+    relevant_repo: str | None = (
+        (root_cause_artifact.data or {}).get("relevant_repo") if root_cause_artifact else None
+    )
+    warning_extras = {
+        "organization_id": group.organization.id,
+        "run_id": run_id,
+        "project_id": group.project_id,
+    }
+    if relevant_repo:
+        match = next((r for r in repo_definitions if f"{r.owner}/{r.name}" == relevant_repo), None)
+        if match:
+            return match
+        logger.warning(
+            "autofix.coding_agent_handoff.relevant_repo_not_found",
+            extra={**warning_extras, "relevant_repo": relevant_repo},
+        )
+    else:
+        logger.warning(
+            "autofix.coding_agent_handoff.no_relevant_repo",
+            extra=warning_extras,
+        )
+    return repo_definitions[0]
 
 
 def trigger_coding_agent_handoff(
@@ -407,6 +450,8 @@ def trigger_coding_agent_handoff(
     )
     state = client.get_run(run_id)
 
+    repo = _get_relevant_repo(state, repo_definitions, run_id, group)
+
     short_id = group.qualified_short_id
 
     prompt = generate_autofix_handoff_prompt(state, short_id=short_id)
@@ -417,7 +462,7 @@ def trigger_coding_agent_handoff(
         provider=provider,
         user_id=user_id,
         prompt=prompt,
-        repos=repo_definitions,
+        repos=[repo],
         branch_name_base=group.title or "seer",
         auto_create_pr=auto_create_pr,
     )

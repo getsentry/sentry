@@ -74,7 +74,8 @@ function getCards(organization: Organization, subscription: Subscription) {
 
 export function HeaderCards({organization, subscription}: HeaderCardsProps) {
   const cards = getCards(organization, subscription);
-  const {isCollapsed: navIsCollapsed} = useSecondaryNavigation();
+  const {view} = useSecondaryNavigation();
+  const navIsCollapsed = view !== 'expanded';
 
   return (
     <ErrorBoundary mini>

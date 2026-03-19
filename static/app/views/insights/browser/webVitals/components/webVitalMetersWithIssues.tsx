@@ -48,7 +48,7 @@ type Props = {
   transaction?: string;
 };
 
-export default function WebVitalMetersWithIssues({
+export function WebVitalMetersWithIssues({
   onClick,
   projectData,
   projectScore,

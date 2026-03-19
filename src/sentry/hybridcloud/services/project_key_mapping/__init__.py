@@ -1,3 +1,1 @@
-from .model import RpcProjectKey
-
-__all__ = ["RpcProjectKey"]
+from .model import *  # noqa

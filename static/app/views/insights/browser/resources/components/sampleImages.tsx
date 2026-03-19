@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/react';
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconImage} from 'sentry/icons';
@@ -37,7 +37,7 @@ const {
 const imageWidth = '200px';
 const imageHeight = '180px';
 
-function SampleImages({groupId, projectId, noVisualizationPadding}: Props) {
+export function SampleImages({groupId, projectId, noVisualizationPadding}: Props) {
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
   const filters = useResourceModuleFilters();
   const [showImages, setShowImages] = useState(showLinks);
@@ -328,5 +328,3 @@ const ChartPanelTextContainer = styled('div')`
   width: 300px;
   margin: auto;
 `;
-
-export default SampleImages;

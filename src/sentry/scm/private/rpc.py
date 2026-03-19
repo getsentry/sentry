@@ -106,6 +106,7 @@ scm_action_registry: dict[str, Callable] = {
     "get_file_content_v1": SourceCodeManager.get_file_content,
     "get_commit_v1": SourceCodeManager.get_commit,
     "get_commits_v1": SourceCodeManager.get_commits,
+    "get_commits_by_path_v1": SourceCodeManager.get_commits_by_path,
     "compare_commits_v1": SourceCodeManager.compare_commits,
     "get_tree_v1": SourceCodeManager.get_tree,
     "get_git_commit_v1": SourceCodeManager.get_git_commit,
@@ -116,6 +117,7 @@ scm_action_registry: dict[str, Callable] = {
     "get_pull_request_diff_v1": SourceCodeManager.get_pull_request_diff,
     "get_pull_requests_v1": SourceCodeManager.get_pull_requests,
     "create_pull_request_v1": SourceCodeManager.create_pull_request,
+    "create_pull_request_draft_v1": SourceCodeManager.create_pull_request_draft,
     "update_pull_request_v1": SourceCodeManager.update_pull_request,
     "request_review_v1": SourceCodeManager.request_review,
     "create_review_comment_file_v1": SourceCodeManager.create_review_comment_file,
@@ -125,4 +127,5 @@ scm_action_registry: dict[str, Callable] = {
     "get_check_run_v1": SourceCodeManager.get_check_run,
     "update_check_run_v1": SourceCodeManager.update_check_run,
     "minimize_comment_v1": SourceCodeManager.minimize_comment,
+    "get_archive_link_v1": SourceCodeManager.get_archive_link,
 }

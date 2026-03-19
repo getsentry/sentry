@@ -18,6 +18,8 @@ from sentry.scm.private.provider import ActionMap, Provider
 from sentry.scm.types import (
     SHA,
     ActionResult,
+    ArchiveFormat,
+    ArchiveLink,
     BranchName,
     BuildConclusion,
     BuildStatus,
@@ -377,6 +379,17 @@ class SourceCodeManager:
             lambda p: p.get_file_content(path, ref, request_options),
         )
 
+    def get_archive_link(
+        self,
+        ref: str,
+        archive_format: ArchiveFormat = "tarball",
+    ) -> ActionResult[ArchiveLink]:
+        """Get a URL to download a repository archive."""
+        return self._exec(
+            ActionMap.get_archive_link,  # type: ignore[type-abstract]
+            lambda p: p.get_archive_link(ref, archive_format),
+        )
+
     def get_commit(
         self,
         sha: SHA,
@@ -389,15 +402,44 @@ class SourceCodeManager:
 
     def get_commits(
         self,
-        sha: SHA | None = None,
-        path: str | None = None,
+        ref: str | None = None,
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
     ) -> PaginatedActionResult[Commit]:
+        """
+        Get a paginated list of commits.
+
+        `ref` is either a branch name, a tag name, or a commit SHA.
+        Specifying a commit SHA retrieves commits up to the given commit SHA.
+
+        Commits are returned in descending order. Equivalent to `git log ref`.
+        """
         return self._exec(
             ActionMap.get_commits,  # type: ignore[type-abstract]
             lambda p: p.get_commits(
-                sha=sha, path=path, pagination=pagination, request_options=request_options
+                ref=ref, pagination=pagination, request_options=request_options
+            ),
+        )
+
+    def get_commits_by_path(
+        self,
+        path: str,
+        ref: str | None = None,
+        pagination: PaginationParams | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> PaginatedActionResult[Commit]:
+        """
+        Get a paginated list of commits for a given filepath.
+
+        `ref` is either a branch name, a tag name, or a commit SHA.
+        Specifying a commit SHA retrieves commits up to the given commit SHA.
+
+        Commits are returned in descending order. Equivalent to `git log ref`.
+        """
+        return self._exec(
+            ActionMap.get_commits_by_path,  # type: ignore[type-abstract]
+            lambda p: p.get_commits_by_path(
+                path=path, ref=ref, pagination=pagination, request_options=request_options
             ),
         )
 
@@ -502,11 +544,22 @@ class SourceCodeManager:
         body: str,
         head: BranchName,
         base: BranchName,
-        draft: bool = False,
     ) -> ActionResult[PullRequest]:
         return self._exec(
             ActionMap.create_pull_request,  # type: ignore[type-abstract]
-            lambda p: p.create_pull_request(title, body, head, base, draft=draft),
+            lambda p: p.create_pull_request(title, body, head, base),
+        )
+
+    def create_pull_request_draft(
+        self,
+        title: str,
+        body: str,
+        head: BranchName,
+        base: BranchName,
+    ) -> ActionResult[PullRequest]:
+        return self._exec(
+            ActionMap.create_pull_request_draft,  # type: ignore[type-abstract]
+            lambda p: p.create_pull_request_draft(title, body, head, base),
         )
 
     def update_pull_request(

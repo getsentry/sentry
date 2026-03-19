@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
@@ -13,7 +13,7 @@ import sum from 'lodash/sum';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import {BaseChart} from 'sentry/components/charts/baseChart';
 import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -31,7 +31,7 @@ import type {
   EChartHighlightHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
+import {defined, escape} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
@@ -136,7 +136,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // the backend zerofills the data
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
+  const unregisterRef = useRef<(() => void) | null>(null);
   const {register: registerWithWidgetSyncContext, groupName} = useWidgetSyncContext();
+
+  useEffect(() => {
+    return () => {
+      unregisterRef.current?.();
+    };
+  }, []);
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} =
@@ -341,8 +348,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        const name = aliases[seriesName] ?? seriesName;
-        return truncationFormatter(name, true);
+        const alias = aliases[seriesName];
+        if (alias) {
+          // The alias value comes from `plottable.label` and is not
+          // HTML-escaped. Escape it for safe insertion into raw HTML
+          // tooltip strings.
+          return escape(truncationFormatter(alias, true, false));
+        }
+        // `seriesName` is already HTML-escaped by `getFormatter`, so
+        // skip escaping to avoid double-encoding (e.g., `>` → `&gt;`
+        // → `&amp;gt;`).
+        return truncationFormatter(seriesName, true, false);
       },
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
@@ -445,7 +461,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const handleChartReady = useCallback(
     (instance: echarts.ECharts) => {
       onChartReadyZoom(instance);
-      registerWithWidgetSyncContext(instance);
+      unregisterRef.current?.();
+      unregisterRef.current = registerWithWidgetSyncContext(instance);
     },
     [onChartReadyZoom, registerWithWidgetSyncContext]
   );

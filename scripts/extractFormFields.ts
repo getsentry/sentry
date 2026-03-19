@@ -159,11 +159,11 @@ class FormFieldExtractor {
     route: string,
     sourceFile: ts.SourceFile
   ): ExtractedField | null {
-    // Check if this is <form.AppField> or <AutoSaveField>
+    // Check if this is <form.AppField> or <AutoSaveForm>
     const tagName = this.getJsxTagName(node, sourceFile);
     const isAppField = tagName?.includes('AppField');
-    const isAutoSaveField = tagName === 'AutoSaveField';
-    if (!isAppField && !isAutoSaveField) {
+    const isAutoSaveForm = tagName === 'AutoSaveForm';
+    if (!isAppField && !isAutoSaveForm) {
       return null;
     }
 

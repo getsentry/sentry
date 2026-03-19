@@ -3,8 +3,9 @@ import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import GridEditable, {
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
 } from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';

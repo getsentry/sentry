@@ -7,8 +7,8 @@ from sentry.hybridcloud.rpc.caching import (
     back_with_silo_cache,
     back_with_silo_cache_list,
     back_with_silo_cache_many,
+    cell_caching_service,
     control_caching_service,
-    region_caching_service,
 )
 from sentry.hybridcloud.rpc.caching.impl import CacheBackend, _consume_generator
 from sentry.organizations.services.organization.model import (
@@ -20,7 +20,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -51,7 +51,7 @@ def test_caching_function() -> None:
         next_user = get_user(old_u.id)
         assert next_user == old_u
 
-        region_caching_service.clear_key(
+        cell_caching_service.clear_key(
             region_name=get_local_cell().name, key=get_user.key_from(old_u.id)
         )
 
@@ -192,7 +192,7 @@ def test_caching_many() -> None:
     for u in after_update_wrapped:
         assert not u.username.endswith("moo")
         # Clear cache simulating outbox logic
-        region_caching_service.clear_key(
+        cell_caching_service.clear_key(
             region_name=get_local_cell().name, key=get_users.key_from(u.id)
         )
 
@@ -271,7 +271,7 @@ def test_caching_many_versioning() -> None:
 
     # Clear cache to simulate outbox processing
     for user in users:
-        region_caching_service.clear_key(
+        cell_caching_service.clear_key(
             region_name=get_local_cell().name, key=get_users.key_from(user.id)
         )
 

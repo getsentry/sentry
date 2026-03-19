@@ -9,10 +9,10 @@ from sentry.preprod.models import (
 )
 from sentry.preprod.vcs.pr_comments.templates import format_pr_comment
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class FormatPrCommentTest(TestCase):
     def setUp(self):
         super().setUp()

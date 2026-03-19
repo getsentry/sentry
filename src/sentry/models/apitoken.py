@@ -30,7 +30,7 @@ from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apiscopes import HasApiScopes
 from sentry.silo.safety import unguarded_write
-from sentry.types.region import find_all_cell_names
+from sentry.types.cell import find_all_cell_names
 from sentry.types.token import AuthTokenType
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -328,31 +328,31 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
         return super().update(*args, **kwargs)
 
-    def outbox_region_names(self) -> Collection[str]:
+    def outbox_cell_names(self) -> Collection[str]:
         return list(find_all_cell_names())
 
-    def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_api_token
-        from sentry.hybridcloud.services.replica import region_replica_service
+        from sentry.hybridcloud.services.replica import cell_replica_service
 
-        region_replica_service.upsert_replicated_api_token(
+        cell_replica_service.upsert_replicated_api_token(
             api_token=serialize_api_token(self),
-            region_name=region_name,
+            cell_name=cell_name,
         )
 
     @classmethod
     def handle_async_deletion(
         cls,
         identifier: int,
-        region_name: str,
+        cell_name: str,
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
-        from sentry.hybridcloud.services.replica import region_replica_service
+        from sentry.hybridcloud.services.replica import cell_replica_service
 
-        region_replica_service.delete_replicated_api_token(
+        cell_replica_service.delete_replicated_api_token(
             apitoken_id=identifier,
-            region_name=region_name,
+            cell_name=cell_name,
         )
 
     @classmethod

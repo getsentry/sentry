@@ -58,6 +58,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
@@ -515,7 +516,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
 
 @extend_schema_serializer(exclude_fields=["availableRoles"])
 class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
-    experiments: Any
+    experiments: dict[str, str]
     isDefault: bool
     defaultRole: str  # TODO: replace with enum/literal
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
@@ -557,6 +558,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enablePrReviewTestGeneration: bool
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
+    defaultCodingAgent: str | None
+    defaultCodingAgentIntegrationId: int | None
     autoEnableCodeReview: bool
     autoOpenPrs: bool
     defaultCodeReviewTriggers: list[str]
@@ -637,9 +640,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         context: DetailedOrganizationSerializerResponse = {
             **base,
-            # TODO(epurkhiser): This can be removed once we confirm the
-            # frontend does not use it
-            "experiments": {},
+            "experiments": features.get_experiment_assignments(obj, actor=user),
             "isDefault": obj.is_default,
             "defaultRole": obj.default_role,
             "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],  # Deprecated
@@ -737,6 +738,14 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                     "sentry:enable_seer_coding",
                     ENABLE_SEER_CODING_DEFAULT,
                 )
+            ),
+            "defaultCodingAgent": obj.get_option(
+                "sentry:seer_default_coding_agent",
+                SEER_DEFAULT_CODING_AGENT_DEFAULT,
+            ),
+            "defaultCodingAgentIntegrationId": obj.get_option(
+                "sentry:seer_default_coding_agent_integration_id",
+                None,
             ),
             "autoOpenPrs": bool(
                 obj.get_option(
