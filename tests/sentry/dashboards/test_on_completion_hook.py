@@ -94,6 +94,10 @@ INVALID_SERIALIZER_ARTIFACT = {
 
 
 class DashboardOnCompletionHookTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.project
+
     @patch("sentry.dashboards.on_completion_hook.fetch_run_status")
     def test_valid_artifact_passes(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = _make_state(artifact_data=VALID_ARTIFACT)
