@@ -322,6 +322,8 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
                 )
             except AlertRuleWorkflow.DoesNotExist:
                 existing_data = self.fetch_workflow_hourly_stats(target.id, start, end)
+            except Workflow.DoesNotExist:
+                existing_data = {}
         else:
             try:
                 alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=target.id)
