@@ -458,7 +458,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
                       };
                     }}
                     getCurrentAssertion={() =>
-                      formModel.getValue<Assertion | null>('assertion')
+                      formModel.getValue<UptimeAssertion | null>('assertion')
                     }
                     onApplySuggestion={newAssertion => {
                       formModel.setValue('assertion', newAssertion as any);
