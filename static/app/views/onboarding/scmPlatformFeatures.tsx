@@ -14,10 +14,10 @@ import {platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/project';
+import {ScmCardButton} from 'sentry/views/onboarding/components/scmCardButton';
+import {ScmFeatureSelectionCards} from 'sentry/views/onboarding/components/scmFeatureSelectionCards';
 
-import {FeatureSelectionCards} from './components/featureSelectionCards';
-import {UnstyledButton} from './components/unstyledButton';
-import {usePlatformDetection} from './components/usePlatformDetection';
+import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import type {StepProps} from './types';
 
 const platformsByKey = new Map(platforms.map(p => [p.id, p]));
@@ -53,7 +53,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
   const hasScmConnected = !!selectedRepository;
 
-  const {detectedPlatforms, isPending: isDetecting} = usePlatformDetection(
+  const {detectedPlatforms, isPending: isDetecting} = useScmPlatformDetection(
     hasScmConnected ? selectedRepository.id : undefined
   );
 
@@ -136,7 +136,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                   {resolvedPlatforms.map(({platform, info}) => {
                     const isSelected = currentPlatformKey === platform;
                     return (
-                      <UnstyledButton
+                      <ScmCardButton
                         onClick={() => handleSelectDetectedPlatform(platform)}
                         key={platform}
                       >
@@ -155,7 +155,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                             </Stack>
                           </Flex>
                         </Container>
-                      </UnstyledButton>
+                      </ScmCardButton>
                     );
                   })}
                 </Flex>
@@ -185,7 +185,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         )}
 
         {currentPlatformKey && (
-          <FeatureSelectionCards
+          <ScmFeatureSelectionCards
             availableFeatures={[
               ...new Set([
                 ProductSolution.ERROR_MONITORING,

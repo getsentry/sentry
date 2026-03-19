@@ -16,7 +16,7 @@ import {
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
-import {UnstyledButton} from './unstyledButton';
+import {ScmCardButton} from './scmCardButton';
 
 type FeatureMeta = {
   description: string;
@@ -63,17 +63,17 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
   },
 };
 
-type FeatureSelectionCardsProps = {
+type ScmFeatureSelectionCardsProps = {
   availableFeatures: ProductSolution[];
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
 };
 
-export function FeatureSelectionCards({
+export function ScmFeatureSelectionCards({
   availableFeatures,
   selectedFeatures,
   onToggleFeature,
-}: FeatureSelectionCardsProps) {
+}: ScmFeatureSelectionCardsProps) {
   const selectedCount = selectedFeatures.length;
   const totalCount = availableFeatures.length;
 
@@ -91,7 +91,7 @@ export function FeatureSelectionCards({
           const Icon = meta.icon;
 
           return (
-            <UnstyledButton
+            <ScmCardButton
               onClick={() => !isErrorMonitoring && onToggleFeature(feature)}
               role="checkbox"
               aria-checked={isSelected}
@@ -126,7 +126,7 @@ export function FeatureSelectionCards({
                   </Flex>
                 </Flex>
               </Container>
-            </UnstyledButton>
+            </ScmCardButton>
           );
         })}
       </Grid>

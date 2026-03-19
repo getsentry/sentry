@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
  * Use when wrapping a Container or other visual primitive that
  * provides its own appearance but needs click/keyboard semantics.
  */
-export const UnstyledButton = styled('button')`
+export const ScmCardButton = styled('button')`
   appearance: none;
   background: transparent;
   border: none;

@@ -15,7 +15,7 @@ interface PlatformDetectionResponse {
   platforms: DetectedPlatform[];
 }
 
-export function usePlatformDetection(repoId: string | undefined) {
+export function useScmPlatformDetection(repoId: string | undefined) {
   const organization = useOrganization();
 
   const query = useQuery({
