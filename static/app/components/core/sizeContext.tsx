@@ -1,6 +1,6 @@
 import {createContext, useContext} from 'react';
 
-export type SizeVariant = 'zero' | 'xs' | 'sm' | 'md';
+type SizeVariant = 'zero' | 'xs' | 'sm' | 'md';
 
 const SizeContext = createContext<SizeVariant | undefined>(undefined);
 
