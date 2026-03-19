@@ -285,9 +285,10 @@ function VisualizationWidgetContent({
           if (columns.length === 1) {
             if (firstColumnGroupByValue !== undefined && firstColumn) {
               // for 20 series, this is only 20 x 20 lookups, which is negligible and worth it for code readability
-              value = tableDataRows.find(
-                row => row[firstColumn] === firstColumnGroupByValue
-              )?.[yAxis] as number;
+              value =
+                (tableDataRows.find(
+                  row => row[firstColumn] === firstColumnGroupByValue
+                )?.[yAxis] as number) ?? null;
             }
           }
           // If there is no columns, and only aggregates, the table result will be an array with a single element
@@ -295,7 +296,7 @@ function VisualizationWidgetContent({
           else if (columns.length === 0 && aggregates.length > 0) {
             const row = tableDataRows[0];
             if (row) {
-              value = row[yAxis] as number;
+              value = (row[yAxis] as number) ?? null;
             }
           }
         }
