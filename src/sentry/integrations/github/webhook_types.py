@@ -21,7 +21,7 @@ class GithubWebhookType(StrEnum):
     PUSH = "push"
 
 
-# Event type strings (X-GitHub-Event header values) that the region webhook endpoint processes.
+# Event type strings (X-GitHub-Event header values) that the cell webhook endpoint processes.
 # INSTALLATION is handled in control only.
 CELL_PROCESSED_GITHUB_EVENTS = frozenset(
     t.value for t in GithubWebhookType if t != GithubWebhookType.INSTALLATION
