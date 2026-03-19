@@ -1,11 +1,13 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.utils import timezone
 from rest_framework.response import Response
 from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 
+from sentry.issues.endpoints.group_events import _build_snuba_data
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
@@ -613,3 +615,131 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/"
         response = self.do_request(url)
         assert response.status_code == 504
+
+    def test_snuba_columns_returned_in_response(self) -> None:
+        """Fields fetched from Snuba (platform, title, tags, user) are present in the response."""
+        self.login_as(user=self.user)
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "fingerprint": ["1"],
+                "platform": "python",
+                "tags": {"environment": "production"},
+                "user": {"id": "u1", "email": "test@example.com"},
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        )
+
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/"
+        response = self.do_request(url)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        result = response.data[0]
+        assert result["platform"] == "python"
+        assert result["user"] is not None
+        assert result["user"]["email"] == "test@example.com"
+        assert any(t["key"] == "environment" and t["value"] == "production" for t in result["tags"])
+
+
+class BuildSnubaDataTest:
+    def test_all_fields_populated(self) -> None:
+        evt = {
+            "id": "abc123",
+            "issue.id": "456",
+            "project.id": "1",
+            "timestamp": "2024-01-01T00:00:00",
+            "platform": "python",
+            "title": "Error title",
+            "culprit": "main.py in func",
+            "location": "main.py",
+            "event.type": "error",
+            "message": "Something went wrong",
+            "tags.key": ["environment"],
+            "tags.value": ["production"],
+            "user.id": "u123",
+            "user.email": "user@example.com",
+            "user.username": "theuser",
+            "user.ip": "1.2.3.4",
+        }
+        result = _build_snuba_data(evt)
+
+        assert result["event_id"] == "abc123"
+        assert result["group_id"] == "456"
+        assert result["project_id"] == "1"
+        assert result["platform"] == "python"
+        assert result["title"] == "Error title"
+        assert result["culprit"] == "main.py in func"
+        assert result["location"] == "main.py"
+        assert result["type"] == "error"
+        assert result["message"] == "Something went wrong"
+        assert result["tags.key"] == ["environment"]
+        assert result["tags.value"] == ["production"]
+        assert result["user_id"] == "u123"
+        assert result["email"] == "user@example.com"
+        assert result["username"] == "theuser"
+        assert result["ip_address"] == "1.2.3.4"
+
+    def test_none_values_excluded(self) -> None:
+        # Fields absent from the result (e.g. EAP path without platform) must not
+        # appear in snuba_data so that BaseEvent falls back to nodestore.
+        evt = {
+            "id": "abc123",
+            "issue.id": "456",
+            "project.id": "1",
+            "timestamp": "2024-01-01T00:00:00",
+        }
+        result = _build_snuba_data(evt)
+        assert "platform" not in result
+        assert "title" not in result
+        assert "tags.key" not in result
+        assert "tags.value" not in result
+
+    def test_empty_tags_included(self) -> None:
+        # Empty tag lists are a valid Snuba response (event has no tags).
+        evt = {
+            "id": "abc123",
+            "issue.id": "456",
+            "project.id": "1",
+            "timestamp": "2024-01-01T00:00:00",
+            "tags.key": [],
+            "tags.value": [],
+        }
+        result = _build_snuba_data(evt)
+        assert "tags.key" in result
+        assert result["tags.key"] == []
+        assert result["tags.value"] == []
+
+
+@pytest.mark.parametrize(
+    "evt,expected_key,expected_present",
+    [
+        # platform present → included
+        (
+            {"id": "a", "issue.id": "1", "project.id": "1", "timestamp": "t", "platform": "python"},
+            "platform",
+            True,
+        ),
+        # platform None (EAP path without column) → excluded so nodestore fallback works
+        (
+            {"id": "a", "issue.id": "1", "project.id": "1", "timestamp": "t", "platform": None},
+            "platform",
+            False,
+        ),
+        # location present → included
+        (
+            {"id": "a", "issue.id": "1", "project.id": "1", "timestamp": "t", "location": "foo.py"},
+            "location",
+            True,
+        ),
+        # location absent → excluded
+        ({"id": "a", "issue.id": "1", "project.id": "1", "timestamp": "t"}, "location", False),
+    ],
+)
+def test_build_snuba_data_optional_columns(
+    evt: dict, expected_key: str, expected_present: bool
+) -> None:
+    result = _build_snuba_data(evt)
+    assert (expected_key in result) == expected_present

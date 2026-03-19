@@ -73,7 +73,24 @@ def get_query_builder_for_group(
     dataset = Dataset.IssuePlatform
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
-    selected_columns = ["id", "project.id", "issue.id", "timestamp", "platform"]
+    selected_columns = [
+        "id",
+        "project.id",
+        "issue.id",
+        "timestamp",
+        "platform",
+        "title",
+        "culprit",
+        "tags.key",
+        "tags.value",
+        "user.id",
+        "user.email",
+        "user.username",
+        "user.ip",
+    ]
+    if group.issue_category == GroupCategory.ERROR:
+        # location and event.type are only available in the Events dataset
+        selected_columns.extend(["location", "event.type"])
 
     if orderby is None:
         orderby_list = ["-timestamp", "id"]

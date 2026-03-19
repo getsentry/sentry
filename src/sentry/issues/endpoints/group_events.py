@@ -43,6 +43,45 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
 
 
+# Maps Snuba result keys to the event_name keys expected by BaseEvent._snuba_data.
+# These must match Columns.<X>.value.event_name, which is what Event._get_column_name() returns.
+_SNUBA_RESULT_TO_EVENT_KEY: dict[str, str] = {
+    "platform": "platform",
+    "title": "title",
+    "culprit": "culprit",
+    "location": "location",
+    "event.type": "type",
+    "user.id": "user_id",
+    "user.email": "email",
+    "user.username": "username",
+    "user.ip": "ip_address",
+}
+
+
+def _build_snuba_data(evt: dict[str, Any]) -> dict[str, Any]:
+    snuba_data: dict[str, Any] = {
+        "event_id": evt["id"],
+        "group_id": evt["issue.id"],
+        "project_id": evt["project.id"],
+        "timestamp": evt["timestamp"],
+    }
+    for result_key, event_key in _SNUBA_RESULT_TO_EVENT_KEY.items():
+        value = evt.get(result_key)
+        # Only include the key when a real value is present so that BaseEvent
+        # properties fall back to nodestore for fields that weren't returned by
+        # this query (e.g. location/event.type for non-error groups).
+        if value is not None:
+            snuba_data[event_key] = value
+    # Tags are always lists; include even when empty (empty = event has no tags).
+    # Both keys must be present together for BaseEvent.tags to use the Snuba path.
+    tags_key = evt.get("tags.key")
+    tags_value = evt.get("tags.value")
+    if tags_key is not None and tags_value is not None:
+        snuba_data["tags.key"] = tags_key
+        snuba_data["tags.value"] = tags_value
+    return snuba_data
+
+
 class NoResults(Exception):
     pass
 
@@ -168,13 +207,7 @@ class GroupEventsEndpoint(GroupEndpoint):
                 Event(
                     event_id=evt["id"],
                     project_id=evt["project.id"],
-                    snuba_data={
-                        "event_id": evt["id"],
-                        "group_id": evt["issue.id"],
-                        "project_id": evt["project.id"],
-                        "timestamp": evt["timestamp"],
-                        "platform": evt.get("platform"),
-                    },
+                    snuba_data=_build_snuba_data(evt),
                 )
                 for evt in data
             ]
