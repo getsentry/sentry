@@ -6,7 +6,7 @@ import orjson
 import requests
 import sentry_sdk
 from django.core.cache import cache
-from django.db.models import Case, CharField, Min, Subquery, Value, When
+from django.db.models import Case, CharField, F, Min, Subquery, Value, When
 from django.utils import timezone
 from requests import Response
 from requests.models import HTTPError
@@ -313,6 +313,7 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
             ).order_by("id")
 
             batch_count = 0
+            failed_records: list[WebhookPayload] = []
             for record in query[:100]:
                 batch_count += 1
                 # Advance past this record regardless of outcome so that failed
@@ -324,19 +325,33 @@ def drain_mailbox(payload_id: int, mailbox_name: str | None = None) -> None:
                 if mailbox_name and options.get("hybridcloud.webhookpayload.push_drain_trigger"):
                     _refresh_drain_lock(payload.mailbox_name)
                 try:
-                    deliver_message(record)
+                    deliver_message(record, scheduled=True)
                     delivered += 1
                 except DeliveryFailed:
                     failed += 1
+                    if record.attempts < MAX_ATTEMPTS:
+                        failed_records.append(record)
                     metrics.incr("hybridcloud.deliver_webhooks.delivery", tags={"outcome": "retry"})
                     if not skip_on_failure:
                         # For providers that require strict ordering, stop on the
                         # first failure so subsequent messages are not delivered
-                        # out of order.
+                        # out of order.  Bulk-update before returning.
+                        _schedule_next_attempts_bulk(failed_records)
                         return
                     # For allowlisted providers: skip the failed message and
-                    # continue. It has already been rescheduled by deliver_message.
+                    # continue. It will be rescheduled in bulk after the batch.
                     continue
+                except Exception:
+                    # Unexpected error (e.g. ValueError) – ensure the current
+                    # record is rescheduled before the exception propagates.
+                    if record.attempts < MAX_ATTEMPTS:
+                        failed_records.append(record)
+                    _schedule_next_attempts_bulk(failed_records)
+                    raise
+
+            # Bulk-update all failed records from this batch slice in a
+            # single UPDATE instead of one per record.
+            _schedule_next_attempts_bulk(failed_records)
 
             # No more messages to deliver
             if batch_count < 1:
@@ -597,8 +612,44 @@ def deliver_message_parallel(payload: WebhookPayload) -> tuple[WebhookPayload, E
         return (payload, err)
 
 
-def deliver_message(payload: WebhookPayload) -> None:
-    """Deliver a message if it still has delivery attempts remaining"""
+def _schedule_next_attempts_bulk(records: list[WebhookPayload]) -> None:
+    """Bulk-update attempts and schedule_for for multiple WebhookPayload records.
+
+    Instead of issuing one UPDATE per record, this computes per-record backoff
+    values and applies them in a single queryset UPDATE using conditional expressions.
+    """
+    if not records:
+        return
+
+    now = timezone.now()
+    attempts_whens = []
+    schedule_whens = []
+    record_ids = []
+
+    for record in records:
+        new_attempts = record.attempts + 1
+        backoff = BACKOFF_INTERVAL * BACKOFF_RATE**new_attempts
+        backoff_delta = datetime.timedelta(minutes=min(backoff, 60))
+        new_time = now + backoff_delta
+        schedule_for = max(new_time, record.schedule_for)
+
+        record_ids.append(record.id)
+        attempts_whens.append(When(pk=record.pk, then=Value(new_attempts)))
+        schedule_whens.append(When(pk=record.pk, then=Value(schedule_for)))
+
+    WebhookPayload.objects.filter(id__in=record_ids).update(
+        attempts=Case(*attempts_whens, default=F("attempts")),
+        schedule_for=Case(*schedule_whens, default=F("schedule_for")),
+    )
+
+
+def deliver_message(payload: WebhookPayload, scheduled: bool = False) -> None:
+    """Deliver a message if it still has delivery attempts remaining.
+
+    When *scheduled* is True the caller has already bulk-updated ``attempts``
+    and ``schedule_for`` for this record, so we skip the per-record
+    ``schedule_next_attempt`` UPDATE.
+    """
     payload_data = payload.as_dict()
     if payload.attempts >= MAX_ATTEMPTS:
         payload.delete()
@@ -607,7 +658,8 @@ def deliver_message(payload: WebhookPayload) -> None:
         logger.info("deliver_webhook.discard", extra={**payload_data})
         return
 
-    payload.schedule_next_attempt()
+    if not scheduled:
+        payload.schedule_next_attempt()
     perform_request(payload)
     date_added = payload.date_added
     payload.delete()
