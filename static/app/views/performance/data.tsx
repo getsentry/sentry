@@ -179,8 +179,7 @@ export function prepareQueryForLandingPage(searchQuery: any, withStaticFilters: 
 
 export function generateGenericPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean,
-  organization: Organization
+  withStaticFilters: boolean
 ): EventView {
   const {query} = location;
 
@@ -460,11 +459,7 @@ export function generatePerformanceEventView(
   {isTrends = false, withStaticFilters = false} = {},
   organization: Organization
 ) {
-  const eventView = generateGenericPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
+  const eventView = generateGenericPerformanceEventView(location, withStaticFilters);
   if (isTrends) {
     return eventView;
   }
