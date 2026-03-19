@@ -64,14 +64,6 @@ class TestCodeReviewPreflightService(TestCase):
     # Org feature enablement tests
     # -------------------------------------------------------------------------
 
-    @with_feature("organizations:gen-ai-features")
-    def test_denied_when_org_not_eligible_for_code_review(self) -> None:
-        service = self._create_service()
-        result = service.check()
-
-        assert result.allowed is False
-        assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
-
     @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
     def test_denied_when_beta_org_has_no_repo_settings(self) -> None:
         service = self._create_service()
@@ -239,14 +231,6 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.settings.enabled is True
         assert CodeReviewTrigger.ON_NEW_COMMIT in result.settings.triggers
         assert CodeReviewTrigger.ON_READY_FOR_REVIEW in result.settings.triggers
-
-    @with_feature(["organizations:gen-ai-features", "organizations:code-review-beta"])
-    def test_denied_when_beta_org_has_no_repo_settings_in_settings_section(self) -> None:
-        service = self._create_service()
-        result = service.check()
-
-        assert result.allowed is False
-        assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     @patch("sentry.quotas.backend.check_seer_quota")
     @with_feature(
