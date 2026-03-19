@@ -1,3 +1,4 @@
+// test: verifying changedSince
 import {getDiffNE, getDiffNW, getDiffSE, getDiffSW} from './avatarCropper';
 
 describe('AvatarCropper', () => {

@@ -1,3 +1,4 @@
+// test: verifying changedSince
 import {renderOnDomReady} from 'sentry/bootstrap/renderOnDomReady';
 
 describe('renderOnDomReady', () => {

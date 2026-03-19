@@ -1,3 +1,4 @@
+// test: verifying changedSince
 import {
   canIncludePreviousPeriod,
   getDiffInMinutes,

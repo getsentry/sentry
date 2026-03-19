@@ -1,3 +1,4 @@
+// test: verifying changedSince
 import type {Aggregation} from 'sentry/utils/discover/fields';
 import {AGGREGATIONS} from 'sentry/utils/discover/fields';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
