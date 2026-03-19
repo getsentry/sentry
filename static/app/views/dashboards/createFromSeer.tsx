@@ -147,7 +147,6 @@ export default function CreateFromSeer() {
   // since backend hooks can resume runs in case of
   // validation errors.
   const completedAtRef = useRef<number | null>(null);
-  const [pollingSettled, setPollingSettled] = useState(false);
 
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(organization.slug, seerRunId),
@@ -167,15 +166,11 @@ export default function CreateFromSeer() {
           if (Date.now() - completedAtRef.current < POST_COMPLETE_POLL_MS) {
             return POLL_INTERVAL_MS;
           }
-          setPollingSettled(true);
+          validateDashboardAndRecordMetrics(organization, dashboard, seerRunId);
           return false;
         }
         // Status left "completed" (hook triggered a re-run), reset
         completedAtRef.current = null;
-        setPollingSettled(false);
-        if (statusIsTerminal(status)) {
-          return false;
-        }
         return POLL_INTERVAL_MS;
       },
     }
@@ -212,12 +207,6 @@ export default function CreateFromSeer() {
       }
     }
   }, [organization, seerRunId, isUpdating, sessionStatus, session, sessionUpdatedAt]);
-
-  useEffect(() => {
-    if (pollingSettled && dashboard !== EMPTY_DASHBOARD) {
-      validateDashboardAndRecordMetrics(organization, dashboard, seerRunId);
-    }
-  }, [pollingSettled, dashboard, organization, seerRunId]);
 
   const blockMessages = useMemo(
     () => (session ? extractMessages(session) : []),
@@ -264,7 +253,6 @@ export default function CreateFromSeer() {
         return;
       }
       setisUpdating(true);
-      setPollingSettled(false);
       completedAtRef.current = null;
       try {
         const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
