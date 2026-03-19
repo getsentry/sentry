@@ -21,13 +21,6 @@ export const canUseMetricsAlertsUI = (organization: Organization) => {
   );
 };
 
-export const canUseMetricsMultiAggregateUI = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-overlay-charts-ui')
-  );
-};
-
 export const canUseMetricsSidePanelUI = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&

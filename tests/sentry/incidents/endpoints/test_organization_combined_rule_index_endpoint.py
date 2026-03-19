@@ -85,6 +85,26 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             owner=Actor.from_id(user_id=None, team_id=self.team2.id),
         )
 
+    @with_feature("organizations:incidents")
+    def test_legacy_models_header(self) -> None:
+        """
+        Test that X-Legacy-Models header reflects whether legacy models were used.
+        - Legacy path (without workflow-engine feature): header should be "true"
+        - Workflow engine path (with feature): header should be "false"
+        """
+        self.create_alert_rule()
+
+        # Test legacy path - uses AlertRule/Rule models
+        resp = self.get_success_response(self.organization.slug)
+        assert "X-Legacy-Models" in resp
+        assert resp["X-Legacy-Models"] == "true"
+
+        # Test workflow engine path - uses Detector/Workflow models
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            resp = self.get_success_response(self.organization.slug)
+            assert "X-Legacy-Models" in resp
+            assert resp["X-Legacy-Models"] == "false"
+
     def test_no_cron_monitor_rules(self) -> None:
         """
         Tests that the shadow cron monitor rules are NOT returned as part of

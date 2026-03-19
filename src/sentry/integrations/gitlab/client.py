@@ -105,6 +105,12 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         prepared_request.headers["Authorization"] = f"Bearer {access_token}"
         return prepared_request
 
+    @control_silo_function
+    def get_access_token(self) -> dict[str, str | None] | None:
+        if self.identity.data["access_token"]:
+            return {"access_token": self.identity.data["access_token"], "permissions": None}
+        return None
+
     def _refresh_auth(self):
         """
         Modeled after Doorkeeper's docs

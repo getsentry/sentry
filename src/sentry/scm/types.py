@@ -54,6 +54,17 @@ type FileStatus = Literal[
 - unknown: file status could not be positively identified
 """
 
+type ArchiveFormat = Literal["tarball", "zip"]
+"""Normalized archive format identifiers shared across all SCM providers."""
+
+
+class ArchiveLink(TypedDict):
+    """A download URL bundled with the authentication headers required to fetch it."""
+
+    url: str
+    headers: dict[str, str]
+
+
 type BuildStatus = Literal["pending", "running", "completed"]
 """The lifecycle stage of a CI build.
 

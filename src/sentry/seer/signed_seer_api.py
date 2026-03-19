@@ -500,6 +500,7 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
         logger.warning(
             "settings.SEER_API_SHARED_SECRET is not set. Unable to add auth headers for call to Seer."
         )
+        metrics.incr("seer.unsigned_request", sample_rate=1.0)
     return auth_headers
 
 

@@ -38,10 +38,13 @@ describe('DashboardChatPanel', () => {
 
     expect(screen.getByText(/Conversation.*\(2\)/)).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText(/Conversation.*\(2\)/));
-
     expect(screen.getByText(/Hello/)).toBeInTheDocument();
     expect(screen.getByText(/Hi there/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText(/Conversation.*\(2\)/));
+
+    expect(screen.queryByText(/Hello/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Hi there/)).not.toBeInTheDocument();
   });
 
   it('calls onSend when submitting a message via Enter', async () => {

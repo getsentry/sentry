@@ -46,13 +46,13 @@ from sentry.organizations.services.organization import (
     OrganizationCheckService,
     OrganizationService,
     OrganizationSignalService,
+    RpcCellUser,
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
-    RpcRegionUser,
     RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
@@ -639,7 +639,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def update_cell_user(
         self,
         *,
-        user: RpcRegionUser,
+        user: RpcCellUser,
         cell_name: str,
     ) -> None:
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
