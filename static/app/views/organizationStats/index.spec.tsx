@@ -502,22 +502,7 @@ describe('OrganizationStats', () => {
     expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
   });
 
-  it('shows size analysis when expose category feature flag is enabled', async () => {
-    const newOrg = OrganizationFixture({
-      features: ['expose-category-size-analysis'],
-    });
-
-    render(<OrganizationStats />, {
-      organization: newOrg,
-    });
-
-    await userEvent.click(await screen.findByText('Category'));
-    expect(
-      screen.getByRole('option', {name: 'Size Analysis Builds'})
-    ).toBeInTheDocument();
-  });
-
-  it('does not show size analysis when expose category feature flag is disabled', async () => {
+  it('always shows size analysis (GA)', async () => {
     const newOrg = OrganizationFixture({
       features: [],
     });
@@ -528,8 +513,8 @@ describe('OrganizationStats', () => {
 
     await userEvent.click(await screen.findByText('Category'));
     expect(
-      screen.queryByRole('option', {name: 'Size Analysis Builds'})
-    ).not.toBeInTheDocument();
+      screen.getByRole('option', {name: 'Size Analysis Builds'})
+    ).toBeInTheDocument();
   });
 
   it('shows installable build when expose category feature flag is enabled', async () => {

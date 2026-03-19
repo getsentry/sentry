@@ -20,7 +20,6 @@ import {getFieldRenderer, nullableValue} from 'sentry/utils/discover/fieldRender
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -150,6 +149,7 @@ function BaseExploreFieldRenderer({
     organization,
     theme,
     unit,
+    projects,
   });
 
   if (field === 'timestamp') {
@@ -282,15 +282,6 @@ function BaseExploreFieldRenderer({
     if (field === 'id') {
       return rendered;
     }
-  }
-
-  if (field === 'profile.id') {
-    const target = generateProfileFlamechartRouteWithQuery({
-      organization,
-      projectSlug: data.project,
-      profileId: data['profile.id'],
-    });
-    rendered = <Link to={target}>{rendered}</Link>;
   }
 
   return (
