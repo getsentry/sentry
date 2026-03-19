@@ -21,7 +21,9 @@ import {FeatureSelectionCards} from './components/featureSelectionCards';
 import {usePlatformDetection} from './components/usePlatformDetection';
 import type {StepProps} from './types';
 
-const getPlatformInfo = (key: PlatformKey) => platforms.find(p => p.id === key);
+const platformsByKey = new Map(platforms.map(p => [p.id, p]));
+
+const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
 
 function setPlatformInContext(
   platformKey: PlatformKey,
