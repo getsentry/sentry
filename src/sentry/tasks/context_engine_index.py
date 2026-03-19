@@ -239,6 +239,10 @@ def get_allowed_org_ids_context_engine_indexing() -> tuple[list[int], list[int]]
     if previous_enabled_org_ids is not None:
         newly_added_org_ids_set = set(feature_enabled_org_ids) - set(previous_enabled_org_ids)
         if newly_added_org_ids_set:
+            logger.info(
+                "Adding context engine index for recently enabled orgs",
+                extra={"org_ids": list(newly_added_org_ids_set)},
+            )
             eligible_org_ids = list(set(eligible_org_ids).union(newly_added_org_ids_set))
 
     return feature_enabled_org_ids, eligible_org_ids
@@ -276,6 +280,10 @@ def schedule_context_engine_indexing_tasks() -> None:
 
     # Store full currently-enabled orgs so next run can compute a stable diff.
     cache.set(CONTEXT_ENGINE_ENABLED_ORG_IDS, feature_enabled_org_ids, 24 * 60 * 60)
+    logger.info(
+        "Stored context engine enabled org ids cache size",
+        extra={"size": len(feature_enabled_org_ids)},
+    )
 
     logger.info(
         "Scheduled context engine indexing tasks",
