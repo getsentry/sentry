@@ -266,7 +266,7 @@ interface VisualizeProps {
   setError?: (error: Record<string, any>) => void;
 }
 
-function Visualize({error, setError}: VisualizeProps) {
+export function Visualize({error, setError}: VisualizeProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
@@ -975,9 +975,12 @@ function Visualize({error, setError}: VisualizeProps) {
                                         fields[index]?.kind === FieldValueKind.FIELD &&
                                         fields[index]?.field
                                       ) {
+                                        const fieldName = fields[index].field;
                                         const newLinkedDashboards: LinkedDashboard[] = [
-                                          ...linkedDashboards,
-                                          {dashboardId, field: fields[index].field},
+                                          ...linkedDashboards.filter(
+                                            ld => ld.field !== fieldName
+                                          ),
+                                          {dashboardId, field: fieldName},
                                         ];
                                         dispatch({
                                           type: BuilderStateAction.SET_LINKED_DASHBOARDS,
@@ -1129,8 +1132,6 @@ function Visualize({error, setError}: VisualizeProps) {
     </Fragment>
   );
 }
-
-export default Visualize;
 
 function renderTag(kind: FieldValueKind, label: string, dataType?: string) {
   return (

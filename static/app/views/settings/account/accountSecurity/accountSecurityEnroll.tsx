@@ -18,7 +18,7 @@ import {
 import {NotFound} from 'sentry/components/errors/notFound';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {FormModel} from 'sentry/components/forms/model';
 import type {FieldObject} from 'sentry/components/forms/types';
@@ -33,7 +33,7 @@ import {t} from 'sentry/locale';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {Authenticator} from 'sentry/types/auth';
 import {generateOrgSlugUrl} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getPendingInvite} from 'sentry/utils/getPendingInvite';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';

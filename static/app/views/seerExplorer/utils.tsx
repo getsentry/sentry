@@ -5,7 +5,7 @@ import queryString from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -120,8 +120,8 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     if (event_id) {
       // For backwards compatibility. event_id arg only present in an older version (issue_and_event_details)
       return isLoading
-        ? `Inspecting event ${event_id.slice(0, 8)}...`
-        : `Inspected event ${event_id.slice(0, 8)}`;
+        ? `Analyzing event ${event_id.slice(0, 8)}...`
+        : `Analyzed event ${event_id.slice(0, 8)}`;
     }
 
     if (issue_id) {
@@ -145,24 +145,24 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     // event ID mode
     if (event_id) {
       return isLoading
-        ? `Inspecting event ${event_id.slice(0, 8)}...`
-        : `Inspected event ${event_id.slice(0, 8)}`;
+        ? `Analyzing event ${event_id.slice(0, 8)}...`
+        : `Analyzed event ${event_id.slice(0, 8)}`;
     }
 
     // recommended event mode
     if (issue_id) {
       if (start && end) {
         return isLoading
-          ? `Inspecting recommended event for issue ${issue_id} between ${start} to ${end}...`
-          : `Inspected recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`} between ${start} to ${end}`;
+          ? `Analyzing recommended event for issue ${issue_id}, sampled from ${start} to ${end}...`
+          : `Analyzed recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}, sampled from ${start} to ${end}`;
       }
       return isLoading
-        ? `Inspecting recommended event for issue ${issue_id}...`
-        : `Inspected recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}`;
+        ? `Analyzing recommended event for issue ${issue_id}...`
+        : `Analyzed recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}`;
     }
 
     // shouldn't happen (either event_id or issue_id required)
-    return isLoading ? `Inspecting event...` : `Inspected event`;
+    return isLoading ? `Analyzing event...` : `Analyzed event`;
   },
 
   code_search: (args, isLoading) => {

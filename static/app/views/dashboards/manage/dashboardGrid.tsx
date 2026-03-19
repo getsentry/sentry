@@ -10,11 +10,11 @@ import type {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Placeholder from 'sentry/components/placeholder';
-import TimeSince from 'sentry/components/timeSince';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,7 +28,6 @@ import {
   MINIMUM_DASHBOARD_CARD_WIDTH,
 } from 'sentry/views/dashboards/manage/settings';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
-import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
 import {DashboardCard} from './dashboardCard';
 import {GridPreview} from './gridPreview';
@@ -91,19 +90,13 @@ function DashboardGrid({
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem, dashboardLimitData: any) {
-    const shouldDisablePrebuiltControls =
-      defined(dashboard.prebuiltId) &&
-      !organization.features.includes('dashboards-prebuilt-controls');
     const {
       hasReachedDashboardLimit,
       isLoading: isLoadingDashboardsLimit,
       limitMessage,
     } = dashboardLimitData;
 
-    const disableDuplicate =
-      hasReachedDashboardLimit ||
-      isLoadingDashboardsLimit ||
-      shouldDisablePrebuiltControls;
+    const disableDuplicate = hasReachedDashboardLimit || isLoadingDashboardsLimit;
 
     const disableDelete = defined(dashboard.prebuiltId);
 
@@ -119,11 +112,7 @@ function DashboardGrid({
           });
         },
         disabled: disableDuplicate,
-        tooltip: shouldDisablePrebuiltControls
-          ? tct('[label] dashboards cannot be duplicated', {
-              label: PREBUILT_DASHBOARD_LABEL,
-            })
-          : limitMessage,
+        tooltip: limitMessage,
         tooltipOptions: {
           isHoverable: true,
         },
@@ -140,9 +129,6 @@ function DashboardGrid({
           });
         },
         disabled: disableDelete,
-        tooltip: shouldDisablePrebuiltControls
-          ? tct('[label] dashboards cannot be deleted', {label: PREBUILT_DASHBOARD_LABEL})
-          : undefined,
       },
     ];
 

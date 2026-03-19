@@ -30,8 +30,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {withSentryAppComponents} from 'sentry/utils/withSentryAppComponents';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
-import Context from './context';
-import DefaultTitle from './defaultTitle';
+import {Context} from './context';
+import {DefaultTitle} from './defaultTitle';
 import {OpenInContextLine} from './openInContextLine';
 import {
   getPlatform,

@@ -450,6 +450,10 @@ class OrganizationReleaseDetailsEndpoint(
             scope.set_tag("failure_reason", "no_release_permission")
             raise ResourceDoesNotExist
 
+        if not request.access.has_projects_access(list(projects)):
+            scope.set_tag("failure_reason", "no_access_to_all_projects")
+            raise ResourceDoesNotExist
+
         serializer = OrganizationReleaseSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -559,6 +563,9 @@ class OrganizationReleaseDetailsEndpoint(
             raise ResourceDoesNotExist
 
         if not self.has_release_permission(request, organization, release):
+            raise ResourceDoesNotExist
+
+        if not request.access.has_projects_access(list(release.projects.all())):
             raise ResourceDoesNotExist
 
         try:

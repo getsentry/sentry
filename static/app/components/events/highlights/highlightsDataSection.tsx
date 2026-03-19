@@ -15,9 +15,9 @@ import {
   TreeColumn,
   TreeContainer,
 } from 'sentry/components/events/eventTags/eventTagsTree';
-import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
+import {EditHighlightsModal} from 'sentry/components/events/highlights/editHighlightsModal';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,

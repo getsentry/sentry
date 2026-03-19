@@ -101,7 +101,11 @@ function getCommitSha(url: string): string {
   }
 }
 
-function AutofixInsightSources({sources, title, codeUrls}: AutofixInsightSourcesProps) {
+export function AutofixInsightSources({
+  sources,
+  title,
+  codeUrls,
+}: AutofixInsightSourcesProps) {
   const [showThoughtsPopup, setShowThoughtsPopup] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const thoughtsButtonRef = useRef<HTMLButtonElement>(null);
@@ -440,5 +444,3 @@ export function generateSourceCards(
 
   return sourceCards;
 }
-
-export default AutofixInsightSources;

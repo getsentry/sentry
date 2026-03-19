@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import RequestError from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 describe('handleXhrErrorResponse', () => {
   const stringError = new RequestError('GET', '/api/0', new Error('dead'), {

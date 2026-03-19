@@ -519,7 +519,7 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 
     # Clear application_id cache
     cell_caching_service.clear_key(
-        key=get_by_application_id.key_from(sentry_app.application_id), region_name=region_name
+        key=get_by_application_id.key_from(sentry_app.application_id), cell_name=region_name
     )
 
     # Limit our operations to the region this outbox is for.
@@ -530,12 +530,12 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
     for region_row in region_query:
         cell_caching_service.clear_key(
             key=get_installations_for_organization.key_from(region_row["organization_id"]),
-            region_name=region_name,
+            cell_name=region_name,
         )
         installs = install_map[region_row["organization_id"]]
         for install_id in installs:
             cell_caching_service.clear_key(
-                key=get_installation.key_from(install_id), region_name=region_name
+                key=get_installation.key_from(install_id), cell_name=region_name
             )
 
 

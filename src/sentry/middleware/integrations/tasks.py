@@ -16,14 +16,14 @@ from sentry.silo.client import CellSiloClient
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
 from sentry.taskworker.retry import Retry
-from sentry.types.region import Cell, get_cell_by_name
+from sentry.types.cell import Cell, get_cell_by_name
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
 class _AsyncResult:
-    region: Cell
+    cell: Cell
     response: Response
 
     def was_successful(self) -> bool:
@@ -31,7 +31,7 @@ class _AsyncResult:
 
 
 @dataclass(frozen=True)
-class _AsyncRegionDispatcher(ABC):
+class _AsyncCellDispatcher(ABC):
     request_payload: dict[str, Any]
     response_url: str
 
@@ -43,15 +43,15 @@ class _AsyncRegionDispatcher(ABC):
     def log_message(self, tag: str) -> str:
         return f"{self.log_code}.{tag}"
 
-    def dispatch(self, region_names: Iterable[str]) -> Response | None:
-        results = [self._dispatch_to_region(name) for name in region_names]
+    def dispatch(self, cell_names: Iterable[str]) -> Response | None:
+        results = [self._dispatch_to_cell(name) for name in cell_names]
         successes = [r for r in results if r.was_successful()]
 
         logger.info(
-            self.log_message("async_region_response"),
+            self.log_message("async_cell_response"),
             extra={
-                "regions": [r.region.name for r in successes],
-                "response_map": {r.region.name: r.response.status_code for r in results},
+                "regions": [r.cell.name for r in successes],
+                "response_map": {r.cell.name: r.response.status_code for r in results},
             },
         )
 
@@ -66,8 +66,8 @@ class _AsyncRegionDispatcher(ABC):
     def unpack_payload(self, response: Response) -> Any:
         raise NotImplementedError
 
-    def _dispatch_to_region(self, region_name: str) -> _AsyncResult:
-        cell = get_cell_by_name(region_name)
+    def _dispatch_to_cell(self, cell_name: str) -> _AsyncResult:
+        cell = get_cell_by_name(cell_name)
         client = CellSiloClient(cell=cell)
         response = client.request(
             method=self.request_payload["method"],
@@ -95,15 +95,15 @@ class _AsyncRegionDispatcher(ABC):
                 "integration.async_integration_response",
                 extra={
                     "path": self.request_payload["path"],
-                    "region": result.region.name,
-                    "region_status_code": result.response.status_code,
+                    "cell": result.cell.name,
+                    "cell_status_code": result.response.status_code,
                     "integration_status_code": integration_response.status_code,
                 },
             )
             return integration_response
 
 
-class _AsyncSlackDispatcher(_AsyncRegionDispatcher):
+class _AsyncSlackDispatcher(_AsyncCellDispatcher):
     @property
     def log_code(self) -> str:
         return IntegrationProviderSlug.SLACK.value
@@ -128,13 +128,13 @@ def convert_to_async_slack_response(
     _AsyncSlackDispatcher(payload, response_url).dispatch(region_names)
 
 
-class _AsyncDiscordDispatcher(_AsyncRegionDispatcher):
+class _AsyncDiscordDispatcher(_AsyncCellDispatcher):
     @property
     def log_code(self) -> str:
         return IntegrationProviderSlug.DISCORD.value
 
     def unpack_payload(self, response: Response) -> Any:
-        # Region will return a response assuming it's meant to go directly to Discord. Since we're
+        # Cell will return a response assuming it's meant to go directly to Discord. Since we're
         # handling the request asynchronously, we extract only the data, and post it to the webhook
         # that discord provides.
         # https://discord.com/developers/docs/interactions/receiving-and-responding#followup-messages
@@ -153,7 +153,7 @@ def convert_to_async_discord_response(
     response_url: str,
 ) -> None:
     """
-    This task asks relevant region silos for response data to send asynchronously to Discord. It
+    This task asks relevant cell silos for response data to send asynchronously to Discord. It
     assumes Discord has received a callback of type:5 (DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE).
     (See https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type)
 

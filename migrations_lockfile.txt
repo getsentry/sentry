@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0005_delete_seerorganizationsettings
 
-sentry: 1054_rename_regionscheduleddeletion_to_cellscheduleddeletion
+sentry: 1055_rename_regiontombstone_to_celltombstone
 
 social_auth: 0003_social_auth_json_field
 
@@ -39,4 +39,4 @@ tempest: 0003_use_encrypted_char_field
 
 uptime: 0055_backfill_2xx_status_assertion
 
-workflow_engine: 0110_owner_team_break_fk
+workflow_engine: 0111_add_workflowfirehistory_date_added_index
