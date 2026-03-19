@@ -1,8 +1,7 @@
 import type {ComponentType} from 'react';
-import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -90,7 +89,7 @@ export function FeatureSelectionCards({
 
   return (
     <Flex direction="column" gap="md" width="100%">
-      <Flex justify="space-between" align="center">
+      <Flex justify="between" align="center">
         <Heading as="h3">{t('What do you want to set up?')}</Heading>
         <Text variant="muted">{t('%s of %s selected', selectedCount, totalCount)}</Text>
       </Flex>
@@ -102,71 +101,52 @@ export function FeatureSelectionCards({
           const Icon = meta.icon;
 
           return (
-            <FeatureCard
+            <Container
               key={feature}
-              selected={isSelected}
-              disabled={isErrorMonitoring}
-              onClick={() => !isErrorMonitoring && onToggleFeature(feature)}
-              role="checkbox"
-              aria-checked={isSelected}
-              aria-disabled={isErrorMonitoring}
-              aria-label={meta.label}
+              border={isSelected ? 'accent' : 'secondary'}
+              padding="lg"
+              radius="md"
+              cursor={isErrorMonitoring ? 'default' : 'pointer'}
             >
-              <Flex gap="md" align="flex-start">
-                <Flex padding="xs 0 0 0">
-                  <Icon size="sm" />
-                </Flex>
-                <Flex direction="column" gap="xs" flex="1">
-                  <Flex justify="space-between" align="center">
-                    <Text bold>{meta.label}</Text>
-                    <Checkbox
-                      readOnly
-                      size="xs"
-                      tabIndex={-1}
-                      role="presentation"
-                      checked={isSelected}
-                      disabled={isErrorMonitoring}
-                    />
+              <button
+                onClick={() => !isErrorMonitoring && onToggleFeature(feature)}
+                role="checkbox"
+                aria-checked={isSelected}
+                aria-disabled={isErrorMonitoring}
+                aria-label={meta.label}
+                style={{
+                  textAlign: 'left',
+                  background: 'transparent',
+                  width: '100%',
+                  opacity: isErrorMonitoring ? 0.75 : 1,
+                }}
+              >
+                <Flex gap="md" align="start">
+                  <Flex padding="xs 0 0 0">
+                    <Icon size="sm" />
                   </Flex>
-                  <Text variant="muted" size="sm">
-                    {meta.description}
-                  </Text>
+                  <Flex direction="column" gap="xs" flex="1">
+                    <Flex justify="between" align="center">
+                      <Text bold>{meta.label}</Text>
+                      <Checkbox
+                        readOnly
+                        size="xs"
+                        tabIndex={-1}
+                        role="presentation"
+                        checked={isSelected}
+                        disabled={isErrorMonitoring}
+                      />
+                    </Flex>
+                    <Text variant="muted" size="sm">
+                      {meta.description}
+                    </Text>
+                  </Flex>
                 </Flex>
-              </Flex>
-            </FeatureCard>
+              </button>
+            </Container>
           );
         })}
       </Grid>
     </Flex>
   );
 }
-
-const FeatureCard = styled('button')<{disabled?: boolean; selected?: boolean}>`
-  text-align: left;
-  background: ${p => p.theme.tokens.background.primary};
-  border: 1px solid
-    ${p =>
-      p.selected
-        ? p.theme.tokens.border.accent.vibrant
-        : p.theme.tokens.border.secondary};
-  border-bottom-width: ${p => (p.selected ? '1px' : '3px')};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.lg};
-  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
-  opacity: ${p => (p.disabled ? 0.75 : 1)};
-  transition:
-    border-color 0.1s ease,
-    background-color 0.1s ease;
-
-  &:hover {
-    ${p =>
-      !p.disabled &&
-      `
-      background: ${p.theme.tokens.background.secondary};
-    `}
-  }
-
-  &:focus-visible {
-    ${p => p.theme.focusRing()};
-  }
-`;
