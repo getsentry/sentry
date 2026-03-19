@@ -406,3 +406,4 @@ describe('getDurationUnit()', () => {
     expect(getDurationUnit(series)).toBe(MILLISECOND);
   });
 });
+// trivial change for CI testing

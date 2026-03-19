@@ -712,3 +712,4 @@ export function escapeFilterValue(value: string) {
   // astericks (*) is used for wildcard searches
   return typeof value === 'string' ? value.replace(/(\*)/g, '\\$1') : value;
 }
+// trivial change for CI testing
