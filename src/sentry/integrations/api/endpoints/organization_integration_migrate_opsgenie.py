@@ -19,7 +19,7 @@ class OrganizationIntegrationMigrateOpsgenieEndpoint(CellOrganizationIntegration
     publish_status = {
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.INTEGRATIONS
 
     def put(
         self,
