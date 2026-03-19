@@ -28,6 +28,9 @@ class SnapshotImageResponse(BaseModel):
     height: int
     previous_image_file_name: str | None = None
 
+    class Config:
+        extra = "allow"
+
 
 class SnapshotDiffPair(BaseModel):
     base_image: SnapshotImageResponse

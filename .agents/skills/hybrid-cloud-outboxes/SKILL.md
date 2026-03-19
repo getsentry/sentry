@@ -204,7 +204,7 @@ class MyControlModel(ReplicatedControlModel):
 
 ### 2.4 Wire Up the Category Connection
 
-The mixin classes auto-connect signal receivers via `OutboxCategory.connect_region_model_updates()` (or `connect_control_model_updates()`). This happens at class definition time when the `category` class variable is set. The connection dispatches to your `handle_async_replication` and `handle_async_deletion` methods automatically.
+The mixin classes auto-connect signal receivers via `OutboxCategory.connect_cell_model_updates()` (or `connect_control_model_updates()`). This happens at class definition time when the `category` class variable is set. The connection dispatches to your `handle_async_replication` and `handle_async_deletion` methods automatically.
 
 **No manual signal receiver is needed** for replicated models — the mixin handles it. Manual receivers are only needed for categories that don't map to a replicated model (see Step 4).
 

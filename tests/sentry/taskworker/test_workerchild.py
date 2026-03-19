@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import signal
 import time
 from collections.abc import Generator
@@ -22,6 +23,10 @@ class OuterFired(Exception):
     pass
 
 
+@pytest.mark.skipif(
+    "PYTEST_XDIST_WORKER" in os.environ,
+    reason="signal.signal/setitimer require the main thread; xdist workers run tests in non-main threads",
+)
 class TestTimeoutAlarm:
     @staticmethod
     def noop(signum: int, frame: FrameType | None) -> None:
