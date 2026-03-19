@@ -59,6 +59,7 @@ from sentry.scm.errors import (
     SCMProviderException,
     SCMUnhandledException,
 )
+from sentry.scm.private.provider import GetBranchProtocol, GetIssueReactionsProtocol
 from sentry.scm.types import PaginatedActionResult, ReactionResult, Referrer, Repository
 from tests.sentry.scm.test_fixtures import BaseTestProvider
 
@@ -80,7 +81,7 @@ def fetch_repository(oid, rid) -> Repository:
     }
 
 
-ALL_ACTIONS: tuple[tuple[str, dict[str, Any]], ...] = (
+ALL_ACTIONS: tuple[tuple[Callable[..., Any], dict[str, Any]], ...] = (
     # Issue comments
     (get_issue_comments, {"issue_id": "1"}),
     (create_issue_comment, {"issue_id": "1", "body": "test"}),
@@ -672,6 +673,7 @@ def test_provider_exception_is_not_wrapped():
     scm = SourceCodeManager(FailingProvider())
 
     with pytest.raises(SCMProviderException):
+        assert isinstance(scm, GetIssueReactionsProtocol)
         scm.get_issue_reactions(issue_id="1")
 
 
@@ -713,6 +715,7 @@ def test_exec_wraps_unhandled_exception():
     scm = SourceCodeManager(ExplodingProvider())
 
     with pytest.raises(SCMUnhandledException):
+        assert isinstance(scm, GetBranchProtocol)
         scm.get_branch(branch="main")
 
 
@@ -729,6 +732,7 @@ def test_exec_records_failure_metric_on_unhandled_exception():
     )
 
     with pytest.raises(SCMUnhandledException):
+        assert isinstance(scm, GetBranchProtocol)
         scm.get_branch(branch="main")
 
     assert metrics == [("sentry.scm.actions.failed", 1, {})]
@@ -743,6 +747,7 @@ def test_exec_passes_custom_referrer():
         referrer="autofix",
         record_count=lambda k, a, t: metrics.append((k, a, t)),
     )
+    assert isinstance(scm, GetBranchProtocol)
     scm.get_branch(branch="main")
 
     referrer_metrics = [(k, a, t) for k, a, t in metrics if "referrer" in t]
@@ -759,6 +764,7 @@ def test_exec_passes_custom_record_count():
         calls.append((key, amount, tags))
 
     scm = SourceCodeManager(BaseTestProvider(), record_count=custom_record)
+    assert isinstance(scm, GetBranchProtocol)
     scm.get_branch(branch="main")
 
     assert len(calls) == 2

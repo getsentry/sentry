@@ -53,7 +53,7 @@ def add_raise_scm_error(error: SCMError):
 @contextlib.contextmanager
 def add_call_missing_provider_method():
     def call_missing_provider_method(scm: SourceCodeManager) -> None:
-        scm.this_method_does_not_exist()
+        scm.this_method_does_not_exist()  # type: ignore[attr-defined]
 
     with add_method("call_missing_provider_method", call_missing_provider_method):
         yield
