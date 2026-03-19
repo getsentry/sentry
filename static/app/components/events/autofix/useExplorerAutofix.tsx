@@ -551,6 +551,13 @@ export function useExplorerAutofix(
 
   const [waitingForResponse, setWaitingForResponse] = useState(false);
 
+  /**
+   * Triggering coding agents take a while and explorer state doesn't update until the end.
+   * This means while the request on ongoing, we need to disable the UI to prevent users
+   * from clicking other steps.
+   */
+  const [waitingForCodingAgent, setWaitingForCodingAgent] = useState(false);
+
   const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
     makeExplorerAutofixQueryKey(orgSlug, groupId),
     {
@@ -663,6 +670,7 @@ export function useExplorerAutofix(
    */
   const reset = useCallback(() => {
     setWaitingForResponse(false);
+    setWaitingForCodingAgent(false);
     setApiQueryData<ExplorerAutofixResponse>(
       queryClient,
       makeExplorerAutofixQueryKey(orgSlug, groupId),
@@ -675,7 +683,7 @@ export function useExplorerAutofix(
    */
   const triggerCodingAgentHandoff = useCallback(
     async (runId: number, integration: CodingAgentIntegration) => {
-      setWaitingForResponse(true);
+      setWaitingForCodingAgent(true);
 
       trackAnalytics('coding_integration.send_to_agent_clicked', {
         organization,
@@ -775,7 +783,7 @@ export function useExplorerAutofix(
         addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
         throw e;
       } finally {
-        setWaitingForResponse(false);
+        setWaitingForCodingAgent(false);
       }
     },
     [api, orgSlug, groupId, queryClient, organization, user.id]
@@ -801,7 +809,8 @@ export function useExplorerAutofix(
     /**
      * Whether we're actively processing (used for UI indicators).
      */
-    isPolling: isActivelyProcessing(runState, waitingForResponse),
+    isPolling:
+      isActivelyProcessing(runState, waitingForResponse) || waitingForCodingAgent,
     /**
      * Start or continue an autofix step.
      */
