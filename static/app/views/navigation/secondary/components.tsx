@@ -957,11 +957,10 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
   border: 2px solid ${p => p.theme.tokens.border[p.variant].muted};
 `;
 
-interface NavigationFakeLinkProps {
+const StyledReorderableFakeLink = styled('div')<{
+  isDragging: boolean;
   layout: 'mobile' | 'sidebar';
-}
-
-const NavigationFakeLink = styled('div')<NavigationFakeLinkProps>`
+}>`
   ${p => navigationItemStyles(p)}
   cursor: pointer;
   user-select: none;
@@ -969,9 +968,7 @@ const NavigationFakeLink = styled('div')<NavigationFakeLinkProps>`
   &:focus-visible {
     ${p => p.theme.focusRing()}
   }
-`;
 
-const StyledReorderableFakeLink = styled(NavigationFakeLink)<{isDragging: boolean}>`
   :not(:hover):not(:has(:focus-visible)) {
     [data-drag-icon] {
       ${p => !p.isDragging && p.theme.visuallyHidden}

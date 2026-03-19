@@ -7,9 +7,7 @@ import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGet
 export function useInvalidateStarredDashboards() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const queryKey = getStarredDashboardsQueryKey(organization);
-
   return useCallback(() => {
-    queryClient.invalidateQueries({queryKey});
-  }, [queryClient, queryKey]);
+    queryClient.invalidateQueries({queryKey: getStarredDashboardsQueryKey(organization)});
+  }, [queryClient, organization]);
 }
