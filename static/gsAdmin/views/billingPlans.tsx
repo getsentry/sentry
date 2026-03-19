@@ -493,6 +493,12 @@ function getCategoryInfo(
   };
 }
 
+function shouldShowCategoryCode(categoryLabel: string, categoryCode?: string): boolean {
+  if (!categoryCode) return false;
+  const labelWithoutPlural = categoryLabel.toLowerCase().replace(/s$/, '');
+  return labelWithoutPlural !== categoryCode;
+}
+
 function MergedPriceTiersTable({
   planTierIdFormatted,
   planNameFormatted,
@@ -618,9 +624,13 @@ function MergedPriceTiersTable({
   const renderBandCells = (tier: PriceTier, unitSize?: number) => (
     <Fragment>
       <td>{renderVolume(tier.volume, unitSize)}</td>
-      <td>{tier.monthly === 0 ? '' : formatCurrency(tier.monthly)}</td>
-      <td>{tier.annual === 0 ? '' : formatCurrency(tier.annual)}</td>
-      <td>
+      <td style={{textAlign: 'right'}}>
+        {tier.monthly === 0 ? '' : formatCurrency(tier.monthly)}
+      </td>
+      <td style={{textAlign: 'right'}}>
+        {tier.annual === 0 ? '' : formatCurrency(tier.annual)}
+      </td>
+      <td style={{textAlign: 'right'}}>
         {tier.reserved_ppe === 0
           ? ''
           : displayUnitPrice({
@@ -629,7 +639,7 @@ function MergedPriceTiersTable({
               maxDigits: 10,
             })}
       </td>
-      <td>
+      <td style={{textAlign: 'right'}}>
         {tier.od_ppe === 0
           ? ''
           : displayUnitPrice({
@@ -641,127 +651,275 @@ function MergedPriceTiersTable({
     </Fragment>
   );
 
-  const renderTiersTable = (tableGroups: TierGroup[]) => (
-    <Panel>
-      <StyledResultTable>
-        <thead>
-          <tr>
-            <th style={{width: 0}} />
-            <th>Category</th>
-            <th>Tier</th>
-            <th>Volume</th>
-            <th>Monthly</th>
-            <th>Annual</th>
-            <th>Reserved PPE</th>
-            <th>PAYG PPE</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tableGroups.map(group => {
-            const {bands, tierNumber, categoryLabel, dataCategoryId, groupKey} = group;
-            const expandKey = groupKey;
-            const isExpanded = expandedKeys.has(expandKey);
-            const isSingleBand = bands.length === 1;
+  const renderTiersTable = (tableGroups: TierGroup[]) => {
+    const categoryGroups = (() => {
+      const byCategory = new Map<string, TierGroup[]>();
+      for (const group of tableGroups) {
+        const list = byCategory.get(group.dataCategory) ?? [];
+        list.push(group);
+        byCategory.set(group.dataCategory, list);
+      }
+      return Array.from(byCategory.entries()).sort(([a], [b]) => a.localeCompare(b));
+    })();
 
-            if (isSingleBand) {
-              const tier = bands[0];
-              if (!tier) return null;
-              return (
-                <tr
-                  key={expandKey}
-                  id={group.isFirstForCategory ? dataCategoryId : undefined}
-                  style={group.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
-                >
-                  <td />
-                  <td style={{textAlign: 'left'}}>
-                    <span style={{display: 'block'}}>{categoryLabel}</span>
-                    {group.categoryCode && (
-                      <code style={{display: 'block', textAlign: 'left'}}>
-                        {group.categoryCode}
-                      </code>
-                    )}
-                  </td>
-                  <td>{tierNumber}</td>
-                  {renderBandCells(tier, group.unitSize)}
-                </tr>
+    return (
+      <Panel>
+        <StyledResultTable>
+          <thead>
+            <tr>
+              <th style={{width: 0}} />
+              <th>Data Category</th>
+              <th>Tier</th>
+              <th>Volume</th>
+              <th style={{textAlign: 'right'}}>Monthly</th>
+              <th style={{textAlign: 'right'}}>Annual</th>
+              <th style={{textAlign: 'right'}}>Reserved PPE</th>
+              <th style={{textAlign: 'right'}}>PAYG PPE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categoryGroups.map(([dataCategory, categoryTierGroups]) => {
+              const firstGroup = categoryTierGroups[0];
+              if (!firstGroup) return null;
+              const {categoryLabel, dataCategoryId} = firstGroup;
+              const expandKey = dataCategory;
+              const isExpanded = expandedKeys.has(expandKey);
+              const totalRows = categoryTierGroups.reduce(
+                (sum, g) => sum + g.bands.length,
+                0
               );
-            }
+              const hasSingleTierAndBand =
+                categoryTierGroups.length === 1 &&
+                categoryTierGroups[0].bands.length === 1;
 
-            const [first, ...rest] = bands;
-            const volumeRange =
-              bands.length > 0 ? (
-                <Fragment>
-                  {renderVolume(bands[0]!.volume, group.unitSize)} –{' '}
-                  {renderVolume(bands[bands.length - 1]!.volume, group.unitSize)}
-                </Fragment>
-              ) : (
-                '—'
-              );
+              if (hasSingleTierAndBand) {
+                const group = categoryTierGroups[0];
+                const tier = group!.bands[0];
+                if (!tier) return null;
+                return (
+                  <tr
+                    key={expandKey}
+                    id={dataCategoryId}
+                    style={group.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                  >
+                    <td />
+                    <td style={{textAlign: 'left'}}>
+                      <span style={{display: 'block'}}>{categoryLabel}</span>
+                      {shouldShowCategoryCode(categoryLabel, group.categoryCode) && (
+                        <code
+                          style={{
+                            display: 'block',
+                            textAlign: 'left',
+                            background: 'none',
+                          }}
+                        >
+                          {group.categoryCode}
+                        </code>
+                      )}
+                    </td>
+                    <td>{group.tierNumber}</td>
+                    {renderBandCells(tier, group.unitSize)}
+                  </tr>
+                );
+              }
 
-            return (
-              <Fragment key={expandKey}>
-                <tr
-                  id={group.isFirstForCategory ? dataCategoryId : undefined}
-                  style={group.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
-                >
-                  <td>
-                    <button
-                      type="button"
-                      onClick={() => toggleExpanded(expandKey)}
-                      aria-expanded={isExpanded}
+              if (!isExpanded) {
+                return (
+                  <tr
+                    key={expandKey}
+                    id={dataCategoryId}
+                    style={firstGroup.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
+                  >
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded(expandKey)}
+                        aria-expanded={false}
+                        style={{
+                          padding: 0,
+                          border: 0,
+                          background: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <IconChevron direction="right" size="xs" />
+                      </button>
+                    </td>
+                    <td style={{textAlign: 'left'}}>
+                      <span style={{display: 'block'}}>{categoryLabel}</span>
+                      {shouldShowCategoryCode(categoryLabel, firstGroup.categoryCode) && (
+                        <code
+                          style={{
+                            display: 'block',
+                            textAlign: 'left',
+                            background: 'none',
+                          }}
+                        >
+                          {firstGroup.categoryCode}
+                        </code>
+                      )}
+                    </td>
+                    <td
+                      colSpan={6}
                       style={{
-                        padding: 0,
-                        border: 0,
-                        background: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        color: '#557',
+                        fontWeight: 500,
                       }}
                     >
-                      <IconChevron direction={isExpanded ? 'down' : 'right'} size="xs" />
-                    </button>
-                  </td>
-                  <td style={{textAlign: 'left'}}>
-                    <span style={{display: 'block'}}>{categoryLabel}</span>
-                    {group.categoryCode && (
-                      <code style={{display: 'block', textAlign: 'left'}}>
-                        {group.categoryCode}
-                      </code>
-                    )}
-                  </td>
-                  <td>{tierNumber}</td>
-                  {isExpanded && first ? (
-                    renderBandCells(first, group.unitSize)
-                  ) : isExpanded ? null : (
-                    <Fragment>
-                      <td>{volumeRange}</td>
-                      <td colSpan={4} style={{color: 'var(--gray400)'}}>
-                        {bands.length} bands — click to expand
-                      </td>
-                    </Fragment>
-                  )}
-                </tr>
-                {isExpanded &&
-                  first &&
-                  rest.map((tier, index) => (
-                    <tr
-                      key={`${expandKey}-band-${index}`}
-                      style={group.disabled ? {backgroundColor: '#f6f6f6'} : undefined}
-                    >
-                      <td />
-                      <td />
-                      <td />
-                      {renderBandCells(tier, group.unitSize)}
-                    </tr>
-                  ))}
-              </Fragment>
-            );
-          })}
-        </tbody>
-      </StyledResultTable>
-    </Panel>
-  );
+                      {totalRows} row{totalRows === 1 ? '' : 's'} — click to expand
+                    </td>
+                  </tr>
+                );
+              }
+
+              return (
+                <Fragment key={expandKey}>
+                  {categoryTierGroups.map((group, groupIndex) => {
+                    const {bands, tierNumber, groupKey} = group;
+                    const isSingleBand = bands.length === 1;
+
+                    if (isSingleBand) {
+                      const tier = bands[0];
+                      if (!tier) return null;
+                      return (
+                        <tr
+                          key={groupKey}
+                          id={groupIndex === 0 ? dataCategoryId : undefined}
+                          style={
+                            group.disabled ? {backgroundColor: '#f6f6f6'} : undefined
+                          }
+                        >
+                          <td>
+                            {groupIndex === 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpanded(expandKey)}
+                                aria-expanded
+                                style={{
+                                  padding: 0,
+                                  border: 0,
+                                  background: 'none',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <IconChevron direction="down" size="xs" />
+                              </button>
+                            ) : null}
+                          </td>
+                          <td style={{textAlign: 'left'}}>
+                            {groupIndex === 0 ? (
+                              <Fragment>
+                                <span style={{display: 'block'}}>{categoryLabel}</span>
+                                {shouldShowCategoryCode(
+                                  categoryLabel,
+                                  group.categoryCode
+                                ) && (
+                                  <code
+                                    style={{
+                                      display: 'block',
+                                      textAlign: 'left',
+                                      background: 'none',
+                                    }}
+                                  >
+                                    {group.categoryCode}
+                                  </code>
+                                )}
+                              </Fragment>
+                            ) : (
+                              ''
+                            )}
+                          </td>
+                          <td>{tierNumber}</td>
+                          {renderBandCells(tier, group.unitSize)}
+                        </tr>
+                      );
+                    }
+
+                    const [first, ...rest] = bands;
+                    return (
+                      <Fragment key={groupKey}>
+                        <tr
+                          id={groupIndex === 0 ? dataCategoryId : undefined}
+                          style={
+                            group.disabled ? {backgroundColor: '#f6f6f6'} : undefined
+                          }
+                        >
+                          <td>
+                            {groupIndex === 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpanded(expandKey)}
+                                aria-expanded
+                                style={{
+                                  padding: 0,
+                                  border: 0,
+                                  background: 'none',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <IconChevron direction="down" size="xs" />
+                              </button>
+                            ) : null}
+                          </td>
+                          <td style={{textAlign: 'left'}}>
+                            {groupIndex === 0 ? (
+                              <Fragment>
+                                <span style={{display: 'block'}}>{categoryLabel}</span>
+                                {shouldShowCategoryCode(
+                                  categoryLabel,
+                                  group.categoryCode
+                                ) && (
+                                  <code
+                                    style={{
+                                      display: 'block',
+                                      textAlign: 'left',
+                                      background: 'none',
+                                    }}
+                                  >
+                                    {group.categoryCode}
+                                  </code>
+                                )}
+                              </Fragment>
+                            ) : (
+                              ''
+                            )}
+                          </td>
+                          <td>{tierNumber}</td>
+                          {renderBandCells(first, group.unitSize)}
+                        </tr>
+                        {rest.map((tier, index) => (
+                          <tr
+                            key={`${groupKey}-band-${index}`}
+                            style={
+                              group.disabled ? {backgroundColor: '#f6f6f6'} : undefined
+                            }
+                          >
+                            <td />
+                            <td />
+                            <td />
+                            {renderBandCells(tier, group.unitSize)}
+                          </tr>
+                        ))}
+                      </Fragment>
+                    );
+                  })}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </StyledResultTable>
+      </Panel>
+    );
+  };
 
   return (
     <div>
@@ -796,10 +954,10 @@ function MergedPriceTiersTable({
             <StyledResultTable>
               <thead>
                 <tr>
-                  <th>Category</th>
-                  <th>Standard</th>
-                  <th>Prepaid</th>
-                  <th>Ondemand</th>
+                  <th>Data Category</th>
+                  <th style={{textAlign: 'right'}}>Standard</th>
+                  <th style={{textAlign: 'right'}}>Reserved</th>
+                  <th style={{textAlign: 'right'}}>PAYG</th>
                 </tr>
               </thead>
               <tbody>
@@ -810,13 +968,19 @@ function MergedPriceTiersTable({
                   >
                     <td style={{textAlign: 'left'}}>
                       <span style={{display: 'block'}}>{row.categoryLabel}</span>
-                      {row.categoryCode && (
-                        <code style={{display: 'block', textAlign: 'left'}}>
+                      {shouldShowCategoryCode(row.categoryLabel, row.categoryCode) && (
+                        <code
+                          style={{
+                            display: 'block',
+                            textAlign: 'left',
+                            background: 'none',
+                          }}
+                        >
                           {row.categoryCode}
                         </code>
                       )}
                     </td>
-                    <td>
+                    <td style={{textAlign: 'right'}}>
                       {typeof row.seatCosts.standard === 'number'
                         ? displayUnitPrice({
                             cents: row.seatCosts.standard,
@@ -825,7 +989,7 @@ function MergedPriceTiersTable({
                           })
                         : '—'}
                     </td>
-                    <td>
+                    <td style={{textAlign: 'right'}}>
                       {typeof row.seatCosts.prepaid === 'number'
                         ? displayUnitPrice({
                             cents: row.seatCosts.prepaid,
@@ -834,7 +998,7 @@ function MergedPriceTiersTable({
                           })
                         : '—'}
                     </td>
-                    <td>
+                    <td style={{textAlign: 'right'}}>
                       {typeof row.seatCosts.ondemand === 'number'
                         ? displayUnitPrice({
                             cents: row.seatCosts.ondemand,
