@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import field
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from sentry.models.rule import Rule
 from sentry.notifications.platform.registry import template_registry
@@ -63,7 +62,7 @@ class IssueNotificationData(NotificationData):
     group_id: int
     event_id: str | None = None
     rule: NotificationRuleInfo | None = None
-    tags: set[str] = field(default_factory=set)
+    tags: set[str] = Field(default_factory=set)
     notes: str = ""
     notification_uuid: str = ""
 
