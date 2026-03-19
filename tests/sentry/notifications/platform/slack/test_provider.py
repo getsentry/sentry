@@ -247,11 +247,15 @@ class SlackNotificationProviderThreadingTest(TestCase):
     def test_send_with_thread_context_existing_thread(self, mock_slack_client: Mock) -> None:
         """When thread_context has an existing thread, thread_ts is passed to the Slack API."""
         mock_client_instance = mock_slack_client.return_value
-        mock_response = Mock()
-        mock_response.data = {"ok": True, "ts": "2222222222.222222"}
-        mock_response.__getitem__ = lambda self, key: self.data[key]
-        mock_response.get = lambda key, default=None: mock_response.data.get(key, default)
-        mock_client_instance.chat_postMessage.return_value = mock_response
+        mock_client_instance.chat_postMessage.return_value = SlackResponse(
+            client=mock_client_instance,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "2222222222.222222"},
+            headers={},
+            status_code=200,
+        )
 
         existing_thread = self._create_existing_thread(thread_identifier="1111111111.111111")
 
@@ -268,7 +272,6 @@ class SlackNotificationProviderThreadingTest(TestCase):
 
         assert isinstance(result, SendResult)
         assert result.provider_message_id == "2222222222.222222"
-        assert result.error_code is None
 
         mock_client_instance.chat_postMessage.assert_called_once_with(
             channel="C1234567890",
@@ -281,11 +284,15 @@ class SlackNotificationProviderThreadingTest(TestCase):
     def test_send_with_thread_context_reply_broadcast(self, mock_slack_client: Mock) -> None:
         """When reply_broadcast=True, it is passed to the Slack API."""
         mock_client_instance = mock_slack_client.return_value
-        mock_response = Mock()
-        mock_response.data = {"ok": True, "ts": "2222222222.222222"}
-        mock_response.__getitem__ = lambda self, key: self.data[key]
-        mock_response.get = lambda key, default=None: mock_response.data.get(key, default)
-        mock_client_instance.chat_postMessage.return_value = mock_response
+        mock_client_instance.chat_postMessage.return_value = SlackResponse(
+            client=mock_client_instance,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "2222222222.222222"},
+            headers={},
+            status_code=200,
+        )
 
         existing_thread = self._create_existing_thread(thread_identifier="1111111111.111111")
 
@@ -301,6 +308,7 @@ class SlackNotificationProviderThreadingTest(TestCase):
             target=target, renderable=renderable, thread_context=thread_context
         )
 
+        assert isinstance(result, SendResult)
         assert result.provider_message_id == "2222222222.222222"
         mock_client_instance.chat_postMessage.assert_called_once_with(
             channel="C1234567890",
@@ -314,11 +322,15 @@ class SlackNotificationProviderThreadingTest(TestCase):
     def test_send_with_thread_context_no_existing_thread(self, mock_slack_client: Mock) -> None:
         """When thread_context.thread is None (first message), sends without thread_ts."""
         mock_client_instance = mock_slack_client.return_value
-        mock_response = Mock()
-        mock_response.data = {"ok": True, "ts": "3333333333.333333"}
-        mock_response.__getitem__ = lambda self, key: self.data[key]
-        mock_response.get = lambda key, default=None: mock_response.data.get(key, default)
-        mock_client_instance.chat_postMessage.return_value = mock_response
+        mock_client_instance.chat_postMessage.return_value = SlackResponse(
+            client=mock_client_instance,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": True, "ts": "3333333333.333333"},
+            headers={},
+            status_code=200,
+        )
 
         target = self._create_target()
         renderable = self._create_renderable()
@@ -331,6 +343,7 @@ class SlackNotificationProviderThreadingTest(TestCase):
             target=target, renderable=renderable, thread_context=thread_context
         )
 
+        assert isinstance(result, SendResult)
         assert result.provider_message_id == "3333333333.333333"
         mock_client_instance.chat_postMessage.assert_called_once_with(
             channel="C1234567890",
