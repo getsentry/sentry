@@ -107,15 +107,19 @@ const AutofixContentHook = HookOrDefault({
   defaultComponent: AutofixContent,
 });
 
-export interface AutofixContentProps extends AutofixArtifactsProps {
+export interface AutofixContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
+  group: Group;
+  project: Project;
+  event?: Event;
 }
 
 export function AutofixContent({aiConfig, group, project, event}: AutofixContentProps) {
   const organization = useOrganization();
+  const autofix = useExplorerAutofix(group.id);
   const {data: setupCheck, isPending} = useSeerOnboardingCheck();
 
-  if (isPending) {
+  if (isPending || autofix.isLoading || !event) {
     return <Placeholder height="160px" />;
   }
 
@@ -165,25 +169,23 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
     );
   }
 
-  return <AutofixArtifacts group={group} project={project} event={event} />;
+  return (
+    <AutofixArtifacts autofix={autofix} group={group} project={project} event={event} />
+  );
 }
 
 interface AutofixArtifactsProps {
+  autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
   project: Project;
   event?: Event;
 }
 
-function AutofixArtifacts({group, project, event}: AutofixArtifactsProps) {
-  const autofix = useExplorerAutofix(group.id);
+function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProps) {
   const artifacts = useMemo(
     () => getOrderedAutofixArtifacts(autofix.runState),
     [autofix.runState]
   );
-
-  if (autofix.isLoading || !event) {
-    return <Placeholder height="160px" />;
-  }
 
   if (!artifacts.length) {
     return (
