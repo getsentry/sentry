@@ -9,8 +9,8 @@ import {useOnboardingContext} from 'sentry/components/onboarding/onboardingConte
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 
-import {ScmConnectedView} from './components/scmConnectedView';
 import {ScmProviderPills} from './components/scmProviderPills';
+import {ScmView} from './components/scmView';
 import type {StepProps} from './types';
 import {useScmProviders} from './useScmProviders';
 
@@ -77,7 +77,7 @@ export function ScmConnect({onComplete}: StepProps) {
 
       <Stack gap="lg" width="100%" maxWidth="600px">
         {selectedIntegration ? (
-          <ScmConnectedView />
+          <ScmView />
         ) : (
           <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
         )}

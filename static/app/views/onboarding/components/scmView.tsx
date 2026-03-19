@@ -10,7 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ScmRepoSelector} from './scmRepoSelector';
 
-export function ScmConnectedView() {
+export function ScmView() {
   const organization = useOrganization();
   const {selectedIntegration} = useOnboardingContext();
 
