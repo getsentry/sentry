@@ -241,3 +241,4 @@ describe('Admin confirmation modal', () => {
     expect(screen.queryByText('Invalid ticket URL')).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

@@ -146,3 +146,4 @@ describe('SQLishFormatter', () => {
     });
   });
 });
+// trivial change for CI testing

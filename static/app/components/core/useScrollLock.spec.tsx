@@ -270,3 +270,4 @@ describe('useScrollLock', () => {
     scrollToSpy.mockRestore();
   });
 });
+// trivial change for CI testing

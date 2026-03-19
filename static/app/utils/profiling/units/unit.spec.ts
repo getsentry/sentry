@@ -63,3 +63,4 @@ describe('formatTo', () => {
     expect(formatTo(1, 'milliseconds', 'seconds')).toBe(0.001);
   });
 });
+// trivial change for CI testing

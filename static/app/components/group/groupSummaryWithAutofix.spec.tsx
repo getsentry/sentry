@@ -284,3 +284,4 @@ describe('AutofixSummary', () => {
     ).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

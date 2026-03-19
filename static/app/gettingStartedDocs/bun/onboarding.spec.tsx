@@ -68,3 +68,4 @@ describe('bun onboarding docs', () => {
     expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

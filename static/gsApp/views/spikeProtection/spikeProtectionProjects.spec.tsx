@@ -383,3 +383,4 @@ describe('project renders and toggles', () => {
     ).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

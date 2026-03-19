@@ -9,3 +9,4 @@ describe('sanitizeQuerySelector', () => {
     expect(sanitizeQuerySelector('foo:bar:baz bar foo')).toBe('foo-bar-baz-bar-foo');
   });
 });
+// trivial change for CI testing

@@ -78,3 +78,4 @@ describe('SubscriptionUpsellBanner', () => {
     expect(screen.getByRole('button', {name: 'Request Trial'})).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

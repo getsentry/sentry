@@ -94,3 +94,4 @@ describe('UptimePercent', () => {
     expect(screen.getByText('Down Checks')).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

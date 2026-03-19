@@ -135,3 +135,4 @@ describe('EventsSearchBar', () => {
     ).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

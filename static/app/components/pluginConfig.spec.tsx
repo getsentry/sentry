@@ -40,3 +40,4 @@ describe('PluginConfig', () => {
     );
   });
 });
+// trivial change for CI testing

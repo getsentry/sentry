@@ -53,3 +53,4 @@ describe('javascript-sveltekit onboarding docs', () => {
     expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
   });
 });
+// trivial change for CI testing

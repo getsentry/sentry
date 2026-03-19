@@ -73,3 +73,4 @@ describe('AvatarCropper', () => {
     );
   });
 });
+// trivial change for CI testing

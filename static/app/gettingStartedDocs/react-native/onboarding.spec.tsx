@@ -25,3 +25,4 @@ describe('getting started with react-native', () => {
     ).toBeInTheDocument();
   });
 });
+// trivial change for CI testing

@@ -1206,3 +1206,4 @@ describe('DetectorEdit', () => {
     });
   });
 });
+// trivial change for CI testing

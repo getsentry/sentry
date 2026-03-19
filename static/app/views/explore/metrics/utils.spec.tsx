@@ -18,3 +18,4 @@ describe('mapMetricUnitToFieldType', () => {
     expect(mapMetricUnitToFieldType(unit)).toEqual(expected);
   });
 });
+// trivial change for CI testing

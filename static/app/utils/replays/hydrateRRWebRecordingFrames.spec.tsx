@@ -19,3 +19,4 @@ describe('hydrateRRWebRecordingFrames', () => {
     });
   });
 });
+// trivial change for CI testing
