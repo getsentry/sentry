@@ -1,4 +1,6 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -555,31 +557,14 @@ describe('Onboarding', () => {
       features: ['onboarding-scm'],
     });
 
+    const githubProvider = GitHubIntegrationProviderFixture({
+      features: ['commits'],
+    });
+
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/config/integrations/`,
-        body: {
-          providers: [
-            {
-              key: 'github',
-              slug: 'github',
-              name: 'GitHub',
-              canAdd: true,
-              canDisable: false,
-              features: ['commits'],
-              metadata: {
-                description: '',
-                features: [{featureGate: 'integrations-commits'}],
-                author: '',
-                noun: 'Installation',
-                issue_url: '',
-                source_url: '',
-                aspects: {},
-              },
-              setupDialog: {url: '/github-setup/', width: 600, height: 600},
-            },
-          ],
-        },
+        body: {providers: [githubProvider]},
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/integrations/`,
@@ -624,41 +609,15 @@ describe('Onboarding', () => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/config/integrations/`,
-        body: {
-          providers: [
-            {
-              key: 'github',
-              slug: 'github',
-              name: 'GitHub',
-              canAdd: true,
-              canDisable: false,
-              features: ['commits'],
-              metadata: {
-                description: '',
-                features: [{featureGate: 'integrations-commits'}],
-                author: '',
-                noun: 'Installation',
-                issue_url: '',
-                source_url: '',
-                aspects: {},
-              },
-              setupDialog: {url: '/github-setup/', width: 600, height: 600},
-            },
-          ],
-        },
+        body: {providers: [githubProvider]},
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${scmOrganization.slug}/integrations/`,
         body: [
-          {
+          OrganizationIntegrationsFixture({
             id: '1',
             name: 'getsentry',
             domainName: 'github.com/getsentry',
-            accountType: null,
-            icon: null,
-            gracePeriodEnd: null,
-            status: 'active',
-            organizationIntegrationStatus: 'active',
             provider: {
               key: 'github',
               slug: 'github',
@@ -668,7 +627,7 @@ describe('Onboarding', () => {
               features: ['commits'],
               aspects: {},
             },
-          },
+          }),
         ],
       });
       MockApiClient.addMockResponse({
