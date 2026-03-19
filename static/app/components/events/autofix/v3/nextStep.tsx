@@ -11,11 +11,9 @@ import {
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {
-  isCodeChangesArtifact,
+  getAutofixArtifactFromSection,
   isCodeChangesSection,
-  isRootCauseArtifact,
   isRootCauseSection,
-  isSolutionArtifact,
   isSolutionSection,
   type AutofixSection,
   type useExplorerAutofix,
@@ -75,10 +73,7 @@ function RootCauseNextStep({autofix, runId, section}: NextStepProps) {
     [startStep, runId]
   );
 
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isRootCauseArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
     return null;
@@ -135,10 +130,7 @@ function SolutionNextStep({autofix, runId, section}: NextStepProps) {
     [startStep, runId]
   );
 
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isSolutionArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
     return null;
@@ -177,10 +169,7 @@ function CodeChangesNextStep({autofix, runId, section}: NextStepProps) {
     [startStep, runId]
   );
 
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isCodeChangesArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
     return null;
