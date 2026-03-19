@@ -37,7 +37,6 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
@@ -150,7 +149,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
-  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
@@ -490,14 +488,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const showLegend =
     (showLegendProp !== 'never' && visibleSeriesCount > 1) || showLegendProp === 'always';
 
-  // The threshold maxOffset must account for the legend height so that threshold
-  // lines/areas drawn at pixel coordinates (for "infinite" thresholds) don't overlap
-  // the legend. These values must stay in sync with the `grid.top` config below.
-  const usesChartLegendComponent = organization.features.includes(
-    'chart-legend-component'
-  );
-
-  const thresholdMaxOffset = showLegend && !usesChartLegendComponent ? 25 : 10;
+  const thresholdMaxOffset = 10;
 
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
   // we can look up the types in the tooltip. We need this so we can find the
