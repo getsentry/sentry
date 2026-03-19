@@ -446,7 +446,7 @@ export function isCodeChangesSection(section: AutofixSection): boolean {
   return section.step === 'code_changes';
 }
 
-export function isPullRequestSection(section: AutofixSection): boolean {
+export function isPullRequestsSection(section: AutofixSection): boolean {
   return section.step === 'pull_request';
 }
 
@@ -460,29 +460,25 @@ export type AutofixArtifact =
   | RepoPRState[]
   | ExplorerCodingAgentState[];
 
-export function getOrderedAutofixArtifacts(
-  runState: ExplorerAutofixState | null
-): AutofixArtifact[] {
-  return getOrderedAutofixSections(runState)
-    .map(section => {
-      if (isRootCauseSection(section)) {
-        return section.artifacts.findLast(isRootCauseArtifact) ?? null;
-      }
-      if (isSolutionSection(section)) {
-        return section.artifacts.findLast(isSolutionArtifact) ?? null;
-      }
-      if (isCodeChangesSection(section)) {
-        return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
-      }
-      if (isPullRequestSection(section)) {
-        return section.artifacts.findLast(isPullRequestsArtifact) ?? null;
-      }
-      if (isCodingAgentsSection(section)) {
-        return section.artifacts.findLast(isCodingAgentsArtifact) ?? null;
-      }
-      return null;
-    })
-    .filter(defined);
+export function getAutofixArtifactFromSection(
+  section: AutofixSection
+): AutofixArtifact | null {
+  if (isRootCauseSection(section)) {
+    return section.artifacts.findLast(isRootCauseArtifact) ?? null;
+  }
+  if (isSolutionSection(section)) {
+    return section.artifacts.findLast(isSolutionArtifact) ?? null;
+  }
+  if (isCodeChangesSection(section)) {
+    return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
+  }
+  if (isPullRequestsSection(section)) {
+    return section.artifacts.findLast(isPullRequestsArtifact) ?? null;
+  }
+  if (isCodingAgentsSection(section)) {
+    return section.artifacts.findLast(isCodingAgentsArtifact) ?? null;
+  }
+  return null;
 }
 
 function isLastMessageOfSection(message?: Block['message']): boolean {

@@ -9,14 +9,14 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  getOrderedAutofixArtifacts,
-  isCodeChangesArtifact,
-  isCodingAgentsArtifact,
-  isPullRequestsArtifact,
-  isRootCauseArtifact,
-  isSolutionArtifact,
+  getOrderedAutofixSections,
+  isCodeChangesSection,
+  isCodingAgentsSection,
+  isPullRequestsSection,
+  isRootCauseSection,
+  isSolutionSection,
   useExplorerAutofix,
-  type AutofixArtifact,
+  type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesPreview,
@@ -182,12 +182,12 @@ interface AutofixArtifactsProps {
 }
 
 function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProps) {
-  const artifacts = useMemo(
-    () => getOrderedAutofixArtifacts(autofix.runState),
+  const sections = useMemo(
+    () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
   );
 
-  if (!artifacts.length) {
+  if (!sections.length) {
     return (
       <AutofixEmptyState
         autofix={autofix}
@@ -199,12 +199,7 @@ function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProp
   }
 
   return (
-    <AutofixPreviews
-      artifacts={artifacts}
-      event={event}
-      group={group}
-      project={project}
-    />
+    <AutofixPreviews sections={sections} event={event} group={group} project={project} />
   );
 }
 
@@ -272,13 +267,13 @@ function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStatePr
 }
 
 interface AutofixPreviewsProps {
-  artifacts: AutofixArtifact[];
   event: Event;
   group: Group;
   project: Project;
+  sections: AutofixSection[];
 }
 
-function AutofixPreviews({artifacts, event, group, project}: AutofixPreviewsProps) {
+function AutofixPreviews({event, group, project, sections}: AutofixPreviewsProps) {
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
@@ -287,26 +282,26 @@ function AutofixPreviews({artifacts, event, group, project}: AutofixPreviewsProp
 
   return (
     <Flex direction="column" gap="xl">
-      {artifacts.map(artifact => {
-        // there should only be 1 artifact of each type
-        if (isRootCauseArtifact(artifact)) {
-          return <RootCausePreview key="root-cause" artifact={artifact} />;
+      {sections.map(section => {
+        // there should only be 1 section of each type
+        if (isRootCauseSection(section)) {
+          return <RootCausePreview key="root-cause" section={section} />;
         }
 
-        if (isSolutionArtifact(artifact)) {
-          return <SolutionPreview key="solution" artifact={artifact} />;
+        if (isSolutionSection(section)) {
+          return <SolutionPreview key="solution" section={section} />;
         }
 
-        if (isCodeChangesArtifact(artifact)) {
-          return <CodeChangesPreview key="code-changes" artifact={artifact} />;
+        if (isCodeChangesSection(section)) {
+          return <CodeChangesPreview key="code-changes" section={section} />;
         }
 
-        if (isPullRequestsArtifact(artifact)) {
-          return <PullRequestsPreview key="pull-requests" artifact={artifact} />;
+        if (isPullRequestsSection(section)) {
+          return <PullRequestsPreview key="pull-requests" section={section} />;
         }
 
-        if (isCodingAgentsArtifact(artifact)) {
-          return <CodingAgentPreview key="coding-agent" artifact={artifact} />;
+        if (isCodingAgentsSection(section)) {
+          return <CodingAgentPreview key="coding-agent" section={section} />;
         }
 
         // TODO: maybe send a log?
