@@ -208,12 +208,12 @@ class ProjectKey(ReplicatedCellModel):
         )
 
     def handle_async_replication(self, shard_identifier: int) -> None:
-        from sentry.hybridcloud.services.project_key_mapping import RpcProjectKey
+        from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
         from sentry.hybridcloud.services.replica import control_replica_service
         from sentry.types.cell import get_local_cell
 
         control_replica_service.upsert_project_key_mapping(
-            project_key=RpcProjectKey(
+            project_key=RpcProjectKeyMapping(
                 id=self.id,
                 public_key=self.public_key,
                 cell_name=get_local_cell().name,
