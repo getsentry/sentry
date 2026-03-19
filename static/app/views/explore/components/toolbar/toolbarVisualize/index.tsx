@@ -14,12 +14,14 @@ import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
   ToolbarLabel,
   ToolbarRow,
 } from 'sentry/views/explore/components/toolbar/styles';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 
 export function ToolbarVisualizeHeader() {
   return (
@@ -144,6 +146,21 @@ export function ToolbarVisualizeAddChart({
   disabled,
   label,
 }: ToolbarVisualizeAddProps) {
+  const organization = useOrganization();
+
+  if (canUseMetricsUIRefresh(organization)) {
+    return (
+      <Button
+        icon={<IconAdd />}
+        onClick={add}
+        aria-label={label ?? t('Add Metric')}
+        disabled={disabled}
+      >
+        {label ?? t('Add metric')}
+      </Button>
+    );
+  }
+
   return (
     <ToolbarFooterButton
       size="zero"

@@ -9,16 +9,19 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {
   ExploreBodyContent,
   ExploreBodySearch,
   ExploreContentSection,
+  ExploreControlSection,
 } from 'sentry/views/explore/components/styles';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {MetricPanel} from 'sentry/views/explore/metrics/metricPanel';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MetricToolbar} from 'sentry/views/explore/metrics/metricToolbar';
 import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
@@ -40,6 +43,20 @@ type MetricsTabProps = {
 };
 
 export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
+  const organization = useOrganization();
+
+  if (canUseMetricsUIRefresh(organization)) {
+    return (
+      <MultiMetricsQueryParamsProvider>
+        <MetricsTabFilterSection datePageFilterProps={datePageFilterProps} />
+        <ExploreBodyContent>
+          <MetricsQueryBuilderSection />
+          <MetricsTabBodySection />
+        </ExploreBodyContent>
+      </MultiMetricsQueryParamsProvider>
+    );
+  }
+
   return (
     <MultiMetricsQueryParamsProvider>
       <MetricsTabFilterSection datePageFilterProps={datePageFilterProps} />
@@ -50,6 +67,8 @@ export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
 }
 
 function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
+  const organization = useOrganization();
+
   return (
     <ExploreBodySearch>
       <Layout.Main width="full">
@@ -62,7 +81,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
               searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
             />
           </StyledPageFilterBar>
-          <MetricSaveAs />
+          {canUseMetricsUIRefresh(organization) ? null : <MetricSaveAs />}
         </FilterBarWithSaveAsContainer>
       </Layout.Main>
     </ExploreBodySearch>
@@ -70,8 +89,41 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
 }
 
 function MetricsQueryBuilderSection() {
+  const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
+
+  if (canUseMetricsUIRefresh(organization)) {
+    return (
+      <ExploreControlSection expanded>
+        <Flex direction="column" gap="lg" align="start" width="100%">
+          {metricQueries.map((metricQuery, index) => {
+            return (
+              <MetricsQueryParamsProvider
+                key={`queryBuilder-${index}`}
+                queryParams={metricQuery.queryParams}
+                setQueryParams={metricQuery.setQueryParams}
+                traceMetric={metricQuery.metric}
+                setTraceMetric={metricQuery.setTraceMetric}
+                removeMetric={metricQuery.removeMetric}
+              >
+                <Container width="100%">
+                  <MetricToolbar traceMetric={metricQuery.metric} queryIndex={index} />
+                </Container>
+              </MetricsQueryParamsProvider>
+            );
+          })}
+          <ToolbarVisualizeAddChart
+            add={addMetricQuery}
+            disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+            label={t('Add Metric')}
+          />
+          <MetricSaveAs />
+        </Flex>
+      </ExploreControlSection>
+    );
+  }
+
   return (
     <MetricsQueryBuilderContainer borderTop="primary" padding="md" style={{flexGrow: 0}}>
       <Flex direction="column" gap="lg" align="start">
@@ -100,6 +152,7 @@ function MetricsQueryBuilderSection() {
 }
 
 function MetricsTabBodySection() {
+  const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const [interval] = useChartInterval();
   const {isFetching: areToolbarsLoading, isMetricOptionsEmpty} = useMetricOptions({
@@ -111,6 +164,31 @@ function MetricsTabBodySection() {
     areToolbarsLoading,
     isMetricOptionsEmpty,
   });
+
+  if (canUseMetricsUIRefresh(organization)) {
+    return (
+      <ExploreContentSection>
+        <Stack>
+          <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
+            {metricQueries.map((metricQuery, index) => {
+              return (
+                <MetricsQueryParamsProvider
+                  key={`queryPanel-${index}`}
+                  queryParams={metricQuery.queryParams}
+                  setQueryParams={metricQuery.setQueryParams}
+                  traceMetric={metricQuery.metric}
+                  setTraceMetric={metricQuery.setTraceMetric}
+                  removeMetric={metricQuery.removeMetric}
+                >
+                  <MetricPanel traceMetric={metricQuery.metric} queryIndex={index} />
+                </MetricsQueryParamsProvider>
+              );
+            })}
+          </WidgetSyncContextProvider>
+        </Stack>
+      </ExploreContentSection>
+    );
+  }
 
   return (
     <ExploreBodyContent>
