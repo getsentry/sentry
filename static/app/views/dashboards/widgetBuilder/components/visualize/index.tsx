@@ -67,8 +67,16 @@ import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export const NONE = 'none';
+
+/**
+ * Fields that should not show the linked dashboard button.
+ */
+const FIELDS_DISABLED_FOR_LINKING: readonly string[] = [
+  SpanFields.IS_STARRED_TRANSACTION,
+];
 
 const NONE_AGGREGATE = {
   textValue: t('field'),
@@ -962,7 +970,10 @@ export function Visualize({error, setError}: VisualizeProps) {
                           )}
                           {hasDrillDownFlows &&
                             isTableWidget &&
-                            fields[index]?.kind === FieldValueKind.FIELD && (
+                            fields[index]?.kind === FieldValueKind.FIELD &&
+                            !FIELDS_DISABLED_FOR_LINKING.includes(
+                              fields[index]?.field ?? ''
+                            ) && (
                               <Button
                                 priority="transparent"
                                 icon={<IconLink />}
@@ -975,9 +986,12 @@ export function Visualize({error, setError}: VisualizeProps) {
                                         fields[index]?.kind === FieldValueKind.FIELD &&
                                         fields[index]?.field
                                       ) {
+                                        const fieldName = fields[index].field;
                                         const newLinkedDashboards: LinkedDashboard[] = [
-                                          ...linkedDashboards,
-                                          {dashboardId, field: fields[index].field},
+                                          ...linkedDashboards.filter(
+                                            ld => ld.field !== fieldName
+                                          ),
+                                          {dashboardId, field: fieldName},
                                         ];
                                         dispatch({
                                           type: BuilderStateAction.SET_LINKED_DASHBOARDS,

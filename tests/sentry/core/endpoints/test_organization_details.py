@@ -19,7 +19,11 @@ from sentry.api.serializers.models.organization import TrustedRelaySerializer
 from sentry.api.utils import generate_locality_url
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
+from sentry.constants import (
+    RESERVED_ORGANIZATION_SLUGS,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
+    ObjectStatus,
+)
 from sentry.core.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.types import DynamicSamplingMode
@@ -1509,6 +1513,108 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.get_success_response(self.organization.slug, **data)
 
         assert self.organization.get_option("sentry:enable_seer_coding") is False
+
+    def test_default_coding_agent_default(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["defaultCodingAgent"] == SEER_DEFAULT_CODING_AGENT_DEFAULT
+
+    def test_default_coding_agent_can_be_set(self) -> None:
+        data = {"defaultCodingAgent": "seer"}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") == "seer"
+        assert response.data["defaultCodingAgent"] == "seer"
+
+    def test_default_coding_agent_null_on_first_write_create_path(self) -> None:
+        # Tests the create path (no OrganizationOption row exists yet): sending null
+        # must store null rather than the string "None" via str(None).
+        data = {"defaultCodingAgent": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") is None
+        assert response.data["defaultCodingAgent"] is None
+
+    def test_default_coding_agent_writing_default_value_stores_but_skips_audit_log(
+        self,
+    ) -> None:
+        # Sending the default value does not produce an audit log entry (by design:
+        # the ORG_OPTIONS loop only audits writes that differ from the default).
+        with assume_test_silo_mode_of(AuditLogEntry):
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
+
+        data = {"defaultCodingAgent": SEER_DEFAULT_CODING_AGENT_DEFAULT}
+        self.get_success_response(self.organization.slug, **data)
+
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent")
+            == SEER_DEFAULT_CODING_AGENT_DEFAULT
+        )
+        with assume_test_silo_mode_of(AuditLogEntry):
+            assert not AuditLogEntry.objects.filter(organization_id=self.organization.id).exists()
+
+    def test_default_coding_agent_integration_id_default_none(self) -> None:
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["defaultCodingAgentIntegrationId"] is None
+
+    def test_default_coding_agent_integration_id_can_be_set(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="test-ext-id"
+        )
+        data = {"defaultCodingAgentIntegrationId": integration.id}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
+            == integration.id
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+
+    def test_default_coding_agent_integration_id_rejects_foreign_org(self) -> None:
+        other_org = self.create_organization()
+        integration = self.create_integration(
+            organization=other_org, provider="github", external_id="other-ext-id"
+        )
+        data = {"defaultCodingAgentIntegrationId": integration.id}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_coding_agent_integration_id_rejects_nonexistent_id(self) -> None:
+        data = {"defaultCodingAgentIntegrationId": 99999999}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_default_coding_agent_integration_id_coerces_string_input(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="test-ext-id-str"
+        )
+        data = {"defaultCodingAgentIntegrationId": str(integration.id)}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
+            == integration.id
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+
+    def test_default_coding_agent_integration_id_null_on_first_write_create_path(self) -> None:
+        # Tests the create path (no OrganizationOption row exists yet): sending null
+        # must store null rather than crashing via int(None).
+        data = {"defaultCodingAgentIntegrationId": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id") is None
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] is None
+
+    def test_default_coding_agent_can_be_cleared(self) -> None:
+        self.organization.update_option("sentry:seer_default_coding_agent", "seer")
+        data = {"defaultCodingAgent": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert self.organization.get_option("sentry:seer_default_coding_agent") is None
+        assert response.data["defaultCodingAgent"] is None
+
+    def test_default_coding_agent_integration_id_can_be_cleared(self) -> None:
+        self.organization.update_option("sentry:seer_default_coding_agent_integration_id", 123)
+        data = {"defaultCodingAgentIntegrationId": None}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert (
+            self.organization.get_option("sentry:seer_default_coding_agent_integration_id") is None
+        )
+        assert response.data["defaultCodingAgentIntegrationId"] is None
 
     def test_granular_replay_permissions_flag_set(self) -> None:
         with assume_test_silo_mode_of(AuditLogEntry):

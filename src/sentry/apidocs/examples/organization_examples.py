@@ -305,6 +305,8 @@ class OrganizationExamples:
                 "enableSeerEnhancedAlerts": True,
                 "autoOpenPrs": False,
                 "enablePrReviewTestGeneration": True,
+                "defaultCodingAgent": None,
+                "defaultCodingAgentIntegrationId": None,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
                 "trustedRelays": [],
