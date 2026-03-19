@@ -16,7 +16,7 @@ import type {EventsStatsData} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {AvatarList} from '@sentry/scraps/avatar';
 
 import {DateTime} from 'sentry/components/dateTime';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import {AssignedTo} from 'sentry/components/group/assignedTo';
 import type {OnAssignCallback} from 'sentry/components/group/assigneeSelector';

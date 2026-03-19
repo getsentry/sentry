@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   hasFlamegraphData,
   StacktraceFlamegraph,

@@ -40,7 +40,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -102,7 +102,7 @@ import type {
   Widget,
 } from './types';
 import {DashboardFilterKeys, DashboardState, MAX_WIDGETS, WidgetType} from './types';
-import WidgetLegendSelectionState from './widgetLegendSelectionState';
+import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 

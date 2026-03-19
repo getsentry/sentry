@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   TraceMetaDataHeader,

@@ -32,8 +32,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import type EventView from 'sentry/utils/discover/eventView';
-import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
+import type {EventData, EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import {
   ABYTE_UNITS,

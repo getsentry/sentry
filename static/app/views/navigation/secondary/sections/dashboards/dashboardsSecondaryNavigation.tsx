@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';

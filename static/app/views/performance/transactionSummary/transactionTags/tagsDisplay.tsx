@@ -5,7 +5,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {SegmentExplorerQuery} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {TagKeyHistogramQuery} from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';

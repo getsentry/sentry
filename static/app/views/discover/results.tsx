@@ -41,7 +41,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
-import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import {EventView, isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DiscoverDatasets,

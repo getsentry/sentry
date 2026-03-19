@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateAlias, parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

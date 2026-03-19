@@ -4,7 +4,7 @@ import {mergeProps} from '@react-aria/utils';
 import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import Hook from 'sentry/components/hook';
 import {
   IconCompass,

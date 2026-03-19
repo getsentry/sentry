@@ -20,7 +20,7 @@ import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
-import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
 import {DashboardsMEPProvider} from './dashboardsMEPContext';

@@ -8,7 +8,7 @@ import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

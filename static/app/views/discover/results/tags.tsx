@@ -19,7 +19,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';

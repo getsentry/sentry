@@ -7,7 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {validateDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';

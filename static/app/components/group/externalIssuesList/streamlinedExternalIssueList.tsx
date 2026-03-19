@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import {Placeholder} from 'sentry/components/placeholder';

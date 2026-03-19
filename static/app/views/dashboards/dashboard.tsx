@@ -50,7 +50,7 @@ import {SortableWidget} from './sortableWidget';
 import type {DashboardDetails, Widget} from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
 import {connectDashboardCharts, getDashboardFiltersFromURL} from './utils';
-import type WidgetLegendSelectionState from './widgetLegendSelectionState';
+import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
