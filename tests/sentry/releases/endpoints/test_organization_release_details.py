@@ -1144,6 +1144,62 @@ class UpdateReleaseDetailsTest(APITestCase):
         release = Release.objects.get(id=release.id)
         assert release.ref == "master"
 
+    def test_no_access_to_all_projects(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project1)
+        release.add_project(project2)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(url, data={"ref": "master"})
+
+        assert response.status_code == 404
+
+    def test_no_access_to_all_projects_open_membership(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = True
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project1)
+        release.add_project(project2)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(url, data={"ref": "master"})
+
+        assert response.status_code == 200
+
 
 class ReleaseDeleteTest(APITestCase):
     def test_simple(self) -> None:
@@ -1180,6 +1236,96 @@ class ReleaseDeleteTest(APITestCase):
 
         assert not Release.objects.filter(id=release.id).exists()
         assert not ReleaseFile.objects.filter(id=release_file.id).exists()
+
+    def test_no_access_to_all_projects(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project1)
+        release.add_project(project2)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
+        )
+        response = self.client.delete(url)
+
+        assert response.status_code == 404
+
+        assert Release.objects.filter(id=release.id).exists()
+
+    def test_with_access_to_all_projects(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project1)
+        release.add_project(project2)
+
+        self.create_member(teams=[team1, team2], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
+        )
+        response = self.client.delete(url)
+
+        assert response.status_code == 204
+
+        assert not Release.objects.filter(id=release.id).exists()
+
+    def test_no_access_to_all_projects_open_membership(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = True
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project1)
+        release.add_project(project2)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
+        )
+        response = self.client.delete(url)
+
+        assert response.status_code == 204
+
+        assert not Release.objects.filter(id=release.id).exists()
 
     def test_existing_group(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)

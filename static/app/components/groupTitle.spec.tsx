@@ -1,13 +1,13 @@
+import {GroupFixture} from 'sentry-fixture/group';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EventOrGroupTitle} from 'sentry/components/eventOrGroupTitle';
+import {GroupTitle} from 'sentry/components/groupTitle';
 import {EventOrGroupType} from 'sentry/types/event';
-import type {BaseGroup} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
 
-describe('EventOrGroupTitle', () => {
+describe('GroupTitle', () => {
   const data = {
     metadata: {
       type: 'metadata type',
@@ -17,66 +17,40 @@ describe('EventOrGroupTitle', () => {
     culprit: 'culprit',
   };
 
-  it('renders with subtitle when `type = error`', () => {
-    render(
-      <EventOrGroupTitle
-        data={
-          {
-            ...data,
-            ...{
-              type: EventOrGroupType.ERROR,
-            },
-          } as BaseGroup
-        }
-      />
-    );
+  it('renders title for `type = error`', () => {
+    render(<GroupTitle data={GroupFixture({...data, type: EventOrGroupType.ERROR})} />);
+
+    expect(screen.getByText('metadata type')).toBeInTheDocument();
   });
 
-  it('renders with subtitle when `type = csp`', () => {
-    render(
-      <EventOrGroupTitle
-        data={
-          {
-            ...data,
-            ...{
-              type: EventOrGroupType.CSP,
-            },
-          } as BaseGroup
-        }
-      />
-    );
+  it('renders title for `type = csp`', () => {
+    render(<GroupTitle data={GroupFixture({...data, type: EventOrGroupType.CSP})} />);
+
+    expect(screen.getByText('metadata directive')).toBeInTheDocument();
   });
 
-  it('renders with no subtitle when `type = default`', () => {
+  it('renders title for `type = default`', () => {
     render(
-      <EventOrGroupTitle
-        data={
-          {
-            ...data,
-            type: EventOrGroupType.DEFAULT,
-            metadata: {
-              ...data.metadata,
-              title: 'metadata title',
-            },
-          } as BaseGroup
-        }
+      <GroupTitle
+        data={GroupFixture({
+          ...data,
+          type: EventOrGroupType.DEFAULT,
+          metadata: {...data.metadata, title: 'metadata title'},
+        })}
       />
     );
+
+    expect(screen.getByText('metadata title')).toBeInTheDocument();
   });
 
   it('renders with title override', () => {
     render(
-      <EventOrGroupTitle
-        data={
-          {
-            ...data,
-            type: EventOrGroupType.ERROR,
-            metadata: {
-              ...data.metadata,
-              title: 'metadata title',
-            },
-          } as BaseGroup
-        }
+      <GroupTitle
+        data={GroupFixture({
+          ...data,
+          type: EventOrGroupType.ERROR,
+          metadata: {...data.metadata, title: 'metadata title'},
+        })}
       />
     );
 
@@ -85,13 +59,8 @@ describe('EventOrGroupTitle', () => {
 
   it('does not render stack trace when issueCategory is performance', () => {
     render(
-      <EventOrGroupTitle
-        data={
-          {
-            ...data,
-            issueCategory: IssueCategory.PERFORMANCE,
-          } as BaseGroup
-        }
+      <GroupTitle
+        data={GroupFixture({...data, issueCategory: IssueCategory.PERFORMANCE})}
         withStackTracePreview
       />
     );
@@ -101,11 +70,10 @@ describe('EventOrGroupTitle', () => {
 
   it('does not render stacktrace preview when data is a tombstone', () => {
     render(
-      <EventOrGroupTitle
+      <GroupTitle
         data={{
           id: '123',
           level: 'error',
-          message: 'numTabItems is not defined ReferenceError something',
           culprit:
             'useOverflowTabs(webpack-internal:///./app/components/tabs/tabList.tsx)',
           type: EventOrGroupType.ERROR,
@@ -128,7 +96,7 @@ describe('EventOrGroupTitle', () => {
   });
 
   describe('performance issue list', () => {
-    const perfData = {
+    const perfData = GroupFixture({
       title: 'Hello',
       type: EventOrGroupType.TRANSACTION,
       issueCategory: IssueCategory.PERFORMANCE,
@@ -136,10 +104,10 @@ describe('EventOrGroupTitle', () => {
         title: 'N+1 Query',
       },
       culprit: 'transaction name',
-    } as BaseGroup;
+    });
 
     it('should correctly render title', () => {
-      render(<EventOrGroupTitle data={perfData} />);
+      render(<GroupTitle data={perfData} />);
 
       expect(screen.getByText('N+1 Query')).toBeInTheDocument();
     });
