@@ -35,6 +35,13 @@ class ViewValidator(serializers.Serializer):
     environments = serializers.ListField(required=True, allow_empty=True)
     timeFilters = serializers.DictField(required=True, allow_empty=False)
 
+    def validate_querySort(self, value):
+        if value == "recommended":
+            raise ValidationError(
+                detail='The "recommended" sort is experimental, it cannot be saved at this time.'
+            )
+        return value
+
     def validate_projects(self, value):
         if value != [-1]:
             project_ids = set(value)
