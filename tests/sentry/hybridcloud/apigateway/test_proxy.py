@@ -328,6 +328,13 @@ class ProxyCircuitBreakerTestCase(ApiGatewayTestCase):
         assert resp.status_code == 200
 
     @responses.activate
+    @override_options({"apigateway.proxy.circuit-breaker.config": "invalid-lol", **CB_ENABLED})
+    def test_handles_invalid_config(self) -> None:
+        request = RequestFactory().get("http://sentry.io/get")
+        res = proxy_request(request, self.organization.slug, url_name)
+        assert res.status_code == 200
+
+    @responses.activate
     @override_options(CB_ENABLED)
     def test_timeout_records_error(self) -> None:
         responses.add(

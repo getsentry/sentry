@@ -126,10 +126,15 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     circuit_breaker: CircuitBreaker | None = None
     # TODO(mark) remove rollout options
     if options.get("apigateway.proxy.circuit-breaker.enabled"):
-        circuit_breaker = CircuitBreaker(
-            f"apigateway.proxy.{cell.name}",
-            options.get("apigateway.proxy.circuit-breaker.config"),
-        )
+        try:
+            circuit_breaker = CircuitBreaker(
+                f"apigateway.proxy.{cell.name}",
+                options.get("apigateway.proxy.circuit-breaker.config"),
+            )
+        except Exception as e:
+            logger.warning("apigateway.invalid-breaker-config", extra={"message": str(e)})
+
+    if circuit_breaker is not None:
         if not circuit_breaker.should_allow_request():
             metrics.incr(
                 "apigateway.proxy.circuit_breaker.rejected",
