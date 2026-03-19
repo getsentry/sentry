@@ -3,7 +3,9 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Literal, Protocol, Self
+from typing import Any, Literal, Protocol
+
+from pydantic import BaseModel
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -110,21 +112,19 @@ class NotificationTargetResourceType(StrEnum):
     DIRECT_MESSAGE = "direct_message"
 
 
-class NotificationTarget(Protocol):
+class NotificationTarget(BaseModel):
     """
-    All targets of the notification platform must adhere to this protocol.
+    All targets of the notification platform must adhere to this base class.
     """
 
-    is_prepared: bool
+    class Config:
+        frozen = True
+        use_enum_values = True
+
     provider_key: NotificationProviderKey
     resource_type: NotificationTargetResourceType
     resource_id: str
-    specific_data: dict[str, Any] | None
-
-    def to_dict(self) -> dict[str, Any]: ...
-
-    @classmethod
-    def from_dict(self, data: dict[str, Any]) -> Self: ...
+    specific_data: dict[str, Any] | None = None
 
 
 class NotificationStrategy(Protocol):
@@ -135,10 +135,14 @@ class NotificationStrategy(Protocol):
     def get_targets(self) -> list[NotificationTarget]: ...
 
 
-class NotificationData(Protocol):
+class NotificationData(BaseModel):
     """
-    All data passing through the notification platform must adhere to this protocol.
+    All data passing through the notification platform must adhere to this base class.
     """
+
+    class Config:
+        frozen = True
+        use_enum_values = True
 
     source: NotificationSource
     """

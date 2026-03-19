@@ -20,6 +20,7 @@ interface PreprodDetectorFormData {
   name: string;
   owner: string;
   projectId: string;
+  query: string;
   thresholdType: PreprodThresholdType;
   workflowIds: string[];
 }
@@ -36,6 +37,7 @@ export const PREPROD_DETECTOR_FORM_FIELDS = {
   thresholdType: 'thresholdType',
   highThreshold: 'highThreshold',
   lowThreshold: 'lowThreshold',
+  query: 'query',
 } satisfies Record<PreprodDetectorFormFieldName, PreprodDetectorFormFieldName>;
 
 export const PREPROD_DEFAULT_FORM_DATA: Partial<PreprodDetectorFormData> = {
@@ -43,6 +45,7 @@ export const PREPROD_DEFAULT_FORM_DATA: Partial<PreprodDetectorFormData> = {
   thresholdType: 'absolute',
   highThreshold: '',
   lowThreshold: '',
+  query: '',
 };
 
 export function usePreprodDetectorFormField<T extends PreprodDetectorFormFieldName>(
@@ -99,6 +102,7 @@ export function preprodFormDataToEndpointPayload(
     config: {
       measurement: data.measurement,
       thresholdType: data.thresholdType,
+      query: data.query || undefined,
     },
   };
 }
@@ -134,6 +138,7 @@ export function preprodSavedDetectorToFormData(
     workflowIds: detector.workflowIds,
     measurement: detector.config.measurement,
     thresholdType: detector.config.thresholdType,
+    query: detector.config.query || '',
     highThreshold: conditionToThreshold(highCondition?.comparison, isPercentage),
     lowThreshold: conditionToThreshold(lowCondition?.comparison, isPercentage),
   };

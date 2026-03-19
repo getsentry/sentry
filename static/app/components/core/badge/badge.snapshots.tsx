@@ -8,7 +8,7 @@ import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 const themes = {light: lightTheme, dark: darkTheme};
 
 describe('Badge', () => {
-  describe.each(['light', 'dark'] as const)('theme-%s', themeName => {
+  describe.each(['light', 'dark'] as const)('%s', themeName => {
     it.snapshot.each<BadgeProps['variant']>([
       'muted',
       'internal',
@@ -22,12 +22,16 @@ describe('Badge', () => {
       'beta',
       'new',
       'experimental',
-    ])('variant-%s', variant => (
-      <ThemeProvider theme={themes[themeName]}>
-        <div style={{padding: 8}}>
-          <Badge variant={variant}>{variant}</Badge>
-        </div>
-      </ThemeProvider>
-    ));
+    ])(
+      '%s',
+      variant => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8}}>
+            <Badge variant={variant}>{variant}</Badge>
+          </div>
+        </ThemeProvider>
+      ),
+      variant => ({theme: themeName, variant: String(variant)})
+    );
   });
 });

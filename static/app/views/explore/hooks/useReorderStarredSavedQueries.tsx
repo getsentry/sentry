@@ -1,31 +1,36 @@
-import {useCallback} from 'react';
-
-import {useApi} from 'sentry/utils/useApi';
+import {
+  fetchMutation,
+  setApiQueryData,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  useInvalidateSavedQueries,
+  getStarredSavedQueriesQueryKey,
   type SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 export function useReorderStarredSavedQueries() {
   const organization = useOrganization();
-  const api = useApi();
-  const invalidateSavedQueries = useInvalidateSavedQueries();
-  const reorderStarredSavedQueries = useCallback(
-    async (queries: SavedQuery[]) => {
-      await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/starred/order/`,
-        {
-          method: 'PUT',
-          data: {
-            query_ids: queries.map(query => query.id),
-          },
-        }
-      );
-      invalidateSavedQueries();
-    },
-    [api, organization.slug, invalidateSavedQueries]
-  );
+  const queryClient = useQueryClient();
+  const queryKey = getStarredSavedQueriesQueryKey(organization);
 
-  return reorderStarredSavedQueries;
+  const {mutate} = useMutation({
+    mutationFn: (queries: SavedQuery[]) =>
+      fetchMutation({
+        url: `/organizations/${organization.slug}/explore/saved/starred/order/`,
+        method: 'PUT',
+        data: {
+          query_ids: queries.map(query => query.id),
+        },
+      }),
+    onMutate: (queries: SavedQuery[]) => {
+      setApiQueryData<SavedQuery[]>(queryClient, queryKey, queries);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey});
+    },
+  });
+
+  return mutate;
 }
