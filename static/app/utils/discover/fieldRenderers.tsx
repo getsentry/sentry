@@ -1379,9 +1379,11 @@ function renderReplayIdAsLink(replayId: string, {organization}: RenderFunctionBa
   });
 
   return (
-    <ViewReplayLink replayId={replayId} to={target}>
-      {getShortEventId(replayId)}
-    </ViewReplayLink>
+    <Container>
+      <ViewReplayLink replayId={replayId} to={target}>
+        {getShortEventId(replayId)}
+      </ViewReplayLink>
+    </Container>
   );
 }
 
