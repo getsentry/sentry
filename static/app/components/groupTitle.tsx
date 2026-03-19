@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
-import {getTitle, isTombstone} from 'sentry/utils/events';
+import type {BaseGroup} from 'sentry/types/group';
+import {getTitle} from 'sentry/utils/events';
 
 import {GroupPreviewTooltip} from './groupPreviewTooltip';
 
 interface GroupTitleProps {
-  data: BaseGroup | GroupTombstoneHelper;
+  data: BaseGroup;
   className?: string;
   query?: string;
   withStackTracePreview?: boolean;
@@ -23,14 +23,14 @@ export function GroupTitle({
 
   return (
     <span className={className}>
-      {!isTombstone(data) && withStackTracePreview ? (
+      {withStackTracePreview ? (
         <GroupPreviewTooltip
           groupId={data.id}
           issueCategory={data.issueCategory}
           groupingCurrentLevel={data.metadata?.current_level}
           query={query}
-          issueType={'issueType' in data ? data.issueType : undefined}
-          project={'project' in data ? data.project : undefined}
+          issueType={data.issueType}
+          project={data.project}
         >
           <Title data-issue-title-primary>{titleLabel}</Title>
         </GroupPreviewTooltip>
