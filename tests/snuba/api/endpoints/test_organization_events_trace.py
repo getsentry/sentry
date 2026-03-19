@@ -6,6 +6,7 @@ import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry import options
+from sentry.api.endpoints.organization_events_trace import query_trace_data
 from sentry.issues.grouptype import (
     PerformanceFileIOMainThreadGroupType,
     PerformanceSlowDBQueryGroupType,
@@ -13,6 +14,7 @@ from sentry.issues.grouptype import (
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
+from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import OccurrenceTestCase, TraceTestCase
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -1519,6 +1521,76 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase, O
             assert perf_issue["event_id"] == self.root_event.event_id
             assert perf_issue["project_id"] == self.project.id
             assert perf_issue["suspect_spans"] == [offender_span_id]
+
+    def test_query_trace_data_occurrences_with_eap_as_source_of_truth(self) -> None:
+        self.load_trace()
+
+        group_1 = self.create_group(project=self.project)
+        group_2 = self.create_group(project=self.gen1_project)
+        issue_occ_id_1 = uuid4().hex
+        issue_occ_id_2 = uuid4().hex
+
+        self.store_eap_items(
+            [
+                # Occurrence on the root transaction
+                self.create_eap_occurrence(
+                    project=self.project,
+                    group_id=group_1.id,
+                    trace_id=self.trace_id,
+                    event_id=self.root_event.event_id,
+                    issue_occurrence_id=issue_occ_id_1,
+                    timestamp=self.day_ago,
+                ),
+                # Occurrence on a gen1 transaction
+                self.create_eap_occurrence(
+                    project=self.gen1_project,
+                    group_id=group_2.id,
+                    trace_id=self.trace_id,
+                    event_id=self.gen1_events[0].event_id,
+                    issue_occurrence_id=issue_occ_id_2,
+                    timestamp=self.day_ago,
+                ),
+            ]
+        )
+
+        snuba_params = SnubaParams(
+            start=self.day_ago - timedelta(hours=1),
+            end=self.day_ago + timedelta(hours=1),
+            organization=self.organization,
+            projects=[self.project, self.gen1_project, self.gen2_project],
+        )
+
+        with self.options(
+            {
+                EAPOccurrencesComparator._should_eval_option_name(): True,
+                EAPOccurrencesComparator._callsite_allowlist_option_name(): [
+                    "api.trace.query_trace_data.occurrences"
+                ],
+            }
+        ):
+            transactions, _errors = query_trace_data(
+                trace_id=self.trace_id,
+                snuba_params=snuba_params,
+                transaction_params=snuba_params,
+                limit=100,
+                event_id=None,
+            )
+
+        root_txn = next(t for t in transactions if t["id"] == self.root_event.event_id)
+        assert issue_occ_id_1 in root_txn["occurrence_id"]
+        assert group_1.id in root_txn["issue.ids"]
+        assert issue_occ_id_1 in root_txn["occurrence_to_issue_id"]
+        assert root_txn["occurrence_to_issue_id"][issue_occ_id_1] == [group_1.id]
+
+        gen1_txn = next(t for t in transactions if t["id"] == self.gen1_events[0].event_id)
+        assert issue_occ_id_2 in gen1_txn["occurrence_id"]
+        assert group_2.id in gen1_txn["issue.ids"]
+        assert issue_occ_id_2 in gen1_txn["occurrence_to_issue_id"]
+        assert gen1_txn["occurrence_to_issue_id"][issue_occ_id_2] == [group_2.id]
+
+        gen1_txn_no_occ = next(t for t in transactions if t["id"] == self.gen1_events[1].event_id)
+        assert gen1_txn_no_occ["occurrence_id"] == []
+        assert gen1_txn_no_occ["issue.ids"] == []
 
 
 class OrganizationEventsTraceMetaEndpointTest(
