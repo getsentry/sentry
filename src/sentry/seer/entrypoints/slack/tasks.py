@@ -93,10 +93,6 @@ def process_mention_for_slack(
             slack_user_id=slack_user_id,
         )
         if not user:
-            entrypoint.install.clear_thread_status(
-                channel_id=channel_id,
-                thread_ts=entrypoint.thread_ts,
-            )
             _send_link_identity_prompt(entrypoint=entrypoint)
             lifecycle.record_halt(halt_reason=ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
             return

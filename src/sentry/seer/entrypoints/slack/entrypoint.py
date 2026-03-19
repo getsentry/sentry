@@ -350,7 +350,6 @@ class SlackExplorerEntrypoint(
         from sentry.integrations.services.integration import integration_service
         from sentry.integrations.slack.integration import SlackIntegration
         from sentry.integrations.types import IntegrationProviderSlug
-        from sentry.seer.entrypoints.slack.tasks import EntrypointSetupError
 
         integration = integration_service.get_integration(
             integration_id=integration_id,
