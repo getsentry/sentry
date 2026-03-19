@@ -17,6 +17,7 @@ export enum DashboardFilter {
   SHARED = 'shared',
   EXCLUDE_PREBUILT = 'excludePrebuilt',
   ONLY_PREBUILT = 'onlyPrebuilt',
+  SHOW_HIDDEN = 'showHidden',
 }
 
 export type LegendType = 'default' | 'breakdown';

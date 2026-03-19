@@ -13,7 +13,14 @@ const DISPATCHES = [
   },
 ];
 
-export async function dispatch({github, context, core, fileChanges, mergeCommitSha}) {
+export async function dispatch({
+  github,
+  context,
+  core,
+  fileChanges,
+  mergeCommitSha,
+  sentryChangedFiles,
+}) {
   core.startGroup('Dispatching request to getsentry.');
 
   await Promise.all(
@@ -26,6 +33,9 @@ export async function dispatch({github, context, core, fileChanges, mergeCommitS
         'sentry-sha': mergeCommitSha,
         // prSHA is the sha actions should post commit statuses too.
         'sentry-pr-sha': context.payload.pull_request.head.sha,
+
+        // Changed files for selective testing. Empty string means full suite.
+        'sentry-changed-files': sentryChangedFiles || '',
       };
 
       core.info(

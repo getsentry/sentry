@@ -6,8 +6,8 @@ export function useHasPlatformizedInsights() {
   const organization = useOrganization();
   const location = useLocation();
 
-  if (location.query.usePlatformizedView === '1') {
-    return true;
+  if (location.query.usePlatformizedView) {
+    return location.query.usePlatformizedView === '1';
   }
 
   return hasPlatformizedInsights(organization);

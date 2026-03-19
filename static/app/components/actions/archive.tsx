@@ -68,7 +68,7 @@ type GetArchiveActionsProps = Pick<
   disableArchiveUntilOccurrence?: boolean;
 };
 
-export function getArchiveActions({
+function getArchiveActions({
   shouldConfirm,
   confirmLabel,
   confirmMessage,

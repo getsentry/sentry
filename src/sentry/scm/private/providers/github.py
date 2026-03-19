@@ -8,6 +8,8 @@ from sentry.scm.errors import SCMProviderException
 from sentry.scm.types import (
     SHA,
     ActionResult,
+    ArchiveFormat,
+    ArchiveLink,
     Author,
     BranchName,
     BuildConclusion,
@@ -103,6 +105,11 @@ REACTION_MAP = {
     "hooray": GitHubReaction.HOORAY,
     "rocket": GitHubReaction.ROCKET,
     "eyes": GitHubReaction.EYES,
+}
+
+GITHUB_ARCHIVE_FORMAT_MAP: dict[ArchiveFormat, str] = {
+    "tarball": "tarball",
+    "zip": "zipball",
 }
 
 GITHUB_REVIEW_EVENT_MAP: dict[ReviewEvent, str] = {
@@ -701,6 +708,23 @@ class GitHubProvider:
             data["output"] = output
         raw = self.client.update_check_run(self.repository["name"], check_run_id, data)
         return map_action(raw, map_check_run)
+
+    @catch_provider_exception
+    def get_archive_link(
+        self,
+        ref: str,
+        archive_format: ArchiveFormat = "tarball",
+    ) -> ActionResult[ArchiveLink]:
+        github_format = GITHUB_ARCHIVE_FORMAT_MAP[archive_format]
+        url = self.client.get_archive_link(self.repository["name"], github_format, ref)
+        token_data = self.client.get_access_token()
+        token = token_data["access_token"] if token_data else None
+        return ActionResult(
+            data=ArchiveLink(url=url, headers={"Authorization": f"token {token}"} if token else {}),
+            type="github",
+            raw=url,
+            meta={},
+        )
 
     @catch_provider_exception
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
