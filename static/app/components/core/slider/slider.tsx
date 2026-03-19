@@ -88,14 +88,13 @@ export function Slider({
 
   const state = useSliderState({...ariaProps, numberFormatter});
   const {groupProps, trackProps} = useSlider(ariaProps, state, trackRef);
-  const {thumbProps, inputProps, isFocused, isDragging} = useSliderThumb(
+  const {thumbProps, inputProps} = useSliderThumb(
     {index: 0, trackRef, inputRef, isDisabled: disabled},
     state
   );
 
   useImperativeHandle(ref, () => inputRef.current!, []);
 
-  const isActive = isFocused || isDragging;
   const thumbPercent = state.getThumbPercent(0);
   const thumbValue = state.values[0] ?? min;
 
@@ -141,60 +140,48 @@ export function Slider({
     <SliderWrapper
       {...groupProps}
       className={className}
-      data-disabled={disabled || undefined}
+      aria-disabled={disabled || undefined}
     >
       <TrackArea ref={trackRef} {...trackProps} disabled={disabled}>
-        <ValueLabel
-          aria-hidden
-          style={
-            {
-              '--thumb-pct': `${thumbPercent * 100}%`,
-              '--thumb-offset': `${(2 * thumbPercent - 1) * 12}px`,
-            } as React.CSSProperties
-          }
-          data-active={isActive || undefined}
-          data-disabled={disabled || undefined}
-        >
-          {getFormattedValue(thumbValue)}
-        </ValueLabel>
-
         <SliderTrackBar>
-          <ActiveTrack
-            data-disabled={disabled || undefined}
-            style={{width: `${thumbPercent * 100}%`}}
-          />
-          <InactiveTrack
-            data-disabled={disabled || undefined}
-            style={{width: `${(1 - thumbPercent) * 100}%`}}
-          />
+          <ActiveTrack style={{width: `${thumbPercent * 100}%`}} />
+          <InactiveTrack style={{width: `${(1 - thumbPercent) * 100}%`}} />
 
           {allTickValues.map((tickValue, index) => (
             <SliderTick
               key={tickValue}
               aria-hidden
-              data-in-selection={tickValue <= thumbValue || undefined}
-              data-disabled={disabled || undefined}
-              data-first={index === 0 || undefined}
-              data-last={index === allTickValues.length - 1 || undefined}
-              style={{
-                '--i': (index + 1).toString(),
-                left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`,
-              }}
+              data-filled={tickValue <= thumbValue || undefined}
+              style={
+                {
+                  '--i': (index + 1).toString(),
+                  left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`,
+                } as React.CSSProperties
+              }
             />
           ))}
         </SliderTrackBar>
 
         <SliderThumbHitbox {...thumbProps} style={{left: `${thumbPercent * 100}%`}}>
-          <SliderThumbChonk
-            data-focused={isFocused || undefined}
-            data-disabled={disabled || undefined}
-          >
+          <SliderThumbChonk>
             <SliderThumbSurface />
           </SliderThumbChonk>
           <VisuallyHidden>
             <input ref={mergeRefs(inputRef, ref)} {...inputProps} name={name} />
           </VisuallyHidden>
         </SliderThumbHitbox>
+
+        <ValueLabel
+          aria-hidden
+          style={
+            {
+              '--thumb-value': `${thumbPercent * 100}%`,
+              '--thumb-offset': `${(2 * thumbPercent - 1) * 12}px`,
+            } as React.CSSProperties
+          }
+        >
+          {getFormattedValue(thumbValue)}
+        </ValueLabel>
       </TrackArea>
 
       <TrackLabels aria-hidden>
@@ -221,6 +208,7 @@ export function Slider({
 // --- Styled Components ---
 
 const SliderWrapper = styled('div')`
+  isolation: isolate;
   position: relative;
   width: 100%;
   display: flex;
@@ -240,11 +228,10 @@ const TrackArea = styled('div', {
   padding-bottom: 6px;
   cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
 
-  ${p =>
-    p.disabled &&
-    css`
-      pointer-events: none;
-    `}
+  ${SliderWrapper}:is([aria-disabled]) & {
+    pointer-events: none;
+    opacity: ${p => p.theme.tokens.interactive.disabled};
+  }
 `;
 
 const SliderTrackBar = styled('div')`
@@ -269,10 +256,6 @@ const ActiveTrack = styled('div')`
   border-style: solid;
   border-color: ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
   border-width: 2px 0 1px 1px;
-
-  &[data-disabled] {
-    opacity: ${p => p.theme.tokens.interactive.disabled};
-  }
 `;
 
 const InactiveTrack = styled('div')`
@@ -284,10 +267,6 @@ const InactiveTrack = styled('div')`
   border-style: solid;
   border-color: ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
   border-width: 2px 1px 1px 0;
-
-  &[data-disabled] {
-    opacity: ${p => p.theme.tokens.interactive.disabled};
-  }
 `;
 
 const SliderThumbHitbox = styled('div')`
@@ -317,17 +296,8 @@ const SliderThumbChonk = styled('div')`
     background 120ms ease,
     box-shadow 120ms ease;
 
-  ${SliderWrapper}:hover &:not([data-disabled]) {
+  ${SliderWrapper}:not([aria-disabled]):is(:hover, :active, :focus-within) & {
     background: ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
-  }
-
-  &[data-focused] {
-    background: ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
-    ${p => p.theme.focusRing()};
-  }
-
-  &[data-disabled] {
-    opacity: ${p => p.theme.tokens.interactive.disabled};
   }
 `;
 
@@ -349,17 +319,13 @@ const SliderTick = styled('div')`
   border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
   pointer-events: none;
 
-  &[data-first],
-  &[data-last] {
+  &:first-of-type,
+  &:last-of-type {
     visibility: hidden;
   }
 
-  &[data-in-selection] {
+  &[data-filled] {
     border-color: ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
-  }
-
-  &[data-disabled] {
-    opacity: ${p => p.theme.tokens.interactive.disabled};
   }
 `;
 
@@ -374,8 +340,7 @@ const TrackLabels = styled('div')`
   --tx: 0;
   --ty: -${p => p.theme.space.xs};
 
-  ${SliderWrapper}:hover &,
-  ${SliderWrapper}:focus-within & {
+  ${SliderWrapper}:not([aria-disabled]):is(:hover, :focus-within) & {
     --ty: 0;
     --opacity: 1;
   }
@@ -408,8 +373,8 @@ const TrackLabel = styled('span')`
 const ValueLabel = styled('output')`
   position: absolute;
   top: 0;
-  left: var(--thumb-pct, 50%);
-  transform: translateX(calc(-1 * var(--thumb-pct, 50%) + var(--thumb-offset, 0px)))
+  left: var(--thumb-value, 50%);
+  transform: translateX(calc(-1 * var(--thumb-value, 50%) + var(--thumb-offset, 0px)))
     translateY(var(--thumb-y, 0px));
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.medium};
@@ -429,22 +394,30 @@ const ValueLabel = styled('output')`
   text-align: center;
   line-height: 1;
 
-  ${SliderWrapper}:hover &:not([data-active]):not([data-disabled]) {
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    bottom: -32px;
+    border-radius: ${p => p.theme.radius.md};
+  }
+
+  ${SliderWrapper}:has(:focus-visible) &::after {
+    ${p => p.theme.focusRing()};
+  }
+
+  ${SliderWrapper}:hover:not(:active, :focus-within) & {
     color: ${p => p.theme.tokens.content.accent};
   }
 
-  &[data-active] {
+  ${SliderWrapper}:not([aria-disabled]):is(:active, :focus-within) & {
     background: ${p => p.theme.tokens.background.accent.vibrant};
     border-color: ${p => p.theme.tokens.interactive.chonky.embossed.accent.chonk};
     color: ${p => p.theme.tokens.content.onVibrant.light};
     --thumb-y: 0;
   }
 
-  &[data-disabled] {
-    color: ${p => p.theme.tokens.content.disabled};
-  }
-
-  &[data-disabled][data-active] {
+  ${SliderWrapper}[aria-disabled] & {
     background: transparent;
     border-color: transparent;
     color: ${p => p.theme.tokens.content.disabled};
