@@ -3,6 +3,8 @@ from typing import Protocol, runtime_checkable
 from sentry.scm.types import (
     SHA,
     ActionResult,
+    ArchiveFormat,
+    ArchiveLink,
     BranchName,
     BuildConclusion,
     BuildStatus,
@@ -401,6 +403,18 @@ class GetFileContentProtocol(Protocol):
     ) -> ActionResult[FileContent]: ...
 
 
+# Archive Protocols
+
+
+@runtime_checkable
+class GetArchiveLinkProtocol(Protocol):
+    def get_archive_link(
+        self,
+        ref: str,
+        archive_format: ArchiveFormat = "tarball",
+    ) -> ActionResult[ArchiveLink]: ...
+
+
 # Check Run Protocols
 
 
@@ -543,6 +557,7 @@ ALL_PROTOCOLS = (
     DeletePullRequestCommentProtocol,
     DeletePullRequestCommentReactionProtocol,
     DeletePullRequestReactionProtocol,
+    GetArchiveLinkProtocol,
     GetBranchProtocol,
     GetCheckRunProtocol,
     GetCommitProtocol,

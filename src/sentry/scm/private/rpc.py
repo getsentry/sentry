@@ -27,6 +27,7 @@ from sentry.scm.actions import (
     delete_pull_request_comment,
     delete_pull_request_comment_reaction,
     delete_pull_request_reaction,
+    get_archive_link,
     get_branch,
     get_check_run,
     get_commit,
@@ -179,4 +180,5 @@ scm_action_registry: dict[str, Callable] = {
     "update_branch_v1": update_branch,
     "update_check_run_v1": update_check_run,
     "update_pull_request_v1": update_pull_request,
+    "get_archive_link_v1": get_archive_link,
 }

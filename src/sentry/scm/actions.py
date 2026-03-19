@@ -37,6 +37,7 @@ from sentry.scm.private.provider import (
     DeletePullRequestCommentProtocol,
     DeletePullRequestCommentReactionProtocol,
     DeletePullRequestReactionProtocol,
+    GetArchiveLinkProtocol,
     GetBranchProtocol,
     GetCheckRunProtocol,
     GetCommitProtocol,
@@ -66,6 +67,8 @@ from sentry.scm.private.provider import (
 from sentry.scm.types import (
     SHA,
     ActionResult,
+    ArchiveFormat,
+    ArchiveLink,
     BranchName,
     BuildConclusion,
     BuildStatus,
@@ -586,6 +589,15 @@ def minimize_comment(scm: MinimizeCommentProtocol, comment_node_id: str, reason:
     return scm.minimize_comment(comment_node_id, reason)
 
 
+def get_archive_link(
+    scm: GetArchiveLinkProtocol,
+    ref: str,
+    archive_format: ArchiveFormat = "tarball",
+) -> ActionResult[ArchiveLink]:
+    """Get a URL to download a repository archive."""
+    return scm.get_archive_link(ref, archive_format)
+
+
 __all__ = (
     "SourceCodeManager",
     "compare_commits",
@@ -611,6 +623,7 @@ __all__ = (
     "delete_pull_request_comment_reaction",
     "delete_pull_request_comment",
     "delete_pull_request_reaction",
+    "get_archive_link",
     "get_branch",
     "get_check_run",
     "get_commit",

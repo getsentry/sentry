@@ -36,6 +36,7 @@ import {
   extractTraceMetricFromColumn,
   getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
 import {
   useTraceMetricsSeriesQuery,
   useTraceMetricsTableQuery,
@@ -95,12 +96,10 @@ function TraceMetricsSearchBar({
   const traceMetrics =
     aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
 
-  // Create a set of the trace metrics in a consistent string format to
-  // check if there are multiple metrics
-  const countUniqueMetrics = new Set(
-    traceMetrics.map(({name, type, unit}) => `${name},${type},${unit}`)
-  ).size;
-  const hasMultipleMetrics = hasMultiMetricSelection && countUniqueMetrics > 1;
+  const hasMultipleMetrics = hasMultipleMetricsSelected(
+    traceMetrics,
+    hasMultiMetricSelection
+  );
 
   // In the case of multiple metrics, wipe the query so it fetches all attributes
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
@@ -340,33 +339,24 @@ export const TraceMetricsConfig: DatasetConfig<
       ) ?? {}
     );
   },
-  getSeriesResultType(data, widgetQuery) {
+  getSeriesResultType(data, _widgetQuery) {
     return data.timeSeries.reduce(
       (acc, timeSeries) => {
-        const label = formatMetricsTimeseriesLabel({
-          widgetQuery,
-          timeSeries,
-        });
-        acc[label] = timeSeries.meta.valueType as AggregationOutputType;
+        acc[timeSeries.yAxis] = timeSeries.meta.valueType as AggregationOutputType;
         return acc;
       },
       {} as Record<string, AggregationOutputType>
     );
   },
-  getSeriesResultUnit: (data, widgetQuery) => {
+  getSeriesResultUnit: (data, _widgetQuery) => {
     return data.timeSeries.reduce(
       (acc, timeSeries) => {
-        const label = formatMetricsTimeseriesLabel({
-          widgetQuery,
-          timeSeries,
-        });
-
-        if (label.includes('per_second(')) {
-          acc[label] = RateUnit.PER_SECOND;
-        } else if (label.includes('per_minute(')) {
-          acc[label] = RateUnit.PER_MINUTE;
+        if (timeSeries.yAxis.includes('per_second(')) {
+          acc[timeSeries.yAxis] = RateUnit.PER_SECOND;
+        } else if (timeSeries.yAxis.includes('per_minute(')) {
+          acc[timeSeries.yAxis] = RateUnit.PER_MINUTE;
         } else {
-          acc[label] = timeSeries.meta.valueUnit as DataUnit;
+          acc[timeSeries.yAxis] = timeSeries.meta.valueUnit as DataUnit;
         }
         return acc;
       },
@@ -434,7 +424,7 @@ function formatMetricsTimeseriesLabel({
 
   // When we have both multiple aggregates and groupings, append function name for uniqueness
   if (multiYAxis && hasGroupings && func) {
-    baseName = `${baseName} : ${func.name}(…)`;
+    baseName = `${baseName} : ${func.name}(${func.arguments[1] ?? '…'})`;
   }
 
   // Add query name prefix with appropriate separator if an alias is present
