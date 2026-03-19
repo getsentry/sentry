@@ -76,7 +76,6 @@ export const WIDGET_DEFINITIONS: ({
   organization: Organization;
   theme: Theme;
 }) => Record<PerformanceWidgetSetting, ChartDefinition> = ({
-  organization,
   theme,
 }: {
   organization: Organization;

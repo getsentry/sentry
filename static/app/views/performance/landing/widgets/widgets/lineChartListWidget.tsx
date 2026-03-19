@@ -815,7 +815,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
   const moduleURLBuilder = useModuleURLBuilder();
 
-  const getContainerActions = (provided: ComponentData) => {
+  const getContainerActions = () => {
     const route: string =
       (
         {
@@ -852,7 +852,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       Subtitle={() => (
         <Subtitle>{props.subTitle ?? t('Found in the following transactions')}</Subtitle>
       )}
-      HeaderActions={provided => getContainerActions(provided)}
+      HeaderActions={() => getContainerActions()}
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />

@@ -567,6 +567,11 @@ describe('Performance > Widgets > WidgetContainer', () => {
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.LCP_HISTOGRAM}
+        allowedCharts={[
+          PerformanceWidgetSetting.LCP_HISTOGRAM,
+          PerformanceWidgetSetting.FCP_HISTOGRAM,
+          PerformanceWidgetSetting.DURATION_HISTOGRAM,
+        ]}
       />
     );
 
@@ -584,6 +589,11 @@ describe('Performance > Widgets > WidgetContainer', () => {
       <WrappedComponent
         data={data}
         defaultChartSetting={PerformanceWidgetSetting.FCP_HISTOGRAM}
+        allowedCharts={[
+          PerformanceWidgetSetting.LCP_HISTOGRAM,
+          PerformanceWidgetSetting.FCP_HISTOGRAM,
+          PerformanceWidgetSetting.DURATION_HISTOGRAM,
+        ]}
       />
     );
 
