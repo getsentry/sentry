@@ -7,6 +7,7 @@ import pytest
 from sentry.integrations.github.client import GitHubApiClient
 from sentry.scm.private.providers.github import (
     MINIMIZE_COMMENT_MUTATION,
+    RESERVED_REFERRER_ALLOCATION,
     GitHubProvider,
     GitHubProviderApiClient,
 )
@@ -910,10 +911,39 @@ def test_provider_initialization_wraps_api_client() -> None:
     assert provider.repository == repository
 
 
-def test_is_rate_limited_returns_false() -> None:
-    provider, _ = make_provider()
+def test_api_client_records_rate_limit_headers(mocker) -> None:
+    raw_client = MagicMock(spec=GitHubApiClient)
+    response = MagicMock()
+    response.headers = {
+        "X-RateLimit-Limit": "5000",
+        "X-RateLimit-Remaining": "4990",
+        "X-RateLimit-Reset": "2000",
+    }
+    raw_client._request.return_value = response
+    update_state = mocker.patch("sentry.scm.private.helpers.update_github_rate_limit_state")
 
-    assert provider.is_rate_limited("shared") is False
+    client = GitHubProviderApiClient(raw_client, organization_id=99)
+    result = client.get("/repos/test-org/test-repo/issues")
+
+    assert result is response
+    update_state.assert_called_once_with(99, dict(response.headers))
+
+
+def test_is_rate_limited_delegates_to_reserved_quota_helper(mocker) -> None:
+    provider = GitHubProvider(
+        MagicMock(spec=GitHubApiClient), organization_id=99, repository=make_repository()
+    )
+    is_rate_limited = mocker.patch(
+        "sentry.scm.private.helpers.is_rate_limited_with_reserved_quotas", return_value=True
+    )
+
+    assert provider.is_rate_limited("shared") is True
+    is_rate_limited.assert_called_once_with(
+        99,
+        "shared",
+        provider="github",
+        reserved_allocations=RESERVED_REFERRER_ALLOCATION,
+    )
 
 
 def test_public_methods_are_accounted_for() -> None:

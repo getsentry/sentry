@@ -9,11 +9,15 @@ from sentry.scm.private.helpers import (
     exec_provider_fn,
     fetch_repository,
     fetch_service_provider,
+    get_effective_github_rate_limit_state,
+    get_github_rate_limit_state,
     initialize_provider,
     is_rate_limited,
     is_rate_limited_with_allocation_policy,
+    is_rate_limited_with_reserved_quotas,
     map_integration_to_provider,
     map_repository_model_to_repository,
+    update_github_rate_limit_state,
 )
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.types import Referrer, Repository
@@ -318,6 +322,212 @@ class TestIsRateLimitedWithAllocationPolicy(TestCase):
             )
 
             assert result is True
+
+
+class TestGitHubRateLimitState(TestCase):
+    def test_persists_and_reads_header_state(self):
+        state = update_github_rate_limit_state(
+            self.organization.id,
+            {
+                "X-RateLimit-Limit": "7000",
+                "X-RateLimit-Remaining": "6990",
+                "X-RateLimit-Reset": "1600",
+                "X-RateLimit-Used": "10",
+            },
+            now=1000,
+        )
+
+        assert state == {
+            "limit": 7000,
+            "remaining": 6990,
+            "used": 10,
+            "reset": 1600,
+            "window_start": 0,
+            "window_end": 1600,
+            "observed": True,
+        }
+        assert get_github_rate_limit_state(self.organization.id, now=1200) == state
+
+    def test_stale_state_returns_none(self):
+        update_github_rate_limit_state(
+            self.organization.id,
+            {
+                "X-RateLimit-Limit": "7000",
+                "X-RateLimit-Remaining": "6990",
+                "X-RateLimit-Reset": "1600",
+            },
+            now=1000,
+        )
+
+        assert get_github_rate_limit_state(self.organization.id, now=1600) is None
+
+    def test_new_window_replaces_old_state(self):
+        update_github_rate_limit_state(
+            self.organization.id,
+            {
+                "X-RateLimit-Limit": "5000",
+                "X-RateLimit-Remaining": "4990",
+                "X-RateLimit-Reset": "1600",
+            },
+            now=1000,
+        )
+        update_github_rate_limit_state(
+            self.organization.id,
+            {
+                "X-RateLimit-Limit": "8000",
+                "X-RateLimit-Remaining": "7900",
+                "X-RateLimit-Reset": "5200",
+            },
+            now=2000,
+        )
+
+        assert get_github_rate_limit_state(self.organization.id, now=2001) == {
+            "limit": 8000,
+            "remaining": 7900,
+            "used": 100,
+            "reset": 5200,
+            "window_start": 1600,
+            "window_end": 5200,
+            "observed": True,
+        }
+
+    def test_missing_state_uses_fallback(self):
+        state = get_effective_github_rate_limit_state(
+            self.organization.id, now=1000, fallback_limit=6000
+        )
+
+        assert state == {
+            "limit": 6000,
+            "remaining": 6000,
+            "used": 0,
+            "reset": 3600,
+            "window_start": 0,
+            "window_end": 3600,
+            "observed": False,
+        }
+
+
+class TestIsRateLimitedWithReservedQuotas(TestCase):
+    def test_unreserved_referrers_only_consume_shared_capacity(self):
+        organization_id = self.organization.id + 100
+        update_github_rate_limit_state(
+            organization_id,
+            {
+                "X-RateLimit-Limit": "10",
+                "X-RateLimit-Remaining": "10",
+                "X-RateLimit-Reset": "1600",
+            },
+            now=1000,
+        )
+
+        for _ in range(7):
+            assert (
+                is_rate_limited_with_reserved_quotas(
+                    organization_id,
+                    "shared",
+                    provider="github",
+                    reserved_allocations={"emerge": 3},
+                    now=1000,
+                )
+                is False
+            )
+
+        assert (
+            is_rate_limited_with_reserved_quotas(
+                organization_id,
+                "shared",
+                provider="github",
+                reserved_allocations={"emerge": 3},
+                now=1000,
+            )
+            is True
+        )
+
+    def test_shared_capacity_floors_at_zero(self):
+        organization_id = self.organization.id + 101
+        update_github_rate_limit_state(
+            organization_id,
+            {
+                "X-RateLimit-Limit": "2",
+                "X-RateLimit-Remaining": "2",
+                "X-RateLimit-Reset": "1600",
+            },
+            now=1000,
+        )
+
+        assert (
+            is_rate_limited_with_reserved_quotas(
+                organization_id,
+                "shared",
+                provider="github",
+                reserved_allocations={"emerge": 3},
+                now=1000,
+            )
+            is True
+        )
+
+    def test_reserved_referrers_spill_into_shared_after_dedicated_quota(self):
+        organization_id = self.organization.id + 102
+        update_github_rate_limit_state(
+            organization_id,
+            {
+                "X-RateLimit-Limit": "5",
+                "X-RateLimit-Remaining": "5",
+                "X-RateLimit-Reset": "1600",
+            },
+            now=1000,
+        )
+
+        for _ in range(5):
+            assert (
+                is_rate_limited_with_reserved_quotas(
+                    organization_id,
+                    "emerge",
+                    provider="github",
+                    reserved_allocations={"emerge": 2},
+                    now=1000,
+                )
+                is False
+            )
+
+        assert (
+            is_rate_limited_with_reserved_quotas(
+                organization_id,
+                "emerge",
+                provider="github",
+                reserved_allocations={"emerge": 2},
+                now=1000,
+            )
+            is True
+        )
+
+    def test_missing_state_uses_fallback_total_limit(self):
+        organization_id = self.organization.id + 103
+
+        for _ in range(2):
+            assert (
+                is_rate_limited_with_reserved_quotas(
+                    organization_id,
+                    "shared",
+                    provider="github",
+                    reserved_allocations={"emerge": 2},
+                    fallback_total_limit=4,
+                    now=1000,
+                )
+                is False
+            )
+
+        assert (
+            is_rate_limited_with_reserved_quotas(
+                organization_id,
+                "shared",
+                provider="github",
+                reserved_allocations={"emerge": 2},
+                fallback_total_limit=4,
+                now=1000,
+            )
+            is True
+        )
 
 
 def _make_active_repository(organization_id: int) -> Repository:

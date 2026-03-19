@@ -1,4 +1,10 @@
+import logging
 from collections.abc import Callable
+from time import time
+from typing import TypedDict
+
+from django.conf import settings
+from redis.exceptions import RedisError
 
 from sentry import ratelimits
 from sentry.constants import ObjectStatus
@@ -13,6 +19,23 @@ from sentry.scm.private.provider import Provider
 from sentry.scm.private.providers.github import GitHubProvider
 from sentry.scm.private.providers.gitlab import GitLabProvider
 from sentry.scm.types import ExternalId, ProviderName, Referrer, Repository, RepositoryId
+from sentry.utils import json, metrics, redis
+
+logger = logging.getLogger(__name__)
+
+SCM_GITHUB_RATE_LIMIT_WINDOW = 3600
+SCM_GITHUB_RATE_LIMIT_GRACE = 60
+SCM_GITHUB_RATE_LIMIT_FALLBACK_TOTAL = 5000
+
+
+class GitHubRateLimitState(TypedDict):
+    limit: int
+    remaining: int
+    used: int
+    reset: int
+    window_start: int
+    window_end: int
+    observed: bool
 
 
 def is_rate_limited(
@@ -25,6 +48,241 @@ def is_rate_limited(
     return ratelimits.backend.is_limited(
         f"scm_platform.{organization_id}.{referrer}.{provider}", limit=limit, window=window
     )
+
+
+def _get_scm_rate_limit_redis():
+    return redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
+
+
+def _get_github_rate_limit_state_key(organization_id: int) -> str:
+    return f"scm_platform.github.rate_limit_state.{organization_id}"
+
+
+def _get_github_rate_limit_counter_key(
+    organization_id: int, reset: int, provider: str, pool: str
+) -> str:
+    return f"scm_platform.{provider}.{organization_id}.{reset}.{pool}"
+
+
+def get_fallback_github_rate_limit_state(
+    now: float | None = None,
+    fallback_limit: int = SCM_GITHUB_RATE_LIMIT_FALLBACK_TOTAL,
+) -> GitHubRateLimitState:
+    if now is None:
+        now = time()
+
+    current_timestamp = int(now)
+    window_end = (
+        (current_timestamp // SCM_GITHUB_RATE_LIMIT_WINDOW) + 1
+    ) * SCM_GITHUB_RATE_LIMIT_WINDOW
+
+    return {
+        "limit": fallback_limit,
+        "remaining": fallback_limit,
+        "used": 0,
+        "reset": window_end,
+        "window_start": max(window_end - SCM_GITHUB_RATE_LIMIT_WINDOW, 0),
+        "window_end": window_end,
+        "observed": False,
+    }
+
+
+def get_github_rate_limit_state(
+    organization_id: int, now: float | None = None
+) -> GitHubRateLimitState | None:
+    if now is None:
+        now = time()
+
+    try:
+        raw_state = _get_scm_rate_limit_redis().get(
+            _get_github_rate_limit_state_key(organization_id)
+        )
+    except RedisError:
+        logger.exception("Failed to fetch SCM GitHub rate-limit state from redis")
+        return None
+
+    if raw_state is None:
+        return None
+
+    try:
+        state = json.loads(raw_state)
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid SCM GitHub rate-limit state payload",
+            extra={"organization_id": organization_id},
+        )
+        return None
+
+    if int(state["window_end"]) <= int(now):
+        try:
+            _get_scm_rate_limit_redis().delete(_get_github_rate_limit_state_key(organization_id))
+        except RedisError:
+            logger.exception("Failed to delete stale SCM GitHub rate-limit state from redis")
+        return None
+
+    return {
+        "limit": int(state["limit"]),
+        "remaining": int(state["remaining"]),
+        "used": int(state["used"]),
+        "reset": int(state["reset"]),
+        "window_start": int(state["window_start"]),
+        "window_end": int(state["window_end"]),
+        "observed": bool(state.get("observed", True)),
+    }
+
+
+def get_effective_github_rate_limit_state(
+    organization_id: int,
+    now: float | None = None,
+    fallback_limit: int = SCM_GITHUB_RATE_LIMIT_FALLBACK_TOTAL,
+) -> GitHubRateLimitState:
+    state = get_github_rate_limit_state(organization_id, now=now)
+    if state is not None:
+        return state
+
+    metrics.incr("sentry.scm.github.rate_limit.fallback_state_used")
+    return get_fallback_github_rate_limit_state(now=now, fallback_limit=fallback_limit)
+
+
+def update_github_rate_limit_state(
+    organization_id: int,
+    headers: dict[str, str] | None,
+    now: float | None = None,
+) -> GitHubRateLimitState | None:
+    if not headers:
+        return None
+
+    limit = headers.get("X-RateLimit-Limit")
+    remaining = headers.get("X-RateLimit-Remaining")
+    reset = headers.get("X-RateLimit-Reset")
+    used = headers.get("X-RateLimit-Used")
+
+    if limit is None or remaining is None or reset is None:
+        return None
+
+    if now is None:
+        now = time()
+
+    try:
+        parsed_limit = int(limit)
+        parsed_remaining = int(remaining)
+        parsed_reset = int(reset)
+        parsed_used = int(used) if used is not None else max(parsed_limit - parsed_remaining, 0)
+    except ValueError:
+        logger.warning(
+            "Invalid SCM GitHub rate-limit headers",
+            extra={"organization_id": organization_id, "headers": headers},
+        )
+        return None
+
+    state: GitHubRateLimitState = {
+        "limit": parsed_limit,
+        "remaining": parsed_remaining,
+        "used": parsed_used,
+        "reset": parsed_reset,
+        "window_start": max(parsed_reset - SCM_GITHUB_RATE_LIMIT_WINDOW, 0),
+        "window_end": parsed_reset,
+        "observed": True,
+    }
+
+    ttl = max(parsed_reset - int(now), 1) + SCM_GITHUB_RATE_LIMIT_GRACE
+    try:
+        _get_scm_rate_limit_redis().setex(
+            _get_github_rate_limit_state_key(organization_id), ttl, json.dumps(state)
+        )
+    except RedisError:
+        logger.exception("Failed to persist SCM GitHub rate-limit state to redis")
+        return None
+
+    metrics.incr("sentry.scm.github.rate_limit.state_refreshed")
+    return state
+
+
+def _get_windowed_counter_value(counter_key: str) -> int:
+    try:
+        current_count = _get_scm_rate_limit_redis().get(counter_key)
+    except RedisError:
+        logger.exception("Failed to read SCM GitHub rate-limit counter from redis")
+        return 0
+
+    if current_count is None:
+        return 0
+    return int(current_count)
+
+
+def _is_windowed_counter_limited(
+    counter_key: str, limit: int, window_end: int, now: float | None = None
+) -> bool:
+    if now is None:
+        now = time()
+
+    ttl = max(window_end - int(now), 1) + SCM_GITHUB_RATE_LIMIT_GRACE
+
+    try:
+        pipe = _get_scm_rate_limit_redis().pipeline()
+        pipe.incr(counter_key)
+        pipe.expire(counter_key, ttl)
+        result = pipe.execute()[0]
+    except (RedisError, IndexError):
+        logger.exception("Failed to update SCM GitHub rate-limit counter in redis")
+        return False
+
+    return int(result) > limit
+
+
+def is_rate_limited_with_reserved_quotas(
+    organization_id: int,
+    referrer: Referrer,
+    provider: str,
+    reserved_allocations: dict[Referrer, int],
+    fallback_total_limit: int = SCM_GITHUB_RATE_LIMIT_FALLBACK_TOTAL,
+    now: float | None = None,
+) -> bool:
+    state = get_effective_github_rate_limit_state(
+        organization_id, now=now, fallback_limit=fallback_total_limit
+    )
+    total_reserved = sum(reserved_allocations.values())
+    shared_capacity = max(state["limit"] - total_reserved, 0)
+    shared_counter_key = _get_github_rate_limit_counter_key(
+        organization_id, state["window_end"], provider, "shared"
+    )
+
+    if referrer in reserved_allocations:
+        dedicated_limit = reserved_allocations[referrer]
+        dedicated_counter_key = _get_github_rate_limit_counter_key(
+            organization_id, state["window_end"], provider, f"reserved:{referrer}"
+        )
+
+        if _get_windowed_counter_value(dedicated_counter_key) < dedicated_limit:
+            if not _is_windowed_counter_limited(
+                dedicated_counter_key, dedicated_limit, state["window_end"], now=now
+            ):
+                metrics.incr(
+                    "sentry.scm.github.rate_limit.allowed",
+                    tags={"referrer": referrer, "pool": "reserved"},
+                )
+                return False
+
+        metrics.incr("sentry.scm.github.rate_limit.reserved_exhausted", tags={"referrer": referrer})
+
+    if shared_capacity <= 0:
+        metrics.incr(
+            "sentry.scm.github.rate_limit.rejected", tags={"referrer": referrer, "pool": "shared"}
+        )
+        return True
+
+    if _is_windowed_counter_limited(
+        shared_counter_key, shared_capacity, state["window_end"], now=now
+    ):
+        metrics.incr(
+            "sentry.scm.github.rate_limit.rejected", tags={"referrer": referrer, "pool": "shared"}
+        )
+        return True
+
+    metrics.incr(
+        "sentry.scm.github.rate_limit.allowed", tags={"referrer": referrer, "pool": "shared"}
+    )
+    return False
 
 
 def is_rate_limited_with_allocation_policy(
