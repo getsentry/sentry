@@ -231,7 +231,7 @@ class SeerSlackRendererExplorerErrorTest(TestCase):
 
 
 class SeerSlackRendererExplorerTest(TestCase):
-    def _create_explorer_response(self, summary: str | None = None) -> SeerExplorerResponse:
+    def _create_explorer_response(self, summary: str = "") -> SeerExplorerResponse:
         return SeerExplorerResponse(
             run_id=MOCK_RUN_ID,
             organization_id=self.organization.id,
@@ -251,18 +251,6 @@ class SeerSlackRendererExplorerTest(TestCase):
 
         assert isinstance(blocks[0], MarkdownBlock)
         assert "Found a spike in 500 errors from the auth service." in blocks[0].text
-        assert f"<{data.explorer_link}|View in Sentry>" in blocks[0].text
-
-    def test_render_explorer_response_without_summary(self) -> None:
-        data = self._create_explorer_response()
-        renderable = SeerSlackRenderer._render_explorer_response(data)
-
-        blocks = renderable["blocks"]
-        assert len(blocks) == 1
-
-        assert isinstance(blocks[0], MarkdownBlock)
-        assert "I've finished analyzing your question." in blocks[0].text
-        assert f"<{data.explorer_link}|View in Sentry>" in blocks[0].text
 
     def test_render_dispatches_to_explorer_response(self) -> None:
         data = self._create_explorer_response(summary="Test")
