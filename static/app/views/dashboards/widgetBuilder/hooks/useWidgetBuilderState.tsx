@@ -27,6 +27,7 @@ import {
   WidgetType,
   type LegendType,
   type LinkedDashboard,
+  type Widget,
 } from 'sentry/views/dashboards/types';
 import {
   doesDisplayTypeSupportThresholds,
@@ -60,10 +61,15 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 
 export const MAX_NUM_Y_AXES = 3;
 
-export const stateParamsNotInUrl: Array<keyof WidgetBuilderStateParams> = ['textContent'];
-
-const SESSION_STORAGE_CONTENT_KEY_MAP = {
-  textContent: 'dashboard:widget-builder:text-content',
+export const WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP: Record<
+  keyof WidgetBuilderStateLocalParams,
+  {key: string; storeCondition: (widget: Widget) => boolean; widgetField: keyof Widget}
+> = {
+  textContent: {
+    key: 'dashboard:widget-builder:text-content',
+    widgetField: 'description',
+    storeCondition: (widget: Widget) => widget.displayType === DisplayType.TEXT,
+  },
 };
 
 export type WidgetBuilderStateQueryParams = {
@@ -75,6 +81,7 @@ export type WidgetBuilderStateQueryParams = {
   legendAlias?: string[];
   legendType?: LegendType;
   limit?: number;
+  linkedDashboards?: string[];
   query?: string[];
   selectedAggregate?: number;
   sort?: string[];
@@ -83,14 +90,17 @@ export type WidgetBuilderStateQueryParams = {
   yAxis?: string[];
 };
 
+export type WidgetBuilderStateLocalParams = {
+  textContent?: string;
+};
+
 /**
  * Extends the URL query params shape with `textContent` for text widgets.
  * Used as the payload type for SET_STATE actions, where text widget content
  * must be carried in-memory without being written to the URL.
  */
-export type WidgetBuilderStateParams = WidgetBuilderStateQueryParams & {
-  textContent?: string;
-};
+export type WidgetBuilderStateParams = WidgetBuilderStateQueryParams &
+  WidgetBuilderStateLocalParams;
 
 export const BuilderStateAction = {
   SET_TITLE: 'SET_TITLE',
@@ -365,7 +375,7 @@ export function useWidgetBuilderState(): {
   });
   const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
     string | undefined
-  >(SESSION_STORAGE_CONTENT_KEY_MAP.textContent, undefined);
+  >(WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP.textContent.key, undefined);
 
   const state = useMemo(
     () => ({
@@ -975,6 +985,12 @@ export function useWidgetBuilderState(): {
             setYAxis(deserializeFields(action.payload.yAxis), options);
           }
           setAxisRange(getAxisRange(action.payload.axisRange), options);
+          if (action.payload.linkedDashboards) {
+            setLinkedDashboards(
+              deserializeLinkedDashboards(action.payload.linkedDashboards),
+              options
+            );
+          }
           break;
         case BuilderStateAction.SET_THRESHOLDS:
           setThresholds(action.payload, options);
@@ -1257,7 +1273,9 @@ export function serializeFields(fields: Column[]): string[] {
   });
 }
 
-function serializeLinkedDashboards(linkedDashboards: LinkedDashboard[] = []): string[] {
+export function serializeLinkedDashboards(
+  linkedDashboards: LinkedDashboard[] = []
+): string[] {
   return linkedDashboards.map(linkedDashboard => {
     return JSON.stringify({
       dashboardId: linkedDashboard.dashboardId,

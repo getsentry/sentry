@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.rule import WorkflowEngineRuleEndpoint
+from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.api.utils import get_date_range_from_params
@@ -22,7 +22,6 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules.history import fetch_rule_groups_paginated
 from sentry.rules.history.base import RuleGroupHistory
-from sentry.workflow_engine.models.workflow import Workflow
 
 
 class RuleGroupHistoryResponse(TypedDict):
@@ -56,7 +55,7 @@ class RuleGroupHistorySerializer(Serializer):
 
 @extend_schema(tags=["issue_alerts"])
 @cell_silo_endpoint
-class ProjectRuleGroupHistoryIndexEndpoint(WorkflowEngineRuleEndpoint):
+class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -75,7 +74,7 @@ class ProjectRuleGroupHistoryIndexEndpoint(WorkflowEngineRuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
+    def get(self, request: Request, project: Project, rule: Rule) -> Response:
         per_page = self.get_per_page(request)
         cursor = self.get_cursor_from_request(request)
         try:

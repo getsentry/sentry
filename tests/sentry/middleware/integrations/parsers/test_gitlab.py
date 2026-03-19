@@ -15,8 +15,8 @@ from sentry.middleware.integrations.classifications import IntegrationClassifica
 from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, RegionCategory
 
@@ -54,7 +54,7 @@ class GitlabRequestParserTest(TestCase):
         return parser.get_response()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_missing_x_gitlab_token(self) -> None:
         self.get_integration()
         request = self.factory.post(
@@ -70,7 +70,7 @@ class GitlabRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_invalid_token(self) -> None:
         self.get_integration()
         request = self.factory.post(
@@ -86,7 +86,7 @@ class GitlabRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_routing_webhook_properly_no_regions(self) -> None:
         request = self.factory.post(
@@ -111,7 +111,7 @@ class GitlabRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_routing_webhook_properly_with_regions(self) -> None:
         integration = self.get_integration()
@@ -136,7 +136,7 @@ class GitlabRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_routing_webhook_properly_with_multiple_orgs(self) -> None:
         integration = self.get_integration()
@@ -163,7 +163,7 @@ class GitlabRequestParserTest(TestCase):
             region_names=[region.name],
         )
 
-    @override_regions(region_config)
+    @override_cells(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
     def test_routing_webhook_with_mailbox_buckets(self) -> None:
@@ -193,7 +193,7 @@ class GitlabRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_routing_search_properly(self) -> None:
         self.get_integration()
@@ -215,7 +215,7 @@ class GitlabRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_integration_from_request(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
@@ -231,7 +231,7 @@ class GitlabRequestParserTest(TestCase):
         assert result.id == integration.id
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_webhook_outbox_creation(self) -> None:
         request = self.factory.post(
