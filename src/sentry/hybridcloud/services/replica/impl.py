@@ -321,16 +321,6 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProviderReplica))):
             AuthProviderReplica.objects.filter(auth_provider_id=auth_provider_id).delete()
 
-    def delete_project_key(self, *, project_key_id: int, cell_name: str) -> None:
-        """
-        Delete a ProjectKey in the cell to restore consistent state.
-
-        Called by the control silo when a ProjectKey cannot be synced to control, for example
-        if the public_key is a duplicate of another.
-        """
-        # TODO(cells): implement delete back to restore consistent state
-        pass
-
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
     def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
