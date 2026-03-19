@@ -4,7 +4,7 @@ import pytest
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.message_builder.types import SlackAction
-from sentry.notifications.platform.service import NotificationDataDto
+from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import SeerAutofixUpdate, SeerExplorerError
 from sentry.notifications.utils.actions import BlockKitMessageAction
@@ -270,7 +270,7 @@ class SlackAutofixEntrypointTest(TestCase):
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_message")
     def test_process_thread_update(self, mock_send_threaded_message):
         data = self._create_update(AutofixStoppingPoint.SOLUTION)
-        serialized_data = NotificationDataDto(notification_data=data).to_dict()
+        serialized_data = serialize_notification_data(data)
 
         process_thread_update(
             integration_id=self.integration.id,

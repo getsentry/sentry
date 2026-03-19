@@ -217,7 +217,7 @@ def parse_iso_timestamp(value: str) -> datetime:
 
     # Values with no timezone info will default to UTC
     if not date.tzinfo:
-        date.replace(tzinfo=timezone.utc)
+        date = date.replace(tzinfo=timezone.utc)
 
     # Convert to UTC
     return datetime.fromtimestamp(date.timestamp(), tz=timezone.utc)

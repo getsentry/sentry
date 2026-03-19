@@ -5,7 +5,8 @@ import {
   SERIES_QUERY_DELIMITER,
   transformLegacySeriesToTimeSeries,
 } from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
-import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
+import {WidgetType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 
@@ -68,7 +69,14 @@ export function transformWidgetSeriesToTimeSeries(
     queryDelimiterIndex >= 0 ? {...series, seriesName: unprefixedName} : series;
 
   const yAxis =
-    aggregates.find(aggregate => splitUnprefixedName.includes(aggregate)) ??
+    aggregates.find(aggregate => {
+      if (widget.widgetType === WidgetType.TRACEMETRICS) {
+        return splitUnprefixedName.includes(
+          formatTraceMetricsFunction(aggregate) as string
+        );
+      }
+      return splitUnprefixedName.includes(aggregate);
+    }) ??
     aggregates[0] ??
     '';
 
@@ -98,7 +106,12 @@ export function transformWidgetSeriesToTimeSeries(
   ];
   // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
   if (aggregates.length > 1 && columns.length > 0) {
-    labelParts.push(yAxis);
+    if (widget.widgetType === WidgetType.TRACEMETRICS) {
+      // TraceMetrics widgets need to format the yAxis for the label
+      labelParts.push(formatTraceMetricsFunction(yAxis) as string);
+    } else {
+      labelParts.push(yAxis);
+    }
   }
 
   const label = labelParts
