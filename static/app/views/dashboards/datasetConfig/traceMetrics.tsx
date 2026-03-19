@@ -15,7 +15,6 @@ import {
   type DataUnit,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {SERIES_NAME_PART_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {
   type DatasetConfig,
@@ -430,7 +429,8 @@ function formatMetricsTimeseriesLabel({
 
   // Add query name prefix with appropriate separator if an alias is present
   if (widgetQuery.name) {
-    return `${widgetQuery.name}${SERIES_NAME_PART_DELIMITER}${baseName}`;
+    const separator = multiYAxis && hasGroupings ? ' > ' : ' : ';
+    return `${widgetQuery.name}${separator}${baseName}`;
   }
 
   return baseName;
