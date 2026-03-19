@@ -1,31 +1,39 @@
 from __future__ import annotations
 
-import typing
 from functools import lru_cache
+from typing import Any, Callable, cast
 
-from sentry.scm.private.provider import ALL_PROTOCOLS
+from sentry.scm.private.helpers import exec_provider_fn
+from sentry.scm.private.ipc import record_count_metric
+from sentry.scm.private.provider import ALL_PROTOCOLS, Provider
+from sentry.scm.types import Referrer
 
 
-def _delegating_method(name: str) -> typing.Callable[..., typing.Any]:
-    """Return a method that forwards calls to self._impl.<name>."""
+def _delegating_method(name: str) -> Callable[..., Any]:
+    """Return a method that forwards calls to self.provider.<name>."""
 
-    def method(self: Facade, *args: typing.Any, **kwargs: typing.Any) -> typing.Any:
-        return getattr(self._impl, name)(*args, **kwargs)
+    def method(self: Facade, *args: Any, **kwargs: Any) -> Any:
+        return exec_provider_fn(
+            self.provider,
+            referrer=self.referrer,
+            provider_fn=lambda: getattr(self.provider, name)(*args, **kwargs),
+            record_count=self.record_count,
+        )
 
     method.__name__ = name
     return method
 
 
 @lru_cache(maxsize=32)
-def _facade_type_for_impl_class(impl_cls: type[object]) -> type[Facade]:
+def _facade_type_for_provider_class(provider_cls: type[Provider]) -> type[Facade]:
     """Build (and cache) one facade subclass per implementation class."""
-    methods: dict[str, typing.Any] = {}
+    methods: dict[str, Any] = {}
     for proto in ALL_PROTOCOLS:
-        if all(hasattr(impl_cls, attr) for attr in proto.__protocol_attrs__):
+        if all(hasattr(provider_cls, attr) for attr in proto.__protocol_attrs__):
             for attr in proto.__protocol_attrs__:
                 if attr not in methods:
                     methods[attr] = _delegating_method(attr)
-    return type(f"FacadeFor{impl_cls.__name__}", (Facade,), methods)
+    return type(f"FacadeFor{provider_cls.__name__}", (Facade,), methods)
 
 
 class Facade:
@@ -40,9 +48,25 @@ class Facade:
     # After the isinstance guard MyPy narrows `facade` to `Facade & CanAlpha`
     # (or any other intersection) and statically validates method calls.
 
-    def __new__(cls, impl: object) -> Facade:
-        facade_cls = _facade_type_for_impl_class(typing.cast(typing.Any, type(impl)))
-        return object.__new__(facade_cls)
+    def __new__(
+        cls,
+        provider: Provider,
+        *,
+        referrer: Referrer = "shared",
+        record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
+    ) -> Facade:
+        facade_cls = _facade_type_for_provider_class(cast(Any, type(provider)))
+        instance = object.__new__(facade_cls)
+        instance.provider = provider
+        instance.referrer = referrer
+        instance.record_count = record_count
+        return instance
 
-    def __init__(self, impl: object) -> None:
-        self._impl = impl
+    def __init__(
+        self,
+        provider: Provider,
+        *,
+        referrer: Referrer = "shared",
+        record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
+    ) -> None:
+        pass

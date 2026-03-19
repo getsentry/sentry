@@ -4,10 +4,8 @@ from typing import Self
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.errors import SCMProviderNotSupported
 from sentry.scm.private.facade import Facade
 from sentry.scm.private.helpers import (
-    exec_provider_fn,
     fetch_repository,
     fetch_service_provider,
     initialize_provider,
@@ -16,57 +14,54 @@ from sentry.scm.private.helpers import (
 )
 from sentry.scm.private.ipc import record_count_metric
 from sentry.scm.private.provider import (
-    GetIssueCommentsProtocol,
-    CreateIssueCommentProtocol,
-    DeleteIssueCommentProtocol,
-    GetPullRequestCommentsProtocol,
-    CreatePullRequestCommentProtocol,
-    DeletePullRequestCommentProtocol,
-    GetIssueCommentReactionsProtocol,
-    CreateIssueCommentReactionProtocol,
-    DeleteIssueCommentReactionProtocol,
-    GetPullRequestCommentReactionsProtocol,
-    CreatePullRequestCommentReactionProtocol,
-    DeletePullRequestCommentReactionProtocol,
-    GetIssueReactionsProtocol,
-    CreateIssueReactionProtocol,
-    DeleteIssueReactionProtocol,
-    GetPullRequestReactionsProtocol,
-    CreatePullRequestReactionProtocol,
-    DeletePullRequestReactionProtocol,
-    GetBranchProtocol,
-    CreateBranchProtocol,
-    UpdateBranchProtocol,
-    GetCommitProtocol,
-    GetCommitsProtocol,
-    GetCommitsByPathProtocol,
     CompareCommitsProtocol,
-    GetPullRequestProtocol,
-    GetPullRequestsProtocol,
-    GetPullRequestFilesProtocol,
-    GetPullRequestCommitsProtocol,
-    GetPullRequestDiffProtocol,
-    CreatePullRequestProtocol,
-    CreatePullRequestDraftProtocol,
-    UpdatePullRequestProtocol,
-    RequestReviewProtocol,
-    GetTreeProtocol,
-    GetGitCommitProtocol,
-    CreateGitBlobProtocol,
-    CreateGitTreeProtocol,
-    CreateGitCommitProtocol,
-    GetFileContentProtocol,
-    GetCheckRunProtocol,
+    CreateBranchProtocol,
     CreateCheckRunProtocol,
-    UpdateCheckRunProtocol,
+    CreateGitBlobProtocol,
+    CreateGitCommitProtocol,
+    CreateGitTreeProtocol,
+    CreateIssueCommentProtocol,
+    CreateIssueCommentReactionProtocol,
+    CreateIssueReactionProtocol,
+    CreatePullRequestCommentProtocol,
+    CreatePullRequestCommentReactionProtocol,
+    CreatePullRequestDraftProtocol,
+    CreatePullRequestProtocol,
+    CreatePullRequestReactionProtocol,
     CreateReviewCommentFileProtocol,
-    CreateReviewCommentLineProtocol,
-    CreateReviewCommentMultilineProtocol,
     CreateReviewCommentReplyProtocol,
     CreateReviewProtocol,
+    DeleteIssueCommentProtocol,
+    DeleteIssueCommentReactionProtocol,
+    DeleteIssueReactionProtocol,
+    DeletePullRequestCommentProtocol,
+    DeletePullRequestCommentReactionProtocol,
+    DeletePullRequestReactionProtocol,
+    GetBranchProtocol,
+    GetCheckRunProtocol,
+    GetCommitProtocol,
+    GetCommitsByPathProtocol,
+    GetCommitsProtocol,
+    GetFileContentProtocol,
+    GetGitCommitProtocol,
+    GetIssueCommentReactionsProtocol,
+    GetIssueCommentsProtocol,
+    GetIssueReactionsProtocol,
+    GetPullRequestCommentReactionsProtocol,
+    GetPullRequestCommentsProtocol,
+    GetPullRequestCommitsProtocol,
+    GetPullRequestDiffProtocol,
+    GetPullRequestFilesProtocol,
+    GetPullRequestProtocol,
+    GetPullRequestReactionsProtocol,
+    GetPullRequestsProtocol,
+    GetTreeProtocol,
     MinimizeCommentProtocol,
-    ResolveReviewThreadProtocol,
     Provider,
+    RequestReviewProtocol,
+    UpdateBranchProtocol,
+    UpdateCheckRunProtocol,
+    UpdatePullRequestProtocol,
 )
 from sentry.scm.types import (
     SHA,
@@ -106,25 +101,15 @@ from sentry.scm.types import (
 
 
 class SourceCodeManager(Facade):
-    def __init__(
-        self,
-        provider: Provider,
-        *,
-        referrer: Referrer = "shared",
-        record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
-    ):
-        """
-        The SourceCodeManager class manages ACLs, rate-limits, environment setup, and a
-        vendor-agnostic mapping of actions to service-provider commands. The SourceCodeManager
-        exposes a declarative interface. Developers declare what they want and the concrete
-        implementation details of what's done are abstracted.
+    """
+    The SourceCodeManager class manages ACLs, rate-limits, environment setup, and a
+    vendor-agnostic mapping of actions to service-provider commands. The SourceCodeManager
+    exposes a declarative interface. Developers declare what they want and the concrete
+    implementation details of what's done are abstracted.
 
-        The SourceCodeManager _will_ throw exceptions. That is its intended operating mode. In your
-        application code you are expected to catch the base SCMError type.
-        """
-        self.provider = provider
-        self.referrer = referrer
-        self.record_count = record_count
+    The SourceCodeManager _will_ throw exceptions. That is its intended operating mode. In your
+    application code you are expected to catch the base SCMError type.
+    """
 
     @classmethod
     def make_from_repository_id(
@@ -168,253 +153,215 @@ class SourceCodeManager(Facade):
 
         return cls(provider, referrer=referrer, record_count=record_count)
 
-    def _exec[P, T](self, protocol: type[P], provider_fn: Callable[[P], T]) -> T:
-        provider = self.provider
-        if not isinstance(provider, protocol):
-            raise SCMProviderNotSupported("Action not supported.")
-
-        return exec_provider_fn(
-            self.provider,
-            referrer=self.referrer,
-            provider_fn=lambda: provider_fn(provider),
-            record_count=self.record_count,
-        )
-
 
 def get_issue_comments(
-    scm,
+    scm: GetIssueCommentsProtocol,
     issue_id: str,
     pagination: PaginationParams | None = None,
     request_options: RequestOptions | None = None,
 ) -> PaginatedActionResult[Comment]:
     """Get comments on an issue."""
-    return self._exec(
-        lambda p: p.get_issue_comments(issue_id, pagination, request_options),
-    )
+    return scm.get_issue_comments(issue_id, pagination, request_options)
 
 
-def create_issue_comment(scm, issue_id: str, body: str) -> ActionResult[Comment]:
+def create_issue_comment(
+    scm: CreateIssueCommentProtocol, issue_id: str, body: str
+) -> ActionResult[Comment]:
     """Create a comment on an issue."""
-    return self._exec(
-        lambda p: p.create_issue_comment(issue_id, body),
-    )
+    return scm.create_issue_comment(issue_id, body)
 
 
-def delete_issue_comment(scm, issue_id: str, comment_id: str) -> None:
+def delete_issue_comment(scm: DeleteIssueCommentProtocol, issue_id: str, comment_id: str) -> None:
     """Delete a comment on an issue."""
-    return self._exec(
-        lambda p: p.delete_issue_comment(issue_id, comment_id),
-    )
+    return scm.delete_issue_comment(issue_id, comment_id)
 
 
 def get_pull_request(
-    scm,
+    scm: GetPullRequestProtocol,
     pull_request_id: str,
     request_options: RequestOptions | None = None,
 ) -> ActionResult[PullRequest]:
     """Get a pull request."""
-    return self._exec(
-        lambda p: p.get_pull_request(pull_request_id, request_options),
-    )
+    return scm.get_pull_request(pull_request_id, request_options)
 
 
 def get_pull_request_comments(
-    scm,
+    scm: GetPullRequestCommentsProtocol,
     pull_request_id: str,
     pagination: PaginationParams | None = None,
     request_options: RequestOptions | None = None,
 ) -> PaginatedActionResult[Comment]:
     """Get comments on a pull request."""
-    return self._exec(
-        lambda p: p.get_pull_request_comments(pull_request_id, pagination, request_options),
-    )
+    return scm.get_pull_request_comments(pull_request_id, pagination, request_options)
 
 
-def create_pull_request_comment(scm, pull_request_id: str, body: str) -> ActionResult[Comment]:
+def create_pull_request_comment(
+    scm: CreatePullRequestCommentProtocol, pull_request_id: str, body: str
+) -> ActionResult[Comment]:
     """Create a comment on a pull request."""
-    return self._exec(
-        lambda p: p.create_pull_request_comment(pull_request_id, body),
-    )
+    return scm.create_pull_request_comment(pull_request_id, body)
 
 
-def delete_pull_request_comment(scm, pull_request_id: str, comment_id: str) -> None:
+def delete_pull_request_comment(
+    scm: DeletePullRequestCommentProtocol, pull_request_id: str, comment_id: str
+) -> None:
     """Delete a comment on a pull request."""
-    return self._exec(
-        lambda p: p.delete_pull_request_comment(pull_request_id, comment_id),
-    )
+    return scm.delete_pull_request_comment(pull_request_id, comment_id)
 
 
 def get_issue_comment_reactions(
-    scm,
+    scm: GetIssueCommentReactionsProtocol,
     issue_id: str,
     comment_id: str,
     pagination: PaginationParams | None = None,
     request_options: RequestOptions | None = None,
 ) -> PaginatedActionResult[ReactionResult]:
     """Get reactions on an issue comment."""
-    return self._exec(
-        lambda p: p.get_issue_comment_reactions(issue_id, comment_id, pagination, request_options),
-    )
+    return scm.get_issue_comment_reactions(issue_id, comment_id, pagination, request_options)
 
 
 def create_issue_comment_reaction(
-    scm, issue_id: str, comment_id: str, reaction: Reaction
+    scm: CreateIssueCommentReactionProtocol, issue_id: str, comment_id: str, reaction: Reaction
 ) -> ActionResult[ReactionResult]:
     """Create a reaction on an issue comment."""
-    return self._exec(
-        lambda p: p.create_issue_comment_reaction(issue_id, comment_id, reaction),
-    )
+    return scm.create_issue_comment_reaction(issue_id, comment_id, reaction)
 
 
-def delete_issue_comment_reaction(scm, issue_id: str, comment_id: str, reaction_id: str) -> None:
+def delete_issue_comment_reaction(
+    scm: DeleteIssueCommentReactionProtocol, issue_id: str, comment_id: str, reaction_id: str
+) -> None:
     """Delete a reaction on an issue comment."""
-    return self._exec(
-        lambda p: p.delete_issue_comment_reaction(issue_id, comment_id, reaction_id),
-    )
+    return scm.delete_issue_comment_reaction(issue_id, comment_id, reaction_id)
 
 
 def get_pull_request_comment_reactions(
-    scm,
+    scm: GetPullRequestCommentReactionsProtocol,
     pull_request_id: str,
     comment_id: str,
     pagination: PaginationParams | None = None,
     request_options: RequestOptions | None = None,
 ) -> PaginatedActionResult[ReactionResult]:
     """Get reactions on a pull request comment."""
-    return self._exec(
-        lambda p: p.get_pull_request_comment_reactions(
-            pull_request_id, comment_id, pagination, request_options
-        ),
+    return scm.get_pull_request_comment_reactions(
+        pull_request_id, comment_id, pagination, request_options
     )
 
 
 def create_pull_request_comment_reaction(
-    scm, pull_request_id: str, comment_id: str, reaction: Reaction
+    scm: CreatePullRequestCommentReactionProtocol,
+    pull_request_id: str,
+    comment_id: str,
+    reaction: Reaction,
 ) -> ActionResult[ReactionResult]:
     """Create a reaction on a pull request comment."""
-    return self._exec(
-        lambda p: p.create_pull_request_comment_reaction(pull_request_id, comment_id, reaction),
-    )
+    return scm.create_pull_request_comment_reaction(pull_request_id, comment_id, reaction)
 
 
 def delete_pull_request_comment_reaction(
-    scm, pull_request_id: str, comment_id: str, reaction_id: str
+    scm: DeletePullRequestCommentReactionProtocol,
+    pull_request_id: str,
+    comment_id: str,
+    reaction_id: str,
 ) -> None:
     """Delete a reaction on a pull request comment."""
-    return self._exec(
-        lambda p: p.delete_pull_request_comment_reaction(pull_request_id, comment_id, reaction_id),
-    )
+    return scm.delete_pull_request_comment_reaction(pull_request_id, comment_id, reaction_id)
 
 
 def get_issue_reactions(
-    scm,
+    scm: GetIssueReactionsProtocol,
     issue_id: str,
     pagination: PaginationParams | None = None,
     request_options: RequestOptions | None = None,
 ) -> PaginatedActionResult[ReactionResult]:
     """Get reactions on an issue."""
-    return self._exec(
-        lambda p: p.get_issue_reactions(issue_id, pagination, request_options),
-    )
+    return scm.get_issue_reactions(issue_id, pagination, request_options)
 
 
-def create_issue_reaction(scm, issue_id: str, reaction: Reaction) -> ActionResult[ReactionResult]:
+def create_issue_reaction(
+    scm: CreateIssueReactionProtocol, issue_id: str, reaction: Reaction
+) -> ActionResult[ReactionResult]:
     """Create a reaction on an issue."""
-    return self._exec(
-        lambda p: p.create_issue_reaction(issue_id, reaction),
-    )
+    return scm.create_issue_reaction(issue_id, reaction)
 
 
-def delete_issue_reaction(scm, issue_id: str, reaction_id: str) -> None:
+def delete_issue_reaction(
+    scm: DeleteIssueReactionProtocol, issue_id: str, reaction_id: str
+) -> None:
     """Delete a reaction on an issue."""
-    return self._exec(
-        lambda p: p.delete_issue_reaction(issue_id, reaction_id),
-    )
+    return scm.delete_issue_reaction(issue_id, reaction_id)
 
 
 def get_pull_request_reactions(
-    scm,
+    scm: GetPullRequestReactionsProtocol,
     pull_request_id: str,
     pagination: PaginationParams | None = None,
     request_options: RequestOptions | None = None,
 ) -> PaginatedActionResult[ReactionResult]:
     """Get reactions on a pull request."""
-    return self._exec(
-        lambda p: p.get_pull_request_reactions(pull_request_id, pagination, request_options),
-    )
+    return scm.get_pull_request_reactions(pull_request_id, pagination, request_options)
 
 
 def create_pull_request_reaction(
-    scm, pull_request_id: str, reaction: Reaction
+    scm: CreatePullRequestReactionProtocol, pull_request_id: str, reaction: Reaction
 ) -> ActionResult[ReactionResult]:
     """Create a reaction on a pull request."""
-    return self._exec(
-        lambda p: p.create_pull_request_reaction(pull_request_id, reaction),
-    )
+    return scm.create_pull_request_reaction(pull_request_id, reaction)
 
 
-def delete_pull_request_reaction(scm, pull_request_id: str, reaction_id: str) -> None:
+def delete_pull_request_reaction(
+    scm: DeletePullRequestReactionProtocol, pull_request_id: str, reaction_id: str
+) -> None:
     """Delete a reaction on a pull request."""
-    return self._exec(
-        lambda p: p.delete_pull_request_reaction(pull_request_id, reaction_id),
-    )
+    return scm.delete_pull_request_reaction(pull_request_id, reaction_id)
 
 
 def get_branch(
-    scm,
+    scm: GetBranchProtocol,
     branch: BranchName,
     request_options: RequestOptions | None = None,
 ) -> ActionResult[GitRef]:
     """Get a branch reference."""
-    return self._exec(
-        lambda p: p.get_branch(branch, request_options),
-    )
+    return scm.get_branch(branch, request_options)
 
 
-def create_branch(scm, branch: BranchName, sha: SHA) -> ActionResult[GitRef]:
+def create_branch(scm: CreateBranchProtocol, branch: BranchName, sha: SHA) -> ActionResult[GitRef]:
     """Create a new branch pointing at the given SHA."""
-    return self._exec(
-        lambda p: p.create_branch(branch, sha),
-    )
+    return scm.create_branch(branch, sha)
 
 
-def update_branch(scm, branch: BranchName, sha: SHA, force: bool = False) -> ActionResult[GitRef]:
+def update_branch(
+    scm: UpdateBranchProtocol, branch: BranchName, sha: SHA, force: bool = False
+) -> ActionResult[GitRef]:
     """Update a branch to point at a new SHA."""
-    return self._exec(
-        lambda p: p.update_branch(branch, sha, force),
-    )
+    return scm.update_branch(branch, sha, force)
 
 
-def create_git_blob(scm, content: str, encoding: str) -> ActionResult[GitBlob]:
+def create_git_blob(
+    scm: CreateGitBlobProtocol, content: str, encoding: str
+) -> ActionResult[GitBlob]:
     """Create a git blob object."""
-    return self._exec(
-        lambda p: p.create_git_blob(content, encoding),
-    )
+    return scm.create_git_blob(content, encoding)
 
 
 def get_file_content(
-    scm,
+    scm: GetFileContentProtocol,
     path: str,
     ref: str | None = None,
     request_options: RequestOptions | None = None,
 ) -> ActionResult[FileContent]:
-    return self._exec(
-        lambda p: p.get_file_content(path, ref, request_options),
-    )
+    return scm.get_file_content(path, ref, request_options)
 
 
 def get_commit(
-    scm,
+    scm: GetCommitProtocol,
     sha: SHA,
     request_options: RequestOptions | None = None,
 ) -> ActionResult[Commit]:
-    return self._exec(
-        lambda p: p.get_commit(sha, request_options),
-    )
+    return scm.get_commit(sha, request_options)
 
 
 def get_commits(
-    scm,
+    scm: GetCommitsProtocol,
     ref: str | None = None,
     pagination: PaginationParams | None = None,
     request_options: RequestOptions | None = None,
@@ -427,13 +374,11 @@ def get_commits(
 
     Commits are returned in descending order. Equivalent to `git log ref`.
     """
-    return self._exec(
-        lambda p: p.get_commits(ref=ref, pagination=pagination, request_options=request_options),
-    )
+    return scm.get_commits(ref=ref, pagination=pagination, request_options=request_options)
 
 
 def get_commits_by_path(
-    scm,
+    scm: GetCommitsByPathProtocol,
     path: str,
     ref: str | None = None,
     pagination: PaginationParams | None = None,
@@ -447,152 +392,124 @@ def get_commits_by_path(
 
     Commits are returned in descending order. Equivalent to `git log ref`.
     """
-    return self._exec(
-        lambda p: p.get_commits_by_path(
-            path=path, ref=ref, pagination=pagination, request_options=request_options
-        ),
+    return scm.get_commits_by_path(
+        path=path, ref=ref, pagination=pagination, request_options=request_options
     )
 
 
 def compare_commits(
-    scm,
+    scm: CompareCommitsProtocol,
     start_sha: SHA,
     end_sha: SHA,
     pagination: PaginationParams | None = None,
     request_options: RequestOptions | None = None,
 ) -> PaginatedActionResult[Commit]:
-    return self._exec(
-        lambda p: p.compare_commits(start_sha, end_sha, pagination, request_options),
-    )
+    return scm.compare_commits(start_sha, end_sha, pagination, request_options)
 
 
 def get_tree(
-    scm,
+    scm: GetTreeProtocol,
     tree_sha: SHA,
     recursive: bool = True,
     request_options: RequestOptions | None = None,
 ) -> ActionResult[GitTree]:
-    return self._exec(
-        lambda p: p.get_tree(tree_sha, recursive=recursive, request_options=request_options),
-    )
+    return scm.get_tree(tree_sha, recursive=recursive, request_options=request_options)
 
 
 def get_git_commit(
-    scm,
+    scm: GetGitCommitProtocol,
     sha: SHA,
     request_options: RequestOptions | None = None,
 ) -> ActionResult[GitCommitObject]:
-    return self._exec(
-        lambda p: p.get_git_commit(sha, request_options),
-    )
+    return scm.get_git_commit(sha, request_options)
 
 
 def create_git_tree(
-    scm,
+    scm: CreateGitTreeProtocol,
     tree: list[InputTreeEntry],
     base_tree: SHA | None = None,
 ) -> ActionResult[GitTree]:
-    return self._exec(
-        lambda p: p.create_git_tree(tree, base_tree=base_tree),
-    )
+    return scm.create_git_tree(tree, base_tree=base_tree)
 
 
 def create_git_commit(
-    scm, message: str, tree_sha: SHA, parent_shas: list[SHA]
+    scm: CreateGitCommitProtocol, message: str, tree_sha: SHA, parent_shas: list[SHA]
 ) -> ActionResult[GitCommitObject]:
-    return self._exec(
-        lambda p: p.create_git_commit(message, tree_sha, parent_shas),
-    )
+    return scm.create_git_commit(message, tree_sha, parent_shas)
 
 
 def get_pull_request_files(
-    scm,
+    scm: GetPullRequestFilesProtocol,
     pull_request_id: str,
     pagination: PaginationParams | None = None,
     request_options: RequestOptions | None = None,
 ) -> PaginatedActionResult[PullRequestFile]:
-    return self._exec(
-        lambda p: p.get_pull_request_files(pull_request_id, pagination, request_options),
-    )
+    return scm.get_pull_request_files(pull_request_id, pagination, request_options)
 
 
 def get_pull_request_commits(
-    scm,
+    scm: GetPullRequestCommitsProtocol,
     pull_request_id: str,
     pagination: PaginationParams | None = None,
     request_options: RequestOptions | None = None,
 ) -> PaginatedActionResult[PullRequestCommit]:
-    return self._exec(
-        lambda p: p.get_pull_request_commits(pull_request_id, pagination, request_options),
-    )
+    return scm.get_pull_request_commits(pull_request_id, pagination, request_options)
 
 
 def get_pull_request_diff(
-    scm,
+    scm: GetPullRequestDiffProtocol,
     pull_request_id: str,
     request_options: RequestOptions | None = None,
 ) -> ActionResult[str]:
-    return self._exec(
-        lambda p: p.get_pull_request_diff(pull_request_id, request_options),
-    )
+    return scm.get_pull_request_diff(pull_request_id, request_options)
 
 
 def get_pull_requests(
-    scm,
+    scm: GetPullRequestsProtocol,
     state: PullRequestState | None = "open",
     head: BranchName | None = None,
     pagination: PaginationParams | None = None,
     request_options: RequestOptions | None = None,
 ) -> PaginatedActionResult[PullRequest]:
-    return self._exec(
-        lambda p: p.get_pull_requests(state, head, pagination, request_options),
-    )
+    return scm.get_pull_requests(state, head, pagination, request_options)
 
 
 def create_pull_request(
-    scm,
+    scm: CreatePullRequestProtocol,
     title: str,
     body: str,
     head: BranchName,
     base: BranchName,
 ) -> ActionResult[PullRequest]:
-    return self._exec(
-        lambda p: p.create_pull_request(title, body, head, base),
-    )
+    return scm.create_pull_request(title, body, head, base)
 
 
 def create_pull_request_draft(
-    scm,
+    scm: CreatePullRequestDraftProtocol,
     title: str,
     body: str,
     head: BranchName,
     base: BranchName,
 ) -> ActionResult[PullRequest]:
-    return self._exec(
-        lambda p: p.create_pull_request_draft(title, body, head, base),
-    )
+    return scm.create_pull_request_draft(title, body, head, base)
 
 
 def update_pull_request(
-    scm,
+    scm: UpdatePullRequestProtocol,
     pull_request_id: str,
     title: str | None = None,
     body: str | None = None,
     state: PullRequestState | None = None,
 ) -> ActionResult[PullRequest]:
-    return self._exec(
-        lambda p: p.update_pull_request(pull_request_id, title=title, body=body, state=state),
-    )
+    return scm.update_pull_request(pull_request_id, title=title, body=body, state=state)
 
 
-def request_review(scm, pull_request_id: str, reviewers: list[str]) -> None:
-    return self._exec(
-        lambda p: p.request_review(pull_request_id, reviewers),
-    )
+def request_review(scm: RequestReviewProtocol, pull_request_id: str, reviewers: list[str]) -> None:
+    return scm.request_review(pull_request_id, reviewers)
 
 
 def create_review_comment_file(
-    scm,
+    scm: CreateReviewCommentFileProtocol,
     pull_request_id: str,
     commit_id: SHA,
     body: str,
@@ -600,21 +517,17 @@ def create_review_comment_file(
     side: ReviewSide,
 ) -> ActionResult[ReviewComment]:
     """Leave a review comment on a file."""
-    return self._exec(
-        lambda p: p.create_review_comment_file(pull_request_id, commit_id, body, path, side),
-    )
+    return scm.create_review_comment_file(pull_request_id, commit_id, body, path, side)
 
 
 def create_review_comment_reply(
-    scm,
+    scm: CreateReviewCommentReplyProtocol,
     pull_request_id: str,
     body: str,
     comment_id: str,
 ) -> ActionResult[ReviewComment]:
     """Leave a review comment in reply to another review comment."""
-    return self._exec(
-        lambda p: p.create_review_comment_reply(pull_request_id, body, comment_id),
-    )
+    return scm.create_review_comment_reply(pull_request_id, body, comment_id)
 
 
 def create_review(
@@ -647,7 +560,7 @@ def create_check_run(
         external_id=external_id,
         started_at=started_at,
         completed_at=completed_at,
-        output=output
+        output=output,
     )
 
 
@@ -671,3 +584,55 @@ def update_check_run(
 
 def minimize_comment(scm: MinimizeCommentProtocol, comment_node_id: str, reason: str) -> None:
     return scm.minimize_comment(comment_node_id, reason)
+
+
+__all__ = (
+    "SourceCodeManager",
+    "compare_commits",
+    "create_branch",
+    "create_check_run",
+    "create_git_blob",
+    "create_git_commit",
+    "create_git_tree",
+    "create_issue_comment_reaction",
+    "create_issue_comment",
+    "create_issue_reaction",
+    "create_pull_request_comment_reaction",
+    "create_pull_request_comment",
+    "create_pull_request_draft",
+    "create_pull_request_reaction",
+    "create_pull_request",
+    "create_review_comment_file",
+    "create_review_comment_reply",
+    "create_review",
+    "delete_issue_comment_reaction",
+    "delete_issue_comment",
+    "delete_issue_reaction",
+    "delete_pull_request_comment_reaction",
+    "delete_pull_request_comment",
+    "delete_pull_request_reaction",
+    "get_branch",
+    "get_check_run",
+    "get_commit",
+    "get_commits_by_path",
+    "get_commits",
+    "get_file_content",
+    "get_git_commit",
+    "get_issue_comment_reactions",
+    "get_issue_comments",
+    "get_issue_reactions",
+    "get_pull_request_comment_reactions",
+    "get_pull_request_comments",
+    "get_pull_request_commits",
+    "get_pull_request_diff",
+    "get_pull_request_files",
+    "get_pull_request_reactions",
+    "get_pull_request",
+    "get_pull_requests",
+    "get_tree",
+    "minimize_comment",
+    "request_review",
+    "update_branch",
+    "update_check_run",
+    "update_pull_request",
+)
