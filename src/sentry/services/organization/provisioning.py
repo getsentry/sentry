@@ -137,26 +137,26 @@ class OrganizationProvisioningService:
         CAUTION: DO NOT USE THIS OUTSIDE OF THE IMPORT/RELOCATION CONTEXT
 
         Organizations are meant to be provisioned via the
-         `provision_organization_in_region` method, which handles both slug
+         `provision_organization_in_cell` method, which handles both slug
          reservation and organization creation.
 
         Bulk creates slug reservations for imported organizations that already
-        exist on the region. Each target organization is provided as a tuple of
+        exist on the cell. Each target organization is provided as a tuple of
         Organization ID (int) and base slug (str).
 
         :param org_ids_and_slugs: A set of tuples containing an organization ID
         and base slug.
-        :param region_name: The region where the imported organizations exist
+        :param region_name: The cell where the imported organizations exist
         :return:
         """
-        destination_region_name = self._validate_or_default_region(cell_name=region_name)
+        destination_cell_name = self._validate_or_default_cell(cell_name=region_name)
 
         from sentry.hybridcloud.services.control_organization_provisioning import (
             control_organization_provisioning_rpc_service,
         )
 
         control_organization_provisioning_rpc_service.bulk_create_organization_slug_reservations(
-            slug_mapping=slug_mapping, cell_name=destination_region_name
+            slug_mapping=slug_mapping, cell_name=destination_cell_name
         )
 
 
