@@ -1,9 +1,9 @@
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Final, get_type_hints
+from typing import Any, Final
+
+from pydantic import ValidationError
 
 from sentry.models.organization import Organization
 from sentry.notifications.platform.metrics import (
@@ -18,7 +18,7 @@ from sentry.notifications.platform.provider import (
 )
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.rollout import NotificationRolloutService
-from sentry.notifications.platform.target import NotificationTargetDto
+from sentry.notifications.platform.target import deserialize_target, serialize_target
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -112,6 +112,7 @@ class NotificationService[T: NotificationData]:
         *,
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
+        **kwargs: Any,
     ) -> None:
         """
         Send a notification directly to a target via task, if you care about using the result of the notification, use notify_sync instead.
@@ -120,11 +121,11 @@ class NotificationService[T: NotificationData]:
         targets = self._get_targets(strategy=strategy, targets=targets)
 
         for target in targets:
-            serialized_target = NotificationTargetDto(target=target)
-            serialized_data = NotificationDataDto(notification_data=self.data).to_dict()
+            serialized_data = serialize_notification_data(self.data)
+            serialized_target = serialize_target(target)
             notify_target_async.delay(
                 data=serialized_data,
-                nested_target=serialized_target.to_dict(),
+                nested_target=serialized_target,
             )
 
     def notify_sync(
@@ -190,15 +191,13 @@ def notify_target_async(
             using this method directly to prevent unwanted noise associated with your notifications.
     """
     try:
-        notification_data_dto = NotificationDataDto.from_dict(data)
-    except (NotificationServiceError, NoRegistrationExistsError) as e:
+        notification_data = deserialize_notification_data(data)
+    except (NotificationServiceError, NoRegistrationExistsError, ValidationError) as e:
         logger.warning(
             "notifications.platform.notify_target_async.deserialize_error",
             extra={"error": e, "data": data, "nested_target": nested_target},
         )
         return
-
-    notification_data = notification_data_dto.notification_data
 
     lifecycle_metric = NotificationEventLifecycleMetric(
         interaction_type=NotificationInteractionType.NOTIFY_TARGET_ASYNC,
@@ -207,10 +206,9 @@ def notify_target_async(
 
     with lifecycle_metric.capture() as lifecycle:
         # Step 1: Deserialize the target from nested structure
-        serialized_target = NotificationTargetDto.from_dict(nested_target)
-        target = serialized_target.target
+        target = deserialize_target(nested_target)
         lifecycle_metric.notification_provider = target.provider_key
-        lifecycle.add_extras({"source": notification_data.source, "target": target.to_dict()})
+        lifecycle.add_extras({"source": notification_data.source, "target": target.dict()})
 
         # Step 2: Get the provider, and validate the target against it
         provider = provider_registry.get(target.provider_key)
@@ -235,37 +233,14 @@ def notify_target_async(
                     lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
 
 
-@dataclass
-class NotificationDataDto:
-    """
-    A wrapper class that handles serialization/deserialization of NotificationData.
-    """
+def serialize_notification_data(data: NotificationData) -> dict[str, Any]:
+    return {"source": data.source, "data": data.dict()}
 
-    notification_data: NotificationData
 
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "source": self.notification_data.source,
-            "data": self.notification_data.__dict__,
-        }
+def deserialize_notification_data(raw: dict[str, Any]) -> NotificationData:
+    source = raw.get("source")
+    if source is None:
+        raise NotificationServiceError("Source is required")
 
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "NotificationDataDto":
-        source = data.get("source")
-        if source is None:
-            raise NotificationServiceError("Source is required")
-
-        notification_data_cls = template_registry.get(source).get_data_class()
-        notification_fields = data.get("data", {}).copy()
-
-        # We're using type hints to know which fields need special conversion
-        type_hints = get_type_hints(notification_data_cls)
-
-        for field_name, value in notification_fields.items():
-            if field_name in type_hints:
-                expected_type = type_hints[field_name]
-                if expected_type == datetime and isinstance(value, str):
-                    notification_fields[field_name] = datetime.fromisoformat(value)
-
-        notification_data = notification_data_cls(**notification_fields)
-        return cls(notification_data=notification_data)
+    notification_data_cls = template_registry.get(source).get_data_class()
+    return notification_data_cls.parse_obj(raw.get("data", {}))

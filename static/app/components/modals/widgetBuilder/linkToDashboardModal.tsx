@@ -3,24 +3,27 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {fetchDashboard, fetchDashboards} from 'sentry/actionCreators/dashboards';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Spinner} from 'sentry/components/forms/spinner';
+import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import type {
-  DashboardDetails,
-  DashboardListItem,
-  LinkedDashboard,
+import {
+  DashboardFilter,
+  MAX_WIDGETS,
+  type DashboardDetails,
+  type DashboardListItem,
+  type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
-import {MAX_WIDGETS} from 'sentry/views/dashboards/types';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 export type LinkToDashboardModalProps = {
@@ -57,7 +60,9 @@ export function LinkToDashboardModal({
 
     setIsDashboardListLoading(true);
 
-    const dashboardListPromise = fetchDashboards(api, organization.slug);
+    const dashboardListPromise = fetchDashboards(api, organization.slug, {
+      filter: DashboardFilter.SHOW_HIDDEN,
+    });
     const linkedDashboardPromise = currentLinkedDashboard?.dashboardId
       ? fetchDashboard(api, organization.slug, currentLinkedDashboard.dashboardId).catch(
           () => null
@@ -177,7 +182,18 @@ export function LinkToDashboardModal({
 
   return (
     <Fragment>
-      <Header closeButton>{t('Link to Dashboard')}</Header>
+      <Header closeButton>
+        <Flex align="center" gap="sm">
+          {t('Link to Dashboard')}
+          <Tooltip
+            title={t(
+              'Dashboard linking allows you to create a connection between a field in this widget and another dashboard. When users click on a value in the linked field, they will be taken to the linked dashboard with relevant filters applied.'
+            )}
+          >
+            <IconInfo size="sm" />
+          </Tooltip>
+        </Flex>
+      </Header>
       <Body>
         <Wrapper>
           <DashboardCreateLimitWrapper>

@@ -5,6 +5,7 @@ from dataclasses import asdict
 from typing import Any, NotRequired, Protocol, TypedDict
 
 from django.core.exceptions import ValidationError
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
@@ -32,7 +33,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.taskworker.retry import RetryTaskError
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector

@@ -3,13 +3,11 @@ import styled from '@emotion/styled';
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
-import type {Event, EventOrGroupType, Level} from 'sentry/types/event';
-import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
+import type {EventOrGroupType, Level} from 'sentry/types/event';
 import {eventTypeHasLogLevel} from 'sentry/utils/events';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 type Props = {
-  data: Event | BaseGroup | GroupTombstoneHelper;
   message: React.ReactNode;
   type: EventOrGroupType;
   className?: string;

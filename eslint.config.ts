@@ -173,6 +173,11 @@ const restrictedImportPaths = [
     name: '@tanstack/react-form',
     message: 'Use @sentry/scraps/form instead',
   },
+  {
+    name: 'framer-motion',
+    importNames: ['Reorder'],
+    message: "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead.",
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
