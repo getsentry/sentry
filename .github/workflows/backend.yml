@@ -3,9 +3,7 @@ name: backend
 on:
   push:
     branches:
-      - master
-  pull_request:
-    types: [opened, synchronize, reopened, labeled]
+      - mchen/diagnose-shard16-hang
   workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
@@ -46,7 +44,7 @@ jobs:
           filters: .github/file-filters.yml
 
   api-docs:
-    if: needs.files-changed.outputs.api_docs == 'true'
+    if: false # disabled for diagnostic run
     needs: files-changed
     name: api docs test
     runs-on: ubuntu-24.04
@@ -286,6 +284,11 @@ jobs:
         with:
           mode: backend-ci
 
+      - name: Override shard to 16 (diagnostic)
+        run: |
+          echo "TEST_GROUP=16" >> $GITHUB_ENV
+          echo "All 22 matrix instances will run shard 16 tests (instance=${{ matrix.instance }})"
+
       - name: Download odiff binary
         run: |
           curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.2.tgz \
@@ -358,7 +361,7 @@ jobs:
           SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
         run: |
           if [ -n "${XDIST_WORKERS}" ]; then
-            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile -v --tb=short"
             timeout 1200 make test-python-ci || {
               rc=$?
               if [ "$rc" -eq 124 ]; then
@@ -408,7 +411,7 @@ jobs:
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
   backend-migration-tests:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: false # disabled for diagnostic run
     needs: files-changed
     name: backend migration tests
     runs-on: ubuntu-24.04
@@ -451,7 +454,7 @@ jobs:
           fi
 
   cli:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: false # disabled for diagnostic run
     needs: files-changed
     name: cli test
     runs-on: ubuntu-24.04
@@ -481,7 +484,7 @@ jobs:
           fi
 
   requirements:
-    if: needs.files-changed.outputs.backend_dependencies == 'true'
+    if: false # disabled for diagnostic run
     needs: files-changed
     name: requirements check
     runs-on: ubuntu-24.04
@@ -521,7 +524,7 @@ jobs:
           message: ':snowflake: re-freeze requirements'
 
   api-url-typescript:
-    if: needs.files-changed.outputs.backend_api_urls == 'true'
+    if: false # disabled for diagnostic run
     needs: files-changed
     name: api url typescript generation
     runs-on: ubuntu-24.04
@@ -552,7 +555,7 @@ jobs:
           message: ':hammer_and_wrench: Sync API Urls to TypeScript'
 
   migration:
-    if: needs.files-changed.outputs.migration_lockfile == 'true'
+    if: false # disabled for diagnostic run
     needs: files-changed
     name: check migration
     runs-on: ubuntu-24.04
@@ -582,7 +585,7 @@ jobs:
           fi
 
   monolith-dbs:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: false # disabled for diagnostic run
     needs: files-changed
     name: monolith-dbs test
     runs-on: ubuntu-24.04
@@ -635,7 +638,7 @@ jobs:
           service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
 
   typing:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: false # disabled for diagnostic run
     needs: files-changed
     name: backend typing
     runs-on: ubuntu-24.04
