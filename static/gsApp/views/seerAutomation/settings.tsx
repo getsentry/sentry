@@ -20,7 +20,7 @@ import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components
 import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
-const seerOrgSchema = z.object({
+const schema = z.object({
   defaultAutofixAutomationTuning: z.boolean(), // The API stores this as an enum, but it is displayed as a boolean toggle.
   autoOpenPrs: z.boolean(),
   autoEnableCodeReview: z.boolean(),
@@ -95,7 +95,7 @@ export function SeerAutomationSettings() {
         >
           <AutoSaveForm
             name="defaultAutofixAutomationTuning"
-            schema={seerOrgSchema}
+            schema={schema}
             initialValue={Boolean(
               organization.defaultAutofixAutomationTuning &&
               organization.defaultAutofixAutomationTuning !== 'off'
@@ -119,7 +119,7 @@ export function SeerAutomationSettings() {
           </AutoSaveForm>
           <AutoSaveForm
             name="autoOpenPrs"
-            schema={seerOrgSchema}
+            schema={schema}
             initialValue={
               organization.enableSeerCoding === false
                 ? false
@@ -185,7 +185,7 @@ export function SeerAutomationSettings() {
         >
           <AutoSaveForm
             name="autoEnableCodeReview"
-            schema={seerOrgSchema}
+            schema={schema}
             initialValue={organization.autoEnableCodeReview ?? true}
             mutationOptions={orgMutationOpts}
           >
@@ -206,7 +206,7 @@ export function SeerAutomationSettings() {
           </AutoSaveForm>
           <AutoSaveForm
             name="defaultCodeReviewTriggers"
-            schema={seerOrgSchema}
+            schema={schema}
             initialValue={
               organization.defaultCodeReviewTriggers ?? DEFAULT_CODE_REVIEW_TRIGGERS
             }
@@ -237,7 +237,7 @@ export function SeerAutomationSettings() {
         <FieldGroup title={t('Advanced Settings')}>
           <AutoSaveForm
             name="enableSeerEnhancedAlerts"
-            schema={seerOrgSchema}
+            schema={schema}
             initialValue={organization.enableSeerEnhancedAlerts ?? true}
             mutationOptions={orgMutationOpts}
           >
@@ -256,7 +256,7 @@ export function SeerAutomationSettings() {
           </AutoSaveForm>
           <AutoSaveForm
             name="enableSeerCoding"
-            schema={seerOrgSchema}
+            schema={schema}
             initialValue={organization.enableSeerCoding ?? true}
             mutationOptions={orgMutationOpts}
           >
