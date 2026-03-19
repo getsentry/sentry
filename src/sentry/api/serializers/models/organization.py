@@ -58,6 +58,7 @@ from sentry.constants import (
     ROLLBACK_ENABLED_DEFAULT,
     SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
+    SEER_DEFAULT_CODING_AGENT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
     ObjectStatus,
 )
@@ -740,7 +741,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             ),
             "defaultCodingAgent": obj.get_option(
                 "sentry:seer_default_coding_agent",
-                None,
+                SEER_DEFAULT_CODING_AGENT_DEFAULT,
             ),
             "defaultCodingAgentIntegrationId": obj.get_option(
                 "sentry:seer_default_coding_agent_integration_id",
