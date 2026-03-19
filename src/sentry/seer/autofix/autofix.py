@@ -739,11 +739,10 @@ def trigger_autofix(
 
     # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
     # expensive git tree fetches for large repos.
-    if features.has("organizations:autofix-send-code-mappings", group.organization):
-        try:
-            _pre_resolve_stacktrace_frames(serialized_event, code_mappings)
-        except Exception:
-            logger.exception("Failed to pre-resolve stacktrace frames")
+    try:
+        _pre_resolve_stacktrace_frames(serialized_event, code_mappings)
+    except Exception:
+        logger.exception("Failed to pre-resolve stacktrace frames")
 
     # get trace tree of transactions and errors for this event
     try:
