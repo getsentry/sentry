@@ -580,30 +580,27 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // callback function for itemStyle.color; in that case we fall back to
   // a neutral theme color for the legend swatch.
   let chartLegendItems: LegendItem[] = [];
-  if (usesChartLegendComponent) {
-    chartLegendItems = props.plottables.map(plottable => {
-      const series = seriesFromPlottables.find(s => s.name === plottable.name);
-      const seriesColor =
-        (series as {color?: unknown})?.color ??
-        (series as {itemStyle?: {color?: unknown}})?.itemStyle?.color;
-      const color = typeof seriesColor === 'string' ? seriesColor : theme.colors.gray300;
-      return {
-        name: plottable.name,
-        label: plottable.label,
-        color,
-      };
+  chartLegendItems = props.plottables.map(plottable => {
+    const series = seriesFromPlottables.find(s => s.name === plottable.name);
+    const seriesColor =
+      (series as {color?: unknown})?.color ??
+      (series as {itemStyle?: {color?: unknown}})?.itemStyle?.color;
+    const color = typeof seriesColor === 'string' ? seriesColor : theme.colors.gray300;
+    return {
+      name: plottable.name,
+      label: plottable.label,
+      color,
+    };
+  });
+  if (releaseSeries) {
+    const releaseName = typeof releaseSeries.name === 'string' ? releaseSeries.name : '';
+    const releaseColor =
+      typeof releaseSeries.color === 'string' ? releaseSeries.color : '';
+    chartLegendItems.push({
+      name: releaseName,
+      label: releaseName,
+      color: releaseColor,
     });
-    if (releaseSeries) {
-      const releaseName =
-        typeof releaseSeries.name === 'string' ? releaseSeries.name : '';
-      const releaseColor =
-        typeof releaseSeries.color === 'string' ? releaseSeries.color : '';
-      chartLegendItems.push({
-        name: releaseName,
-        label: releaseName,
-        color: releaseColor,
-      });
-    }
   }
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
@@ -660,7 +657,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   return (
     <Flex direction="column" height="100%">
       {ActionMenu}
-      {usesChartLegendComponent && showLegend && (
+      {showLegend && (
         <ChartLegend
           items={chartLegendItems}
           selected={legendSelection}
@@ -677,7 +674,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             // incorrectly truncating long labels. See
             // https://github.com/apache/echarts/issues/15562
             left: 2,
-            top: showLegend && !usesChartLegendComponent ? 25 : 10,
+            top: 10,
             right: 8,
             bottom: 0,
             containLabel: true,
@@ -685,28 +682,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             ...xAxisGrid,
           }}
           legend={
-            usesChartLegendComponent && showLegend
+            showLegend
               ? {
                   show: false,
                   selected: legendSelection,
                 }
-              : !usesChartLegendComponent && showLegend
-                ? {
-                    top: 0,
-                    left: 0,
-                    formatter(seriesName: string) {
-                      return truncationFormatter(
-                        aliases[seriesName] ?? seriesName,
-                        true,
-                        // Escaping the legend string will cause some special
-                        // characters to render as their HTML equivalents.
-                        // So disable it here.
-                        false
-                      );
-                    },
-                    selected: legendSelection,
-                  }
-                : undefined
+              : undefined
           }
           onLegendSelectChanged={event => {
             handleLegendSelectionChange(event.selected);
