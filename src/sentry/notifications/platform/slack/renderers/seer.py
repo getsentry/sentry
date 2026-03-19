@@ -206,10 +206,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def _render_explorer_response(cls, data: SeerExplorerResponse) -> SlackRenderable:
-        summary = data.summary or "I've finished analyzing your question."
-        text = f"{summary}\n\n<{data.explorer_link}|View in Sentry>"
-
-        blocks: list[Block] = [MarkdownBlock(text=text)]
+        blocks: list[Block] = [MarkdownBlock(text=data.summary)]
 
         return SlackRenderable(blocks=blocks, text="Seer Explorer has finished")
 
