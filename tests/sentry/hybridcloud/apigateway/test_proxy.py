@@ -24,7 +24,7 @@ from sentry.utils import json
 url_name = "sentry-api-0-projets"
 
 
-@control_silo_test(regions=[ApiGatewayTestCase.REGION], include_monolith_run=True)
+@control_silo_test(cells=[ApiGatewayTestCase.REGION], include_monolith_run=True)
 class ProxyTestCase(ApiGatewayTestCase):
     @responses.activate
     def test_simple(self) -> None:

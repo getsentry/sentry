@@ -105,8 +105,8 @@ def proxy_error_embed_request(
     app_segments = app_host.split(".")
     host_segments = host.split(".")
     if len(host_segments) - len(app_segments) < 3:
-        # If we don't have a o123.ingest.{region}.{app_host} style domain
-        # we forward to the monolith region
+        # If we don't have a o123.ingest.{cell}.{app_host} style domain
+        # we forward to the monolith cell
         cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
         return proxy_cell_request(request, cell, url_name)
     try:

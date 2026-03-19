@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.rule import WorkflowEngineRuleEndpoint
+from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
@@ -19,7 +19,6 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules.history import fetch_rule_hourly_stats
 from sentry.rules.history.base import TimeSeriesValue
-from sentry.workflow_engine.models.workflow import Workflow
 
 
 class TimeSeriesValueResponse(TypedDict):
@@ -39,7 +38,7 @@ class TimeSeriesValueSerializer(Serializer):
 
 @extend_schema(tags=["issue_alerts"])
 @cell_silo_endpoint
-class ProjectRuleStatsIndexEndpoint(WorkflowEngineRuleEndpoint):
+class ProjectRuleStatsIndexEndpoint(RuleEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
@@ -58,7 +57,7 @@ class ProjectRuleStatsIndexEndpoint(WorkflowEngineRuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
+    def get(self, request: Request, project: Project, rule: Rule) -> Response:
         """
         Note that results are returned in hourly buckets.
         """
