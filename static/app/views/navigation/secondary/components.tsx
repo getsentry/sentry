@@ -76,7 +76,6 @@ interface SecondarySidebarProps {
 }
 
 function SecondarySidebar({children}: SecondarySidebarProps) {
-  const theme = useTheme();
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
@@ -121,10 +120,10 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               width="100%"
               height="100%"
               key={activeGroup}
-              initial={{x: 0, opacity: 0}}
-              animate={{x: 0, opacity: 1}}
-              exit={{x: 0, opacity: 0}}
-              transition={theme.motion.framer.enter.moderate}
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              exit={{opacity: 0}}
+              transition={{duration: 0.06}}
             >
               <Grid
                 rows="auto 1fr auto"
