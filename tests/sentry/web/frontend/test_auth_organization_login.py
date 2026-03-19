@@ -4,6 +4,7 @@ from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
 from django.contrib.auth import get_user
+from django.contrib.messages import get_messages
 from django.test import override_settings
 from django.urls import reverse
 
@@ -1301,7 +1302,7 @@ class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
 
             # Demo mode auto-logs in and redirects, but no warning should be
             # added to the messages framework for the demo org.
-            stored_messages = list(resp.wsgi_request._messages)
+            stored_messages = list(get_messages(resp.wsgi_request))
             assert not any("is not a member of the" in str(m) for m in stored_messages)
 
     def test_non_member_warning_still_shown_for_non_demo_org(self) -> None:
