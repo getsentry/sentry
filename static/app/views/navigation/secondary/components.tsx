@@ -901,6 +901,12 @@ function SecondaryNavigationReorderableLink({
     </Fragment>
   );
 
+  if (layout === 'mobile') {
+    return (
+      <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
+    );
+  }
+
   if (hasPageFrame) {
     return (
       <StyledPageFrameReorderableFakeLink {...sharedProps}>
