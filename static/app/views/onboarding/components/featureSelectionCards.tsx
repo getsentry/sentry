@@ -101,25 +101,28 @@ export function FeatureSelectionCards({
           const Icon = meta.icon;
 
           return (
-            <Container
+            <button
+              onClick={() => !isErrorMonitoring && onToggleFeature(feature)}
+              role="checkbox"
+              aria-checked={isSelected}
+              aria-disabled={isErrorMonitoring}
+              aria-label={meta.label}
+              style={{
+                textAlign: 'left',
+                background: 'transparent',
+                width: '100%',
+                opacity: isErrorMonitoring ? 0.75 : 1,
+                cursor: isErrorMonitoring ? 'default' : 'pointer',
+                appearance: 'none',
+                border: 'none',
+                paddingInline: '0px',
+              }}
               key={feature}
-              border={isSelected ? 'accent' : 'secondary'}
-              padding="lg"
-              radius="md"
-              cursor={isErrorMonitoring ? 'default' : 'pointer'}
             >
-              <button
-                onClick={() => !isErrorMonitoring && onToggleFeature(feature)}
-                role="checkbox"
-                aria-checked={isSelected}
-                aria-disabled={isErrorMonitoring}
-                aria-label={meta.label}
-                style={{
-                  textAlign: 'left',
-                  background: 'transparent',
-                  width: '100%',
-                  opacity: isErrorMonitoring ? 0.75 : 1,
-                }}
+              <Container
+                border={isSelected ? 'accent' : 'secondary'}
+                padding="lg"
+                radius="md"
               >
                 <Flex gap="md" align="start">
                   <Flex padding="xs 0 0 0">
@@ -142,8 +145,8 @@ export function FeatureSelectionCards({
                     </Text>
                   </Flex>
                 </Flex>
-              </button>
-            </Container>
+              </Container>
+            </button>
           );
         })}
       </Grid>
