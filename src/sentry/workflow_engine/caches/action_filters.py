@@ -111,7 +111,7 @@ def get_action_filters_by_workflows(
 
 
 @scopedstats.timer()
-def invalidate_action_filter_cache_by_workflow_ids(workflow_ids: list[int]) -> None:
+def invalidate_action_filter_cache_by_workflow_ids(workflow_ids: list[WorkflowId]) -> None:
     """
     Takes a list of workflow ids and clears the cached values for the stored information
 
@@ -125,4 +125,4 @@ def invalidate_action_filter_cache_by_workflow_ids(workflow_ids: list[int]) -> N
     metrics_incr(f"{METRIC_PREFIX}.invalidated", value=len(workflow_ids))
     cache_keys = [_ActionFilterCacheKey(wid) for wid in workflow_ids]
 
-    return _action_filters_cache.delete_many(cache_keys)
+    _action_filters_cache.delete_many(cache_keys)
