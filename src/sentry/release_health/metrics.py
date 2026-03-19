@@ -406,7 +406,25 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         query: QueryDefinition,
         span_op: str,
     ) -> SessionsQueryResult:
-        return run_sessions_query(org_id, query, span_op)
+        control_result = run_sessions_query(org_id, query, span_op)
+        logger.error(f"Control result {query}")
+
+        try:
+            from sentry import features
+            from sentry.models.organization import Organization
+            from sentry.release_health.eap_sessions_rollout import (
+                compare_results,
+                run_sessions_query_eap,
+            )
+
+            org = Organization.objects.get_from_cache(id=org_id)
+            if True or features.has("organizations:session-health-eap", org):
+                eap_result = run_sessions_query_eap(org_id, query)
+                compare_results(control_result, eap_result)
+        except Exception:
+            logger.exception("eap_sessions.double_read_failed")
+
+        return control_result
 
     def get_release_sessions_time_bounds(
         self,
