@@ -550,6 +550,12 @@ export function useExplorerAutofix(
   const orgSlug = organization.slug;
 
   const [waitingForResponse, setWaitingForResponse] = useState(false);
+
+  /**
+   * Triggering coding agents take a while and explorer state doesn't update until the end.
+   * This means while the request on ongoing, we need to disable the UI to prevent users
+   * from clicking other steps.
+   */
   const [waitingForCodingAgent, setWaitingForCodingAgent] = useState(false);
 
   const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
