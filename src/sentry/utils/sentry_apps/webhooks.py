@@ -22,7 +22,7 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.models.sentry_app import SentryApp, track_response_code
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
-from sentry.taskworker.workerchild import timeout_alarm
+from sentry.taskworker.timeout import timeout_alarm
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 if TYPE_CHECKING:

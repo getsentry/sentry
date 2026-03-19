@@ -36,7 +36,7 @@ describe('seerAgentHooks', () => {
   });
 
   describe('useAgentOptions', () => {
-    it('returns Seer, integration options, and Manual Agent Selection', () => {
+    it('returns Seer, integration options, and No Handoff Selection', () => {
       const integrations: CodingAgentIntegration[] = [
         {id: '42', name: 'Cursor', provider: 'cursor'},
       ];
@@ -53,7 +53,7 @@ describe('seerAgentHooks', () => {
         value: {id: '42', name: 'Cursor', provider: 'cursor'},
         label: 'Cursor',
       });
-      expect(options[2]).toEqual({value: 'none', label: expect.any(String)});
+      expect(options[2]).toEqual({value: 'none', label: 'No Handoff'});
     });
 
     it('filters out integrations without id', () => {

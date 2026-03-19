@@ -24,6 +24,7 @@ import {
   mbToBytes,
   MEASUREMENT_OPTIONS,
   METRIC_OPTIONS,
+  STATUS_CHECK_ALLOWED_FILTER_KEYS,
 } from './types';
 
 interface Props {
@@ -139,12 +140,7 @@ export function StatusCheckRuleForm({rule, onSave, onDelete}: Props) {
           disallowFreeText
           disallowHas
           disallowLogicalOperators
-          allowedKeys={[
-            'app_id',
-            'git_head_ref',
-            'build_configuration_name',
-            'platform_name',
-          ]}
+          allowedKeys={STATUS_CHECK_ALLOWED_FILTER_KEYS}
         />
       </Stack>
 

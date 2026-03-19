@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
@@ -9,9 +9,9 @@ import {EventMessage} from 'sentry/components/events/eventMessage';
 import {GroupTitle} from 'sentry/components/groupTitle';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconStar} from 'sentry/icons';
-import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getMessage, isGroup, isTombstone} from 'sentry/utils/events';
+import {getMessage} from 'sentry/utils/events';
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -21,10 +21,9 @@ import {createIssueLink} from 'sentry/views/issueList/utils';
 import {EventTitleError} from './eventTitleError';
 
 interface GroupHeaderRowProps {
-  data: Group | GroupTombstoneHelper;
+  data: Group;
   eventId?: string;
   hideIcons?: boolean;
-  hideLevel?: boolean;
   /** Group link clicked */
   onClick?: () => void;
   query?: string;
@@ -85,67 +84,41 @@ export function GroupHeaderRow({
 
   const preloadHoverProps = usePreloadGroupOnHover({
     groupId: data.id,
-    disabled: isTombstone(data) || !isGroup(data),
+    disabled: false,
     organization,
   });
 
-  function getTitleChildren() {
-    const {isBookmarked} = data as Group;
-    return (
-      <Fragment>
-        {!hideIcons && isBookmarked && (
-          <IconWrapper>
-            <IconStar isSolid variant="warning" />
-          </IconWrapper>
-        )}
-        <ErrorBoundary customComponent={() => <EventTitleError />} mini>
-          <StyledGroupTitle data={data} withStackTracePreview query={query} />
-        </ErrorBoundary>
-      </Fragment>
-    );
-  }
-
-  function getTitle() {
-    const {status} = data as Group;
-
-    const commonEleProps = {
-      'data-test-id': status === 'resolved' ? 'resolved-issue' : undefined,
-    };
-
-    if (isTombstone(data)) {
-      return (
-        <TitleWithoutLink {...commonEleProps}>{getTitleChildren()}</TitleWithoutLink>
-      );
-    }
-
-    const to = createIssueLink({
-      organization,
-      data,
-      eventId,
-      referrer: source,
-      location,
-      query,
-    });
-
-    return (
-      <TitleWithLink
-        {...commonEleProps}
-        {...preloadHoverProps}
-        to={to}
-        onClick={onClick}
-        data-issue-title-link
-      >
-        {getTitleChildren()}
-      </TitleWithLink>
-    );
-  }
+  const to = createIssueLink({
+    organization,
+    data,
+    eventId,
+    referrer: source,
+    location,
+    query,
+  });
 
   return (
     <div data-test-id="event-issue-header">
-      <Title>{getTitle()}</Title>
+      <Title>
+        <TitleWithLink
+          data-test-id={data.status === 'resolved' ? 'resolved-issue' : undefined}
+          {...preloadHoverProps}
+          to={to}
+          onClick={onClick}
+          data-issue-title-link
+        >
+          {!hideIcons && data.isBookmarked && (
+            <IconWrapper>
+              <IconStar isSolid variant="warning" />
+            </IconWrapper>
+          )}
+          <ErrorBoundary customComponent={() => <EventTitleError />} mini>
+            <StyledGroupTitle data={data} withStackTracePreview query={query} />
+          </ErrorBoundary>
+        </TitleWithLink>
+      </Title>
       <StyledEventMessage
-        data={data}
-        level={'level' in data ? data.level : undefined}
+        level={data.level}
         message={getMessage(data)}
         type={data.type}
       />
@@ -186,14 +159,6 @@ const TitleWithLink = styled(Link)`
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const TitleWithoutLink = styled('span')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 const StyledGroupTitle = styled(GroupTitle)`

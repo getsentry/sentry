@@ -1,6 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -97,24 +96,6 @@ describe('GroupHeaderRow', () => {
     expect(mockFetchGroup).toHaveBeenCalled();
   });
 
-  it('hides level tag', () => {
-    render(
-      <GroupHeaderRow
-        hideLevel
-        data={{
-          ...group,
-          type: EventOrGroupType.DEFAULT,
-          metadata: {
-            ...group.metadata,
-            title: 'metadata title',
-          },
-        }}
-      />
-    );
-
-    expect(screen.getByText('metadata title')).toBeInTheDocument();
-  });
-
   it('keeps sort in link when query has sort', () => {
     const groupDefault = GroupFixture({
       ...group,
@@ -148,30 +129,5 @@ describe('GroupHeaderRow', () => {
       'href',
       `${baseIssuesPath}${groupDefault.id}/?_allp=1&project=2&referrer=event-or-group-header`
     );
-  });
-
-  it('renders group tombstone without link to group', () => {
-    render(
-      <GroupHeaderRow
-        data={{
-          id: '123',
-          level: 'error',
-          culprit:
-            'useOverflowTabs(webpack-internal:///./app/components/tabs/tabList.tsx)',
-          type: EventOrGroupType.ERROR,
-          metadata: {
-            value: 'numTabItems is not defined',
-            type: 'ReferenceError',
-            filename: 'webpack-internal:///./app/components/tabs/tabList.tsx',
-            function: 'useOverflowTabs',
-          },
-          actor: UserFixture(),
-          isTombstone: true,
-          dateAdded: '2025-06-25T00:00:00Z',
-        }}
-      />
-    );
-
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 });

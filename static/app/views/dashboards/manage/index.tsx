@@ -1,10 +1,12 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
@@ -36,6 +38,7 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -281,6 +284,7 @@ function ManageDashboards() {
     const dashboardGridObserver = new ResizeObserver(
       debounce(entries => {
         entries.forEach((entry: any) => {
+          const start = performance.now();
           const currentWidth = entry.contentRect.width;
 
           setRowsAndColumns(currentWidth);
@@ -294,6 +298,14 @@ function ManageDashboards() {
           ) {
             refetchDashboards();
           }
+
+          scheduleMicroTask(() => {
+            const duration = performance.now() - start;
+            Sentry.metrics.distribution('dashboards.widget.onResize', duration, {
+              unit: 'millisecond',
+              attributes: {page: 'manage'},
+            });
+          });
         });
       }, 10)
     );
@@ -676,6 +688,7 @@ function ManageDashboards() {
                           icon={<IconSeer />}
                         >
                           {t('Create Dashboard with Seer')}
+                          <FeatureBadge type="experimental" />
                         </Button>
                       </Feature>
                       <Feature features="dashboards-import">

@@ -2,6 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {
+  AutofixSection,
   RootCauseArtifact,
   SolutionArtifact,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -20,6 +21,10 @@ import {
   SolutionPreview,
 } from './autofixPreviews';
 
+function makeSection(step: string, ...artifacts: any[]): AutofixSection {
+  return {step, artifacts, messages: [], status: 'completed'};
+}
+
 describe('RootCausePreview', () => {
   it('renders root cause title and description', () => {
     const artifact: Artifact<RootCauseArtifact> = {
@@ -32,7 +37,7 @@ describe('RootCausePreview', () => {
       },
     };
 
-    render(<RootCausePreview artifact={artifact} />);
+    render(<RootCausePreview section={makeSection('root_cause', artifact)} />);
 
     expect(screen.getByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
@@ -45,7 +50,7 @@ describe('RootCausePreview', () => {
       data: null,
     };
 
-    render(<RootCausePreview artifact={artifact} />);
+    render(<RootCausePreview section={makeSection('root_cause', artifact)} />);
 
     expect(screen.getByText('Root Cause')).toBeInTheDocument();
   });
@@ -62,7 +67,7 @@ describe('SolutionPreview', () => {
       },
     };
 
-    render(<SolutionPreview artifact={artifact} />);
+    render(<SolutionPreview section={makeSection('solution', artifact)} />);
 
     expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
@@ -75,7 +80,7 @@ describe('SolutionPreview', () => {
       data: null,
     };
 
-    render(<SolutionPreview artifact={artifact} />);
+    render(<SolutionPreview section={makeSection('solution', artifact)} />);
 
     expect(screen.getByText('Implementation Plan')).toBeInTheDocument();
   });
@@ -99,7 +104,11 @@ describe('CodeChangesPreview', () => {
   }
 
   it('renders single file in single repo', () => {
-    render(<CodeChangesPreview artifact={[makePatch('org/repo', 'src/app.py')]} />);
+    render(
+      <CodeChangesPreview
+        section={makeSection('code_changes', [makePatch('org/repo', 'src/app.py')])}
+      />
+    );
 
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
@@ -108,11 +117,11 @@ describe('CodeChangesPreview', () => {
   it('renders multiple files in single repo', () => {
     render(
       <CodeChangesPreview
-        artifact={[
+        section={makeSection('code_changes', [
           makePatch('org/repo', 'src/app.py'),
           makePatch('org/repo', 'src/utils.py'),
           makePatch('org/repo', 'src/models.py'),
-        ]}
+        ])}
       />
     );
 
@@ -122,11 +131,11 @@ describe('CodeChangesPreview', () => {
   it('renders multiple files in multiple repos', () => {
     render(
       <CodeChangesPreview
-        artifact={[
+        section={makeSection('code_changes', [
           makePatch('org/repo-a', 'src/app.py'),
           makePatch('org/repo-a', 'src/utils.py'),
           makePatch('org/repo-b', 'src/index.ts'),
-        ]}
+        ])}
       />
     );
 
@@ -134,7 +143,7 @@ describe('CodeChangesPreview', () => {
   });
 
   it('renders empty array without file counts', () => {
-    render(<CodeChangesPreview artifact={[]} />);
+    render(<CodeChangesPreview section={makeSection('code_changes')} />);
 
     expect(screen.getByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByText('No files changed')).toBeInTheDocument();
@@ -158,7 +167,7 @@ describe('PullRequestsPreview', () => {
   }
 
   it('renders PR links', () => {
-    render(<PullRequestsPreview artifact={[makePR()]} />);
+    render(<PullRequestsPreview section={makeSection('pull_request', [makePR()])} />);
 
     expect(screen.getByText('Pull Requests')).toBeInTheDocument();
     const link = screen.getByRole('link', {name: 'org/repo#42'});
@@ -168,10 +177,10 @@ describe('PullRequestsPreview', () => {
   it('renders multiple PRs', () => {
     render(
       <PullRequestsPreview
-        artifact={[
+        section={makeSection('pull_request', [
           makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
           makePR({repo_name: 'org/repo-b', pr_number: 20, pr_url: 'https://pr/20'}),
-        ]}
+        ])}
       />
     );
 
@@ -182,7 +191,7 @@ describe('PullRequestsPreview', () => {
   it('skips PRs with missing fields', () => {
     render(
       <PullRequestsPreview
-        artifact={[
+        section={makeSection('pull_request', [
           makePR({pr_url: null}),
           makePR({pr_number: null}),
           makePR({repo_name: '', pr_number: 99, pr_url: 'https://pr/99'}),
@@ -191,7 +200,7 @@ describe('PullRequestsPreview', () => {
             pr_number: 55,
             pr_url: 'https://pr/55',
           }),
-        ]}
+        ])}
       />
     );
 
@@ -217,9 +226,9 @@ describe('CodingAgentPreview', () => {
   it('renders provider-specific title for Cursor', () => {
     render(
       <CodingAgentPreview
-        artifact={[
+        section={makeSection('coding_agents', [
           makeCodingAgent({provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT}),
-        ]}
+        ])}
       />
     );
 
@@ -229,7 +238,9 @@ describe('CodingAgentPreview', () => {
   it('renders provider-specific title for Claude', () => {
     render(
       <CodingAgentPreview
-        artifact={[makeCodingAgent({provider: CodingAgentProvider.CLAUDE_CODE_AGENT})]}
+        section={makeSection('coding_agents', [
+          makeCodingAgent({provider: CodingAgentProvider.CLAUDE_CODE_AGENT}),
+        ])}
       />
     );
 
@@ -239,7 +250,9 @@ describe('CodingAgentPreview', () => {
   it('renders provider-specific title for GitHub Copilot', () => {
     render(
       <CodingAgentPreview
-        artifact={[makeCodingAgent({provider: CodingAgentProvider.GITHUB_COPILOT_AGENT})]}
+        section={makeSection('coding_agents', [
+          makeCodingAgent({provider: CodingAgentProvider.GITHUB_COPILOT_AGENT}),
+        ])}
       />
     );
 
@@ -248,7 +261,11 @@ describe('CodingAgentPreview', () => {
 
   it('renders default title for unknown provider', () => {
     render(
-      <CodingAgentPreview artifact={[makeCodingAgent({provider: 'unknown' as any})]} />
+      <CodingAgentPreview
+        section={makeSection('coding_agents', [
+          makeCodingAgent({provider: 'unknown' as any}),
+        ])}
+      />
     );
 
     expect(screen.getByText('Coding Agent')).toBeInTheDocument();
@@ -257,7 +274,9 @@ describe('CodingAgentPreview', () => {
   it('renders agent name and status tag', () => {
     render(
       <CodingAgentPreview
-        artifact={[makeCodingAgent({name: 'Fix auth bug', status: 'completed'})]}
+        section={makeSection('coding_agents', [
+          makeCodingAgent({name: 'Fix auth bug', status: 'completed'}),
+        ])}
       />
     );
 
@@ -268,7 +287,9 @@ describe('CodingAgentPreview', () => {
   it('renders "Open in Agent" link when agent_url present', () => {
     render(
       <CodingAgentPreview
-        artifact={[makeCodingAgent({agent_url: 'https://cursor.com/agent/1'})]}
+        section={makeSection('coding_agents', [
+          makeCodingAgent({agent_url: 'https://cursor.com/agent/1'}),
+        ])}
       />
     );
 
@@ -277,7 +298,9 @@ describe('CodingAgentPreview', () => {
   });
 
   it('does not render "Open in Agent" link when agent_url is absent', () => {
-    render(<CodingAgentPreview artifact={[makeCodingAgent()]} />);
+    render(
+      <CodingAgentPreview section={makeSection('coding_agents', [makeCodingAgent()])} />
+    );
 
     expect(screen.queryByRole('button', {name: 'Open in Agent'})).not.toBeInTheDocument();
   });
@@ -285,10 +308,10 @@ describe('CodingAgentPreview', () => {
   it('handles multiple agents', () => {
     render(
       <CodingAgentPreview
-        artifact={[
+        section={makeSection('coding_agents', [
           makeCodingAgent({id: 'a1', name: 'Agent One', status: 'running'}),
           makeCodingAgent({id: 'a2', name: 'Agent Two', status: 'completed'}),
-        ]}
+        ])}
       />
     );
 
