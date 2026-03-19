@@ -6,6 +6,7 @@ import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import {DATA_TYPE_PLURAL as RESOURCES_DATA_TYPE_PLURAL} from 'sentry/views/insights/browser/resources/settings';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {DATA_TYPE_PLURAL as QUERIES_DATA_TYPE_PLURAL} from 'sentry/views/insights/database/settings';
+
 import {GenericPerformanceWidgetDataType} from './types';
 
 export interface ChartDefinition {
