@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
@@ -23,14 +24,14 @@ export const ToolbarFooterButton = styled(Button)<{
   disabled?: boolean;
   priority?: ButtonProps['priority'];
 }>`
-  color: ${p => {
-    if (p.priority === 'link') {
-      return p.disabled
-        ? p.theme.tokens.content.disabled
-        : p.theme.tokens.interactive.link.accent.rest;
-    }
-    return p.theme.tokens.content.primary;
-  }};
+  ${p =>
+    p.priority === 'link'
+      ? css`
+          color: ${p.disabled
+            ? p.theme.tokens.content.disabled
+            : p.theme.tokens.interactive.link.accent.rest};
+        `
+      : ''}
 `;
 
 export const ToolbarFooter = styled('div')`
