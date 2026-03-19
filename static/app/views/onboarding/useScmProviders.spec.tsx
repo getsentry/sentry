@@ -1,4 +1,7 @@
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {OpsgenieIntegrationProviderFixture} from 'sentry-fixture/opsgenieIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -16,16 +19,8 @@ describe('useScmProviders', () => {
       url: `/organizations/${organization.slug}/config/integrations/`,
       body: {
         providers: [
-          {
-            key: 'github',
-            name: 'GitHub',
-            metadata: {features: [{featureGate: 'integrations-commits'}]},
-          },
-          {
-            key: 'slack',
-            name: 'Slack',
-            metadata: {features: [{featureGate: 'integrations-chat-unfurl'}]},
-          },
+          GitHubIntegrationProviderFixture(),
+          OpsgenieIntegrationProviderFixture(),
         ],
       },
     });
@@ -50,13 +45,19 @@ describe('useScmProviders', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       body: [
-        {
+        OrganizationIntegrationsFixture({
           id: '1',
           name: 'getsentry',
-          status: 'active',
-          organizationIntegrationStatus: 'active',
-          provider: {key: 'github', name: 'GitHub'},
-        },
+          provider: {
+            key: 'github',
+            slug: 'github',
+            name: 'GitHub',
+            canAdd: true,
+            canDisable: false,
+            features: ['commits'],
+            aspects: {},
+          },
+        }),
       ],
     });
 
@@ -76,20 +77,35 @@ describe('useScmProviders', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       body: [
-        {
+        OrganizationIntegrationsFixture({
           id: '1',
           name: 'getsentry',
           status: 'disabled',
-          organizationIntegrationStatus: 'active',
-          provider: {key: 'github', name: 'GitHub'},
-        },
-        {
+          provider: {
+            key: 'github',
+            slug: 'github',
+            name: 'GitHub',
+            canAdd: true,
+            canDisable: false,
+            features: ['commits'],
+            aspects: {},
+          },
+        }),
+        OrganizationIntegrationsFixture({
           id: '2',
           name: 'other',
           status: 'active',
           organizationIntegrationStatus: 'pending_deletion',
-          provider: {key: 'gitlab', name: 'GitLab'},
-        },
+          provider: {
+            key: 'gitlab',
+            slug: 'gitlab',
+            name: 'GitLab',
+            canAdd: true,
+            canDisable: false,
+            features: ['commits'],
+            aspects: {},
+          },
+        }),
       ],
     });
 
