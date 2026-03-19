@@ -15,6 +15,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Workflow,
 )
+from sentry.workflow_engine.types import WorkflowId
 
 
 @contextmanager
@@ -79,7 +80,7 @@ class ActionFilterTestCase(TestCase):
     def get_data_from_cache(
         self,
         cache_keys: list[_ActionFilterCacheKey],
-    ) -> ActionFiltersByWorkflow:
+    ) -> dict[WorkflowId, list[DataConditionGroup] | None]:
         cache_results = _action_filters_cache.get_many(cache_keys)
         return {key.workflow_id: values for key, values in cache_results.items()}
 
