@@ -98,10 +98,9 @@ class NotificationService[T: NotificationData]:
             )
 
             # Step 3: Resolve thread if threading requested
-            thread: NotificationThread | None = None
             thread_context: ThreadContext | None = None
             if threading_options is not None:
-                thread, thread_context = NotificationService._resolve_thread_context(
+                thread_context = NotificationService._resolve_thread_context(
                     target=target, threading_options=threading_options
                 )
 
@@ -122,7 +121,7 @@ class NotificationService[T: NotificationData]:
                 try:
                     NotificationService._handle_threading_result(
                         threading_options=threading_options,
-                        thread=thread,
+                        thread=thread_context.thread if thread_context else None,
                         target=target,
                         result=result,
                     )
@@ -149,7 +148,7 @@ class NotificationService[T: NotificationData]:
         *,
         target: NotificationTarget,
         threading_options: ThreadingOptions,
-    ) -> tuple[NotificationThread | None, ThreadContext]:
+    ) -> ThreadContext:
         threading_lookup = ThreadingLookup(
             key_type=threading_options.thread_key.key_type,
             key_data=threading_options.thread_key.key_data,
@@ -157,12 +156,11 @@ class NotificationService[T: NotificationData]:
             target_id=target.resource_id,
         )
         thread = ThreadingService.resolve(threading_lookup=threading_lookup)
-        thread_context = ThreadContext(
+        return ThreadContext(
             thread_key=threading_options.thread_key,
             thread=thread,
             reply_broadcast=threading_options.reply_broadcast,
         )
-        return thread, thread_context
 
     def notify_async(
         self,
@@ -328,10 +326,9 @@ def notify_target_async(
         )
 
         # Step 4: Resolve thread if threading requested
-        thread: NotificationThread | None = None
         thread_context: ThreadContext | None = None
         if options is not None:
-            thread, thread_context = NotificationService._resolve_thread_context(
+            thread_context = NotificationService._resolve_thread_context(
                 target=target, threading_options=options
             )
 
@@ -350,7 +347,7 @@ def notify_target_async(
             try:
                 NotificationService._handle_threading_result(
                     threading_options=options,
-                    thread=thread,
+                    thread=thread_context.thread if thread_context else None,
                     target=target,
                     result=result,
                 )
