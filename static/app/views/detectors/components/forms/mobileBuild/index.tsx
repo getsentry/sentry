@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
 import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
