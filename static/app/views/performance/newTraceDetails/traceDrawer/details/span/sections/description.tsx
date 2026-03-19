@@ -89,9 +89,7 @@ export function SpanDescription({
     return formatter.toString(span.description ?? '');
   }, [span.description, resolvedModule, span.sentry_tags?.description, system]);
 
-  const hasNewSpansUIFlag =
-    organization.features.includes('performance-spans-new-ui') &&
-    organization.features.includes('insight-modules');
+  const hasNewSpansUIFlag = organization.features.includes('insight-modules');
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
   const groupHash = hasNewSpansUIFlag
