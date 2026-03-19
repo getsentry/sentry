@@ -1,7 +1,7 @@
 from sentry.hybridcloud.rpc import AcceptCellNameMixin, RpcModel
 
 
-class RpcOrganizationSlugReservation(AcceptCellNameMixin, RpcModel):
+class RpcOrganizationSlugReservation(RpcModel, AcceptCellNameMixin):
     id: int
     organization_id: int
     user_id: int | None
