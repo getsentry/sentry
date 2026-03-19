@@ -8,14 +8,14 @@ from datetime import datetime
 from django.utils import timezone
 from pydantic.fields import Field
 
-from sentry.hybridcloud.rpc import RpcModel
+from sentry.hybridcloud.rpc import AcceptCellNameMixin, RpcModel
 from sentry.organizations.services.organization import (
     RpcOrganizationMappingFlags,
     RpcOrganizationSummary,
 )
 
 
-class RpcOrganizationMapping(RpcOrganizationSummary):
+class RpcOrganizationMapping(RpcOrganizationSummary, AcceptCellNameMixin):
     region_name: str = ""
     date_created: datetime = Field(default_factory=timezone.now)
     verified: bool = False
@@ -28,7 +28,7 @@ class CustomerId(RpcModel):
     value: str | None
 
 
-class RpcOrganizationMappingUpdate(RpcModel):
+class RpcOrganizationMappingUpdate(AcceptCellNameMixin):
     name: str = ""
     status: int = 0
     slug: str = ""
