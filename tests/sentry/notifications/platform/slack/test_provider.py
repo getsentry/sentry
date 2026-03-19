@@ -12,7 +12,12 @@ from slack_sdk.web import SlackResponse
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationthread import NotificationThread
-from sentry.notifications.platform.provider import NotificationProviderError, SendResult, SendStatus
+from sentry.notifications.platform.provider import (
+    NotificationProviderError,
+    SendFailure,
+    SendResult,
+    SendStatus,
+)
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
@@ -142,8 +147,6 @@ class SlackNotificationProviderSendTest(TestCase):
 
         assert isinstance(result, SendResult)
         assert result.provider_message_id is None
-        assert result.error_code is None
-        assert result.error_details is None
         mock_client_instance.chat_postMessage.assert_called_once_with(
             channel="C1234567890", blocks=renderable["blocks"], text=renderable["text"]
         )
@@ -363,9 +366,8 @@ class SlackNotificationProviderThreadingTest(TestCase):
             target=target, renderable=renderable, thread_context=thread_context
         )
 
-        assert isinstance(result, SendResult)
+        assert isinstance(result, SendFailure)
         assert result.status == SendStatus.HALT
-        assert result.provider_message_id is None
         assert result.error_code == 400
         assert result.exception is not None
         assert "channel_not_found" in str(result.exception)

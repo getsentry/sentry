@@ -19,6 +19,7 @@ from sentry.notifications.platform.provider import (
     NotificationProvider,
     NotificationProviderError,
     ProviderThreadingContext,
+    SendFailure,
     SendResult,
     integration_error_result,
 )
@@ -147,7 +148,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         target: NotificationTarget,
         renderable: SlackRenderable,
         thread_context: ThreadContext | None = None,
-    ) -> SendResult:
+    ) -> SendResult | SendFailure:
         from sentry.integrations.slack.integration import SlackIntegration
 
         if not isinstance(target, cls.target_class):
@@ -179,7 +180,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
         slack_target: PreparedIntegrationNotificationTarget[SlackIntegration],
         renderable: SlackRenderable,
         thread_context: ThreadContext,
-    ) -> SendResult:
+    ) -> SendResult | SendFailure:
         provider_threading_ctx = SlackProviderThreadingContext(
             thread_ts=(thread_context.thread.thread_identifier if thread_context.thread else None),
             reply_broadcast=thread_context.reply_broadcast,

@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
-from sentry.notifications.platform.provider import SendResult, SendStatus
+from sentry.notifications.platform.provider import SendFailure, SendStatus
 from sentry.notifications.platform.service import (
     NotificationDataDto,
     NotificationService,
@@ -92,7 +92,7 @@ class NotificationServiceTest(TestCase):
 
     @mock.patch("sentry.notifications.platform.email.provider.EmailNotificationProvider.send")
     def test_notify_sync_collects_errors(self, mock_send: mock.MagicMock) -> None:
-        mock_send.return_value = SendResult(
+        mock_send.return_value = SendFailure(
             status=SendStatus.HALT,
             exception=IntegrationConfigurationError(message="Provider error"),
             error_code=400,
@@ -130,7 +130,7 @@ class NotificationServiceTest(TestCase):
     def test_notify_target_async_with_failure(
         self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
     ) -> None:
-        mock_send.return_value = SendResult(
+        mock_send.return_value = SendFailure(
             status=SendStatus.FAILURE,
             exception=IntegrationError(message="API request failed"),
             error_code=400,
@@ -161,7 +161,7 @@ class NotificationServiceTest(TestCase):
     def test_notify_integration_target_async_with_failure(
         self, mock_record: mock.MagicMock, mock_send: mock.MagicMock
     ) -> None:
-        mock_send.return_value = SendResult(
+        mock_send.return_value = SendFailure(
             status=SendStatus.FAILURE,
             exception=IntegrationError(message="Slack API request failed"),
             error_code=400,
