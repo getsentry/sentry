@@ -66,29 +66,12 @@ jobs:
           echo "Changed files: $CHANGED_FILES"
           echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
 
-      - name: getsentry token
-        id: getsentry
-        uses: getsentry/action-github-app-token@d4b5da6c5e37703f8c3b3e43abb5705b46e159cc # v3.0.0
-        with:
-          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
-          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-
-      - name: Checkout sentry
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          path: sentry
-
-      - name: Checkout getsentry
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          repository: getsentry/getsentry
-          token: ${{ steps.getsentry.outputs.token }}
-          path: getsentry
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
-          python-version-file: 'getsentry/.python-version'
+          python-version-file: '.python-version'
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.3
@@ -101,19 +84,19 @@ jobs:
         id: download-coverage
         run: |
           set -euo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/.artifacts/coverage"
+          mkdir -p .artifacts/coverage
 
           GCS_PATH="gs://getsentry-coverage-data/latest/.coverage.combined"
           echo "Fetching coverage DB from: $GCS_PATH"
           gcloud storage ls -l "$GCS_PATH" 2>/dev/null || true
 
           if ! gcloud storage cp "$GCS_PATH" \
-            "$GITHUB_WORKSPACE/.artifacts/coverage/.coverage.combined" 2>/dev/null; then
+            .artifacts/coverage/.coverage.combined 2>/dev/null; then
             echo "Warning: Failed to download coverage from GCS, will run full test suite"
             echo "coverage-file=" >> "$GITHUB_OUTPUT"
           else
-            ls -lh "$GITHUB_WORKSPACE/.artifacts/coverage/.coverage.combined"
-            echo "coverage-file=$GITHUB_WORKSPACE/.artifacts/coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
+            ls -lh .artifacts/coverage/.coverage.combined
+            echo "coverage-file=.artifacts/coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Compute selected tests
@@ -122,16 +105,13 @@ jobs:
         env:
           COVERAGE_DB: ${{ steps.download-coverage.outputs.coverage-file }}
           CHANGED_FILES: ${{ steps.changed.outputs.files }}
-        # Run from getsentry/ so ../sentry resolves to the sentry checkout
-        working-directory: getsentry
         run: |
           set -euo pipefail
 
-          python3 .github/workflows/scripts/compute-selected-tests.py \
+          python3 .github/workflows/scripts/compute-sentry-selected-tests.py \
             --coverage-db "$COVERAGE_DB" \
-            --sentry-changed-files "$CHANGED_FILES" \
-            --output-repo sentry \
-            --output "$GITHUB_WORKSPACE/.artifacts/selected-tests.txt" \
+            --changed-files "$CHANGED_FILES" \
+            --output .artifacts/selected-tests.txt \
             --github-output
 
       - name: Upload selected tests artifact
