@@ -36,6 +36,7 @@ import {
   extractTraceMetricFromColumn,
   getTraceMetricAggregateSource,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {hasMultipleMetricsSelected} from 'sentry/views/dashboards/widgetBuilder/utils/hasMultipleMetricsSelected';
 import {
   useTraceMetricsSeriesQuery,
   useTraceMetricsTableQuery,
@@ -95,12 +96,10 @@ function TraceMetricsSearchBar({
   const traceMetrics =
     aggregateSource?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
 
-  // Create a set of the trace metrics in a consistent string format to
-  // check if there are multiple metrics
-  const countUniqueMetrics = new Set(
-    traceMetrics.map(({name, type, unit}) => `${name},${type},${unit}`)
-  ).size;
-  const hasMultipleMetrics = hasMultiMetricSelection && countUniqueMetrics > 1;
+  const hasMultipleMetrics = hasMultipleMetricsSelected(
+    traceMetrics,
+    hasMultiMetricSelection
+  );
 
   // In the case of multiple metrics, wipe the query so it fetches all attributes
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =

@@ -32,7 +32,7 @@ export function DashboardChatPanel({
   const theme = useTheme();
   const location = useLocation();
   const [inputValue, setInputValue] = useState('');
-  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(true);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const seerRunId = location.query?.seerRunId
