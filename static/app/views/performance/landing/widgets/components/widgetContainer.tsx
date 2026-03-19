@@ -139,7 +139,7 @@ function WidgetContainerInner(props: Props) {
     chartSetting,
     chartDefinition,
     InteractiveTitle:
-      allowedCharts.length > 2 && allowedCharts.includes(chartSetting)
+      allowedCharts.length > 2
         ? (containerProps: any) => (
             <WidgetInteractiveTitle
               {...containerProps}
