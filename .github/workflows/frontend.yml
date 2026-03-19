@@ -127,6 +127,10 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
+        with:
+          # PRs need history so we can compute merge base for Jest --changedSince.
+          # 100 is an arbitrary depth that will get most reasonable PRs' commits.
+          fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -143,6 +147,26 @@ jobs:
           search_artifacts: true # Search for the last workflow run whose stored the artifact we're looking for
           if_no_artifact_found: warn # Can be one of: "fail", "warn", "ignore"
 
+      # On PRs, HEAD is the merge commit; its parents (HEAD^1, HEAD^2) are base and head.
+      # Merge base of those two is what Jest --changedSince needs. Checkout uses fetch-depth: 100 for PRs.
+      - name: Get merge base for changedSince (PRs only)
+        id: merge_base
+        if: github.event_name == 'pull_request'
+        run: |
+          MERGE_BASE=$(git merge-base HEAD^1 HEAD^2 2>/dev/null) || true
+          if [ -n "$MERGE_BASE" ]; then
+            CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD)
+            if echo "$CHANGED" | grep -qv '/'; then
+              echo "Root-level file changed — running full test suite"
+              MERGE_BASE=""
+            else
+              echo "Merge base: $MERGE_BASE (Jest will use --changedSince)"
+            fi
+          else
+            echo "Merge base: could not compute, will run full test suite"
+          fi
+          echo "merge_base=${MERGE_BASE:-}" >> "$GITHUB_OUTPUT"
+
       - name: jest
         env:
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -158,6 +182,7 @@ jobs:
           #
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
+          MERGE_BASE: ${{ steps.merge_base.outputs.merge_base }}
         run: pnpm run test-ci --forceExit
 
   form-field-registry:
