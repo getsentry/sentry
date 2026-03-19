@@ -26,27 +26,27 @@ class OrganizationProvisioningException(Exception):
 
 
 class OrganizationProvisioningService:
-    def _validate_or_default_region(self, region_name: str | None):
+    def _validate_or_default_cell(self, cell_name: str | None):
         silo_mode = SiloMode.get_current_mode()
-        if region_name is None and silo_mode == SiloMode.CONTROL:
+        if cell_name is None and silo_mode == SiloMode.CONTROL:
             raise OrganizationProvisioningException(
-                "A region name must be provided when provisioning an organization from the Control Silo"
+                "A cell name must be provided when provisioning an organization from the Control Silo"
             )
         elif silo_mode != SiloMode.CONTROL:
-            local_region = get_local_cell()
+            local_cell = get_local_cell()
 
-            assert not region_name or region_name == local_region.name, (
-                "Cannot provision an organization in another region"
+            assert not cell_name or cell_name == local_cell.name, (
+                "Cannot provision an organization in another cell"
             )
 
-            region_name = local_region.name
+            cell_name = local_cell.name
 
-        return region_name
+        return cell_name
 
     def _control_based_provisioning(
         self,
         provisioning_options: OrganizationProvisioningOptions,
-        region_name: str,
+        cell_name: str,
     ) -> RpcOrganization:
         from sentry.hybridcloud.services.control_organization_provisioning import (
             RpcOrganizationSlugReservation,
@@ -55,7 +55,7 @@ class OrganizationProvisioningService:
 
         rpc_org_slug_reservation: RpcOrganizationSlugReservation = (
             control_organization_provisioning_rpc_service.provision_organization(
-                cell_name=region_name, org_provision_args=provisioning_options
+                cell_name=cell_name, org_provision_args=provisioning_options
             )
         )
 
@@ -82,25 +82,15 @@ class OrganizationProvisioningService:
         :return: RpcOrganization of the newly created org
         """
 
-        destination_cell_name = self._validate_or_default_region(region_name=cell_name)
+        destination_cell_name = self._validate_or_default_cell(cell_name=cell_name)
         return self._control_based_provisioning(
-            provisioning_options=provisioning_options, region_name=destination_cell_name
-        )
-
-    # TODO(cells): Remove when all callers switch to `provision_organization_in_cell`
-    def provision_organization_in_region(
-        self,
-        provisioning_options: OrganizationProvisioningOptions,
-        region_name: str | None = None,
-    ) -> RpcOrganization:
-        return self.provision_organization_in_cell(
-            provisioning_options=provisioning_options, cell_name=region_name
+            provisioning_options=provisioning_options, cell_name=destination_cell_name
         )
 
     def _control_based_slug_change(
-        self, organization_id: int, slug: str, region_name: str | None = None
+        self, organization_id: int, slug: str, cell_name: str | None = None
     ) -> None:
-        destination_region_name = self._validate_or_default_region(region_name=region_name)
+        destination_cell_name = self._validate_or_default_cell(cell_name=cell_name)
 
         from sentry.hybridcloud.services.control_organization_provisioning import (
             control_organization_provisioning_rpc_service,
@@ -111,7 +101,7 @@ class OrganizationProvisioningService:
                 organization_id=organization_id,
                 desired_slug=slug,
                 require_exact=True,
-                cell_name=destination_region_name,
+                cell_name=destination_cell_name,
             )
         )
 
@@ -137,7 +127,7 @@ class OrganizationProvisioningService:
         """
 
         self._control_based_slug_change(
-            organization_id=organization_id, slug=slug, region_name=region_name
+            organization_id=organization_id, slug=slug, cell_name=region_name
         )
 
     def bulk_create_organization_slugs(
@@ -159,7 +149,7 @@ class OrganizationProvisioningService:
         :param region_name: The region where the imported organizations exist
         :return:
         """
-        destination_region_name = self._validate_or_default_region(region_name=region_name)
+        destination_region_name = self._validate_or_default_region(cell_name=region_name)
 
         from sentry.hybridcloud.services.control_organization_provisioning import (
             control_organization_provisioning_rpc_service,
