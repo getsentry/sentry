@@ -199,7 +199,7 @@ def handle_organization_provisioning_outbox_payload(
     )
 
     if not able_to_provision:
-        # If the region returns false when validating provisioning information,
+        # If the cell returns false when validating provisioning information,
         # it's likely a conflict has occurred (e.g. an org create locally).
         # This means we need to delete the old org slug reservation as it
         # can no longer be assumed to be valid.
