@@ -119,7 +119,18 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
   const autofix = useExplorerAutofix(group.id);
   const {data: setupCheck, isPending} = useSeerOnboardingCheck();
 
-  if (isPending || autofix.isLoading || !event || aiConfig.isAutofixSetupLoading) {
+  if (
+    // waiting on the onboarding checks to load
+    isPending ||
+    // autofix results are loading
+    autofix.isLoading ||
+    // waiting for the event to load
+    !event ||
+    // waiting for the ai configs to load
+    aiConfig.isAutofixSetupLoading ||
+    // we're polling and no blocks have been added yet
+    (autofix.isPolling && !autofix.runState?.blocks?.length)
+  ) {
     return <Placeholder height="160px" />;
   }
 
