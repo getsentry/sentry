@@ -124,7 +124,7 @@ export function WidgetBuilderGroupBySelector({
             openLinkToDashboardModal({
               onLink: dashboardId => {
                 const newLinkedDashboards: LinkedDashboard[] = [
-                  ...currentLinkedDashboards,
+                  ...currentLinkedDashboards.filter(ld => ld.field !== field),
                   {dashboardId, field},
                 ];
                 dispatch({
