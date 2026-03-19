@@ -517,57 +517,58 @@ class ResolveReviewThreadProtocol(Protocol):
     def resolve_review_thread(self, thread_node_id: str) -> None: ...
 
 
-class ActionMap:
-    get_issue_comments = GetIssueCommentsProtocol
-    create_issue_comment = CreateIssueCommentProtocol
-    delete_issue_comment = DeleteIssueCommentProtocol
-    get_pull_request_comments = GetPullRequestCommentsProtocol
-    create_pull_request_comment = CreatePullRequestCommentProtocol
-    delete_pull_request_comment = DeletePullRequestCommentProtocol
-    get_issue_comment_reactions = GetIssueCommentReactionsProtocol
-    create_issue_comment_reaction = CreateIssueCommentReactionProtocol
-    delete_issue_comment_reaction = DeleteIssueCommentReactionProtocol
-    get_pull_request_comment_reactions = GetPullRequestCommentReactionsProtocol
-    create_pull_request_comment_reaction = CreatePullRequestCommentReactionProtocol
-    delete_pull_request_comment_reaction = DeletePullRequestCommentReactionProtocol
-    get_issue_reactions = GetIssueReactionsProtocol
-    create_issue_reaction = CreateIssueReactionProtocol
-    delete_issue_reaction = DeleteIssueReactionProtocol
-    get_pull_request_reactions = GetPullRequestReactionsProtocol
-    create_pull_request_reaction = CreatePullRequestReactionProtocol
-    delete_pull_request_reaction = DeletePullRequestReactionProtocol
-    get_branch = GetBranchProtocol
-    create_branch = CreateBranchProtocol
-    update_branch = UpdateBranchProtocol
-    get_commit = GetCommitProtocol
-    get_commits = GetCommitsProtocol
-    get_commits_by_path = GetCommitsByPathProtocol
-    compare_commits = CompareCommitsProtocol
-    get_pull_request = GetPullRequestProtocol
-    get_pull_requests = GetPullRequestsProtocol
-    get_pull_request_files = GetPullRequestFilesProtocol
-    get_pull_request_commits = GetPullRequestCommitsProtocol
-    get_pull_request_diff = GetPullRequestDiffProtocol
-    create_pull_request = CreatePullRequestProtocol
-    create_pull_request_draft = CreatePullRequestDraftProtocol
-    update_pull_request = UpdatePullRequestProtocol
-    request_review = RequestReviewProtocol
-    get_tree = GetTreeProtocol
-    get_git_commit = GetGitCommitProtocol
-    create_git_blob = CreateGitBlobProtocol
-    create_git_tree = CreateGitTreeProtocol
-    create_git_commit = CreateGitCommitProtocol
-    get_file_content = GetFileContentProtocol
-    get_check_run = GetCheckRunProtocol
-    create_check_run = CreateCheckRunProtocol
-    update_check_run = UpdateCheckRunProtocol
-    create_review_comment_file = CreateReviewCommentFileProtocol
-    create_review_comment_line = CreateReviewCommentLineProtocol
-    create_review_comment_multiline = CreateReviewCommentMultilineProtocol
-    create_review_comment_reply = CreateReviewCommentReplyProtocol
-    create_review = CreateReviewProtocol
-    minimize_comment = MinimizeCommentProtocol
-    resolve_review_thread = ResolveReviewThreadProtocol
+ALL_PROTOCOLS = (
+    GetIssueCommentsProtocol,
+    CreateIssueCommentProtocol,
+    DeleteIssueCommentProtocol,
+    GetPullRequestCommentsProtocol,
+    CreatePullRequestCommentProtocol,
+    DeletePullRequestCommentProtocol,
+    GetIssueCommentReactionsProtocol,
+    CreateIssueCommentReactionProtocol,
+    DeleteIssueCommentReactionProtocol,
+    GetPullRequestCommentReactionsProtocol,
+    CreatePullRequestCommentReactionProtocol,
+    DeletePullRequestCommentReactionProtocol,
+    GetIssueReactionsProtocol,
+    CreateIssueReactionProtocol,
+    DeleteIssueReactionProtocol,
+    GetPullRequestReactionsProtocol,
+    CreatePullRequestReactionProtocol,
+    DeletePullRequestReactionProtocol,
+    GetBranchProtocol,
+    CreateBranchProtocol,
+    UpdateBranchProtocol,
+    GetCommitProtocol,
+    GetCommitsProtocol,
+    GetCommitsByPathProtocol,
+    CompareCommitsProtocol,
+    GetPullRequestProtocol,
+    GetPullRequestsProtocol,
+    GetPullRequestFilesProtocol,
+    GetPullRequestCommitsProtocol,
+    GetPullRequestDiffProtocol,
+    CreatePullRequestProtocol,
+    CreatePullRequestDraftProtocol,
+    UpdatePullRequestProtocol,
+    RequestReviewProtocol,
+    GetTreeProtocol,
+    GetGitCommitProtocol,
+    CreateGitBlobProtocol,
+    CreateGitTreeProtocol,
+    CreateGitCommitProtocol,
+    GetFileContentProtocol,
+    GetCheckRunProtocol,
+    CreateCheckRunProtocol,
+    UpdateCheckRunProtocol,
+    CreateReviewCommentFileProtocol,
+    CreateReviewCommentLineProtocol,
+    CreateReviewCommentMultilineProtocol,
+    CreateReviewCommentReplyProtocol,
+    CreateReviewProtocol,
+    MinimizeCommentProtocol,
+    ResolveReviewThreadProtocol,
+)
 
 
 class Provider(Protocol):
