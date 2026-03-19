@@ -78,7 +78,9 @@ def _verify_event_types(snuba_query: SnubaQuery):
     return False
 
 
-def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+def translate_detector_and_update_subscription_in_snuba(
+    snuba_query: SnubaQuery, bypass_flag_check: bool = False
+):
     if not _verify_event_types(snuba_query):
         logger.info(
             "Skipping roll forward for query with invalid event types",
@@ -104,7 +106,7 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
         logger.info("Data source not found for snuba query %s", snuba_query.id)
         sentry_sdk.capture_exception(e)
         return
-    if not features.has(
+    if not bypass_flag_check and not features.has(
         "organizations:migrate-transaction-alerts-to-spans", data_source.organization
     ):
         logger.info("Feature flag not enabled")
@@ -245,7 +247,9 @@ def translate_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery)
     return
 
 
-def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+def rollback_detector_query_and_update_subscription_in_snuba(
+    snuba_query: SnubaQuery, bypass_flag_check: bool = False
+):
     # querying for updating as well just in case the subscription gets stuck in updating
     query_subscription_qs = QuerySubscription.objects.filter(
         snuba_query_id=snuba_query.id,
@@ -260,7 +264,7 @@ def rollback_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQ
     data_source: DataSource = DataSource.objects.get(
         source_id=str(query_subscription.id), type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
     )
-    if not features.has(
+    if not bypass_flag_check and not features.has(
         "organizations:migrate-transaction-alerts-to-spans", data_source.organization
     ):
         logger.info("Feature flag not enabled")
