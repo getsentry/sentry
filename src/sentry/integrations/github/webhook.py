@@ -1046,6 +1046,11 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         if secret is None:
             logger.warning("github.webhook.missing-secret", extra=self.get_logging_data())
+            metrics.incr(
+                "github.webhook.hmac_failure",
+                tags={"reason": "missing_secret"},
+                sample_rate=1.0,
+            )
             return HttpResponse(status=401)
 
         body = bytes(request.body)
@@ -1080,6 +1085,11 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         if not self.is_valid_signature(method, body, secret, signature):
             logger.warning("github.webhook.invalid-signature", extra=self.get_logging_data())
+            metrics.incr(
+                "github.webhook.hmac_failure",
+                tags={"reason": "invalid_signature"},
+                sample_rate=1.0,
+            )
             return HttpResponse(status=401)
 
         try:
