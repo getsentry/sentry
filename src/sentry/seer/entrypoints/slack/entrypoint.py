@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING, Any, TypedDict
-from urllib.parse import urlencode
 
 from sentry import features
 from sentry.constants import ENABLE_SEER_ENHANCED_ALERTS_DEFAULT, ObjectStatus
@@ -410,24 +409,17 @@ class SlackExplorerEntrypoint(
         run_id: int,
     ) -> None:
         organization_id = cache_payload["organization_id"]
-        try:
-            organization = Organization.objects.get(id=organization_id)
-        except Organization.DoesNotExist:
-            logger.warning(
-                "seer.entrypoint.slack.on_explorer_update.org_not_found",
-                extra={"organization_id": organization_id},
-            )
-            return
-        explorer_link = organization.absolute_url(
-            path="", query=urlencode({"explorerRunId": run_id})
-        )
 
-        data = SeerExplorerResponse(
-            run_id=run_id,
-            organization_id=organization_id,
-            explorer_link=explorer_link,
-            summary=summary,
-        )
+        if not summary:
+            data: SeerExplorerError | SeerExplorerResponse = SeerExplorerError(
+                error_message="Seer was unable to generate a response."
+            )
+        else:
+            data = SeerExplorerResponse(
+                run_id=run_id,
+                organization_id=organization_id,
+                summary=summary,
+            )
         schedule_all_thread_updates(
             threads=[cache_payload["thread"]],
             integration_id=cache_payload["integration_id"],

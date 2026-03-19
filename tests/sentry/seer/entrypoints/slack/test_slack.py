@@ -6,7 +6,7 @@ from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.service import NotificationDataDto
 from sentry.notifications.platform.slack.provider import SlackRenderable
-from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
+from sentry.notifications.platform.templates.seer import SeerAutofixUpdate, SeerExplorerError
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.slack.entrypoint import (
@@ -616,8 +616,6 @@ class SlackExplorerEntrypointTest(TestCase):
         call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
         assert call_data.run_id == run_id
         assert call_data.organization_id == self.organization.id
-        assert "explorerRunId" in call_data.explorer_link
-        assert str(run_id) in call_data.explorer_link
         assert call_data.summary == "Test summary"
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
@@ -633,22 +631,8 @@ class SlackExplorerEntrypointTest(TestCase):
 
         mock_schedule_all_thread_updates.assert_called_once()
         call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
-        assert call_data.summary is None
-
-    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    def test_on_explorer_update_handles_missing_org(self, mock_schedule_all_thread_updates):
-        ep = self._get_entrypoint()
-        cache_payload = SlackExplorerCachePayload(
-            **{**ep.create_explorer_cache_payload(), "organization_id": 99999}
-        )
-
-        SlackExplorerEntrypoint.on_explorer_update(
-            cache_payload=cache_payload,
-            summary=None,
-            run_id=12345,
-        )
-
-        mock_schedule_all_thread_updates.assert_not_called()
+        assert isinstance(call_data, SeerExplorerError)
+        assert call_data.error_message == "Seer was unable to generate a response."
 
     def test_on_explorer_update_skips_clear_when_integration_not_found(self):
         ep = self._get_entrypoint()

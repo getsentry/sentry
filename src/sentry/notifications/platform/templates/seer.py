@@ -192,7 +192,6 @@ class SeerExplorerResponse(NotificationData):
 
     run_id: int
     organization_id: int
-    explorer_link: str
     summary: str
     source: NotificationSource = NotificationSource.SEER_EXPLORER_RESPONSE
 
@@ -203,7 +202,6 @@ class SeerExplorerResponseTemplate(NotificationTemplate[SeerExplorerResponse]):
     example_data = SeerExplorerResponse(
         run_id=12345,
         organization_id=1,
-        explorer_link="https://sentry.sentry.io/explore/seer/12345/",
         summary="I've finished analyzing your question.",
     )
     hide_from_debugger = True
