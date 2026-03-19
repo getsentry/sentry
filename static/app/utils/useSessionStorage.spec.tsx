@@ -69,7 +69,6 @@ describe('useSessionStorage', () => {
     expect(sessionStorageWrapper.getItem('key')).toBeNull();
   });
 
-
   it('removes item from storage', () => {
     sessionStorageWrapper.setItem('key', JSON.stringify('stored'));
     const {result} = renderHook(() => useSessionStorage('key', 'initial'));
