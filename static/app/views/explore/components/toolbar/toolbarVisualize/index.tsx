@@ -138,6 +138,7 @@ export function ToolbarVisualizeDropdown({
 interface ToolbarVisualizeAddProps {
   add: () => void;
   disabled: boolean;
+  display?: 'button' | 'link';
   label?: string;
 }
 
@@ -145,28 +146,19 @@ export function ToolbarVisualizeAddChart({
   add,
   disabled,
   label,
+  display,
 }: ToolbarVisualizeAddProps) {
   const organization = useOrganization();
 
-  if (canUseMetricsUIRefresh(organization)) {
-    return (
-      <Button
-        icon={<IconAdd />}
-        onClick={add}
-        aria-label={label ?? t('Add Metric')}
-        disabled={disabled}
-      >
-        {label ?? t('Add metric')}
-      </Button>
-    );
-  }
+  const resolvedDisplay =
+    display ?? (canUseMetricsUIRefresh(organization) ? 'button' : 'link');
 
   return (
     <ToolbarFooterButton
-      size="zero"
+      size={resolvedDisplay === 'link' ? 'zero' : 'md'}
       icon={<IconAdd />}
       onClick={add}
-      priority="link"
+      priority={resolvedDisplay === 'link' ? 'link' : undefined}
       aria-label={label ?? t('Add Chart')}
       disabled={disabled}
     >

@@ -114,6 +114,7 @@ function MetricsQueryBuilderSection() {
             );
           })}
           <ToolbarVisualizeAddChart
+            display="button"
             add={addMetricQuery}
             disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
             label={t('Add Metric')}
