@@ -4,9 +4,12 @@ import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -21,10 +24,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   OnDemandExtractionState,
   WidgetType,
+  type LinkedDashboard,
   type ValidateWidgetResponse,
 } from 'sentry/views/dashboards/types';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {LINK_FIELD_TOOLTIP} from 'sentry/views/dashboards/widgetBuilder/settings';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import type {generateFieldOptions} from 'sentry/views/discover/utils';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
@@ -42,6 +49,7 @@ interface Props {
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
   columns?: QueryFieldValue[];
   disable?: boolean;
+  showDashboardLinkButton?: boolean;
   style?: React.CSSProperties;
   widgetType?: WidgetType;
 }
@@ -54,6 +62,7 @@ export function GroupBySelector({
   style,
   widgetType,
   disable,
+  showDashboardLinkButton,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const organization = useOrganization();
@@ -220,6 +229,9 @@ export function GroupBySelector({
                     canDrag={canDrag}
                     canDelete={canDelete}
                     disabled={disable}
+                    extraActions={
+                      showDashboardLinkButton && <LinkToDashboardAction column={column} />
+                    }
                     renderTagOverride={renderTagOverride}
                   />
                 ))}
@@ -278,6 +290,47 @@ function FieldValidationErrors(props: {
       msg={t('This group has too many unique values to collect metrics for it.')}
     />
   ) : null;
+}
+
+function LinkToDashboardAction({column}: {column: QueryFieldValue}) {
+  const {state, dispatch} = useWidgetBuilderContext();
+  const source = useDashboardWidgetSource();
+
+  if (column.kind !== FieldValueKind.FIELD || !column.field) {
+    return null;
+  }
+
+  const field = column.field;
+  const currentLinkedDashboards = state.linkedDashboards ?? [];
+
+  return (
+    <Tooltip title={LINK_FIELD_TOOLTIP}>
+      <Button
+        priority="transparent"
+        icon={<IconLink />}
+        aria-label={t('Link field')}
+        size="zero"
+        onClick={() => {
+          openLinkToDashboardModal({
+            onLink: dashboardId => {
+              const newLinkedDashboards: LinkedDashboard[] = [
+                ...currentLinkedDashboards.filter(ld => ld.field !== field),
+                {dashboardId, field},
+              ];
+              dispatch({
+                type: BuilderStateAction.SET_LINKED_DASHBOARDS,
+                payload: newLinkedDashboards,
+              });
+            },
+            currentLinkedDashboard: currentLinkedDashboards.find(
+              ld => ld.field === field
+            ),
+            source,
+          });
+        }}
+      />
+    </Tooltip>
+  );
 }
 
 const StyledField = styled(FieldGroup)`

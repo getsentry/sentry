@@ -6,7 +6,7 @@ import {
   getOrderedAutofixSections,
   isCodeChangesSection,
   isCodingAgentsSection,
-  isPullRequestSection,
+  isPullRequestsSection,
   isRootCauseSection,
   isSolutionSection,
   useExplorerAutofix,
@@ -34,10 +34,14 @@ export function SeerDrawerContent({aiConfig, autofix}: SeerDrawerContentProps) {
     [autofix.runState]
   );
 
-  if (autofix.isLoading) {
+  if (
+    // autofix results are loading
+    autofix.isLoading ||
+    // we're polling and no blocks have been added yet
+    (autofix.isPolling && !autofix.runState?.blocks?.length)
+  ) {
     return (
       <Flex direction="column" gap="xl">
-        <Placeholder height="10rem" />
         <Placeholder height="15rem" />
       </Flex>
     );
@@ -80,7 +84,7 @@ function SeerDrawerArtifacts({autofix, sections}: SeerDrawerArtifactsProps) {
           );
         }
 
-        if (isPullRequestSection(section)) {
+        if (isPullRequestsSection(section)) {
           return (
             <PullRequestsCard key={section.step} autofix={autofix} section={section} />
           );

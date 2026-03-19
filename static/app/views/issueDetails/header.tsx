@@ -248,7 +248,6 @@ export function GroupHeader({baseUrl, group, organization, event, project}: Prop
               />
             </TitleHeading>
             <EventMessage
-              data={group}
               message={message}
               level={group.level}
               type={group.type}

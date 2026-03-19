@@ -27,7 +27,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
 
         assert data["scopes"] == [("org", str(self.org.id)), ("project", str(self.project.id))]
 
-        assert data["expirationPolicy"] == "ttl:396 days"
+        assert data["expirationPolicy"] == "ttl:30 days"
 
     def test_objectstore_url_uses_region_endpoint(self):
         with (

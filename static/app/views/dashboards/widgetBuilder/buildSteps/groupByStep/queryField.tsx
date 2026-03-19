@@ -18,6 +18,7 @@ export interface QueryFieldProps {
   canDelete?: boolean;
   canDrag?: boolean;
   disabled?: boolean;
+  extraActions?: ReactNode;
   fieldValidationError?: ReactNode;
   isDragging?: boolean;
   listeners?: DraggableSyntheticListeners;
@@ -45,6 +46,7 @@ export function QueryField({
   fieldValidationError,
   isDragging,
   disabled,
+  extraActions,
   renderTagOverride,
 }: QueryFieldProps) {
   return (
@@ -71,6 +73,7 @@ export function QueryField({
             renderTagOverride={renderTagOverride}
           />
           {fieldValidationError ? fieldValidationError : null}
+          {extraActions}
           {canDelete && (
             <Button
               size="zero"

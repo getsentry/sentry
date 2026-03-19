@@ -11,11 +11,9 @@ import {
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
 import {
-  isCodeChangesArtifact,
+  getAutofixArtifactFromSection,
   isCodeChangesSection,
-  isRootCauseArtifact,
   isRootCauseSection,
-  isSolutionArtifact,
   isSolutionSection,
   type AutofixSection,
   type useExplorerAutofix,
@@ -62,7 +60,7 @@ interface NextStepProps {
 }
 
 function RootCauseNextStep({autofix, runId, section}: NextStepProps) {
-  const {startStep} = autofix;
+  const {isPolling, startStep} = autofix;
 
   const handleYesClick = useCallback(() => {
     startStep('solution', runId);
@@ -75,10 +73,7 @@ function RootCauseNextStep({autofix, runId, section}: NextStepProps) {
     [startStep, runId]
   );
 
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isRootCauseArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
     return null;
@@ -86,6 +81,7 @@ function RootCauseNextStep({autofix, runId, section}: NextStepProps) {
 
   return (
     <NextStepTemplate
+      isProcessing={isPolling}
       prompt={t('Are you happy with this root cause?')}
       labelYes={t('Yes, make an implementation plan')}
       onClickYes={handleYesClick}
@@ -101,7 +97,7 @@ function RootCauseNextStep({autofix, runId, section}: NextStepProps) {
 
 function SolutionNextStep({autofix, runId, section}: NextStepProps) {
   const organization = useOrganization();
-  const {startStep, triggerCodingAgentHandoff} = autofix;
+  const {isPolling, startStep, triggerCodingAgentHandoff} = autofix;
 
   const {data: codingAgentResponse} = useQuery(
     organizationIntegrationsCodingAgents(organization)
@@ -135,10 +131,7 @@ function SolutionNextStep({autofix, runId, section}: NextStepProps) {
     [startStep, runId]
   );
 
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isSolutionArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
     return null;
@@ -146,6 +139,7 @@ function SolutionNextStep({autofix, runId, section}: NextStepProps) {
 
   return (
     <NextStepTemplate
+      isProcessing={isPolling}
       prompt={t('Are you happy with this implementation plan?')}
       labelYes={t('Yes, write a code fix')}
       onClickYes={handleYesClick}
@@ -164,7 +158,7 @@ function SolutionNextStep({autofix, runId, section}: NextStepProps) {
 }
 
 function CodeChangesNextStep({autofix, runId, section}: NextStepProps) {
-  const {createPR, startStep} = autofix;
+  const {isPolling, createPR, startStep} = autofix;
 
   const handleYesClick = useCallback(() => {
     createPR(runId);
@@ -177,10 +171,7 @@ function CodeChangesNextStep({autofix, runId, section}: NextStepProps) {
     [startStep, runId]
   );
 
-  const artifact = useMemo(
-    () => section.artifacts.findLast(isCodeChangesArtifact),
-    [section.artifacts]
-  );
+  const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
     return null;
@@ -188,6 +179,7 @@ function CodeChangesNextStep({autofix, runId, section}: NextStepProps) {
 
   return (
     <NextStepTemplate
+      isProcessing={isPolling}
       prompt={t('Are you happy with these code changes?')}
       labelYes={t('Yes, draft a PR')}
       onClickYes={handleYesClick}
@@ -202,6 +194,7 @@ function CodeChangesNextStep({autofix, runId, section}: NextStepProps) {
 }
 
 interface NextStepTemplateProps {
+  isProcessing: boolean;
   labelNevermind: ReactNode;
   labelNo: ReactNode;
   labelRethink: ReactNode;
@@ -216,6 +209,7 @@ interface NextStepTemplateProps {
 }
 
 function NextStepTemplate({
+  isProcessing,
   prompt,
   labelYes,
   onClickYes,
@@ -263,8 +257,14 @@ function NextStepTemplate({
           onChange={event => setUserContext(event.target.value)}
         />
         <Flex gap="md">
-          <Button onClick={onClickYes}>{labelNevermind}</Button>
-          <Button priority="primary" onClick={() => onClickNo(userContext)}>
+          <Button disabled={isProcessing} onClick={onClickYes}>
+            {labelNevermind}
+          </Button>
+          <Button
+            priority="primary"
+            disabled={isProcessing}
+            onClick={() => onClickNo(userContext)}
+          >
             {labelRethink}
           </Button>
         </Flex>
@@ -276,9 +276,11 @@ function NextStepTemplate({
     <Flex direction="column" gap="lg">
       <Text>{prompt}</Text>
       <Flex gap="md">
-        <Button onClick={() => handleClickedNo(true)}>{labelNo}</Button>
+        <Button disabled={isProcessing} onClick={() => handleClickedNo(true)}>
+          {labelNo}
+        </Button>
         <ButtonBar>
-          <Button priority="primary" onClick={onClickYes}>
+          <Button priority="primary" disabled={isProcessing} onClick={onClickYes}>
             {labelYes}
           </Button>
           {codingAgentOptions?.length ? (
@@ -287,7 +289,7 @@ function NextStepTemplate({
               trigger={(triggerProps, isOpen) => (
                 <Button
                   {...triggerProps}
-                  disabled={codingAgentOptions.length <= 0}
+                  disabled={isProcessing}
                   priority="primary"
                   icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
                   aria-label={t('More code fix options')}
