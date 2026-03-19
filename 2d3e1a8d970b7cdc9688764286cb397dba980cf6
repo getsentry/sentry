@@ -1,0 +1,23 @@
+src/sentry/objectstore/endpoints/organization.py
+  827a60114cbc3983 31,44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.15",
+  "base_commit_sha": "2d3e1a8d970b7cdc9688764286cb397dba980cf6",
+  "prompts": {
+    "827a60114cbc3983": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "51efb78a-6913-4091-a16f-24698e94a37b",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "lcian <17258265+lcian@users.noreply.github.com>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 0,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  }
+}
