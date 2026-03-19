@@ -54,7 +54,7 @@ class AcceptCellNameMixin:
 
     @property
     def cell_name(self) -> str:
-        return self.region_name  # type: ignore[attr-defined]
+        return self.region_name
 
 
 class RpcModel(pydantic.BaseModel):

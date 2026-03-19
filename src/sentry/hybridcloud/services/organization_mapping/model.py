@@ -28,7 +28,7 @@ class CustomerId(RpcModel):
     value: str | None
 
 
-class RpcOrganizationMappingUpdate(AcceptCellNameMixin):
+class RpcOrganizationMappingUpdate(RpcModel, AcceptCellNameMixin):
     name: str = ""
     status: int = 0
     slug: str = ""
