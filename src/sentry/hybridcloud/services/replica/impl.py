@@ -305,7 +305,7 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
         self,
         *,
         organization_slug_reservation_id: int,
-        cell_name,
+        cell_name: str,
     ) -> None:
         with enforce_constraints(
             transaction.atomic(router.db_for_write(OrganizationSlugReservationReplica))
