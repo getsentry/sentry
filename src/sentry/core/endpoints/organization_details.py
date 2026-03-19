@@ -408,7 +408,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         if not integration_service.get_organization_integration(
             integration_id=value, organization_id=organization.id
         ):
-            raise serializers.ValidationError("Integration does not belong to this organization.")
+            raise serializers.ValidationError("Integration does not exist.")
         return value
 
     def validate_sensitiveFields(self, value):
