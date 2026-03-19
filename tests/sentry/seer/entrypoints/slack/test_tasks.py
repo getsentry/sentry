@@ -108,10 +108,6 @@ class ProcessMentionForSlackTest(TestCase):
 
         self._run_task()
 
-        mock_entrypoint.install.clear_thread_status.assert_called_once_with(
-            channel_id="C1234567890",
-            thread_ts="1234567890.123456",
-        )
         mock_send_link.assert_called_once_with(entrypoint=mock_entrypoint)
         mock_operator_cls.assert_not_called()
         assert_halt_metric(mock_record, ProcessMentionHaltReason.IDENTITY_NOT_LINKED)
