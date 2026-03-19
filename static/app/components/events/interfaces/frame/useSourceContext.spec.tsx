@@ -57,5 +57,4 @@ describe('useSourceContext', () => {
     expect(result.current.data?.sourceUrl).toBe(mockResponse.sourceUrl);
     expect(result.current.data?.error).toBeNull();
   });
-
 });
