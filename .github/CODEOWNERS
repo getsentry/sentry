@@ -803,6 +803,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /static/eslint/                                       @getsentry/design-engineering
 /scripts/analyze-styled.ts                            @getsentry/design-engineering
+
+/static/app/types/*.d.ts                              @getsentry/design-engineering
 ## End of Frontend Platform
 
 # Coding Workflows
