@@ -858,9 +858,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
         # Initial config should be empty
         assert org_integration.config == {}
 
-        with patch(
-            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
-        ):
+        with patch("sentry.integrations.gitlab.integration.update_all_project_webhooks"):
             # Update configuration
             data = {"sync_reverse_assignment": True, "other_option": "test_value"}
             installation.update_organization_config(data)
@@ -890,9 +888,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
         }
         org_integration.save()
 
-        with patch(
-            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
-        ):
+        with patch("sentry.integrations.gitlab.integration.update_all_project_webhooks"):
             # Update configuration with new data
             data = {"sync_reverse_assignment": True, "new_key": "new_value"}
             installation.update_organization_config(data)
@@ -1173,14 +1169,14 @@ class GitlabIssueSyncTest(GitLabTestCase):
         )
 
         with patch(
-            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
-        ) as mock_schedule:
+            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
+        ) as mock_task:
             # Update configuration
             data = {"sync_reverse_assignment": True}
             installation.update_organization_config(data)
 
             # Verify task was called with correct arguments
-            mock_schedule.assert_called_once_with(
+            mock_task.delay.assert_called_once_with(
                 integration_id=integration.id,
                 organization_id=self.organization.id,
             )
@@ -1219,14 +1215,14 @@ class GitlabIssueSyncTest(GitLabTestCase):
         )
 
         with patch(
-            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
-        ) as mock_schedule:
+            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
+        ) as mock_task:
             # Update configuration
             data = {"sync_reverse_assignment": True}
             installation.update_organization_config(data)
 
             # Verify task was NOT called
-            mock_schedule.assert_not_called()
+            mock_task.delay.assert_not_called()
 
         # Verify config was still updated
         org_integration = integration_service.get_organization_integration(
@@ -1263,14 +1259,14 @@ class GitlabIssueSyncTest(GitLabTestCase):
         )
 
         with patch(
-            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
-        ) as mock_schedule:
+            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
+        ) as mock_task:
             # Update configuration
             data = {"sync_comments": True}
             installation.update_organization_config(data)
 
             # Verify task was called
-            mock_schedule.assert_called_once_with(
+            mock_task.delay.assert_called_once_with(
                 integration_id=integration.id,
                 organization_id=self.organization.id,
             )
@@ -1308,14 +1304,14 @@ class GitlabIssueSyncTest(GitLabTestCase):
         )
 
         with patch(
-            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
-        ) as mock_schedule:
+            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
+        ) as mock_task:
             # Update configuration
             data = {"sync_reverse_assignment": False, "sync_comments": False}
             installation.update_organization_config(data)
 
             # Task should be called since version is missing (defaults to 0)
-            mock_schedule.assert_called_once_with(
+            mock_task.delay.assert_called_once_with(
                 integration_id=integration.id,
                 organization_id=self.organization.id,
             )
@@ -1345,9 +1341,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
             },
         )
 
-        with patch(
-            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
-        ):
+        with patch("sentry.integrations.gitlab.integration.update_all_project_webhooks"):
             # Update configuration
             data = {"sync_comments": True}
             installation.update_organization_config(data)
