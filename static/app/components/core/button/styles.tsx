@@ -91,7 +91,7 @@ export function DO_NOT_USE_getButtonStyles(
     background: 'none',
 
     height: buttonSizes[p.size].height,
-    width: p.shapeVariant === 'square' ? buttonSizes[p.size].height : undefined,
+    minWidth: p.shapeVariant === 'square' ? buttonSizes[p.size].height : undefined,
 
     minHeight: buttonSizes[p.size].minHeight,
     fontSize: buttonSizes[p.size].fontSize,
