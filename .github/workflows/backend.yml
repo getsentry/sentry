@@ -362,13 +362,34 @@ jobs:
         run: |
           if [ -n "${XDIST_WORKERS}" ]; then
             export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile -v --tb=short"
-            timeout 1200 make test-python-ci || {
-              rc=$?
-              if [ "$rc" -eq 124 ]; then
-                echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
-              fi
-              exit "$rc"
-            }
+
+            make test-python-ci &
+            PYTEST_PID=$!
+
+            (
+              sleep 1170
+              echo "::warning::Approaching 20-min timeout — sending SIGUSR1 to dump thread stacks"
+              # Send SIGUSR1 to all pytest worker processes for stack dump
+              for child in $(pgrep -P "$PYTEST_PID" 2>/dev/null); do
+                for grandchild in $(pgrep -P "$child" 2>/dev/null); do
+                  kill -USR1 "$grandchild" 2>/dev/null || true
+                done
+                kill -USR1 "$child" 2>/dev/null || true
+              done
+              kill -USR1 "$PYTEST_PID" 2>/dev/null || true
+              sleep 30
+              echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
+              kill -TERM "$PYTEST_PID" 2>/dev/null || true
+              sleep 5
+              kill -KILL "$PYTEST_PID" 2>/dev/null || true
+            ) &
+            WATCHDOG_PID=$!
+
+            wait "$PYTEST_PID"
+            rc=$?
+            kill "$WATCHDOG_PID" 2>/dev/null || true
+            wait "$WATCHDOG_PID" 2>/dev/null || true
+            exit "$rc"
           else
             make test-python-ci
           fi
