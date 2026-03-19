@@ -774,7 +774,7 @@ class TestSeerOperatorCompletionHook(TestCase):
         mock_no_access.has_access.return_value = False
         mock_has_access = Mock(spec=SeerExplorerEntrypoint)
         mock_has_access.has_access.return_value = True
-        cache_payload = {"thread_id": "abc"}
+        cache_payload = {"thread_id": "abc", "organization_id": self.organization.id}
 
         with (
             patch.dict(
