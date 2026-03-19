@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +7,7 @@ import {
   OnboardingContextProvider,
   type OnboardingSessionState,
 } from 'sentry/components/onboarding/onboardingContext';
-import type {Integration, IntegrationRepository} from 'sentry/types/integrations';
+import type {IntegrationRepository} from 'sentry/types/integrations';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {useScmRepoSelection} from './useScmRepoSelection';
@@ -24,15 +25,10 @@ function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
 describe('useScmRepoSelection', () => {
   const organization = OrganizationFixture();
 
-  const mockIntegration: Integration = {
+  const mockIntegration = OrganizationIntegrationsFixture({
     id: '1',
     name: 'getsentry',
     domainName: 'github.com/getsentry',
-    accountType: null,
-    icon: null,
-    gracePeriodEnd: '',
-    status: 'active',
-    organizationIntegrationStatus: 'active',
     provider: {
       key: 'github',
       slug: 'github',
@@ -42,7 +38,7 @@ describe('useScmRepoSelection', () => {
       features: ['commits'],
       aspects: {},
     },
-  };
+  });
 
   let onSelect: jest.Mock;
   let reposByIdentifier: Map<string, IntegrationRepository>;

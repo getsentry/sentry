@@ -37,6 +37,8 @@ export function useScmRepoSearch(integrationId: string, selectedRepo?: Repositor
     enabled: !!debouncedSearch,
   });
 
+  const selectedRepoSlug = selectedRepo?.externalSlug;
+
   const {reposByIdentifier, dropdownItems} = useMemo(
     () =>
       (searchQuery.data?.[0]?.repos ?? []).reduce<{
@@ -54,7 +56,7 @@ export function useScmRepoSearch(integrationId: string, selectedRepo?: Repositor
             value: repo.identifier,
             label: repo.name,
             textValue: repo.name,
-            disabled: repo.identifier === selectedRepo?.externalSlug,
+            disabled: repo.identifier === selectedRepoSlug,
           });
           return acc;
         },
@@ -63,7 +65,7 @@ export function useScmRepoSearch(integrationId: string, selectedRepo?: Repositor
           dropdownItems: [],
         }
       ),
-    [searchQuery.data, selectedRepo]
+    [searchQuery.data, selectedRepoSlug]
   );
 
   return {
