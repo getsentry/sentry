@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
+import {Activity, Fragment} from 'react';
 
-import {unreachable} from 'sentry/utils/unreachable';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {AdminSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/admin/adminSecondaryNavigation';
 import {DashboardsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsSecondaryNavigation';
@@ -12,25 +12,30 @@ import {SettingsSecondaryNavigation} from 'sentry/views/navigation/secondary/sec
 
 export function SecondaryNavigationContent(): ReactNode {
   const {activeGroup} = usePrimaryNavigation();
-  switch (activeGroup) {
-    case 'issues':
-      return <IssuesSecondaryNavigation />;
-    case 'insights':
-      return <InsightsSecondaryNavigation />;
-    case 'dashboards':
-      return <DashboardsSecondaryNavigation />;
-    case 'explore':
-      return <ExploreSecondaryNavigation />;
-    case 'monitors':
-      return <MonitorsSecondaryNavigation />;
-    case 'prevent':
-      return null;
-    case 'settings':
-      return <SettingsSecondaryNavigation />;
-    case 'admin':
-      return <AdminSecondaryNavigation />;
-    default:
-      unreachable(activeGroup);
-      return null;
-  }
+
+  return (
+    <Fragment>
+      <Activity mode={activeGroup === 'issues' ? 'visible' : 'hidden'}>
+        <IssuesSecondaryNavigation />
+      </Activity>
+      <Activity mode={activeGroup === 'insights' ? 'visible' : 'hidden'}>
+        <InsightsSecondaryNavigation />
+      </Activity>
+      <Activity mode={activeGroup === 'dashboards' ? 'visible' : 'hidden'}>
+        <DashboardsSecondaryNavigation />
+      </Activity>
+      <Activity mode={activeGroup === 'explore' ? 'visible' : 'hidden'}>
+        <ExploreSecondaryNavigation />
+      </Activity>
+      <Activity mode={activeGroup === 'monitors' ? 'visible' : 'hidden'}>
+        <MonitorsSecondaryNavigation />
+      </Activity>
+      <Activity mode={activeGroup === 'settings' ? 'visible' : 'hidden'}>
+        <SettingsSecondaryNavigation />
+      </Activity>
+      <Activity mode={activeGroup === 'admin' ? 'visible' : 'hidden'}>
+        <AdminSecondaryNavigation />
+      </Activity>
+    </Fragment>
+  );
 }
