@@ -9,16 +9,13 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import type {Platform} from 'sentry/components/platformPicker';
-import {PlatformPicker} from 'sentry/components/platformPicker';
+import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {FeatureSelectionCards} from './components/featureSelectionCards';
-import {getAvailableFeaturesForPlatform} from './components/platformDetection';
 import {UnstyledButton} from './components/unstyledButton';
 import {usePlatformDetection} from './components/usePlatformDetection';
 import type {StepProps} from './types';
@@ -41,8 +38,11 @@ function setPlatformInContext(
   }
 }
 
+function getAvailableFeaturesForPlatform(platformKey: PlatformKey): ProductSolution[] {
+  return platformProductAvailability[platformKey] ?? [];
+}
+
 export function ScmPlatformFeatures({onComplete}: StepProps) {
-  const organization = useOrganization();
   const {
     selectedRepository,
     selectedPlatform,
@@ -95,18 +95,6 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   const handleSelectDetectedPlatform = useCallback(
     (platformKey: PlatformKey) => {
       setPlatformInContext(platformKey, setSelectedPlatform);
-      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-    },
-    [setSelectedPlatform, setSelectedFeatures]
-  );
-
-  const handleManualPlatformSelect = useCallback(
-    (platform: Platform | null) => {
-      if (platform) {
-        setPlatformInContext(platform.id, setSelectedPlatform);
-      } else {
-        setSelectedPlatform(undefined);
-      }
       setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
     },
     [setSelectedPlatform, setSelectedFeatures]
@@ -184,14 +172,6 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         ) : (
           <Stack gap="md">
             <Heading as="h3">{t('Select a platform')}</Heading>
-            <PlatformPicker
-              noAutoFilter
-              visibleSelection={false}
-              source="scm-onboarding"
-              platform={currentPlatformKey ?? null}
-              setPlatform={handleManualPlatformSelect}
-              organization={organization}
-            />
             {hasScmConnected && (
               <Button
                 size="zero"
