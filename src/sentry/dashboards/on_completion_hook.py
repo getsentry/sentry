@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from sentry.api.serializers.rest_framework import DashboardSerializer
+from sentry.constants import ObjectStatus
 from sentry.dashboards.models.generate_dashboard_artifact import GeneratedDashboard
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -31,7 +32,8 @@ def _validate_with_serializer(
     aggregates, dataset compatibility, etc.).
     """
 
-    projects = list(Project.objects.filter(organization=organization, status=0)[:1])
+    # Projects are unused in this check, but we need at least one project to satisfy the serializer
+    projects = [Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)[0]]
 
     serializer = DashboardSerializer(
         data=artifact.dict(),
