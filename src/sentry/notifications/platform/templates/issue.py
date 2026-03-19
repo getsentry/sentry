@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
@@ -57,8 +57,9 @@ class NotificationRuleInfo(BaseModel):
         )
 
 
-@dataclass(frozen=True)
 class IssueNotificationData(NotificationData):
+    source: NotificationSource = NotificationSource.ISSUE
+
     group_id: int
     event_id: str | None = None
     rule: NotificationRuleInfo | None = None
@@ -66,10 +67,8 @@ class IssueNotificationData(NotificationData):
     notes: str = ""
     notification_uuid: str = ""
 
-    source: NotificationSource = NotificationSource.ISSUE
 
-
-@template_registry.register(IssueNotificationData.source)
+@template_registry.register(NotificationSource.ISSUE)
 class IssueNotificationTemplate(NotificationTemplate[IssueNotificationData]):
     category = NotificationCategory.ISSUE_ALERT
     example_data = IssueNotificationData(
