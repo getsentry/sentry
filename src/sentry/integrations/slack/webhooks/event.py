@@ -355,9 +355,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 lifecycle.record_halt(AppMentionHaltReason.FEATURE_NOT_ENABLED)
                 return self.respond()
 
-            channel_id = slack_request.channel_id
-            text = data.get("text", "")
-            thread_ts = data.get("thread_ts")
+            channel_id = data.get("channel")
+            text = data.get("text")
+            thread_ts = data.get("ts")
 
             if not channel_id or not text or not thread_ts:
                 lifecycle.record_halt(AppMentionHaltReason.MISSING_CHANNEL_OR_TEXT)
