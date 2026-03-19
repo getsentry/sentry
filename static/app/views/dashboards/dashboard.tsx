@@ -6,6 +6,7 @@ import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 
@@ -21,6 +22,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DatasetSource} from 'sentry/utils/discover/types';
+import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -133,7 +135,18 @@ export function Dashboard({
   const forceCheckTimeout = useRef<number | undefined>(undefined);
 
   const debouncedHandleResize = useMemo(
-    () => debounce(() => setWindowWidth(window.innerWidth), 250),
+    () =>
+      debounce(() => {
+        const start = performance.now();
+        setWindowWidth(window.innerWidth);
+        scheduleMicroTask(() => {
+          const duration = performance.now() - start;
+          Sentry.metrics.distribution('dashboards.widget.onResize', duration, {
+            unit: 'millisecond',
+            attributes: {page: 'dashboard'},
+          });
+        });
+      }, 250),
     []
   );
 
