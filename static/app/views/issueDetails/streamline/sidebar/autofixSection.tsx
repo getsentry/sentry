@@ -113,7 +113,11 @@ export interface AutofixContentProps extends AutofixArtifactsProps {
 
 export function AutofixContent({aiConfig, group, project, event}: AutofixContentProps) {
   const organization = useOrganization();
-  const {data: setupCheck} = useSeerOnboardingCheck();
+  const {data: setupCheck, isPending} = useSeerOnboardingCheck();
+
+  if (isPending) {
+    return <Placeholder height="160px" />;
+  }
 
   const needOrgSetup =
     // scm integration doesn't exist
