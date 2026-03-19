@@ -73,7 +73,6 @@ function trackChartSettingChange(
     from_widget: previousChartSetting,
     to_widget: chartSetting,
     from_default: fromDefault,
-    is_new_menu: true,
   });
 }
 
