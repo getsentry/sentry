@@ -97,9 +97,9 @@ class GitLabProvider:
         self.repository = repository
         external_id = repository["external_id"]
         assert external_id is not None
-        prefix = "gitlab.com:"
-        assert external_id.startswith(prefix)
-        self._repo_id = external_id[len(prefix) :]
+        # External ID format is "{gitlab_url}:{repo_id}"
+        assert ":" in external_id
+        self._repo_id = external_id.split(":", maxsplit=1)[1]
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
         return False  # Rate-limits temporarily disabled.
