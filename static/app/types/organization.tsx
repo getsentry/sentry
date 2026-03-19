@@ -65,8 +65,6 @@ export interface Organization extends OrganizationSummary {
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
   defaultCodeReviewTriggers: CodeReviewTrigger[];
-  defaultCodingAgent: string | null;
-  defaultCodingAgentIntegrationId: number | null;
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
