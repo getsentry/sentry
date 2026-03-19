@@ -1,12 +1,15 @@
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
+
+from sentry.models.group import Group
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     ResolvedAttribute,
     VirtualColumnDefinition,
     datetime_processor,
-    project_context_constructor,
     project_term_resolver,
 )
-from sentry.search.eap.common_columns import COMMON_COLUMNS
+from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
+from sentry.search.events.types import SnubaParams
 from sentry.utils.validators import is_event_id_or_list
 
 OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
@@ -283,11 +286,24 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
 }
 
 
-OCCURRENCE_VIRTUAL_CONTEXTS = {
-    key: VirtualColumnDefinition(
-        constructor=project_context_constructor(key),
-        term_resolver=project_term_resolver,
-        filter_column="project.id",
+def issue_context_constructor(params: SnubaParams) -> VirtualColumnContext:
+    if params.project_ids is None or len(params.project_ids) == 0:
+        raise ValueError("Project IDs required for Issue")
+    groups = Group.objects.filter(
+        project_id__in=params.project_ids,
     )
-    for key in constants.PROJECT_FIELDS
+    return VirtualColumnContext(
+        from_column_name="group_id",
+        to_column_name="issue",
+        value_map={str(group.id): group.qualified_short_id for group in groups},
+    )
+
+
+OCCURRENCE_VIRTUAL_CONTEXTS = {
+    **project_virtual_contexts(),
+    "issue": VirtualColumnDefinition(
+        constructor=issue_context_constructor,
+        filter_column="group_id",
+        term_resolver=project_term_resolver,
+    ),
 }
