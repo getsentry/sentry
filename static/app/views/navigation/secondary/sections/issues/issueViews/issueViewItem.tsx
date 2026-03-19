@@ -68,7 +68,7 @@ export function IssueViewItem({view, isActive}: IssueViewItemProps) {
       }}
     >
       <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
-        {view.label}
+        <Text ellipsis>{view.label}</Text>
       </Tooltip>
     </SecondaryNavigation.ReorderableLink>
   );

@@ -896,9 +896,7 @@ function SecondaryNavigationReorderableLink({
           {icon}
         </Flex>
       </Flex>
-      <Text ellipsis variant="inherit">
-        {children}
-      </Text>
+      {children}
       {trailingItems}
     </Fragment>
   );

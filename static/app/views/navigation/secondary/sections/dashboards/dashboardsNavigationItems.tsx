@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {defined} from 'sentry/utils';
@@ -69,7 +70,9 @@ export function DashboardsNavigationItems({
               showOnlyOnOverflow
               skipWrapper
             >
-              {dashboard.title}
+              <Text ellipsis variant="inherit">
+                {dashboard.title}
+              </Text>
             </Tooltip>
           </SecondaryNavigation.ReorderableLink>
         );
