@@ -38,6 +38,7 @@ type DashboardArtifact = {
 
 type WidgetArtifact = {
   display_type: Widget['displayType'];
+  interval: string;
   layout: {h: number; min_h: number; w: number; x: number; y: number};
   queries: Widget['queries'];
   title: string;
@@ -50,7 +51,6 @@ function normalizeWidget(raw: WidgetArtifact): Widget {
   const {display_type, widget_type, ...rest} = raw;
   return {
     ...rest,
-    interval: '',
     displayType: display_type,
     widgetType: widget_type,
     layout: raw.layout

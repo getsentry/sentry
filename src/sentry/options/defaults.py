@@ -1087,6 +1087,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for batched nodestore fetches in group events endpoint.
+# When disabled, falls back to lazy per-event nodestore fetches.
+register(
+    "issues.group_events.batch_nodestore_enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for all Seer services
 #
 # TODO: So far this is only being checked when calling the Seer similar issues service during
@@ -1182,12 +1191,6 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "explorer.service_map.allowed_organizations",
-    default=[],
-    type=Sequence,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "explorer.service_map.max_edges",
