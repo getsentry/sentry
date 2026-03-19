@@ -135,11 +135,7 @@ export function CodeChangesPreview({section}: ArtifactPreviewProps) {
 
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
-      {section.status === 'processing' ? (
-        <Placeholder height="1.5rem" />
-      ) : (
-        <Text>{summary}</Text>
-      )}
+      {section.status === 'processing' ? <Placeholder height="1.5rem" /> : summary}
     </ArtifactCard>
   );
 }
