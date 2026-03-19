@@ -49,7 +49,11 @@ JS_SOURCEMAP_ERROR_TYPES = frozenset(
 
 def has_js_sourcemap_errors(errors: Sequence[Mapping[str, Any]]) -> bool:
     """Check whether any of the given processing errors are JS sourcemap errors."""
-    return any(e.get("type") in JS_SOURCEMAP_ERROR_TYPES for e in errors)
+    return any(
+        e.get("type") in JS_SOURCEMAP_ERROR_TYPES
+        for e in errors
+        if isinstance(e, Mapping)
+    )
 
 
 class SourcemapCheckStatus(enum.IntEnum):
@@ -110,7 +114,10 @@ class SourcemapDetectorHandler(StatefulDetectorHandler[SourcemapPacketValue, Sou
     ) -> tuple[DetectorOccurrence, EventData]:
         event_data_dict = data_packet.packet.event_data
         errors = event_data_dict.get("errors", [])
-        js_errors = [e for e in errors if e.get("type") in JS_SOURCEMAP_ERROR_TYPES]
+        js_errors = [
+            e for e in errors
+            if isinstance(e, Mapping) and e.get("type") in JS_SOURCEMAP_ERROR_TYPES
+        ]
         error_types = {e.get("type", "unknown") for e in js_errors}
 
         evidence_data: dict[str, Any] = {

@@ -98,7 +98,9 @@ def detect_sourcemap_issues(job: PostProcessJob) -> None:
         return
 
     errors = event.data.get("errors", [])
-    if not has_js_sourcemap_errors(errors):
+    # Filter out invalid (non-Mapping) entries from errors list before processing
+    valid_errors = [e for e in errors if isinstance(e, dict)]
+    if not has_js_sourcemap_errors(valid_errors):
         return
 
     metrics.incr("processing_errors.sourcemap_detector.event_with_js_errors")
@@ -109,11 +111,15 @@ def detect_sourcemap_issues(job: PostProcessJob) -> None:
 
     detector = ensure_sourcemap_detector(event.project)
 
+    # Create a clean copy of event data with only valid errors to avoid downstream issues
+    clean_event_data = dict(event.data)
+    clean_event_data["errors"] = valid_errors
+
     packet = DataPacket(
         source_id=str(event.project.id),
         packet=SourcemapPacketValue(
             event_id=event.event_id,
-            event_data=event.data,
+            event_data=clean_event_data,
         ),
     )
 
