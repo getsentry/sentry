@@ -24,7 +24,7 @@ import {
 function makeSection(
   step: string,
   artifacts: any[] = [],
-  {status}: {status: string} = {status: 'completed'}
+  {status}: {status: 'completed' | 'processing'} = {status: 'completed'}
 ): AutofixSection {
   return {step, artifacts, messages: [], status};
 }
