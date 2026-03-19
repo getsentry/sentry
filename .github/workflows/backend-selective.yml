@@ -83,7 +83,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
-          python-version-file: '.python-version'
+          python-version-file: 'getsentry/.python-version'
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.3
@@ -139,8 +139,6 @@ jobs:
 
   calculate-shards:
     if: >-
-      always() &&
-      !cancelled() &&
       needs.files-changed.outputs.backend == 'true' &&
       needs.files-changed.outputs.skip_selective_testing != 'true'
     needs: [files-changed, select-tests]
@@ -177,11 +175,8 @@ jobs:
 
   backend-test:
     if: >-
-      always() &&
-      !cancelled() &&
       needs.files-changed.outputs.backend == 'true' &&
       needs.files-changed.outputs.skip_selective_testing != 'true' &&
-      needs.calculate-shards.result == 'success' &&
       needs.calculate-shards.outputs.shard-count != '0'
     needs: [files-changed, select-tests, calculate-shards]
     name: backend test (selective)
