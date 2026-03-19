@@ -28,7 +28,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
-from sentry.hybridcloud.outbox.base import RegionOutboxProducingManager, ReplicatedRegionModel
+from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -43,7 +43,7 @@ class ProjectKeyStatus:
     INACTIVE = 1
 
 
-class ProjectKeyManager(RegionOutboxProducingManager["ProjectKey"]):
+class ProjectKeyManager(CellOutboxProducingManager["ProjectKey"]):
     def post_save(self, *, instance: ProjectKey, created: bool, **kwargs: object) -> None:
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_save"
@@ -79,7 +79,7 @@ class UseCase(enum.Enum):
 
 
 @cell_silo_model
-class ProjectKey(ReplicatedRegionModel):
+class ProjectKey(ReplicatedCellModel):
     __relocation_scope__ = RelocationScope.Organization
 
     category = OutboxCategory.PROJECT_KEY_UPDATE
@@ -200,23 +200,23 @@ class ProjectKey(ReplicatedRegionModel):
         cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
     ) -> None:
         from sentry.hybridcloud.services.replica import control_replica_service
-        from sentry.types.region import get_local_region
+        from sentry.types.cell import get_local_cell
 
         control_replica_service.delete_project_key_mapping(
             project_key_id=identifier,
-            cell_name=get_local_region().name,
+            cell_name=get_local_cell().name,
         )
 
     def handle_async_replication(self, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.project_key_mapping import RpcProjectKey
         from sentry.hybridcloud.services.replica import control_replica_service
-        from sentry.types.region import get_local_region
+        from sentry.types.cell import get_local_cell
 
         control_replica_service.upsert_project_key_mapping(
             project_key=RpcProjectKey(
                 id=self.id,
                 public_key=self.public_key,
-                cell_name=get_local_region().name,
+                cell_name=get_local_cell().name,
             ),
         )
 
