@@ -13,6 +13,7 @@ import type {
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
+import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData, widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
@@ -92,6 +93,8 @@ export function WidgetCardChartContainer({
   disableTableActions,
   widgetInterval,
 }: Props) {
+  const onWidgetError = useWidgetErrorCallback();
+
   const keepLegendState: EChartLegendSelectChangeHandler = ({selected}) => {
     widgetLegendState.setWidgetSelectionState(selected, widget);
   };
@@ -152,6 +155,14 @@ export function WidgetCardChartContainer({
             );
 
         if (errorOrEmptyMessage) {
+          if (
+            typeof errorOrEmptyMessage === 'string' &&
+            errorMessage !== t('No data found') &&
+            onWidgetError
+          ) {
+            onWidgetError(widget, errorOrEmptyMessage);
+          }
+
           return <Widget.WidgetError error={errorOrEmptyMessage} />;
         }
 
