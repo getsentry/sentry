@@ -975,9 +975,12 @@ export function Visualize({error, setError}: VisualizeProps) {
                                         fields[index]?.kind === FieldValueKind.FIELD &&
                                         fields[index]?.field
                                       ) {
+                                        const fieldName = fields[index].field;
                                         const newLinkedDashboards: LinkedDashboard[] = [
-                                          ...linkedDashboards,
-                                          {dashboardId, field: fields[index].field},
+                                          ...linkedDashboards.filter(
+                                            ld => ld.field !== fieldName
+                                          ),
+                                          {dashboardId, field: fieldName},
                                         ];
                                         dispatch({
                                           type: BuilderStateAction.SET_LINKED_DASHBOARDS,

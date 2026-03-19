@@ -106,7 +106,12 @@ export function transformWidgetSeriesToTimeSeries(
   ];
   // If there are multiple aggregates and columns, add the yAxis to the label for uniqueness
   if (aggregates.length > 1 && columns.length > 0) {
-    labelParts.push(yAxis);
+    if (widget.widgetType === WidgetType.TRACEMETRICS) {
+      // TraceMetrics widgets need to format the yAxis for the label
+      labelParts.push(formatTraceMetricsFunction(yAxis) as string);
+    } else {
+      labelParts.push(yAxis);
+    }
   }
 
   const label = labelParts
