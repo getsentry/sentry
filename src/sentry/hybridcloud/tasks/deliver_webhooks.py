@@ -17,6 +17,7 @@ from sentry.codecov.client import CodecovApiClient, ConfigurationError
 from sentry.exceptions import RestrictedIPAddress
 from sentry.hybridcloud.models.webhookpayload import (
     BACKOFF_INTERVAL,
+    BACKOFF_RATE,
     MAX_ATTEMPTS,
     DestinationType,
     WebhookPayload,
