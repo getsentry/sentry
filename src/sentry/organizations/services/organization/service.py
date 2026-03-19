@@ -21,6 +21,7 @@ from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method
 from sentry.organizations.services.organization.model import (
     OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
+    RpcCellUser,
     RpcOrganization,
     RpcOrganizationDeleteResponse,
     RpcOrganizationFlagsUpdate,
@@ -29,7 +30,6 @@ from sentry.organizations.services.organization.model import (
     RpcOrganizationMemberSummary,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
-    RpcRegionUser,
     RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
@@ -488,7 +488,7 @@ class OrganizationService(RpcService):
     def update_cell_user(
         self,
         *,
-        user: RpcRegionUser,
+        user: RpcCellUser,
         cell_name: str,
     ) -> None:
         """
@@ -504,7 +504,7 @@ class OrganizationService(RpcService):
     def update_region_user(
         self,
         *,
-        user: RpcRegionUser,
+        user: RpcCellUser,
         cell_name: str,
     ) -> None:
         """

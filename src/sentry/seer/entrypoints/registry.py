@@ -1,4 +1,6 @@
-from sentry.seer.entrypoints.types import SeerEntrypoint
+from typing import Any
+
+from sentry.seer.entrypoints.types import SeerAutofixEntrypoint
 from sentry.utils.registry import Registry
 
-entrypoint_registry = Registry[type[SeerEntrypoint]]()
+autofix_entrypoint_registry = Registry[type[SeerAutofixEntrypoint[Any]]]()

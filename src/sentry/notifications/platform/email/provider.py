@@ -4,7 +4,11 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
 from sentry import options
-from sentry.notifications.platform.provider import NotificationProvider, SendResult
+from sentry.notifications.platform.provider import (
+    NotificationProvider,
+    SendResult,
+    SendSuccessResult,
+)
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import GenericNotificationTarget
@@ -155,4 +159,4 @@ class EmailNotificationProvider(NotificationProvider[EmailRenderable]):
         email = renderable
         email.to = [target.resource_id]
         send_messages([email])
-        return SendResult()
+        return SendSuccessResult()
