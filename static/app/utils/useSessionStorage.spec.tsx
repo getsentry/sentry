@@ -57,6 +57,18 @@ describe('useSessionStorage', () => {
     expect(JSON.parse(sessionStorageWrapper.getItem('key')!)).toEqual({a: 1, b: 2});
   });
 
+  it('removeItem wins over a pending write in the same tick', () => {
+    const {result} = renderHook(() => useSessionStorage('key', 'initial'));
+
+    act(() => {
+      result.current[1]('updated');
+      result.current[2]();
+    });
+
+    expect(result.current[0]).toBe('initial');
+    expect(sessionStorageWrapper.getItem('key')).toBeNull();
+  });
+
   it('removes item from storage', () => {
     sessionStorageWrapper.setItem('key', JSON.stringify('stored'));
     const {result} = renderHook(() => useSessionStorage('key', 'initial'));
