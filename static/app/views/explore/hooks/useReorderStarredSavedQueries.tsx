@@ -1,5 +1,9 @@
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {
+  fetchMutation,
+  setApiQueryData,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getStarredSavedQueriesQueryKey,
@@ -8,21 +12,18 @@ import {
 
 export function useReorderStarredSavedQueries() {
   const organization = useOrganization();
-  const api = useApi();
   const queryClient = useQueryClient();
   const queryKey = getStarredSavedQueriesQueryKey(organization);
 
   const {mutate} = useMutation({
     mutationFn: (queries: SavedQuery[]) =>
-      api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/starred/order/`,
-        {
-          method: 'PUT',
-          data: {
-            query_ids: queries.map(query => query.id),
-          },
-        }
-      ),
+      fetchMutation({
+        url: `/organizations/${organization.slug}/explore/saved/starred/order/`,
+        method: 'PUT',
+        data: {
+          query_ids: queries.map(query => query.id),
+        },
+      }),
     onMutate: (queries: SavedQuery[]) => {
       setApiQueryData<SavedQuery[]>(queryClient, queryKey, queries);
     },

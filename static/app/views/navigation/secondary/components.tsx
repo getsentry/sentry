@@ -849,6 +849,7 @@ function SecondaryNavigationReorderableLink({
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {isDragging} = useReorderableItemContext();
+  const hasPageFrame = organization.features.includes('page-frame');
 
   function handleNavigate() {
     if (isDragging) {
@@ -865,28 +866,30 @@ function SecondaryNavigationReorderableLink({
     navigate(to, {state: {source: SIDEBAR_NAVIGATION_SOURCE}});
   }
 
-  return (
-    <StyledReorderableFakeLink
-      role="link"
-      tabIndex={0}
-      layout={layout}
-      isDragging={isDragging}
-      aria-current={isActive ? 'page' : undefined}
-      aria-selected={isActive}
-      onClick={handleNavigate}
-      onKeyDown={e => {
-        // When the grab handle has focus, dnd-kit owns Space/Enter for pick-up
-        // and drop. Without this guard those keys would also trigger navigation
-        // via bubbling, making the drop action unreliable.
-        if ((e.target as HTMLElement).closest('[data-drag-icon]')) {
-          return;
-        }
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleNavigate();
-        }
-      }}
-    >
+  const sharedProps = {
+    role: 'link' as const,
+    tabIndex: 0,
+    layout,
+    isDragging,
+    'aria-current': isActive ? ('page' as const) : undefined,
+    'aria-selected': isActive,
+    onClick: handleNavigate,
+    onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // When the grab handle has focus, dnd-kit owns Space/Enter for pick-up
+      // and drop. Without this guard those keys would also trigger navigation
+      // via bubbling, making the drop action unreliable.
+      if ((e.target as HTMLElement).closest('[data-drag-icon]')) {
+        return;
+      }
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleNavigate();
+      }
+    },
+  };
+
+  const content = (
+    <Fragment>
       <Flex justify="center" align="center" position="relative">
         <GrabHandle />
         <Flex justify="center" align="center" data-reorderable-handle-slot>
@@ -897,7 +900,19 @@ function SecondaryNavigationReorderableLink({
         {children}
       </Text>
       {trailingItems}
-    </StyledReorderableFakeLink>
+    </Fragment>
+  );
+
+  if (hasPageFrame) {
+    return (
+      <StyledPageFrameReorderableFakeLink {...sharedProps}>
+        {content}
+      </StyledPageFrameReorderableFakeLink>
+    );
+  }
+
+  return (
+    <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
   );
 }
 
@@ -967,6 +982,68 @@ const StyledReorderableFakeLink = styled('div')<{
 
   &:focus-visible {
     ${p => p.theme.focusRing()}
+  }
+
+  :not(:hover):not(:has(:focus-visible)) {
+    [data-drag-icon] {
+      ${p => !p.isDragging && p.theme.visuallyHidden}
+    }
+  }
+
+  :hover {
+    [data-reorderable-handle-slot] {
+      ${p => p.theme.visuallyHidden}
+    }
+  }
+
+  [data-reorderable-handle-slot] {
+    ${p => p.isDragging && p.theme.visuallyHidden}
+  }
+`;
+
+const StyledPageFrameReorderableFakeLink = styled('div')<{
+  isDragging: boolean;
+  layout: 'mobile' | 'sidebar';
+}>`
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
+  }
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
+
+  &:active {
+    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.background.active};
+  }
+
+  &[aria-selected='true'] {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
+    color: ${p => p.theme.tokens.content.primary};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+    }
   }
 
   :not(:hover):not(:has(:focus-visible)) {
