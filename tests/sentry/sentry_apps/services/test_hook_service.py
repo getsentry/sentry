@@ -5,7 +5,7 @@ from sentry.sentry_apps.services.hook.model import RpcInstallationOrganizationPa
 from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, SentryAppResourceType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
 
 
 @all_silo_test
@@ -433,7 +433,7 @@ class TestHookService(TestCase):
             ).exists()
 
 
-@all_silo_test(regions=create_test_regions("us", "de"))
+@all_silo_test(cells=create_test_cells("us", "de"))
 class TestHookServiceBulkCreate(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()

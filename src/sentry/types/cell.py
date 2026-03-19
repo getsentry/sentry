@@ -417,7 +417,7 @@ def get_local_cell() -> Cell:
     # context when passing through test rpc calls, but we can't rely on settings because
     # django settings are not thread safe :'(
     # We use this thread local instead which is managed by the SiloMode context managers
-    single_process_cell = SingleProcessSiloModeState.get_region()
+    single_process_cell = SingleProcessSiloModeState.get_cell()
     if single_process_cell is not None:
         return single_process_cell
 

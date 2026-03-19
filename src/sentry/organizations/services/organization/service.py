@@ -485,12 +485,27 @@ class OrganizationService(RpcService):
 
     @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
+    def update_cell_user(
+        self,
+        *,
+        user: RpcRegionUser,
+        cell_name: str,
+    ) -> None:
+        """
+        Update all memberships in a cell to reflect changes in user details.
+
+        Will sync is_active and email attributes.
+        """
+        pass
+
+    # TODO(cells): Remove when callers updated
+    @cell_rpc_method(resolve=ByCellName())
+    @abstractmethod
     def update_region_user(
         self,
         *,
         user: RpcRegionUser,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
     ) -> None:
         """
         Update all memberships in a cell to reflect changes in user details.
