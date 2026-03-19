@@ -123,11 +123,9 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         orgs = [self.create_organization() for _ in range(50)]
         org_ids = [org.id for org in orgs]
 
-        TOTAL_SLOTS = 168
+        TOTAL_SLOTS = 24
         target_slot = int(md5_text(str(org_ids[0])).hexdigest(), 16) % TOTAL_SLOTS
-        day = target_slot // 24
-        hour = target_slot % 24
-        frozen_time = f"2024-01-{15 + day} {hour:02d}:00:00"
+        frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
 
         def feature_enabled_for_test_orgs(_flag_name: str, org, *args, **kwargs) -> bool:
             return org.id in org_ids
@@ -137,12 +135,12 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
                 "sentry.tasks.context_engine_index.features.has",
                 side_effect=feature_enabled_for_test_orgs,
             ):
-                result = get_allowed_org_ids_context_engine_indexing()
+                _feature_enabled, eligible = get_allowed_org_ids_context_engine_indexing()
 
-        assert len(result) > 0
-        assert org_ids[0] in result
-        assert all(org_id in org_ids for org_id in result)
-        for org_id in result:
+        assert len(eligible) > 0
+        assert org_ids[0] in eligible
+        assert all(org_id in org_ids for org_id in eligible)
+        for org_id in eligible:
             assert int(md5_text(str(org_id)).hexdigest(), 16) % TOTAL_SLOTS == target_slot
 
     def test_excludes_orgs_without_feature_flag(self):
@@ -151,13 +149,9 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         org_with_flag = self.create_organization()
         org_without_flag = self.create_organization()
 
-        # Freeze to org_without_flag's own slot so we know it would appear
-        # if it had the flag — proving exclusion is due to the flag check.
-        TOTAL_SLOTS = 168
+        TOTAL_SLOTS = 24
         target_slot = int(md5_text(str(org_without_flag.id)).hexdigest(), 16) % TOTAL_SLOTS
-        day = target_slot // 24
-        hour = target_slot % 24
-        frozen_time = f"2024-01-{15 + day} {hour:02d}:00:00"
+        frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
 
         with freeze_time(frozen_time):
             with self.feature(
@@ -166,9 +160,9 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
                     "organizations:seer-explorer-context-engine": [org_with_flag.slug],
                 }
             ):
-                result = get_allowed_org_ids_context_engine_indexing()
+                _feature_enabled, eligible = get_allowed_org_ids_context_engine_indexing()
 
-        assert org_without_flag.id not in result
+        assert org_without_flag.id not in eligible
 
     def test_returns_empty_when_no_orgs_have_feature_flag(self):
         with self.feature(
@@ -177,9 +171,10 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
                 "organizations:seer-explorer-context-engine": False,
             }
         ):
-            result = get_allowed_org_ids_context_engine_indexing()
+            feature_enabled, eligible = get_allowed_org_ids_context_engine_indexing()
 
-        assert result == []
+        assert feature_enabled == []
+        assert eligible == []
 
 
 @django_db_all
@@ -190,7 +185,7 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
     def test_dispatches_for_allowed_orgs(self, mock_get_orgs, mock_index, mock_build):
         org1 = self.create_organization()
         org2 = self.create_organization()
-        mock_get_orgs.return_value = [org1.id, org2.id]
+        mock_get_orgs.return_value = ([org1.id, org2.id], [org1.id, org2.id])
 
         with override_options(
             {
