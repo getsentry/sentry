@@ -27,11 +27,6 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 search_type="string",
                 validator=is_event_id_or_list,
             ),
-            ResolvedAttribute(
-                public_alias="span_id",
-                internal_name="attr[trace.span_id]",
-                search_type="string",
-            ),
             # Event fields
             ResolvedAttribute(
                 public_alias="group_id",
