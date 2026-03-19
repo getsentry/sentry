@@ -193,7 +193,7 @@ class SeerExplorerResponse(NotificationData):
     run_id: int
     organization_id: int
     explorer_link: str
-    summary: str | None = None
+    summary: str
     source: NotificationSource = NotificationSource.SEER_EXPLORER_RESPONSE
 
 
