@@ -16,6 +16,7 @@ from sentry.notifications.platform.provider import (
     SendFailure,
     SendFailureStatus,
     SendResult,
+    SendSuccessResult,
 )
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.rollout import NotificationRolloutService
@@ -237,9 +238,9 @@ class NotificationService[T: NotificationData]:
         threading_options: ThreadingOptions,
         thread: NotificationThread | None,
         target: NotificationTarget,
-        result: SendResult | SendFailure,
+        result: SendResult,
     ) -> None:
-        if isinstance(result, SendResult) and result.provider_message_id is not None:
+        if isinstance(result, SendSuccessResult) and result.provider_message_id is not None:
             if thread is None:
                 threading_config = ThreadingConfig(
                     key_type=threading_options.thread_key.key_type,
