@@ -475,6 +475,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /tests/sentry_plugins/                                               @getsentry/ecosystem
 /tests/sentry/integrations/                                          @getsentry/ecosystem
+/tests/sentry/notifications/                                         @getsentry/alerts-notifications @getsentry/ecosystem
 
 # To find matching files -> find . -name "*sentry_app*.py"
 *sentry_app*.py                                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem
