@@ -14,7 +14,7 @@ import {
   useLineCoverageContext,
 } from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageLegend';
-import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
+import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {Panel} from 'sentry/components/panels/panel';
 import {

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
+import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
