@@ -223,12 +223,12 @@ def process_provision_organization_outbox(
     )
 
 
-def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reservation_id: int):
+def handle_possible_organization_slug_swap(*, cell_name: str, org_slug_reservation_id: int):
     """
     CAUTION: THIS IS ONLY INTENDED TO BE USED BY THE `organization_provisioning` RPC SERVICE.
     DO NOT USE THIS FOR LOCAL SLUG SWAPS.
 
-    :param region_name: The region where the organization is located
+    :param cell_name: The cell where the organization is located
     :param org_slug_reservation_id: the id of the organization slug reservation ID being updated
     :return:
     """
@@ -251,7 +251,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
 
     able_to_update_slug = (
         cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-            cell_name=region_name,
+            cell_name=cell_name,
             org_slug_temporary_alias_res=serialize_slug_reservation(
                 slug_reservation=org_slug_reservation
             ),
@@ -259,7 +259,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
     )
 
     with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))):
-        # Even if we aren't able to update the slug on the region,
+        # Even if we aren't able to update the slug on the cell,
         # we roll back the temporary alias as it's either be completed, or no longer valid
         org_slug_reservation.delete()
 
@@ -280,7 +280,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
                     organization_id=org_slug_reservation.organization_id,
                     reservation_type=OrganizationSlugReservationType.PRIMARY,
                     user_id=org_slug_reservation.user_id,
-                    cell_name=region_name,
+                    cell_name=cell_name,
                 ).save(unsafe_write=True)
 
 
@@ -289,6 +289,6 @@ def update_organization_slug_reservation(
     object_identifier: int, region_name: str, **kwds: Any
 ) -> None:
     handle_possible_organization_slug_swap(
-        region_name=region_name,
+        cell_name=region_name,
         org_slug_reservation_id=object_identifier,
     )
