@@ -15,9 +15,8 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
 
-import {getAvailableFeaturesForPlatform} from './platformDetection';
+import {UnstyledButton} from './unstyledButton';
 
 type FeatureMeta = {
   description: string;
@@ -64,28 +63,19 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
   },
 };
 
-const ALL_FEATURES = Object.values(ProductSolution);
-
 type FeatureSelectionCardsProps = {
+  availableFeatures: ProductSolution[];
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
-  platform?: PlatformKey;
 };
 
 export function FeatureSelectionCards({
-  platform,
+  availableFeatures,
   selectedFeatures,
   onToggleFeature,
 }: FeatureSelectionCardsProps) {
-  const availableFeatures = platform
-    ? [ProductSolution.ERROR_MONITORING, ...getAvailableFeaturesForPlatform(platform)]
-    : ALL_FEATURES;
-
-  // Deduplicate (ERROR_MONITORING might already be in the list)
-  const uniqueFeatures = [...new Set(availableFeatures)];
-
   const selectedCount = selectedFeatures.length;
-  const totalCount = uniqueFeatures.length;
+  const totalCount = availableFeatures.length;
 
   return (
     <Flex direction="column" gap="md" width="100%">
@@ -94,29 +84,19 @@ export function FeatureSelectionCards({
         <Text variant="muted">{t('%s of %s selected', selectedCount, totalCount)}</Text>
       </Flex>
       <Grid columns={2} gap="md">
-        {uniqueFeatures.map(feature => {
+        {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
           const isErrorMonitoring = feature === ProductSolution.ERROR_MONITORING;
           const isSelected = selectedFeatures.includes(feature) || isErrorMonitoring;
           const Icon = meta.icon;
 
           return (
-            <button
+            <UnstyledButton
               onClick={() => !isErrorMonitoring && onToggleFeature(feature)}
               role="checkbox"
               aria-checked={isSelected}
-              aria-disabled={isErrorMonitoring}
+              disabled={isErrorMonitoring}
               aria-label={meta.label}
-              style={{
-                textAlign: 'left',
-                background: 'transparent',
-                width: '100%',
-                opacity: isErrorMonitoring ? 0.75 : 1,
-                cursor: isErrorMonitoring ? 'default' : 'pointer',
-                appearance: 'none',
-                border: 'none',
-                paddingInline: '0px',
-              }}
               key={feature}
             >
               <Container
@@ -146,7 +126,7 @@ export function FeatureSelectionCards({
                   </Flex>
                 </Flex>
               </Container>
-            </button>
+            </UnstyledButton>
           );
         })}
       </Grid>

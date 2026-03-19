@@ -18,6 +18,8 @@ import type {PlatformKey} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {FeatureSelectionCards} from './components/featureSelectionCards';
+import {getAvailableFeaturesForPlatform} from './components/platformDetection';
+import {UnstyledButton} from './components/unstyledButton';
 import {usePlatformDetection} from './components/usePlatformDetection';
 import type {StepProps} from './types';
 
@@ -146,14 +148,8 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                   {resolvedPlatforms.map(({platform, info}) => {
                     const isSelected = currentPlatformKey === platform;
                     return (
-                      <button
+                      <UnstyledButton
                         onClick={() => handleSelectDetectedPlatform(platform)}
-                        style={{
-                          background: 'transparent',
-                          textAlign: 'left',
-                          border: 'none',
-                          paddingInline: '0px',
-                        }}
                         key={platform}
                       >
                         <Container
@@ -171,7 +167,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                             </Stack>
                           </Flex>
                         </Container>
-                      </button>
+                      </UnstyledButton>
                     );
                   })}
                 </Flex>
@@ -210,7 +206,12 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
         {currentPlatformKey && (
           <FeatureSelectionCards
-            platform={currentPlatformKey}
+            availableFeatures={[
+              ...new Set([
+                ProductSolution.ERROR_MONITORING,
+                ...getAvailableFeaturesForPlatform(currentPlatformKey),
+              ]),
+            ]}
             selectedFeatures={currentFeatures}
             onToggleFeature={handleToggleFeature}
           />
