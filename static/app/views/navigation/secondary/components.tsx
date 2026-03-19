@@ -121,9 +121,9 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               width="100%"
               height="100%"
               key={activeGroup}
-              initial={{x: -6, opacity: 0}}
+              initial={{x: 0, opacity: 0}}
               animate={{x: 0, opacity: 1}}
-              exit={{x: 6, opacity: 0}}
+              exit={{x: 0, opacity: 0}}
               transition={theme.motion.framer.enter.moderate}
             >
               <Grid
