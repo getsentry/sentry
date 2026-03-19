@@ -477,19 +477,7 @@ describe('AutofixSection', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {
-        autofix: {
-          run_id: 1,
-          status: 'completed',
-          updated_at: new Date().toISOString(),
-          blocks: [
-            {
-              id: 'block-1',
-              message: {content: 'Analysis complete', role: 'assistant'},
-              timestamp: new Date().toISOString(),
-              artifacts: [],
-            },
-          ],
-        },
+        autofix: null,
       },
     });
 
