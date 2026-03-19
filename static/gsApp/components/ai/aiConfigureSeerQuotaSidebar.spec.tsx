@@ -41,7 +41,7 @@ describe('AiConfigureSeerQuotaSidebar', () => {
   });
 
   it('renders loading placeholder when autofix setup is loading', () => {
-    const organization = OrganizationFixture({features: ['seer-billing']});
+    const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization});
     act(() => SubscriptionStore.set(organization.slug, subscription));
 
@@ -60,7 +60,7 @@ describe('AiConfigureSeerQuotaSidebar', () => {
   });
 
   it('renders AutofixContent when user has autofix quota', () => {
-    const organization = OrganizationFixture({features: ['seer-billing']});
+    const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization});
     act(() => SubscriptionStore.set(organization.slug, subscription));
 
@@ -93,43 +93,8 @@ describe('AiConfigureSeerQuotaSidebar', () => {
     expect(screen.queryByText('Meet Seer, your AI assistant')).not.toBeInTheDocument();
   });
 
-  it('renders AutofixContent when seer-billing feature is not present', () => {
-    const organization = OrganizationFixture({features: []});
-    const subscription = SubscriptionFixture({organization});
-    act(() => SubscriptionStore.set(organization.slug, subscription));
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
-      body: {
-        hasSupportedScmIntegration: true,
-        isAutofixEnabled: true,
-        isCodeReviewEnabled: true,
-        isSeerConfigured: true,
-        needsConfigReminder: false,
-      },
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(
-      <AiConfigureSeerQuotaSidebar
-        aiConfig={makeAiConfig({hasAutofixQuota: false})}
-        group={group}
-        project={project}
-        event={event}
-      />,
-      {organization}
-    );
-
-    expect(screen.queryByText('Meet Seer, your AI assistant')).not.toBeInTheDocument();
-  });
-
   it('renders upsell card with enabled button when user has billing permissions', () => {
     const organization = OrganizationFixture({
-      features: ['seer-billing'],
       access: ['org:billing'] as any,
     });
     const subscription = SubscriptionFixture({organization, canSelfServe: true});
@@ -157,7 +122,6 @@ describe('AiConfigureSeerQuotaSidebar', () => {
 
   it('renders upsell card with disabled button when user lacks billing permissions', () => {
     const organization = OrganizationFixture({
-      features: ['seer-billing'],
       access: [] as any,
     });
     const subscription = SubscriptionFixture({organization, canSelfServe: false});
