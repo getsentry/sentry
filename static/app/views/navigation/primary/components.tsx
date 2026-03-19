@@ -147,7 +147,7 @@ function PrimaryNavigationListItem({children, ...props}: FlexProps<'li'>) {
   const {layout} = usePrimaryNavigation();
   return (
     <Flex as="li" justify="center" align="center" width="100%" {...props}>
-      <SizeProvider size={layout === 'mobile' ? 'md' : 'lg'}>{children}</SizeProvider>
+      <SizeProvider size="md">{children}</SizeProvider>
     </Flex>
   );
 }
