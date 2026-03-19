@@ -106,7 +106,6 @@ type State = {
   savedQuery?: SavedQuery;
   savedQueryDataset?: SavedQueryDatasets;
   showForcedDatasetAlert?: boolean;
-  showMetricsAlert?: boolean;
   showQueryIncompatibleWithDataset?: boolean;
   showTransactionsDeprecationAlert?: boolean;
   showUnparameterizedBanner?: boolean;
@@ -180,7 +179,6 @@ export class Results extends Component<Props, State> {
   componentDidMount() {
     const {organization, selection, location, isHomepage, navigate} = this.props;
     if (location.query.fromMetric) {
-      this.setState({showMetricsAlert: true});
       navigate(
         {
           ...location,
