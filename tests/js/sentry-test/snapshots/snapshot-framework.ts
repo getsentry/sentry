@@ -2,6 +2,40 @@ import type {ReactElement} from 'react';
 
 import {closeBrowser, takeSnapshot} from './snapshot';
 
+interface SnapshotDetails {
+  displayName: string;
+  fileSlug: string;
+  group: string | null;
+}
+
+/**
+ * Parses Jest's `currentTestName` to extract snapshot details.
+ *
+ * Jest joins describe blocks and test name with spaces, e.g.:
+ *   "Button dark snapshot: default"
+ *
+ * We split on the " snapshot: " marker (added by snapshotTest) to separate:
+ *   - group: the describe ancestry ("Button dark" -> "Button/dark")
+ *   - displayName: the test name passed to it.snapshot ("default")
+ *   - fileSlug: a path-safe filename combining both ("button/dark/default")
+ */
+function parseSnapshotDetails(testName: string, fallbackName: string): SnapshotDetails {
+  const parts = testName.split(' snapshot: ');
+  if (parts.length < 2) {
+    return {
+      displayName: fallbackName,
+      fileSlug: fallbackName.toLowerCase(),
+      group: null,
+    };
+  }
+
+  const group = parts[0]!.trim().replace(/\s+/g, '/');
+  const displayName = parts[1]!.trim();
+  const fileSlug = `${group}/${displayName}`.replace(/\s+/g, '').toLowerCase();
+
+  return {displayName, fileSlug, group};
+}
+
 function snapshotTest(
   name: string,
   renderFn: () => ReactElement,
@@ -12,17 +46,15 @@ function snapshotTest(
     if (!testPath) {
       throw new Error('Could not determine test file path');
     }
-    // currentTestName looks like "Button dark snapshot: default".
-    // Everything before " snapshot: " is the describe ancestry → group.
-    const describePrefix = currentTestName?.split(' snapshot: ')[0]?.trim() ?? null;
-    const group = describePrefix ? describePrefix.replace(/\s+/g, '/') : null;
-    const fileSlug = group
-      ? `${group}/${name}`.replace(/\s+/g, '/').toLowerCase()
-      : name.toLowerCase();
+
+    const {displayName, fileSlug, group} = parseSnapshotDetails(
+      currentTestName ?? '',
+      name
+    );
 
     await takeSnapshot({
       fileSlug,
-      displayName: name,
+      displayName,
       renderFn,
       testFilePath: testPath,
       group,
