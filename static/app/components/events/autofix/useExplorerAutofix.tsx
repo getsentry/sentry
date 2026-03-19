@@ -670,6 +670,7 @@ export function useExplorerAutofix(
    */
   const reset = useCallback(() => {
     setWaitingForResponse(false);
+    setWaitingForCodingAgent(false);
     setApiQueryData<ExplorerAutofixResponse>(
       queryClient,
       makeExplorerAutofixQueryKey(orgSlug, groupId),
