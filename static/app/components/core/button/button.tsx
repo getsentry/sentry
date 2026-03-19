@@ -2,6 +2,7 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -11,7 +12,6 @@ import {
   DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
-import {useButtonDefaults} from './useButtonDefaults';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {ButtonProps};
@@ -21,11 +21,13 @@ export function Button({
   type = 'button',
   tooltipProps,
   busy,
+  size: explicitSize,
   ...props
 }: ButtonProps) {
-  const {size = 'md', ...resolvedProps} = useButtonDefaults(props);
+  const contextSize = useSizeContext();
+  const size = explicitSize ?? contextSize ?? 'md';
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
-    ...resolvedProps,
+    ...props,
     type,
     disabled,
     busy,
@@ -46,7 +48,7 @@ export function Button({
         size={size}
         type={type}
         busy={busy}
-        {...resolvedProps}
+        {...props}
         role="button"
         onClick={handleClick}
       >
@@ -59,7 +61,7 @@ export function Button({
           whiteSpace="nowrap"
           visibility={busy ? 'hidden' : undefined}
         >
-          {resolvedProps.icon && (
+          {props.icon && (
             <Flex
               as="span"
               align="center"
@@ -69,11 +71,11 @@ export function Button({
               }
             >
               <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
-                {resolvedProps.icon}
+                {props.icon}
               </IconDefaultsProvider>
             </Flex>
           )}
-          {resolvedProps.children}
+          {props.children}
           {busy && (
             <Flex
               align="center"

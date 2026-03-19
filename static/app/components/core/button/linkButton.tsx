@@ -1,9 +1,9 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import {useButtonDefaults} from '@sentry/scraps/button/useButtonDefaults';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -17,8 +17,14 @@ import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {LinkButtonProps};
 
-export function LinkButton({disabled, tooltipProps, ...props}: LinkButtonProps) {
-  const {size = 'md'} = useButtonDefaults(props);
+export function LinkButton({
+  disabled,
+  tooltipProps,
+  size: explicitSize,
+  ...props
+}: LinkButtonProps) {
+  const contextSize = useSizeContext();
+  const size = explicitSize ?? contextSize ?? 'md';
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     disabled,

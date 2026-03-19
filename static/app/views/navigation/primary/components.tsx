@@ -9,9 +9,10 @@ import type {DistributedOmit} from 'type-fest';
 
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
-import {Button, ButtonBar, ButtonDefaultsProvider} from '@sentry/scraps/button';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -82,7 +83,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
   const hasPageFrame = organization?.features.includes('page-frame');
 
   return (
-    <ButtonDefaultsProvider size={hasPageFrame ? 'sm' : 'md'}>
+    <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
       <Flex
         as="header"
         direction="column"
@@ -110,7 +111,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
           </Container>
         )}
       </Flex>
-    </ButtonDefaultsProvider>
+    </SizeProvider>
   );
 }
 
@@ -423,9 +424,9 @@ function PrimaryNavigationButtonBar(props: ButtonBarProps) {
   const hasPageFrame = organization?.features.includes('page-frame');
 
   return (
-    <ButtonDefaultsProvider size={hasPageFrame ? 'sm' : 'md'}>
+    <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
       <ButtonBar {...props} width="100%" />
-    </ButtonDefaultsProvider>
+    </SizeProvider>
   );
 }
 
