@@ -21,7 +21,6 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import Hook from 'sentry/components/hook';
 import {Overlay, PositionWrapper, type OverlayProps} from 'sentry/components/overlay';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {HookStore} from 'sentry/stores/hookStore';
@@ -148,9 +147,7 @@ function PrimaryNavigationListItem({children, ...props}: FlexProps<'li'>) {
   const {layout} = usePrimaryNavigation();
   return (
     <Flex as="li" justify="center" align="center" width="100%" {...props}>
-      <IconDefaultsProvider legacySize={layout === 'mobile' ? '16px' : '21px'}>
-        {children}
-      </IconDefaultsProvider>
+      <SizeProvider size={layout === 'mobile' ? 'md' : 'lg'}>{children}</SizeProvider>
     </Flex>
   );
 }

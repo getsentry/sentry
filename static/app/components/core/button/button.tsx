@@ -2,10 +2,8 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
-import {useSizeContext} from '@sentry/scraps/sizeContext';
+import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
@@ -70,9 +68,9 @@ export function Button({
                 hasChildren ? (size === 'xs' || size === 'zero' ? 'sm' : 'md') : undefined
               }
             >
-              <IconDefaultsProvider size={BUTTON_ICON_SIZES[size]}>
+              <SizeProvider size={BUTTON_ICON_SIZES[size] ?? 'zero'}>
                 {props.icon}
-              </IconDefaultsProvider>
+              </SizeProvider>
             </Flex>
           )}
           {props.children}

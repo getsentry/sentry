@@ -2,9 +2,8 @@ import {useTheme} from '@emotion/react';
 import {mergeProps} from '@react-aria/utils';
 
 import {Container, Flex} from '@sentry/scraps/layout';
+import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
-
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 interface Props extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title' | 'color'> {
   action?: React.ReactNode;
@@ -26,9 +25,9 @@ export function EmptyMessage({title, icon, children, action, size, ...props}: Pr
           {...mergeProps(stackProps, props)}
         >
           {icon && (
-            <IconDefaultsProvider size="xl">
+            <SizeProvider size="xl">
               <Container color={theme.colors.gray500}>{icon}</Container>
-            </IconDefaultsProvider>
+            </SizeProvider>
           )}
           {title && (
             <Text bold size="xl" density="comfortable">

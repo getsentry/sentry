@@ -2,9 +2,9 @@ import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {SizeProvider} from '@sentry/scraps/sizeContext';
 
 import {IconClose} from 'sentry/icons';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -27,7 +27,7 @@ export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProp
     <TagPill variant={variant} data-test-id="tag-background" ref={ref} {...props}>
       {icon && (
         <IconWrapper>
-          <IconDefaultsProvider size="xs">{icon}</IconDefaultsProvider>
+          <SizeProvider size="xs">{icon}</SizeProvider>
         </IconWrapper>
       )}
 
