@@ -119,7 +119,7 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
   const autofix = useExplorerAutofix(group.id);
   const {data: setupCheck, isPending} = useSeerOnboardingCheck();
 
-  if (isPending || autofix.isLoading || !event) {
+  if (isPending || autofix.isLoading || !event || aiConfig.isAutofixSetupLoading) {
     return <Placeholder height="160px" />;
   }
 
