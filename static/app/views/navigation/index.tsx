@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -94,12 +93,8 @@ export function Navigation() {
   const organization = useOrganization({allowNull: true});
 
   if (!organization) {
-    return (
-      <Fragment>
-        <SkipLink />
-        <UserOnlyNavigation />
-      </Fragment>
-    );
+    // @TODO(JonasBadalic): When this page gets any content, we should add the skip link back in.
+    return <UserOnlyNavigation />;
   }
 
   return (
