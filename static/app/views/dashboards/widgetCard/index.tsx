@@ -116,7 +116,6 @@ type Props = WithRouterProps & {
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showContextMenu?: boolean;
@@ -171,7 +170,6 @@ function WidgetCard(props: Props) {
     selection,
     widget,
     isMobile,
-    renderErrorMessage,
     tableItemLimit,
     windowWidth,
     dashboardFilters,
@@ -398,7 +396,6 @@ function WidgetCard(props: Props) {
             selection={selection}
             widget={widget}
             isMobile={isMobile}
-            renderErrorMessage={renderErrorMessage}
             tableItemLimit={tableItemLimit}
             windowWidth={windowWidth}
             onDataFetched={onDataFetched}

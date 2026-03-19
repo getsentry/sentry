@@ -19,6 +19,7 @@ import {usesTimeSeriesData, widgetFetchesOwnData} from 'sentry/views/dashboards/
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 import WidgetCardChart from './chart';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
@@ -57,7 +58,6 @@ type Props = {
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   onZoom?: EChartDataZoomHandler;
-  renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   showConfidenceWarning?: boolean;
   showLoadingText?: boolean;
@@ -71,7 +71,6 @@ export function WidgetCardChartContainer({
   widget,
   dashboardFilters,
   isMobile,
-  renderErrorMessage,
   tableItemLimit,
   windowWidth,
   onZoom,
@@ -152,11 +151,12 @@ export function WidgetCardChartContainer({
               widget.displayType
             );
 
+        if (errorOrEmptyMessage) {
+          return <Widget.WidgetError error={errorOrEmptyMessage} />;
+        }
+
         return (
           <Fragment>
-            {typeof renderErrorMessage === 'function'
-              ? renderErrorMessage(errorOrEmptyMessage)
-              : null}
             <WidgetCardChart
               disableZoom={disableZoom}
               timeseriesResults={modifiedTimeseriesResults}
