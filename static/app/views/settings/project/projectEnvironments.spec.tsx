@@ -6,7 +6,7 @@ import {
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import recreateRoute from 'sentry/utils/recreateRoute';
+import {recreateRoute} from 'sentry/utils/recreateRoute';
 import ProjectEnvironments from 'sentry/views/settings/project/projectEnvironments';
 
 jest.mock('sentry/utils/recreateRoute');

@@ -11,7 +11,7 @@ import type {
   ValueType,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
-import FormField from 'sentry/components/forms/formField';
+import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
@@ -22,7 +22,20 @@ import type {InputFieldProps} from './inputField';
 const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
-  extends InputFieldProps, Omit<ControlProps<OptionType>, 'onChange'> {
+  extends
+    InputFieldProps,
+    Omit<
+      ControlProps<OptionType>,
+      | 'onChange'
+      | 'defaultValue'
+      | 'disabled'
+      | 'name'
+      | 'onBlur'
+      | 'onFocus'
+      | 'onKeyDown'
+      | 'placeholder'
+      | 'tabIndex'
+    > {
   /**
    * Should the select be clearable?
    */
@@ -51,7 +64,7 @@ export interface SelectFieldProps<OptionType extends OptionTypeBase>
 function getChoices<T extends OptionTypeBase>(props: SelectFieldProps<T>): Choices {
   const choices = props.choices;
   if (typeof choices === 'function') {
-    return choices(props);
+    return choices(props as any);
   }
   if (choices === undefined) {
     return [];
@@ -69,7 +82,7 @@ function isArray<T extends OptionTypeBase>(
   return Array.isArray(maybe);
 }
 
-export default class SelectField<OptionType extends SelectValue<any>> extends Component<
+export class SelectField<OptionType extends SelectValue<any>> extends Component<
   SelectFieldProps<OptionType>
 > {
   static defaultProps = {

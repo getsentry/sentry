@@ -13,7 +13,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 
@@ -1925,10 +1925,6 @@ describe('Visualize', () => {
               yAxis: ['sum(value,alpha_metric,counter,-)'],
               dataset: WidgetType.TRACEMETRICS,
               displayType: DisplayType.LINE,
-              traceMetric: JSON.stringify({
-                name: 'alpha_metric',
-                type: 'counter',
-              }),
             },
           },
           route: DASHBOARD_WIDGET_BUILDER_ROUTE,

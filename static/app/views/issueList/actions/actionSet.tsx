@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
-import ArchiveActions from 'sentry/components/actions/archive';
+import {ArchiveActions} from 'sentry/components/actions/archive';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';

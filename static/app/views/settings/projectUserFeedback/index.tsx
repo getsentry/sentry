@@ -9,7 +9,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';

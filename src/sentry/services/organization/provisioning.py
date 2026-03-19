@@ -8,8 +8,8 @@ from sentry_sdk import capture_exception
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.outbox.signals import process_control_outbox
-from sentry.hybridcloud.services.region_organization_provisioning import (
-    region_organization_provisioning_rpc_service,
+from sentry.hybridcloud.services.cell_organization_provisioning import (
+    cell_organization_provisioning_rpc_service,
 )
 from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
@@ -18,7 +18,7 @@ from sentry.models.organizationslugreservation import (
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 
 
 class OrganizationProvisioningException(Exception):
@@ -26,27 +26,27 @@ class OrganizationProvisioningException(Exception):
 
 
 class OrganizationProvisioningService:
-    def _validate_or_default_region(self, region_name: str | None):
+    def _validate_or_default_cell(self, cell_name: str | None):
         silo_mode = SiloMode.get_current_mode()
-        if region_name is None and silo_mode == SiloMode.CONTROL:
+        if cell_name is None and silo_mode == SiloMode.CONTROL:
             raise OrganizationProvisioningException(
-                "A region name must be provided when provisioning an organization from the Control Silo"
+                "A cell name must be provided when provisioning an organization from the Control Silo"
             )
         elif silo_mode != SiloMode.CONTROL:
-            local_region = get_local_cell()
+            local_cell = get_local_cell()
 
-            assert not region_name or region_name == local_region.name, (
-                "Cannot provision an organization in another region"
+            assert not cell_name or cell_name == local_cell.name, (
+                "Cannot provision an organization in another cell"
             )
 
-            region_name = local_region.name
+            cell_name = local_cell.name
 
-        return region_name
+        return cell_name
 
     def _control_based_provisioning(
         self,
         provisioning_options: OrganizationProvisioningOptions,
-        region_name: str,
+        cell_name: str,
     ) -> RpcOrganization:
         from sentry.hybridcloud.services.control_organization_provisioning import (
             RpcOrganizationSlugReservation,
@@ -55,7 +55,7 @@ class OrganizationProvisioningService:
 
         rpc_org_slug_reservation: RpcOrganizationSlugReservation = (
             control_organization_provisioning_rpc_service.provision_organization(
-                cell_name=region_name, org_provision_args=provisioning_options
+                cell_name=cell_name, org_provision_args=provisioning_options
             )
         )
 
@@ -82,25 +82,13 @@ class OrganizationProvisioningService:
         :return: RpcOrganization of the newly created org
         """
 
-        destination_cell_name = self._validate_or_default_region(region_name=cell_name)
+        destination_cell_name = self._validate_or_default_cell(cell_name=cell_name)
         return self._control_based_provisioning(
-            provisioning_options=provisioning_options, region_name=destination_cell_name
+            provisioning_options=provisioning_options, cell_name=destination_cell_name
         )
 
-    # TODO(cells): Remove when all callers switch to `provision_organization_in_cell`
-    def provision_organization_in_region(
-        self,
-        provisioning_options: OrganizationProvisioningOptions,
-        region_name: str | None = None,
-    ) -> RpcOrganization:
-        return self.provision_organization_in_cell(
-            provisioning_options=provisioning_options, cell_name=region_name
-        )
-
-    def _control_based_slug_change(
-        self, organization_id: int, slug: str, region_name: str | None = None
-    ) -> None:
-        destination_region_name = self._validate_or_default_region(region_name=region_name)
+    def _control_based_slug_change(self, organization_id: int, slug: str) -> None:
+        destination_cell_name = self._validate_or_default_cell(cell_name=None)
 
         from sentry.hybridcloud.services.control_organization_provisioning import (
             control_organization_provisioning_rpc_service,
@@ -111,7 +99,7 @@ class OrganizationProvisioningService:
                 organization_id=organization_id,
                 desired_slug=slug,
                 require_exact=True,
-                cell_name=destination_region_name,
+                cell_name=destination_cell_name,
             )
         )
 
@@ -123,7 +111,9 @@ class OrganizationProvisioningService:
             )
 
     def change_organization_slug(
-        self, organization_id: int, slug: str, region_name: str | None = None
+        self,
+        organization_id: int,
+        slug: str,
     ) -> None:
         """
         Updates an organization with the given slug if available.
@@ -132,41 +122,35 @@ class OrganizationProvisioningService:
          RPC based in the near future.
         :param organization_id: the ID of the organization whose slug to change
         :param slug: The desired slug for the organization
-        :param region_name: The region where the organization is located
         :return:
         """
 
-        self._control_based_slug_change(
-            organization_id=organization_id, slug=slug, region_name=region_name
-        )
+        self._control_based_slug_change(organization_id=organization_id, slug=slug)
 
-    def bulk_create_organization_slugs(
-        self, slug_mapping: dict[int, str], region_name: str | None = None
-    ) -> None:
+    def bulk_create_organization_slugs(self, slug_mapping: dict[int, str]) -> None:
         """
         CAUTION: DO NOT USE THIS OUTSIDE OF THE IMPORT/RELOCATION CONTEXT
 
         Organizations are meant to be provisioned via the
-         `provision_organization_in_region` method, which handles both slug
+         `provision_organization_in_cell` method, which handles both slug
          reservation and organization creation.
 
         Bulk creates slug reservations for imported organizations that already
-        exist on the region. Each target organization is provided as a tuple of
+        exist on the cell. Each target organization is provided as a tuple of
         Organization ID (int) and base slug (str).
 
         :param org_ids_and_slugs: A set of tuples containing an organization ID
         and base slug.
-        :param region_name: The region where the imported organizations exist
         :return:
         """
-        destination_region_name = self._validate_or_default_region(region_name=region_name)
+        destination_cell_name = self._validate_or_default_cell(cell_name=None)
 
         from sentry.hybridcloud.services.control_organization_provisioning import (
             control_organization_provisioning_rpc_service,
         )
 
         control_organization_provisioning_rpc_service.bulk_create_organization_slug_reservations(
-            slug_mapping=slug_mapping, cell_name=destination_region_name
+            slug_mapping=slug_mapping, cell_name=destination_cell_name
         )
 
 
@@ -176,7 +160,7 @@ organization_provisioning_service = OrganizationProvisioningService()
 def handle_organization_provisioning_outbox_payload(
     *,
     organization_id: int,
-    region_name: str,
+    cell_name: str,
     provisioning_payload: OrganizationProvisioningOptions,
 ):
     """
@@ -185,7 +169,7 @@ def handle_organization_provisioning_outbox_payload(
 
     Method for handling a provisioning payload
     :param organization_id: The desired ID for the organization
-    :param region_name: The region to provision the organization in
+    :param cell_name: The cell to provision the organization in
     :param provisioning_payload: The organization data used to provision the org
     :return:
     """
@@ -205,14 +189,14 @@ def handle_organization_provisioning_outbox_payload(
 
     org_slug_reservation = org_slug_reservation_qs.get()
 
-    able_to_provision = region_organization_provisioning_rpc_service.create_organization_in_cell(
+    able_to_provision = cell_organization_provisioning_rpc_service.create_organization_in_cell(
         organization_id=organization_id,
         provision_payload=provisioning_payload,
-        cell_name=region_name,
+        cell_name=cell_name,
     )
 
     if not able_to_provision:
-        # If the region returns false when validating provisioning information,
+        # If the cell returns false when validating provisioning information,
         # it's likely a conflict has occurred (e.g. an org create locally).
         # This means we need to delete the old org slug reservation as it
         # can no longer be assumed to be valid.
@@ -234,17 +218,17 @@ def process_provision_organization_outbox(
 
     handle_organization_provisioning_outbox_payload(
         organization_id=object_identifier,
-        region_name=region_name,
+        cell_name=region_name,
         provisioning_payload=provision_payload,
     )
 
 
-def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reservation_id: int):
+def handle_possible_organization_slug_swap(*, cell_name: str, org_slug_reservation_id: int):
     """
     CAUTION: THIS IS ONLY INTENDED TO BE USED BY THE `organization_provisioning` RPC SERVICE.
     DO NOT USE THIS FOR LOCAL SLUG SWAPS.
 
-    :param region_name: The region where the organization is located
+    :param cell_name: The cell where the organization is located
     :param org_slug_reservation_id: the id of the organization slug reservation ID being updated
     :return:
     """
@@ -266,8 +250,8 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
     )
 
     able_to_update_slug = (
-        region_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
-            cell_name=region_name,
+        cell_organization_provisioning_rpc_service.update_organization_slug_from_reservation(
+            cell_name=cell_name,
             org_slug_temporary_alias_res=serialize_slug_reservation(
                 slug_reservation=org_slug_reservation
             ),
@@ -275,7 +259,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
     )
 
     with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))):
-        # Even if we aren't able to update the slug on the region,
+        # Even if we aren't able to update the slug on the cell,
         # we roll back the temporary alias as it's either be completed, or no longer valid
         org_slug_reservation.delete()
 
@@ -296,7 +280,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
                     organization_id=org_slug_reservation.organization_id,
                     reservation_type=OrganizationSlugReservationType.PRIMARY,
                     user_id=org_slug_reservation.user_id,
-                    cell_name=region_name,
+                    cell_name=cell_name,
                 ).save(unsafe_write=True)
 
 
@@ -305,6 +289,6 @@ def update_organization_slug_reservation(
     object_identifier: int, region_name: str, **kwds: Any
 ) -> None:
     handle_possible_organization_slug_swap(
-        region_name=region_name,
+        cell_name=region_name,
         org_slug_reservation_id=object_identifier,
     )

@@ -7,7 +7,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {LoadingError} from 'sentry/components/loadingError';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';

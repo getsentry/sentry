@@ -12,7 +12,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
-import {DashboardFilter} from 'sentry/views/dashboards/types';
+import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
@@ -66,7 +66,7 @@ export function DashboardsSecondaryNavigation() {
                   isActive={isOnDashboardsList && isOnlyPrebuilt}
                   analyticsItemName="dashboards_sentry_built"
                 >
-                  {t('Sentry Built')}
+                  {PREBUILT_DASHBOARD_LABEL}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             ) : null}
@@ -127,6 +127,7 @@ function StarredDashboardItems({
       .filter(p => dashboardProjects.has(p.id))
       .map(p => p.platform)
       .filter(defined);
+
     return (
       <SecondaryNavigation.ListItem key={dashboard.id}>
         <SecondaryNavigation.Link

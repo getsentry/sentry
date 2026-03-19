@@ -9,7 +9,7 @@ import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 
 import type {FormPanelProps} from './formPanel';
-import FormPanel from './formPanel';
+import {FormPanel} from './formPanel';
 import type {Field, FieldObject, JsonFormObject} from './types';
 
 interface JsonFormProps

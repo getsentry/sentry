@@ -4,7 +4,7 @@ import {Truncate} from 'sentry/components/truncate';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
-import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
+import {TrendsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -12,10 +12,11 @@ import {withProjects} from 'sentry/utils/withProjects';
 import {excludeTransaction} from 'sentry/views/performance/landing/utils';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
-import SelectableList, {
+import {
   GrowLink,
   ListClose,
   RightAlignedCell,
+  SelectableList,
   Subtitle,
   WidgetEmptyStateWarning,
 } from 'sentry/views/performance/landing/widgets/components/selectableList';

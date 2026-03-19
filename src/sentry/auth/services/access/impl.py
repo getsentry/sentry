@@ -73,7 +73,7 @@ class ControlAccessService(AccessService):
         ).exists()
 
 
-class RegionAccessService(AccessService):
+class CellAccessService(AccessService):
     def get_auth_provider(self, organization_id: int) -> RpcAuthProvider | None:
         try:
             ap = AuthProviderReplica.objects.get(organization_id=organization_id)

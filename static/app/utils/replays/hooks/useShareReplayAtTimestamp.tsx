@@ -5,7 +5,7 @@ import {Input} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';

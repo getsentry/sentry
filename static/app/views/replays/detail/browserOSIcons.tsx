@@ -5,7 +5,7 @@ import {PlatformIcon} from 'platformicons';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';

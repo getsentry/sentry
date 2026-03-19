@@ -13,18 +13,18 @@ import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown'
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
-import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
-import {EventOrGroupHeader} from 'sentry/components/eventOrGroupHeader';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ProgressBar} from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
@@ -264,7 +264,7 @@ export function LoadingStreamGroup({
   );
 }
 
-function StreamGroup({
+export function StreamGroup({
   group,
   customStatsPeriod,
   displayReprocessingLayout,
@@ -635,8 +635,8 @@ function StreamGroup({
           />
         )}
         <GroupSummary canSelect={selectionEnabled}>
-          <EventOrGroupHeader data={group} query={query} source={referrer} />
-          <EventOrGroupExtraDetails data={group} showLifetime={false} />
+          <GroupHeaderRow data={group} query={query} source={referrer} />
+          <GroupMetaRow data={group} showLifetime={false} />
         </GroupSummary>
       </Fragment>
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
@@ -716,8 +716,6 @@ function StreamGroup({
     </Wrapper>
   );
 }
-
-export default StreamGroup;
 
 const CheckboxLabel = styled('label')`
   position: absolute;

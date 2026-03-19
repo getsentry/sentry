@@ -7,7 +7,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.types.region import get_cell_for_organization
+from sentry.types.cell import get_cell_for_organization
 
 
 @control_silo_test
@@ -62,5 +62,5 @@ class SentryAppInstallationTest(TestCase):
             self.install.save()
             cell = get_cell_for_organization(self.org.slug)
             mock_caching_service.clear_key.assert_any_call(
-                key=f"app_service.get_installation:{self.install.id}", region_name=cell.name
+                key=f"app_service.get_installation:{self.install.id}", cell_name=cell.name
             )

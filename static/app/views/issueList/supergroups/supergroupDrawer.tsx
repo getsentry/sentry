@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -11,7 +11,8 @@ import {
   ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import GroupList from 'sentry/components/issues/groupList';
+import {GroupList} from 'sentry/components/issues/groupList';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -20,14 +21,11 @@ import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDetail}) {
   const organization = useOrganization();
-  const groupListQueryParams = useMemo(
-    () => ({
-      query: `issue.id:[${supergroup.group_ids.join(',')}]`,
-      limit: 25,
-    }),
-    [supergroup.group_ids]
-  );
   const placeholderRows = Math.min(supergroup.group_ids.length, 10);
+  const issueIdQuery =
+    supergroup.group_ids.length === 1
+      ? `issue.id:${supergroup.group_ids[0]}`
+      : `issue.id:[${supergroup.group_ids.join(',')}]`;
 
   return (
     <Fragment>
@@ -46,7 +44,10 @@ export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDeta
             ]}
           />
           <Link
-            to={`/organizations/${organization.slug}/issues/?query=issue.id:[${supergroup.group_ids.join(',')}]`}
+            to={{
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {query: issueIdQuery, project: ALL_ACCESS_PROJECTS},
+            }}
           >
             {t('View All Issues')} ({supergroup.group_ids.length})
           </Link>
@@ -97,9 +98,13 @@ export function SupergroupDetailDrawer({supergroup}: {supergroup: SupergroupDeta
         </Container>
 
         {supergroup.group_ids.length > 0 && (
-          <Container padding="sm">
+          <Container padding="xl 2xl">
             <GroupList
-              queryParams={groupListQueryParams}
+              queryParams={{
+                query: issueIdQuery,
+                limit: 25,
+                project: ALL_ACCESS_PROJECTS,
+              }}
               canSelectGroups={false}
               withChart={false}
               withPagination={false}

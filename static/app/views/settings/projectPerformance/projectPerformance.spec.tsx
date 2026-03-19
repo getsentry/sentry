@@ -12,12 +12,13 @@ import {
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueTitle} from 'sentry/types/group';
 import * as utils from 'sentry/utils/isActiveSuperuser';
-import ProjectPerformance, {
+import {
   allowedCountValues,
   allowedDurationValues,
   allowedPercentageValues,
   allowedSizeValues,
   DetectorConfigCustomer,
+  ProjectPerformance,
 } from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 const manageDetectorData = [

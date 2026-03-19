@@ -438,7 +438,7 @@ def _project_key_performance_issues_eap(
             limit=3,
             referrer=referrer,
             config=SearchResolverConfig(),
-            occurrence_category=OccurrenceCategory.GENERIC,
+            occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
         )
     except Exception:
         logger.exception(

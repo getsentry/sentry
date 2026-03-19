@@ -1,7 +1,7 @@
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import CreateAlertButton from 'sentry/components/createAlertButton';
+import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 

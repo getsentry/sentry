@@ -5,7 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {ReplayController} from 'sentry/components/replays/replayController';
 import {ReplayView} from 'sentry/components/replays/replayView';
 import {LayoutKey, useReplayLayout} from 'sentry/utils/replays/hooks/useReplayLayout';

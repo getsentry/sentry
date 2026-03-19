@@ -219,7 +219,7 @@ __all__ = (
     "MonitorIngestTestCase",
 )
 
-from ..types.region import get_cell_by_name
+from ..types.cell import get_cell_by_name
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
@@ -462,15 +462,15 @@ class TestCase(BaseTestCase, DjangoTestCase):
                     for mode in endpoint_silo_limit.modes:
                         if mode is SiloMode.MONOLITH or mode is SiloMode.get_current_mode():
                             continue
-                        region = None
+                        cell = None
                         if mode is SiloMode.CELL:
                             # TODO: Can we infer the correct region here?  would need to package up the
                             # the request dictionary into a higher level object, which also involves invoking
                             # _base_environ and maybe other logic buried in Client.....
-                            region = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+                            cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
                         with (
                             SingleProcessSiloModeState.exit(),
-                            SingleProcessSiloModeState.enter(mode, region),
+                            SingleProcessSiloModeState.enter(mode, cell),
                         ):
                             return old_request(**request)
             return old_request(**request)
@@ -3197,29 +3197,22 @@ class MonitorIngestTestCase(MonitorTestCase):
 class UptimeTestCaseMixin:
     def setUp(self):
         super().setUp()
-        self.mock_resolve_hostname_ctx = mock.patch(
+        patcher = mock.patch(
             "sentry.uptime.rdap.query.resolve_hostname", return_value="192.168.0.1"
         )
-        self.mock_resolve_rdap_provider_ctx = mock.patch(
-            "sentry.uptime.rdap.query.resolve_rdap_provider",
-            return_value="https://fake.com/",
-        )
-        self.mock_requests_get_ctx = mock.patch("sentry.uptime.rdap.query.requests.get")
-        self.mock_invoke_checker_validator_ctx = mock.patch(
-            "sentry.uptime.checker_api.invoke_checker_validator", return_value=None
-        )
-        self.mock_resolve_hostname = self.mock_resolve_hostname_ctx.__enter__()
-        self.mock_resolve_rdap_provider = self.mock_resolve_rdap_provider_ctx.__enter__()
-        self.mock_requests_get = self.mock_requests_get_ctx.__enter__()
-        self.mock_requests_get.return_value.json.return_value = {"entities": [{"handle": "hi"}]}
-        self.mock_invoke_checker_validator = self.mock_invoke_checker_validator_ctx.__enter__()
+        self.mock_resolve_hostname = patcher.start()
+        self.addCleanup(patcher.stop)
 
-    def tearDown(self):
-        super().tearDown()
-        self.mock_resolve_hostname_ctx.__exit__(None, None, None)
-        self.mock_resolve_rdap_provider_ctx.__exit__(None, None, None)
-        self.mock_requests_get_ctx.__exit__(None, None, None)
-        self.mock_invoke_checker_validator_ctx.__exit__(None, None, None)
+        patcher = mock.patch(
+            "sentry.uptime.rdap.query.resolve_rdap_provider", return_value="https://fake.com/"
+        )
+        self.mock_resolve_rdap_provider = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = mock.patch("sentry.uptime.rdap.query.requests.get")
+        self.mock_requests_get = patcher.start()
+        self.mock_requests_get.return_value.json.return_value = {"entities": [{"handle": "hi"}]}
+        self.addCleanup(patcher.stop)
 
     def create_uptime_result(
         self,
@@ -3560,7 +3553,7 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         environment: str | None = None,
         title: str = "some error",
         transaction: str | None = None,
-        occurrence_type: str = "error",
+        issue_occurrence_id: str | None = None,
         tags: dict[str, str] | None = None,
         attributes: dict[str, Any] | None = None,
         retention_days: int = 90,
@@ -3582,11 +3575,12 @@ class OccurrenceTestCase(BaseTestCase, TraceItemTestCase):
         data: dict[str, Any] = {
             "level": level,
             "title": title,
-            "type": occurrence_type,
         }
         preprocessed: dict[str, Any] = {}
         if group_id is not None:
             preprocessed["group_id"] = group_id
+        if issue_occurrence_id is not None:
+            preprocessed["issue_occurrence_id"] = issue_occurrence_id
         if environment is not None:
             data["environment"] = environment
         if transaction is not None:
@@ -4063,22 +4057,6 @@ class ReplayEAPTestCase(BaseTestCase):
             client_sample_rate=1.0,
             server_sample_rate=1.0,
         )
-
-    def store_replays_eap(self, replays):
-        import requests
-        from django.conf import settings
-
-        files = {f"replay_{i}": replay.SerializeToString() for i, replay in enumerate(replays)}
-        response = requests.post(
-            settings.SENTRY_SNUBA + EAP_ITEMS_INSERT_ENDPOINT,
-            files=files,
-        )
-        assert response.status_code == 200
-
-        for replay in replays:
-            # Reverse the ids here since these are stored in little endian in Clickhouse
-            # and end up reversed.
-            replay.item_id = replay.item_id[::-1]
 
 
 class UptimeResultEAPTestCase(BaseTestCase):

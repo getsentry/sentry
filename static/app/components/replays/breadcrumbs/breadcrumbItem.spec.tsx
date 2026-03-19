@@ -5,7 +5,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbItem} from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
-import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
+import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
 
 const [MOCK_FRAME] = hydrateBreadcrumbs(ReplayRecordFixture(), [
   ReplayClickFrameFixture({

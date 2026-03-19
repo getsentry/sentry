@@ -140,7 +140,7 @@ type CreateAlertButtonProps = {
   to?: string | LocationDescriptor;
 } & Omit<LinkButtonProps, 'to'>;
 
-export default function CreateAlertButton({
+export function CreateAlertButton({
   organization,
   projectSlug,
   iconProps,

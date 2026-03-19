@@ -20,7 +20,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
-from sentry.types.region import get_local_cell
+from sentry.types.cell import get_local_cell
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 

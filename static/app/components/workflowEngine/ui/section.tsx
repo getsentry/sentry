@@ -11,7 +11,7 @@ type SectionProps = {
   trailingItems?: React.ReactNode;
 };
 
-export default function Section({
+export function Section({
   children,
   className,
   title,

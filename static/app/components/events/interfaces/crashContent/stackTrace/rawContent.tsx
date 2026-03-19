@@ -355,7 +355,7 @@ type DisplayRawContentArgs = {
  *
  * @returns Array of formatted strings representing the stack trace, one per frame.
  */
-export default function displayRawContent({
+export function displayRawContent({
   data,
   platform,
   exception,

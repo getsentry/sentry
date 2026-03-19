@@ -27,6 +27,11 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
                 search_type="string",
                 validator=is_event_id_or_list,
             ),
+            ResolvedAttribute(
+                public_alias="span_id",
+                internal_name="attr[trace.span_id]",
+                search_type="string",
+            ),
             # Event fields
             ResolvedAttribute(
                 public_alias="group_id",
@@ -204,7 +209,7 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
             ),
             ResolvedAttribute(
                 public_alias="http.referer",
-                internal_name="http_referrer",
+                internal_name="http_referer",
                 search_type="string",
             ),
             # Exception data

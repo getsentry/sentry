@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {
   extractBaseKey,
   shouldRemoveAttributeKey,
@@ -84,36 +84,8 @@ describe('useTraceItemAttributes number filtering', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('does not filter number attributes when flag is off', async () => {
-    const organization = OrganizationFixture({features: []});
-    addAttributeMock('number', [{key: 'is_transaction', name: 'is_transaction'}]);
-    addAttributeMock('string', []);
-    addAttributeMock('boolean', []);
-
-    const {result} = renderHookWithProviders(
-      () =>
-        useTraceItemAttributes(
-          {
-            traceItemType: TraceItemDataset.SPANS,
-            enabled: true,
-          },
-          'number'
-        ),
-      {organization}
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    // is_transaction should still be present as a number attribute
-    expect('is_transaction' in result.current.attributes).toBe(true);
-  });
-
-  it('filters out number attributes that overlap with boolean attributes when flag is on', async () => {
-    const organization = OrganizationFixture({
-      features: ['search-query-builder-explicit-boolean-filters'],
-    });
+  it('filters out number attributes that overlap with boolean attributes', async () => {
+    const organization = OrganizationFixture();
 
     addAttributeMock('number', [
       {key: 'is_transaction', name: 'is_transaction'},
@@ -143,9 +115,7 @@ describe('useTraceItemAttributes number filtering', () => {
   });
 
   it('filters number attributes that overlap with default boolean attributes', async () => {
-    const organization = OrganizationFixture({
-      features: ['search-query-builder-explicit-boolean-filters'],
-    });
+    const organization = OrganizationFixture();
 
     addAttributeMock('number', [
       {key: 'is_transaction', name: 'is_transaction'},
@@ -175,9 +145,7 @@ describe('useTraceItemAttributes number filtering', () => {
   });
 
   it('filters tags[key,number] format when boolean version exists', async () => {
-    const organization = OrganizationFixture({
-      features: ['search-query-builder-explicit-boolean-filters'],
-    });
+    const organization = OrganizationFixture();
 
     addAttributeMock('number', [
       {key: 'tags[is_transaction,number]', name: 'tags[is_transaction,number]'},
@@ -209,9 +177,7 @@ describe('useTraceItemAttributes number filtering', () => {
   });
 
   it('filters overlapping number secondary aliases when boolean version exists', async () => {
-    const organization = OrganizationFixture({
-      features: ['search-query-builder-explicit-boolean-filters'],
-    });
+    const organization = OrganizationFixture();
 
     addAttributeMock('number', [
       {
@@ -246,9 +212,7 @@ describe('useTraceItemAttributes number filtering', () => {
   });
 
   it('preserves non-overlapping number attributes', async () => {
-    const organization = OrganizationFixture({
-      features: ['search-query-builder-explicit-boolean-filters'],
-    });
+    const organization = OrganizationFixture();
 
     addAttributeMock('number', [
       {key: 'custom_metric', name: 'custom_metric'},

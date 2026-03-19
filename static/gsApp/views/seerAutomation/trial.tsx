@@ -13,7 +13,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import AnalyticsArea from 'sentry/components/analyticsArea';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
@@ -27,22 +27,22 @@ const BUTTONS = [
   {
     label: t('Triage issues'),
     imageSrc: seerConfigHand2,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/autofix/',
   },
   {
     label: t('Run root cause analysis'),
     imageSrc: seerConfigConnect2,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/#root-cause-analysis',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#root-cause-analysis',
   },
   {
     label: t('Make code changes'),
     imageSrc: seerConfigBug1,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/#code-generation',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#code-generation',
   },
   {
     label: t('Review your code'),
     imageSrc: seerConfigCheck,
-    href: 'https://docs.sentry.io/product/ai-in-sentry/ai-code-review/',
+    href: 'https://docs.sentry.io/product/ai-in-sentry/seer/code-review/',
   },
 ];
 

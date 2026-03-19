@@ -266,8 +266,8 @@ def use_split_dbs() -> bool:
 
 
 @contextmanager
-def override_allowed_region_silo_ip_addresses(*allowed_ip_addresses):
-    with patch("sentry.silo.client.get_region_ip_addresses") as mock_get_region_ip_addresses:
+def override_allowed_cell_silo_ip_addresses(*allowed_ip_addresses):
+    with patch("sentry.silo.client.get_cell_ip_addresses") as mock_get_cell_ip_addresses:
         override_value = frozenset(ipaddress.ip_address(str(ip)) for ip in allowed_ip_addresses)
-        mock_get_region_ip_addresses.return_value = override_value
+        mock_get_cell_ip_addresses.return_value = override_value
         yield

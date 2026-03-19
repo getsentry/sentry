@@ -5,9 +5,10 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import Pagination from 'sentry/components/pagination';
-import GridEditable, {
+import {Pagination} from 'sentry/components/pagination';
+import {
   COL_WIDTH_UNDEFINED,
+  GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';

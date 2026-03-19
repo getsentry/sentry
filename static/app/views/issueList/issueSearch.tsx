@@ -8,7 +8,7 @@ import {SavedSearchType} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IssueListSeerComboBox} from './issueListSeerComboBox';
-import IssueListSearchBar, {useIssueListSearchBarDataProvider} from './searchBar';
+import {IssueListSearchBar, useIssueListSearchBarDataProvider} from './searchBar';
 
 type IssueSearchProps = {
   onSearch: (query: string) => void;

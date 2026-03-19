@@ -99,7 +99,7 @@ interface DropdownMenuItemProps {
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-function DropdownMenuItem({
+export function DropdownMenuItem({
   node,
   state,
   closeOnSelect,
@@ -245,5 +245,3 @@ function DropdownMenuItem({
     />
   );
 }
-
-export default DropdownMenuItem;

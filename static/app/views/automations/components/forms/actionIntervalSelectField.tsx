@@ -1,8 +1,6 @@
 import styled from '@emotion/styled';
 
-import SelectField, {
-  type SelectFieldProps,
-} from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
 
 const FREQUENCY_OPTIONS = [
@@ -18,9 +16,10 @@ const FREQUENCY_OPTIONS = [
   {value: 43200, label: t('30 days')},
 ];
 
-type ActionIntervalSelectFieldProps = Partial<
-  SelectFieldProps<{label: string; value: number}>
->;
+type ActionIntervalSelectFieldProps = {
+  help?: string;
+  label?: string;
+};
 
 export function ActionIntervalSelectField(props: ActionIntervalSelectFieldProps) {
   return (

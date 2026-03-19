@@ -14,7 +14,7 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
+import {SearchBar as TransactionNameSearchBar} from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {tct} from 'sentry/locale';
