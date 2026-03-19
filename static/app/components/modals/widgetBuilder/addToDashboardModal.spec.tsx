@@ -986,6 +986,44 @@ describe('add to dashboard modal', () => {
         minH: expect.any(Number),
       });
     });
+
+    it('navigates to the widget builder with text widget in session storage', async () => {
+      const {router} = render(
+        <AddToDashboardModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widgets={[textWidget]}
+          selection={defaultSelection}
+          actions={['open-in-widget-builder']}
+          location={LocationFixture()}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Select Dashboard')).toBeEnabled();
+      });
+      await selectEvent.select(
+        screen.getByText('Select Dashboard'),
+        '+ Create New Dashboard'
+      );
+      await userEvent.click(screen.getByText('Open in Widget Builder'));
+
+      expect(router.location.pathname).toBe(
+        '/organizations/org-slug/dashboards/new/widget-builder/widget/new/'
+      );
+
+      expect(router.location.query.title).toBe('My Note');
+      expect(router.location.query.textContent).toBeUndefined();
+      expect(router.location.query.description).toBeUndefined();
+      expect(router.location.query.displayType).toBe(DisplayType.TEXT);
+      expect(sessionStorage.getItem('dashboard:widget-builder:text-content')).toBe(
+        JSON.stringify('this is a text widget description')
+      );
+    });
   });
 
   describe('multiple widgets', () => {

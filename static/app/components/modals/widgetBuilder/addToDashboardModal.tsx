@@ -218,7 +218,9 @@ function AddToDashboardModal({
 
     const widgetAsQueryParams = convertWidgetToQueryParams(widget);
 
-    addWidgetBuilderSessionStorageParams(widget);
+    if (page === 'builder') {
+      addWidgetBuilderSessionStorageParams(widget);
+    }
 
     navigate(
       normalizeUrl({
