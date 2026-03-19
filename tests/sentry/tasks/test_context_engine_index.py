@@ -127,13 +127,13 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         target_slot = int(md5_text(str(org_ids[0])).hexdigest(), 16) % TOTAL_SLOTS
         frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
 
-        def feature_enabled_for_test_orgs(_flag_name: str, org, *args, **kwargs) -> bool:
-            return org.id in org_ids
+        def batch_feature_check(_flag_name, batch_orgs):
+            return {f"organization:{o.id}": o.id in org_ids for o in batch_orgs}
 
         with freeze_time(frozen_time):
             with mock.patch(
-                "sentry.tasks.context_engine_index.features.has",
-                side_effect=feature_enabled_for_test_orgs,
+                "sentry.tasks.context_engine_index.features.batch_has_for_organizations",
+                side_effect=batch_feature_check,
             ):
                 _feature_enabled, eligible = get_allowed_org_ids_context_engine_indexing()
 

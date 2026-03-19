@@ -212,6 +212,14 @@ def build_service_map(organization_id: int, *args, **kwargs) -> None:
         raise
 
 
+def _collect_enabled_org_ids(orgs: list[Organization], out: list[int]) -> None:
+    result = features.batch_has_for_organizations(
+        "organizations:seer-explorer-context-engine", orgs
+    )
+    if result:
+        out.extend(o.id for o in orgs if result.get(f"organization:{o.id}", False))
+
+
 def get_allowed_org_ids_context_engine_indexing() -> tuple[list[int], list[int]]:
     """
     Get the list of allowed organizations for context engine indexing.
@@ -227,12 +235,18 @@ def get_allowed_org_ids_context_engine_indexing() -> tuple[list[int], list[int]]
     eligible_org_ids: list[int] = []
     all_enabled_org_ids: list[int] = []
 
+    BATCH_SIZE = 1000
+    batch: list[Organization] = []
     for org in RangeQuerySetWrapper(
         Organization.objects.filter(status=ObjectStatus.ACTIVE),
         result_value_getter=lambda o: o.id,
     ):
-        if features.has("organizations:seer-explorer-context-engine", org):
-            all_enabled_org_ids.append(org.id)
+        batch.append(org)
+        if len(batch) >= BATCH_SIZE:
+            _collect_enabled_org_ids(batch, all_enabled_org_ids)
+            batch = []
+    if batch:
+        _collect_enabled_org_ids(batch, all_enabled_org_ids)
 
     if now.weekday() == INDEXING_DAY:
         slot = now.hour
