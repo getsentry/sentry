@@ -29,11 +29,6 @@
       }
     }
   </style>
-  class="illustration"
-  xmlns="http://www.w3.org/2000/svg"
-  fill="none"
-  viewBox="0 0 640 400"
->
   <g id="can">
     <g stroke-linecap="round" stroke-width="3" class="lines">
       <path
