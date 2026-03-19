@@ -227,7 +227,7 @@ export function GroupBySelector({
                     canDrag={canDrag}
                     canDelete={canDelete}
                     disabled={disable}
-                    renderExtraActions={
+                    extraActions={
                       showDashboardLinkButton && <LinkToDashboardAction column={column} />
                     }
                     renderTagOverride={renderTagOverride}
