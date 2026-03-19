@@ -4,7 +4,7 @@ from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
     SeerOperatorInteractionType,
 )
-from sentry.seer.entrypoints.registry import entrypoint_registry
+from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
 from sentry.seer.entrypoints.types import SeerOperatorCacheResult
 from sentry.utils.cache import cache
 
@@ -154,7 +154,7 @@ class SeerOperatorAutofixCache[CachePayloadT]:
         Migrate from a pre-autofix cache (keyed on group_id) to a post-autofix cache (keyed on run_id),
         if one exists. If overwrite is True, any existing post-autofix cache will be overwritten.
         """
-        for entrypoint_key in entrypoint_registry.registrations.keys():
+        for entrypoint_key in autofix_entrypoint_registry.registrations.keys():
             with SeerOperatorEventLifecycleMetric(
                 interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_MIGRATE,
                 entrypoint_key=entrypoint_key,

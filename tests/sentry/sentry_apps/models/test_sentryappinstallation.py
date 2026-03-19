@@ -62,5 +62,5 @@ class SentryAppInstallationTest(TestCase):
             self.install.save()
             cell = get_cell_for_organization(self.org.slug)
             mock_caching_service.clear_key.assert_any_call(
-                key=f"app_service.get_installation:{self.install.id}", region_name=cell.name
+                key=f"app_service.get_installation:{self.install.id}", cell_name=cell.name
             )

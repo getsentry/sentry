@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {defined} from 'sentry/utils';
@@ -85,9 +85,11 @@ function WidgetLayout(props: Widget) {
       {props.Visualization && (
         <VisualizationWrapper noPadding={props.noVisualizationPadding}>
           <ErrorBoundary
-            customComponent={({error}) => {
-              return <WidgetError error={error ?? undefined} />;
-            }}
+            customComponent={({error}) => (
+              <Container position="absolute" inset={0}>
+                <WidgetError error={error ?? undefined} />
+              </Container>
+            )}
           >
             {props.Visualization}
           </ErrorBoundary>
@@ -95,7 +97,13 @@ function WidgetLayout(props: Widget) {
       )}
 
       {props.Footer && (
-        <FooterWrapper noPadding={props.noFooterPadding}>{props.Footer}</FooterWrapper>
+        <FooterWrapper noPadding={props.noFooterPadding}>
+          <ErrorBoundary
+            customComponent={({error}) => <WidgetError error={error ?? undefined} />}
+          >
+            {props.Footer}
+          </ErrorBoundary>
+        </FooterWrapper>
       )}
     </Frame>
   );
