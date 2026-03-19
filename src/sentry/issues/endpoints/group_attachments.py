@@ -61,6 +61,7 @@ def get_event_ids_from_filters(
             group=group,
             limit=10000,
             offset=0,
+            extra_columns=["id"],
         )
 
     referrer = f"api.group-attachments.{group.issue_category.name.lower()}"

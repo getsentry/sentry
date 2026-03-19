@@ -62,6 +62,26 @@ def get_direct_hit_response(
     return None
 
 
+_DEFAULT_GROUP_EVENTS_COLUMNS = [
+    "id",
+    "project.id",
+    "issue.id",
+    "timestamp",
+    "platform",
+    "title",
+    "culprit",
+    "tags.key",
+    "tags.value",
+    "user.id",
+    "user.email",
+    "user.username",
+    "user.ip",
+]
+
+# Extra columns only available in the Events dataset (error groups)
+_ERROR_ONLY_COLUMNS = ["location", "event.type"]
+
+
 def get_query_builder_for_group(
     query: str,
     snuba_params: SnubaParams,
@@ -69,28 +89,17 @@ def get_query_builder_for_group(
     limit: int,
     offset: int,
     orderby: str | None = None,
+    extra_columns: list[str] | None = None,
 ) -> DiscoverQueryBuilder:
     dataset = Dataset.IssuePlatform
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
-    selected_columns = [
-        "id",
-        "project.id",
-        "issue.id",
-        "timestamp",
-        "platform",
-        "title",
-        "culprit",
-        "tags.key",
-        "tags.value",
-        "user.id",
-        "user.email",
-        "user.username",
-        "user.ip",
-    ]
-    if group.issue_category == GroupCategory.ERROR:
+    selected_columns = (
+        list(extra_columns) if extra_columns is not None else list(_DEFAULT_GROUP_EVENTS_COLUMNS)
+    )
+    if extra_columns is None and group.issue_category == GroupCategory.ERROR:
         # location and event.type are only available in the Events dataset
-        selected_columns.extend(["location", "event.type"])
+        selected_columns.extend(_ERROR_ONLY_COLUMNS)
 
     if orderby is None:
         orderby_list = ["-timestamp", "id"]
