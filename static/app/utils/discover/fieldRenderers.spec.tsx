@@ -532,7 +532,12 @@ describe('getFieldRenderer', () => {
     });
   });
 
-  it('renders replay.id with ViewReplayLink', () => {
+  it('renders replay.id as a link when replay exists', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      body: {abc123def456: 1},
+    });
+
     const renderer = getFieldRenderer('replay.id', {'replay.id': 'string'});
 
     render(
@@ -542,8 +547,25 @@ describe('getFieldRenderer', () => {
       ) as React.ReactElement<any, any>
     );
 
-    // ViewReplayLink renders "(missing)" when replay existence can't be confirmed,
-    // but this verifies the renderer is wired up through ViewReplayLink
+    const link = await screen.findByRole('link');
+    expect(link).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/explore/replays/abc123def456/`
+    );
+    expect(screen.getByText('abc123de')).toBeInTheDocument();
+  });
+
+  it('renders replay.id as missing when replay does not exist', () => {
+    const renderer = getFieldRenderer('replay.id', {'replay.id': 'string'});
+
+    render(
+      renderer(
+        {...data, 'replay.id': 'abc123def456'},
+        {location, organization, theme}
+      ) as React.ReactElement<any, any>
+    );
+
+    // ViewReplayLink renders "(missing)" when replay existence can't be confirmed
     expect(screen.getByText('(missing)')).toBeInTheDocument();
   });
 
