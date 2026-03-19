@@ -6,7 +6,7 @@ import {
   getOrderedAutofixSections,
   isCodeChangesSection,
   isCodingAgentsSection,
-  isPullRequestSection,
+  isPullRequestsSection,
   isRootCauseSection,
   isSolutionSection,
   useExplorerAutofix,
@@ -80,7 +80,7 @@ function SeerDrawerArtifacts({autofix, sections}: SeerDrawerArtifactsProps) {
           );
         }
 
-        if (isPullRequestSection(section)) {
+        if (isPullRequestsSection(section)) {
           return (
             <PullRequestsCard key={section.step} autofix={autofix} section={section} />
           );
