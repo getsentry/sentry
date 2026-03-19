@@ -1,26 +1,23 @@
 import styled from '@emotion/styled';
 
-import type {Event} from 'sentry/types/event';
 import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
 import {getTitle, isTombstone} from 'sentry/utils/events';
 
 import {GroupPreviewTooltip} from './groupPreviewTooltip';
 
-interface EventOrGroupTitleProps {
-  data: Event | BaseGroup | GroupTombstoneHelper;
+interface GroupTitleProps {
+  data: BaseGroup | GroupTombstoneHelper;
   className?: string;
   query?: string;
   withStackTracePreview?: boolean;
 }
 
-export function EventOrGroupTitle({
+export function GroupTitle({
   data,
   withStackTracePreview,
   className,
   query,
-}: EventOrGroupTitleProps) {
-  const {id, groupID} = data as Event;
-
+}: GroupTitleProps) {
   const {title} = getTitle(data);
   const titleLabel = title ?? '';
 
@@ -28,7 +25,7 @@ export function EventOrGroupTitle({
     <span className={className}>
       {!isTombstone(data) && withStackTracePreview ? (
         <GroupPreviewTooltip
-          groupId={groupID ? groupID : id}
+          groupId={data.id}
           issueCategory={data.issueCategory}
           groupingCurrentLevel={data.metadata?.current_level}
           query={query}

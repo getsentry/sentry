@@ -398,6 +398,7 @@ function SecondaryNavigationLink({
 
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
+  const hasPageFrame = organization.features.includes('page-frame');
 
   const sharedLinkProps = {
     ...linkProps,
@@ -427,6 +428,18 @@ function SecondaryNavigationLink({
         <Text ellipsis>{children}</Text>
         {trailingItems}
       </MobileNavigationLink>
+    );
+  }
+
+  if (hasPageFrame) {
+    return (
+      <PageFrameSidebarNavigationLink {...sharedLinkProps}>
+        {leadingItems}
+        <Text ellipsis variant="inherit">
+          {children}
+        </Text>
+        {trailingItems}
+      </PageFrameSidebarNavigationLink>
     );
   }
 
@@ -559,11 +572,6 @@ const MobileNavigationLink = styled(Link)`
   border-radius: ${p => p.theme.radius['0']};
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
 
-  /* Disable interaction state layer */
-  > [data-isl] {
-    display: none;
-  }
-
   /* Renders the active state indicator */
   &::before {
     content: '';
@@ -612,11 +620,6 @@ const SidebarNavigationLink = styled(Link)`
   padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius.md};
 
-  /* Disable interaction state layer */
-  > [data-isl] {
-    display: none;
-  }
-
   /* Renders the active state indicator */
   &::before {
     content: '';
@@ -649,6 +652,43 @@ const SidebarNavigationLink = styled(Link)`
 
     &:hover {
       color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+    }
+  }
+`;
+
+const PageFrameSidebarNavigationLink = styled(Link)`
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid transparent;
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
+
+  &:active {
+    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.background.active};
+  }
+
+  &[aria-selected='true'] {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
+    color: ${p => p.theme.tokens.content.primary};
+
+    &:hover {
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }

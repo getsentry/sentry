@@ -33,7 +33,7 @@ from sentry.db.postgres.transactions import (
     in_test_assert_no_transaction,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.hybridcloud.outbox.signals import process_control_outbox, process_region_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
 from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -415,7 +415,7 @@ class OutboxBase(Model):
 # Outboxes bound from cell silo -> control silo
 class CellOutboxBase(OutboxBase):
     def send_signal(self) -> None:
-        process_region_outbox.send(
+        process_cell_outbox.send(
             sender=OutboxCategory(self.category),
             payload=self.payload,
             object_identifier=self.object_identifier,
@@ -457,7 +457,7 @@ class CellOutbox(CellOutboxBase):
         )
 
 
-# Outboxes bound from control silo -> region silo
+# Outboxes bound from control silo -> cell silo
 class ControlOutboxBase(OutboxBase):
     sharding_columns = ("cell_name", "shard_scope", "shard_identifier")
     coalesced_columns = (
