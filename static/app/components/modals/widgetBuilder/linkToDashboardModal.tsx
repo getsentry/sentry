@@ -56,20 +56,43 @@ export function LinkToDashboardModal({
     let unmounted = false;
 
     setIsDashboardListLoading(true);
-    fetchDashboards(api, organization.slug)
-      .then(response => {
-        // If component has unmounted, dont set state
+
+    const dashboardListPromise = fetchDashboards(api, organization.slug);
+    const linkedDashboardPromise = currentLinkedDashboard?.dashboardId
+      ? fetchDashboard(api, organization.slug, currentLinkedDashboard.dashboardId).catch(
+          () => null
+        )
+      : Promise.resolve(null);
+
+    Promise.all([dashboardListPromise, linkedDashboardPromise])
+      .then(([dashboardList, linkedDashboard]) => {
         if (unmounted) {
           return;
         }
 
-        setDashboards(response);
-        const currentDashboard = response.find(
-          dashboard => dashboard.id === currentLinkedDashboard?.dashboardId
-        );
-        if (currentDashboard) {
-          setSelectedDashboardId(currentDashboard.id);
+        if (linkedDashboard) {
+          const alreadyIncluded = dashboardList.some(d => d.id === linkedDashboard.id);
+          if (!alreadyIncluded) {
+            // Converts dashboard details to dashboard list item
+            dashboardList.push({
+              id: linkedDashboard.id,
+              title: linkedDashboard.title,
+              filters: linkedDashboard.filters,
+              projects: linkedDashboard.projects ?? [],
+              environment: linkedDashboard.environment ?? [],
+              widgetDisplay: linkedDashboard.widgets.map(w => w.displayType),
+              widgetPreview: linkedDashboard.widgets.map(w => ({
+                displayType: w.displayType,
+                layout: w.layout ?? null,
+              })),
+              dateCreated: linkedDashboard.dateCreated,
+              createdBy: linkedDashboard.createdBy,
+            });
+          }
+          setSelectedDashboardId(linkedDashboard.id);
         }
+
+        setDashboards(dashboardList);
       })
       .finally(() => {
         setIsDashboardListLoading(false);
@@ -111,7 +134,7 @@ export function LinkToDashboardModal({
       limitMessage: ReactNode | null
     ) => {
       if (dashboards === null) {
-        return null;
+        return [];
       }
 
       return [
@@ -169,7 +192,7 @@ export function LinkToDashboardModal({
                   placeholder={t('Select Dashboard')}
                   value={selectedDashboardId}
                   options={getOptions(hasReachedDashboardLimit, isLoading, limitMessage)}
-                  onChange={(option: SelectValue<string>) => {
+                  onChange={option => {
                     if (option.disabled) {
                       return;
                     }

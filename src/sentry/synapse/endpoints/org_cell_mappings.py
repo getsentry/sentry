@@ -10,7 +10,7 @@ from sentry.synapse.endpoints.authentication import (
     SynapseSignatureAuthentication,
 )
 from sentry.synapse.paginator import SynapsePaginator
-from sentry.types.region import get_global_directory
+from sentry.types.cell import get_global_directory
 
 
 @control_silo_endpoint

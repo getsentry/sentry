@@ -24,7 +24,7 @@ export interface SaveButtonProps {
   setError: (error: Record<string, any>) => void;
 }
 
-function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
+export function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   const {state} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
   const api = useApi();
@@ -71,5 +71,3 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
     </Button>
   );
 }
-
-export default SaveButton;

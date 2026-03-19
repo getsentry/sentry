@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 from sentry.notifications.platform.provider import (
     NotificationProvider,
     NotificationProviderError,
+    SendFailure,
     SendResult,
     integration_error_result,
 )
@@ -142,7 +143,7 @@ class DiscordNotificationProvider(NotificationProvider[DiscordRenderable]):
         target: NotificationTarget,
         renderable: DiscordRenderable,
         thread_context: ThreadContext | None = None,
-    ) -> SendResult:
+    ) -> SendResult | SendFailure:
         from sentry.integrations.discord.integration import DiscordIntegration
 
         if not isinstance(target, cls.target_class):

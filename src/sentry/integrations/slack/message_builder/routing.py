@@ -10,7 +10,7 @@ class SlackRoutingData:
     Slack only allows us one key to encode data on our actions, so to better route requests, we
     need to encode it with enough data to narrow our targeting.
 
-    This type represents the current data we encode for targeting regions or cells.
+    This type represents the current data we encode for targeting cells.
     """
 
     action: str  # Should be a member of SlackAction, but we don't care about the value for routing

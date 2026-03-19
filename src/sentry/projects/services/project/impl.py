@@ -48,7 +48,8 @@ class DatabaseBackedProjectService(ProjectService):
     def get_many_by_organizations(
         self,
         *,
-        region_name: str,
+        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
+        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
         organization_ids: list[int],
     ) -> list[RpcProject]:
         projects = Project.objects.filter(

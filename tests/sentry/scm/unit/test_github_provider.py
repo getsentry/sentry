@@ -126,6 +126,7 @@ ALL_PROVIDER_METHODS: list[tuple[str, dict[str, Any]]] = [
     ("create_check_run", {"name": "check", "head_sha": "abc"}),
     ("get_check_run", {"check_run_id": "300"}),
     ("update_check_run", {"check_run_id": "300"}),
+    ("get_archive_link", {"ref": "main"}),
 ]
 
 
@@ -1343,3 +1344,26 @@ class TestGetPullRequestCommentsEdgeCases:
             ("test-org/test-repo", "42"),
             {},
         ) in client.calls
+
+
+class TestGetArchiveLink:
+    def test_returns_archive_url(self):
+        repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository["organization_id"], repository)
+
+        result = provider.get_archive_link("main")
+
+        assert result["data"]["url"] == client.archive_link_data
+        assert result["data"]["headers"] == {"Authorization": "token fake-github-token"}
+        assert result["type"] == "github"
+        assert ("get_archive_link", ("test-org/test-repo", "tarball", "main"), {}) in client.calls
+
+    def test_zip_format_uses_zipball(self):
+        repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository["organization_id"], repository)
+
+        provider.get_archive_link("main", "zip")
+
+        assert ("get_archive_link", ("test-org/test-repo", "zipball", "main"), {}) in client.calls

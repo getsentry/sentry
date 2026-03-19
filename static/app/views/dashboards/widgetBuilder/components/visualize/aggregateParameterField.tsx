@@ -78,8 +78,7 @@ export function AggregateParameterField({
         placeholder={t('Select value')}
         options={sortSelectedFirst(currentValue, parameter.options)}
         value={currentValue}
-        required={parameter.required}
-        onChange={({value}: any) => {
+        onChange={({value}) => {
           onChange(value);
         }}
         searchable

@@ -37,7 +37,7 @@ class JiraServerRequestParser(BaseRequestParser):
         if len(organizations) == 0:
             return HttpResponse(status=status.HTTP_400_BAD_REQUEST)
 
-        regions = self.get_regions_from_organizations(organizations=organizations)
+        cells = self.get_cells_from_organizations(organizations=organizations)
 
         try:
             data = orjson.loads(self.request.body)
@@ -50,7 +50,7 @@ class JiraServerRequestParser(BaseRequestParser):
             return HttpResponse(status=status.HTTP_200_OK)
 
         return self.get_response_from_webhookpayload(
-            regions=regions,
+            cells=cells,
             identifier=self.get_mailbox_identifier(integration, data),
             integration_id=integration.id,
         )

@@ -23,7 +23,6 @@ class NotificationProviderError(Exception):
 
 
 class SendStatus(Enum):
-    SUCCESS = "success"
     HALT = "halt"
     """A known configuration or access issue — not actionable by our team."""
     FAILURE = "failure"
@@ -42,29 +41,31 @@ class ProviderThreadingContext:
 
 @dataclass(frozen=True)
 class SendResult:
-    """Structured return type from provider.send() that captures both success and failure outcomes."""
-
-    status: SendStatus = SendStatus.SUCCESS
-    """The result of the send operation. To distinguish between failures, halts and successes."""
+    """Successful send outcome."""
 
     provider_message_id: str | None = None
-    """Provider-specific message identifier (e.g., Slack's `ts`). None on failure."""
+    """Provider-specific message identifier (e.g., Slack's `ts`)."""
 
     is_threaded: bool = False
     """Whether the notification was sent with threading."""
 
+
+@dataclass(frozen=True)
+class SendFailure:
+    """Failed send outcome (halt or unexpected failure)."""
+
+    status: SendStatus
+    is_threaded: bool = False
     exception: Exception | None = None
-    """Human-readable error summary for lifecycle recording."""
-
+    """The exception that caused the failure, for lifecycle recording."""
     error_code: int | None = None
-    """HTTP status code or provider error code on failure."""
-
+    """HTTP status code or provider error code."""
     error_details: dict[str, Any] | None = None
     """Extra debugging context — logged, not used for control flow."""
 
 
-def integration_error_result(e: IntegrationError, *, is_threaded: bool = False) -> SendResult:
-    """Maps an IntegrationError to a SendResult with the appropriate status.
+def integration_error_result(e: IntegrationError, *, is_threaded: bool = False) -> SendFailure:
+    """Maps an IntegrationError to a SendFailure with the appropriate status.
 
     Shared by all integration-backed notification providers.
     """
@@ -72,7 +73,7 @@ def integration_error_result(e: IntegrationError, *, is_threaded: bool = False) 
         status = SendStatus.HALT
     else:
         status = SendStatus.FAILURE
-    return SendResult(
+    return SendFailure(
         status=status,
         exception=e,
         error_code=e.error_code,
@@ -80,7 +81,7 @@ def integration_error_result(e: IntegrationError, *, is_threaded: bool = False) 
     )
 
 
-class IntegrationNotificationClient[RenderableT](Protocol):
+class IntegrationNotificationClient[RenderableT, ThreadingResponseT = dict[str, Any]](Protocol):
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: RenderableT
     ) -> None: ...
@@ -90,7 +91,7 @@ class IntegrationNotificationClient[RenderableT](Protocol):
         target: IntegrationNotificationTarget,
         payload: RenderableT,
         threading_context: ProviderThreadingContext,
-    ) -> dict[str, Any]: ...
+    ) -> ThreadingResponseT: ...
 
 
 class NotificationProvider[RenderableT](Protocol):
@@ -156,7 +157,7 @@ class NotificationProvider[RenderableT](Protocol):
         target: NotificationTarget,
         renderable: RenderableT,
         thread_context: ThreadContext | None = None,
-    ) -> SendResult:
+    ) -> SendResult | SendFailure:
         """
         Using the renderable format for the provider, send a notification to the target.
 

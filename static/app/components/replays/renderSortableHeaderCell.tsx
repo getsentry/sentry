@@ -2,7 +2,7 @@ import type {MouseEvent} from 'react';
 import type {LocationDescriptorObject} from 'history';
 
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import type {Sort} from 'sentry/utils/discover/fields';
 
 interface Props<Key extends string> {

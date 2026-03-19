@@ -9,7 +9,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.bases.organization_integrations import (
-    RegionOrganizationIntegrationBaseEndpoint,
+    CellOrganizationIntegrationBaseEndpoint,
 )
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.organization import Organization
@@ -25,7 +25,7 @@ class IntegrationRepository(TypedDict):
 
 
 @cell_silo_endpoint
-class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndpoint):
+class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

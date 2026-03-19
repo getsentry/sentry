@@ -91,6 +91,14 @@ def test_uses_shared_secret_missing_secret() -> None:
 
 
 @pytest.mark.django_db
+@patch("sentry.seer.signed_seer_api.metrics")
+def test_missing_secret_emits_unsigned_request_metric(mock_metrics: MagicMock) -> None:
+    run_test_case(shared_secret="")
+
+    mock_metrics.incr.assert_any_call("seer.unsigned_request", sample_rate=1.0)
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize("path", [PATH, f"{PATH}?dogs=great"])
 @patch("sentry.seer.signed_seer_api.metrics.timer")
 def test_times_request(mock_metrics_timer: MagicMock, path: str) -> None:

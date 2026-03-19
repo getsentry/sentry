@@ -35,12 +35,12 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
-from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics import SpanMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test, create_test_regions
+from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test, create_test_cells
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
@@ -83,10 +83,10 @@ class MockAccess:
         return False
 
 
-regions = create_test_regions("us", "de")
+regions = create_test_cells("us", "de")
 
 
-@cell_silo_test(regions=regions, include_monolith_run=True)
+@cell_silo_test(cells=regions, include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
     @property
     def now(self):
@@ -576,16 +576,16 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         self.login_as(user=member_user)
 
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction", "decision": "keep"},
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"is_segment": "true", "decision": "keep"},
             minutes_before_now=60 * 24 * 12,
             value=1,
             project_id=project_1.id,
             org_id=self.organization.id,
         )
         self.store_performance_metric(
-            name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"transaction": "foo_transaction", "decision": "keep"},
+            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+            tags={"is_segment": "true", "decision": "keep"},
             minutes_before_now=60 * 24 * 12,
             value=1,
             project_id=project_2.id,
@@ -673,7 +673,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             assert "onboarding" not in response.data["features"]
 
 
-@cell_silo_test(regions=regions)
+@cell_silo_test(cells=regions)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 

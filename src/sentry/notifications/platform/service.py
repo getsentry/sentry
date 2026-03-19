@@ -11,7 +11,12 @@ from sentry.notifications.platform.metrics import (
     NotificationEventLifecycleMetric,
     NotificationInteractionType,
 )
-from sentry.notifications.platform.provider import NotificationProvider, SendResult, SendStatus
+from sentry.notifications.platform.provider import (
+    NotificationProvider,
+    SendFailure,
+    SendResult,
+    SendStatus,
+)
 from sentry.notifications.platform.registry import provider_registry, template_registry
 from sentry.notifications.platform.rollout import NotificationRolloutService
 from sentry.notifications.platform.target import NotificationTargetDto
@@ -58,7 +63,7 @@ class NotificationService[T: NotificationData]:
         *,
         target: NotificationTarget,
         threading_options: ThreadingOptions | None = None,
-    ) -> SendResult:
+    ) -> SendResult | SendFailure:
         """
         Send a notification directly to a target synchronously.
         NOTE: This method ignores notification settings. When possible, consider using a strategy instead of
@@ -105,11 +110,12 @@ class NotificationService[T: NotificationData]:
                 target=target, renderable=renderable, thread_context=thread_context
             )
 
-            match result.status:
-                case SendStatus.HALT:
-                    lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
-                case SendStatus.FAILURE:
-                    lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
+            if isinstance(result, SendFailure):
+                match result.status:
+                    case SendStatus.HALT:
+                        lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
+                    case SendStatus.FAILURE:
+                        lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
 
             # Step 5: Store threading result
             if threading_options is not None:
@@ -186,14 +192,14 @@ class NotificationService[T: NotificationData]:
         strategy: NotificationStrategy | None = None,
         targets: list[NotificationTarget] | None = None,
         threading_options: ThreadingOptions | None = None,
-    ) -> Mapping[NotificationProviderKey, list[SendResult]]:
+    ) -> Mapping[NotificationProviderKey, list[SendFailure]]:
         self._validate_strategy_and_targets(strategy=strategy, targets=targets)
         targets = self._get_targets(strategy=strategy, targets=targets)
 
-        errors: dict[NotificationProviderKey, list[SendResult]] = defaultdict(list)
+        errors: dict[NotificationProviderKey, list[SendFailure]] = defaultdict(list)
         for target in targets:
             result = self.notify_target(target=target, threading_options=threading_options)
-            if result.status != SendStatus.SUCCESS:
+            if isinstance(result, SendFailure):
                 errors[target.provider_key].append(result)
 
         return errors
@@ -332,11 +338,12 @@ def notify_target_async(
         # Step 5: Send the notification
         result = provider.send(target=target, renderable=renderable, thread_context=thread_context)
 
-        match result.status:
-            case SendStatus.HALT:
-                lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
-            case SendStatus.FAILURE:
-                lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
+        if isinstance(result, SendFailure):
+            match result.status:
+                case SendStatus.HALT:
+                    lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
+                case SendStatus.FAILURE:
+                    lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
 
         # Step 6: Store threading result
         if options is not None:

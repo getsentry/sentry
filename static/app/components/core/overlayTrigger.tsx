@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type {DistributedOmit, SetRequired} from 'type-fest';
 
-import DropdownButton, {type DropdownButtonProps} from 'sentry/components/dropdownButton';
+import {DropdownButton, type DropdownButtonProps} from 'sentry/components/dropdownButton';
 
 import {ControlContext} from './compactSelect/control';
 

@@ -4,7 +4,7 @@ import DashRight from 'getsentry-images/dashboards-banner-right.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import Banner from 'sentry/components/banner';
+import {Banner} from 'sentry/components/banner';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
