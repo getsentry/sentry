@@ -262,6 +262,21 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, {"collapse": ["tags"]})
         assert "tags" not in response.data
 
+    def test_collapse_stats(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+
+        # Without collapse param, stats should be present
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert "stats" in response.data
+
+        # With collapse param, stats should not be present
+        response = self.client.get(url, {"collapse": ["stats"]})
+        assert response.status_code == 200
+        assert "stats" not in response.data
+
     def test_count_with_buffer(self) -> None:
         """Test that group count includes the count from the buffer."""
         self.login_as(user=self.user)
