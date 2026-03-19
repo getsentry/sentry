@@ -4,6 +4,7 @@ import pickle
 import zlib
 from typing import Any, Literal, TypedDict
 
+from sentry import options
 from sentry.digests.types import IdentifierKey, Notification
 from sentry.utils.codecs import BytesCodec, JSONCodec, ZstdCodec
 
@@ -32,7 +33,7 @@ class NotificationPayload(TypedDict):
     event_id: str
     group_id: int | None
     timestamp: float
-    rules: list[int]
+    rule_ids: list[int]
     notification_uuid: str | None
     identifier_key: str
 
@@ -47,8 +48,6 @@ class Codec:
 
 class CompressedPickleCodec(Codec):
     def encode(self, value: Notification) -> bytes:
-        from sentry import options
-
         if not options.get("digests.encode-json-zstd"):
             return zlib.compress(pickle.dumps(value, protocol=5))
 
@@ -59,7 +58,7 @@ class CompressedPickleCodec(Codec):
             "event_id": event.event_id,
             "group_id": event.group_id,
             "timestamp": event.datetime.timestamp(),
-            "rules": list(value.rules),
+            "rule_ids": list(value.rules),
             "notification_uuid": value.notification_uuid,
             "identifier_key": str(value.identifier_key),
         }
@@ -81,7 +80,7 @@ class CompressedPickleCodec(Codec):
             )
             return Notification(
                 event=event,
-                rules=raw["rules"],
+                rules=raw["rule_ids"],
                 notification_uuid=raw["notification_uuid"],
                 identifier_key=IdentifierKey(raw["identifier_key"]),
             )
