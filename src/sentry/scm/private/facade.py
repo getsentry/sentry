@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Hashable
 from functools import lru_cache
 from typing import Any, Callable, cast
 
@@ -24,16 +25,24 @@ def _delegating_method(name: str) -> Callable[..., Any]:
     return method
 
 
+def _protocol_attrs(proto: object) -> tuple[str, ...]:
+    """Return the runtime protocol attribute names used for capability detection."""
+    return cast(tuple[str, ...], getattr(proto, "__protocol_attrs__", ()))
+
+
 @lru_cache(maxsize=32)
-def _facade_type_for_provider_class(provider_cls: type[Provider]) -> type[Facade]:
+def _facade_type_for_provider_class(
+    cls: type[Facade], provider_cls: type[Provider]
+) -> type[Facade]:
     """Build (and cache) one facade subclass per implementation class."""
     methods: dict[str, Any] = {}
     for proto in ALL_PROTOCOLS:
-        if all(hasattr(provider_cls, attr) for attr in proto.__protocol_attrs__):
-            for attr in proto.__protocol_attrs__:
+        protocol_attrs = _protocol_attrs(proto)
+        if all(hasattr(provider_cls, attr) for attr in protocol_attrs):
+            for attr in protocol_attrs:
                 if attr not in methods:
                     methods[attr] = _delegating_method(attr)
-    return type(f"FacadeFor{provider_cls.__name__}", (Facade,), methods)
+    return type(f"FacadeFor{provider_cls.__name__}", (cls,), methods)
 
 
 class Facade:
@@ -48,6 +57,10 @@ class Facade:
     # After the isinstance guard MyPy narrows `facade` to `Facade & CanAlpha`
     # (or any other intersection) and statically validates method calls.
 
+    provider: Provider
+    referrer: Referrer
+    record_count: Callable[[str, int, dict[str, str]], None]
+
     def __new__(
         cls,
         provider: Provider,
@@ -55,7 +68,9 @@ class Facade:
         referrer: Referrer = "shared",
         record_count: Callable[[str, int, dict[str, str]], None] = record_count_metric,
     ) -> Facade:
-        facade_cls = _facade_type_for_provider_class(cast(Any, type(provider)))
+        facade_cls = _facade_type_for_provider_class(
+            cast(Hashable, cls), cast(Hashable, type(provider))
+        )
         instance = object.__new__(facade_cls)
         instance.provider = provider
         instance.referrer = referrer
