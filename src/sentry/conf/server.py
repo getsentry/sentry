@@ -833,7 +833,7 @@ TASKWORKER_ALWAYS_EAGER = False
 # Environment variable is expected to be a JSON encoded list
 TASKWORKER_SHARED_SECRET = os.getenv("TASKWORKER_SHARED_SECRET")
 
-TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
+TASKWORKER_ROUTER: str = "sentry.taskworker.adapters.SentryRouter"
 
 # Expected to be a JSON encoded dictionary of namespace:topic
 TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
