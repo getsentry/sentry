@@ -33,3 +33,13 @@ class TestWorkflowDataConditionGroupReceivers(ActionFilterTestCase):
         self.create_action_filters_for_workflow(workflow=self.workflow, num_filters=1)
 
         assert self.get_data_from_cache(cache_keys) == {self.workflow.id: None}
+
+    def test_cascade_delete_for_groups(self) -> None:
+        # The data_condition_groups relying on the cascade delete to invalidate
+        cache_data: ActionFiltersByWorkflow = {self.workflow.id: self.action_filters}
+        cache_keys = self.populate_action_filter_cache(cache_data)
+
+        action_filter = self.action_filters[0]
+        action_filter.delete()
+
+        assert self.get_data_from_cache(cache_keys) == {self.workflow.id: None}

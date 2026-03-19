@@ -47,4 +47,7 @@ def invlidate_action_filter_cache_by_data_condition(
         def execute_invalidation() -> None:
             invalidate_action_filter_cache_by_workflow_ids(workflow_ids)
 
-        transaction.on_commit(execute_invalidation, router.db_for_write(DataCondition))
+        transaction.on_commit(
+            execute_invalidation,
+            router.db_for_write(DataCondition),
+        )
