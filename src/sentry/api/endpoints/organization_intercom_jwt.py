@@ -58,7 +58,7 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
         if isinstance(request.user, AnonymousUser):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        signing_secret = options.get("intercom.api-secret")
+        signing_secret = options.get("intercom.identity-verification-secret")
         if not signing_secret:
             logger.warning("intercom.identity-verification-secret is not configured")
             return Response(
