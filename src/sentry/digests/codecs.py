@@ -74,6 +74,9 @@ class CompressedPickleCodec(Codec):
             from sentry.services.eventstore.models import Event
 
             raw = NotificationPayload.parse_raw(_bytes_zstd.decode(value))
+            # Partial Event: only project_id, event_id, group_id, and
+            # datetime are populated. Do not access other fields (e.g.
+            # tags, title, message) — they will silently return empty values.
             event = Event(
                 project_id=raw.project_id,
                 event_id=raw.event_id,
