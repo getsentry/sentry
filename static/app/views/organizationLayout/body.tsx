@@ -28,33 +28,40 @@ function DeletionInProgress({organization}: OrganizationProps) {
       direction="column"
       align="center"
       justify="center"
+      minHeight="100dvh"
       style={{
-        minHeight: '100vh',
         backgroundImage: `url(${organizationDeletionIllustration})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundSize: 'contain',
+        backgroundPosition: 'top center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <Flex
         direction="column"
+        align="start"
         gap="md"
-        style={{
-          maxWidth: 480,
-          padding: '48px 24px',
-          background: 'rgba(255,255,255,0.9)',
-          borderRadius: 16,
-        }}
+        maxWidth="580px"
+        padding="2xl"
+        background="primary"
+        radius="xl"
       >
         <LogoSentry height="24px" />
-        <Heading as="h2">{t('Deletion In Progress')}</Heading>
-        <Text as="p">
-          {tct(
-            'The [organization] organization is currently in the process of being deleted from Sentry.',
-            {
-              organization: <strong>{organization.slug}</strong>,
-            }
-          )}
-        </Text>
+        <Heading as="h1">{t('Deletion In Progress')}</Heading>
+        <Stack gap="lg" paddingTop="2xl">
+          <Text as="p" size="lg">
+            {tct(
+              'The [organization] organization is currently in the process of being deleted from Sentry.',
+              {
+                organization: <strong>{organization.slug}</strong>,
+              }
+            )}
+          </Text>
+          <Text as="p" size="sm" variant="muted">
+            {t(
+              "Once deletion begins, there's no recovering the data that has been removed."
+            )}
+          </Text>
+        </Stack>
       </Flex>
     </Flex>
   );
