@@ -927,38 +927,45 @@ function SecondaryNavigationReorderableLink({
 function GrabHandle(props: FlexProps<'div'>) {
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
+
   return (
-    <StyledGrabHandle
-      {...props}
-      data-drag-icon
-      ref={setActivatorNodeRef}
-      {...listeners}
-      {...attributes}
+    <Flex
       radius="xs"
-      aria-label={t('Drag to reorder')}
       width="24px"
       height="24px"
       justify="center"
       align="center"
-      style={{cursor: isDragging ? 'grabbing' : 'grab'}}
-      onClick={e => e.stopPropagation()}
+      position="absolute"
+      top="50%"
+      left="50%"
     >
-      <IconGrabbable variant="muted" />
-    </StyledGrabHandle>
+      {p => (
+        <GrabHandleAnimation
+          {...props}
+          {...p}
+          {...listeners}
+          {...attributes}
+          aria-label={t('Drag to reorder')}
+          data-drag-icon
+          ref={setActivatorNodeRef}
+          style={{cursor: isDragging ? 'grabbing' : 'grab'}}
+          onClick={e => e.stopPropagation()}
+        >
+          <IconGrabbable variant="muted" />
+        </GrabHandleAnimation>
+      )}
+    </Flex>
   );
 }
 
-const StyledGrabHandle = styled(Flex)`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0.95);
-  opacity: 0;
+const GrabHandleAnimation = styled('div')`
   pointer-events: none;
+  opacity: 0;
   z-index: 1;
   transition:
     opacity ${p => p.theme.motion.smooth.moderate},
     transform ${p => p.theme.motion.smooth.moderate};
+  transform: translate(-50%, -50%);
   &:active {
     cursor: grabbing;
   }
