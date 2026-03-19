@@ -1296,6 +1296,7 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "arroyo": {"level": "INFO", "handlers": ["console"], "propagate": False},
+        "taskbroker_client": {"level": "INFO", "handlers": ["console"], "propagate": False},
         "static_compiler": {"level": "INFO"},
         "django.request": {
             "level": "WARNING",
