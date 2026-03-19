@@ -9,8 +9,10 @@ from sentry.notifications.notification_action.registry import (
     metric_alert_handler_registry,
 )
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
-from sentry.notifications.platform.templates.issue import IssueNotificationData
-from sentry.notifications.platform.types import NotificationRuleInfo
+from sentry.notifications.platform.templates.issue import (
+    IssueNotificationData,
+    NotificationRuleInfo,
+)
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -126,12 +128,7 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
         detector=detector,
         event_data=event_data,
     )
-    rule = NotificationRuleInfo(
-        id=rule_instance.id,
-        label=rule_instance.label,
-        data=rule_instance.data,
-        environment_id=rule_instance.environment_id,
-    )
+    rule = NotificationRuleInfo.from_rule(rule_instance)
 
     event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
 

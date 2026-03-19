@@ -14,11 +14,11 @@ from sentry.notifications.platform.slack.renderers.issue import IssueSlackRender
 from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     IssueNotificationTemplate,
+    NotificationRuleInfo,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationRenderedTemplate,
-    NotificationRuleInfo,
     NotificationSource,
 )
 from sentry.testutils.cases import TestCase
