@@ -47,7 +47,6 @@ import {
   HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
   ListClose,
   RightAlignedCell,
-  SelectableList,
   Subtitle,
   TimeConsumingDomainsWidgetEmptyStateWarning,
   TimeSpentInDatabaseWidgetEmptyStateWarning,
@@ -799,48 +798,20 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       }
     });
 
-  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] =
-    organization.features.includes('performance-new-widget-designs')
-      ? [
-          {
-            component: provided => (
-              <Accordion
-                expandedIndex={selectedListIndex}
-                setExpandedIndex={setSelectListIndex}
-                items={assembleAccordionItems(provided)}
-              />
-            ),
-            // accordion items height + chart height
-            height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
-            noPadding: true,
-          },
-        ]
-      : [
-          {
-            component: provided => (
-              <DurationChart
-                {...provided.widgetData.chart}
-                {...provided}
-                disableMultiAxis
-                disableXAxis
-                chartColors={props.chartColor ? [props.chartColor] : undefined}
-                isLineChart
-              />
-            ),
-            height: props.chartHeight,
-          },
-          {
-            component: provided => (
-              <SelectableList
-                selectedIndex={selectedListIndex}
-                setSelectedIndex={setSelectListIndex}
-                items={getItems(provided)}
-              />
-            ),
-            height: 124,
-            noPadding: true,
-          },
-        ];
+  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] = [
+    {
+      component: provided => (
+        <Accordion
+          expandedIndex={selectedListIndex}
+          setExpandedIndex={setSelectListIndex}
+          items={assembleAccordionItems(provided)}
+        />
+      ),
+      // accordion items height + chart height
+      height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
+      noPadding: true,
+    },
+  ];
 
   const moduleURLBuilder = useModuleURLBuilder();
 

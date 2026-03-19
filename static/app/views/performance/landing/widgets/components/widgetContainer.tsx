@@ -6,10 +6,9 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {CompactSelect, CompositeSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -74,7 +73,7 @@ function trackChartSettingChange(
     from_widget: previousChartSetting,
     to_widget: chartSetting,
     from_default: fromDefault,
-    is_new_menu: organization.features.includes('performance-new-widget-designs'),
+    is_new_menu: true,
   });
 }
 
@@ -135,16 +134,12 @@ function WidgetContainerInner(props: Props) {
   // `eventView` from the props is the _landing page_ EventView, which is different
   const widgetEventView = makeEventViewForWidget(props.eventView, chartDefinition);
 
-  const showNewWidgetDesign = organization.features.includes(
-    'performance-new-widget-designs'
-  );
-
   const widgetProps = {
     ...chartDefinition,
     chartSetting,
     chartDefinition,
     InteractiveTitle:
-      showNewWidgetDesign && allowedCharts.length > 2
+      allowedCharts.length > 2 && allowedCharts.includes(chartSetting)
         ? (containerProps: any) => (
             <WidgetInteractiveTitle
               {...containerProps}
@@ -156,18 +151,7 @@ function WidgetContainerInner(props: Props) {
             />
           )
         : null,
-    ContainerActions: showNewWidgetDesign
-      ? null
-      : (containerProps: any) => (
-          <WidgetContainerActions
-            {...containerProps}
-            eventView={widgetEventView}
-            allowedCharts={allowedCharts}
-            chartSetting={chartSetting}
-            setChartSetting={setChartSetting}
-            rowChartSettings={rowChartSettings}
-          />
-        ),
+    ContainerActions: null,
   };
 
   const passedProps = pick(props, [
@@ -178,7 +162,7 @@ function WidgetContainerInner(props: Props) {
     'withStaticFilters',
   ]);
 
-  const titleTooltip = showNewWidgetDesign ? '' : widgetProps.titleTooltip;
+  const titleTooltip = '';
 
   switch (widgetProps.dataType) {
     case GenericPerformanceWidgetDataType.TRENDS:
@@ -311,73 +295,6 @@ const StyledCompactSelect = styled(CompactSelect)`
     font-size: ${p => p.theme.font.size.lg};
   }
 `;
-
-function WidgetContainerActions({
-  chartSetting,
-  eventView,
-  setChartSetting,
-  allowedCharts,
-  rowChartSettings,
-}: {
-  allowedCharts: PerformanceWidgetSetting[];
-  chartSetting: PerformanceWidgetSetting;
-  eventView: EventView;
-  rowChartSettings: PerformanceWidgetSetting[];
-  setChartSetting: (setting: PerformanceWidgetSetting) => void;
-}) {
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const organization = useOrganization();
-  const menuOptions: Array<SelectOption<PerformanceWidgetSetting>> = [];
-
-  const settingsMap = WIDGET_DEFINITIONS({organization, theme});
-  for (const setting of allowedCharts) {
-    const options = settingsMap[setting];
-    menuOptions.push({
-      value: setting,
-      label: options.title,
-      disabled: setting !== chartSetting && rowChartSettings.includes(setting),
-    });
-  }
-
-  const chartDefinition = WIDGET_DEFINITIONS({organization, theme})[chartSetting];
-
-  function handleWidgetActionChange(value: string) {
-    if (value === 'open_in_discover') {
-      navigate(getEventViewDiscoverPath(organization, eventView));
-    }
-  }
-
-  return (
-    <CompositeSelect
-      trigger={triggerProps => (
-        <OverlayTrigger.IconButton
-          {...triggerProps}
-          size="xs"
-          priority="transparent"
-          aria-label={t('More')}
-          icon={<IconEllipsis />}
-        />
-      )}
-      position="bottom-end"
-    >
-      <CompositeSelect.Region
-        label={t('Display')}
-        options={menuOptions}
-        value={chartSetting}
-        onChange={opt => setChartSetting(opt.value)}
-      />
-      {chartDefinition.allowsOpenInDiscover && (
-        <CompositeSelect.Region
-          label={t('Other')}
-          options={[{label: t('Open in Discover'), value: 'open_in_discover'}]}
-          value=""
-          onChange={opt => handleWidgetActionChange(opt.value)}
-        />
-      )}
-    </CompositeSelect>
-  );
-}
 
 const getEventViewDiscoverPath = (
   organization: Organization,
