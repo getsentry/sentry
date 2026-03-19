@@ -1,3 +1,3 @@
-from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion, RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 
-__all__ = ("CellScheduledDeletion", "RegionScheduledDeletion")
+__all__ = ("CellScheduledDeletion",)

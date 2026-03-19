@@ -304,12 +304,6 @@ def is_member_disabled_from_limit(
         return member.flags.member_limit__restricted
 
 
-def generate_region_url() -> str:
-    # Deprecated. Use generate_locality_url.
-    # This shim exists temporarily for getsentry compatibility.
-    return generate_locality_url()
-
-
 def generate_locality_url(locality_name: str | None = None) -> str:
     """
     Return the customer-facing base URL for a locality.
