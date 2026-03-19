@@ -7,9 +7,10 @@ from django.utils import timezone
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
 from sentry.notifications.platform.service import (
-    NotificationDataDto,
     NotificationService,
     NotificationServiceError,
+    deserialize_notification_data,
+    serialize_notification_data,
 )
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
@@ -179,8 +180,8 @@ class NotificationServiceTest(TestCase):
         assert_count_of_metric(mock_record, EventLifecycleOutcome.SUCCESS, 2)
 
 
-class NotificationDataDtoTest(TestCase):
-    def test_from_dict_raises_error_without_source(self) -> None:
+class NotificationDataSerializationTest(TestCase):
+    def test_deserialize_raises_error_without_source(self) -> None:
         serialized = {
             "data": {
                 "message": "test",
@@ -188,31 +189,30 @@ class NotificationDataDtoTest(TestCase):
         }
 
         with pytest.raises(NotificationServiceError, match="Source is required"):
-            NotificationDataDto.from_dict(serialized)
+            deserialize_notification_data(serialized)
 
     def test_roundtrip_serialization(self) -> None:
         original_notification = MockNotification(message="roundtrip test")
-        dto = NotificationDataDto(notification_data=original_notification)
 
-        serialized = dto.to_dict()
-        reconstructed_dto = NotificationDataDto.from_dict(serialized)
+        serialized = serialize_notification_data(original_notification)
+        reconstructed = deserialize_notification_data(serialized)
 
-        assert isinstance(reconstructed_dto.notification_data, MockNotification)
-        assert reconstructed_dto.notification_data.source == original_notification.source
-        assert reconstructed_dto.notification_data.message == original_notification.message
+        assert isinstance(reconstructed, MockNotification)
+        assert reconstructed.source == original_notification.source
+        assert reconstructed.message == original_notification.message
 
-    def test_from_dict_with_complex_data_types(self) -> None:
+    def test_roundtrip_with_complex_data_types(self) -> None:
         now = timezone.now()
         data = DataExportFailure(
             error_message="Export failed",
             error_payload={"export_type": "Issues", "project": [123]},
             creation_date=now,
         )
-        serialized = NotificationDataDto(notification_data=data).to_dict()
-        dto = NotificationDataDto.from_dict(serialized)
+        serialized = serialize_notification_data(data)
+        reconstructed = deserialize_notification_data(serialized)
 
-        assert dto.notification_data.source == "data-export-failure"
-        assert isinstance(dto.notification_data, DataExportFailure)
-        assert dto.notification_data.error_message == "Export failed"
-        assert dto.notification_data.error_payload == {"export_type": "Issues", "project": [123]}
-        assert dto.notification_data.creation_date == now
+        assert reconstructed.source == "data-export-failure"
+        assert isinstance(reconstructed, DataExportFailure)
+        assert reconstructed.error_message == "Export failed"
+        assert reconstructed.error_payload == {"export_type": "Issues", "project": [123]}
+        assert reconstructed.creation_date == now

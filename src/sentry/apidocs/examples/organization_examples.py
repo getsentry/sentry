@@ -304,6 +304,8 @@ class OrganizationExamples:
                 "enableSeerCoding": True,
                 "enableSeerEnhancedAlerts": True,
                 "autoOpenPrs": False,
+                "defaultCodingAgent": None,
+                "defaultCodingAgentIntegrationId": None,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
                 "trustedRelays": [],

@@ -290,7 +290,7 @@ describe('convertBuilderStateToWidget', () => {
       title: 'Test Widget',
       description: 'Test text content',
       displayType: DisplayType.TEXT,
-      interval: '',
+      interval: '1h',
       queries: [],
       widgetType: undefined,
       limit: undefined,

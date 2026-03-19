@@ -71,13 +71,13 @@ def process_sentry_app_deletes(
     **kwds: Any,
 ):
     action_service.update_action_status_for_sentry_app_via_sentry_app_id(
-        region_name=region_name,
+        cell_name=region_name,
         status=ObjectStatus.DISABLED,
         sentry_app_id=object_identifier,
     )
     if slug := payload.get("slug"):
         action_service.update_action_status_for_webhook_via_sentry_app_slug(
-            region_name=region_name,
+            cell_name=region_name,
             status=ObjectStatus.DISABLED,
             sentry_app_slug=slug,
         )
@@ -92,7 +92,7 @@ def process_sentry_app_installation_deletes(
     **kwds: Any,
 ):
     action_service.update_action_status_for_sentry_app_installation(
-        region_name=region_name,
+        cell_name=region_name,
         status=ObjectStatus.DISABLED,
         sentry_app_id=payload["sentry_app_id"],
         organization_id=payload["organization_id"],

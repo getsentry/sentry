@@ -304,7 +304,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             "sentry.grouping.ingest.seer.get_seer_similar_issues"
         ) as mock_get_seer_similar_issues:
             # This will allow grouphash_b to be matched to grouphash_a by Seer
-            mock_get_seer_similar_issues.return_value = (0.01, grouphash_a)
+            mock_get_seer_similar_issues.return_value = (0.01, grouphash_a, "v1")
 
             # Event B will be kept - different exception to ensure different group hash to grouphash_a
             event_b = self.store_event(

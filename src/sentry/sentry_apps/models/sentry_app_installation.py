@@ -191,9 +191,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
             with outbox_context(flush=False):
                 for ob in self.api_token.outboxes_for_update():
                     ob.save()
-        cell_caching_service.clear_key(
-            key=get_installation.key_from(self.id), region_name=cell_name
-        )
+        cell_caching_service.clear_key(key=get_installation.key_from(self.id), cell_name=cell_name)
 
     @classmethod
     def handle_async_deletion(

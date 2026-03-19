@@ -174,14 +174,14 @@ Each worktree has its own `.venv`. When you create a new worktree with `git work
 
 ### Context-Aware Loading
 
-Cursor is configured to automatically load relevant AGENTS.md files based on the file being edited (via `.cursor/rules/*.mdc`). This provides context-specific guidance without token bloat:
+Use the right AGENTS.md for the area you're working in:
 
-- Editing `src/**/*.py` → Loads `src/AGENTS.md` (backend patterns)
-- Editing `tests/**/*.py` → Loads `tests/AGENTS.md` (testing patterns)
-- Editing `static/**/*.{ts,tsx,js,jsx}` → Loads `static/AGENTS.md` (frontend patterns)
-- Always loads this file (`AGENTS.md`) for general Sentry context
+- **Backend** (`src/**/*.py`) → `src/AGENTS.md` (backend patterns)
+- **Tests** (`tests/**/*.py`, `src/**/tests/**/*.py`) → `tests/AGENTS.md` (testing patterns)
+- **Frontend** (`static/**/*.{ts,tsx,js,jsx,css,scss}`) → `static/AGENTS.md` (frontend patterns)
+- **General** → This file (`AGENTS.md`) for Sentry overview and commands
 
-**Note**: These `.mdc` files only _reference_ AGENTS.md files—they don't duplicate content. All actual guidance should be added to the appropriate AGENTS.md file, not to Cursor rules.
+Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (`.agents/skills/`). Attach or read the area `AGENTS.md` when working in that tree. Add or update guidance in the appropriate AGENTS.md or skill—do not duplicate long guidance in editor-specific rule files.
 
 ## Backend
 

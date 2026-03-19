@@ -199,12 +199,7 @@ export function StreamlinedGroupHeader({event, group, project}: GroupHeaderProps
                 </StatLink>
               ))}
           </StatTitle>
-          <EventMessage
-            data={group}
-            level={group.level}
-            message={secondaryTitle}
-            type={group.type}
-          />
+          <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
               <StatCount value={eventCount} aria-label={t('Event count')} />

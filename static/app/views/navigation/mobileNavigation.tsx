@@ -1,10 +1,9 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import Hook from 'sentry/components/hook';
@@ -106,15 +105,23 @@ export function MobileNavigation() {
       />
       {view === 'closed' ? null : (
         <NavigationOverlayPortal
-          label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
           setView={setView}
+          label={view === 'primary' ? t('Primary Navigation') : t('Secondary Navigation')}
           closeButtonRef={closeButtonRef}
         >
           {view === 'primary' ? (
             <PrimaryNavigationItems />
           ) : view === 'secondary' ? (
-            <SecondaryMobileWrapper>
-              <GroupHeader>
+            <Grid
+              position="relative"
+              height="100%"
+              areas={`
+              "header"
+              "content"`}
+              columns="1fr"
+              rows="auto 1fr"
+            >
+              <Flex as="header" area="header" position="sticky" top={0} padding="md">
                 <Button
                   size="xs"
                   priority="transparent"
@@ -124,41 +131,17 @@ export function MobileNavigation() {
                 >
                   {t('Back')}
                 </Button>
-              </GroupHeader>
+              </Flex>
               <Stack justify="start" align="stretch" overflowY="auto" area="content">
                 <SecondaryNavigationContent />
               </Stack>
-            </SecondaryMobileWrapper>
+            </Grid>
           ) : null}
         </NavigationOverlayPortal>
       )}
     </Flex>
   );
 }
-
-const SecondaryMobileWrapper = styled('div')`
-  position: relative;
-  height: 100%;
-
-  display: grid;
-  grid-template-areas:
-    'header'
-    'content';
-  grid-template-rows: auto 1fr;
-`;
-
-const GroupHeader = styled('h2')`
-  grid-area: header;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: ${p => p.theme.tokens.background.tertiary};
-  display: flex;
-  align-items: center;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.sm};
-  gap: ${p => p.theme.space.md};
-  margin: 0;
-`;
 
 interface NavigationOverlayPortalProps {
   children: React.ReactNode;
