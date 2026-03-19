@@ -185,7 +185,7 @@ def get_similarity_data_from_seer(
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={**metric_tags, "outcome": "no_similar_groups"},
         )
-        return ([], None)
+        return ([], model_used)
 
     # This may get overwritten as we process the results, but by this point we know that Seer at
     # least found *something*

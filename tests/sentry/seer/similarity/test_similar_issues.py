@@ -92,9 +92,9 @@ class GetSimilarityDataFromSeerTest(TestCase):
     def test_no_groups_found(
         self, mock_seer_request: MagicMock, mock_metrics_incr: MagicMock
     ) -> None:
-        mock_seer_request.return_value = self._make_response({"responses": []})
+        mock_seer_request.return_value = self._make_response({"responses": [], "model_used": "v1"})
 
-        assert get_similarity_data_from_seer(self.request_params) == ([], None)
+        assert get_similarity_data_from_seer(self.request_params) == ([], "v1")
         mock_metrics_incr.assert_any_call(
             "seer.similar_issues_request",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
