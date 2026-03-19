@@ -9,7 +9,6 @@ import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {
   serializeFields,
-  serializeLinkedDashboards,
   serializeThresholds,
   type WidgetBuilderStateParams,
   type WidgetBuilderStateQueryParams,
@@ -57,10 +56,6 @@ export function convertWidgetToQueryParams(
 
   const dataset = isTextWidget ? undefined : (widget.widgetType ?? WidgetType.ERRORS);
 
-  const linkedDashboards = firstWidgetQuery?.linkedDashboards
-    ? serializeLinkedDashboards(firstWidgetQuery.linkedDashboards)
-    : undefined;
-
   return {
     title: widget.title,
     description,
@@ -72,7 +67,6 @@ export function convertWidgetToQueryParams(
     query,
     sort,
     legendAlias,
-    linkedDashboards,
     selectedAggregate: firstWidgetQuery?.selectedAggregate,
     legendType: widget.legendType,
     thresholds: widget.thresholds ? serializeThresholds(widget.thresholds) : undefined,

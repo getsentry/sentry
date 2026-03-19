@@ -75,7 +75,6 @@ export type WidgetBuilderStateQueryParams = {
   legendAlias?: string[];
   legendType?: LegendType;
   limit?: number;
-  linkedDashboards?: string[];
   query?: string[];
   selectedAggregate?: number;
   sort?: string[];
@@ -976,12 +975,6 @@ export function useWidgetBuilderState(): {
             setYAxis(deserializeFields(action.payload.yAxis), options);
           }
           setAxisRange(getAxisRange(action.payload.axisRange), options);
-          if (action.payload.linkedDashboards) {
-            setLinkedDashboards(
-              deserializeLinkedDashboards(action.payload.linkedDashboards),
-              options
-            );
-          }
           break;
         case BuilderStateAction.SET_THRESHOLDS:
           setThresholds(action.payload, options);
@@ -1264,9 +1257,7 @@ export function serializeFields(fields: Column[]): string[] {
   });
 }
 
-export function serializeLinkedDashboards(
-  linkedDashboards: LinkedDashboard[] = []
-): string[] {
+function serializeLinkedDashboards(linkedDashboards: LinkedDashboard[] = []): string[] {
   return linkedDashboards.map(linkedDashboard => {
     return JSON.stringify({
       dashboardId: linkedDashboard.dashboardId,
