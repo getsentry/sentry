@@ -93,8 +93,6 @@ export function WidgetBuilderGroupBySelector({
     dispatch({type: BuilderStateAction.SET_FIELDS, payload: newValue});
   };
 
-  const showExtraActions = hasDrillDownFlows && state.legendType === 'breakdown';
-
   return (
     <Fragment>
       <SectionHeader
@@ -113,7 +111,7 @@ export function WidgetBuilderGroupBySelector({
         style={{paddingRight: 0}}
         widgetType={state.dataset}
         disable={disableTransactionWidget}
-        showDashboardLinkButton={showExtraActions}
+        showDashboardLinkButton={hasDrillDownFlows && state.legendType === 'breakdown'}
       />
     </Fragment>
   );
