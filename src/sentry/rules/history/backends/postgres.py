@@ -200,7 +200,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         end: datetime,
         cursor: Cursor | None = None,
         per_page: int = 25,
-    ) -> CursorResult[RuleGroupHistory[RuleGroupHistory]]:
+    ) -> CursorResult[RuleGroupHistory]:
         if isinstance(target, Workflow):
             try:
                 alert_rule_workflow = AlertRuleWorkflow.objects.get(workflow=target)
@@ -224,7 +224,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
 
     def fetch_combined_rule_workflow_hourly_stats(
         self, rule_id: int, workflow_id: int, start: datetime, end: datetime
-    ) -> Sequence[TimeSeriesValue]:
+    ) -> dict[datetime, TimeSeriesValue]:
         existing_data: dict[datetime, TimeSeriesValue] = {}
         # Use raw SQL to combine data from both tables
         with connection.cursor() as db_cursor:
@@ -262,7 +262,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
 
     def fetch_rule_fire_history_hourly_stats(
         self, rule: Rule, start: datetime, end: datetime
-    ) -> Sequence[TimeSeriesValue]:
+    ) -> dict[datetime, TimeSeriesValue]:
         qs = (
             RuleFireHistory.objects.filter(
                 rule=rule,
@@ -317,8 +317,8 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
             try:
                 alert_rule_workflow = AlertRuleWorkflow.objects.get(workflow=target)
                 rule_id = alert_rule_workflow.rule_id
-                existing_data: dict[datetime, TimeSeriesValue] = (
-                    self.fetch_combined_rule_workflow_hourly_stats(rule_id, target.id, start, end)
+                existing_data = self.fetch_combined_rule_workflow_hourly_stats(
+                    rule_id, target.id, start, end
                 )
             except AlertRuleWorkflow.DoesNotExist:
                 existing_data = self.fetch_workflow_hourly_stats(target.id, start, end)
@@ -326,10 +326,8 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
             try:
                 alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=target.id)
                 workflow = alert_rule_workflow.workflow
-                existing_data: dict[datetime, TimeSeriesValue] = (
-                    self.fetch_combined_rule_workflow_hourly_stats(
-                        target.id, workflow.id, start, end
-                    )
+                existing_data = self.fetch_combined_rule_workflow_hourly_stats(
+                    target.id, workflow.id, start, end
                 )
             except AlertRuleWorkflow.DoesNotExist:
                 # If no workflow is associated with this rule, just use the original behavior
