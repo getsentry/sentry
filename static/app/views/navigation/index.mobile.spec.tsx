@@ -95,6 +95,15 @@ describe('mobile navigation', () => {
     document.getElementById('main')?.remove();
   });
 
+  describe('accessibility', () => {
+    it('does not render a skip link', () => {
+      render(<Navigation />, navigationContext());
+      expect(
+        screen.queryByRole('link', {name: 'Skip to main content'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('secondary nav route inference', () => {
     it('opens secondary navigation by default when on a sub-view', async () => {
       render(<Navigation />, navigationContext());

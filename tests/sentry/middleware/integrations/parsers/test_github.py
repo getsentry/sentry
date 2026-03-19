@@ -16,9 +16,9 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
-from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell, RegionCategory
 
@@ -42,7 +42,7 @@ class GithubRequestParserTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_invalid_webhook(self) -> None:
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             return
@@ -59,7 +59,7 @@ class GithubRequestParserTest(TestCase):
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_routing_no_organization_integration_found(self) -> None:
         integration = self.get_integration()
@@ -82,7 +82,7 @@ class GithubRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_routing_no_integration_found(self) -> None:
         self.get_integration()
@@ -101,7 +101,7 @@ class GithubRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_routing_search_properly(self) -> None:
         path = reverse(
@@ -126,7 +126,7 @@ class GithubRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_get_integration_from_request(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
@@ -140,7 +140,7 @@ class GithubRequestParserTest(TestCase):
         assert result == integration
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_webhook_outbox_creation(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
@@ -169,7 +169,7 @@ class GithubRequestParserTest(TestCase):
             "codecov.forward-webhooks.disabled": False,
         }
     )
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_webhook_for_codecov(self):
         integration = self.get_integration()
         request = self.factory.post(
@@ -205,7 +205,7 @@ class GithubRequestParserTest(TestCase):
             "codecov.forward-webhooks.disabled": False,
         }
     )
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_webhook_for_codecov_no_regions(self):
         integration = self.get_integration()
         request = self.factory.post(
@@ -245,7 +245,7 @@ class GithubRequestParserTest(TestCase):
             "codecov.forward-webhooks.disabled": True,
         }
     )
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_webhook_no_codecov_payload_when_forwarding_disabled(self):
         """When codecov.forward-webhooks.disabled is True, only region payload is created."""
         integration = self.get_integration()
@@ -279,7 +279,7 @@ class GithubRequestParserTest(TestCase):
             )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_installation_created_routing(self) -> None:
         self.get_integration()
@@ -315,7 +315,7 @@ class GithubRequestParserTest(TestCase):
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_issue_deleted_routing(self) -> None:
         integration = self.get_integration()
@@ -394,7 +394,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         assert parser.mailbox_bucket_id({}) is None
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_webhook_outbox_creation_with_bucketing(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
@@ -418,7 +418,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_webhook_outbox_creation_with_bucketing_isolates_event_types(self) -> None:
         """Different event types for the same repo land in different mailboxes."""
         integration = self.get_integration()
@@ -447,7 +447,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
             ) != check_run_parser.get_mailbox_identifier(integration, {})
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_webhook_outbox_creation_with_bucketing_no_event_type_header(self) -> None:
         """Falls back gracefully when X-GitHub-Event header is absent."""
         integration = self.get_integration()
@@ -472,7 +472,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_webhook_outbox_creation_without_bucketing(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
@@ -493,7 +493,7 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     def test_webhook_without_repository_uses_event_type_only(self) -> None:
         """No repository ID means no repo bucket, but event type still provides isolation."""
         integration = self.get_integration()
@@ -535,7 +535,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.github.metrics")
     def test_drops_unprocessed_event(self, mock_metrics: Mock) -> None:
@@ -559,7 +559,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_supported_event_never_dropped(self) -> None:
         """Supported event (push) is never dropped."""
@@ -582,7 +582,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_regions(region_config)
+    @override_cells(region_config)
     @responses.activate
     def test_missing_x_github_event_forwards_to_region(self) -> None:
         """Missing X-GitHub-Event is forwarded to region so it can return 400."""

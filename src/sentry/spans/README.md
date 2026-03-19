@@ -45,12 +45,15 @@ event types are limited in terms of frequency.
 - This would generate incomplete traces and segments as any spans can be dropped
   no matter on the trace structure.
 
-- This is applied per trace. The user cannot send more than X spans per minute
-  per trace. It is configured in [relay config](https://github.com/getsentry/ops/blob/a117ee546b130def3eb39ccdbf252229daafac1c/k8s/services/relay/_values.yaml#L61-L70).
+### Spans per second per trace rate limiter
 
-- This limit acts on a per-trace basis rather than a per-project basis as each trace
-  has to be processed by a single thread in the spans buffer thus there is
-  a strict limit and limited ability to scale this out.
+- The buffer needs to group spans into segment in a single thread, this
+  has a throughput limit. The good news is that we do not drop spans here,
+  we just reshuffle them. The resulting segment is incomplete though,
+  spans may be dangling.
+
+- This is applied per trace in Relay. The user cannot send more than X spans per minute
+  per trace. It is configured in [relay config](https://github.com/getsentry/ops/blob/a117ee546b130def3eb39ccdbf252229daafac1c/k8s/services/relay/_values.yaml#L61-L70).
 
 ### Maximum segment size
 

@@ -1,24 +1,51 @@
-import {Fragment, useRef, type ReactNode} from 'react';
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import type {To} from 'react-router-dom';
-import {useTheme} from '@emotion/react';
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {restrictToParentElement, restrictToVerticalAxis} from '@dnd-kit/modifiers';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
-import {IconAllProjects, IconChevron, IconMyProjects} from 'sentry/icons';
+import {IconAllProjects, IconChevron, IconGrabbable, IconMyProjects} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableTransition} from 'sentry/utils/testableTransition';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -49,6 +76,7 @@ interface SecondarySidebarProps {
 }
 
 function SecondarySidebar({children}: SecondarySidebarProps) {
+  const theme = useTheme();
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
@@ -96,7 +124,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               initial={{x: -6, opacity: 0}}
               animate={{x: 0, opacity: 1}}
               exit={{x: 6, opacity: 0}}
-              transition={{duration: 0.06}}
+              transition={theme.motion.framer.smooth.fast}
             >
               <Grid
                 rows="auto 1fr auto"
@@ -174,7 +202,7 @@ const ResizeHandle = styled('div')<{atMaxWidth: boolean; atMinWidth: boolean}>`
     width: 4px;
     opacity: 0.8;
     background: transparent;
-    transition: background 0.25s ease 0.1s;
+    transition: background ${p => p.theme.motion.smooth.slow} 0.1s;
   }
 `;
 
@@ -398,6 +426,7 @@ function SecondaryNavigationLink({
 
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
+  const hasPageFrame = organization.features.includes('page-frame');
 
   const sharedLinkProps = {
     ...linkProps,
@@ -427,6 +456,18 @@ function SecondaryNavigationLink({
         <Text ellipsis>{children}</Text>
         {trailingItems}
       </MobileNavigationLink>
+    );
+  }
+
+  if (hasPageFrame) {
+    return (
+      <PageFrameSidebarNavigationLink {...sharedLinkProps}>
+        {leadingItems}
+        <Text ellipsis variant="inherit">
+          {children}
+        </Text>
+        {trailingItems}
+      </PageFrameSidebarNavigationLink>
     );
   }
 
@@ -471,10 +512,10 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
     default:
       icons = (
         <Fragment>
-          <Container position="absolute" top="0" left="0" width="14px" height="14px">
+          <Container position="absolute" top="0" right="6px" width="12px" height="12px">
             {p => <PlatformIcon {...p} platform={props.projectPlatforms[0]!} size={12} />}
           </Container>
-          <Container position="absolute" bottom="0" right="0" width="14px" height="14px">
+          <Container position="absolute" bottom="0" right="0" width="12px" height="12px">
             {p => <PlatformIcon {...p} platform={props.projectPlatforms[1]!} size={12} />}
           </Container>
         </Fragment>
@@ -548,6 +589,61 @@ function Collapsible(props: CollapsibleProps) {
 
 const MotionFlex = motion.create(Flex);
 
+function navigationItemStyles(p: {layout: 'mobile' | 'sidebar'; theme: Theme}) {
+  return css`
+    display: flex;
+    gap: ${p.theme.space.sm};
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    color: ${p.theme.tokens.interactive.link.neutral.rest};
+    /* We need to cap the height at md size as some items like the reorderable link with icons
+     * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
+    height: ${p.theme.form.sm.height};
+    padding: ${p.layout === 'mobile'
+      ? `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`
+      : `${p.theme.space.md} ${p.theme.space.lg}`};
+    border-radius: ${p.theme.radius[p.layout === 'mobile' ? '0' : 'md']};
+
+    /* Renders the active state indicator */
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 20px;
+      left: -${p.theme.space.sm};
+      border-radius: ${p.theme.radius['2xs']};
+      background-color: ${p.theme.tokens.graphics.accent.vibrant};
+      transition: opacity ${p.theme.motion.smooth.fast};
+      opacity: 0;
+    }
+
+    &:hover {
+      color: ${p.theme.tokens.interactive.link.neutral.hover};
+      background-color: ${p.theme.tokens.interactive.transparent.neutral.background
+        .hover};
+    }
+
+    &[aria-selected='true'] {
+      color: ${p.theme.tokens.interactive.link.accent.rest};
+      background-color: ${p.theme.tokens.interactive.transparent.accent.selected
+        .background.rest};
+
+      &::before {
+        opacity: 1;
+      }
+
+      &:hover {
+        color: ${p.theme.tokens.interactive.link.accent.hover};
+        background-color: ${p.theme.tokens.interactive.transparent.accent.selected
+          .background.hover};
+      }
+    }
+  `;
+}
+
 const MobileNavigationLink = styled(Link)`
   display: flex;
   gap: ${p => p.theme.space.sm};
@@ -558,11 +654,6 @@ const MobileNavigationLink = styled(Link)`
     `${p.theme.space.sm} ${p.theme.space.lg} ${p.theme.space.sm} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius['0']};
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
-
-  /* Disable interaction state layer */
-  > [data-isl] {
-    display: none;
-  }
 
   /* Renders the active state indicator */
   &::before {
@@ -575,7 +666,7 @@ const MobileNavigationLink = styled(Link)`
     left: -${p => p.theme.space.sm};
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity 0.1s ease-in-out;
+    transition: opacity ${p => p.theme.motion.smooth.fast};
     opacity: 0;
   }
 
@@ -602,6 +693,441 @@ const MobileNavigationLink = styled(Link)`
   }
 `;
 
+/**
+ * A custom PointerSensor that only activates for mouse and pen pointer events,
+ * not touch events. This ensures that touch navigation (tapping) works normally.
+ */
+class NavigationPointerSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({nativeEvent: event}: React.PointerEvent): boolean => {
+        if (!event.isPrimary || event.button !== 0 || event.pointerType === 'touch') {
+          return false;
+        }
+        return true;
+      },
+    },
+  ];
+}
+
+const ReorderableItemContext = createContext<{
+  attributes: ReturnType<typeof useSortable>['attributes'];
+  isDragging: boolean;
+  listeners: ReturnType<typeof useSortable>['listeners'];
+  setActivatorNodeRef: ReturnType<typeof useSortable>['setActivatorNodeRef'];
+} | null>(null);
+
+function useReorderableItemContext() {
+  const ctx = useContext(ReorderableItemContext);
+  if (!ctx) {
+    throw new Error(
+      'SecondaryNavigation.ReorderableLink must be used within SecondaryNavigation.ReorderableList'
+    );
+  }
+  return ctx;
+}
+
+interface ReorderableListItemProps<T extends {id: string | number}> {
+  children: ReactNode;
+  item: T;
+}
+
+function ReorderableListItem<T extends {id: string | number}>(
+  props: ReorderableListItemProps<T>
+) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({id: props.item.id});
+
+  return (
+    <ReorderableItemContext.Provider
+      value={{attributes, isDragging, listeners, setActivatorNodeRef}}
+    >
+      <Container
+        radius="md"
+        position="relative"
+        background={isDragging ? 'secondary' : undefined}
+        ref={setNodeRef}
+        data-is-dragging={isDragging ? true : undefined}
+        style={{
+          transform: CSS.Transform.toString(transform),
+          transition: transition ?? undefined,
+          zIndex: isDragging ? 1 : undefined,
+        }}
+      >
+        {props.children}
+      </Container>
+    </ReorderableItemContext.Provider>
+  );
+}
+
+interface SecondaryNavigationReorderableListProps<T extends {id: string | number}> {
+  children: (item: T) => ReactNode;
+  items: T[];
+  onDragEnd: (items: T[]) => void;
+}
+
+function SecondaryNavigationReorderableList<T extends {id: string | number}>(
+  props: SecondaryNavigationReorderableListProps<T>
+) {
+  const sensors = useSensors(
+    useSensor(NavigationPointerSensor, {
+      activationConstraint: {distance: 5},
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // We need to hold a copy of the local state because dnd-kit does not play well
+  // with the optimistic updates and async state.
+  // See: https://github.com/clauderic/dnd-kit/issues/921
+  const [items, setItems] = useState<T[]>(props.items);
+  useEffect(() => {
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setItems(props.items);
+  }, [props.items]);
+
+  function handleDragEnd(event: DragEndEvent) {
+    const {active, over} = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = items.findIndex(item => item.id === active.id);
+      const newIndex = items.findIndex(item => item.id === over.id);
+      const newItems = arrayMove(items, oldIndex, newIndex);
+      props.onDragEnd(newItems);
+      setItems(newItems);
+    }
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={items} strategy={verticalListSortingStrategy}>
+        <Stack direction="column" padding="0" width="100%">
+          {items.map(item => (
+            <ReorderableListItem key={item.id} item={item}>
+              {props.children(item)}
+            </ReorderableListItem>
+          ))}
+        </Stack>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+interface SecondaryNavigationReorderableLinkProps extends Omit<
+  SecondaryNavigationItemProps,
+  'leadingItems' | 'onClick'
+> {
+  icon: ReactNode;
+  onNavigate?: () => void;
+}
+
+function SecondaryNavigationReorderableLink({
+  analyticsItemName,
+  children,
+  to,
+  activeTo = to,
+  isActive: incomingIsActive,
+  end = false,
+  icon,
+  trailingItems,
+  onNavigate,
+}: SecondaryNavigationReorderableLinkProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isActive =
+    incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
+  const {layout} = usePrimaryNavigation();
+  const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
+  const {isDragging} = useReorderableItemContext();
+  const hasPageFrame = organization.features.includes('page-frame');
+
+  function handleNavigate() {
+    if (isDragging) {
+      return;
+    }
+    if (analyticsItemName) {
+      trackAnalytics('navigation.secondary_item_clicked', {
+        item: analyticsItemName,
+        organization,
+      });
+    }
+    closeCollapsedNavigationHovercard();
+    onNavigate?.();
+    navigate(to, {state: {source: SIDEBAR_NAVIGATION_SOURCE}});
+  }
+
+  const sharedProps = {
+    role: 'link' as const,
+    tabIndex: 0,
+    layout,
+    isDragging,
+    'aria-current': isActive ? ('page' as const) : undefined,
+    'aria-selected': isActive,
+    onClick: handleNavigate,
+    onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // When the grab handle has focus, dnd-kit owns Space/Enter for pick-up
+      // and drop. Without this guard those keys would also trigger navigation
+      // via bubbling, making the drop action unreliable.
+      if ((e.target as HTMLElement).closest('[data-drag-icon]')) {
+        return;
+      }
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleNavigate();
+      }
+    },
+  };
+
+  const content = (
+    <Fragment>
+      <Flex justify="center" align="center" position="relative">
+        <GrabHandle />
+        <Flex justify="center" align="center" data-reorderable-handle-slot>
+          {icon}
+        </Flex>
+      </Flex>
+      {children}
+      {trailingItems}
+    </Fragment>
+  );
+
+  if (layout === 'mobile') {
+    return (
+      <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
+    );
+  }
+
+  if (hasPageFrame) {
+    return (
+      <StyledPageFrameReorderableFakeLink {...sharedProps}>
+        {content}
+      </StyledPageFrameReorderableFakeLink>
+    );
+  }
+
+  return (
+    <StyledReorderableFakeLink {...sharedProps}>{content}</StyledReorderableFakeLink>
+  );
+}
+
+function GrabHandle(props: FlexProps<'div'>) {
+  const {attributes, isDragging, listeners, setActivatorNodeRef} =
+    useReorderableItemContext();
+
+  return (
+    <Flex
+      radius="xs"
+      width="24px"
+      height="24px"
+      justify="center"
+      align="center"
+      position="absolute"
+      top="50%"
+      left="50%"
+    >
+      {p => (
+        <GrabHandleAnimation
+          {...props}
+          {...p}
+          {...listeners}
+          {...attributes}
+          aria-label={t('Drag to reorder')}
+          data-drag-icon
+          ref={setActivatorNodeRef}
+          style={{cursor: isDragging ? 'grabbing' : 'grab'}}
+          onClick={e => e.stopPropagation()}
+        >
+          <IconGrabbable variant="muted" />
+        </GrabHandleAnimation>
+      )}
+    </Flex>
+  );
+}
+
+const GrabHandleAnimation = styled('div')`
+  pointer-events: none;
+  opacity: 0;
+  z-index: 1;
+  transition:
+    opacity ${p => p.theme.motion.smooth.moderate},
+    transform ${p => p.theme.motion.smooth.moderate};
+  transform: translate(-50%, -50%);
+  &:active {
+    cursor: grabbing;
+  }
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
+  }
+`;
+
+interface SecondaryNavigationIndicatorProps {
+  variant: 'accent' | 'danger' | 'warning';
+  ref?: React.Ref<HTMLDivElement>;
+}
+
+function SecondaryNavigationIndicator(props: SecondaryNavigationIndicatorProps) {
+  const {ref, variant, ...rest} = props;
+  return (
+    <Container
+      position="absolute"
+      top="0"
+      right="0"
+      width="10px"
+      height="10px"
+      radius="full"
+      {...rest}
+    >
+      {p => <DotIndicator ref={ref} {...p} variant={variant} />}
+    </Container>
+  );
+}
+
+const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
+  background: ${p => p.theme.tokens.graphics[p.variant].vibrant};
+  border: 2px solid ${p => p.theme.tokens.border[p.variant].muted};
+`;
+
+const StyledReorderableFakeLink = styled('div')<{
+  isDragging: boolean;
+  layout: 'mobile' | 'sidebar';
+}>`
+  ${p => navigationItemStyles(p)}
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
+  }
+
+  :hover,
+  :has(:focus-visible) {
+    [data-drag-icon] {
+      opacity: 1;
+      scale: 1;
+      pointer-events: auto;
+    }
+  }
+
+  ${p =>
+    p.isDragging &&
+    css`
+      [data-drag-icon] {
+        opacity: 1;
+        scale: 1;
+        pointer-events: auto;
+      }
+    `}
+
+  [data-reorderable-handle-slot] {
+    transition:
+      opacity 150ms ease,
+      scale 150ms ease;
+  }
+
+  :hover [data-reorderable-handle-slot] {
+    opacity: 0;
+    scale: 0.95;
+  }
+
+  ${p =>
+    p.isDragging &&
+    css`
+      [data-reorderable-handle-slot] {
+        opacity: 0;
+        scale: 0.95;
+      }
+    `}
+`;
+
+const StyledPageFrameReorderableFakeLink = styled('div')<{
+  isDragging: boolean;
+  layout: 'mobile' | 'sidebar';
+}>`
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
+  }
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
+
+  &:active {
+    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.background.active};
+  }
+
+  &[aria-selected='true'] {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
+    color: ${p => p.theme.tokens.content.primary};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+    }
+  }
+
+  :hover,
+  :has(:focus-visible) {
+    [data-drag-icon] {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+  }
+
+  [data-reorderable-handle-slot] {
+    transition:
+      opacity ${p => p.theme.motion.smooth.moderate},
+      transform ${p => p.theme.motion.smooth.moderate};
+    opacity: ${p => (p.isDragging ? 0 : undefined)};
+    transform: ${p => (p.isDragging ? 'scale(0.95)' : 'scale(1)')};
+  }
+
+  :hover [data-reorderable-handle-slot],
+  :has(:focus-visible) [data-reorderable-handle-slot] {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  [data-drag-icon] {
+    opacity: ${p => (p.isDragging ? 1 : undefined)};
+    transform: ${p => (p.isDragging ? 'translate(-50%, -50%) scale(1)' : undefined)};
+    pointer-events: ${p => (p.isDragging ? 'auto' : undefined)};
+  }
+`;
+
 const SidebarNavigationLink = styled(Link)`
   display: flex;
   gap: ${p => p.theme.space.sm};
@@ -611,11 +1137,6 @@ const SidebarNavigationLink = styled(Link)`
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius.md};
-
-  /* Disable interaction state layer */
-  > [data-isl] {
-    display: none;
-  }
 
   /* Renders the active state indicator */
   &::before {
@@ -628,7 +1149,7 @@ const SidebarNavigationLink = styled(Link)`
     left: -${p => p.theme.space.sm};
     border-radius: ${p => p.theme.radius['2xs']};
     background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-    transition: opacity 0.1s ease-in-out;
+    transition: opacity ${p => p.theme.motion.smooth.fast};
     opacity: 0;
   }
 
@@ -649,6 +1170,43 @@ const SidebarNavigationLink = styled(Link)`
 
     &:hover {
       color: ${p => p.theme.tokens.interactive.link.accent.hover};
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+    }
+  }
+`;
+
+const PageFrameSidebarNavigationLink = styled(Link)`
+  display: flex;
+  gap: ${p => p.theme.space.sm};
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
+  border-radius: ${p => p.theme.radius.md};
+  border: 1px solid transparent;
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+    border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+  }
+
+  &:active {
+    border: 1px solid ${p => p.theme.tokens.interactive.transparent.accent.border};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.background.active};
+  }
+
+  &[aria-selected='true'] {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
+    color: ${p => p.theme.tokens.content.primary};
+
+    &:hover {
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.hover};
     }
@@ -665,4 +1223,7 @@ export const SecondaryNavigation = {
   Link: SecondaryNavigationLink,
   ProjectIcon: SecondaryNavigationProjectIcon,
   Sidebar: SecondarySidebar,
+  ReorderableList: SecondaryNavigationReorderableList,
+  ReorderableLink: SecondaryNavigationReorderableLink,
+  Indicator: SecondaryNavigationIndicator,
 };

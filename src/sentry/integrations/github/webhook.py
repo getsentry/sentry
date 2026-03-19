@@ -139,7 +139,7 @@ def _handle_pr_webhook_for_autofix_processor(
 
 class GitHubWebhook(SCMWebhook, ABC):
     """
-    Base class for GitHub webhooks handled in region silos.
+    Base class for GitHub webhooks handled in cell silos.
     """
 
     EVENT_TYPE: IntegrationWebhookEventType
@@ -1046,6 +1046,11 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         if secret is None:
             logger.warning("github.webhook.missing-secret", extra=self.get_logging_data())
+            metrics.incr(
+                "github.webhook.hmac_failure",
+                tags={"reason": "missing_secret"},
+                sample_rate=1.0,
+            )
             return HttpResponse(status=401)
 
         body = bytes(request.body)
@@ -1080,6 +1085,11 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         if not self.is_valid_signature(method, body, secret, signature):
             logger.warning("github.webhook.invalid-signature", extra=self.get_logging_data())
+            metrics.incr(
+                "github.webhook.hmac_failure",
+                tags={"reason": "invalid_signature"},
+                sample_rate=1.0,
+            )
             return HttpResponse(status=401)
 
         try:
@@ -1121,7 +1131,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         #
         # NOTE: Publication of the event assumes the event has been properly authorized (as it has
         #       been above).
-        # NOTE: We are in the correct region silo at this stage. The IntegrationControlMiddleware
+        # NOTE: We are in the correct cell silo at this stage. The IntegrationControlMiddleware
         #       middleware has handled routing.
         produce_event_to_scm_stream(
             {
