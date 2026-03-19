@@ -77,7 +77,6 @@ interface SecondarySidebarProps {
 }
 
 function SecondarySidebar({children}: SecondarySidebarProps) {
-  const theme = useTheme();
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
@@ -125,7 +124,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               initial={{x: -6, opacity: 0}}
               animate={{x: 0, opacity: 1}}
               exit={{x: 6, opacity: 0}}
-              transition={theme.motion.framer.smooth.fast}
+              transition={{duration: 0.06}}
             >
               <Grid
                 rows="auto 1fr auto"
