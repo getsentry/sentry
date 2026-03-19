@@ -59,7 +59,9 @@ export function LinkToDashboardModal({
 
     const dashboardListPromise = fetchDashboards(api, organization.slug);
     const linkedDashboardPromise = currentLinkedDashboard?.dashboardId
-      ? fetchDashboard(api, organization.slug, currentLinkedDashboard.dashboardId)
+      ? fetchDashboard(api, organization.slug, currentLinkedDashboard.dashboardId).catch(
+          () => null
+        )
       : Promise.resolve(null);
 
     Promise.all([dashboardListPromise, linkedDashboardPromise])
