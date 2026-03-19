@@ -59,7 +59,7 @@ describe('AiConfigureSeerQuotaSidebar', () => {
     expect(screen.queryByText('Meet Seer, your AI assistant')).not.toBeInTheDocument();
   });
 
-  it('renders AutofixContent when user has autofix quota', async () => {
+  it('renders AutofixContent when user has autofix quota', () => {
     const organization = OrganizationFixture({features: ['seer-billing']});
     const subscription = SubscriptionFixture({organization});
     act(() => SubscriptionStore.set(organization.slug, subscription));
@@ -88,7 +88,7 @@ describe('AiConfigureSeerQuotaSidebar', () => {
     expect(screen.queryByText('Meet Seer, your AI assistant')).not.toBeInTheDocument();
   });
 
-  it('renders AutofixContent when seer-billing feature is not present', async () => {
+  it('renders AutofixContent when seer-billing feature is not present', () => {
     const organization = OrganizationFixture({features: []});
     const subscription = SubscriptionFixture({organization});
     act(() => SubscriptionStore.set(organization.slug, subscription));
