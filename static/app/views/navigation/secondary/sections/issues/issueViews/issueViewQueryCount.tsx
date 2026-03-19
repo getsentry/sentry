@@ -1,6 +1,4 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Text} from '@sentry/scraps/text';
@@ -39,14 +37,12 @@ interface IssueViewQueryCountProps {
 
 export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) {
   const organization = useOrganization();
-  const theme = useTheme();
   const location = useLocation();
 
   const queryIssueViewParams = createIssueViewFromUrl({query: location.query});
 
   const {
     data: queryCount,
-    isLoading,
     isFetching,
     isError,
   } = useFetchIssueCounts({
@@ -71,47 +67,16 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
     ? 0
     : (queryCount?.[view.query] ?? queryCount?.[defaultQuery ?? ''] ?? 0);
 
-  // Only render the tag once data has loaded
-  if (isLoading) {
+  if (isFetching) {
     return null;
   }
 
   return (
-    <AnimatedTag
-      variant="muted"
-      initial={{opacity: 0, scale: 0.95}}
-      animate={{
-        opacity: 1,
-        scale: 1,
-        backgroundColor: isFetching
-          ? [
-              theme.tokens.background.primary,
-              theme.tokens.background.secondary,
-              theme.tokens.background.primary,
-            ]
-          : undefined,
-      }}
-      transition={{
-        opacity: {
-          duration: 0.3,
-          ease: 'easeOut',
-        },
-        scale: {
-          duration: 0.3,
-          ease: 'easeOut',
-        },
-        backgroundColor: {
-          duration: isFetching ? 2 : 0,
-          repeat: isFetching ? Infinity : 0,
-          ease: 'easeInOut',
-        },
-      }}
-      data-issue-view-query-count
-    >
+    <StyledTag variant="muted" data-issue-view-query-count>
       <Text variant="muted" size="xs" align="center" tabular>
         {count > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : count}
       </Text>
-    </AnimatedTag>
+    </StyledTag>
   );
 }
 const StyledTag = styled(Tag)`
@@ -119,6 +84,20 @@ const StyledTag = styled(Tag)`
   background-color: ${p => p.theme.tokens.background.primary};
   padding: 0 ${p => p.theme.space.xs};
   justify-content: end;
-`;
 
-const AnimatedTag = motion.create(StyledTag);
+  opacity: 0;
+  transform: scale(0.95);
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  animation: fadeIn 0.1s ease-in-out forwards;
+`;
