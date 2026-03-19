@@ -50,37 +50,35 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   } = useOnboardingContext();
 
   const hasScmConnected = !!selectedRepository;
-  const [showManualPicker, setShowManualPicker] = useState(false);
-
-  // Derive platform key from context instead of local state
-  const currentPlatformKey = selectedPlatform?.key;
-  const currentFeatures = useMemo(
-    () => selectedFeatures ?? [ProductSolution.ERROR_MONITORING],
-    [selectedFeatures]
-  );
 
   const {detectedPlatforms, isPending: isDetecting} = usePlatformDetection(
     hasScmConnected ? selectedRepository.id : undefined
   );
 
-  const resolvedPlatforms = useMemo(
-    () =>
-      detectedPlatforms
-        .map(detected => ({...detected, info: getPlatformInfo(detected.platform)}))
-        .filter(p => p.info !== undefined),
-    [detectedPlatforms]
+  const [showManualPicker, setShowManualPicker] = useState(false);
+
+  const currentFeatures = useMemo(
+    () => selectedFeatures ?? [ProductSolution.ERROR_MONITORING],
+    [selectedFeatures]
   );
 
-  const detectedPlatformKey = resolvedPlatforms[0]?.platform;
-
-  // Auto-select the first detected platform when results load
-  useEffect(() => {
-    if (detectedPlatformKey && !currentPlatformKey) {
-      setPlatformInContext(detectedPlatformKey, setSelectedPlatform);
-      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlatformKey, detectedPlatformKey]);
+  const resolvedPlatforms = useMemo(
+    () =>
+      detectedPlatforms.reduce<
+        Array<
+          (typeof detectedPlatforms)[number] & {
+            info: NonNullable<ReturnType<typeof getPlatformInfo>>;
+          }
+        >
+      >((acc, detected) => {
+        const info = getPlatformInfo(detected.platform);
+        if (info) {
+          acc.push({...detected, info});
+        }
+        return acc;
+      }, []),
+    [detectedPlatforms]
+  );
 
   const handleToggleFeature = useCallback(
     (feature: ProductSolution) => {
@@ -113,6 +111,17 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   );
 
   const showDetectedPlatforms = hasScmConnected && !showManualPicker;
+  const detectedPlatformKey = resolvedPlatforms[0]?.platform;
+  const currentPlatformKey = selectedPlatform?.key;
+
+  // Auto-select the first detected platform when results load
+  useEffect(() => {
+    if (detectedPlatformKey && !currentPlatformKey) {
+      setPlatformInContext(detectedPlatformKey, setSelectedPlatform);
+      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlatformKey, detectedPlatformKey]);
 
   return (
     <Flex direction="column" align="center" gap="xl" flexGrow={1}>
@@ -155,9 +164,9 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
                           <Flex gap="sm" align="center">
                             <PlatformIcon platform={platform} size={20} />
                             <Stack gap="0">
-                              <Text bold>{info!.name}</Text>
+                              <Text bold>{info.name}</Text>
                               <Text variant="muted" size="sm">
-                                {info!.type}
+                                {info.type}
                               </Text>
                             </Stack>
                           </Flex>
