@@ -106,27 +106,7 @@ def _configure_test_env_cells() -> None:
     monkey_patch_single_process_silo_mode_state()
 
 
-def _dump_threads(signum: int | None = None, frame: object = None) -> None:
-    """Dump all thread stacks to stderr for hang diagnosis."""
-    import faulthandler
-    import threading
-
-    worker = os.environ.get("PYTEST_XDIST_WORKER", "controller")
-    sys.stderr.write(f"\n{'=' * 72}\n")
-    sys.stderr.write(f"[HANG DIAG] Thread dump for {worker} at {datetime.now().isoformat()}\n")
-    sys.stderr.write(f"[HANG DIAG] Active threads: {threading.active_count()}\n")
-    for t in threading.enumerate():
-        sys.stderr.write(f"[HANG DIAG]   - {t.name} (daemon={t.daemon}, alive={t.is_alive()})\n")
-    sys.stderr.write(f"{'=' * 72}\n")
-    faulthandler.dump_traceback(file=sys.stderr, all_threads=True)
-    sys.stderr.write(f"{'=' * 72}\n")
-    sys.stderr.flush()
-    if signum is not None:
-        raise SystemExit(128 + signum)
-
-
 def pytest_configure(config: pytest.Config) -> None:
-    import signal
     import warnings
 
     # This is just to filter out an obvious warning before the pytest session starts.
@@ -138,15 +118,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
     config.addinivalue_line("markers", "migrations: requires --migrations")
     config.addinivalue_line("markers", "symbolicator: test requires access to symbolicator")
-
-    if os.environ.get("PYTEST_XDIST_WORKER"):
-        import faulthandler
-
-        faulthandler.dump_traceback_later(1170, repeat=False, file=sys.stderr)
-        signal.signal(signal.SIGUSR1, _dump_threads)
-        worker = os.environ.get("PYTEST_XDIST_WORKER")
-        sys.stderr.write(f"[HANG DIAG] {worker}: faulthandler armed (1170s) + SIGUSR1 handler\n")
-        sys.stderr.flush()
 
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
@@ -401,33 +372,11 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
-    worker = os.environ.get("PYTEST_XDIST_WORKER", "controller")
-    sys.stderr.write(f"[HANG DIAG] {worker}: pytest_sessionfinish START (exit={exitstatus})\n")
-    sys.stderr.flush()
-
     from taskbroker_client.registry import TaskNamespace
 
     if hasattr(TaskNamespace, "_original_send_task"):
         TaskNamespace.send_task = TaskNamespace._original_send_task  # type: ignore[method-assign]
         del TaskNamespace._original_send_task
-
-    sys.stderr.write(f"[HANG DIAG] {worker}: pytest_sessionfinish END\n")
-    sys.stderr.flush()
-
-
-def pytest_unconfigure(config: pytest.Config) -> None:
-    worker = os.environ.get("PYTEST_XDIST_WORKER", "controller")
-    sys.stderr.write(f"[HANG DIAG] {worker}: pytest_unconfigure START\n")
-    sys.stderr.flush()
-
-    import threading
-
-    for t in threading.enumerate():
-        if t is not threading.current_thread() and not t.daemon:
-            sys.stderr.write(
-                f"[HANG DIAG] {worker}: non-daemon thread alive: {t.name} (ident={t.ident})\n"
-            )
-    sys.stderr.flush()
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
@@ -435,23 +384,6 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
         mark for mark in item.iter_markers(name="migrations")
     ):
         pytest.skip("migrations are not enabled, run with `pytest --migrations ...`")
-
-
-_test_start_times: dict[str, float] = {}
-
-
-def pytest_runtest_logstart(nodeid: str, location: tuple[str, int | None, str]) -> None:
-    _test_start_times[nodeid] = time.monotonic()
-
-
-def pytest_runtest_logfinish(nodeid: str, location: tuple[str, int | None, str]) -> None:
-    start = _test_start_times.pop(nodeid, None)
-    if start is not None:
-        elapsed = time.monotonic() - start
-        if elapsed > 30 or os.environ.get("PYTEST_XDIST_WORKER"):
-            worker = os.environ.get("PYTEST_XDIST_WORKER", "main")
-            sys.stderr.write(f"[HANG DIAG] {worker}: test done ({elapsed:.1f}s): {nodeid}\n")
-            sys.stderr.flush()
 
 
 def pytest_runtest_teardown(item: pytest.Item) -> None:
