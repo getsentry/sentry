@@ -811,30 +811,6 @@ describe('Dashboards > WidgetCard', () => {
     expect(mockCall?.yAxis?.minInterval).toEqual(SECOND);
   });
 
-  it('displays indexed badge in preview mode', async () => {
-    renderWithProviders(
-      <WidgetCard
-        api={api}
-        organization={{
-          ...organization,
-          features: [...organization.features],
-        }}
-        widget={multipleQueryWidget}
-        selection={selection}
-        isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-        isPreview
-        widgetLegendState={widgetLegendState}
-      />
-    );
-
-    expect(await screen.findByText('Indexed')).toBeInTheDocument();
-  });
-
   it('does not render description for text display type widgets', async () => {
     renderWithProviders(
       <WidgetCard

@@ -112,8 +112,7 @@ export function MetricsCardinalityProvider(props: {
                             ...sumsResult.tableData,
                           }
                         : null,
-                      !!compatabilityResult.error && !!sumsResult.error,
-                      props.organization
+                      !!compatabilityResult.error && !!sumsResult.error
                     );
 
               return (
@@ -173,8 +172,7 @@ export const useMetricsCardinalityContext = _useContext;
  */
 function getMetricsOutcome(
   dataCounts: MergedMetricsData | null,
-  hasOtherFallbackCondition: boolean,
-  organization: Organization
+  hasOtherFallbackCondition: boolean
 ) {
   const fallbackOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: true,
@@ -182,9 +180,6 @@ function getMetricsOutcome(
   const successOutcome: MetricDataSwitcherOutcome = {
     forceTransactionsOnly: false,
   };
-  const isOnFallbackThresolds = organization.features.includes(
-    'performance-mep-bannerless-ui'
-  );
 
   if (!dataCounts) {
     return fallbackOutcome;
@@ -195,15 +190,11 @@ function getMetricsOutcome(
     return fallbackOutcome;
   }
 
-  if (!dataCounts) {
-    return fallbackOutcome;
-  }
-
   if (checkNoDataFallback(dataCounts)) {
     return fallbackOutcome;
   }
 
-  if (checkIncompatibleData(dataCounts, isOnFallbackThresolds)) {
+  if (checkIncompatibleData(dataCounts)) {
     return {
       shouldWarnIncompatibleSDK: true,
       forceTransactionsOnly: true,
@@ -219,7 +210,7 @@ function getMetricsOutcome(
     };
   }
 
-  if (checkIfPartialOtherData(dataCounts, isOnFallbackThresolds)) {
+  if (checkIfPartialOtherData(dataCounts)) {
     return {
       shouldNotifyUnnamedTransactions: true,
       compatibleProjects,
@@ -241,16 +232,10 @@ function checkNoDataFallback(dataCounts: MergedMetricsData) {
 /**
  * Fallback and warn if incompatible data found (old specific SDKs).
  */
-function checkIncompatibleData(
-  dataCounts: MergedMetricsData,
-  isOnFallbackThresolds: boolean
-) {
+function checkIncompatibleData(dataCounts: MergedMetricsData) {
   const counts = normalizeCounts(dataCounts);
-  if (isOnFallbackThresolds) {
-    const ratio = counts.nullCount / counts.metricsCount;
-    return ratio > NULL_THRESHOLD;
-  }
-  return counts.nullCount > 0;
+  const ratio = counts.nullCount / counts.metricsCount;
+  return ratio > NULL_THRESHOLD;
 }
 
 /**
@@ -264,16 +249,10 @@ function checkIfAllOtherData(dataCounts: MergedMetricsData) {
 /**
  * Show metrics but warn about unnamed transactions.
  */
-function checkIfPartialOtherData(
-  dataCounts: MergedMetricsData,
-  isOnFallbackThresolds: boolean
-) {
+function checkIfPartialOtherData(dataCounts: MergedMetricsData) {
   const counts = normalizeCounts(dataCounts);
-  if (isOnFallbackThresolds) {
-    const ratio = counts.unparamCount / counts.metricsCount;
-    return ratio > UNPARAM_THRESHOLD;
-  }
-  return counts.unparamCount > 0;
+  const ratio = counts.unparamCount / counts.metricsCount;
+  return ratio > UNPARAM_THRESHOLD;
 }
 
 /**

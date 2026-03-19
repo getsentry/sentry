@@ -602,21 +602,6 @@ export class Results extends Component<Props, State> {
   };
 
   renderMetricsFallbackBanner() {
-    const {organization} = this.props;
-    if (
-      !organization.features.includes('performance-mep-bannerless-ui') &&
-      this.state.showMetricsAlert
-    ) {
-      return (
-        <Alert.Container>
-          <Alert variant="info">
-            {t(
-              "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
-            )}
-          </Alert>
-        </Alert.Container>
-      );
-    }
     if (this.state.showUnparameterizedBanner) {
       return (
         <Alert.Container>

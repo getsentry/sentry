@@ -13,18 +13,6 @@ describe('IndexedEventsSelectionAlert', () => {
     widgetType: WidgetType.TRANSACTIONS,
   });
 
-  it('Shows warning if falling through to indexed events', async () => {
-    render(
-      <MEPSettingProvider forceTransactions>
-        <DashboardsMEPContext value={{isMetricsData: false, setIsMetricsData: () => {}}}>
-          <IndexedEventsSelectionAlert widget={widget} />
-        </DashboardsMEPContext>
-      </MEPSettingProvider>
-    );
-
-    await screen.findByText(/we've automatically adjusted your results/i);
-  });
-
   it('Does not show warning if using metrics successfully', () => {
     render(
       <MEPSettingProvider>
