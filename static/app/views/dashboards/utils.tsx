@@ -15,7 +15,6 @@ import {
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
-import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
