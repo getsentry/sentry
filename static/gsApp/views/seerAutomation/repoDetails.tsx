@@ -90,7 +90,7 @@ export default function SeerRepoDetails() {
             'Choose how Seer automatically reviews your pull requests. [docs:Read the docs] to learn what Seer can do.',
             {
               docs: (
-                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+                <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/" />
               ),
             }
           )}

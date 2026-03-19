@@ -165,10 +165,6 @@ class CellScheduledDeletion(BaseScheduledDeletion):
         db_table = "sentry_regionscheduleddeletion"
 
 
-# TODO(cells): Clean up alias once no longer used by getsentry
-RegionScheduledDeletion = CellScheduledDeletion
-
-
 def get_regional_scheduled_deletion(mode: SiloMode) -> type[BaseScheduledDeletion]:
     if mode != SiloMode.CONTROL:
         return CellScheduledDeletion

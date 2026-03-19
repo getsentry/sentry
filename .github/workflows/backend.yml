@@ -206,13 +206,23 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
-      shard-count: ${{ steps.calculate-shards.outputs.shard-count }}
-      shard-indices: ${{ steps.calculate-shards.outputs.shard-indices }}
+      shard-count: ${{ steps.static-shards.outputs.shard-count || steps.calculate-shards.outputs.shard-count }}
+      shard-indices: ${{ steps.static-shards.outputs.shard-indices || steps.calculate-shards.outputs.shard-indices }}
 
     steps:
+      - name: Use default shards (no selective testing)
+        id: static-shards
+        if: needs.prepare-selective-tests.outputs.has-selected-tests != 'true'
+        # Keep in sync with MAX_SHARDS in .github/workflows/scripts/calculate-backend-test-shards.py
+        run: |
+          echo "shard-count=22" >> "$GITHUB_OUTPUT"
+          echo "shard-indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
 
       - name: Setup sentry env
+        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
@@ -228,8 +238,9 @@ jobs:
 
       - name: Calculate test shards
         id: calculate-shards
+        if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
         env:
-          SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+          SELECTED_TESTS_FILE: '.artifacts/selected-tests.txt'
           SELECTED_TEST_COUNT: ${{ needs.prepare-selective-tests.outputs.test-count || '' }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
@@ -261,6 +272,10 @@ jobs:
       # Dynamic total from calculate-shards
       MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
+      # xdist: enabled on master pushes and workflow_dispatch, disabled on PRs
+      PYTHONHASHSEED: ${{ github.event_name != 'pull_request' && '0' || 'random' }}
+      XDIST_PER_WORKER_SNUBA: ${{ github.event_name != 'pull_request' && '1' || '' }}
+      XDIST_WORKERS: ${{ github.event_name != 'pull_request' && '3' || '' }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -278,6 +293,59 @@ jobs:
           sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
           rm odiff-linux-x64
 
+      - name: Bootstrap per-worker Snuba instances
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        run: |
+          set -eo pipefail
+          SNUBA_IMAGE=$(docker inspect snuba-snuba-1 --format '{{.Config.Image}}')
+          SNUBA_NETWORK=$(docker inspect snuba-snuba-1 --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
+          if [ -z "$SNUBA_IMAGE" ] || [ -z "$SNUBA_NETWORK" ]; then
+            echo "ERROR: Could not inspect snuba-snuba-1 container. Is devservices running?"
+            exit 1
+          fi
+
+          docker stop snuba-snuba-1 || true
+
+          PIDS=()
+          for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
+            (
+              WORKER_DB="default_gw${i}"
+              WORKER_PORT=$((1230 + i))
+              curl -sf 'http://localhost:8123/' --data-binary "CREATE DATABASE IF NOT EXISTS ${WORKER_DB}"
+              docker run --rm --network "$SNUBA_NETWORK" \
+                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
+                -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
+                -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
+                -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
+                "$SNUBA_IMAGE" bootstrap --force 2>&1 | tail -3
+              docker run -d --name "snuba-gw${i}" --network "$SNUBA_NETWORK" \
+                -p "${WORKER_PORT}:1218" \
+                -e "CLICKHOUSE_DATABASE=${WORKER_DB}" -e "CLICKHOUSE_HOST=clickhouse" \
+                -e "CLICKHOUSE_PORT=9000" -e "CLICKHOUSE_HTTP_PORT=8123" \
+                -e "DEFAULT_BROKERS=kafka:9093" -e "REDIS_HOST=redis" \
+                -e "REDIS_PORT=6379" -e "REDIS_DB=1" -e "SNUBA_SETTINGS=docker" \
+                -e "DEBUG=1" "$SNUBA_IMAGE" api
+
+              for attempt in $(seq 1 30); do
+                if curl -sf "http://127.0.0.1:${WORKER_PORT}/health" > /dev/null 2>&1; then
+                  echo "snuba-gw${i} healthy on port ${WORKER_PORT}"
+                  break
+                fi
+                if [ "$attempt" -eq 30 ]; then
+                  echo "ERROR: snuba-gw${i} failed health check after 30 attempts"
+                  docker logs "snuba-gw${i}" 2>&1 | tail -20 || true
+                  exit 1
+                fi
+                sleep 2
+              done
+            ) &
+            PIDS+=($!)
+          done
+
+          for pid in "${PIDS[@]}"; do
+            wait "$pid" || { echo "ERROR: Snuba bootstrap subshell (PID $pid) failed"; exit 1; }
+          done
+
       - name: Download selected tests artifact
         if: needs.prepare-selective-tests.outputs.has-selected-tests == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -289,7 +357,18 @@ jobs:
         env:
           SELECTED_TESTS_FILE: ${{ needs.prepare-selective-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
         run: |
-          make test-python-ci
+          if [ -n "${XDIST_WORKERS}" ]; then
+            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+            timeout 1200 make test-python-ci || {
+              rc=$?
+              if [ "$rc" -eq 124 ]; then
+                echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
+              fi
+              exit "$rc"
+            }
+          else
+            make test-python-ci
+          fi
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
@@ -308,6 +387,13 @@ jobs:
         run: |
           if command -v devservices; then
             devservices logs
+          fi
+
+          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
+            for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
+              echo "--- snuba-gw${i} logs ---"
+              docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
+            done
           fi
 
       - name: Collect test data

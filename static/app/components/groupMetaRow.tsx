@@ -18,7 +18,6 @@ import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {getTitle} from 'sentry/utils/events';
@@ -28,7 +27,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
-  data: Event | Group;
+  data: Group;
   showAssignee?: boolean;
   showLifetime?: boolean;
 };
@@ -54,11 +53,7 @@ function Lifetime({
   );
 }
 
-export function EventOrGroupExtraDetails({
-  data,
-  showAssignee,
-  showLifetime = true,
-}: Props) {
+export function GroupMetaRow({data, showAssignee, showLifetime = true}: Props) {
   const {
     id,
     lastSeen,
@@ -72,7 +67,7 @@ export function EventOrGroupExtraDetails({
     project,
     lifetime,
     isUnhandled,
-  } = data as Group;
+  } = data;
   const organization = useOrganization();
   const location = useLocation();
 
@@ -85,8 +80,8 @@ export function EventOrGroupExtraDetails({
     data.issueCategory &&
     !!getReplayCountForIssue(data.id, data.issueCategory);
 
-  const autofixRunExists = getAutofixRunExists(data as Group);
-  const seerFixable = isIssueQuickFixable(data as Group);
+  const autofixRunExists = getAutofixRunExists(data);
+  const seerFixable = isIssueQuickFixable(data);
   const showSeer =
     organization.features.includes('gen-ai-features') &&
     !organization.hideAiFeatures &&
@@ -123,8 +118,8 @@ export function EventOrGroupExtraDetails({
         <span>{numComments}</span>
       </CommentsLink>
     ) : null,
-    showReplayCount ? <IssueReplayCount group={data as Group} /> : null,
-    showSeer ? <IssueSeerBadge group={data as Group} key="issue-seer-badge" /> : null,
+    showReplayCount ? <IssueReplayCount group={data} /> : null,
+    showSeer ? <IssueSeerBadge group={data} key="issue-seer-badge" /> : null,
     logger ? (
       <LoggerAnnotation>
         <Link

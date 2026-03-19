@@ -22,7 +22,7 @@ const defaultInitialProps: TraceItemSearchQueryBuilderProps = {
   searchSource: 'test',
 };
 const organization = OrganizationFixture({
-  features: ['search-query-builder-explicit-boolean-filters'],
+  features: [],
 });
 
 describe('useTraceItemSearchQueryBuilderProps', () => {
@@ -166,6 +166,32 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
     expect(result.current.getTagKeys).toEqual(expect.any(Function));
     expect(result.current.disallowUnsupportedFilters).toBe(false);
+  });
+
+  it.each([TraceItemDataset.SPANS, TraceItemDataset.LOGS, TraceItemDataset.TRACEMETRICS])(
+    'disables recent searches when disableRecentSearches is true for item type %s',
+    itemType => {
+      const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+        initialProps: {
+          ...defaultInitialProps,
+          itemType,
+          disableRecentSearches: true,
+        },
+        organization,
+      });
+
+      expect(result.current.recentSearches).toBeUndefined();
+      expect(result.current.namespace).toBeUndefined();
+    }
+  );
+
+  it('enables recent searches by default', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: defaultInitialProps,
+      organization,
+    });
+
+    expect(result.current.recentSearches).toBeDefined();
   });
 
   it('getTagKeys fetches keys across string, number, and boolean attributes', async () => {
