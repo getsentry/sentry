@@ -196,8 +196,10 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
+        first_class = SnapshotImageResponse.__fields__
         image_list = [
             SnapshotImageResponse(
+                **{k: v for k, v in metadata.dict().items() if k not in first_class},
                 key=key,
                 display_name=metadata.display_name,
                 image_file_name=metadata.image_file_name,

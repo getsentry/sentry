@@ -73,7 +73,7 @@ class OrganizationService(RpcService):
         Fetch an organization's API serialized form
 
         Note that this can be None if the organization is already deleted
-        in the corresponding region silo.
+        in the corresponding cell silo.
 
         :param id: The organization id
         :param as_user: The user making the request, used for authorization on the output.
@@ -485,12 +485,27 @@ class OrganizationService(RpcService):
 
     @cell_rpc_method(resolve=ByCellName())
     @abstractmethod
+    def update_cell_user(
+        self,
+        *,
+        user: RpcRegionUser,
+        cell_name: str,
+    ) -> None:
+        """
+        Update all memberships in a cell to reflect changes in user details.
+
+        Will sync is_active and email attributes.
+        """
+        pass
+
+    # TODO(cells): Remove when callers updated
+    @cell_rpc_method(resolve=ByCellName())
+    @abstractmethod
     def update_region_user(
         self,
         *,
         user: RpcRegionUser,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
     ) -> None:
         """
         Update all memberships in a cell to reflect changes in user details.
@@ -633,10 +648,10 @@ def _control_check_organization() -> OrganizationCheckService:
     return ControlOrganizationCheckService()
 
 
-def _region_check_organization() -> OrganizationCheckService:
-    from sentry.organizations.services.organization.impl import RegionOrganizationCheckService
+def _cell_check_organization() -> OrganizationCheckService:
+    from sentry.organizations.services.organization.impl import CellOrganizationCheckService
 
-    return RegionOrganizationCheckService()
+    return CellOrganizationCheckService()
 
 
 class OrganizationSignalService(abc.ABC):
@@ -668,9 +683,9 @@ def _signal_from_on_commit() -> OrganizationSignalService:
 
 _organization_check_service: OrganizationCheckService = silo_mode_delegation(
     {
-        SiloMode.CELL: _region_check_organization,
+        SiloMode.CELL: _cell_check_organization,
         SiloMode.CONTROL: _control_check_organization,
-        SiloMode.MONOLITH: _region_check_organization,
+        SiloMode.MONOLITH: _cell_check_organization,
     }
 )
 

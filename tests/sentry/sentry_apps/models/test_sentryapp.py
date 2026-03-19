@@ -5,10 +5,10 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import control_silo_test, create_test_cells
 
 
-@control_silo_test(regions=create_test_regions("us", "eu"))
+@control_silo_test(cells=create_test_cells("us", "eu"))
 class SentryAppTest(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()

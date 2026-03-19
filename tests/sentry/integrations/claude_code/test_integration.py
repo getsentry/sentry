@@ -85,26 +85,9 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert metadata["api_key"] == "sk-ant-test-api-key-123"
         assert metadata["domain_name"] == "anthropic.com"
         assert metadata["environment_id"] is None
-        assert metadata["workspace_name"] is None
+        assert metadata["workspace_name"] == "default"
         assert metadata["agent_id"] is None
         assert metadata["agent_version"] is None
-
-    def test_build_integration_with_environment_and_workspace(self):
-        mock_cls, _ = _mock_client_class()
-        state: Mapping[str, Any] = {
-            "api_key": "sk-ant-api-key",
-            "environment": {
-                "environment_id": "env-123",
-                "workspace_name": "my-workspace",
-            },
-        }
-
-        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
-            result = self.provider().build_integration(state)
-
-        metadata = result["metadata"]
-        assert metadata["environment_id"] == "env-123"
-        assert metadata["workspace_name"] == "my-workspace"
 
     def test_build_integration_creates_unique_external_ids(self):
         mock_cls, _ = _mock_client_class()
@@ -159,7 +142,7 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         mock_cls.assert_called_once_with(
             api_key="sk-ant-test-api-key-123",
             environment_id=None,
-            workspace_name=None,
+            workspace_name="default",
             agent_id=None,
             agent_version=None,
         )
@@ -251,12 +234,12 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert data["environment_id"] == "env-cfg"
         assert data["workspace_name"] == "ws-cfg"
 
-    def test_get_config_data_defaults_to_empty_strings(self):
+    def test_get_config_data_defaults_to_empty_strings_except_workspace(self):
         installation = self._create_installation()
         data = installation.get_config_data()
 
         assert data["environment_id"] == ""
-        assert data["workspace_name"] == ""
+        assert data["workspace_name"] == "default"
 
     # ── launch ───────────────────────────────────────────────────────
 

@@ -706,7 +706,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                     'Use AI to review and find bugs in pull requests [link:Learn more]',
                     {
                       link: (
-                        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-code-review/" />
+                        <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/code-review/" />
                       ),
                     }
                   )}

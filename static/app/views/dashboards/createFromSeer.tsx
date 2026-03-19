@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -30,6 +30,8 @@ import {DashboardState} from './types';
 
 const POLL_INTERVAL_MS = 500;
 const DASHBOARD_ARTIFACT_KEY = 'dashboard';
+const POST_COMPLETE_POLL_MS = 5000;
+const EMPTY_DASHBOARDS: never[] = [];
 
 type DashboardArtifact = {
   title: string;
@@ -38,6 +40,7 @@ type DashboardArtifact = {
 
 type WidgetArtifact = {
   display_type: Widget['displayType'];
+  interval: string;
   layout: {h: number; min_h: number; w: number; x: number; y: number};
   queries: Widget['queries'];
   title: string;
@@ -50,7 +53,6 @@ function normalizeWidget(raw: WidgetArtifact): Widget {
   const {display_type, widget_type, ...rest} = raw;
   return {
     ...rest,
-    interval: '',
     displayType: display_type,
     widgetType: widget_type,
     layout: raw.layout
@@ -137,6 +139,12 @@ export default function CreateFromSeer() {
   const [isUpdating, setisUpdating] = useState(false); // State tracks if dashboard is being updated from user chat input
   const prevUpdatedAtRef = useRef<string | null>(null);
 
+  // Timestamp of when we observe a "completed" status.
+  // This is required to poll for POST_COMPLETE_POLL_MS
+  // since backend hooks can resume runs in case of
+  // validation errors.
+  const completedAtRef = useRef<number | null>(null);
+
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(organization.slug, seerRunId),
     {
@@ -148,6 +156,16 @@ export default function CreateFromSeer() {
           return POLL_INTERVAL_MS;
         }
         const status = query.state.data?.[0]?.session?.status;
+        if (status === 'completed') {
+          if (completedAtRef.current === null) {
+            completedAtRef.current = Date.now();
+          }
+          if (Date.now() - completedAtRef.current < POST_COMPLETE_POLL_MS) {
+            return POLL_INTERVAL_MS;
+          }
+          return false;
+        }
+        completedAtRef.current = null;
         if (statusIsTerminal(status)) {
           return false;
         }
@@ -230,6 +248,7 @@ export default function CreateFromSeer() {
         return;
       }
       setisUpdating(true);
+      completedAtRef.current = null;
       try {
         const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
         const {url} = parseQueryKey(queryKey);
@@ -279,10 +298,10 @@ export default function CreateFromSeer() {
   return (
     <ErrorBoundary>
       <WidgetErrorProvider value={handleWidgetError}>
-        <DashboardDetail
+        <MemoizedDashboardDetail
           initialState={DashboardState.PREVIEW}
           dashboard={dashboard}
-          dashboards={[]}
+          dashboards={EMPTY_DASHBOARDS} // This prop is unused for the create from seer flow
         />
         <DashboardChatPanel
           blocks={session?.blocks ?? []}
@@ -294,6 +313,8 @@ export default function CreateFromSeer() {
     </ErrorBoundary>
   );
 }
+
+const MemoizedDashboardDetail = memo(DashboardDetail);
 
 const MessageBlock = styled(MarkedText)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
