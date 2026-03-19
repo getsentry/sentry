@@ -19,6 +19,7 @@ import {
   isSolutionArtifact,
   type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
@@ -40,7 +41,17 @@ export function RootCausePreview({section}: ArtifactPreviewProps) {
 
   return (
     <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
-      {artifact?.data?.one_line_description}
+      {section.status === 'processing' ? (
+        <Placeholder height="3rem" />
+      ) : artifact?.data ? (
+        <Text>{artifact.data.one_line_description}</Text>
+      ) : (
+        <Text variant="muted">
+          {t(
+            'Seer failed to generate a root cause. This one is on us. Try running it again.'
+          )}
+        </Text>
+      )}
     </ArtifactCard>
   );
 }
@@ -53,7 +64,17 @@ export function SolutionPreview({section}: ArtifactPreviewProps) {
 
   return (
     <ArtifactCard icon={<IconList />} title={t('Implementation Plan')}>
-      {artifact?.data?.one_line_summary}
+      {section.status === 'processing' ? (
+        <Placeholder height="3rem" />
+      ) : artifact?.data ? (
+        <Text>{artifact.data.one_line_summary}</Text>
+      ) : (
+        <Text variant="muted">
+          {t(
+            'Seer failed to generate an implementation plan. This one is on us. Try running it again.'
+          )}
+        </Text>
+      )}
     </ArtifactCard>
   );
 }
@@ -86,23 +107,39 @@ export function CodeChangesPreview({section}: ArtifactPreviewProps) {
     }
 
     if (reposChanged === 0) {
-      return t('No files changed');
-    }
-
-    if (reposChanged === 1) {
-      return tn(
-        '%s file changed in 1 repo',
-        '%s files changed in 1 repo',
-        filesChanged.size
+      return (
+        <Text variant="muted">
+          {t(
+            'Seer failed to generate a code change. This one is on us. Try running it again.'
+          )}
+        </Text>
       );
     }
 
-    return t('%s files changed in %s repos', filesChanged.size, reposChanged);
+    if (reposChanged === 1) {
+      return (
+        <Text>
+          {tn(
+            '%s file changed in 1 repo',
+            '%s files changed in 1 repo',
+            filesChanged.size
+          )}
+        </Text>
+      );
+    }
+
+    return (
+      <Text>{t('%s files changed in %s repos', filesChanged.size, reposChanged)}</Text>
+    );
   }, [patchesForRepos]);
 
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
-      {summary}
+      {section.status === 'processing' ? (
+        <Placeholder height="1.5rem" />
+      ) : (
+        <Text>{summary}</Text>
+      )}
     </ArtifactCard>
   );
 }
@@ -116,13 +153,25 @@ export function PullRequestsPreview({section}: ArtifactPreviewProps) {
   return (
     <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
       {artifact.map(pullRequest => {
-        if (!pullRequest.repo_name || !pullRequest.pr_number || !pullRequest.pr_url) {
-          return null;
+        if (pullRequest.pr_creation_status === 'creating') {
+          return <Placeholder key={pullRequest.repo_name} height="1.5rem" />;
         }
-        const label = `${pullRequest.repo_name}#${pullRequest.pr_number}`;
+
+        if (
+          pullRequest.pr_creation_status === 'completed' &&
+          pullRequest.pr_url &&
+          pullRequest.pr_number
+        ) {
+          return (
+            <ExternalLink key={pullRequest.repo_name} href={pullRequest.pr_url}>
+              {pullRequest.repo_name}#{pullRequest.pr_number}
+            </ExternalLink>
+          );
+        }
+
         return (
-          <ExternalLink key={label} href={pullRequest.pr_url}>
-            {label}
+          <ExternalLink key={pullRequest.repo_name} disabled>
+            {t('Failed to create PR in %s', pullRequest.repo_name)}
           </ExternalLink>
         );
       })}

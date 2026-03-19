@@ -34,10 +34,10 @@ export function SeerDrawerContent({aiConfig, autofix}: SeerDrawerContentProps) {
     [autofix.runState]
   );
 
-  if (autofix.isLoading) {
+  // we're polling and no blocks have been added yet
+  if (autofix.isPolling && !autofix.runState?.blocks?.length) {
     return (
       <Flex direction="column" gap="xl">
-        <Placeholder height="10rem" />
         <Placeholder height="15rem" />
       </Flex>
     );
