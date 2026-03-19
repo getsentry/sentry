@@ -20,10 +20,7 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {
-  makeEAPOccurrence,
-  makeEAPSpan,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+import type {TraceFullDetailed} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
@@ -108,13 +105,62 @@ const makeDefaultMockData = (
   };
 };
 
+const mockedTrace = (project: Project) => {
+  return {
+    event_id: '8806ea4691c24fc7b1c77ecd78df574f',
+    span_id: 'b0e6f15b45c36b12',
+    transaction: 'MainActivity.add_attachment',
+    'transaction.duration': 1000,
+    'transaction.op': 'navigation',
+    project_id: parseInt(project.id, 10),
+    project_slug: project.slug,
+    parent_span_id: null,
+    parent_event_id: null,
+    generation: 0,
+    errors: [
+      {
+        event_id: 'c6971a73454646338bc3ec80c70f8891',
+        issue_id: 104,
+        span: 'b0e6f15b45c36b12',
+        project_id: parseInt(project.id, 10),
+        project_slug: project.slug,
+        title: 'ApplicationNotResponding: ANR for at least 5000 ms.',
+        message: 'ANR for at least 5000 ms.',
+        level: 'error',
+        issue: '',
+      },
+    ],
+    performance_issues: [
+      {
+        event_id: '8806ea4691c24fc7b1c77ecd78df574f',
+        issue_id: 110,
+        issue_short_id: 'SENTRY-ANDROID-1R',
+        span: ['b0e6f15b45c36b12'],
+        suspect_spans: ['89930aab9a0314d4'],
+        project_id: parseInt(project.id, 10),
+        project_slug: project.slug,
+        title: 'File IO on Main Thread',
+        message: 'File IO on Main Thread',
+        level: 'info',
+        culprit: 'MainActivity.add_attachment',
+        type: 1008,
+        end: 1678290375.15056,
+        start: 1678290374.150562,
+      },
+    ],
+    timestamp: 1678290375.150561,
+    start_timestamp: 1678290374.150561,
+    children: [],
+  } as Partial<TraceFullDetailed>;
+};
+
 const mockGroupApis = (
   organization: Organization,
   project: Project,
   group: Group,
   event: Event,
   replayId?: string,
-  trace?: Array<ReturnType<typeof makeEAPSpan>>
+  trace?: Partial<TraceFullDetailed>
 ) => {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/issues/1/events/',
@@ -160,8 +206,17 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/trace/${TRACE_ID}/`,
-    body: trace ?? [],
+    url: `/organizations/${organization.slug}/events-trace/${TRACE_ID}/`,
+    body: trace
+      ? {transactions: [trace], orphan_errors: []}
+      : {transactions: [], orphan_errors: []},
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events-trace-light/${TRACE_ID}/`,
+    body: trace
+      ? {transactions: [trace], orphan_errors: []}
+      : {transactions: [], orphan_errors: []},
   });
 
   MockApiClient.addMockResponse({
@@ -505,17 +560,7 @@ describe('groupEventDetails', () => {
         props.group,
         props.event,
         undefined,
-        [
-          makeEAPSpan({
-            is_transaction: true,
-            occurrences: [
-              makeEAPOccurrence({
-                description: 'File IO on Main Thread',
-                issue_type: 1008,
-              }),
-            ],
-          }),
-        ]
+        mockedTrace(props.project)
       );
 
       render(<GroupEventDetails />, {
@@ -542,17 +587,7 @@ describe('groupEventDetails', () => {
         props.group,
         props.event,
         undefined,
-        [
-          makeEAPSpan({
-            is_transaction: true,
-            occurrences: [
-              makeEAPOccurrence({
-                description: 'File IO on Main Thread',
-                issue_type: 1008,
-              }),
-            ],
-          }),
-        ]
+        mockedTrace(props.project)
       );
 
       render(<GroupEventDetails />, {
@@ -577,17 +612,7 @@ describe('groupEventDetails', () => {
         props.group,
         props.event,
         undefined,
-        [
-          makeEAPSpan({
-            is_transaction: true,
-            occurrences: [
-              makeEAPOccurrence({
-                description: 'File IO on Main Thread',
-                issue_type: 1008,
-              }),
-            ],
-          }),
-        ]
+        mockedTrace(props.project)
       );
 
       render(<GroupEventDetails />, {
@@ -612,17 +637,7 @@ describe('groupEventDetails', () => {
         props.group,
         props.event,
         undefined,
-        [
-          makeEAPSpan({
-            is_transaction: true,
-            occurrences: [
-              makeEAPOccurrence({
-                description: 'File IO on Main Thread',
-                issue_type: 1008,
-              }),
-            ],
-          }),
-        ]
+        mockedTrace(props.project)
       );
 
       render(<GroupEventDetails />, {
@@ -641,13 +656,17 @@ describe('groupEventDetails', () => {
 
     it('does not render root cause section if related perf issues do not exist', async () => {
       const props = makeDefaultMockData();
+      const trace = mockedTrace(props.project);
       mockGroupApis(
         props.organization,
         props.project,
         props.group,
         props.event,
         undefined,
-        [makeEAPSpan({is_transaction: true})]
+        {
+          ...trace,
+          performance_issues: [],
+        }
       );
 
       render(<GroupEventDetails />, {

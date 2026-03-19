@@ -86,6 +86,16 @@ export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLit
   transactions: U[];
 };
 
+export type TraceMeta = {
+  errors: number;
+  performance_issues: number;
+  projects: number;
+  span_count: number;
+  span_count_map: Record<string, number>;
+  transaction_child_count_map: Record<string, number>;
+  transactions: number;
+};
+
 export type EAPTraceMeta = {
   errors: number;
   logs: number;
