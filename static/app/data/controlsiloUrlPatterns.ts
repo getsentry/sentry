@@ -168,6 +168,7 @@ const patterns: RegExp[] = [
   new RegExp('^api/0/tempest-ips/$'),
   new RegExp('^api/0/secret-scanning/github/$'),
   new RegExp('^api/hooks/mailgun/inbound/'),
+  new RegExp('^\\.well-known/oauth-authorization-server$'),
   new RegExp('^oauth/authorize/$'),
   new RegExp('^oauth/token/$'),
   new RegExp('^oauth/userinfo/$'),
