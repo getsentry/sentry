@@ -87,10 +87,8 @@ class OrganizationProvisioningService:
             provisioning_options=provisioning_options, cell_name=destination_cell_name
         )
 
-    def _control_based_slug_change(
-        self, organization_id: int, slug: str, cell_name: str | None = None
-    ) -> None:
-        destination_cell_name = self._validate_or_default_cell(cell_name=cell_name)
+    def _control_based_slug_change(self, organization_id: int, slug: str) -> None:
+        destination_cell_name = self._validate_or_default_cell(cell_name=None)
 
         from sentry.hybridcloud.services.control_organization_provisioning import (
             control_organization_provisioning_rpc_service,
@@ -113,7 +111,9 @@ class OrganizationProvisioningService:
             )
 
     def change_organization_slug(
-        self, organization_id: int, slug: str, region_name: str | None = None
+        self,
+        organization_id: int,
+        slug: str,
     ) -> None:
         """
         Updates an organization with the given slug if available.
@@ -122,13 +122,10 @@ class OrganizationProvisioningService:
          RPC based in the near future.
         :param organization_id: the ID of the organization whose slug to change
         :param slug: The desired slug for the organization
-        :param region_name: The region where the organization is located
         :return:
         """
 
-        self._control_based_slug_change(
-            organization_id=organization_id, slug=slug, cell_name=region_name
-        )
+        self._control_based_slug_change(organization_id=organization_id, slug=slug)
 
     def bulk_create_organization_slugs(
         self, slug_mapping: dict[int, str], region_name: str | None = None
