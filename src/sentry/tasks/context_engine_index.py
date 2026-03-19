@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta, timezone
 
 import sentry_sdk
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -36,7 +36,6 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
-from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 logger = logging.getLogger(__name__)
@@ -225,14 +224,10 @@ def get_allowed_org_ids_context_engine_indexing() -> tuple[list[int], list[int]]
     TOTAL_HOURLY_SLOTS = 24
 
     eligible_org_ids: list[int] = []
-    all_enabled_org_ids: list[int] = []
-
-    for org in RangeQuerySetWrapper(
-        Organization.objects.filter(status=ObjectStatus.ACTIVE),
-        result_value_getter=lambda o: o.id,
-    ):
-        if features.has("organizations:seer-explorer-context-engine", org):
-            all_enabled_org_ids.append(org.id)
+    # TODO: This has to be changed so we can iterate over all orgs and check the feature flag.
+    all_enabled_org_ids: list[int] = list(
+        options.get("explorer.context_engine_indexing.allowed_org_ids")
+    )
 
     if now.weekday() == INDEXING_DAY:
         slot = now.hour

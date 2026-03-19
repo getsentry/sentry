@@ -120,21 +120,14 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
     def test_returns_only_orgs_assigned_to_current_slot(self):
         from sentry.utils.hashlib import md5_text
 
-        orgs = [self.create_organization() for _ in range(50)]
-        org_ids = [org.id for org in orgs]
+        org_ids = list(range(1, 51))
 
         TOTAL_SLOTS = 24
         target_slot = int(md5_text(str(org_ids[0])).hexdigest(), 16) % TOTAL_SLOTS
         frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
 
-        def feature_enabled_for_test_orgs(_flag_name: str, org, *args, **kwargs) -> bool:
-            return org.id in org_ids
-
         with freeze_time(frozen_time):
-            with mock.patch(
-                "sentry.tasks.context_engine_index.features.has",
-                side_effect=feature_enabled_for_test_orgs,
-            ):
+            with override_options({"explorer.context_engine_indexing.allowed_org_ids": org_ids}):
                 _feature_enabled, eligible = get_allowed_org_ids_context_engine_indexing()
 
         assert len(eligible) > 0
@@ -143,34 +136,26 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
         for org_id in eligible:
             assert int(md5_text(str(org_id)).hexdigest(), 16) % TOTAL_SLOTS == target_slot
 
-    def test_excludes_orgs_without_feature_flag(self):
+    def test_excludes_orgs_not_in_allowlist(self):
         from sentry.utils.hashlib import md5_text
 
-        org_with_flag = self.create_organization()
-        org_without_flag = self.create_organization()
+        allowed_org_id = 100
+        excluded_org_id = 200
 
         TOTAL_SLOTS = 24
-        target_slot = int(md5_text(str(org_without_flag.id)).hexdigest(), 16) % TOTAL_SLOTS
+        target_slot = int(md5_text(str(excluded_org_id)).hexdigest(), 16) % TOTAL_SLOTS
         frozen_time = f"2024-01-14 {target_slot:02d}:00:00"
 
         with freeze_time(frozen_time):
-            with self.feature(
-                {
-                    "organizations:seer-explorer": [org_with_flag.slug],
-                    "organizations:seer-explorer-context-engine": [org_with_flag.slug],
-                }
+            with override_options(
+                {"explorer.context_engine_indexing.allowed_org_ids": [allowed_org_id]}
             ):
                 _feature_enabled, eligible = get_allowed_org_ids_context_engine_indexing()
 
-        assert org_without_flag.id not in eligible
+        assert excluded_org_id not in eligible
 
-    def test_returns_empty_when_no_orgs_have_feature_flag(self):
-        with self.feature(
-            {
-                "organizations:seer-explorer": False,
-                "organizations:seer-explorer-context-engine": False,
-            }
-        ):
+    def test_returns_empty_when_allowlist_is_empty(self):
+        with override_options({"explorer.context_engine_indexing.allowed_org_ids": []}):
             feature_enabled, eligible = get_allowed_org_ids_context_engine_indexing()
 
         assert feature_enabled == []

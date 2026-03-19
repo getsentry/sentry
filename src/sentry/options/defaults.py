@@ -1198,6 +1198,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "explorer.context_engine_indexing.allowed_org_ids",
+    default=[1],
+    type=Sequence,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "explorer.service_map.max_edges",
     default=5000,
     type=Int,
