@@ -127,9 +127,7 @@ class OrganizationProvisioningService:
 
         self._control_based_slug_change(organization_id=organization_id, slug=slug)
 
-    def bulk_create_organization_slugs(
-        self, slug_mapping: dict[int, str], region_name: str | None = None
-    ) -> None:
+    def bulk_create_organization_slugs(self, slug_mapping: dict[int, str]) -> None:
         """
         CAUTION: DO NOT USE THIS OUTSIDE OF THE IMPORT/RELOCATION CONTEXT
 
@@ -143,10 +141,9 @@ class OrganizationProvisioningService:
 
         :param org_ids_and_slugs: A set of tuples containing an organization ID
         and base slug.
-        :param region_name: The cell where the imported organizations exist
         :return:
         """
-        destination_cell_name = self._validate_or_default_cell(cell_name=region_name)
+        destination_cell_name = self._validate_or_default_cell(cell_name=None)
 
         from sentry.hybridcloud.services.control_organization_provisioning import (
             control_organization_provisioning_rpc_service,
