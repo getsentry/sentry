@@ -154,7 +154,7 @@ describe('useScmRepoSelection', () => {
 
     expect(addRequest).not.toHaveBeenCalled();
     expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({id: '99', name: 'sentry'})
+      expect.objectContaining({id: '99', name: 'getsentry/sentry'})
     );
   });
 
