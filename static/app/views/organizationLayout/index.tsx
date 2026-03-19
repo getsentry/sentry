@@ -95,7 +95,8 @@ function AppLayout({organization}: LayoutProps) {
 
 const ContentStack = styled(Stack)`
   &:focus-visible {
-    ${p => p.theme.focusRing()};
+    outline: none;
+    box-shadow: none;
   }
 `;
 
