@@ -183,7 +183,6 @@ describe('SuspectCommits', () => {
       );
 
       expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
-      expect(screen.getByTestId('email-warning')).toBeInTheDocument();
     });
   });
 

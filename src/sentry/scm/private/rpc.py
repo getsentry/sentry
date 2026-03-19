@@ -127,4 +127,5 @@ scm_action_registry: dict[str, Callable] = {
     "get_check_run_v1": SourceCodeManager.get_check_run,
     "update_check_run_v1": SourceCodeManager.update_check_run,
     "minimize_comment_v1": SourceCodeManager.minimize_comment,
+    "get_archive_link_v1": SourceCodeManager.get_archive_link,
 }

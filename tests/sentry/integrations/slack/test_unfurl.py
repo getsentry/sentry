@@ -45,20 +45,14 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
         ),
         (
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/",
-            (
-                LinkType.METRIC_ALERT,
-                {
-                    "alert_rule_id": 12345,
-                    "incident_id": None,
-                    "org_slug": "org1",
-                    "period": None,
-                    "start": None,
-                    "end": None,
-                },
-            ),
+            (None, None),
         ),
         (
             "https://org1.sentry.io/alerts/rules/details/12345/",
+            (None, None),
+        ),
+        (
+            "https://sentry.io/organizations/org1/issues/alerts/rules/details/12345/",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -72,7 +66,21 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://sentry.io/organizations/org1/alerts/rules/details/12345/?alert=1337",
+            "https://org1.sentry.io/issues/alerts/rules/details/12345/",
+            (
+                LinkType.METRIC_ALERT,
+                {
+                    "alert_rule_id": 12345,
+                    "incident_id": None,
+                    "org_slug": "org1",
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ),
+        (
+            "https://sentry.io/organizations/org1/issues/alerts/rules/details/12345/?alert=1337",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -86,7 +94,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://org1.sentry.io/alerts/rules/details/12345/?alert=1337",
+            "https://org1.sentry.io/issues/alerts/rules/details/12345/?alert=1337",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -100,7 +108,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://sentry.io/organizations/org1/alerts/rules/details/12345/?period=14d",
+            "https://sentry.io/organizations/org1/issues/alerts/rules/details/12345/?period=14d",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -114,7 +122,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://org1.sentry.io/alerts/rules/details/12345/?period=14d",
+            "https://org1.sentry.io/issues/alerts/rules/details/12345/?period=14d",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -128,7 +136,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://sentry.io/organizations/org1/alerts/rules/details/12345/?end=2022-05-05T06%3A05%3A52&start=2022-05-04T00%3A46%3A19",
+            "https://sentry.io/organizations/org1/issues/alerts/rules/details/12345/?end=2022-05-05T06%3A05%3A52&start=2022-05-04T00%3A46%3A19",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -142,7 +150,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://org1.sentry.io/alerts/rules/details/12345/?end=2022-05-05T06%3A05%3A52&start=2022-05-04T00%3A46%3A19",
+            "https://org1.sentry.io/issues/alerts/rules/details/12345/?end=2022-05-05T06%3A05%3A52&start=2022-05-04T00%3A46%3A19",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -295,7 +303,7 @@ class UnfurlTest(TestCase):
 
         links = [
             UnfurlableUrl(
-                url=f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}",
+                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}",
                 args={
                     "org_slug": self.organization.slug,
                     "alert_rule_id": incident.alert_rule.id,
@@ -309,7 +317,7 @@ class UnfurlTest(TestCase):
         unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
         assert (
             links[0].url
-            == f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}"
+            == f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}"
         )
         assert (
             unfurls[links[0].url]
@@ -332,7 +340,7 @@ class UnfurlTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
             UnfurlableUrl(
                 url=url,
@@ -384,7 +392,7 @@ class UnfurlTest(TestCase):
             date_started=timezone.now() - timedelta(minutes=2),
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
             UnfurlableUrl(
                 url=url,
@@ -442,7 +450,7 @@ class UnfurlTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
             UnfurlableUrl(
                 url=url,
@@ -502,7 +510,7 @@ class UnfurlTest(TestCase):
             date_started=timezone.now() - timedelta(minutes=2),
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
             UnfurlableUrl(
                 url=url,
@@ -551,7 +559,7 @@ class UnfurlTest(TestCase):
             date_started=timezone.now() - timedelta(minutes=2),
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
             UnfurlableUrl(
                 url=url,
@@ -590,7 +598,7 @@ class UnfurlTest(TestCase):
             threshold_period=1,
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/"
         links = [
             UnfurlableUrl(
                 url=url,
