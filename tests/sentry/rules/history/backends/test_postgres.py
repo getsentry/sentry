@@ -44,7 +44,7 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest, BaseWorkf
         assert result.results == expected, (result.results, expected)
         return result
 
-    def test_me(self) -> None:
+    def test(self) -> None:
         history = []
         rule = self.create_project_rule(project=self.event.project)
         for i in range(3):
