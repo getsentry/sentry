@@ -10,13 +10,15 @@ from sentry.models.files.file import File
 from sentry.preprod.api.models.public.shared import (
     AppInfoResponseDict,
     GitInfoResponseDict,
+    create_app_info_dict,
+    create_git_info_dict,
 )
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
 )
-from sentry.preprod.size_analysis.models import ComparisonResults
+from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
 from sentry.preprod.size_analysis.utils import match_and_fetch_comparisons
 from sentry.utils import json
 
@@ -60,19 +62,31 @@ class InsightDiffItemResponseDict(TypedDict):
     groupDiffs: list[DiffItemResponseDict]
 
 
-# Keep in sync with internal models in sentry.preprod.size_analysis.models
-class ComparisonResponseDict(TypedDict):
+class ComparisonSummaryResponseDict(TypedDict):
+    """Comparison data shared between the public API and the webhook."""
+
     metricsArtifactType: str
     identifier: str | None
     state: str
     errorCode: str | None
     errorMessage: str | None
-    diffItems: list[DiffItemResponseDict] | None
-    insightDiffItems: list[InsightDiffItemResponseDict] | None
     sizeMetricDiff: SizeMetricDiffResponseDict | None
 
 
-class SizeAnalysisResponseDict(TypedDict):
+# Keep in sync with internal models in sentry.preprod.size_analysis.models
+class ComparisonResponseDict(ComparisonSummaryResponseDict):
+    diffItems: list[DiffItemResponseDict] | None
+    insightDiffItems: list[InsightDiffItemResponseDict] | None
+
+
+class _SizeAnalysisBaseResponseDict(TypedDict):
+    """Fields shared by the webhook summary and the full API response.
+
+    Not used directly — subclassed by ``SizeAnalysisSummaryResponseDict`` and
+    ``SizeAnalysisResponseDict`` which each add their own ``comparisons``
+    field (different element types) plus any shape-specific extras.
+    """
+
     buildId: str
     state: str
     appInfo: AppInfoResponseDict
@@ -83,10 +97,29 @@ class SizeAnalysisResponseDict(TypedDict):
     installSize: int | None
     analysisDuration: float | None
     analysisVersion: str | None
-    insights: dict[str, Any] | None
-    appComponents: list[AppComponentResponseDict] | None
     baseBuildId: str | None
     baseAppInfo: AppInfoResponseDict | None
+
+
+class SizeAnalysisSummaryResponseDict(_SizeAnalysisBaseResponseDict):
+    """Webhook payload shape — the public API response minus heavy fields.
+
+    Includes ``organizationSlug``, ``projectSlug``, and ``platform`` as
+    webhook-specific convenience fields for routing — these are not present
+    in the public API response.
+    """
+
+    organizationSlug: str
+    projectSlug: str
+    platform: str | None
+    comparisons: list[ComparisonSummaryResponseDict] | None
+
+
+class SizeAnalysisResponseDict(_SizeAnalysisBaseResponseDict):
+    """Full public API response shape."""
+
+    insights: dict[str, Any] | None
+    appComponents: list[AppComponentResponseDict] | None
     comparisons: list[ComparisonResponseDict] | None
 
 
@@ -230,3 +263,149 @@ def _build_success_comparison(
         return _build_failed_comparison(
             head_metric, "PARSE_ERROR", "Failed to parse comparison data"
         )
+
+
+class SizeAnalysisSummaryBuildError(Exception):
+    """Raised when the summary builder encounters an unrecoverable data error."""
+
+    pass
+
+
+def build_comparison_summary_data(
+    base_artifact: PreprodArtifact,
+    head_size_metrics: list[PreprodArtifactSizeMetrics],
+) -> list[ComparisonSummaryResponseDict] | None:
+    """Build comparison summaries (API subset without diffItems/insightDiffItems)."""
+    full_comparisons = build_comparison_data(base_artifact, head_size_metrics)
+    if full_comparisons is None:
+        return None
+    return [
+        ComparisonSummaryResponseDict(
+            metricsArtifactType=c["metricsArtifactType"],
+            identifier=c["identifier"],
+            state=c["state"],
+            errorCode=c["errorCode"],
+            errorMessage=c["errorMessage"],
+            sizeMetricDiff=c["sizeMetricDiff"],
+        )
+        for c in full_comparisons
+    ]
+
+
+def build_size_analysis_summary(
+    head_artifact: PreprodArtifact,
+    *,
+    base_artifact: PreprodArtifact | None = None,
+    size_metrics: list[PreprodArtifactSizeMetrics] | None = None,
+) -> SizeAnalysisSummaryResponseDict | None:
+    """
+    Build a webhook-ready summary of size analysis results.
+
+    Returns the same shape as the public Size Analysis API response, minus:
+    - ``insights``
+    - ``appComponents``
+    - ``comparisons[].diffItems``
+    - ``comparisons[].insightDiffItems``
+
+    Returns ``None`` for non-terminal states (PENDING, PROCESSING, NOT_RAN)
+    or when no size metrics exist.
+
+    Raises :class:`SizeAnalysisSummaryBuildError` when analysis data cannot
+    be loaded for a COMPLETED state.
+    """
+    if size_metrics is None:
+        size_metrics = list(head_artifact.get_size_metrics())
+
+    if not size_metrics:
+        return None
+
+    main_metric = next(
+        (
+            m
+            for m in size_metrics
+            if m.metrics_artifact_type
+            == PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
+        ),
+        size_metrics[0],
+    )
+
+    try:
+        state_enum = PreprodArtifactSizeMetrics.SizeAnalysisState(main_metric.state)
+    except ValueError:
+        raise SizeAnalysisSummaryBuildError(f"Invalid size analysis state: {main_metric.state}")
+
+    # Non-terminal states: don't fire webhook
+    if state_enum in (
+        PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+        PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+        PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+    ):
+        return None
+
+    platform = head_artifact.platform
+
+    response: SizeAnalysisSummaryResponseDict = {
+        "buildId": str(head_artifact.id),
+        "organizationSlug": head_artifact.project.organization.slug,
+        "projectSlug": head_artifact.project.slug,
+        "platform": platform.value if platform is not None else None,
+        "state": state_enum.name,
+        "appInfo": create_app_info_dict(head_artifact),
+        "gitInfo": create_git_info_dict(head_artifact),
+        "errorCode": None,
+        "errorMessage": None,
+        "downloadSize": None,
+        "installSize": None,
+        "analysisDuration": None,
+        "analysisVersion": None,
+        "baseBuildId": None,
+        "baseAppInfo": None,
+        "comparisons": None,
+    }
+
+    if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
+        response["errorCode"] = (
+            PreprodArtifactSizeMetrics.ErrorCode(main_metric.error_code).name
+            if main_metric.error_code is not None
+            else None
+        )
+        response["errorMessage"] = main_metric.error_message
+        return response
+
+    # COMPLETED state — load analysis results from file
+    analysis_file_id = main_metric.analysis_file_id
+    if not analysis_file_id:
+        raise SizeAnalysisSummaryBuildError(
+            f"Missing analysis_file_id for completed metric {main_metric.id}"
+        )
+
+    try:
+        file_obj = File.objects.get(id=analysis_file_id)
+    except File.DoesNotExist:
+        raise SizeAnalysisSummaryBuildError(f"Analysis file {analysis_file_id} not found")
+
+    try:
+        with file_obj.getfile() as fp:
+            content = fp.read()
+        analysis_data = json.loads(content)
+        analysis_results = SizeAnalysisResults(**analysis_data)
+    except SizeAnalysisSummaryBuildError:
+        raise
+    except Exception as e:
+        raise SizeAnalysisSummaryBuildError(
+            f"Failed to parse analysis file {analysis_file_id}: {e}"
+        ) from e
+
+    response["downloadSize"] = analysis_results.download_size
+    response["installSize"] = analysis_results.install_size
+    response["analysisDuration"] = analysis_results.analysis_duration
+    response["analysisVersion"] = analysis_results.analysis_version
+
+    if base_artifact:
+        comparisons = build_comparison_summary_data(base_artifact, size_metrics)
+        if comparisons:
+            response["baseBuildId"] = str(base_artifact.id)
+            response["baseAppInfo"] = create_app_info_dict(base_artifact)
+            response["comparisons"] = comparisons
+
+    return response

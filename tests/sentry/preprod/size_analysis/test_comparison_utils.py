@@ -76,7 +76,10 @@ class CanCompareSizeMetricsTest(TestCase):
         assert result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH
         assert result.error_message is not None
 
-    def test_different_length_error_type(self):
+    def test_can_compare_with_partial_metric_match(self):
+        """When head and base have different metric counts but share at least one
+        common (metrics_artifact_type, identifier) pair, comparison is allowed.
+        The comparison loop handles partial matches by only comparing matching pairs."""
         head_metrics = [
             PreprodArtifactSizeMetrics(
                 preprod_artifact_id=1,
@@ -108,10 +111,40 @@ class CanCompareSizeMetricsTest(TestCase):
 
         result = can_compare_size_metrics(head_metrics, base_metrics)
 
+        assert result.can_compare is True
+        assert result.error_message is None
+        assert result.error_type is None
+
+    def test_cannot_compare_no_common_metrics(self):
+        """When head and base have no common (metrics_artifact_type, identifier) pairs,
+        comparison is not possible regardless of metric count."""
+        head_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=1,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+                identifier="com.example.app",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                max_install_size=1000,
+                max_download_size=500,
+            ),
+        ]
+        base_metrics = [
+            PreprodArtifactSizeMetrics(
+                preprod_artifact_id=2,
+                metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+                identifier="com.example.watch",
+                state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                max_install_size=200,
+                max_download_size=100,
+            )
+        ]
+
+        result = can_compare_size_metrics(head_metrics, base_metrics)
+
         assert result.can_compare is False
-        assert result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_LENGTH
+        assert result.error_type == ComparisonValidationResult.ErrorType.DIFFERENT_METRICS
         assert result.error_message is not None
-        assert "Head has 2 metric(s), base has 1 metric(s)" in result.error_message
+        assert "mismatched metrics" in result.error_message
 
     def test_different_app_ids_error_type(self):
         head_metrics = [
