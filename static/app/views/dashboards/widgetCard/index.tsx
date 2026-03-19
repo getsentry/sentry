@@ -58,7 +58,6 @@ import {VisualizationWidget} from './visualizationWidget';
 import {
   getMenuOptions,
   useDroppedColumnsWarning,
-  useIndexedEventsWarning,
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
@@ -202,7 +201,6 @@ function WidgetCard(props: Props) {
 
   const {isMetricsData} = useDashboardsMEPContext();
   const extractionStatus = useExtractionStatus({queryKey: widget});
-  const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
   const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
     widget,
@@ -284,9 +282,7 @@ function WidgetCard(props: Props) {
         ? t('Not Extracted')
         : undefined;
 
-  const indexedDataBadge = indexedEventsWarning ? t('Indexed') : undefined;
-
-  const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
+  const badges = [onDemandExtractionBadge].filter(n => n !== undefined);
 
   const warnings = [
     onDemandWarning,
