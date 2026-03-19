@@ -2,6 +2,7 @@ import {Fragment, lazy, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
+import {useReducedMotion} from 'framer-motion';
 
 import {printConsoleBanner} from 'sentry/bootstrap/printConsoleBanner';
 import {NODE_ENV} from 'sentry/constants';
@@ -35,6 +36,38 @@ const cache = createCache({key: 'app', stylisPlugins: []});
 // Compat disables :nth-child warning
 cache.compat = true;
 
+function makeReducedMotionTheme<T extends typeof lightTheme>(theme: T): T {
+  const zeroMotionDef = (motionDef: Record<string, string>): Record<string, string> =>
+    Object.fromEntries(
+      Object.entries(motionDef).map(([key, val]) => [
+        key,
+        val.replace(/^\d+(\.\d+)?ms/, '0ms'),
+      ])
+    );
+
+  const zeroFramerDef = (framerDef: Record<string, unknown>): Record<string, unknown> =>
+    Object.fromEntries(Object.keys(framerDef).map(key => [key, {duration: 0}]));
+
+  return {
+    ...theme,
+    motion: {
+      ...theme.motion,
+      smooth: zeroMotionDef(theme.motion.smooth),
+      snap: zeroMotionDef(theme.motion.snap),
+      enter: zeroMotionDef(theme.motion.enter),
+      exit: zeroMotionDef(theme.motion.exit),
+      spring: zeroMotionDef(theme.motion.spring),
+      framer: {
+        smooth: zeroFramerDef(theme.motion.framer.smooth),
+        snap: zeroFramerDef(theme.motion.framer.snap),
+        enter: zeroFramerDef(theme.motion.framer.enter),
+        exit: zeroFramerDef(theme.motion.framer.exit),
+        spring: zeroFramerDef(theme.motion.framer.spring),
+      },
+    },
+  };
+}
+
 /**
  * Wraps children with emotions ThemeProvider reactively set a theme.
  *
@@ -60,7 +93,14 @@ export function ThemeAndStyleProvider({children}: Props) {
 
   useHotkeys(themeToggleHotkey);
 
-  const theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  const prefersReducedMotion = useReducedMotion();
+  const theme = useMemo(() => {
+    let t = config.theme === 'dark' ? darkTheme : lightTheme;
+    if (prefersReducedMotion) {
+      t = makeReducedMotionTheme(t);
+    }
+    return t;
+  }, [config.theme, prefersReducedMotion]);
 
   const didPrintBanner = useRef(false);
   if (!didPrintBanner.current && NODE_ENV !== 'development' && NODE_ENV !== 'test') {
