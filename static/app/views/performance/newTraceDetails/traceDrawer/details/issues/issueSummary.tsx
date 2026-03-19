@@ -11,7 +11,7 @@ import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {getLocation, isTombstone} from 'sentry/utils/events';
+import {getLocation} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -60,14 +60,6 @@ function IssueTitle(props: IssueTitleProps) {
   const commonEleProps = {
     'data-test-id': status === 'resolved' ? 'resolved-issue' : undefined,
   };
-
-  if (isTombstone(props.data)) {
-    return (
-      <TitleWithoutLink {...commonEleProps}>
-        <IssueTitleChildren data={props.data} organization={organization} />
-      </TitleWithoutLink>
-    );
-  }
 
   return (
     <TitleWithLink
@@ -140,13 +132,6 @@ const IconWrapper = styled('span')`
 
 const TitleWithLink = styled(Link)`
   align-items: center;
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-const TitleWithoutLink = styled('span')`
   display: block;
   width: 100%;
   white-space: nowrap;
