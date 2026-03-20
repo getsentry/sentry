@@ -157,7 +157,7 @@ export function WidgetCardChartContainer({
         if (errorOrEmptyMessage) {
           if (
             typeof errorOrEmptyMessage === 'string' &&
-            errorMessage !== t('No data found') &&
+            errorOrEmptyMessage !== t('No data found') &&
             onWidgetError
           ) {
             onWidgetError(widget, errorOrEmptyMessage);
