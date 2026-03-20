@@ -119,6 +119,7 @@ const knownOptions = {
 // unknown options in strict mode)
 const userParams: Record<string, string> = {};
 const knownKeys = new Set(['origin', 'all', 'defaults', 'help', 'h']);
+const knownStringKeys = new Set(['origin']);
 
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
@@ -127,7 +128,9 @@ for (let i = 0; i < args.length; i++) {
     process.exit(1);
   }
   const key = arg.slice(2);
-  if (!knownKeys.has(key)) {
+  if (knownStringKeys.has(key)) {
+    i++; // skip the value; parseArgs will handle it
+  } else if (!knownKeys.has(key)) {
     if (i + 1 >= args.length || args[i + 1].startsWith('--')) {
       console.error(`Error: --${key} requires a value`);
       process.exit(1);
@@ -210,7 +213,7 @@ function resolveTemplate(expr: string): string {
   return expr.replace(/\$\{([^}]+)\}/g, (_, inner: string) => {
     const key = inner.trim();
     if (CONSTANTS[key] !== undefined) return CONSTANTS[key];
-    const hint = key.split(/[.[(\\s]/)[0].trim();
+    const hint = key.split(/[.[(\s]/)[0].trim();
     return `<${hint}>`;
   });
 }
