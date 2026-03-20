@@ -22,7 +22,6 @@ const HeaderRow = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     gap: ${p => p.theme.space.md};
     flex-direction: column;
-    align-items: stretch;
   }
 `;
 
