@@ -1,4 +1,7 @@
-from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
+from sentry.seer.explorer.client_utils import (
+    collect_user_org_context,
+    has_seer_explorer_access_with_detail,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -73,3 +76,18 @@ class TestHasSeerExplorerAccessWithDetail(TestCase):
             False,
             "Organization does not have open team membership enabled. Seer requires this to aggregate context across all projects and allow members to ask questions freely.",
         )
+
+
+class TestCollectUserOrgContext(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
+
+    def test_user_not_org_member_returns_default(self):
+        other_user = self.create_user()
+        result = collect_user_org_context(other_user, self.org)
+        assert result == {
+            "org_slug": self.org.slug,
+            "all_org_projects": [{"id": self.project.id, "slug": self.project.slug}],
+        }

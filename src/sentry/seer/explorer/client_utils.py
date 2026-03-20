@@ -205,7 +205,13 @@ def collect_user_org_context(
             "all_org_projects": all_org_projects,
         }
 
-    member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+    try:
+        member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
+    except OrganizationMember.DoesNotExist:
+        return {
+            "org_slug": organization.slug,
+            "all_org_projects": all_org_projects,
+        }
     user_teams = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
     my_projects = (
         Project.objects.filter(
