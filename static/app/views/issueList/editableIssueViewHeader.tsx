@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 

@@ -1,5 +1,4 @@
 import {createContext, useEffect, useRef, type ReactNode} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';

@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-
 import styled from '@emotion/styled';
 
 import type {SelectionCallbackParams} from 'sentry/components/charts/useChartXRangeSelection';

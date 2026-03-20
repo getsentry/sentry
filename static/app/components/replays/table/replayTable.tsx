@@ -1,5 +1,4 @@
 import {useEffect, useRef, type RefObject} from 'react';
-
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 

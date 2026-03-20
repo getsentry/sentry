@@ -1,5 +1,4 @@
 import {Fragment, type PropsWithChildren} from 'react';
-
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 

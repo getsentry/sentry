@@ -1,5 +1,4 @@
 import type React from 'react';
-
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 

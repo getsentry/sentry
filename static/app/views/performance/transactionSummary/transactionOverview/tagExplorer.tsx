@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 

@@ -1,5 +1,4 @@
 import {useLayoutEffect, useRef, useState} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
@@ -10,9 +9,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';
 
 import {TraceTree} from './traceModels/traceTree';
-import type {TraceReducerState} from './traceState';
 import type {TracePreferencesState} from './traceState/tracePreferences';
 import {useTraceState} from './traceState/traceStateProvider';
+import type {TraceReducerState} from './traceState';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
 
 // If a trace has less than 3 transactions or less than 100 spans, we automatically expand all nodes.

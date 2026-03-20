@@ -6,7 +6,6 @@ import type {
   Ref,
 } from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
-
 import styled from '@emotion/styled';
 import type {AriaComboBoxProps} from '@react-aria/combobox';
 import {ariaHideOutside} from '@react-aria/overlays';

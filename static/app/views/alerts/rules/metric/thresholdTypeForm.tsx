@@ -13,8 +13,8 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constan
 import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 
-import {AlertRuleComparisonType, Dataset} from './types';
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
+import {AlertRuleComparisonType, Dataset} from './types';
 
 type Props = {
   alertType: MetricAlertType;

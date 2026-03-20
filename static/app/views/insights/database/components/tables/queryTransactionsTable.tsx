@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';

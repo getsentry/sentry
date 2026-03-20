@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-
 import {css, type Theme} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';

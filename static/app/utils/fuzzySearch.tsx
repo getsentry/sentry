@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-
 import type Fuse from 'fuse.js';
 
 // See http://fusejs.io/ for more information

@@ -1,5 +1,4 @@
 import {useState} from 'react';
-
 import {ClassNames} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';

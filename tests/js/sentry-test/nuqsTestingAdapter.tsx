@@ -1,5 +1,4 @@
 import {useCallback, useMemo, type ReactElement, type ReactNode} from 'react';
-
 import {
   unstable_createAdapterProvider as createAdapterProvider,
   renderQueryString,

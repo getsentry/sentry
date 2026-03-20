@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-
 import styled from '@emotion/styled';
 import type {Key} from '@react-types/shared';
 import * as Sentry from '@sentry/react';

@@ -1,5 +1,4 @@
 import {useMemo, useRef} from 'react';
-
 import styled from '@emotion/styled';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

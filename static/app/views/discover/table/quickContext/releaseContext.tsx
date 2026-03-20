@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-
 import styled from '@emotion/styled';
 
 import {AvatarList} from '@sentry/scraps/avatar';

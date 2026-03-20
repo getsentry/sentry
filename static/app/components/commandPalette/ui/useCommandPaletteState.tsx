@@ -1,5 +1,4 @@
 import {useMemo, useState} from 'react';
-
 import type Fuse from 'fuse.js';
 
 import {useCommandPaletteActions} from 'sentry/components/commandPalette/context';

@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-
 import styled from '@emotion/styled';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 

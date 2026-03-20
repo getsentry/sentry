@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';

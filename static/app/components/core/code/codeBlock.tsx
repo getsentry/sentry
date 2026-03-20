@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
-
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Prism from 'prismjs';

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import type {Theme} from '@emotion/react';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

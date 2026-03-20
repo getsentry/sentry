@@ -1,6 +1,5 @@
 import type {CSSProperties} from 'react';
 import {isValidElement, useEffect, useRef} from 'react';
-
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 

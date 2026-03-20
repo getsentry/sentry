@@ -1,5 +1,4 @@
 import {Fragment, memo, useEffect, useEffectEvent, useMemo, type Key} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';

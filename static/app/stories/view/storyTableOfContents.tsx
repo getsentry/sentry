@@ -1,6 +1,5 @@
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useLocation} from 'react-router-dom';
-
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';

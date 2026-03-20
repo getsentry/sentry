@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-
 import {expectTypeOf} from 'expect-type';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

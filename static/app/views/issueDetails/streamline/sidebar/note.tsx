@@ -1,7 +1,6 @@
 import {useCallback, useId, useState} from 'react';
 import type {MentionsInputProps} from 'react-mentions';
 import {Mention, MentionsInput} from 'react-mentions';
-
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';

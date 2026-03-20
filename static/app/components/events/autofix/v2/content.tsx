@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-
 import {AnimatePresence} from 'framer-motion';
 
 import {Flex} from '@sentry/scraps/layout';

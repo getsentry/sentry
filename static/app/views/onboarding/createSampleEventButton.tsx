@@ -1,5 +1,4 @@
 import {Component} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import type {ButtonProps} from '@sentry/scraps/button';

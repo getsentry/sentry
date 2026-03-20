@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-
 import type {Result as SearchResult} from '@sentry-internal/global-search';
 import {SentryGlobalSearch, standardSDKSlug} from '@sentry-internal/global-search';
 import dompurify from 'dompurify';

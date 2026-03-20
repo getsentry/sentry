@@ -1,6 +1,5 @@
 import type {Dispatch, ReactNode} from 'react';
 import {useCallback, useReducer} from 'react';
-
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';

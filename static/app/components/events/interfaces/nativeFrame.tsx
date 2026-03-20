@@ -1,6 +1,5 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';

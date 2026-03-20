@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {useTheme} from '@emotion/react';
 import {Elements} from '@stripe/react-stripe-js';
 

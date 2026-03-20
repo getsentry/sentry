@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
-
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';

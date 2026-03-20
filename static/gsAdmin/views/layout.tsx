@@ -1,6 +1,5 @@
 import {useState} from 'react';
 import {Outlet} from 'react-router-dom';
-
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 

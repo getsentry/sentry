@@ -1,5 +1,4 @@
 import {lazy, Suspense, useMemo} from 'react';
-
 import styled from '@emotion/styled';
 
 import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';

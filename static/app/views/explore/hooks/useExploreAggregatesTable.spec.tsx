@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';

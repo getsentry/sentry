@@ -1,5 +1,4 @@
 import {matchRoutes, type RouteObject, type To} from 'react-router-dom';
-
 import * as Sentry from '@sentry/react';
 
 export const PRELOAD_HANDLE = '_preload';

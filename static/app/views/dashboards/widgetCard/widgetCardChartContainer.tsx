@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import type {LegendComponentOption} from 'echarts';
 
 import type {Client} from 'sentry/api';

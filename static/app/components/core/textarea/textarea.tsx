@@ -1,5 +1,4 @@
 import TextareaAutosize, {type TextareaAutosizeProps} from 'react-textarea-autosize';
-
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';

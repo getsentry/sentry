@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import {parseAsString, useQueryState} from 'nuqs';
 import {z} from 'zod';
 

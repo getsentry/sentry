@@ -1,6 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';

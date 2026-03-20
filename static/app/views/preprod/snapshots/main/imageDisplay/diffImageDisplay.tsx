@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Image} from '@sentry/scraps/image';

@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 

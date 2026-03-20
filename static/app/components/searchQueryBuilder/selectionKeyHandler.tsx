@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
 

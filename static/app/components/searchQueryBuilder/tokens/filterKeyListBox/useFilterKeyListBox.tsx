@@ -1,6 +1,5 @@
 import type React from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
-
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Node} from '@react-types/shared';
 

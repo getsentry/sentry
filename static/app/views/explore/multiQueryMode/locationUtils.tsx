@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';

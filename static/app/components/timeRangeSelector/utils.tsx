@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import moment from 'moment-timezone';
 
 import {DateTime} from 'sentry/components/dateTime';

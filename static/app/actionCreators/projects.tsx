@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-
 import type {Query} from 'history';
 import chunk from 'lodash/chunk';
 import debounce from 'lodash/debounce';

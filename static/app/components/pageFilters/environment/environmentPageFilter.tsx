@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useRef} from 'react';
-
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';

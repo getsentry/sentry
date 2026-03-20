@@ -1,5 +1,4 @@
 import {useMemo, useState} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import type {FormProps} from 'sentry/components/forms/form';

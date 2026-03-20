@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import beautify from 'js-beautify';
 
 import {Flex, Stack} from '@sentry/scraps/layout';

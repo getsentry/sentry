@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partnerMigrationHero from 'getsentry-images/partnership/plan-ending.svg';

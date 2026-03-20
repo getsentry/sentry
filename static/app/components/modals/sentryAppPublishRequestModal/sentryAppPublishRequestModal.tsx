@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';

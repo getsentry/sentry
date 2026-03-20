@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-
 import pickBy from 'lodash/pickBy';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';

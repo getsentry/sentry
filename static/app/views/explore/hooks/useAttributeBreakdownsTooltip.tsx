@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import type {TooltipOption} from 'sentry/components/charts/baseChart';

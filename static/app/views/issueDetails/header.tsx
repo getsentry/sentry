@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';

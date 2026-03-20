@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-
 import styled from '@emotion/styled';
 
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';

@@ -1,5 +1,4 @@
 import {useCallback, useRef} from 'react';
-
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';

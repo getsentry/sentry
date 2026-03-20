@@ -1,5 +1,4 @@
 import type {ComponentProps} from 'react';
-
 import {
   GroupOpenPeriodActivityFixture,
   GroupOpenPeriodFixture,

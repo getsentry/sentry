@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import {type Theme} from '@emotion/react';
 import type {YAXisComponentOption} from 'echarts';
 

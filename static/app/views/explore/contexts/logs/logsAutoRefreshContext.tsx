@@ -1,5 +1,4 @@
 import {useCallback, useRef, useState} from 'react';
-
 import type {Location} from 'history';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';

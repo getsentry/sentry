@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useRef} from 'react';
-
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 

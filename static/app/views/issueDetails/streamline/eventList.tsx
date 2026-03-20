@@ -1,5 +1,4 @@
 import {useState} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import {Grid} from '@sentry/scraps/layout';

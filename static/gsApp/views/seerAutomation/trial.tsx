@@ -1,6 +1,5 @@
 import {useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
-
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 import seerConfigCheck from 'getsentry-images/spot/seer-config-check.svg';
 import seerConfigConnect2 from 'getsentry-images/spot/seer-config-connect-2.svg';

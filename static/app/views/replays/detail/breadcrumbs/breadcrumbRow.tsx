@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-
 import classNames from 'classnames';
 
 import {BreadcrumbItem} from 'sentry/components/replays/breadcrumbs/breadcrumbItem';

@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useState} from 'react';
-
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -11,8 +10,8 @@ import {
   useExplorerPanel,
 } from 'sentry/views/seerExplorer/useExplorerPanel';
 
-import {ExplorerPanel} from './explorerPanel';
 import * as useSeerExplorerModule from './hooks/useSeerExplorer';
+import {ExplorerPanel} from './explorerPanel';
 
 // Mock createPortal to render content directly
 jest.mock('react-dom', () => ({

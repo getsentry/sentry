@@ -1,6 +1,5 @@
 import type {ComponentProps, CSSProperties} from 'react';
 import {useMemo} from 'react';
-
 import {ClassNames} from '@emotion/react';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';

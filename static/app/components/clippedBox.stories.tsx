@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/replay-dead-rage-changelog.svg';

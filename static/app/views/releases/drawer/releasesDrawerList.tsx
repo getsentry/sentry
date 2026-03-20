@@ -1,5 +1,4 @@
 import {useCallback, useRef} from 'react';
-
 import type {ECharts, SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
 

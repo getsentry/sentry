@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 

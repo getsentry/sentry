@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';

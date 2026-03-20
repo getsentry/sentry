@@ -1,5 +1,4 @@
 import {Fragment, type ReactNode} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';

@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-
 import {useResizeObserver} from '@react-aria/utils';
 import {useVirtualizer} from '@tanstack/react-virtual';
 

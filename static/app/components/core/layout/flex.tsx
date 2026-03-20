@@ -1,5 +1,4 @@
 import type {CSSProperties} from 'react';
-
 import styled from '@emotion/styled';
 
 import type {SpaceSize} from 'sentry/utils/theme';

@@ -1,5 +1,4 @@
 import {useRef} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';

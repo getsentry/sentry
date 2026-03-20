@@ -7,8 +7,8 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 
-import {IdBadge} from '.';
 import type {OrganizationBadgeProps} from './organizationBadge';
+import {IdBadge} from '.';
 
 export default Storybook.story('IdBadge', story => {
   story('Props', () => {

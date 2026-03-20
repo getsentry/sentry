@@ -1,5 +1,4 @@
 import React from 'react';
-
 import keyBy from 'lodash/keyBy';
 
 import * as Layout from 'sentry/components/layouts/thirds';

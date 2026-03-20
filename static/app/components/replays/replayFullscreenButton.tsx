@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-
 import screenfull from 'screenfull';
 
 import {Button} from '@sentry/scraps/button';

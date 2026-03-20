@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';

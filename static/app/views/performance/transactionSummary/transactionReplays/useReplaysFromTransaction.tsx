@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 

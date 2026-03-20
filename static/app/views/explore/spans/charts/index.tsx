@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useRef} from 'react';
-
 import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';

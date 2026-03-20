@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';

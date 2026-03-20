@@ -1,5 +1,4 @@
 import {useRef} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Stacked} from 'sentry/components/container/stacked';

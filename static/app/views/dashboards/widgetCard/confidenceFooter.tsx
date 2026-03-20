@@ -13,8 +13,8 @@ import {ConfidenceFooter as SpansConfidenceFooter} from 'sentry/views/explore/sp
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 import {useWidgetRawCounts} from './hooks/useWidgetRawCounts';
+import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 type Props = {
   loading: boolean;

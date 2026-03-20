@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import type {QueryClient} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils';

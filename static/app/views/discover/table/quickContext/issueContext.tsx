@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-
 import styled from '@emotion/styled';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';

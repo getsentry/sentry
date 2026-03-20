@@ -1,8 +1,7 @@
 import type {ReactNode} from 'react';
 import {flushSync} from 'react-dom';
-
-import {ThemeProvider, useTheme} from '@emotion/react';
 import {createRoot} from 'react-dom/client';
+import {ThemeProvider, useTheme} from '@emotion/react';
 
 const renderToString = (tree: ReactNode) => {
   const div = document.createElement('div');

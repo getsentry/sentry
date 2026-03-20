@@ -1,5 +1,4 @@
 import {useState} from 'react';
-
 import moment from 'moment-timezone';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';

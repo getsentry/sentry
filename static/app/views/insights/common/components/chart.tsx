@@ -1,6 +1,5 @@
 import type {RefObject} from 'react';
 import {createContext, useContext, useEffect, useMemo, useReducer, useRef} from 'react';
-
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';

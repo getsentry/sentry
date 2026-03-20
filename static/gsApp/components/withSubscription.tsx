@@ -1,5 +1,4 @@
 import {Component} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

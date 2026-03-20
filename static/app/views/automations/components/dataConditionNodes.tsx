@@ -1,6 +1,5 @@
 import type React from 'react';
 import {createContext, useContext} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';

@@ -1,5 +1,4 @@
 import {useContext, useEffect} from 'react';
-
 import {autorun} from 'mobx';
 
 import {FormContext} from 'sentry/components/forms/formContext';

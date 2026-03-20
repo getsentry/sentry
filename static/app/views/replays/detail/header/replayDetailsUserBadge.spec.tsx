@@ -1,5 +1,4 @@
 import {act, type ReactNode} from 'react';
-
 import {duration} from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReplayNavigateEventFixture} from 'sentry-fixture/replay/helpers';

@@ -1,5 +1,4 @@
 import {Component} from 'react';
-
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';

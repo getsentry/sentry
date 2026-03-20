@@ -8,7 +8,6 @@ import {
   useState,
   type RefObject,
 } from 'react';
-
 import * as Sentry from '@sentry/react';
 import uniqBy from 'lodash/uniqBy';
 

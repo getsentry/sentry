@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';

@@ -1,5 +1,4 @@
 import {Fragment, type ReactNode} from 'react';
-
 import orderBy from 'lodash/orderBy';
 
 import {Flex} from '@sentry/scraps/layout';

@@ -8,7 +8,6 @@ import {
   type ReactNode,
 } from 'react';
 import type {To} from 'react-router-dom';
-
 import {
   closestCenter,
   DndContext,

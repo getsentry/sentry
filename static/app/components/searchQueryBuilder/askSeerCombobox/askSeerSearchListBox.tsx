@@ -1,5 +1,4 @@
 import {useRef} from 'react';
-
 import styled from '@emotion/styled';
 import {useListBox, useOption, type AriaListBoxOptions} from '@react-aria/listbox';
 import type {ListState} from '@react-stately/list';

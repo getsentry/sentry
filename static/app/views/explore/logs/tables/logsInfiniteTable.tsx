@@ -1,6 +1,5 @@
 import type {CSSProperties, RefObject} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';

@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-
 import {useFocus, usePress} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';

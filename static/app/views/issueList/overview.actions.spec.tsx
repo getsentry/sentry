@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import Cookies from 'js-cookie';
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';

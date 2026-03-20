@@ -1,6 +1,5 @@
 import {Fragment, useEffect, useMemo, useRef, type ReactNode} from 'react';
 import {createPortal} from 'react-dom';
-
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useOption} from '@react-aria/listbox';

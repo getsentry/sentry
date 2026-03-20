@@ -1,6 +1,5 @@
 import {useState} from 'react';
 import {Outlet, useOutletContext} from 'react-router-dom';
-
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';

@@ -1,5 +1,4 @@
 import {useEffect, useRef} from 'react';
-
 import * as qs from 'query-string';
 
 import {useNavigate} from 'sentry/utils/useNavigate';

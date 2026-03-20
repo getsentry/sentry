@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {TextArea} from '@sentry/scraps/textarea';

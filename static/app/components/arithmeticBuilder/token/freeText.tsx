@@ -1,6 +1,5 @@
 import type {ChangeEvent, FocusEvent, MouseEvent, RefObject} from 'react';
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';

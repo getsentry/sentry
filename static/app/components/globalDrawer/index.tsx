@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-
 import type {Interpolation, Theme} from '@emotion/react';
 import {AnimatePresence, type Transition} from 'framer-motion';
 import type {Location} from 'history';

@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-
 import * as qs from 'query-string';
 
 import {t} from 'sentry/locale';

@@ -1,5 +1,4 @@
 import {type LinkProps as ReactRouterLinkProps} from 'react-router-dom';
-
 import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';

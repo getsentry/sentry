@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-
 import * as qs from 'query-string';
 
 import {NotFound} from 'sentry/components/errors/notFound';

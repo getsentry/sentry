@@ -1,6 +1,6 @@
 import 'react-grid-layout/css/styles.css';
-import GridLayout, {WidthProvider} from 'react-grid-layout';
 
+import GridLayout, {WidthProvider} from 'react-grid-layout';
 import styled from '@emotion/styled';
 
 import {defined} from 'sentry/utils';

@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -45,11 +44,11 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {ExceptionContent} from './crashContent/exception';
 import {StackTraceContent} from './crashContent/stackTrace';
-import {NoStackTraceMessage} from './noStackTraceMessage';
 import {ThreadSelector} from './threads/threadSelector';
 import {findBestThread} from './threads/threadSelector/findBestThread';
 import {getThreadException} from './threads/threadSelector/getThreadException';
 import {getThreadStacktrace} from './threads/threadSelector/getThreadStacktrace';
+import {NoStackTraceMessage} from './noStackTraceMessage';
 import {inferPlatform, isStacktraceNewestFirst} from './utils';
 
 type Props = {

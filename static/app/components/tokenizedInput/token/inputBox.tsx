@@ -7,7 +7,6 @@ import type {
   Ref,
 } from 'react';
 import {useCallback, useRef} from 'react';
-
 import styled from '@emotion/styled';
 import {useTextField} from '@react-aria/textfield';
 import {mergeRefs} from '@react-aria/utils';

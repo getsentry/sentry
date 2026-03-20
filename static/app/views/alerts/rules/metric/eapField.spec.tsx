@@ -1,5 +1,4 @@
 import {useState, type ReactElement} from 'react';
-
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

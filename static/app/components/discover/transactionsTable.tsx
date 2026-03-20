@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';

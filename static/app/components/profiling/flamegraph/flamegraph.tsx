@@ -7,7 +7,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -70,13 +69,13 @@ import {
   useProfileTransaction,
 } from 'sentry/views/profiling/profilesProvider';
 
-import {FlamegraphChart} from './flamegraphChart';
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
-import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
+import {useViewKeyboardNavigation} from './interactions/useViewKeyboardNavigation';
+import {FlamegraphChart} from './flamegraphChart';
+import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
-import {useViewKeyboardNavigation} from './interactions/useViewKeyboardNavigation';
 
 const PROFILE_TYPE = 'transaction profile' as const;
 

@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';

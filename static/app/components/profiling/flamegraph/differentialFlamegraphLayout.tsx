@@ -1,5 +1,4 @@
 import {cloneElement, useCallback, useMemo, useRef} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';

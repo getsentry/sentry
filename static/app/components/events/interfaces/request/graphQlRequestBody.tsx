@@ -1,5 +1,4 @@
 import {useEffect, useRef} from 'react';
-
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import Prism from 'prismjs';

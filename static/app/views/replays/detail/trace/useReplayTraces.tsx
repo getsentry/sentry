@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-
 import type {Location} from 'history';
 
 import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';

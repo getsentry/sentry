@@ -1,5 +1,4 @@
 import {Component} from 'react';
-
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -19,8 +18,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 
-import {Candidate} from './candidate';
 import {Status} from './candidate/status';
+import {Candidate} from './candidate';
 import {INTERNAL_SOURCE} from './utils';
 
 const filterOptionCategories = {

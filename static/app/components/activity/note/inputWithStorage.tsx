@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 

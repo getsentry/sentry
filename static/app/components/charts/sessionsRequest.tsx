@@ -1,5 +1,4 @@
 import {Component} from 'react';
-
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 

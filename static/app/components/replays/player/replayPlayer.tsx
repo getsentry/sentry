@@ -1,5 +1,4 @@
 import {useEffect, useLayoutEffect, useRef, type HTMLAttributes} from 'react';
-
 import {useTheme, type Interpolation, type Theme} from '@emotion/react';
 import {Replayer} from '@sentry-internal/rrweb';
 

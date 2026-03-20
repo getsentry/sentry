@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import {useTheme, type Theme} from '@emotion/react';
 
 import type {LineChartProps, LineChartSeries} from 'sentry/components/charts/lineChart';

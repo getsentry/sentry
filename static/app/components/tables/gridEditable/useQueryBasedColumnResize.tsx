@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-
 import dropRightWhile from 'lodash/dropRightWhile';
 
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';

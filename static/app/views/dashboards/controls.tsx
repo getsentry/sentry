@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -31,11 +30,11 @@ import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
 import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
+import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {exportDashboard} from './exportDashboard';
 import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
-import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 
 type Props = {
   dashboard: DashboardDetails;

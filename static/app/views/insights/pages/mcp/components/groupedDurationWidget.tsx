@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import {ExternalLink} from '@sentry/scraps/link';

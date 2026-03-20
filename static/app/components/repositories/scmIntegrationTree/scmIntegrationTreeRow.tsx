@@ -1,5 +1,4 @@
 import {useEffect, useState, type CSSProperties, type ReactNode} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';

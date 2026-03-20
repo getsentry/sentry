@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-
 import debounce from 'lodash/debounce';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';

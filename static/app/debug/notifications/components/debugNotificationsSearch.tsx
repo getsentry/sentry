@@ -1,6 +1,5 @@
 import type {Key} from 'react';
 import {useCallback, useMemo, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item} from '@react-stately/collections';

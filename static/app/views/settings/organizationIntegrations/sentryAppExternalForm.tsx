@@ -1,5 +1,4 @@
 import {Component} from 'react';
-
 import debounce from 'lodash/debounce';
 
 import type {GeneralSelectValue} from '@sentry/scraps/select';

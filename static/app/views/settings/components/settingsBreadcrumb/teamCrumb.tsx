@@ -9,8 +9,8 @@ import {useParams} from 'sentry/utils/useParams';
 import {useTeams} from 'sentry/utils/useTeams';
 import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
-import {CrumbLink} from '.';
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
+import {CrumbLink} from '.';
 
 export function TeamCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import styled from '@emotion/styled';
 
 import zeroInboxIssuesImg from 'sentry-images/spot/zero-inbox-issues.svg';

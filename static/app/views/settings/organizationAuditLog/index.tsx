@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';

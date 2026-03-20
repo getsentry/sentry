@@ -1,5 +1,4 @@
 import React, {useCallback, useRef} from 'react';
-
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';

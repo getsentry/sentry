@@ -1,6 +1,5 @@
 import {Fragment, useCallback} from 'react';
 import {createPortal} from 'react-dom';
-
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 

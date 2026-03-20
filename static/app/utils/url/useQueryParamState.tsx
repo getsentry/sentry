@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils';

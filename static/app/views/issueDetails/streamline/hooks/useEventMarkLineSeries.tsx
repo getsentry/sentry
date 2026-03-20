@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import {MarkLine} from 'sentry/components/charts/components/markLine';

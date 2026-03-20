@@ -1,5 +1,4 @@
 import {Component, Fragment, useContext, useEffect} from 'react';
-
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 

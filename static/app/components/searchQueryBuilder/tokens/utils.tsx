@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-
 import {getFocusableTreeWalker} from '@react-aria/focus';
 import type {ListState} from '@react-stately/list';
 import type {Key, Node} from '@react-types/shared';

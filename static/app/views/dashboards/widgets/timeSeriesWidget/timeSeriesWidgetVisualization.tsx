@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-
 import {useTheme} from '@emotion/react';
 import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';

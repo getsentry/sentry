@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-
 import {useTheme} from '@emotion/react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';

@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
-
 import type {Location} from 'history';
 
 import {useLocation} from 'sentry/utils/useLocation';

@@ -1,5 +1,4 @@
 import {generatePath} from 'react-router-dom';
-
 import trim from 'lodash/trim';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';

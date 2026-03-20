@@ -1,5 +1,4 @@
 import {useEffect, useMemo, useRef} from 'react';
-
 import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 

@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';

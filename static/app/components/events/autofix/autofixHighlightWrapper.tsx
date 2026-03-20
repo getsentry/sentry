@@ -1,5 +1,4 @@
 import React, {useEffect, useRef, useState} from 'react';
-
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';

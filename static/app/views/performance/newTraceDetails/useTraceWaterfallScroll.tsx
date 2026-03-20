@@ -9,8 +9,8 @@ import type {
   ViewManagerScrollAnchor,
   VirtualizedViewManager,
 } from './traceRenderers/virtualizedViewManager';
-import type {TraceReducerState} from './traceState';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
+import type {TraceReducerState} from './traceState';
 
 export function useTraceWaterfallScroll({
   organization,

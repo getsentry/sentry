@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import {useTheme} from '@emotion/react';
 import type {ToolboxComponentOption} from 'echarts';
 

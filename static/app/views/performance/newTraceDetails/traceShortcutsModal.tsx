@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import styled from '@emotion/styled';
 
 import tracingKeyboardShortcuts from 'sentry-images/spot/tracing-keyboard-shortcuts.svg';

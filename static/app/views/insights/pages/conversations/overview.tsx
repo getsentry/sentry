@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';

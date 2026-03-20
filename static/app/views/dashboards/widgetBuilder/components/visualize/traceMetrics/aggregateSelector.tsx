@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import cloneDeep from 'lodash/cloneDeep';
 
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';

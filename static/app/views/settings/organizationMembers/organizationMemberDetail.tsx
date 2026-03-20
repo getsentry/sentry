@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useState} from 'react';
-
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';

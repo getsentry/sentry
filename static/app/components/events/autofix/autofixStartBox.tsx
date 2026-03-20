@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';

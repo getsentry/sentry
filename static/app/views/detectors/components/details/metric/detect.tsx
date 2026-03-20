@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';

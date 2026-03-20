@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useRef} from 'react';
-
 import {useTheme, type Theme} from '@emotion/react';
 import type {
   CustomSeriesOption,

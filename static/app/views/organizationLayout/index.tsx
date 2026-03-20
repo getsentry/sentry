@@ -1,5 +1,4 @@
 import {Outlet, ScrollRestoration} from 'react-router-dom';
-
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';

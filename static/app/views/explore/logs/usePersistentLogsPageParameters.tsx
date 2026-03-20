@@ -1,5 +1,4 @@
 import {useEffect, useRef} from 'react';
-
 import type {Location} from 'history';
 
 import {useLocation} from 'sentry/utils/useLocation';

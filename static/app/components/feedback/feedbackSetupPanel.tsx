@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-
 import styled from '@emotion/styled';
 
 import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';

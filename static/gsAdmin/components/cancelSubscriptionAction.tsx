@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-
 import moment from 'moment-timezone';
 
 import type {

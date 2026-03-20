@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-
 import {debug} from '@sentry/core';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';

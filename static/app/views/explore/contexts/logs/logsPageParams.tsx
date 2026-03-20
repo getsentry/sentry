@@ -1,5 +1,4 @@
 import {useLayoutEffect} from 'react';
-
 import type {Location} from 'history';
 
 import type {Sort} from 'sentry/utils/discover/fields';

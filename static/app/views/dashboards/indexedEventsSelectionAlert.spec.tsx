@@ -4,9 +4,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
+import {DashboardsMEPContext} from './widgetCard/dashboardsMEPContext';
 import {IndexedEventsSelectionAlert} from './indexedEventsSelectionAlert';
 import {WidgetType} from './types';
-import {DashboardsMEPContext} from './widgetCard/dashboardsMEPContext';
 
 describe('IndexedEventsSelectionAlert', () => {
   const widget = WidgetFixture({

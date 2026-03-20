@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-
 import {initializeLogsTest} from 'sentry-fixture/log';
 
 import {

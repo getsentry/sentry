@@ -1,5 +1,4 @@
 import {createContext, useCallback, useContext} from 'react';
-
 import type {eventWithTime, ReplayPlugin} from '@sentry-internal/rrweb';
 
 import {CanvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';

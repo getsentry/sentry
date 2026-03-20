@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import * as React from 'react';
-
 import type {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';

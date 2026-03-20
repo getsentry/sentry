@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';

@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {
   createTraceMetricFixtures,

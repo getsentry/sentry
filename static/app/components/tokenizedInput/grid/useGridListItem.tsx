@@ -1,6 +1,5 @@
 import type {FocusEvent, RefObject} from 'react';
 import {useCallback, useMemo} from 'react';
-
 import {useGridListItem as useGridListItemAria} from '@react-aria/gridlist';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';

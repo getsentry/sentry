@@ -8,7 +8,6 @@
  * - Theme type exports
  */
 import type {CSSProperties} from 'react';
-
 import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 

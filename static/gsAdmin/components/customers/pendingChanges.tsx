@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';

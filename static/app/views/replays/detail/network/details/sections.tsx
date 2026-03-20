@@ -1,6 +1,5 @@
 import type {MouseEvent} from 'react';
 import {useEffect, useMemo} from 'react';
-
 import queryString from 'query-string';
 
 import {Flex} from '@sentry/scraps/layout';

@@ -1,5 +1,4 @@
 import React, {useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';

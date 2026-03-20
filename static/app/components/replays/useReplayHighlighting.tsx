@@ -1,6 +1,5 @@
 import type {RefObject} from 'react';
 import {useCallback} from 'react';
-
 import type {Replayer} from '@sentry-internal/rrweb';
 
 import {

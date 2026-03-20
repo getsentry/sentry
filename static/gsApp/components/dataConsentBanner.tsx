@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import styled from '@emotion/styled';
 
 import dataConsentImage from 'sentry-images/spot/add-integration-provider.svg';

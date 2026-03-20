@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';

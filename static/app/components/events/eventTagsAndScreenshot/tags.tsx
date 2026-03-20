@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Grid} from '@sentry/scraps/layout';

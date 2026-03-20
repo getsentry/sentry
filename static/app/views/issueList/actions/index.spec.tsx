@@ -1,5 +1,4 @@
 import {Fragment, useLayoutEffect} from 'react';
-
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';

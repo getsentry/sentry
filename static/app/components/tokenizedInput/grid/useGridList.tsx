@@ -1,6 +1,5 @@
 import type {RefObject} from 'react';
 import {useMemo} from 'react';
-
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList as useGridListAria} from '@react-aria/gridlist';
 import {ListKeyboardDelegate} from '@react-aria/selection';

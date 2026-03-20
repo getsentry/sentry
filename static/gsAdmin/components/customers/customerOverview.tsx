@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import styled from '@emotion/styled';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';

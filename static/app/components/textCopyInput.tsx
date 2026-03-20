@@ -1,5 +1,4 @@
 import {useCallback, useId} from 'react';
-
 import styled from '@emotion/styled';
 
 import {InputGroup} from '@sentry/scraps/input';

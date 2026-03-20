@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';

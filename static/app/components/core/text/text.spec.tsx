@@ -1,5 +1,4 @@
 import {createRef, Fragment} from 'react';
-
 import {expectTypeOf} from 'expect-type';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';

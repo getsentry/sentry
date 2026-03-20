@@ -1,6 +1,5 @@
 import type {FocusEvent, KeyboardEvent} from 'react';
 import {useMemo, useRef} from 'react';
-
 import type {useComboBox} from '@react-aria/combobox';
 import {getItemId, listData} from '@react-aria/listbox';
 import {useMenuTrigger} from '@react-aria/menu';

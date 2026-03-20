@@ -1,6 +1,5 @@
 import {useEffect, useState} from 'react';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
-
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
 import {TanStackDevtools} from '@tanstack/react-devtools';
 import {formDevtoolsPlugin} from '@tanstack/react-form-devtools';

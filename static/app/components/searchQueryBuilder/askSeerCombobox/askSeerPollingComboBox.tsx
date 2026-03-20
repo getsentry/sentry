@@ -1,5 +1,4 @@
 import {useLayoutEffect, useMemo, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';

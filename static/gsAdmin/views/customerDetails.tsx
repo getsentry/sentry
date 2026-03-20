@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 import scrollToElement from 'scroll-to-element';

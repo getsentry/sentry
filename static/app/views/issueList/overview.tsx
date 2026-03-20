@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';

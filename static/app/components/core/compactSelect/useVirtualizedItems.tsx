@@ -1,5 +1,4 @@
 import {useRef} from 'react';
-
 import type {Node} from '@react-types/shared';
 import {useVirtualizer} from '@tanstack/react-virtual';
 

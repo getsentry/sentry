@@ -1,6 +1,5 @@
 import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 

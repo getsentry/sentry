@@ -1,6 +1,5 @@
 import type {RefObject} from 'react';
 import {createContext, useContext, useMemo, useRef} from 'react';
-
 import {metrics} from '@sentry/react';
 import {
   asyncQueuerOptions,

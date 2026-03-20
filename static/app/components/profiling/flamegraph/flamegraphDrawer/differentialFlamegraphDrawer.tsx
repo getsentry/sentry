@@ -1,6 +1,5 @@
 import type {MouseEventHandler} from 'react';
 import {memo, useCallback, useMemo, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';

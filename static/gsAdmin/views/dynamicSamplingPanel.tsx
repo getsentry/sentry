@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useState} from 'react';
-
 import styled from '@emotion/styled';
 import isEmpty from 'lodash/isEmpty';
 import startCase from 'lodash/startCase';

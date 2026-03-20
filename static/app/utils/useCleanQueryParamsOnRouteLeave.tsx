@@ -1,5 +1,4 @@
 import {useCallback, useEffect} from 'react';
-
 import type {Location} from 'history';
 
 import {browserHistory} from 'sentry/utils/browserHistory';

@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import type {PopperProps} from 'react-popper';
-
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 

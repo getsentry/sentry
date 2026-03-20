@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import styled from '@emotion/styled';
 
 import BottomLeft from 'sentry-images/pattern/highlight-bottom-left.svg';

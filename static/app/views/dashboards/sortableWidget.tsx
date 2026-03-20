@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState, type ComponentProps} from 'react';
-
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -17,6 +16,9 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
 import {useWidgetErrorCallback} from './contexts/widgetErrorContext';
+import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
+import {Toolbar} from './widgetCard/toolbar';
 import {
   DisplayType,
   WidgetType,
@@ -25,9 +27,6 @@ import {
   type Widget,
   type WidgetQuery,
 } from './types';
-import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
-import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
-import {Toolbar} from './widgetCard/toolbar';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;

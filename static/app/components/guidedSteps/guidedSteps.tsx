@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from 'react';
-
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 

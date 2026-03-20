@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';

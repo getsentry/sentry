@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-
 import styled from '@emotion/styled';
 import {AddressElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';

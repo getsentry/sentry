@@ -1,5 +1,4 @@
 import type {HTMLAttributes} from 'react';
-
 import styled from '@emotion/styled';
 import type {MotionNodeAnimationOptions} from 'framer-motion';
 import {motion} from 'framer-motion';

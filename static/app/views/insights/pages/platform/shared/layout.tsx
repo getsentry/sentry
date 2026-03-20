@@ -1,5 +1,4 @@
 import {type ReactNode} from 'react';
-
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';

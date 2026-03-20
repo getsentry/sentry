@@ -5,7 +5,6 @@ import {
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
-
 import type {Event, Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 

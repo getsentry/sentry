@@ -10,7 +10,6 @@ import {
 } from 'react';
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
-
 import {useTheme} from '@emotion/react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 

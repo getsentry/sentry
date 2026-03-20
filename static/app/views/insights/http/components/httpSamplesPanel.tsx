@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-
 import keyBy from 'lodash/keyBy';
 
 import {Button} from '@sentry/scraps/button';

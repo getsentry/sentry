@@ -1,5 +1,4 @@
 import type {MouseEvent} from 'react';
-
 import type {LocationDescriptorObject} from 'history';
 
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';

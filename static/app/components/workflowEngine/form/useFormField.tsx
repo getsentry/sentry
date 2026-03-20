@@ -1,5 +1,4 @@
 import {useCallback, useContext, useSyncExternalStore} from 'react';
-
 import noop from 'lodash/noop';
 import {observe} from 'mobx';
 

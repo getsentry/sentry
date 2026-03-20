@@ -1,6 +1,5 @@
 import type React from 'react';
 import {useRef} from 'react';
-
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';

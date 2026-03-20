@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-
 import styled from '@emotion/styled';
 import type {Scope} from '@sentry/core';
 import * as Sentry from '@sentry/react';

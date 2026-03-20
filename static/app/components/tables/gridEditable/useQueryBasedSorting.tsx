@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import type {Location} from 'history';
 
 import {queryBasedSortLinkGenerator} from 'sentry/components/replays/queryBasedSortLinkGenerator';

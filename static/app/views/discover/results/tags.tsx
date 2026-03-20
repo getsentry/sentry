@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';

@@ -1,6 +1,5 @@
 import type {RefObject} from 'react';
 import {useCallback, useLayoutEffect, useState} from 'react';
-
 import {useResizeObserver} from '@react-aria/utils';
 
 interface Props<Element extends HTMLElement> {

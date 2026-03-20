@@ -1,5 +1,4 @@
 import {Fragment, useContext, useEffect, useRef} from 'react';
-
 import styled from '@emotion/styled';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';

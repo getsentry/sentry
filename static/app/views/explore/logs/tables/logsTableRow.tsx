@@ -8,7 +8,6 @@ import React, {
   useRef,
   useState,
 } from 'react';
-
 import {useTheme} from '@emotion/react';
 import classNames from 'classnames';
 import omit from 'lodash/omit';

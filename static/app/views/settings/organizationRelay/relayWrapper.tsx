@@ -1,5 +1,4 @@
 import {useCallback, useState} from 'react';
-
 import omit from 'lodash/omit';
 import {z} from 'zod';
 
@@ -25,10 +24,10 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
-import {EmptyState} from './emptyState';
-import {List} from './list';
 import Add from './modals/add';
 import Edit from './modals/edit';
+import {EmptyState} from './emptyState';
+import {List} from './list';
 
 const RELAY_DOCS_LINK = 'https://getsentry.github.io/relay/';
 

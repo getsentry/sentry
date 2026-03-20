@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useRef} from 'react';
-
 import cloneDeep from 'lodash/cloneDeep';
 
 import {t, tct} from 'sentry/locale';

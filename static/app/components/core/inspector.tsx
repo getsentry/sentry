@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
-
 import {css, useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';

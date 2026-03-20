@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-
 import styled from '@emotion/styled';
 
 import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';

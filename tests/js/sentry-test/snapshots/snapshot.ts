@@ -4,12 +4,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import {createElement, type ReactElement} from 'react';
-
+import {renderToString} from 'react-dom/server';
 import createCache from '@emotion/cache';
 import {CacheProvider} from '@emotion/react';
 import createEmotionServer from '@emotion/server/create-instance';
 import {chromium, type Browser} from 'playwright';
-import {renderToString} from 'react-dom/server';
 
 import type {SnapshotImageMetadata} from 'sentry-test/snapshots/snapshot-image-metadata';
 

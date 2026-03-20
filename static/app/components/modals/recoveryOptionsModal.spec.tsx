@@ -1,5 +1,4 @@
 import type {PropsWithChildren} from 'react';
-
 import styled from '@emotion/styled';
 import {
   AllAuthenticatorsFixture,

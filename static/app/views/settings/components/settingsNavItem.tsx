@@ -1,6 +1,5 @@
 import type {ReactElement} from 'react';
 import {Fragment} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';

@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-
 import clamp from 'lodash/clamp';
 
 import {

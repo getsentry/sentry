@@ -1,8 +1,7 @@
 import {useState} from 'react';
-import {createBrowserRouter, RouterProvider} from 'react-router-dom';
-
-import throttle from 'lodash/throttle';
 import {createRoot} from 'react-dom/client';
+import {createBrowserRouter, RouterProvider} from 'react-router-dom';
+import throttle from 'lodash/throttle';
 
 import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';

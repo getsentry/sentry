@@ -30,11 +30,11 @@ import {
 import {TRENDS_FUNCTIONS, TRENDS_PARAMETERS} from 'sentry/views/performance/trends/utils';
 import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
 
+import {ChartControls as LatencyChartControls} from './latencyChart/chartControls';
+import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import {DurationChart} from './durationChart';
 import {DurationPercentileChart} from './durationPercentileChart';
 import {LatencyChart} from './latencyChart';
-import {ChartControls as LatencyChartControls} from './latencyChart/chartControls';
-import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import {TrendChart} from './trendChart';
 import {UserMiseryChart} from './userMiseryChart';
 import {VitalsChart} from './vitalsChart';

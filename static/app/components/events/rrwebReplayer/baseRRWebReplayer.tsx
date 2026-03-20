@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useRef} from 'react';
-
 import styled from '@emotion/styled';
 import RRWebPlayer from '@sentry-internal/rrweb-player';
 

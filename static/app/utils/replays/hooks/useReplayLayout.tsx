@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-
 import {useTheme} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';

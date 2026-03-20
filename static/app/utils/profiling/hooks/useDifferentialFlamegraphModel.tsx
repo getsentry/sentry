@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import {DifferentialFlamegraph as DifferentialFlamegraphModel} from 'sentry/utils/profiling/differentialFlamegraph';

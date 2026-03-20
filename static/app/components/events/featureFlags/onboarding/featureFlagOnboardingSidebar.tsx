@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 import {parseAsString, useQueryState} from 'nuqs';
 

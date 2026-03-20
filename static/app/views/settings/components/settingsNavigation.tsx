@@ -1,5 +1,4 @@
 import {cloneElement, Component, Fragment} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';

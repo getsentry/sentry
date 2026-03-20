@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-
 import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';

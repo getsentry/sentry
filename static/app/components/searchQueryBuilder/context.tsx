@@ -8,7 +8,6 @@ import {
   useState,
   type Dispatch,
 } from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import type {

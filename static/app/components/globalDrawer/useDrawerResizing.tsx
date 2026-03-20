@@ -1,5 +1,4 @@
 import {useCallback, useLayoutEffect, useRef} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import {useMedia} from 'sentry/utils/useMedia';

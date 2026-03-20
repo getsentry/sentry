@@ -4,6 +4,7 @@ import type {DeepPartial} from 'sentry/types/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 
+import type {FlamegraphSearch} from './reducers/flamegraphSearch';
 import type {FlamegraphState} from './flamegraphContext';
 import {
   DEFAULT_FLAMEGRAPH_STATE,
@@ -11,7 +12,6 @@ import {
   flamegraphStateReducer,
   FlamegraphStateValueContext,
 } from './flamegraphContext';
-import type {FlamegraphSearch} from './reducers/flamegraphSearch';
 
 function isValidHighlightFrame(
   frame: Partial<FlamegraphSearch['highlightFrames']> | null | undefined

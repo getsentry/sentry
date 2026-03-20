@@ -1,5 +1,4 @@
 import {Fragment, isValidElement} from 'react';
-
 import styled from '@emotion/styled';
 
 import {AnnotatedValue} from 'sentry/components/structuredEventData/annotatedValue';

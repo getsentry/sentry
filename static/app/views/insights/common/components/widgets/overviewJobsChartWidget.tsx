@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';

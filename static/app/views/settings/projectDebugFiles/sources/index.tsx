@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';

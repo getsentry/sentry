@@ -1,5 +1,4 @@
 import {useEffect, useEffectEvent, useMemo, useRef, type RefObject} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';

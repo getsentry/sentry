@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-
 import styled from '@emotion/styled';
 
 import type {Project} from 'sentry/types/project';

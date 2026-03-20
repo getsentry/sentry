@@ -1,5 +1,4 @@
 import {Component, Suspense, useEffect, useState, type ErrorInfo} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';

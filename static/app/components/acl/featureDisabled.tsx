@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import type {AlertProps} from '@sentry/scraps/alert';

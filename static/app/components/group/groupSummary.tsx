@@ -1,5 +1,4 @@
 import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
-
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 

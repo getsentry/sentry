@@ -1,5 +1,4 @@
 import type {Location as Location6, To} from 'react-router-dom';
-
 import * as Sentry from '@sentry/react';
 import type {Location as Location3, LocationDescriptor, Query} from 'history';
 import * as qs from 'query-string';

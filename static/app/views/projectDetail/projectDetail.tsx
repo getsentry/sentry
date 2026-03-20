@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -39,13 +38,13 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
+import {ProjectScoreCards} from './projectScoreCards/projectScoreCards';
 import ProjectCharts from './projectCharts';
 import {ProjectFilters} from './projectFilters';
 import {ProjectIssues} from './projectIssues';
 import {ProjectLatestAlerts} from './projectLatestAlerts';
 import {ProjectLatestReleases} from './projectLatestReleases';
 import {ProjectQuickLinks} from './projectQuickLinks';
-import {ProjectScoreCards} from './projectScoreCards/projectScoreCards';
 import {ProjectTeamAccess} from './projectTeamAccess';
 
 export function ProjectDetail() {

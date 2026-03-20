@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-
 import sortBy from 'lodash/sortBy';
 
 import type {Fuse} from 'sentry/utils/fuzzySearch';

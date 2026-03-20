@@ -15,8 +15,8 @@ import {getPlanIcon, hasPartnerMigrationFeature} from 'getsentry/utils/billing';
 import {isDisabledByPartner} from 'getsentry/utils/partnerships';
 import {PartnershipNote} from 'getsentry/views/subscriptionPage/partnershipNote';
 
-import {DecidePendingChanges} from './decidePendingChanges';
 import {HeaderCards} from './headerCards/headerCards';
+import {DecidePendingChanges} from './decidePendingChanges';
 import {ManagedNote} from './managedNote';
 import {SubscriptionUpsellBanner} from './subscriptionUpsellBanner';
 import {TrialAlert} from './trialAlert';

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from '@sentry/scraps/badge';

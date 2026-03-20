@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-
 import {motion, type MotionProps} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';

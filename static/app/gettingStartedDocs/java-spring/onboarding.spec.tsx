@@ -5,8 +5,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {PackageManager} from 'sentry/gettingStartedDocs/java/utils';
 
-import {docs} from '.';
 import {SpringVersion} from './utils';
+import {docs} from '.';
 
 describe('GettingStartedWithSpring', () => {
   it('renders gradle docs correctly', async () => {

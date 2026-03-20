@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
-
 import {useTheme} from '@emotion/react';
 import clamp from 'lodash/clamp';
 

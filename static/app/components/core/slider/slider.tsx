@@ -1,5 +1,4 @@
 import {useState, type CSSProperties} from 'react';
-
 import styled from '@emotion/styled';
 
 interface BaseProps extends Omit<

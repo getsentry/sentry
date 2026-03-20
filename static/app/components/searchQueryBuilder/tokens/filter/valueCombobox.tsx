@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';

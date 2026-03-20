@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-
 import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
@@ -40,8 +39,8 @@ import {
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
-import SummaryContent, {EAPSummaryContent} from './content';
 import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
+import SummaryContent, {EAPSummaryContent} from './content';
 
 // Used to cast the totals request to numbers
 // as string | number

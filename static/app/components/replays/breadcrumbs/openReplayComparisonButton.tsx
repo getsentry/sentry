@@ -1,5 +1,4 @@
 import {Fragment, lazy, Suspense, type ReactNode} from 'react';
-
 import {css} from '@emotion/react';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';

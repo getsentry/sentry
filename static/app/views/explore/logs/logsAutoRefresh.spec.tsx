@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {createLogFixtures, initializeLogsTest} from 'sentry-fixture/log';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

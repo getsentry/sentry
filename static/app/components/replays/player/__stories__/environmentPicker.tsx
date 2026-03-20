@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import uniq from 'lodash/uniq';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';

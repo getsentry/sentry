@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
-
 import isEqual from 'lodash/isEqual';
 
 import * as Layout from 'sentry/components/layouts/thirds';

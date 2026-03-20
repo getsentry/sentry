@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-
 import {PaymentElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {StripePaymentElementChangeEvent} from '@stripe/stripe-js';
 

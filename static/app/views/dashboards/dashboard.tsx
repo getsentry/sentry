@@ -1,9 +1,9 @@
 import 'react-grid-layout/css/styles.css';
+
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {Layout} from 'react-grid-layout';
 import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
-
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -31,8 +31,8 @@ import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueu
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 
-import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
+import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
 import {
   assignDefaultLayout,
   assignTempId,

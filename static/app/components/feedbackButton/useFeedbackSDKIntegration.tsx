@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import type * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';

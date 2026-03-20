@@ -1,4 +1,5 @@
 import 'echarts/lib/chart/scatter';
+
 import type {ScatterSeriesOption} from 'echarts';
 
 export function ScatterSeries(props: ScatterSeriesOption): ScatterSeriesOption {

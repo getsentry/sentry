@@ -1,5 +1,4 @@
 import {Fragment, PureComponent} from 'react';
-
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 

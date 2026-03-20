@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-
 import type {Query} from 'history';
 
 import {useLocation} from 'sentry/utils/useLocation';

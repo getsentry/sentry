@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import styled from '@emotion/styled';
 
 import {ClippedBox} from 'sentry/components/clippedBox';

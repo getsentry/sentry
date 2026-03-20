@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import type {UseInfiniteQueryResult, UseQueryResult} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';

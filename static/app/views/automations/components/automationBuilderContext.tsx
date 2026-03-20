@@ -1,5 +1,4 @@
 import {createContext, useCallback, useContext, useReducer, type Reducer} from 'react';
-
 import {uuid4} from '@sentry/core';
 
 import type {

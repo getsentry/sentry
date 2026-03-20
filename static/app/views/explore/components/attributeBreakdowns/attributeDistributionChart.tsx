@@ -1,5 +1,4 @@
 import {useLayoutEffect, useMemo, useRef, useState} from 'react';
-
 import type {Theme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';

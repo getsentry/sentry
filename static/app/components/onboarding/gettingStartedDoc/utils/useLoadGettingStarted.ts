@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';

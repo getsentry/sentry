@@ -1,5 +1,4 @@
 import {createContext, Fragment, useContext} from 'react';
-
 import styled from '@emotion/styled';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';

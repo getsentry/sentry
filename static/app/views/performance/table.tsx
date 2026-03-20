@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState, type ReactNode} from 'react';
-
 import type {Theme} from '@emotion/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
@@ -38,7 +37,6 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
-import {COLUMN_TITLES} from './data';
 import {getMEPQueryParams} from './landing/widgets/utils';
 import TransactionThresholdModal, {
   modalCss,
@@ -47,6 +45,7 @@ import {
   normalizeSearchConditionsWithTransactionName,
   transactionSummaryRouteWithQuery,
 } from './transactionSummary/utils';
+import {COLUMN_TITLES} from './data';
 import {
   createUnnamedTransactionsDiscoverTarget,
   getProject,

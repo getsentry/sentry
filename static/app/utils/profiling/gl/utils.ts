@@ -1,5 +1,4 @@
 import {useLayoutEffect} from 'react';
-
 import type Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 

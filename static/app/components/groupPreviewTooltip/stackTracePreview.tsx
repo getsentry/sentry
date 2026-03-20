@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';

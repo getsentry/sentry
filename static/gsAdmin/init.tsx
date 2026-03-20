@@ -1,9 +1,8 @@
+import {createRoot} from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
-
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
-import {createRoot} from 'react-dom/client';
 
 import {commonInitialization} from 'sentry/bootstrap/commonInitialization';
 import {initializeSdk} from 'sentry/bootstrap/initializeSdk';

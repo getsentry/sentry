@@ -11,8 +11,8 @@ import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft} from 'getsentry/utils/billing';
 
-import {ButtonWrapper, SubscriptionBody} from './styles';
 import {TrialBadge} from './trial/badge';
+import {ButtonWrapper, SubscriptionBody} from './styles';
 
 type Props = {
   organization: Organization;

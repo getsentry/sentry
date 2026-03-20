@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
-
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 

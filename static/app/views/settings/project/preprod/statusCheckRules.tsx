@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import seerConfigBugSvg from 'sentry-images/spot/seer-config-bug-1.svg';

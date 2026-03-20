@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-
 import styled from '@emotion/styled';
 
 import {DrawerBody} from 'sentry/components/globalDrawer/components';

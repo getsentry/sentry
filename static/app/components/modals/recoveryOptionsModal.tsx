@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-
 import {css, useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';

@@ -1,6 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
-
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/core';
@@ -43,12 +42,12 @@ import {
   getTransactionName,
 } from 'sentry/views/performance/utils';
 
-import {TransactionHeader} from './header';
-import Tab from './tabs';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
+import {TransactionHeader} from './header';
+import Tab from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
 

@@ -1,5 +1,4 @@
 import {Fragment, type CSSProperties} from 'react';
-
 import styled from '@emotion/styled';
 
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';

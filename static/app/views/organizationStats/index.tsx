@@ -1,5 +1,4 @@
 import {Component} from 'react';
-
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';

@@ -1,4 +1,5 @@
 import 'echarts/lib/component/markLine';
+
 import type {LineSeriesOption} from 'echarts';
 
 /**

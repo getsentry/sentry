@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Container, type ContainerProps} from '@sentry/scraps/layout';

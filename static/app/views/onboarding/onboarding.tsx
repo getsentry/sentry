@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState, type PropsWithChildren} from 'react';
-
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 

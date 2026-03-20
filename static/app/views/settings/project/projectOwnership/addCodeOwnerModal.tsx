@@ -1,5 +1,4 @@
 import {Fragment, useState, type Dispatch, type SetStateAction} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';

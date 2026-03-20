@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';

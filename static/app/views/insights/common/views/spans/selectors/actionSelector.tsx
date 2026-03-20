@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-
 import omit from 'lodash/omit';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';

@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-
 import partition from 'lodash/partition';
 
 import Feature from 'sentry/components/acl/feature';

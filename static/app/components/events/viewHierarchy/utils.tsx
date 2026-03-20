@@ -1,5 +1,4 @@
 import {useLayoutEffect, useState} from 'react';
-
 import {mat3, vec2} from 'gl-matrix';
 
 import type {

@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-
 import styled from '@emotion/styled';
 import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';

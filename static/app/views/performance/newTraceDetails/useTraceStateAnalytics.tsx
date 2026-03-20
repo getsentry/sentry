@@ -7,11 +7,11 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useProjects} from 'sentry/utils/useProjects';
 
-import {traceAnalytics, type TraceTreeSource} from './traceAnalytics';
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {isEmptyTrace} from './traceApi/utils';
 import type {TraceTree} from './traceModels/traceTree';
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
+import {traceAnalytics, type TraceTreeSource} from './traceAnalytics';
 import {useTraceQueryParams} from './useTraceQueryParams';
 
 type Options = {

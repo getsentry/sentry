@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

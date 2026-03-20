@@ -1,5 +1,4 @@
 import * as docgen from 'react-docgen-typescript';
-
 import type {LoaderContext} from '@rspack/core';
 import * as typescript from 'typescript';
 

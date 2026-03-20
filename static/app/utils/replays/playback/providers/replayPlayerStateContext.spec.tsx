@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-
 import {IncrementalSource, Replayer} from '@sentry-internal/rrweb';
 import {
   RRWebFullSnapshotFrameEventFixture,

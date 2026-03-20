@@ -1,5 +1,6 @@
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
+
 import styled from '@emotion/styled';
 
 export const CalendarStylesWrapper = styled('div')`

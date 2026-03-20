@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-
 import type {PaymentIntentResult, Stripe, StripeElements} from '@stripe/stripe-js';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';

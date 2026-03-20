@@ -1,5 +1,4 @@
 import {useEffect, useRef, useState} from 'react';
-
 // eslint-disable-next-line no-restricted-imports
 import type {DebounceSettings} from 'lodash';
 import debounce from 'lodash/debounce';

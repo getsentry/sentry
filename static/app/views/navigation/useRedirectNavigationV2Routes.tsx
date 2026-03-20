@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-
 import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';

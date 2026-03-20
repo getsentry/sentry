@@ -1,5 +1,4 @@
 import {useCallback, useEffect} from 'react';
-
 import type {Location} from 'history';
 
 import {Stack} from '@sentry/scraps/layout';

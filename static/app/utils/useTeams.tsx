@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-
 import uniqBy from 'lodash/uniqBy';
 
 import {fetchUserTeams} from 'sentry/actionCreators/teams';

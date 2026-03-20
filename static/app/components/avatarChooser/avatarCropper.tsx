@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 export function getDiffNW(yDiff: number, xDiff: number) {

@@ -1,5 +1,4 @@
 import {Fragment, useEffect} from 'react';
-
 import {css} from '@emotion/react';
 import {PlatformIcon} from 'platformicons';
 

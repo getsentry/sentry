@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
-
 import beautify from 'js-beautify';
 
 import {CodeBlock} from '@sentry/scraps/code';

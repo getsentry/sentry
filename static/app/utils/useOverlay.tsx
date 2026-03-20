@@ -1,7 +1,6 @@
 import {useMemo, useRef, useState} from 'react';
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
-
 import type {Modifier} from '@popperjs/core';
 import {detectOverflow} from '@popperjs/core';
 import type {ArrowModifier} from '@popperjs/core/lib/modifiers/arrow';

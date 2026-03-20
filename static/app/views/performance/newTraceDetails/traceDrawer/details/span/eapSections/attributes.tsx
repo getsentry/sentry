@@ -1,5 +1,4 @@
 import {useMemo, useState} from 'react';
-
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';

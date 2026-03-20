@@ -1,5 +1,4 @@
 import {useMemo, useState} from 'react';
-
 import pick from 'lodash/pick';
 
 import {Tag as TagBadge} from '@sentry/scraps/badge';

@@ -1,5 +1,4 @@
 import {useLayoutEffect, useMemo} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';

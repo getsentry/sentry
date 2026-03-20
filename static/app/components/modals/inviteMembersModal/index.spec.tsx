@@ -1,5 +1,4 @@
 import type {ComponentProps} from 'react';
-
 import styled from '@emotion/styled';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';

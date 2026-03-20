@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
 import {useNavigate as useReactRouter6Navigate} from 'react-router-dom';
-
 import type {LocationDescriptor} from 'history';
 
 import {locationDescriptorToTo} from './reactRouter6Compat/location';

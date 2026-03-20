@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';

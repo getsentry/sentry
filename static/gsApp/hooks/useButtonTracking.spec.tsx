@@ -1,5 +1,4 @@
 import {createMemoryRouter, RouterProvider} from 'react-router-dom';
-
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';

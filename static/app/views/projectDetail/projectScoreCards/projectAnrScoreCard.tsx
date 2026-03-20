@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 

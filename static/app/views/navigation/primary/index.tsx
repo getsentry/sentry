@@ -1,5 +1,4 @@
 import {Fragment, useRef} from 'react';
-
 import {mergeProps} from '@react-aria/utils';
 
 import {Stack} from '@sentry/scraps/layout';

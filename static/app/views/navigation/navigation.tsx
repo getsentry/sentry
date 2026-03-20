@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-
 import {motion, type MotionProps} from 'framer-motion';
 
 import {Flex} from '@sentry/scraps/layout';

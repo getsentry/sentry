@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';

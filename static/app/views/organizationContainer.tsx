@@ -1,5 +1,4 @@
 import {Outlet} from 'react-router-dom';
-
 import {useProfiler} from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';

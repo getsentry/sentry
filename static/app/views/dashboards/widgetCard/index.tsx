@@ -1,5 +1,4 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';

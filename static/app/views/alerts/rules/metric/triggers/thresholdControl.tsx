@@ -1,5 +1,4 @@
 import {Component} from 'react';
-
 import styled from '@emotion/styled';
 
 import {NumberDragInput} from '@sentry/scraps/input';

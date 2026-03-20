@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import {MemberFixture} from 'sentry-fixture/member';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 

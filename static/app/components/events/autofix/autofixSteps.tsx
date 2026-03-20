@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useRef} from 'react';
-
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 

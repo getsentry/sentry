@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';

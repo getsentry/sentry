@@ -1,5 +1,4 @@
 import {Fragment, PureComponent} from 'react';
-
 import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';

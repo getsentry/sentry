@@ -1,5 +1,4 @@
 import {useMemo, useRef, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -13,9 +12,9 @@ import {TimeRangeSelectTrigger} from 'sentry/components/timeRangeSelector';
 import * as Storybook from 'sentry/stories';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
+import {useTimeWindowConfig} from './hooks/useTimeWindowConfig';
 import {CheckInTimeline} from './checkInTimeline';
 import {GridLineLabels, GridLineOverlay} from './gridLines';
-import {useTimeWindowConfig} from './hooks/useTimeWindowConfig';
 import type {CheckInBucket, TickStyle, TimeWindowConfig} from './types';
 
 enum ExampleStatus {

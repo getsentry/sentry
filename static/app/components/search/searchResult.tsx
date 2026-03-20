@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import styled from '@emotion/styled';
 
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';

@@ -1,5 +1,4 @@
 import {Fragment, useEffect, useState} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';

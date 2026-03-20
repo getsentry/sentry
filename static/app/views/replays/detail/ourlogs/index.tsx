@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useRef} from 'react';
-
 import styled from '@emotion/styled';
 
 import {Placeholder} from 'sentry/components/placeholder';

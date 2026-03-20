@@ -1,4 +1,5 @@
 import 'echarts/lib/component/tooltip';
+
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';

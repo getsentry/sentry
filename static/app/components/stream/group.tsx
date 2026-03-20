@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';

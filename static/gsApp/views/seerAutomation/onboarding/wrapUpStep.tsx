@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-
 import styled from '@emotion/styled';
 
 import nextStepsImg from 'sentry-images/spot/seer-config-bug-2.svg';
@@ -13,8 +12,8 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {ActionSection, MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
+import {ActionSection, MaxWidthPanel, PanelDescription, StepContent} from './common';
 
 export function WrapUpStep() {
   const organization = useOrganization();

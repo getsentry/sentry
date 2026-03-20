@@ -1,5 +1,4 @@
 import {useEffect, useState} from 'react';
-
 import styled from '@emotion/styled';
 
 import type {AutofixData} from './types';

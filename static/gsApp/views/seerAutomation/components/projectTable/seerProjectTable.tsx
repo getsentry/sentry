@@ -1,5 +1,4 @@
 import {useEffect, useMemo} from 'react';
-
 import styled from '@emotion/styled';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 

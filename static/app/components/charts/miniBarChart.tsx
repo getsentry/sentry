@@ -1,7 +1,7 @@
 // Import to ensure echarts components are loaded.
 import 'echarts/lib/component/markPoint';
-import {useMemo} from 'react';
 
+import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {GridComponentOption} from 'echarts';
 import set from 'lodash/set';

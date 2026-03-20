@@ -1,5 +1,4 @@
 import type {ComponentProps, CSSProperties} from 'react';
-
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 

@@ -1,5 +1,4 @@
 import {useEffect, useMemo, useState} from 'react';
-
 import {useTheme} from '@emotion/react';
 
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';

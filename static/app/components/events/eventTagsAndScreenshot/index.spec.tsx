@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-
 import {EventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
