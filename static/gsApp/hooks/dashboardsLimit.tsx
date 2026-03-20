@@ -17,6 +17,7 @@ interface UseDashboardsLimitResult {
 }
 
 const UNLIMITED_DASHBOARDS_LIMIT = -1;
+// 10 is the lowest plan limit, used as a fallback if plan details don't come back
 const DEFAULT_DASHBOARDS_LIMIT = 10;
 
 export function useDashboardsLimit(): UseDashboardsLimitResult {
