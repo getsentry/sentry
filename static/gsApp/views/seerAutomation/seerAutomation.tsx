@@ -29,7 +29,6 @@ export default function SeerAutomation() {
   if (showNewSeer(organization)) {
     return (
       <Stack gap="lg">
-        {showNoActiveSeerSubscriptionBanner ? <NoActiveSeerSubscriptionBanner /> : null}
         <SeerAutomationSettings />
       </Stack>
     );
