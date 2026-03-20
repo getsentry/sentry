@@ -352,7 +352,7 @@ class TestTriggerAutofixExplorer(TestCase):
 
         mock_client.start_run.assert_called_once()
         call_kwargs = mock_client.start_run.call_args.kwargs
-        assert call_kwargs["metadata"] == {"group_id": self.group.id}
+        assert call_kwargs["metadata"] == {"group_id": self.group.id, "referrer": "unknown"}
 
 
 class TestTriggerCodingAgentHandoff(TestCase):
