@@ -7,12 +7,36 @@ import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
  * match that behavior for comparisons.
  */
 function toPythonString(value: unknown): string {
+  if (value === null) {
+    return 'None';
+  }
   if (typeof value === 'boolean') {
     return value ? 'True' : 'False';
   }
   if (Array.isArray(value)) {
-    return `[${value.join(',')}]`;
+    const elements = value.map(item => {
+      if (item === null) {
+        return 'None';
+      }
+      if (typeof item === 'string') {
+        return `'${item}'`;
+      }
+      if (typeof item === 'number') {
+        return item.toString();
+      }
+      // Fallback for unexpected types in array
+      return String(item);
+    });
+    return `[${elements.join(', ')}]`;
   }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return value.toString();
+  }
+  // Fallback for unexpected types (should never be reached with valid GroupBy values)
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   return String(value);
 }
 

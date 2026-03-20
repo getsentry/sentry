@@ -90,4 +90,64 @@ describe('matchTimeSeriesToTableRow', () => {
 
     expect(result).toBe(42);
   });
+
+  it('matches null groupBy values correctly', () => {
+    const result = matchTimeSeriesToTableRow({
+      tableDataRows: [
+        {id: '1', project: 'None', 'count()': 15},
+        {id: '2', project: 'my-project', 'count()': 25},
+      ],
+      timeSeries: TimeSeriesFixture({
+        yAxis: 'count()',
+        groupBy: [{key: 'project', value: null}],
+      }),
+    });
+
+    expect(result).toBe(15);
+  });
+
+  it('matches array groupBy values with strings correctly', () => {
+    const result = matchTimeSeriesToTableRow({
+      tableDataRows: [
+        {id: '1', 'error.type': "['ValueError', 'TypeError']", 'count()': 10},
+        {id: '2', 'error.type': "['Exception']", 'count()': 5},
+      ],
+      timeSeries: TimeSeriesFixture({
+        yAxis: 'count()',
+        groupBy: [{key: 'error.type', value: ['ValueError', 'TypeError']}],
+      }),
+    });
+
+    expect(result).toBe(10);
+  });
+
+  it('matches array groupBy values with null elements correctly', () => {
+    const result = matchTimeSeriesToTableRow({
+      tableDataRows: [
+        {id: '1', 'error.type': "['Exception', None, 'TypeError']", 'count()': 20},
+        {id: '2', 'error.type': "['ValueError']", 'count()': 8},
+      ],
+      timeSeries: TimeSeriesFixture({
+        yAxis: 'count()',
+        groupBy: [{key: 'error.type', value: ['Exception', null, 'TypeError']}],
+      }),
+    });
+
+    expect(result).toBe(20);
+  });
+
+  it('matches array groupBy values with numbers correctly', () => {
+    const result = matchTimeSeriesToTableRow({
+      tableDataRows: [
+        {id: '1', 'status_codes': '[200, 404]', 'count()': 30},
+        {id: '2', 'status_codes': '[500]', 'count()': 2},
+      ],
+      timeSeries: TimeSeriesFixture({
+        yAxis: 'count()',
+        groupBy: [{key: 'status_codes', value: [200, 404]}],
+      }),
+    });
+
+    expect(result).toBe(30);
+  });
 });
