@@ -415,8 +415,7 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
 }
 
 function PrimaryNavigationButtonBar(props: ButtonBarProps) {
-  const organization = usePrimaryNavigationOrganization();
-  const hasPageFrame = organization?.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
@@ -617,8 +616,8 @@ const DesktopNavigationLink = styled((props: LinkProps) => (
 `;
 
 const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
-  const organization = usePrimaryNavigationOrganization();
-  const hasPageFrame = organization?.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
     <Flex
       position="relative"
