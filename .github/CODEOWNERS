@@ -164,7 +164,7 @@ Makefile                                                 @getsentry/owners-sentr
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build
 pyproject.toml                                           @getsentry/owners-python-build
-prettier*                                                @getsentry/owners-js-build
+.oxfmtrc.json                                            @getsentry/owners-js-build
 vercel.json                                              @getsentry/owners-js-build
 /.github/workflows/frontend.yml                          @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build

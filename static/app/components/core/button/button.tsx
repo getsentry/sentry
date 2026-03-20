@@ -2,6 +2,7 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -16,13 +17,15 @@ import {useButtonFunctionality} from './useButtonFunctionality';
 export type {ButtonProps};
 
 export function Button({
-  size = 'md',
   disabled,
   type = 'button',
   tooltipProps,
   busy,
+  size: explicitSize,
   ...props
 }: ButtonProps) {
+  const contextSize = useSizeContext();
+  const size = explicitSize ?? contextSize ?? 'md';
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     type,

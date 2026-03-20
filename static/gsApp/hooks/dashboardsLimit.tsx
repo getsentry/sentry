@@ -17,13 +17,16 @@ interface UseDashboardsLimitResult {
 }
 
 const UNLIMITED_DASHBOARDS_LIMIT = -1;
+// 10 is the lowest plan limit, used as a fallback if plan details don't come back
+const DEFAULT_DASHBOARDS_LIMIT = 10;
 
 export function useDashboardsLimit(): UseDashboardsLimitResult {
   const organization = useOrganization();
   const subscription = useSubscription();
 
   // If there is no subscription, block dashboard creation
-  const dashboardsLimit = subscription?.planDetails?.dashboardLimit ?? 0;
+  const dashboardsLimit =
+    subscription?.planDetails?.dashboardLimit ?? DEFAULT_DASHBOARDS_LIMIT;
 
   const isUnlimitedPlan = dashboardsLimit === UNLIMITED_DASHBOARDS_LIMIT;
 
