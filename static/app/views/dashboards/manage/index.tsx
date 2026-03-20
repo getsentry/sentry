@@ -687,7 +687,7 @@ function ManageDashboards() {
                           priority="default"
                           icon={<IconSeer />}
                         >
-                          <Flex gap="sm" align="center">
+                          <Flex gap="sm" align="center" as="span">
                             {t('Create Dashboard with Seer')}
                             <FeatureBadge type="experimental" />
                           </Flex>
