@@ -232,16 +232,13 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         )}
       </Stack>
 
-      <Flex gap="md" align="center">
-        <Button onClick={() => onComplete()}>{t('Back')}</Button>
-        <Button
-          priority="primary"
-          onClick={() => onComplete()}
-          disabled={!currentPlatformKey}
-        >
-          {t('Continue')}
-        </Button>
-      </Flex>
+      <Button
+        priority="primary"
+        onClick={() => onComplete()}
+        disabled={!currentPlatformKey}
+      >
+        {t('Continue')}
+      </Button>
     </Flex>
   );
 }

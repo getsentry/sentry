@@ -7,7 +7,7 @@ import {
   OnboardingContextProvider,
   type OnboardingSessionState,
 } from 'sentry/components/onboarding/onboardingContext';
-import type {Repository} from 'sentry/types/integrations';
+import {RepositoryStatus, type Repository} from 'sentry/types/integrations';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
@@ -29,7 +29,7 @@ const mockRepository: Repository = {
   externalSlug: 'getsentry/sentry',
   url: 'https://github.com/getsentry/sentry',
   integrationId: '1',
-  status: 'active' as const,
+  status: RepositoryStatus.ACTIVE,
   dateCreated: '2024-01-01T00:00:00.000Z',
   provider: {id: 'integrations:github', name: 'GitHub'},
 };
