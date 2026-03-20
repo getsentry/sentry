@@ -11,6 +11,7 @@ import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
+import {useAsyncAttributeValidation} from 'sentry/views/explore/hooks/useAsyncAttributeValidation';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
@@ -105,6 +106,7 @@ export function useTraceItemSearchQueryBuilderProps({
   disableRecentSearches,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
+  const validateFilterKeys = useAsyncAttributeValidation(itemType, projects);
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
   const filterTags = useFilterTags({
@@ -166,6 +168,7 @@ export function useTraceItemSearchQueryBuilderProps({
       },
       caseInsensitive,
       onCaseInsensitiveClick,
+      validateFilterKeys,
     }),
     [
       booleanSecondaryAliases,
@@ -193,6 +196,7 @@ export function useTraceItemSearchQueryBuilderProps({
       replaceRawSearchKeys,
       searchSource,
       stringSecondaryAliases,
+      validateFilterKeys,
     ]
   );
 }
