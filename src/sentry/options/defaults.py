@@ -3854,27 +3854,10 @@ register(
 
 # Taskbroker flags
 register(
-    "taskworker.enabled",
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "taskworker.route.overrides",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "taskworker.grpc_service_config",
-    type=String,
-    default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "taskworker.fetch_next.disabled_pools",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # Enable HTTP/2 transport in Sentry SDK
 register(
