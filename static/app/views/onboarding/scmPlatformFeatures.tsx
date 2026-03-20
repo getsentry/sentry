@@ -26,9 +26,20 @@ interface ResolvedPlatform extends DetectedPlatform {
   info: PlatformIntegration;
 }
 
+const platformsByKey = new Map(platforms.map(p => [p.id, p]));
+
+const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
+
 function getAvailableFeaturesForPlatform(platformKey: PlatformKey): ProductSolution[] {
   return platformProductAvailability[platformKey] ?? [];
 }
+
+const platformOptions = platforms.map(platform => ({
+  value: platform.id,
+  label: platform.name,
+  textValue: `${platform.name} ${platform.id}`,
+  leadingItems: () => <PlatformIcon platform={platform.id} size={16} />,
+}));
 
 export function ScmPlatformFeatures({onComplete}: StepProps) {
   const {
@@ -40,24 +51,6 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   } = useOnboardingContext();
 
   const [showManualPicker, setShowManualPicker] = useState(false);
-
-  const platformsByKey = useMemo(() => new Map(platforms.map(p => [p.id, p])), []);
-
-  const getPlatformInfo = useCallback(
-    (key: PlatformKey) => platformsByKey.get(key),
-    [platformsByKey]
-  );
-
-  const platformOptions = useMemo(
-    () =>
-      platforms.map(platform => ({
-        value: platform.id,
-        label: platform.name,
-        textValue: `${platform.name} ${platform.id}`,
-        leadingItems: () => <PlatformIcon platform={platform.id} size={16} />,
-      })),
-    []
-  );
 
   const setPlatform = useCallback(
     (platformKey: PlatformKey) => {
@@ -72,8 +65,9 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         });
       }
     },
-    [getPlatformInfo, setSelectedPlatform]
+    [setSelectedPlatform]
   );
+
   const hasScmConnected = !!selectedRepository;
 
   const {detectedPlatforms, isPending: isDetecting} = useScmPlatformDetection(
@@ -94,7 +88,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         }
         return acc;
       }, []),
-    [detectedPlatforms, getPlatformInfo]
+    [detectedPlatforms]
   );
 
   const availableFeatures = useMemo(
