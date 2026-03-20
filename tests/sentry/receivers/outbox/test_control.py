@@ -30,9 +30,7 @@ class ProcessControlOutboxTest(TestCase):
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_identity_updates(self, mock_maybe_process: MagicMock) -> None:
         process_identity_updates(object_identifier=self.identifier, region_name=_TEST_CELL.name)
-        mock_maybe_process.assert_called_with(
-            Identity, self.identifier, cell_name=_TEST_CELL.name
-        )
+        mock_maybe_process.assert_called_with(Identity, self.identifier, cell_name=_TEST_CELL.name)
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
     def test_process_api_application_updates(self, mock_maybe_process: MagicMock) -> None:
