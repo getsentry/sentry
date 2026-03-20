@@ -323,6 +323,7 @@ function remapFragment(fragmentPath: string): string | null {
 // Applied when --defaults is set, after any user-supplied values.
 // Sources: tests/js/fixtures/ and Sentry URL conventions.
 const PARAM_DEFAULTS: Record<string, string> = {
+  orgId: 'sentry',
   projectId: 'project-slug',
   teamId: 'team-slug',
   groupId: '1234567',
