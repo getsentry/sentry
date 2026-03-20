@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -55,7 +56,6 @@ export function SnapshotMainContent({
     if (!currentPair) {
       return null;
     }
-    const displayName = getImageName(currentPair.head_image);
     const totalVariants = selectedItem.pairs.length;
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
@@ -69,9 +69,18 @@ export function SnapshotMainContent({
               />
             )}
             <Stack gap="md">
-              <Text size="lg" bold>
-                {displayName}
-              </Text>
+              <Flex align="center" gap="md">
+                {currentPair.head_image.display_name && (
+                  <Text size="lg" bold>
+                    {currentPair.head_image.display_name}
+                  </Text>
+                )}
+                {currentPair.head_image.image_file_name && (
+                  <InlineCode variant="neutral">
+                    {currentPair.head_image.image_file_name}
+                  </InlineCode>
+                )}
+              </Flex>
               {totalVariants > 1 && (
                 <Text variant="muted" size="sm">
                   {t('Variant %s / %s', variantIndex + 1, totalVariants)}
@@ -164,9 +173,16 @@ export function SnapshotMainContent({
           />
         )}
         <Stack gap="md">
-          <Text size="lg" bold>
-            {displayName}
-          </Text>
+          <Flex align="center" gap="md">
+            {currentImage.display_name && (
+              <Text size="lg" bold>
+                {currentImage.display_name}
+              </Text>
+            )}
+            {currentImage.image_file_name && (
+              <InlineCode variant="neutral">{currentImage.image_file_name}</InlineCode>
+            )}
+          </Flex>
           <Flex align="center" gap="sm">
             <Text variant="muted" size="sm">
               ({statusLabel})

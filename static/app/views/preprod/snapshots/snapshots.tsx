@@ -99,8 +99,15 @@ export default function SnapshotsPage() {
           changedGroups.set(group, [pair]);
         }
       }
-      for (const [name, pairs] of changedGroups) {
-        items.push({type: 'changed', key: `changed:${name}`, name, badge: null, pairs});
+      for (const [groupKey, pairs] of changedGroups) {
+        const label = pairs[0]!.head_image.group ?? pairs[0]!.head_image.image_file_name;
+        items.push({
+          type: 'changed',
+          key: `changed:${groupKey}`,
+          name: label,
+          badge: null,
+          pairs,
+        });
       }
 
       const groupImages = (
@@ -117,8 +124,15 @@ export default function SnapshotsPage() {
             groups.set(group, [img]);
           }
         }
-        for (const [name, images] of groups) {
-          items.push({type, key: `${type}:${name}`, name, badge: null, images});
+        for (const [groupKey, images] of groups) {
+          const label = images[0]!.group ?? images[0]!.image_file_name;
+          items.push({
+            type,
+            key: `${type}:${groupKey}`,
+            name: label,
+            badge: null,
+            images,
+          });
         }
       };
 
@@ -144,13 +158,16 @@ export default function SnapshotsPage() {
 
     return [...groups.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([name, images]) => ({
-        type: 'solo' as const,
-        key: `solo:${name}`,
-        name,
-        badge: images.length > 1 ? String(images.length) : null,
-        images,
-      }));
+      .map(([groupKey, images]) => {
+        const label = images[0]!.group ?? images[0]!.image_file_name;
+        return {
+          type: 'solo' as const,
+          key: `solo:${groupKey}`,
+          name: label,
+          badge: images.length > 1 ? String(images.length) : null,
+          images,
+        };
+      });
   }, [data, comparisonType]);
 
   const filteredItems = useMemo(() => {

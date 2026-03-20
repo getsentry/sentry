@@ -68,7 +68,7 @@ export function getImageName(image: SnapshotImage): string {
 }
 
 export function getImageGroup(image: SnapshotImage): string {
-  return image.group ?? getImageName(image);
+  return image.group ?? image.image_file_name;
 }
 
 interface SidebarItemBase {
