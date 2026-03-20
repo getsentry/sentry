@@ -13,12 +13,12 @@ export function NoActiveSeerSubscriptionBanner() {
     <Container border="warning" radius="md" overflow="hidden">
       <Stack>
         <Alert system showIcon={false} variant="warning">
-          {t('No active Seer subscription found for this organization.')}
+          {t('You are using an older Seer experience.')}
         </Alert>
         <Container padding="2xl">
           <Text>
             {tct(
-              "This organization has Seer settings configured, but there isn't an active Seer subscription right now. Manage your subscription in [billing:Billing] to continue using Seer features like Autofix and Code Review. Learn more in the [docs:docs].",
+              'You can continue using Seer features like Autofix and Code Review for now. To keep uninterrupted access as Seer plans evolve, set up a Seer subscription in [billing:Billing]. Learn more in the [docs:docs].',
               {
                 billing: (
                   <Link
