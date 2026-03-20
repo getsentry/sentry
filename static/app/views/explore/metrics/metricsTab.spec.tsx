@@ -614,6 +614,14 @@ describe('MetricsTabContent (tracemetrics-ui-refresh)', () => {
 
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
     setupTraceItemsMock(metricFixtures.detailedFixtures);
+    // Fallback for background /events/ queries from the refreshed panel that this
+    // sidebar toggle test doesn't assert on directly.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
+    });
+
     setupEventsMock(metricFixtures.detailedFixtures, [
       MockApiClient.matchQuery({
         dataset: 'tracemetrics',
