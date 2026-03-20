@@ -1,16 +1,17 @@
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconGroup} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {SupergroupInfo} from 'sentry/utils/supergroup/useSuperGroupForIssues';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 interface Props {
-  supergroup: SupergroupInfo;
+  supergroup: SupergroupDetail;
 }
 
 /**
@@ -21,8 +22,12 @@ export function IssueSuperGroup({supergroup}: Props) {
 
   const tooltipTitle = (
     <div>
-      <div>{supergroup.title}</div>
-      {supergroup.summary ? <TooltipSummary>{supergroup.summary}</TooltipSummary> : null}
+      <Text bold>{supergroup.title}</Text>
+      {supergroup.summary ? (
+        <Text size="sm" variant="muted">
+          {supergroup.summary}
+        </Text>
+      ) : null}
     </div>
   );
 
@@ -49,10 +54,4 @@ const SuperGroupLink = styled(Link)`
   &:hover {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};
   }
-`;
-
-const TooltipSummary = styled('div')`
-  margin-top: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.font.size.sm};
-  opacity: 0.8;
 `;

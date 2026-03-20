@@ -5,16 +5,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
-export interface SupergroupInfo {
-  id: number;
-  title: string;
-  code_area?: string;
-  error_type?: string;
-  summary?: string;
-}
-
-type SupergroupState = Record<string, SupergroupInfo | null>;
+type SupergroupState = Record<string, SupergroupDetail | null>;
 
 interface Props {
   bufferLimit?: number;
@@ -58,7 +51,7 @@ export function useSuperGroupForIssues({bufferLimit = 25}: Props = {}) {
   });
 
   const getSuperGroupForIssue = useCallback(
-    (id: string): SupergroupInfo | null | undefined => {
+    (id: string): SupergroupDetail | null | undefined => {
       cache.buffer([id]);
       return cache.data?.[id];
     },
