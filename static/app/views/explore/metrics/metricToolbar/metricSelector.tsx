@@ -32,7 +32,10 @@ import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsSidePanelUI} from 'sentry/views/explore/metrics/metricsFlags';
+import {
+  canUseMetricsSidePanelUI,
+  canUseMetricsUIRefresh,
+} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
@@ -113,6 +116,7 @@ export function MetricSelector({
   const {data: metricOptionsData, isFetching} = useMetricOptions({
     search: debouncedSearch,
   });
+  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
 
   const {
     isOpen,
@@ -425,6 +429,9 @@ export function MetricSelector({
         {...mergedTriggerProps}
         style={{width: '100%', fontWeight: 'bold', textAlign: 'left'}}
         disabled={isFetching && !traceMetric.name}
+        tooltipProps={
+          hasMetricsUIRefresh ? {title: traceMetric.name || t('None')} : undefined
+        }
       >
         <Text ellipsis>{traceMetric.name || t('None')}</Text>
       </OverlayTrigger.Button>

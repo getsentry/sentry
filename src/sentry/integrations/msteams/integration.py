@@ -22,7 +22,10 @@ from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 from sentry.integrations.msteams.metrics import translate_msteams_api_error
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.notifications.platform.provider import IntegrationNotificationClient
+from sentry.notifications.platform.provider import (
+    IntegrationNotificationClient,
+    ProviderThreadingContext,
+)
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
@@ -92,6 +95,14 @@ class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient)
             client.send_card(conversation_id=target.resource_id, card=payload)
         except ApiError as e:
             translate_msteams_api_error(e)
+
+    def send_notification_with_threading(
+        self,
+        target: IntegrationNotificationTarget,
+        payload: AdaptiveCard,
+        threading_context: ProviderThreadingContext,
+    ) -> dict[str, Any]:
+        raise NotImplementedError("Threading is not supported for Microsoft Teams")
 
 
 class MsTeamsIntegrationProvider(IntegrationProvider):

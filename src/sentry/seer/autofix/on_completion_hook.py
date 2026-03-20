@@ -11,6 +11,7 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
 )
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
@@ -387,7 +388,12 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 "stopping_point": stopping_point,
             },
         )
-        trigger_autofix_explorer(group=group, step=next_step, run_id=run_id)
+        trigger_autofix_explorer(
+            group=group,
+            step=next_step,
+            referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+            run_id=run_id,
+        )
 
     @classmethod
     def _push_changes(cls, organization: Organization, run_id: int, state: SeerRunState) -> None:

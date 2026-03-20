@@ -5,6 +5,7 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 from typing import Any
 from enum import Enum
+import logging
 import re
 
 from sentry.new_migrations.migrations import CheckedMigration
@@ -33,6 +34,8 @@ from sentry.utils import snuba_rpc
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
 
+
+logger = logging.getLogger(__name__)
 
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
 
@@ -79,8 +82,20 @@ def _check_if_bool(meta: RequestMeta, name: str, bool_cache: dict[str, bool]) ->
         type=AttributeKey.Type.TYPE_BOOLEAN,
         value_substring_match=name,
     )
-    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
-    bool_cache[name] = len(rpc_response.attributes) == 1 and rpc_response.attributes[0].name == name
+    try:
+        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+        bool_cache[name] = (
+            len(rpc_response.attributes) == 1 and rpc_response.attributes[0].name == name
+        )
+    except Exception as error:
+        logger.exception(
+            "Error retrieving attribute info",
+            extra={
+                "tag": name,
+                "error": error,
+            },
+        )
+        bool_cache[name] = False
     return bool_cache[name]
 
 

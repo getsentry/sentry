@@ -157,8 +157,25 @@ def has_seer_explorer_access_with_detail(
     if not has_access:
         return False, error
 
-    # Check seer-explorer specific feature flag
-    if not features.has("organizations:seer-explorer", organization, actor=actor):
+    feature_names = [
+        # Access to seer explorer
+        "organizations:seer-explorer",
+        # Access to seer explorer powered autofix
+        "organizations:autofix-on-explorer",
+        "organizations:autofix-on-explorer-v2",
+    ]
+
+    batch_features = features.batch_has(
+        feature_names,
+        organization=organization,
+        actor=actor,
+    )
+
+    if batch_features is None:
+        return False, "Feature flag not enabled"
+
+    org_features = batch_features.get(f"organization:{organization.id}", {})
+    if not any(bool(org_features.get(feature_name)) for feature_name in feature_names):
         return False, "Feature flag not enabled"
 
     # Check open team membership (Explorer requires this for context)
