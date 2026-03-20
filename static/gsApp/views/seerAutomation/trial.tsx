@@ -69,6 +69,8 @@ export default function SeerAutomationTrial() {
       navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
       return;
     }
+
+    // Else you don't yet have the new seer plan, then stay here and click to start a trial.
   }, [navigate, organization.features, organization.slug, organization]);
 
   return (
