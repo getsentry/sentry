@@ -16,6 +16,8 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
   const hasPageFrame = organization?.features.includes('page-frame');
   const secondaryNavigation = useSecondaryNavigation();
 
+  const {withPadding, ...rest} = props;
+
   if (hasPageFrame) {
     return (
       <StyledPageFrameStack
@@ -26,18 +28,13 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
         borderTop={secondaryNavigation.view === 'expanded' ? 'primary' : undefined}
         borderLeft={secondaryNavigation.view === 'expanded' ? 'primary' : undefined}
         background="secondary"
-        {...props}
+        {...rest}
       />
     );
   }
 
   return (
-    <Stack
-      flex="1"
-      padding={props.withPadding ? '2xl 3xl' : undefined}
-      as="main"
-      {...props}
-    />
+    <Stack flex="1" padding={withPadding ? '2xl 3xl' : undefined} as="main" {...rest} />
   );
 }
 
