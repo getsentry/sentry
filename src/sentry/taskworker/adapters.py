@@ -140,5 +140,7 @@ def make_producer(topic: str) -> SingletonProducer:
         def factory() -> KafkaProducer:
             return get_arroyo_producer(f"sentry.taskworker.{topic}", Topic(topic))
 
-        _producer_local.producers[topic] = SingletonProducer(factory)
+        _producer_local.producers[topic] = SingletonProducer(
+            factory, max_futures=options.get("taskworker.producer.max_futures")
+        )
     return _producer_local.producers[topic]
