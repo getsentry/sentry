@@ -9,19 +9,26 @@ import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 
 type SupergroupState = Record<string, SupergroupDetail | null>;
 
-interface Props {
-  bufferLimit?: number;
+function supergroupReducer(
+  prevState: undefined | SupergroupState,
+  response: ApiResult,
+  aggregates: readonly string[]
+): undefined | SupergroupState {
+  const defaults = Object.fromEntries(
+    aggregates.map(id => [id, null])
+  ) as SupergroupState;
+  return {...defaults, ...prevState, ...response[0]};
 }
 
 /**
  * Query results for whether an Issue/Group belongs to a supergroup.
  */
-export function useSuperGroupForIssues({bufferLimit = 25}: Props = {}) {
+export function useSuperGroupForIssues() {
   const organization = useOrganization();
 
   const cache = useAggregatedQueryKeys<string, SupergroupState>({
     cacheKey: `/organizations/${organization.slug}/seer/supergroup-lookup/`,
-    bufferLimit,
+    bufferLimit: 25,
     getQueryKey: useCallback(
       (ids: readonly string[]): ApiQueryKey => [
         getApiUrl('/organizations/$organizationIdOrSlug/seer/supergroup/', {
@@ -35,19 +42,7 @@ export function useSuperGroupForIssues({bufferLimit = 25}: Props = {}) {
       ],
       [organization.slug]
     ),
-    responseReducer: useCallback(
-      (
-        prevState: undefined | SupergroupState,
-        response: ApiResult,
-        aggregates: readonly string[]
-      ) => {
-        const defaults = Object.fromEntries(
-          aggregates.map(id => [id, null])
-        ) as SupergroupState;
-        return {...defaults, ...prevState, ...(response[0] as SupergroupState)};
-      },
-      []
-    ),
+    responseReducer: supergroupReducer,
   });
 
   const getSuperGroupForIssue = useCallback(
