@@ -270,7 +270,6 @@ export default typescript.config([
     'api-docs/**/*',
     'src/sentry/static/sentry/js/**/*',
     'src/sentry/templates/sentry/**/*',
-    'stylelint.config.js',
     '.artifacts/**/*',
   ]),
   /**

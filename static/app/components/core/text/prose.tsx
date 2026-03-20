@@ -18,7 +18,6 @@ export const Prose = styled(
     return <Component {...(rest as any)}>{children}</Component>;
   }
 )`
-  /* stylelint-disable no-descending-specificity */
   h1,
   h2,
   h3,
@@ -46,5 +45,4 @@ export const Prose = styled(
   code:not(pre code) {
     ${p => inlineCodeStyles(p.theme)};
   }
-  /* stylelint-enable */
 `;

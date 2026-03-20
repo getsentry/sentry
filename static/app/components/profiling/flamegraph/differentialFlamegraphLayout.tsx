@@ -153,8 +153,6 @@ const DifferentialFlamegraphGrid = styled('div')<{
         ? `min-content min-content auto`
         : `auto min-content min-content`};
 
-  /* false positive for grid layout */
-  /* stylelint-disable */
   grid-template-areas: ${({layout}) =>
     layout === 'table bottom'
       ? `

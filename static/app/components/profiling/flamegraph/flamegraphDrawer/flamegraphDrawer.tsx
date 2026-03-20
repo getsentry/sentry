@@ -328,8 +328,6 @@ const FrameDrawer = styled('div')<{layout: FlamegraphPreferences['layout']}>`
   grid-template-rows: auto 1fr;
   grid-template-columns: ${({layout}) =>
     layout === 'table left' ? '1fr auto' : layout === 'table right' ? 'auto 1fr' : '1fr'};
-  /* false positive for grid layout */
-  /* stylelint-disable */
   grid-template-areas: ${({layout}) =>
     layout === 'table bottom'
       ? `
