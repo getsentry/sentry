@@ -12,7 +12,7 @@ import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigatio
  * Main container for a page.
  */
 export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const hasPageFrame = organization?.features.includes('page-frame');
   const secondaryNavigation = useSecondaryNavigation();
 
