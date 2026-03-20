@@ -1,11 +1,11 @@
-import type {HTMLAttributes} from 'react';
+import {useContext, type HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 /**
@@ -13,7 +13,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
  */
 export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
   const hasPageFrame = useHasPageFrameFeature();
-  const secondaryNavigation = useSecondaryNavigation();
+  const secondaryNavigation = useContext(SecondaryNavigationContext);
 
   const {withPadding, ...rest} = props;
 
@@ -23,9 +23,9 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
         flex="1"
         as="main"
         padding={props.withPadding ? '2xl 3xl' : undefined}
-        radius={secondaryNavigation.view === 'expanded' ? 'lg 0 0 0' : undefined}
-        borderTop={secondaryNavigation.view === 'expanded' ? 'primary' : undefined}
-        borderLeft={secondaryNavigation.view === 'expanded' ? 'primary' : undefined}
+        radius={secondaryNavigation?.view === 'expanded' ? 'lg 0 0 0' : undefined}
+        borderTop={secondaryNavigation?.view === 'expanded' ? 'primary' : undefined}
+        borderLeft={secondaryNavigation?.view === 'expanded' ? 'primary' : undefined}
         background="secondary"
         {...rest}
       />
