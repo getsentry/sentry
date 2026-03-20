@@ -165,10 +165,19 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
 
 function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const theme = useTheme();
+  const organization = useOrganization({allowNull: true});
+  const hasPageFrame = organization?.features.includes('page-frame');
+  const secondaryNavigation = useSecondaryNavigation();
   return (
     <Container
       background="secondary"
-      borderRight="primary"
+      borderRight={
+        hasPageFrame
+          ? secondaryNavigation.view === 'expanded'
+            ? undefined
+            : 'primary'
+          : 'primary'
+      }
       position="relative"
       height="100%"
     >

@@ -2,18 +2,41 @@ import type {HTMLAttributes} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
+
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 /**
  * Main container for a page.
  */
-export const Page = styled('main')<{withPadding?: boolean}>`
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  ${p => p.withPadding && `padding: ${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
-`;
+export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
+  const organization = useOrganization();
+  const hasPageFrame = organization?.features.includes('page-frame');
+  const secondaryNavigation = useSecondaryNavigation();
+
+  if (hasPageFrame) {
+    <Stack
+      flex="1"
+      padding={props.withPadding ? '2xl 3xl' : undefined}
+      as="main"
+      radius={secondaryNavigation.view === 'expanded' ? 'lg' : undefined}
+      borderTop={secondaryNavigation.view === 'expanded' ? 'primary' : undefined}
+      borderLeft={secondaryNavigation.view === 'expanded' ? 'primary' : undefined}
+      {...props}
+    />;
+  }
+
+  return (
+    <Stack
+      flex="1"
+      padding={props.withPadding ? '2xl 3xl' : undefined}
+      as="main"
+      {...props}
+    />
+  );
+}
 
 /**
  * Header container for header content and header actions.
