@@ -14,7 +14,6 @@ import type {Group} from 'sentry/types/group';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
-import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {SharedGroupHeader} from './sharedGroupHeader';
@@ -73,47 +72,44 @@ function SharedGroupDetails() {
   const org = {...group.project.organization, features: []};
 
   return (
-    <SecondaryNavigationContext.Provider value={noopSecondaryContext}>
-      <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>
-        <OrganizationContext value={org}>
-          <div className="app">
-            <div className="pattern-bg" />
-            <div className="container">
-              <div className="box box-modal">
-                <div className="box-header">
-                  <Link className="logo" to="/">
-                    <span className="icon-sentry-logo-full" />
+    <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>
+      <OrganizationContext value={org}>
+        <div className="app">
+          <div className="pattern-bg" />
+          <div className="container">
+            <div className="box box-modal">
+              <div className="box-header">
+                <Link className="logo" to="/">
+                  <span className="icon-sentry-logo-full" />
+                </Link>
+                {group.permalink && (
+                  <Link className="details" to={group.permalink}>
+                    {t('Details')}
                   </Link>
-                  {group.permalink && (
-                    <Link className="details" to={group.permalink}>
-                      {t('Details')}
-                    </Link>
-                  )}
-                </div>
-                <div className="box-content">
-                  <SharedGroupHeader group={group} />
-                  <Container
-                    padding="3xl"
-                    className="group-overview event-details-container"
-                  >
-                    <BorderlessEventEntries
-                      organization={org}
-                      group={group}
-                      event={group.latestEvent}
-                      project={group.project}
-                      isShare
-                    />
-                  </Container>
-                  <Footer />
-                </div>
+                )}
+              </div>
+              <div className="box-content">
+                <SharedGroupHeader group={group} />
+                <Container
+                  padding="3xl"
+                  className="group-overview event-details-container"
+                >
+                  <BorderlessEventEntries
+                    organization={org}
+                    group={group}
+                    event={group.latestEvent}
+                    project={group.project}
+                    isShare
+                  />
+                </Container>
+                <Footer />
               </div>
             </div>
           </div>
-        </OrganizationContext>
-      </SentryDocumentTitle>
-    </SecondaryNavigationContext.Provider>
+        </div>
+      </OrganizationContext>
+    </SentryDocumentTitle>
   );
 }
 
-const noopSecondaryContext = {view: 'expanded' as const, setView: () => {}};
 export default SharedGroupDetails;
