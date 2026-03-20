@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';

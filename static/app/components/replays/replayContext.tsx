@@ -1,4 +1,5 @@
 import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 import type {Mirror} from '@sentry-internal/rrweb-snapshot';

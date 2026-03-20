@@ -1,4 +1,5 @@
 import type {ComponentProps, ReactNode} from 'react';
+
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -83,7 +84,6 @@ import {convertEventsStatsToTimeSeriesData} from 'sentry/views/insights/common/q
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {addOrUpdateRule} from './actions';
 import {
   createDefaultTrigger,
@@ -109,6 +109,7 @@ import {
   type Trigger,
   type UnsavedMetricRule,
 } from './types';
+import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 

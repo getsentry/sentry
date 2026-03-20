@@ -1,4 +1,5 @@
 import {useContext, useMemo} from 'react';
+
 import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';

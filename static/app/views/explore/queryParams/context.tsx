@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
+
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';

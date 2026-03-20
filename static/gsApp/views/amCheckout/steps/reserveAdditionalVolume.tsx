@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
+
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';

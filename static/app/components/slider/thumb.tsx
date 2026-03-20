@@ -1,4 +1,5 @@
 import {useRef} from 'react';
+
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {AriaSliderThumbOptions} from '@react-aria/slider';

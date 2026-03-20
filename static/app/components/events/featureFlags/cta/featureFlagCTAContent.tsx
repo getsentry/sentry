@@ -1,4 +1,5 @@
 import {Fragment, useEffect} from 'react';
+
 import styled from '@emotion/styled';
 
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';

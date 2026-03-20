@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+
 import {SnubaQueryDataSourceFixture} from 'sentry-fixture/detectors';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';

@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';

@@ -1,8 +1,8 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import {SiblingOption} from './utils';
 import {docs} from '.';
+import {SiblingOption} from './utils';
 
 describe('capacitor onboarding docs', () => {
   it('renders docs correctly', () => {

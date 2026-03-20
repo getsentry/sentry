@@ -14,10 +14,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
+import {CrumbLink} from '.';
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import {findFirstRouteWithoutRouteParam} from './findFirstRouteWithoutRouteParam';
 import type {SettingsBreadcrumbProps} from './types';
-import {CrumbLink} from '.';
 
 export function OrganizationCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import type {DistributedOmit} from 'type-fest';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';

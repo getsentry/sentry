@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';

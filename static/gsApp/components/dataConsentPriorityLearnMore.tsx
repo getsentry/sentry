@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+
 import styled from '@emotion/styled';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';

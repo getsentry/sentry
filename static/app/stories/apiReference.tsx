@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import type {PropItem, Props} from 'react-docgen-typescript';
+
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';

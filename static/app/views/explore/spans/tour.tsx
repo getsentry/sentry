@@ -1,4 +1,5 @@
 import {createContext, Fragment, useContext, useEffect, useRef} from 'react';
+
 import styled from '@emotion/styled';
 
 import exploreSpansTourSvg from 'sentry-images/spot/explore-spans-tour.svg';

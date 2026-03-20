@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';

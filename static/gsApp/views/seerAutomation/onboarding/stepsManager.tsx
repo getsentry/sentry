@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';

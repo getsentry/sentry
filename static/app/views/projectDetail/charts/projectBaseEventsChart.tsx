@@ -1,4 +1,5 @@
 import {Component} from 'react';
+
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 

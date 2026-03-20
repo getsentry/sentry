@@ -7,8 +7,8 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
-import type {BaseNode} from './traceTreeNode/baseNode';
 import {IssuesTraceTree} from './issuesTraceTree';
+import type {BaseNode} from './traceTreeNode/baseNode';
 import {
   makeEventTransaction,
   makeSpan,

@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';

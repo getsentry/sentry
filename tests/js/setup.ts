@@ -1,7 +1,6 @@
 'use strict';
 
 import '@testing-library/jest-dom';
-
 import {webcrypto} from 'node:crypto';
 import {
   // @ts-expect-error structuredClone is available in Node 17+ but types don't like it
@@ -11,6 +10,7 @@ import {
 } from 'node:util';
 
 import {type ReactElement} from 'react';
+
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';

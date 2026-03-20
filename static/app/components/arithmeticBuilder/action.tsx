@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
+
 import type {Key} from '@react-types/shared';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';

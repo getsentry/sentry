@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
@@ -41,7 +42,6 @@ import {
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
-import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
 import type {
   DashboardDetails,
@@ -51,6 +51,7 @@ import type {
   Widget,
 } from './types';
 import {DashboardFilterKeys, WidgetType} from './types';
+import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 
 /**
  * Maps widget types to data categories for determining max pickable days

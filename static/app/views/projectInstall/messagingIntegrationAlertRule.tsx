@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Select, SelectOption} from '@sentry/scraps/select';

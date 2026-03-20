@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+
 import * as qs from 'query-string';
 
 import type {TraceTree} from './traceModels/traceTree';

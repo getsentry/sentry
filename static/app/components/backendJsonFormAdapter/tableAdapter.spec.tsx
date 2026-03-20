@@ -8,8 +8,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {JsonFormAdapterFieldConfig} from './types';
 import {BackendJsonFormAdapter} from './';
+import type {JsonFormAdapterFieldConfig} from './types';
 
 function makeConfig(
   overrides?: Partial<Extract<JsonFormAdapterFieldConfig, {type: 'table'}>>

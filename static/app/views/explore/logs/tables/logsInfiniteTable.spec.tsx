@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';

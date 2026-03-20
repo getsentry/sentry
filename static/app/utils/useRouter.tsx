@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+
 import type {LocationDescriptor} from 'history';
 
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';

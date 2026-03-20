@@ -1,4 +1,5 @@
 import {useCallback, useSyncExternalStore} from 'react';
+
 import type {Store} from 'reflux';
 
 interface LegacyStoreShape extends Pick<Store, 'listen'> {

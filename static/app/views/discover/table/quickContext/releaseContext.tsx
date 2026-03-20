@@ -1,4 +1,5 @@
 import {useEffect, useMemo} from 'react';
+
 import styled from '@emotion/styled';
 
 import {AvatarList} from '@sentry/scraps/avatar';
@@ -49,14 +50,12 @@ export function ReleaseContext(props: BaseContextProps) {
 
   const authors = useMemo(
     () =>
-      data?.authors.map<Actor | User>(author =>
-        // Add a unique id if missing
-        ({
-          ...author,
-          type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
-        })
-      ),
+      data?.authors.map<Actor | User>(author => // Add a unique id if missing
+      ({
+        ...author,
+        type: 'user',
+        id: 'id' in author ? author.id : uniqueId(),
+      })),
     [data?.authors]
   );
 

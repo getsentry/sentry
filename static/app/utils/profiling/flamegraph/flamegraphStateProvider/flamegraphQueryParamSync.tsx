@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+
 import type {Query} from 'history';
 import type * as qs from 'query-string';
 

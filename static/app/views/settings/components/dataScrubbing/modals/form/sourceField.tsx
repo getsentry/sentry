@@ -1,4 +1,5 @@
 import {Component, createRef, Fragment} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';

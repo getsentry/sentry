@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+
 import {isAppleDevice} from '@react-aria/utils';
 import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';

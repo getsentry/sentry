@@ -1,5 +1,6 @@
 import type {CSSProperties} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
@@ -45,13 +46,13 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import type {FlamegraphContextMenuProps} from './flamegraphContextMenu';
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
 import {useDrawHoveredBorderEffect} from './interactions/useDrawHoveredBorderEffect';
 import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderEffect';
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
-import type {FlamegraphContextMenuProps} from './flamegraphContextMenu';
 
 function isHighlightingAllOccurrences(
   node: FlamegraphFrame | null,

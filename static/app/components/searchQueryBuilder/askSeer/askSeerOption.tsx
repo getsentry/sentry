@@ -1,4 +1,5 @@
 import {useRef, useState} from 'react';
+
 import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 

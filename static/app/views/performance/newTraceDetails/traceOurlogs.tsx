@@ -1,5 +1,6 @@
 import type React from 'react';
 import {Fragment} from 'react';
+
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';

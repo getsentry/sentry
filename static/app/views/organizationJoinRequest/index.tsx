@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
 import type {MouseEvent} from 'react';
+
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';

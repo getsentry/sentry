@@ -4,8 +4,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import {InstallationMode} from './utils';
 import {docs} from '.';
+import {InstallationMode} from './utils';
 
 describe('javascript onboarding docs', () => {
   it('renders onboarding docs correctly', () => {

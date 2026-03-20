@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -20,9 +21,9 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
+import {convertRelayPiiConfig} from './convertRelayPiiConfig';
 import {Add} from './modals/add';
 import {Edit} from './modals/edit';
-import {convertRelayPiiConfig} from './convertRelayPiiConfig';
 import {OrganizationRules} from './organizationRules';
 import {Rules} from './rules';
 import {submitRules} from './submitRules';

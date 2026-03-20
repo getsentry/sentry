@@ -1,5 +1,6 @@
 import type React from 'react';
 import {useState} from 'react';
+
 import omit from 'lodash/omit';
 
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';

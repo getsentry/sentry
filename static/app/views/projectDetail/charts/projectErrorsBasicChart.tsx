@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
+
 import type {BarSeriesOption} from 'echarts';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';

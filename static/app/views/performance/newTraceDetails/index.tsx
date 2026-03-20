@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useRef} from 'react';
+
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -32,13 +33,13 @@ import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {useTraceTree} from './traceApi/useTraceTree';
+import {TraceMetaDataHeader} from './traceHeader';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   getInitialTracePreferences,
 } from './traceState/tracePreferences';
 import {TraceStateProvider} from './traceState/traceStateProvider';
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
-import {TraceMetaDataHeader} from './traceHeader';
 import {useInitialTraceMetricData} from './useInitialTraceMetricData';
 import {useTraceEventView} from './useTraceEventView';
 import {useTraceQueryParams} from './useTraceQueryParams';

@@ -1,5 +1,6 @@
 import type {MouseEventHandler} from 'react';
 import {useCallback, useEffect, useRef} from 'react';
+
 import type {DOMAttributes, FocusableElement} from '@react-types/shared';
 
 import {

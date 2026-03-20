@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
+
 import {useQueries} from '@tanstack/react-query';
 
 import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';

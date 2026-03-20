@@ -1,4 +1,5 @@
 import type {PropsWithChildren} from 'react';
+
 import styled from '@emotion/styled';
 import {ProjectFixture} from 'sentry-fixture/project';
 

@@ -1,4 +1,5 @@
 import {useRef} from 'react';
+
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';

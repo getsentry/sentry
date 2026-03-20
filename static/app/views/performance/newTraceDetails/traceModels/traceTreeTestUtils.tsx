@@ -7,10 +7,10 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
 
+import type {TraceTree} from './traceTree';
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
 import type {TransactionNode} from './traceTreeNode/transactionNode';
-import type {TraceTree} from './traceTree';
 
 export function makeTrace(
   overrides: Partial<TraceSplitResults<TraceTree.Transaction>>

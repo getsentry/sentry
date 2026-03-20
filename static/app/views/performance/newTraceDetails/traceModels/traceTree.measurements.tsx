@@ -1,8 +1,8 @@
 import type {Measurement} from 'sentry/types/event';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 
-import type {BaseNode} from './traceTreeNode/baseNode';
 import type {TraceTree} from './traceTree';
+import type {BaseNode} from './traceTreeNode/baseNode';
 
 // cls is not included as it is a cumulative layout shift and not a single point in time
 export const RENDERABLE_MEASUREMENTS = [

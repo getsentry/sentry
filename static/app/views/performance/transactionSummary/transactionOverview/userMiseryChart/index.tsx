@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import type {Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';

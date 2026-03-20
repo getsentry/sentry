@@ -1,4 +1,5 @@
 import {useContext, useMemo} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';

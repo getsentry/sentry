@@ -1,4 +1,5 @@
 import {useImperativeHandle, useRef} from 'react';
+
 import classNames from 'classnames';
 
 import {selectText} from 'sentry/utils/selectText';

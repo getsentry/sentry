@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import incidentsPerformanceImg from 'getsentry-images/features/alert-builder.svg';

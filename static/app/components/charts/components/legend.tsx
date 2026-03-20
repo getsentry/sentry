@@ -1,6 +1,5 @@
 import 'echarts/lib/component/legend';
 import 'echarts/lib/component/legendScroll';
-
 import type {Theme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
 import merge from 'lodash/merge';

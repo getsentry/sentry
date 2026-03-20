@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
 } from 'react';
+
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';

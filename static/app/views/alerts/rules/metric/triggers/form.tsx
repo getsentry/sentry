@@ -1,4 +1,5 @@
 import {Component, Fragment, PureComponent} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';

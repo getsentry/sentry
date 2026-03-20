@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {Navigate, type NavigateProps, type RouteObject} from 'react-router-dom';
+
 import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';

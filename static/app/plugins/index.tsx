@@ -2,9 +2,9 @@ import BasePlugin from 'sentry/plugins/basePlugin';
 import {DefaultIssuePlugin} from 'sentry/plugins/defaultIssuePlugin';
 import {Registry} from 'sentry/plugins/registry';
 
-import {SessionStackContextType} from './sessionstack/contexts/sessionstack';
 import {Jira} from './jira';
 import {SessionStackPlugin} from './sessionstack';
+import {SessionStackContextType} from './sessionstack/contexts/sessionstack';
 
 const contexts: Record<string, React.ElementType> = {};
 const registry = new Registry();

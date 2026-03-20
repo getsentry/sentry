@@ -1,4 +1,5 @@
 import {createContext, useContext, useMemo} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';

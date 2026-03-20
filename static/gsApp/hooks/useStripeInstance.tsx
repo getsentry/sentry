@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+
 import {loadStripe, type Stripe} from '@stripe/stripe-js';
 
 import {ConfigStore} from 'sentry/stores/configStore';

@@ -12,8 +12,8 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {DashboardsMEPConsumer} from './widgetCard/dashboardsMEPContext';
 import {WidgetType, type Widget} from './types';
+import {DashboardsMEPConsumer} from './widgetCard/dashboardsMEPContext';
 
 type SearchFilterKey = {key?: {value: string}};
 

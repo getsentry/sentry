@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
+
 import trimStart from 'lodash/trimStart';
 
 import type {ApiResult} from 'sentry/api';

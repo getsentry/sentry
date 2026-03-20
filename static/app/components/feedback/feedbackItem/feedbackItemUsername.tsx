@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useId, type CSSProperties} from 'react';
+
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';

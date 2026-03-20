@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {PlatformIcon} from 'platformicons';
 
 import {ellipsize} from 'sentry/utils/string/ellipsize';

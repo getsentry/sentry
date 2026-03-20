@@ -1,5 +1,6 @@
 import type {CSSProperties} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -19,15 +20,15 @@ import {
 import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
 import {formatTo, type ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
-import {useCanvasScroll} from './interactions/useCanvasScroll';
-import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
-import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
-import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 import {
   CollapsibleTimelineLoadingIndicator,
   CollapsibleTimelineMessage,
 } from './collapsibleTimeline';
 import {FlamegraphChartTooltip} from './flamegraphChartTooltip';
+import {useCanvasScroll} from './interactions/useCanvasScroll';
+import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
+import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
+import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 
 interface FlamegraphChartProps {
   canvasPoolManager: CanvasPoolManager;

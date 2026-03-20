@@ -1,5 +1,6 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
 import React, {Fragment, useCallback, useMemo} from 'react';
+
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -38,12 +39,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {
-  FORMAT_DATETIME_DAILY,
-  FORMAT_DATETIME_HOURLY,
-  FORMAT_DATETIME_HOURLY_24H,
-  getTooltipFormatter,
-} from './usageChart/utils';
 import {mapSeriesToChart} from './mapSeriesToChart';
 import type {UsageSeries} from './types';
 import type {ChartStats, UsageChartProps} from './usageChart';
@@ -53,6 +48,12 @@ import {
   SeriesTypes,
   UsageChart,
 } from './usageChart';
+import {
+  FORMAT_DATETIME_DAILY,
+  FORMAT_DATETIME_HOURLY,
+  FORMAT_DATETIME_HOURLY_24H,
+  getTooltipFormatter,
+} from './usageChart/utils';
 import {UsageStatsPerMin} from './usageStatsPerMin';
 import {isDisplayUtc} from './utils';
 

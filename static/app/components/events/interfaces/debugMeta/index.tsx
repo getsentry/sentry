@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
@@ -34,8 +35,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import {Status} from './debugImage/status';
 import {DebugImage} from './debugImage';
+import {Status} from './debugImage/status';
 import {combineStatus, getFileName, normalizeId} from './utils';
 
 const ROW_HEIGHT = 45;

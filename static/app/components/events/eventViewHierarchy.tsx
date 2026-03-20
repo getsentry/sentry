@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';

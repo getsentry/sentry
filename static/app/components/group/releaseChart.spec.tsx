@@ -19,7 +19,7 @@ it('should set marker before first bucket', () => {
   ];
   const firstSeen = '2022-08-03T14:48:04Z';
   const lastSeen = '2022-08-03T20:23:05Z';
-  // prettier-ignore
+  // oxfmt-ignore
   const markers = getGroupReleaseChartMarkers(theme as any, data, firstSeen, lastSeen)!.data!;
 
   expect((markers[0] as any).displayValue).toBe(new Date(firstSeen).getTime());

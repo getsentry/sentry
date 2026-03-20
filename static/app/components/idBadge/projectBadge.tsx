@@ -1,4 +1,5 @@
 import {cloneElement, memo} from 'react';
+
 import styled from '@emotion/styled';
 
 import type {LinkProps} from '@sentry/scraps/link';

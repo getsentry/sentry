@@ -1,4 +1,5 @@
 import {useRef, useState} from 'react';
+
 import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 

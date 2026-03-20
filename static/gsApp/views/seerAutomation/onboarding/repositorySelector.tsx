@@ -1,4 +1,5 @@
 import {memo, useCallback, useDeferredValue, useMemo, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';

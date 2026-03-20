@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+
 import type {AriaListBoxSectionProps} from '@react-aria/listbox';
 import {useListBoxSection} from '@react-aria/listbox';
 import {useSeparator} from '@react-aria/separator';

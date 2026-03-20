@@ -1,4 +1,5 @@
 import {useMemo, useRef} from 'react';
+
 import moment from 'moment-timezone';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';

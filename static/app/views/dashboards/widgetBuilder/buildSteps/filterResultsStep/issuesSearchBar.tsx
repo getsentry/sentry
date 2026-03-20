@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+
 import styled from '@emotion/styled';
 
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';

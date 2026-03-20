@@ -20,6 +20,7 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 import {Fragment} from 'react';
+
 import styled from '@emotion/styled';
 
 import {StructuredEventData} from 'sentry/components/structuredEventData';

@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import type {SortConfig} from 'sentry/components/replays/virtualizedGrid/headerCell';

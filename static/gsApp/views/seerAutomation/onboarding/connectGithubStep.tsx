@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+
 import styled from '@emotion/styled';
 
 import connectGithubImg from 'sentry-images/spot/seer-config-connect-1.svg';

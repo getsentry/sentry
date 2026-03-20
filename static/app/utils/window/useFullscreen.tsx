@@ -1,5 +1,6 @@
 import type {RefObject} from 'react';
 import {useCallback} from 'react';
+
 import screenfull from 'screenfull';
 
 interface Props<Element extends HTMLElement> {

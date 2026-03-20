@@ -1,4 +1,5 @@
 import {Fragment, type ReactNode} from 'react';
+
 import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';

@@ -5,6 +5,7 @@
  * Also displays 2fa method specific details.
  */
 import {Fragment} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';

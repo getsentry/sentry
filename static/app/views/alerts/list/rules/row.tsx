@@ -1,4 +1,5 @@
 import {useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import {ActorAvatar, TeamAvatar} from '@sentry/scraps/avatar';

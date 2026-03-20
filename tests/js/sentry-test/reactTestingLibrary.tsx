@@ -6,6 +6,7 @@ import {
   type RouteObject,
   type To,
 } from 'react-router-dom';
+
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {
@@ -18,7 +19,6 @@ import {
 } from '@remix-run/router';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
-
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';

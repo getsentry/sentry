@@ -1,4 +1,5 @@
 import {useContext, useEffect} from 'react';
+
 import type {Theme} from '@emotion/react';
 import type {Query} from 'history';
 

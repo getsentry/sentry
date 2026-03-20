@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+
 import {Observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';

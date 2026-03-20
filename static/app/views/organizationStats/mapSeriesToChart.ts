@@ -6,11 +6,11 @@ import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip'
 import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
 
-import {getDateFromMoment} from './usageChart/utils';
 import {getReasonGroupName} from './getReasonGroupName';
 import type {UsageSeries, UsageStat} from './types';
 import type {ChartStats} from './usageChart';
 import {SeriesTypes} from './usageChart';
+import {getDateFromMoment} from './usageChart/utils';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 export function mapSeriesToChart({

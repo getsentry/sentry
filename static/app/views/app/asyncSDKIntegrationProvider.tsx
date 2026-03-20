@@ -1,4 +1,5 @@
 import {createContext, useContext, useState} from 'react';
+
 import type {addIntegration} from '@sentry/react';
 
 type Integration = Parameters<typeof addIntegration>[0];

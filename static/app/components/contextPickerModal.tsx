@@ -8,6 +8,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
+
 import type {Query} from 'history';
 
 import {ProjectAvatar, TeamAvatar} from '@sentry/scraps/avatar';

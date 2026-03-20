@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {useMemo} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import {Grid} from '@sentry/scraps/layout';

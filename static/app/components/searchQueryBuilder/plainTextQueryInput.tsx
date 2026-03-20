@@ -6,6 +6,7 @@ import {
   type KeyboardEvent,
   type SyntheticEvent,
 } from 'react';
+
 import styled from '@emotion/styled';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';

@@ -6,9 +6,9 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
+import {makeExampleTrace} from './makeExampleTrace';
 import type {BaseNode} from './traceTreeNode/baseNode';
 import {CollapsedNode} from './traceTreeNode/collapsedNode';
-import {makeExampleTrace} from './makeExampleTrace';
 
 export class IssuesTraceTree extends TraceTree {
   static Empty() {

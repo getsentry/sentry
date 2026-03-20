@@ -2,8 +2,8 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {PackageManager} from './utils';
 import {docs} from '.';
+import {PackageManager} from './utils';
 
 describe('GettingStartedWithKotlin', () => {
   it('renders gradle docs correctly', async () => {

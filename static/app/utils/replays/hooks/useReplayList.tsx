@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
+
 import type {Location} from 'history';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';

@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+
 import {useQueryState} from 'nuqs';
 
 import {trackAnalytics} from 'sentry/utils/analytics';

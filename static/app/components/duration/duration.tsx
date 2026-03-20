@@ -1,4 +1,5 @@
 import type {HTMLAttributes} from 'react';
+
 import styled from '@emotion/styled';
 
 import {formatDuration, type Format} from 'sentry/utils/duration/formatDuration';

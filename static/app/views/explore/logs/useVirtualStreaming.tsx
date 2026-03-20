@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+
 import {logger} from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 

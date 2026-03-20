@@ -1,6 +1,5 @@
 import './legacyTwitterBootstrap';
 import './exportGlobals';
-
 import type {Config} from 'sentry/types/system';
 import {metric} from 'sentry/utils/analytics';
 

@@ -1,5 +1,6 @@
 import type {CSSProperties} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 import * as qs from 'query-string';
@@ -31,17 +32,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
+import {
+  CollapsibleTimelineLoadingIndicator,
+  CollapsibleTimelineMessage,
+} from './collapsibleTimeline';
+import {FlamegraphSpanTooltip} from './flamegraphSpanTooltip';
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
 import {useDrawHoveredBorderEffect} from './interactions/useDrawHoveredBorderEffect';
 import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderEffect';
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
-import {
-  CollapsibleTimelineLoadingIndicator,
-  CollapsibleTimelineMessage,
-} from './collapsibleTimeline';
-import {FlamegraphSpanTooltip} from './flamegraphSpanTooltip';
 
 interface FlamegraphSpansProps {
   canvasPoolManager: CanvasPoolManager;

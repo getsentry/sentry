@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';

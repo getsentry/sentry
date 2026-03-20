@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {Outlet} from 'react-router-dom';
+
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';

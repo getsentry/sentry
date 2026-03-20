@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import {flushSync} from 'react-dom';
+
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -47,25 +48,25 @@ import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import {Trace} from './trace';
+import {traceAnalytics} from './traceAnalytics';
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
+import {TracePreferencesDropdown} from './tracePreferencesDropdown';
+import {TraceResetZoomButton} from './traceResetZoomButton';
 import {
   searchInTraceTreeText,
   searchInTraceTreeTokens,
 } from './traceSearch/traceSearchEvaluator';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {parseTraceSearch} from './traceSearch/traceTokenConverter';
+import type {TraceReducer, TraceReducerState} from './traceState';
 import {
   useTraceState,
   useTraceStateDispatch,
   useTraceStateEmitter,
 } from './traceState/traceStateProvider';
-import {Trace} from './trace';
-import {traceAnalytics} from './traceAnalytics';
-import {TracePreferencesDropdown} from './tracePreferencesDropdown';
-import {TraceResetZoomButton} from './traceResetZoomButton';
-import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';

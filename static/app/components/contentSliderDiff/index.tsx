@@ -1,4 +1,5 @@
 import {useRef, type CSSProperties} from 'react';
+
 import styled from '@emotion/styled';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';

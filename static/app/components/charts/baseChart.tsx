@@ -4,8 +4,8 @@ import 'echarts/lib/component/toolbox';
 import 'echarts/lib/component/brush';
 import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
-
 import {useId, useMemo} from 'react';
+
 import type {Theme} from '@emotion/react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';

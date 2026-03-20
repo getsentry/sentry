@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState, type MouseEvent} from 'react';
+
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';

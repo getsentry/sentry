@@ -2,12 +2,12 @@ import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
-import {Profile} from './profile/profile';
-import {SampledProfile} from './profile/sampledProfile';
-import {makeFormatter, makeTimelineFormatter} from './units/units';
 import {CallTreeNode} from './callTreeNode';
 import {Frame} from './frame';
+import {Profile} from './profile/profile';
+import {SampledProfile} from './profile/sampledProfile';
 import {Rect} from './speedscope';
+import {makeFormatter, makeTimelineFormatter} from './units/units';
 
 function sortByTotalWeight(a: CallTreeNode, b: CallTreeNode) {
   return b.totalWeight - a.totalWeight;

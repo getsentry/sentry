@@ -1,4 +1,5 @@
 import type {Layout} from 'react-grid-layout';
+
 import * as Sentry from '@sentry/react';
 
 import {clampWidgetLayout} from 'sentry/views/dashboards/clampWidgetLayout';

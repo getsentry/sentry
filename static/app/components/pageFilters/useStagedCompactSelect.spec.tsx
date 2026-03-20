@@ -1,4 +1,5 @@
 import {useRef, useState} from 'react';
+
 import xor from 'lodash/xor';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';

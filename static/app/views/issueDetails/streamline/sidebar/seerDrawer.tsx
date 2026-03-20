@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+
 import {css} from '@emotion/react';
 
 import {SeerDrawer as LegacySeerDrawer} from 'sentry/components/events/autofix/v1/drawer';

@@ -1,4 +1,5 @@
 import {Fragment, useEffect} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';

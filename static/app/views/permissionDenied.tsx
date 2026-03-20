@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import {ExternalLink} from '@sentry/scraps/link';

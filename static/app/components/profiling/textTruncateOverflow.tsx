@@ -1,4 +1,5 @@
 import type {ComponentProps, ElementType} from 'react';
+
 import styled from '@emotion/styled';
 
 type TextOverflowProps<T extends ElementType> = ComponentProps<T> & {

@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+
 import {useTheme} from '@emotion/react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';

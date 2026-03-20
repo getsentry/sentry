@@ -1,5 +1,6 @@
 import type {Dispatch, ReactNode} from 'react';
 import {createContext, useCallback, useContext, useReducer} from 'react';
+
 import type {PlayerState, Replayer, SpeedState} from '@sentry-internal/rrweb';
 import {ReplayerEvents} from '@sentry-internal/rrweb';
 

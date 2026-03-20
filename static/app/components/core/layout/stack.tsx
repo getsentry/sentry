@@ -1,4 +1,5 @@
 import React from 'react';
+
 import styled from '@emotion/styled';
 
 import {Separator, type SeparatorProps} from '@sentry/scraps/separator';

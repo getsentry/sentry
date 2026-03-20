@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -59,10 +60,10 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
-import {ContextType} from './quickContext/utils';
 import {Actions, CellAction, updateQuery} from './cellAction';
 import {ColumnEditModal, modalCss} from './columnEditModal';
+import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
+import {ContextType} from './quickContext/utils';
 import {TableActions} from './tableActions';
 import {TopResultsIndicator} from './topResultsIndicator';
 import type {TableColumn} from './types';

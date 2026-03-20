@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';

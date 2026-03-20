@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import type {ApiResult} from 'sentry/api';

@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Text} from '@sentry/scraps/text';

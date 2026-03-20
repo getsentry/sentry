@@ -1,4 +1,5 @@
 import {lazy} from 'react';
+
 import styled from '@emotion/styled';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';

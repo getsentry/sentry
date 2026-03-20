@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';

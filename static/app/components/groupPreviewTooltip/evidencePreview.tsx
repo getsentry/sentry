@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+
 import styled from '@emotion/styled';
 
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';

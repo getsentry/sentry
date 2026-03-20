@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import merge from 'lodash/merge';
 
 import {CodeBlock} from '@sentry/scraps/code';

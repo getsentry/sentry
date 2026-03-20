@@ -1,5 +1,4 @@
 import 'echarts/lib/chart/line';
-
 import type {LineSeriesOption} from 'echarts';
 
 export function LineSeries(props: LineSeriesOption): LineSeriesOption {

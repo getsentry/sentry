@@ -1,4 +1,5 @@
 import {useCallback, useRef} from 'react';
+
 import type {ListState} from '@react-stately/list';
 import type {Key} from '@react-types/shared';
 

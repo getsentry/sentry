@@ -1,4 +1,5 @@
 import {lazy, useEffect, useMemo, useRef} from 'react';
+
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';

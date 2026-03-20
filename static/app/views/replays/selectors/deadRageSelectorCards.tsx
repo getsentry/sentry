@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';

@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Select} from '@sentry/scraps/select';

@@ -6,11 +6,11 @@ import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {tn} from 'sentry/locale';
 
+import {CheckInTooltip} from './checkInTooltip';
+import type {CheckInBucket, TickStyle, TimeWindowConfig} from './types';
 import {getAggregateStatus} from './utils/getAggregateStatus';
 import {getTickStyle} from './utils/getTickStyle';
 import {mergeBuckets} from './utils/mergeBuckets';
-import {CheckInTooltip} from './checkInTooltip';
-import type {CheckInBucket, TickStyle, TimeWindowConfig} from './types';
 
 interface CheckInTimelineConfig<Status extends string> {
   /**

@@ -1,5 +1,6 @@
 import type {HTMLProps, PropsWithChildren} from 'react';
 import React from 'react';
+
 import {type Callout as CalloutProps} from '@r4ai/remark-callout';
 
 import {Alert, type AlertProps} from '@sentry/scraps/alert';

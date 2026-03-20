@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+
 import {uuid4} from '@sentry/core';
 
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';

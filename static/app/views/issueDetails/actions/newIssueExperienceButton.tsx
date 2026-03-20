@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import issueDetailsPreview from 'sentry-images/issue_details/issue-details-preview.png';

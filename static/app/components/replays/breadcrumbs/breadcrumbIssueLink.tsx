@@ -1,4 +1,5 @@
 import {useCallback, type MouseEvent} from 'react';
+
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';

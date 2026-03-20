@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';

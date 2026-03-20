@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
+
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
 
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';

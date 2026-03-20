@@ -1,4 +1,5 @@
 import {createContext, useContext, useMemo} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import type {Frame} from 'sentry/utils/profiling/frame';

@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
+
 import {isAppleDevice, isMac} from '@react-aria/utils';
 
 import type {

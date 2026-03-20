@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+
 import type {LocationDescriptor} from 'history';
 
 export type CommandPaletteGroupKey = 'search-result' | 'navigate' | 'add' | 'help';

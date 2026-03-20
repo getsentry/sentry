@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+
 import {AnimatePresence} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';

@@ -34,6 +34,8 @@ import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetai
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
+import {makeExampleTrace} from './makeExampleTrace';
+import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
 import type {BaseNode} from './traceTreeNode/baseNode';
 import {EapSpanNode} from './traceTreeNode/eapSpanNode';
 import {ErrorNode} from './traceTreeNode/errorNode';
@@ -45,8 +47,6 @@ import {TraceNode} from './traceTreeNode/traceNode';
 import {TransactionNode} from './traceTreeNode/transactionNode';
 import {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import {traceChronologicalSort} from './traceTreeNode/utils';
-import {makeExampleTrace} from './makeExampleTrace';
-import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
 
 const {info, fmt} = Sentry.logger;
 

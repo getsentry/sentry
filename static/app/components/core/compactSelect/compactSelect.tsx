@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
+
 import {Item, Section} from '@react-stately/collections';
 import * as Sentry from '@sentry/react';
 import maxBy from 'lodash/maxBy';

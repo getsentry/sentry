@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 

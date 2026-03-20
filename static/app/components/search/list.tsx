@@ -1,4 +1,5 @@
 import {Fragment, memo, useEffect, useMemo} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -7,9 +8,9 @@ import type AutoComplete from 'sentry/components/autoComplete';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 
-import type {Result} from './sources/types';
 import {SearchResult} from './searchResult';
 import {SearchResultWrapper} from './searchResultWrapper';
+import type {Result} from './sources/types';
 
 type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['children']>[0];
 

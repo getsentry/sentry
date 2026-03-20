@@ -13,9 +13,9 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
+import {CrumbLink} from '.';
 import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import {findFirstRouteWithoutRouteParam} from './findFirstRouteWithoutRouteParam';
-import {CrumbLink} from '.';
 
 export function ProjectCrumb({routes, route, ...props}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();

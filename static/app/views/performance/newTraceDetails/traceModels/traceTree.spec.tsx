@@ -10,13 +10,13 @@ import {
   isSpanNode,
   isTransactionNode,
 } from './../traceGuards';
+import {TraceShape, TraceTree} from './traceTree';
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
 import type {ParentAutogroupNode} from './traceTreeNode/parentAutogroupNode';
 import type {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import type {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import type {UptimeCheckTimingNode} from './traceTreeNode/uptimeCheckTimingNode';
-import {TraceShape, TraceTree} from './traceTree';
 import {
   assertEAPSpanNode,
   assertTransactionNode,

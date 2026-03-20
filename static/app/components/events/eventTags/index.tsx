@@ -1,4 +1,5 @@
 import {Fragment, useEffect} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import {EventTagCustomBanner} from 'sentry/components/events/eventTags/eventTagCustomBanner';

@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo} from 'react';
+
 import moment from 'moment-timezone';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';

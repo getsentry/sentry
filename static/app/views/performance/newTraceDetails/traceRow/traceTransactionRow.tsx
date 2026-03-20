@@ -1,4 +1,5 @@
 import React from 'react';
+
 import {PlatformIcon} from 'platformicons';
 
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';

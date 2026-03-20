@@ -1,4 +1,5 @@
 import {createContext, useCallback, useMemo} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';

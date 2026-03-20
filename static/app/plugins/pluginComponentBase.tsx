@@ -1,4 +1,5 @@
 import {Component} from 'react';
+
 import isFunction from 'lodash/isFunction';
 
 import {

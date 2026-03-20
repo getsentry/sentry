@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useEffectEvent, useMemo} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';

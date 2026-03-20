@@ -1,5 +1,6 @@
 import type {CSSProperties} from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+
 import styled from '@emotion/styled';
 import {vec2, type mat3} from 'gl-matrix';
 

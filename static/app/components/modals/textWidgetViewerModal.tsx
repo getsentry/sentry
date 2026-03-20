@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import {css} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';

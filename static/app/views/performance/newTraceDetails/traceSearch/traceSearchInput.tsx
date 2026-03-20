@@ -1,5 +1,6 @@
 import type React from 'react';
 import {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import {InputGroup} from '@sentry/scraps/input';

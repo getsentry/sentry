@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import replaysDeadRageBackground from 'sentry-images/spot/replay-dead-rage-changelog.svg';

@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {forceCheck} from 'react-lazyload';
+
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from '@sentry/scraps/badge';

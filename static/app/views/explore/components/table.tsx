@@ -1,5 +1,6 @@
 import type React from 'react';
 import {useCallback, useEffect, useMemo, useRef} from 'react';
+
 import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';

@@ -1,4 +1,5 @@
 import {isValidElement} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import type {FormModel} from 'sentry/components/forms/model';

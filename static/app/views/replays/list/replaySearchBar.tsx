@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+
 import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';

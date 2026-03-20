@@ -1,4 +1,5 @@
 import {Component} from 'react';
+
 import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';

@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
+
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';

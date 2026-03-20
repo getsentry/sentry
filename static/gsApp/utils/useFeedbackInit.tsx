@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+
 import {useTheme} from '@emotion/react';
 import {addIntegration, getClient} from '@sentry/react';
 

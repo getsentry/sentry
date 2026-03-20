@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+
 import {vec2} from 'gl-matrix';
 
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';

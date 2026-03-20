@@ -1,4 +1,5 @@
 import {isValidElement} from 'react';
+
 import styled from '@emotion/styled';
 
 import {JSXProperty} from './jsx';

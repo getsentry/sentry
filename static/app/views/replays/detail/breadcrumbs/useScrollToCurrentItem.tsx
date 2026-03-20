@@ -1,4 +1,5 @@
 import {useEffect, useMemo} from 'react';
+
 import type {Virtualizer} from '@tanstack/react-virtual';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';

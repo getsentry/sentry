@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import * as qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';

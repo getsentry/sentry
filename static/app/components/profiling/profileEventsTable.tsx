@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+
 import type {Location} from 'history';
 
 import {Link} from '@sentry/scraps/link';

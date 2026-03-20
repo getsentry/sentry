@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';

@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';

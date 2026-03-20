@@ -1,4 +1,5 @@
 import {createContext, useContext, useLayoutEffect, useState} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';

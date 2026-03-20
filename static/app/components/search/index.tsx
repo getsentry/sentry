@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo} from 'react';
+
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -13,6 +14,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
+import {List} from './list';
+import {SearchSources} from './sources';
 import {ApiSource} from './sources/apiSource';
 import {CommandSource} from './sources/commandSource';
 import {DsnLookupSource} from './sources/dsnLookupSource';
@@ -20,8 +23,6 @@ import {FormSource} from './sources/formSource';
 import {OrganizationsSource} from './sources/organizationsSource';
 import {RouteSource} from './sources/routeSource';
 import type {Result} from './sources/types';
-import {List} from './list';
-import {SearchSources} from './sources';
 
 type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['children']>[0];
 

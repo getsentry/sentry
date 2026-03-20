@@ -1,4 +1,5 @@
 import {Fragment, useEffect} from 'react';
+
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 

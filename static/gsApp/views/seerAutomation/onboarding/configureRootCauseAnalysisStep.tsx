@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -29,8 +30,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
-import {useCodeMappings} from './hooks/useCodeMappings';
 import {
   Field,
   FieldDescription,
@@ -39,6 +38,8 @@ import {
   PanelDescription,
   StepContent,
 } from './common';
+import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
+import {useCodeMappings} from './hooks/useCodeMappings';
 import {RepositoryToProjectConfiguration} from './repositoryToProjectConfiguration';
 
 export function ConfigureRootCauseAnalysisStep() {

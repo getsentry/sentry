@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';

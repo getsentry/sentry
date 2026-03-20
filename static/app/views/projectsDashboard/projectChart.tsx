@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import {useTheme} from '@emotion/react';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';

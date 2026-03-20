@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
+
 import {useTheme} from '@emotion/react';
 
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';

@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+
 import * as echarts from 'echarts/core';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';

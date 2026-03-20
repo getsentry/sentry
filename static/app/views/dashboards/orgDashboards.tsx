@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
+
 import isEqual from 'lodash/isEqual';
 
 import {NotFound} from 'sentry/components/errors/notFound';

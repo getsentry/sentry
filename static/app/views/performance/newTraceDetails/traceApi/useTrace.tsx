@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+
 import type {Location} from 'history';
 import * as qs from 'query-string';
 

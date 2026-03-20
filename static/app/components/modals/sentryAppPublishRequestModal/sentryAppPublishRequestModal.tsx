@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -14,12 +15,13 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 
 function transformData(data: Record<string, any>, model: FormModel) {
   // map object to list of questions
-  const questionnaire = Array.from(model.fieldDescriptor.values()).map(field =>
-    // we read the meta for the question that has a react node for the label
-    ({
-      question: field.meta || field.label,
-      answer: data[field.name],
-    })
+  const questionnaire = Array.from(model.fieldDescriptor.values()).map(
+    field =>
+      // we read the meta for the question that has a react node for the label
+      ({
+        question: field.meta || field.label,
+        answer: data[field.name],
+      })
   );
   return {questionnaire};
 }

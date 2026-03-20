@@ -1,4 +1,5 @@
 import {Component} from 'react';
+
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';

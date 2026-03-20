@@ -1,4 +1,5 @@
 import React, {Component, Fragment} from 'react';
+
 import {ThemeProvider, useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';

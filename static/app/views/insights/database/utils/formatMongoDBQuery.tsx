@@ -1,4 +1,5 @@
 import type {ReactElement} from 'react';
+
 import * as Sentry from '@sentry/react';
 import {jsonrepair} from 'jsonrepair';
 

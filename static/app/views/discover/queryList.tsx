@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+
 import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
 import moment from 'moment-timezone';
@@ -26,6 +27,8 @@ import {withApi} from 'sentry/utils/withApi';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
+import MiniGraph from './miniGraph';
+import QueryCard from './querycard';
 import {
   getSavedQueryDataset,
   getSavedQueryWithDataset,
@@ -33,8 +36,6 @@ import {
   handleDeleteQuery,
   handleUpdateHomepageQuery,
 } from './savedQuery/utils';
-import MiniGraph from './miniGraph';
-import QueryCard from './querycard';
 import {
   getPrebuiltQueries,
   handleAddQueryToDashboard,

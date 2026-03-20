@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import type {Location} from 'history';
 
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';

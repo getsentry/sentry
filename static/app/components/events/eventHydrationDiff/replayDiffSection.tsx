@@ -1,5 +1,6 @@
 import {lazy} from 'react';
 import ReactLazyLoad from 'react-lazyload';
+
 import styled from '@emotion/styled';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';

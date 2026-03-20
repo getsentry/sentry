@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+
 import {useQueryState} from 'nuqs';
 
 import type {CursorHandler} from 'sentry/components/pagination';

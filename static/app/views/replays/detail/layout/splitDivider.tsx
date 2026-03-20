@@ -1,4 +1,5 @@
 import type {DOMAttributes, MouseEventHandler} from 'react';
+
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';

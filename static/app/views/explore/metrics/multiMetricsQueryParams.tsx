@@ -1,4 +1,5 @@
 import {useMemo, type ReactNode} from 'react';
+
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';

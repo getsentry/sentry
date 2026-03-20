@@ -1,4 +1,5 @@
 import {Fragment, useState, type ReactNode} from 'react';
+
 import {ClassNames} from '@emotion/react';
 
 import {InputGroup} from '@sentry/scraps/input';

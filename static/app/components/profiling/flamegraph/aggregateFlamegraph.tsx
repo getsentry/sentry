@@ -1,5 +1,6 @@
 import type {ReactElement} from 'react';
 import {Fragment, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+
 import * as Sentry from '@sentry/react';
 import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';

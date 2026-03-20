@@ -9,13 +9,13 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
+import {TraceDataSection} from './traceDataSection';
 import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
 import type {
   TimelineErrorEvent,
   TraceEventResponse,
 } from './traceTimeline/useTraceTimelineEvents';
-import {TraceDataSection} from './traceDataSection';
 
 jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
 jest.mock('sentry/utils/analytics');

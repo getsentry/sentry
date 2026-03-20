@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
+
 import styled from '@emotion/styled';
 
 import {Text} from '@sentry/scraps/text';

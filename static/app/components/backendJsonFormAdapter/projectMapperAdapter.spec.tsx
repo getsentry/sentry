@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {type JsonFormAdapterFieldConfig} from './types';
 import {BackendJsonFormAdapter} from './';
+import {type JsonFormAdapterFieldConfig} from './types';
 
 const VERCEL_PROJECTS = [
   {value: 'proj-1', label: 'my-vercel-project', url: 'https://vercel.com/proj-1'},

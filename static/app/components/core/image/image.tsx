@@ -1,4 +1,5 @@
 import type {CSSProperties} from 'react';
+
 import styled from '@emotion/styled';
 
 import type {Responsive} from '@sentry/scraps/layout';

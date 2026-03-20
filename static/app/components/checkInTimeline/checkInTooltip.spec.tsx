@@ -2,9 +2,9 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {getFormat} from 'sentry/utils/dates';
 
-import {generateTestStats, testStatusLabel, testStatusStyle} from './utils/testUtils';
 import {CheckInTooltip} from './checkInTooltip';
 import type {JobTickData, TimeWindowConfig} from './types';
+import {generateTestStats, testStatusLabel, testStatusStyle} from './utils/testUtils';
 
 const tickConfig: TimeWindowConfig = {
   start: new Date('2023-06-15T11:00:00Z'),

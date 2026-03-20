@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+
 import {useTheme} from '@emotion/react';
 
 import {MenuComponents} from '@sentry/scraps/compactSelect';

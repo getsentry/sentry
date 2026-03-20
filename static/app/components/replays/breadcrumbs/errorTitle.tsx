@@ -1,4 +1,5 @@
 import {Fragment, useCallback, type MouseEvent} from 'react';
+
 import capitalize from 'lodash/capitalize';
 
 import {Link} from '@sentry/scraps/link';

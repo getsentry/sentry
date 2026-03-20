@@ -1,4 +1,5 @@
 import {useEffect, useRef, type Ref} from 'react';
+
 import {mergeRefs} from '@react-aria/utils';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';

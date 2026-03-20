@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+
 import {Item} from '@react-stately/collections';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

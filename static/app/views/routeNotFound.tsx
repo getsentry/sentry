@@ -1,4 +1,5 @@
 import {useLayoutEffect} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import {NotFound} from 'sentry/components/errors/notFound';

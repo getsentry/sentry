@@ -7,6 +7,7 @@ import {
   type DependencyList,
 } from 'react';
 import {createPortal} from 'react-dom';
+
 import type {BrushComponentOption, EChartsOption, ToolboxComponentOption} from 'echarts';
 import * as echarts from 'echarts';
 import type EChartsReact from 'echarts-for-react';

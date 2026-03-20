@@ -1,4 +1,5 @@
 import {act} from 'react';
+
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 

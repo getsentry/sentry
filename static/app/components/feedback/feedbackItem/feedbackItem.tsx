@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
+
 import styled from '@emotion/styled';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';

@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';

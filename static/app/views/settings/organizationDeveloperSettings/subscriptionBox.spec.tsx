@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';

@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';

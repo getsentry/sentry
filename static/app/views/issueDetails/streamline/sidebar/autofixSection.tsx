@@ -1,4 +1,5 @@
 import {useCallback, useMemo, type CSSProperties} from 'react';
+
 import styled from '@emotion/styled';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';

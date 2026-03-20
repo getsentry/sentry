@@ -1,4 +1,5 @@
 import {useEffect, useMemo} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';

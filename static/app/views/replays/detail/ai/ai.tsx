@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useRef} from 'react';
+
 import styled from '@emotion/styled';
 
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';

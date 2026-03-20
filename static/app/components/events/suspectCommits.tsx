@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+
 import styled from '@emotion/styled';
 
 import type {CommitRowProps} from 'sentry/components/commitRow';

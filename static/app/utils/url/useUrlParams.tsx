@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+
 import * as qs from 'query-string';
 
 import {browserHistory} from 'sentry/utils/browserHistory';

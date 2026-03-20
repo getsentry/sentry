@@ -1,5 +1,6 @@
 import type {CSSProperties} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {vec2} from 'gl-matrix';
@@ -21,15 +22,15 @@ import {UIFramesRenderer2D} from 'sentry/utils/profiling/renderers/UIFramesRende
 import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRendererWebGL';
 import type {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
-import {useCanvasScroll} from './interactions/useCanvasScroll';
-import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
-import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
-import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 import {
   CollapsibleTimelineLoadingIndicator,
   CollapsibleTimelineMessage,
 } from './collapsibleTimeline';
 import {FlamegraphUIFramesTooltip} from './flamegraphUIFramesTooltip';
+import {useCanvasScroll} from './interactions/useCanvasScroll';
+import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
+import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
+import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
 
 interface FlamegraphUIFramesProps {
   canvasPoolManager: CanvasPoolManager;

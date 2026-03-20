@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import upperFirst from 'lodash/upperFirst';
 
 import {ExternalLink} from '@sentry/scraps/link';

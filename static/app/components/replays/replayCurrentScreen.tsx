@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';

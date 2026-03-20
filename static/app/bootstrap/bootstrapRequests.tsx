@@ -1,4 +1,5 @@
 import {useLayoutEffect} from 'react';
+
 import * as Sentry from '@sentry/react';
 
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';

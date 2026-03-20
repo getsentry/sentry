@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';

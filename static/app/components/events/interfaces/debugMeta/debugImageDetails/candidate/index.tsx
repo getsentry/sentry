@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import styled from '@emotion/styled';
 
 import {INTERNAL_SOURCE} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/utils';
@@ -6,9 +7,9 @@ import type {ImageCandidate} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-import {StatusTooltip} from './status/statusTooltip';
 import {Actions} from './actions';
 import {Information} from './information';
+import {StatusTooltip} from './status/statusTooltip';
 
 type Props = {
   baseUrl: string;

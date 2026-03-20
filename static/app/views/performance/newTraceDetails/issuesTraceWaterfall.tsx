@@ -7,6 +7,7 @@ import {
   useReducer,
   useRef,
 } from 'react';
+
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -21,9 +22,9 @@ import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceMod
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 
+import {Trace} from './trace';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
-import {Trace} from './trace';
 import type {TraceWaterfallProps} from './traceWaterfall';
 import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';

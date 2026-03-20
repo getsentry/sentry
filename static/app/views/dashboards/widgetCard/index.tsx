@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
+
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -433,14 +434,14 @@ function useOnDemandWarning(props: {widget: Widget}): string | null {
   if (!hasOnDemandMetricWidgetFeature(organization)) {
     return null;
   }
-  // prettier-ignore
+  // oxfmt-ignore
   const widgetContainsHighCardinality = props.widget.queries.some(
     wq =>
       wq.onDemand?.some(
         d => d.extractionState === OnDemandExtractionState.DISABLED_HIGH_CARDINALITY
       )
   );
-  // prettier-ignore
+  // oxfmt-ignore
   const widgetReachedSpecLimit = props.widget.queries.some(
     wq =>
       wq.onDemand?.some(

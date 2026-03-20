@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';

@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+
 import clamp from 'lodash/clamp';
 
 import {getTraceIssueSeverityClassName} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';

@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,6 +9,7 @@ import {Heading} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 
+import {CategoricalSeriesWidgetVisualization} from './categoricalSeriesWidgetVisualization';
 import {sampleCommonAffixData} from './fixtures/commonAffixCategorical';
 import {sampleCountCategoricalData} from './fixtures/countCategorical';
 import {sampleDurationCategoricalData} from './fixtures/durationCategorical';
@@ -22,7 +24,6 @@ import {sampleSizeData} from './fixtures/sizeCategorical';
 import {sampleSparseData} from './fixtures/sparseCategorical';
 import {sampleStackedCategoricalData} from './fixtures/stackedCategorical';
 import {Bars} from './plottables/bars';
-import {CategoricalSeriesWidgetVisualization} from './categoricalSeriesWidgetVisualization';
 
 export const documentation =
   import('!!type-loader!sentry/views/dashboards/widgets/categoricalSeriesWidget/categoricalSeriesWidgetVisualization');

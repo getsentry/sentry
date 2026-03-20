@@ -1,4 +1,5 @@
 import {useCallback, useEffect} from 'react';
+
 import type {Location} from 'history';
 
 import {Tooltip} from '@sentry/scraps/tooltip';

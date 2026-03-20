@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
+
 import type {Query} from 'history';
 
 import type {Client} from 'sentry/api';

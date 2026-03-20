@@ -1,5 +1,6 @@
 import type {ProfilerOnRenderCallback, ReactNode} from 'react';
 import {Fragment, Profiler, useEffect, useRef} from 'react';
+
 import type {MeasurementUnit, Span, TransactionEvent} from '@sentry/core';
 import {browserPerformanceTimeOrigin, timestampInSeconds} from '@sentry/core';
 import * as Sentry from '@sentry/react';

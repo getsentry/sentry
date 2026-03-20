@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';

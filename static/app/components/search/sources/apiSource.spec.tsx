@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+
 import {EventFixture} from 'sentry-fixture/event';
 import {EventIdQueryResultFixture} from 'sentry-fixture/eventIdQueryResult';
 import {MembersFixture} from 'sentry-fixture/members';

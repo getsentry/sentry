@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+
 import styled from '@emotion/styled';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';

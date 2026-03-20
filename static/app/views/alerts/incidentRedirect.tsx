@@ -10,8 +10,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-import {fetchIncident} from './utils/apiCalls';
 import {alertDetailsLink} from './utils';
+import {fetchIncident} from './utils/apiCalls';
 
 /**
  * Reirects from an incident to the incident's metric alert details page

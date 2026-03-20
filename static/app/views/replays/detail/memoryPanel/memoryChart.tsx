@@ -8,6 +8,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
+
 import {useTheme} from '@emotion/react';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';

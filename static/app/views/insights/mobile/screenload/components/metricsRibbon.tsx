@@ -1,5 +1,6 @@
 import type {ComponentProps} from 'react';
 import {useMemo} from 'react';
+
 import styled from '@emotion/styled';
 
 import type {Polarity} from 'sentry/components/percentChange';

@@ -1,5 +1,4 @@
 import 'echarts/lib/chart/bar';
-
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 /**

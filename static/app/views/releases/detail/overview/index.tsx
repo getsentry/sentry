@@ -1,4 +1,5 @@
 import {Fragment, useContext} from 'react';
+
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 import moment from 'moment-timezone';
@@ -50,6 +51,9 @@ import {
 
 import {ReleaseContext} from '..';
 
+import {ReleaseArchivedNotice} from './releaseArchivedNotice';
+import {ReleaseComparisonChart} from './releaseComparisonChart';
+import ReleaseIssues from './releaseIssues';
 import {CommitAuthorBreakdown} from './sidebar/commitAuthorBreakdown';
 import {Deploys} from './sidebar/deploys';
 import {OtherProjects} from './sidebar/otherProjects';
@@ -57,9 +61,6 @@ import {ProjectReleaseDetails} from './sidebar/projectReleaseDetails';
 import {ReleaseAdoption} from './sidebar/releaseAdoption';
 import {ReleaseStats} from './sidebar/releaseStats';
 import {TotalCrashFreeUsers} from './sidebar/totalCrashFreeUsers';
-import {ReleaseArchivedNotice} from './releaseArchivedNotice';
-import {ReleaseComparisonChart} from './releaseComparisonChart';
-import ReleaseIssues from './releaseIssues';
 
 const RELEASE_PERIOD_KEY = 'release';
 

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+
 import styled from '@emotion/styled';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';

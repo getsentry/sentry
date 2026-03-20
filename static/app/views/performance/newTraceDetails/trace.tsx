@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
+
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -50,12 +51,12 @@ import {
   TRACE_RIGHT_COLUMN_ODD_CLASSNAME,
   type TraceRowProps,
 } from './traceRow/traceRow';
+import type {TraceReducerState} from './traceState';
 import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
-import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(
   current_index: number,

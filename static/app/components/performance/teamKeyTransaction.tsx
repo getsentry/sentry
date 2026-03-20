@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+
 import styled from '@emotion/styled';
 
 import {TeamAvatar} from '@sentry/scraps/avatar';

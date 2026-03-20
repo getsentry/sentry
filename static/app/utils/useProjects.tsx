@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
+
 import uniqBy from 'lodash/uniqBy';
 
 import type {Client} from 'sentry/api';
