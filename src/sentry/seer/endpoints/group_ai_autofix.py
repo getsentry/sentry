@@ -161,10 +161,29 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
         if request.GET.get("mode") != "explorer":
             return False
 
-        if not features.has("organizations:seer-explorer", organization, actor=request.user):
+        feature_names = [
+            # Access to seer explorer
+            "organizations:seer-explorer",
+            # Access to seer explorer powered autofix
+            "organizations:autofix-on-explorer",
+            "organizations:autofix-on-explorer-v2",
+        ]
+
+        batch_features = features.batch_has(
+            feature_names,
+            organization=organization,
+            actor=request.user,
+        )
+
+        if batch_features is None:
             return False
 
-        return True
+        org_features = batch_features.get(f"organization:{organization.id}", {})
+        for feature_name in feature_names:
+            if bool(org_features.get(feature_name)):
+                return True
+
+        return False
 
     @extend_schema(
         operation_id="Start Seer Issue Fix",
