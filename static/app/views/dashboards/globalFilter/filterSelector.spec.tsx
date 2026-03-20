@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {FieldKind} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
@@ -107,6 +107,44 @@ describe('FilterSelector', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Remove Filter'}));
 
     expect(mockOnRemoveFilter).toHaveBeenCalledWith(mockGlobalFilter);
+  });
+
+  it('does not reset selected values when dismissing the select without applying', async () => {
+    const fiveValueSearchBarData: SearchBarData = {
+      getFilterKeySections: () => [],
+      getFilterKeys: () => ({}),
+      getTagValues: () =>
+        Promise.resolve(['chrome', 'firefox', 'safari', 'edge', 'opera']),
+    };
+
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: 'browser:[firefox,chrome]'}}
+        searchBarData={fiveValueSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    // Open the select
+    const button = screen.getByRole('button', {name: /browser/});
+    await userEvent.click(button);
+
+    // Wait for options to load
+    expect(await screen.findByText('chrome')).toBeInTheDocument();
+
+    // Dismiss by clicking outside (without applying)
+    await userEvent.click(document.body);
+
+    // Wait for the trigger to show the selected value instead of "All".
+    // The onClose handler resets stagedFilterValues to [], which causes the trigger
+    // to briefly show "All" — this assertion catches that regression.
+    await waitFor(() => {
+      expect(screen.queryByText('All')).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText('firefox')).toBeInTheDocument();
+    expect(mockOnUpdateFilter).not.toHaveBeenCalled();
   });
 
   it('translates subregion codes to human-readable names for spans dataset', async () => {
