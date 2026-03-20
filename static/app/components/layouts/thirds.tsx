@@ -17,15 +17,18 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
   const secondaryNavigation = useSecondaryNavigation();
 
   if (hasPageFrame) {
-    <Stack
-      flex="1"
-      padding={props.withPadding ? '2xl 3xl' : undefined}
-      as="main"
-      radius={secondaryNavigation.view === 'expanded' ? 'lg' : undefined}
-      borderTop={secondaryNavigation.view === 'expanded' ? 'primary' : undefined}
-      borderLeft={secondaryNavigation.view === 'expanded' ? 'primary' : undefined}
-      {...props}
-    />;
+    return (
+      <StyledPageFrameStack
+        flex="1"
+        as="main"
+        padding={props.withPadding ? '2xl 3xl' : undefined}
+        radius={secondaryNavigation.view === 'expanded' ? 'lg 0 0 0' : undefined}
+        borderTop={secondaryNavigation.view === 'expanded' ? 'secondary' : undefined}
+        borderLeft={secondaryNavigation.view === 'expanded' ? 'secondary' : undefined}
+        background="secondary"
+        {...props}
+      />
+    );
   }
 
   return (
@@ -37,6 +40,12 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
     />
   );
 }
+
+const StyledPageFrameStack = styled(Stack)`
+  > :first-child {
+    border-top-left-radius: ${p => p.theme.radius.lg};
+  }
+`;
 
 /**
  * Header container for header content and header actions.

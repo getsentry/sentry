@@ -78,7 +78,15 @@ function AppLayout({organization}: LayoutProps) {
       >
         <Navigation />
         {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-        <ContentStack flex="1" minWidth="0" id="main" tabIndex={-1}>
+        <ContentStack
+          id="main"
+          tabIndex={-1}
+          flex="1"
+          minWidth="0"
+          background={
+            organization?.features.includes('page-frame') ? 'secondary' : undefined
+          }
+        >
           <DemoHeader />
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
