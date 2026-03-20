@@ -21,7 +21,7 @@ from sentry.testutils.silo import (
     assume_test_silo_mode,
     cell_silo_test,
     control_silo_test,
-    create_test_regions,
+    create_test_cells,
 )
 from sentry.types.cell import get_local_cell
 
@@ -54,7 +54,7 @@ def assert_matching_organization_mapping(
         assert org_mapping.disable_member_invite == bool(org.flags.disable_member_invite)
 
 
-@control_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+@control_silo_test(cells=create_test_cells("us"), include_monolith_run=True)
 class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCase):
     def test_upsert__create_if_not_found(self) -> None:
         self.organization = self.create_organization(name="test name", slug="foobar", region="us")
@@ -90,7 +90,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 name=self.organization.name,
                 slug=self.organization.slug,
                 status=self.organization.status,
-                region_name="us",
+                cell_name="us",
                 customer_id=CustomerId(value="99"),
             ),
         )
@@ -134,7 +134,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert_matching_organization_mapping(org=self.organization)
         assert not OrganizationMapping.objects.filter(organization_id=fake_org_id).exists()
 
-    def test_upsert__reject_org_slug_reservation_region_mismatch(self) -> None:
+    def test_upsert__reject_org_slug_reservation_cell_mismatch(self) -> None:
         self.organization = self.create_organization(slug="santry", region="us")
 
         organization_mapping_service.upsert(
@@ -203,7 +203,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         assert_matching_organization_mapping(org=self.organization)
 
 
-@cell_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
+@cell_silo_test(cells=create_test_cells("us"), include_monolith_run=True)
 class OrganizationMappingReplicationTest(TransactionTestCase):
     def test_replicates_all_flags(self) -> None:
         self.organization = self.create_organization(slug="santry", region="us")

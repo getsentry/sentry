@@ -61,8 +61,8 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: AVERAGE_DURATION_TEXT,
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: FILTER_STRING,
           orderby: '',
@@ -82,8 +82,8 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: [`sum(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`sum(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`sum(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`sum(${SpanFields.SPAN_DURATION})`],
           columns: [],
           conditions: FILTER_STRING,
           orderby: '',
@@ -127,12 +127,12 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: '',
-          fields: ['transaction', 'epm()', `sum(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: ['epm()', `sum(${SpanFields.SPAN_SELF_TIME})`],
+          fields: ['transaction', 'epm()', `sum(${SpanFields.SPAN_DURATION})`],
+          aggregates: ['epm()', `sum(${SpanFields.SPAN_DURATION})`],
           columns: [SpanFields.TRANSACTION],
           fieldAliases: [t('Found In'), t('Queries Per Minute'), t('Time Spent')],
           conditions: FILTER_STRING,
-          orderby: `-sum(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `-sum(${SpanFields.SPAN_DURATION})`,
           onDemand: [],
           isHidden: false,
           linkedDashboards: [],
@@ -176,12 +176,12 @@ export const QUERIES_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {
       queries: [
         {
           name: AVERAGE_DURATION_TEXT,
-          fields: [`avg(${SpanFields.SPAN_SELF_TIME})`],
-          aggregates: [`avg(${SpanFields.SPAN_SELF_TIME})`],
+          fields: [`avg(${SpanFields.SPAN_DURATION})`],
+          aggregates: [`avg(${SpanFields.SPAN_DURATION})`],
           columns: [],
           fieldAliases: [],
           conditions: FILTER_STRING,
-          orderby: `avg(${SpanFields.SPAN_SELF_TIME})`,
+          orderby: `avg(${SpanFields.SPAN_DURATION})`,
           onDemand: [],
           isHidden: false,
         },

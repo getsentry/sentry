@@ -64,7 +64,7 @@ def proxy_request_if_needed(
         return proxy_request(request, org_id_or_slug, url_name)
 
     if url_name == "sentry-error-page-embed" and "dsn" in request.GET:
-        # Error embed modal is special as customers can't easily use region URLs.
+        # Error embed modal is special as customers can't easily use cell URLs.
         dsn = request.GET["dsn"]
         metrics.incr(
             "apigateway.proxy_request",

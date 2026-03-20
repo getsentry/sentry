@@ -306,7 +306,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         # are from a user submitting an option on a card, which
         # will always contain an "payload.actionType" in the data.
         if data.get("value", {}).get("payload", {}).get("actionType"):
-            # Processing card actions can only occur in the Region silo.
+            # Processing card actions can only occur in the Cell silo.
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 return self.respond(status=400)
             return self._handle_action_submitted(request)

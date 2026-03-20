@@ -108,7 +108,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         return ButtonElement(
             text=AUTOFIX_CONFIG[data.stopping_point]["label"],
             style="primary",
-            value=data.stopping_point.value,
+            value=data.stopping_point,
             action_id=encode_action_id(
                 action=SlackAction.SEER_AUTOFIX_START.value,
                 organization_id=data.organization_id,

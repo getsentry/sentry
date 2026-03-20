@@ -180,12 +180,12 @@ from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 ```python
 # Use ONLY for direct ORM queries — never for factory calls
 assume_test_silo_mode(SiloMode.CONTROL)     # Switch to control silo for ORM access
-assume_test_silo_mode(SiloMode.CELL)       # Switch to cell silo for ORM access
-assume_test_silo_mode_of(ModelClass)         # Switch to silo matching model's silo mode
+assume_test_silo_mode(SiloMode.CELL)        # Switch to cell silo for ORM access
+assume_test_silo_mode_of(ModelClass)        # Switch to silo matching model's silo mode
 
-outbox_runner()                               # Drain all pending outboxes on exit
-outbox_context(flush=False)                   # Create outboxes without flushing
-override_regions(regions)                     # Override active region config
-override_settings(SILO_MODE=SiloMode.X)      # Override Django settings
-override_options({"key": value})              # Override Sentry options
+outbox_runner()                             # Drain all pending outboxes on exit
+outbox_context(flush=False)                 # Create outboxes without flushing
+override_cells(cells)                       # Override active cell config
+override_settings(SILO_MODE=SiloMode.X)     # Override Django settings
+override_options({"key": value})            # Override Sentry options
 ```
