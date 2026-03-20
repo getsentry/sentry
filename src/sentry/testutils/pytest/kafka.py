@@ -81,7 +81,10 @@ def scope_consumers():
 
     for consumer_name, consumer in all_consumers.items():
         if consumer is not None:
-            consumer.signal_shutdown()
+            try:
+                consumer.signal_shutdown()
+            except Exception:
+                _log.warning("Could not shutdown consumer %s", consumer_name)
 
 
 @pytest.fixture(scope="function")
