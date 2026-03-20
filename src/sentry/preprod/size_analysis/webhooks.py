@@ -8,7 +8,6 @@ from sentry.preprod.api.models.public.size_analysis import (
     build_size_analysis_summary,
 )
 from sentry.preprod.models import PreprodArtifact
-from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SizeAnalysisActionType
 
@@ -69,31 +68,29 @@ def send_size_analysis_webhook(
     Send the ``size_analysis.completed`` webhook for a given artifact, if applicable.
 
     Builds the payload and enqueues via the generic broadcaster.
+    Fully fire-and-forget: exceptions are logged but never propagated.
     """
-    payload = build_webhook_payload(artifact)
-    if payload is None:
-        logger.info(
-            "preprod.size_analysis.webhook.no_payload",
-            extra={"artifact_id": artifact.id},
-        )
-        return
-
-    event_name = SizeAnalysisActionType.COMPLETED.value
-
     try:
+        payload = build_webhook_payload(artifact)
+        if payload is None:
+            logger.info(
+                "preprod.size_analysis.webhook.no_payload",
+                extra={"artifact_id": artifact.id},
+            )
+            return
+
         broadcast_webhooks_for_organization.delay(
             resource_name="size_analysis",
-            event_name=event_name,
+            event_name=SizeAnalysisActionType.COMPLETED.value,
             organization_id=organization_id,
             payload=dict(payload),
         )
     except Exception:
         logger.exception(
-            "preprod.size_analysis.webhook.broadcast_failed",
+            "preprod.size_analysis.webhook.failed",
             extra={
                 "artifact_id": artifact.id,
                 "organization_id": organization_id,
-                "event_type": SentryAppEventType.SIZE_ANALYSIS_COMPLETED.value,
             },
         )
 

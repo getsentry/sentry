@@ -362,11 +362,13 @@ def build_size_analysis_summary(
     }
 
     if state_enum == PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED:
-        response["errorCode"] = (
-            PreprodArtifactSizeMetrics.ErrorCode(main_metric.error_code).name
-            if main_metric.error_code is not None
-            else None
-        )
+        if main_metric.error_code is not None:
+            try:
+                response["errorCode"] = PreprodArtifactSizeMetrics.ErrorCode(
+                    main_metric.error_code
+                ).name
+            except ValueError:
+                raise SizeAnalysisSummaryBuildError(f"Invalid error code: {main_metric.error_code}")
         response["errorMessage"] = main_metric.error_message
         return response
 
