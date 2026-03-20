@@ -49,8 +49,9 @@ export function Button({
         type={type}
         busy={busy}
         {...props}
-        role="button"
+        shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
+        role="button"
       >
         <Flex
           as="span"
@@ -93,8 +94,13 @@ export function Button({
   );
 }
 
-const StyledButton = styled('button')<ButtonProps>`
-  ${p => getButtonStyles(p as any)}
+const StyledButton = styled('button')<
+  Omit<ButtonProps, 'size'> & {
+    shapeVariant: 'rectangular' | 'square';
+    size: NonNullable<ButtonProps['size']>;
+  }
+>`
+  ${p => getButtonStyles(p)}
 `;
 
 const spin = keyframes`
