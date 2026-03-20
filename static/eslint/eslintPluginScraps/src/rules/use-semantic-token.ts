@@ -1,5 +1,4 @@
 import {ESLintUtils} from '@typescript-eslint/utils';
-
 /**
  * ESLint rule: use-semantic-token
  *
