@@ -17,6 +17,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import {
   WidgetType,
   type DashboardFilters,
@@ -93,6 +94,8 @@ export function VisualizationWidget({
   legendSelection,
   onLegendSelectionChange,
 }: VisualizationWidgetProps) {
+  const onWidgetError = useWidgetErrorCallback();
+
   const {releases: releasesWithDate} = useReleaseStats(selection, {
     enabled: showReleaseAs !== 'none',
   });
@@ -125,6 +128,10 @@ export function VisualizationWidget({
         isSampled,
         sampleCount,
       }) => {
+        if (errorMessage && onWidgetError) {
+          onWidgetError(widget, errorMessage);
+        }
+
         return (
           <VisualizationWidgetContent
             widget={widget}
