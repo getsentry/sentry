@@ -68,7 +68,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
   return (
     <Fragment>
       <StyledPanel>
-        <Container width="100%" minWidth={0} overflowY="auto">
+        <Container width="100%" minWidth={0} overflowX="auto">
           <Grid width="100%" columns="116px auto repeat(3, min-content) 95px">
             <StyledPanelHeader justify="start" lightText radius="md 0 0 0">
               {t('Trace ID')}
