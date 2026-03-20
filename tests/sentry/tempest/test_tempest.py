@@ -109,7 +109,7 @@ class TempestTasksTest(TestCase):
         assert self.credentials.latest_fetched_item_id is None
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
-    def test_fetch_latest_item_id_unexpected_response(self, mock_fetch: MagicMock) -> None:
+    def test_fetch_latest_item_id_internal_error(self, mock_fetch: MagicMock) -> None:
         mock_fetch.return_value = Mock()
         mock_fetch.return_value.json.return_value = {
             "error": {
@@ -120,11 +120,31 @@ class TempestTasksTest(TestCase):
         mock_fetch.return_value.content = b'{"error": {"type": "internal_error"}}'
         mock_fetch.return_value.status_code = 500
 
+        with self.assertLogs("sentry.tempest.tasks", level="WARNING") as cm:
+            fetch_latest_item_id(self.credentials.id)
+
+        self.credentials.refresh_from_db()
+        assert self.credentials.latest_fetched_item_id is None
+        assert self.credentials.message == ""  # No specific message set for internal errors
+        mock_fetch.assert_called_once()
+        assert "Tempest internal error" in cm.output[0]
+
+    @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")
+    def test_fetch_latest_item_id_unexpected_error_type(self, mock_fetch: MagicMock) -> None:
+        mock_fetch.return_value = Mock()
+        mock_fetch.return_value.json.return_value = {
+            "error": {
+                "type": "some_unknown_error",
+                "message": "...",
+            }
+        }
+        mock_fetch.return_value.content = b'{"error": {"type": "some_unknown_error"}}'
+        mock_fetch.return_value.status_code = 500
+
         fetch_latest_item_id(self.credentials.id)
 
         self.credentials.refresh_from_db()
         assert self.credentials.latest_fetched_item_id is None
-        assert self.credentials.message == ""  # No specific message set for unexpected responses
         mock_fetch.assert_called_once()
 
     @patch("sentry.tempest.tasks.fetch_latest_id_from_tempest")

@@ -165,6 +165,21 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
                 credentials.message_type = MessageType.ERROR
                 credentials.save(update_fields=["message", "message_type"])
                 return
+            elif error_type == "internal_error":
+                # Tempest service is experiencing internal issues (e.g. CRS failures).
+                # This is transient and not actionable by the user - log as warning
+                # to avoid creating noisy Sentry issues (SENTRY-5KSM).
+                logger.warning(
+                    "Fetching the latest item id failed due to Tempest internal error.",
+                    extra={
+                        "org_id": org_id,
+                        "project_id": project_id,
+                        "client_id": client_id,
+                        "status_code": response.status_code,
+                        "error_type": error_type,
+                    },
+                )
+                return
             else:
                 # Unhandled Tempest API error type - record detailed context for debugging.
                 logger.error(
