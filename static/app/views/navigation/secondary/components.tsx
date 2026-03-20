@@ -824,7 +824,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
       onDragCancel={() => scrollLock.release()}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        <Stack direction="column" padding="0" width="100%" as="ul">
+        <Stack direction="column" padding="0" width="100%" as="ul" margin="0">
           {items.map(item => (
             <ReorderableListItem key={item.id} item={item}>
               {props.children(item)}
