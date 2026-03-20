@@ -238,7 +238,7 @@
     "jest-environment-jsdom": "30.3.0",
     "jest-fail-on-console": "3.3.4",
     "jest-junit": "16.0.0",
-    "knip": "5.85.0",
+    "knip": "6.0.1",
     "odiff-bin": "^4.3.2",
     "playwright": "^1.58.2",
     "postcss-styled-syntax": "0.7.0",

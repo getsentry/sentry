@@ -238,7 +238,7 @@ def resolve_fingerprint_variable(
     if variable_key == "transaction":
         return event.data.get("transaction") or "<no-transaction>"
 
-    elif variable_key == "message":
+    elif variable_key in ("message", "raw_message"):
         message = get_canonical_message_from_event(event)
         return message or "<no-message>"
 

@@ -13,7 +13,6 @@ class OrganizationInsightsTreeEndpointTest(
     OrganizationEventsEndpointTestBase, SnubaTestCase, SpanTestCase
 ):
     url_name = "sentry-api-0-organization-insights-tree"
-    FEATURES = ["organizations:trace-spans-format"]
 
     def setUp(self) -> None:
         super().setUp()
@@ -86,19 +85,18 @@ class OrganizationInsightsTreeEndpointTest(
 
     def test_get_nextjs_function_data(self) -> None:
         self.login_as(user=self.user)
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                self.url,
-                data={
-                    "statsPeriod": "14d",
-                    "noPagination": True,
-                    "query": "span.op:function.nextjs",
-                    "mode": "aggregate",
-                    "field": ["span.description", "avg(span.duration)", "count(span.duration)"],
-                    "project": self.project.id,
-                    "dataset": "spans",
-                },
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "statsPeriod": "14d",
+                "noPagination": True,
+                "query": "span.op:function.nextjs",
+                "mode": "aggregate",
+                "field": ["span.description", "avg(span.duration)", "count(span.duration)"],
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
         assert response.status_code == 200
         span_descriptions = [row["span.description"] for row in response.data["data"]]
         assert "Page Server Component (/app/[category]/[product]/)" in span_descriptions
