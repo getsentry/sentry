@@ -1,7 +1,10 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SchemaHintsSection} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 
 export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
@@ -27,12 +30,22 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   }
 `;
 
-export const ExploreContentSection = styled('section')`
-  background-color: ${p => p.theme.tokens.background.secondary};
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: ${p => p.theme.space.xl};
-`;
+export function ExploreContentSection(props: ContainerProps<'section'>) {
+  const organization = useOrganization();
+  const hasPageFrame = organization?.features.includes('page-frame');
+
+  return (
+    <Container
+      background={hasPageFrame ? 'primary' : 'secondary'}
+      flex="1 1 auto"
+      minWidth="0"
+      padding="xl"
+      {...props}
+    >
+      {props.children}
+    </Container>
+  );
+}
 
 export const ExploreFilterSection = styled('div')`
   display: grid;
