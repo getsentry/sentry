@@ -81,12 +81,7 @@ def scope_consumers():
 
     for consumer_name, consumer in all_consumers.items():
         if consumer is not None:
-            try:
-                # stop the consumer
-                consumer.signal_shutdown()
-                consumer.run()
-            except Exception:
-                _log.warning("Failed to cleanup consumer %s", consumer_name)
+            consumer.signal_shutdown()
 
 
 @pytest.fixture(scope="function")
