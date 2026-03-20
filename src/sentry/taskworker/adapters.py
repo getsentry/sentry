@@ -24,7 +24,7 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils import metrics as sentry_metrics
-from sentry.utils.arroyo_producer import get_arroyo_producer
+from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.memory import track_memory_usage as sentry_track_memory_usage
 
 
@@ -125,7 +125,7 @@ class SentryRouter(LibraryRouter):
 _producer_local = threading.local()
 
 
-def make_producer(topic: str) -> KafkaProducer:
+def make_producer(topic: str) -> SingletonProducer:
     """
     Producer factory for taskbroker-client.
 
@@ -134,8 +134,11 @@ def make_producer(topic: str) -> KafkaProducer:
     """
     if not hasattr(_producer_local, "producers"):
         _producer_local.producers = {}
+
     if topic not in _producer_local.producers:
-        _producer_local.producers[topic] = get_arroyo_producer(
-            f"sentry.taskworker.{topic}", Topic(topic)
-        )
+
+        def factory() -> KafkaProducer:
+            return get_arroyo_producer(f"sentry.taskworker.{topic}", Topic(topic))
+
+        _producer_local.producers[topic] = SingletonProducer(factory)
     return _producer_local.producers[topic]
