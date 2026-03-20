@@ -23,8 +23,8 @@ export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
         as="main"
         padding={props.withPadding ? '2xl 3xl' : undefined}
         radius={secondaryNavigation.view === 'expanded' ? 'lg 0 0 0' : undefined}
-        borderTop={secondaryNavigation.view === 'expanded' ? 'secondary' : undefined}
-        borderLeft={secondaryNavigation.view === 'expanded' ? 'secondary' : undefined}
+        borderTop={secondaryNavigation.view === 'expanded' ? 'primary' : undefined}
+        borderLeft={secondaryNavigation.view === 'expanded' ? 'primary' : undefined}
         background="secondary"
         {...props}
       />

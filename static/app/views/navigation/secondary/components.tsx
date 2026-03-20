@@ -165,9 +165,10 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
 
 function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const theme = useTheme();
+  const secondaryNavigation = useSecondaryNavigation();
   const organization = useOrganization({allowNull: true});
   const hasPageFrame = organization?.features.includes('page-frame');
-  const secondaryNavigation = useSecondaryNavigation();
+
   return (
     <Container
       background="secondary"
@@ -273,7 +274,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
     <Grid
       columns="1fr auto"
       align="center"
-      borderBottom="muted"
+      borderBottom={hasPageFrame ? 'primary' : 'muted'}
       height={
         layout === 'mobile'
           ? undefined
