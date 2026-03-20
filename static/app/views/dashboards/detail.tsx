@@ -290,6 +290,23 @@ class DashboardDetail extends Component<Props, State> {
     if (isWidgetViewerPath(location.pathname)) {
       const widget = (modifiedDashboard ?? dashboard).widgets[Number(widgetId)];
       if (widget) {
+        // Measure how long it takes to open the full-screen view from when the
+        // user clicked the button.
+        scheduleMicroTask(() => {
+          try {
+            const measure = performance.measure(
+              'dashboard.widget.onFullScreenView',
+              'dashboard.widget.fullScreenViewClick'
+            );
+            Sentry.metrics.distribution(
+              'dashboards.widget.onFullScreenView',
+              measure.duration,
+              {unit: 'millisecond'}
+            );
+          } catch {
+            // performance.measure throws if the start mark doesn't exist
+          }
+        });
         openWidgetViewerModal({
           organization,
           widget,

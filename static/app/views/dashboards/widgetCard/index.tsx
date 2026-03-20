@@ -242,6 +242,7 @@ function WidgetCard(props: Props) {
     if (isWidgetViewerPath(location.pathname)) {
       return;
     }
+    performance.mark('dashboard.widget.fullScreenViewClick');
     if (currentDashboardId) {
       navigate(
         normalizeUrl({
