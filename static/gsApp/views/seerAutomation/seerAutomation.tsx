@@ -17,21 +17,15 @@ import {SeerAutomationSettings} from 'getsentry/views/seerAutomation/settings';
 
 export default function SeerAutomation() {
   const organization = useOrganization();
-  const hasSeerCohort =
-    organization.features.includes('seat-based-seer-enabled') ||
-    organization.features.includes('seer-added') ||
-    organization.features.includes('code-review-beta');
-  const hasActiveSeerSubscription = organization.features.includes(
-    'seat-based-seer-enabled'
-  );
-  const showNoActiveSeerSubscriptionBanner = hasSeerCohort && !hasActiveSeerSubscription;
+
+  const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
+  const hasLegacySeer = organization.features.includes('seer-added');
+  const hasCodeReviewBeta = organization.features.includes('code-review-beta');
+  const showNoActiveSeerSubscriptionBanner =
+    !hasSeatBasedSeer && (hasLegacySeer || hasCodeReviewBeta);
 
   if (showNewSeer(organization)) {
-    return (
-      <Stack gap="lg">
-        <SeerAutomationSettings />
-      </Stack>
-    );
+    return <SeerAutomationSettings />;
   }
 
   // Show the regular settings page
