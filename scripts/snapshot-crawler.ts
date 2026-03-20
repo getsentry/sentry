@@ -28,6 +28,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
+
 import {chromium} from 'playwright';
 
 // ─── CLI ─────────────────────────────────────────────────────────────────────
@@ -64,8 +65,7 @@ const ORG_ID = opts.orgId ?? 'sentry';
 const CHROME_PROFILE =
   opts['chrome-profile'] ??
   path.join(os.homedir(), 'Library/Application Support/Google/Chrome');
-const OUT_DIR =
-  opts.out ?? path.join(os.tmpdir(), `sentry-snapshots-${Date.now()}`);
+const OUT_DIR = opts.out ?? path.join(os.tmpdir(), `sentry-snapshots-${Date.now()}`);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
