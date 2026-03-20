@@ -3,9 +3,9 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 from rediscluster.exceptions import RedisClusterException  # type: ignore[attr-defined]
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.taskworker.state import CurrentTaskState
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils.exceptions import (
     exception_grouping_context,
     quiet_redis_noise,

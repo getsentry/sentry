@@ -2717,6 +2717,28 @@ describe('SearchQueryBuilder', () => {
         expect(optionsAfterToggle).toEqual(initialOptions);
       });
 
+      it('sorts value suggestions by fuzzy match relevance', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        // "e" matches Chrome, Firefox, and Edge, but Edge should rank
+        // highest as a prefix match
+        await userEvent.keyboard('e');
+
+        const options = within(screen.getByRole('listbox'))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+        expect(options.indexOf('Edge')).toBeLessThan(options.indexOf('Chrome'));
+        expect(options.indexOf('Edge')).toBeLessThan(options.indexOf('Firefox'));
+      });
+
       it('recomputes the initial ordering when reopened with new suggestion values', async () => {
         const {rerender} = render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />

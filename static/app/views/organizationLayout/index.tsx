@@ -1,4 +1,5 @@
 import {Outlet, ScrollRestoration} from 'react-router-dom';
+import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -76,7 +77,7 @@ function AppLayout({organization}: LayoutProps) {
       >
         <Navigation />
         {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-        <Stack flex="1" minWidth="0" id="main">
+        <ContentStack flex="1" minWidth="0" id="main" tabIndex={-1}>
           <DemoHeader />
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
@@ -85,12 +86,19 @@ function AppLayout({organization}: LayoutProps) {
             </OrganizationDetailsBody>
           </AppBodyContent>
           <Footer />
-        </Stack>
+        </ContentStack>
       </Flex>
       {organization ? <AppDrawers /> : null}
     </PrimaryNavigationContextProvider>
   );
 }
+
+const ContentStack = styled(Stack)`
+  &:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+`;
 
 /**
  * Pulled into its own component to avoid re-rendering the OrganizationLayout

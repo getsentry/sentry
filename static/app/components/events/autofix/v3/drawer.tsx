@@ -4,7 +4,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {SeerWelcomeScreen} from 'sentry/components/events/autofix/drawer/welcomeScreen';
 import {
-  getOrderedAutofixArtifacts,
+  getAutofixArtifactFromSection,
+  getOrderedAutofixSections,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AiSetupConfiguration} from 'sentry/components/events/autofix/v2/autofixConfigureSeer';
@@ -134,9 +135,12 @@ function useHandleCopyMarkdown({
     }
 
     return () => {
-      const artifacts = getOrderedAutofixArtifacts(aiAutofix.runState);
-      const markdown = artifacts.map(artifactToMarkdown).filter(defined).join('\n\n');
-
+      const markdown = getOrderedAutofixSections(aiAutofix.runState)
+        .map(getAutofixArtifactFromSection)
+        .filter(defined)
+        .map(artifactToMarkdown)
+        .filter(defined)
+        .join('\n\n');
       copy(markdown, {successMessage: t('Analysis copied to clipboard.')});
     };
   }, [aiAutofix, copy]);
