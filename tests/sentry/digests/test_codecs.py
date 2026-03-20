@@ -8,7 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from sentry.digests.codecs import CompressedPickleCodec
+from sentry.digests.codecs import _ZSTD_MAGIC, CompressedJsonCodec, CompressedPickleCodec
 from sentry.digests.types import IdentifierKey, Notification
 from sentry.models.group import Group
 from sentry.services.eventstore.models import Event
@@ -39,26 +39,23 @@ def _make_notification(
     )
 
 
-class TestCompressedPickleCodec:
-    codec: CompressedPickleCodec = CompressedPickleCodec()
+def _assert_notifications_equal(decoded: Notification, original: Notification) -> None:
+    assert decoded.event.project_id == original.event.project_id
+    assert decoded.event.event_id == original.event.event_id
+    assert decoded.event.group_id == original.event.group_id
+    assert decoded.event.datetime == original.event.datetime
+    assert list(decoded.rules) == list(original.rules)
+    assert decoded.notification_uuid == original.notification_uuid
+    assert decoded.identifier_key == original.identifier_key
 
-    @pytest.fixture(autouse=True)
-    def _enable_json_zstd(self) -> Iterator[None]:
-        with override_options({"digests.encode-json-zstd": True}):
-            yield
+
+class TestCompressedJsonCodec:
+    codec: CompressedJsonCodec = CompressedJsonCodec()
 
     def test_round_trip(self) -> None:
         original = _make_notification()
-        encoded = self.codec.encode(original)
-        decoded = self.codec.decode(encoded)
-
-        assert decoded.event.project_id == original.event.project_id
-        assert decoded.event.event_id == original.event.event_id
-        assert decoded.event.group_id == original.event.group_id
-        assert decoded.event.datetime == original.event.datetime
-        assert list(decoded.rules) == list(original.rules)
-        assert decoded.notification_uuid == original.notification_uuid
-        assert decoded.identifier_key == original.identifier_key
+        decoded = self.codec.decode(self.codec.encode(original))
+        _assert_notifications_equal(decoded, original)
 
     def test_round_trip_workflow_identifier_key(self) -> None:
         original = _make_notification(identifier_key=IdentifierKey.WORKFLOW)
@@ -90,8 +87,26 @@ class TestCompressedPickleCodec:
         decoded.event.group = group
         assert decoded.event.group_id == 99
 
+    def test_encoded_starts_with_zstd_magic(self) -> None:
+        encoded = self.codec.encode(_make_notification())
+        assert encoded[:4] == _ZSTD_MAGIC
+
+
+class TestCompressedPickleCodec:
+    codec: CompressedPickleCodec = CompressedPickleCodec()
+
+    @pytest.fixture(autouse=True)
+    def _enable_json_zstd(self) -> Iterator[None]:
+        with override_options({"digests.encode-json-zstd": True}):
+            yield
+
+    def test_round_trip(self) -> None:
+        original = _make_notification()
+        decoded = self.codec.decode(self.codec.encode(original))
+        _assert_notifications_equal(decoded, original)
+
     def test_backward_compat_legacy_pickle_zlib(self) -> None:
-        """New codec can decode data written by the old pickle+zlib codec."""
+        """Decoder can handle data written by the old pickle+zlib format."""
         original = _make_notification()
         legacy_bytes = zlib.compress(pickle.dumps(original, protocol=5))
         decoded = self.codec.decode(legacy_bytes)
@@ -102,17 +117,12 @@ class TestCompressedPickleCodec:
         assert list(decoded.rules) == list(original.rules)
         assert decoded.notification_uuid == original.notification_uuid
 
-    def test_encoded_starts_with_zstd_magic(self) -> None:
-        encoded = self.codec.encode(_make_notification())
-        assert encoded[:4] == b"\x28\xb5\x2f\xfd"
-
     def test_option_disabled_encodes_pickle(self) -> None:
         """When the option is off, encode produces pickle+zlib (the legacy format)."""
         with override_options({"digests.encode-json-zstd": False}):
             encoded = self.codec.encode(_make_notification())
         # zlib-compressed data starts with \x78
         assert encoded[0:1] == b"\x78"
-        # Decoder can still read it
         decoded = self.codec.decode(encoded)
         assert decoded.event.event_id == "abc123"
 
@@ -122,10 +132,7 @@ class TestCompressedPickleCodec:
         with override_options({"digests.encode-json-zstd": False}):
             encoded = self.codec.encode(original)
             decoded = self.codec.decode(encoded)
-        assert decoded.event.project_id == original.event.project_id
-        assert decoded.event.event_id == original.event.event_id
-        assert decoded.event.group_id == original.event.group_id
-        assert list(decoded.rules) == list(original.rules)
+        _assert_notifications_equal(decoded, original)
 
     def test_cross_format_decode(self) -> None:
         """Data written with option off can be read with option on, and vice versa."""
@@ -141,4 +148,13 @@ class TestCompressedPickleCodec:
         zstd_encoded = self.codec.encode(original)
         with override_options({"digests.encode-json-zstd": False}):
             decoded = self.codec.decode(zstd_encoded)
+        assert decoded.event.event_id == original.event.event_id
+
+    def test_delegates_to_json_codec(self) -> None:
+        original = _make_notification()
+        encoded = self.codec.encode(original)
+        assert encoded[:4] == _ZSTD_MAGIC
+        # CompressedJsonCodec can decode it directly
+        json_codec = CompressedJsonCodec()
+        decoded = json_codec.decode(encoded)
         assert decoded.event.event_id == original.event.event_id

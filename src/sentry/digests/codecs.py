@@ -48,11 +48,10 @@ class Codec:
         raise NotImplementedError
 
 
-class CompressedPickleCodec(Codec):
-    def encode(self, value: Notification) -> bytes:
-        if not options.get("digests.encode-json-zstd"):
-            return zlib.compress(pickle.dumps(value, protocol=5))
+class CompressedJsonCodec(Codec):
+    """Encodes notifications as JSON compressed with zstd."""
 
+    def encode(self, value: Notification) -> bytes:
         event = value.event
         payload = NotificationPayload(
             version=1,
@@ -67,27 +66,42 @@ class CompressedPickleCodec(Codec):
         return _bytes_zstd.encode(payload.json())
 
     def decode(self, value: bytes) -> Notification:
-        if value[:4] == _ZSTD_MAGIC:
-            # Deferred to avoid circular import: this module is loaded during
-            # app init (via digests backend config), but Event pulls in the
-            # full model graph which isn't ready yet at that point.
-            from sentry.services.eventstore.models import Event
+        # Deferred to avoid circular import: this module is loaded during
+        # app init (via digests backend config), but Event pulls in the
+        # full model graph which isn't ready yet at that point.
+        from sentry.services.eventstore.models import Event
 
-            raw = NotificationPayload.parse_raw(_bytes_zstd.decode(value))
-            # Partial Event: only project_id, event_id, group_id, and
-            # datetime are populated. Do not access other fields (e.g.
-            # tags, title, message) — they will silently return empty values.
-            event = Event(
-                project_id=raw.project_id,
-                event_id=raw.event_id,
-                group_id=raw.group_id,
-                data={"timestamp": raw.timestamp},
-            )
-            return Notification(
-                event=event,
-                rules=raw.rule_ids,
-                notification_uuid=raw.notification_uuid,
-                identifier_key=IdentifierKey(raw.identifier_key),
-            )
-        # Legacy: pickle + zlib
+        raw = NotificationPayload.parse_raw(_bytes_zstd.decode(value))
+        # Partial Event: only project_id, event_id, group_id, and
+        # datetime are populated. Do not access other fields (e.g.
+        # tags, title, message) — they will silently return empty values.
+        event = Event(
+            project_id=raw.project_id,
+            event_id=raw.event_id,
+            group_id=raw.group_id,
+            data={"timestamp": raw.timestamp},
+        )
+        return Notification(
+            event=event,
+            rules=raw.rule_ids,
+            notification_uuid=raw.notification_uuid,
+            identifier_key=IdentifierKey(raw.identifier_key),
+        )
+
+
+class CompressedPickleCodec(Codec):
+    """Transitional codec that encodes notifications as pickle+zlib or JSON+zstd
+    depending on config and decodes both formats."""
+
+    def __init__(self) -> None:
+        self._json_codec = CompressedJsonCodec()
+
+    def encode(self, value: Notification) -> bytes:
+        if not options.get("digests.encode-json-zstd"):
+            return zlib.compress(pickle.dumps(value, protocol=5))
+        return self._json_codec.encode(value)
+
+    def decode(self, value: bytes) -> Notification:
+        if value[:4] == _ZSTD_MAGIC:
+            return self._json_codec.decode(value)
         return pickle.loads(zlib.decompress(value))
