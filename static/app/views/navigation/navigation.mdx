@@ -12,6 +12,9 @@ resources:
 
 import {useState} from 'react';
 
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -66,6 +69,263 @@ export function ActivePrimaryLink({group, ...props}) {
       aria-current={activeGroup === group ? 'page' : undefined}
       onClick={() => setActiveGroup(group)}
     />
+  );
+}
+
+export function WithPageFrame({children}) {
+  const org = useOrganization({allowNull: true});
+  return (
+    <OrganizationContext.Provider
+      value={org ? {...org, features: [...(org.features ?? []), 'page-frame']} : null}
+    >
+      {children}
+    </OrganizationContext.Provider>
+  );
+}
+
+export function MobilePrimaryPanel() {
+  return (
+    <Flex direction="column" gap="xs" align="center">
+      <Text size="sm" bold>
+        Primary
+      </Text>
+      <MockPrimaryNav layout="mobile" activeGroup="issues">
+        <SecondaryNavigationContextProvider>
+          <Flex
+            direction="column"
+            border="primary"
+            radius="md"
+            overflow="auto"
+            width="320px"
+            height="480px"
+            background="secondary"
+          >
+            <PrimaryNavigation.List>
+              <PrimaryNavigation.ListItem>
+                <ActivePrimaryLink
+                  group="issues"
+                  to="/issues/"
+                  analyticsKey="issues"
+                  label="Issues"
+                >
+                  <IconIssues />
+                </ActivePrimaryLink>
+              </PrimaryNavigation.ListItem>
+              <PrimaryNavigation.ListItem>
+                <ActivePrimaryLink
+                  group="explore"
+                  to="/explore/"
+                  analyticsKey="explore"
+                  label="Explore"
+                >
+                  <IconCompass />
+                </ActivePrimaryLink>
+              </PrimaryNavigation.ListItem>
+              <PrimaryNavigation.ListItem>
+                <ActivePrimaryLink
+                  group="dashboards"
+                  to="/dashboards/"
+                  analyticsKey="dashboards"
+                  label="Dashboards"
+                >
+                  <IconDashboard />
+                </ActivePrimaryLink>
+              </PrimaryNavigation.ListItem>
+              <PrimaryNavigation.ListItem>
+                <ActivePrimaryLink
+                  group="monitors"
+                  to="/monitors/"
+                  analyticsKey="monitors"
+                  label="Monitors"
+                >
+                  <IconSiren />
+                </ActivePrimaryLink>
+              </PrimaryNavigation.ListItem>
+              <PrimaryNavigation.ListItem>
+                <ActivePrimaryLink
+                  group="settings"
+                  to="/settings/"
+                  analyticsKey="settings"
+                  label="Settings"
+                >
+                  <IconSettings />
+                </ActivePrimaryLink>
+              </PrimaryNavigation.ListItem>
+            </PrimaryNavigation.List>
+            <Stack marginTop="auto" gap="md" paddingBottom="md">
+              <PrimaryNavigation.FooterItems>
+                <PrimaryNavigation.Menu
+                  analyticsKey="help"
+                  label="Help"
+                  icon={<IconSettings />}
+                  items={[
+                    {key: 'docs', label: 'Documentation'},
+                    {key: 'support', label: 'Support'},
+                  ]}
+                />
+                <PrimaryNavigation.Button
+                  analyticsKey="whats_new"
+                  label="What's New"
+                  indicator="accent"
+                  buttonProps={{icon: <IconStar />}}
+                />
+              </PrimaryNavigation.FooterItems>
+            </Stack>
+          </Flex>
+        </SecondaryNavigationContextProvider>
+      </MockPrimaryNav>
+    </Flex>
+  );
+}
+
+export function MobileSecondaryPanel() {
+  return (
+    <Flex direction="column" gap="xs" align="center">
+      <Text size="sm" bold>
+        Secondary
+      </Text>
+      <MockPrimaryNav layout="mobile" activeGroup="issues">
+        <MockSecondaryNav>
+          <Grid
+            border="primary"
+            radius="md"
+            overflow="hidden"
+            width="320px"
+            height="480px"
+            background="secondary"
+            areas={`"header" "content"`}
+            columns="1fr"
+            rows="auto 1fr"
+          >
+            <Flex as="header" area="header" padding="md">
+              <Button
+                size="xs"
+                priority="transparent"
+                icon={<IconChevron direction="left" />}
+                aria-label="Back to primary navigation"
+              >
+                Back
+              </Button>
+            </Flex>
+            <Stack area="content" justify="start" align="stretch" overflowY="auto">
+              <SecondaryNavigation.Header>Issues</SecondaryNavigation.Header>
+              <SecondaryNavigation.Body>
+                <SecondaryNavigation.Section id="mobile-feed">
+                  <SecondaryNavigation.List>
+                    <SecondaryNavigation.ListItem>
+                      <SecondaryNavigation.Link to="/issues/" isActive>
+                        Feed
+                      </SecondaryNavigation.Link>
+                    </SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.ListItem>
+                      <SecondaryNavigation.Link to="/issues/errors/" isActive={false}>
+                        Errors
+                      </SecondaryNavigation.Link>
+                    </SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.ListItem>
+                      <SecondaryNavigation.Link to="/issues/feedback/" isActive={false}>
+                        User Feedback
+                      </SecondaryNavigation.Link>
+                    </SecondaryNavigation.ListItem>
+                  </SecondaryNavigation.List>
+                </SecondaryNavigation.Section>
+                <SecondaryNavigation.Separator />
+                <SecondaryNavigation.Section
+                  id="mobile-projects"
+                  title="Projects"
+                  collapsible
+                >
+                  <SecondaryNavigation.List>
+                    <SecondaryNavigation.ListItem>
+                      <SecondaryNavigation.Link
+                        to="/issues/?project=backend"
+                        isActive={false}
+                        leadingItems={
+                          <SecondaryNavigation.ProjectIcon projectPlatforms={['-1']} />
+                        }
+                      >
+                        My Projects
+                      </SecondaryNavigation.Link>
+                    </SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.ListItem>
+                      <SecondaryNavigation.Link
+                        to="/issues/?project=backend"
+                        isActive={false}
+                        leadingItems={
+                          <SecondaryNavigation.ProjectIcon projectPlatforms={[]} />
+                        }
+                      >
+                        My Projects
+                      </SecondaryNavigation.Link>
+                    </SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.ListItem>
+                      <SecondaryNavigation.Link
+                        to="/issues/?project=frontend"
+                        isActive={false}
+                        leadingItems={
+                          <SecondaryNavigation.ProjectIcon
+                            projectPlatforms={['javascript', 'python']}
+                          />
+                        }
+                      >
+                        Frontend
+                      </SecondaryNavigation.Link>
+                    </SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.ListItem>
+                      <SecondaryNavigation.Link
+                        to="/issues/?project=backend"
+                        isActive={false}
+                        leadingItems={
+                          <SecondaryNavigation.ProjectIcon
+                            projectPlatforms={['python']}
+                          />
+                        }
+                      >
+                        Backend
+                      </SecondaryNavigation.Link>
+                    </SecondaryNavigation.ListItem>
+                  </SecondaryNavigation.List>
+                </SecondaryNavigation.Section>
+                <SecondaryNavigation.Section
+                  id="mobile-projects-reorder"
+                  title="Projects"
+                  collapsible
+                >
+                  <SecondaryNavigation.ReorderableList
+                    items={[
+                      {id: 'all', label: 'My Projects', platforms: [], allProjects: true},
+                      {id: 'my', label: 'My Projects', platforms: []},
+                      {
+                        id: 'frontend',
+                        label: 'Frontend',
+                        platforms: ['javascript', 'python'],
+                      },
+                      {id: 'backend', label: 'Backend', platforms: ['python']},
+                    ]}
+                    onDragEnd={() => {}}
+                  >
+                    {item => (
+                      <SecondaryNavigation.ReorderableLink
+                        to={`/issues/?project=${item.id}`}
+                        isActive={false}
+                        icon={
+                          <SecondaryNavigation.ProjectIcon
+                            projectPlatforms={item.platforms}
+                            allProjects={item.allProjects}
+                          />
+                        }
+                      >
+                        {item.label}
+                      </SecondaryNavigation.ReorderableLink>
+                    )}
+                  </SecondaryNavigation.ReorderableList>
+                </SecondaryNavigation.Section>
+              </SecondaryNavigation.Body>
+            </Stack>
+          </Grid>
+        </MockSecondaryNav>
+      </MockPrimaryNav>
+    </Flex>
   );
 }
 
@@ -134,9 +394,26 @@ The `Navigation` component composes both sidebars into the complete navigation e
 - Falling back to a user-only sidebar when no organization is present
 
 <Storybook.Demo maxHeight="60vh">
-  <Container border="primary" radius="md" overflow="auto" height="60vh">
-    <Navigation />
-  </Container>
+  <Flex gap="xl" align="start" justify="center" width="100%">
+    <Flex direction="column" gap="xs" align="center" flex="1">
+      <Text size="sm" bold>
+        Default
+      </Text>
+      <Container border="primary" radius="md" overflow="auto" height="60vh" width="100%">
+        <Navigation />
+      </Container>
+    </Flex>
+    <Flex direction="column" gap="xs" align="center" flex="1">
+      <Text size="sm" bold>
+        page-frame
+      </Text>
+      <Container border="primary" radius="md" overflow="auto" height="60vh" width="100%">
+        <WithPageFrame>
+          <Navigation />
+        </WithPageFrame>
+      </Container>
+    </Flex>
+  </Flex>
 </Storybook.Demo>
 ```jsx
 {/*
@@ -155,256 +432,31 @@ On narrow viewports the two-tier sidebar is replaced by `MobileNavigation`: a st
 
 The two frames below show both levels using `MockPrimaryNav layout="mobile"`, rendering each view directly without the portal overlay so both are visible at once.
 
-<Storybook.Demo>
-  {() => {
-    const [mobileProjects, setMobileProjects] = useState([
-      {id: 'all', label: 'My Projects', platforms: [], allProjects: true},
-      {id: 'my', label: 'My Projects', platforms: []},
-      {id: 'frontend', label: 'Frontend', platforms: ['javascript', 'python']},
-      {id: 'backend', label: 'Backend', platforms: ['python']},
-    ]);
-    return (
-      <NavigationTourProvider>
-        <Flex gap="xl" align="start" justify="center">
-          <Flex direction="column" gap="xs" align="center">
-            <Text size="sm" bold>
-              Primary
-            </Text>
-            <MockPrimaryNav layout="mobile" activeGroup="issues">
-              <SecondaryNavigationContextProvider>
-                <Flex
-                  direction="column"
-                  border="primary"
-                  radius="md"
-                  overflow="auto"
-                  width="320px"
-                  height="480px"
-                  background="tertiary"
-                >
-                  <PrimaryNavigation.List>
-                    <PrimaryNavigation.ListItem>
-                      <ActivePrimaryLink
-                        group="issues"
-                        to="/issues/"
-                        analyticsKey="issues"
-                        label="Issues"
-                      >
-                        <IconIssues />
-                      </ActivePrimaryLink>
-                    </PrimaryNavigation.ListItem>
-                    <PrimaryNavigation.ListItem>
-                      <ActivePrimaryLink
-                        group="explore"
-                        to="/explore/"
-                        analyticsKey="explore"
-                        label="Explore"
-                      >
-                        <IconCompass />
-                      </ActivePrimaryLink>
-                    </PrimaryNavigation.ListItem>
-                    <PrimaryNavigation.ListItem>
-                      <ActivePrimaryLink
-                        group="dashboards"
-                        to="/dashboards/"
-                        analyticsKey="dashboards"
-                        label="Dashboards"
-                      >
-                        <IconDashboard />
-                      </ActivePrimaryLink>
-                    </PrimaryNavigation.ListItem>
-                    <PrimaryNavigation.ListItem>
-                      <ActivePrimaryLink
-                        group="monitors"
-                        to="/monitors/"
-                        analyticsKey="monitors"
-                        label="Monitors"
-                      >
-                        <IconSiren />
-                      </ActivePrimaryLink>
-                    </PrimaryNavigation.ListItem>
-                    <PrimaryNavigation.ListItem>
-                      <ActivePrimaryLink
-                        group="settings"
-                        to="/settings/"
-                        analyticsKey="settings"
-                        label="Settings"
-                      >
-                        <IconSettings />
-                      </ActivePrimaryLink>
-                    </PrimaryNavigation.ListItem>
-                  </PrimaryNavigation.List>
-                  <Stack marginTop="auto" gap="md" paddingBottom="md">
-                    <PrimaryNavigation.FooterItems>
-                      <PrimaryNavigation.Menu
-                        analyticsKey="help"
-                        label="Help"
-                        icon={<IconSettings />}
-                        items={[
-                          {key: 'docs', label: 'Documentation'},
-                          {key: 'support', label: 'Support'},
-                        ]}
-                      />
-                      <PrimaryNavigation.Button
-                        analyticsKey="whats_new"
-                        label="What's New"
-                        indicator="accent"
-                        buttonProps={{icon: <IconStar />}}
-                      />
-                    </PrimaryNavigation.FooterItems>
-                  </Stack>
-                </Flex>
-              </SecondaryNavigationContextProvider>
-            </MockPrimaryNav>
-          </Flex>
-          <Flex direction="column" gap="xs" align="center">
-            <Text size="sm" bold>
-              Secondary
-            </Text>
-            <MockPrimaryNav layout="mobile" activeGroup="issues">
-              <MockSecondaryNav>
-                <Grid
-                  border="primary"
-                  radius="md"
-                  overflow="hidden"
-                  width="320px"
-                  height="480px"
-                  background="tertiary"
-                  areas={`"header" "content"`}
-                  columns="1fr"
-                  rows="auto 1fr"
-                >
-                  <Flex as="header" area="header" padding="md">
-                    <Button
-                      size="xs"
-                      priority="transparent"
-                      icon={<IconChevron direction="left" />}
-                      aria-label="Back to primary navigation"
-                    >
-                      Back
-                    </Button>
-                  </Flex>
-                  <Stack area="content" justify="start" align="stretch" overflowY="auto">
-                    <SecondaryNavigation.Header>Issues</SecondaryNavigation.Header>
-                    <SecondaryNavigation.Body>
-                      <SecondaryNavigation.Section id="mobile-feed">
-                        <SecondaryNavigation.List>
-                          <SecondaryNavigation.ListItem>
-                            <SecondaryNavigation.Link to="/issues/" isActive>
-                              Feed
-                            </SecondaryNavigation.Link>
-                          </SecondaryNavigation.ListItem>
-                          <SecondaryNavigation.ListItem>
-                            <SecondaryNavigation.Link
-                              to="/issues/errors/"
-                              isActive={false}
-                            >
-                              Errors
-                            </SecondaryNavigation.Link>
-                          </SecondaryNavigation.ListItem>
-                          <SecondaryNavigation.ListItem>
-                            <SecondaryNavigation.Link
-                              to="/issues/feedback/"
-                              isActive={false}
-                            >
-                              User Feedback
-                            </SecondaryNavigation.Link>
-                          </SecondaryNavigation.ListItem>
-                        </SecondaryNavigation.List>
-                      </SecondaryNavigation.Section>
-                      <SecondaryNavigation.Separator />
-                      <SecondaryNavigation.Section
-                        id="mobile-projects"
-                        title="Projects"
-                        collapsible
-                      >
-                        <SecondaryNavigation.List>
-                          <SecondaryNavigation.ListItem>
-                            <SecondaryNavigation.Link
-                              to="/issues/?project=backend"
-                              isActive={false}
-                              leadingItems={
-                                <SecondaryNavigation.ProjectIcon
-                                  projectPlatforms={['-1']}
-                                />
-                              }
-                            >
-                              My Projects
-                            </SecondaryNavigation.Link>
-                          </SecondaryNavigation.ListItem>
-                          <SecondaryNavigation.ListItem>
-                            <SecondaryNavigation.Link
-                              to="/issues/?project=backend"
-                              isActive={false}
-                              leadingItems={
-                                <SecondaryNavigation.ProjectIcon projectPlatforms={[]} />
-                              }
-                            >
-                              My Projects
-                            </SecondaryNavigation.Link>
-                          </SecondaryNavigation.ListItem>
-                          <SecondaryNavigation.ListItem>
-                            <SecondaryNavigation.Link
-                              to="/issues/?project=frontend"
-                              isActive={false}
-                              leadingItems={
-                                <SecondaryNavigation.ProjectIcon
-                                  projectPlatforms={['javascript', 'python']}
-                                />
-                              }
-                            >
-                              Frontend
-                            </SecondaryNavigation.Link>
-                          </SecondaryNavigation.ListItem>
-                          <SecondaryNavigation.ListItem>
-                            <SecondaryNavigation.Link
-                              to="/issues/?project=backend"
-                              isActive={false}
-                              leadingItems={
-                                <SecondaryNavigation.ProjectIcon
-                                  projectPlatforms={['python']}
-                                />
-                              }
-                            >
-                              Backend
-                            </SecondaryNavigation.Link>
-                          </SecondaryNavigation.ListItem>
-                        </SecondaryNavigation.List>
-                      </SecondaryNavigation.Section>
-                      <SecondaryNavigation.Section
-                        id="mobile-projects"
-                        title="Projects"
-                        collapsible
-                      >
-                        <SecondaryNavigation.ReorderableList
-                          items={mobileProjects}
-                          onDragEnd={setMobileProjects}
-                        >
-                          {item => (
-                            <SecondaryNavigation.ReorderableLink
-                              to={`/issues/?project=${item.id}`}
-                              isActive={false}
-                              icon={
-                                <SecondaryNavigation.ProjectIcon
-                                  projectPlatforms={item.platforms}
-                                  allProjects={item.allProjects}
-                                />
-                              }
-                            >
-                              {item.label}
-                            </SecondaryNavigation.ReorderableLink>
-                          )}
-                        </SecondaryNavigation.ReorderableList>
-                      </SecondaryNavigation.Section>
-                    </SecondaryNavigation.Body>
-                  </Stack>
-                </Grid>
-              </MockSecondaryNav>
-            </MockPrimaryNav>
+<Storybook.Demo maxHeight="80vh">
+  <NavigationTourProvider>
+    <Flex direction="column" gap="2xl" align="center">
+      <Flex direction="column" gap="md" align="center">
+        <Text size="sm" bold>
+          Default
+        </Text>
+        <Flex gap="xl" align="start">
+          <MobilePrimaryPanel />
+          <MobileSecondaryPanel />
+        </Flex>
+      </Flex>
+      <WithPageFrame>
+        <Flex direction="column" gap="md" align="center">
+          <Text size="sm" bold>
+            page-frame
+          </Text>
+          <Flex gap="xl" align="start">
+            <MobilePrimaryPanel />
+            <MobileSecondaryPanel />
           </Flex>
         </Flex>
-      </NavigationTourProvider>
-    );
-  }}
+      </WithPageFrame>
+    </Flex>
+  </NavigationTourProvider>
 </Storybook.Demo>
 ```jsx
 {/*
