@@ -1,6 +1,7 @@
 from time import time
 
 from django.core.exceptions import ObjectDoesNotExist
+from taskbroker_client.retry import Retry
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.models.integration import Integration
@@ -10,7 +11,6 @@ from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(

@@ -197,7 +197,7 @@ export function PrimaryNavigationItems() {
 
       <Stack
         gap={layout === 'mobile' ? undefined : 'md'}
-        marginTop={hasPageFrame ? undefined : 'auto'}
+        marginTop="auto"
         paddingBottom="md"
       >
         <PrimaryNavigation.FooterItems>

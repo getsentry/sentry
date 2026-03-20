@@ -93,6 +93,8 @@ const CHART_MAP = {
     import('sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget'),
   overviewAgentsDurationChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget'),
+  overviewLLMCallsChartWidget: () =>
+    import('sentry/views/insights/common/components/widgets/overviewLLMCallsChartWidget'),
   overviewApiLatencyChartWidget: () =>
     import('sentry/views/insights/common/components/widgets/overviewApiLatencyChartWidget'),
   overviewCacheMissChartWidget: () =>
