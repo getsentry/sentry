@@ -28,7 +28,8 @@ from sentry.integrations.github.integration import (
     GitHubInstallationError,
     GitHubIntegration,
     GitHubIntegrationProvider,
-    OAuthLoginView,
+    _get_eligible_multi_org_installations,
+    _get_owner_github_organizations,
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -1658,10 +1659,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_github_installation_gets_owner_orgs(self) -> None:
         self._setup_with_existing_installations()
-        pipeline_view = OAuthLoginView()
-        pipeline_view.client = GithubSetupApiClient(self.access_token)
+        client = GithubSetupApiClient(self.access_token)
 
-        owner_orgs = pipeline_view._get_owner_github_organizations()
+        owner_orgs = _get_owner_github_organizations(client)
 
         assert owner_orgs == ["santry"]
 
@@ -1669,15 +1669,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_github_installation_filters_valid_installations(self) -> None:
         self._setup_with_existing_installations()
-        pipeline_view = OAuthLoginView()
-        pipeline_view.client = GithubSetupApiClient(self.access_token)
+        client = GithubSetupApiClient(self.access_token)
 
-        owner_orgs = pipeline_view._get_owner_github_organizations()
+        owner_orgs = _get_owner_github_organizations(client)
         assert owner_orgs == ["santry"]
 
-        installation_info = pipeline_view._get_eligible_multi_org_installations(
-            owner_orgs=owner_orgs
-        )
+        installation_info = _get_eligible_multi_org_installations(client, owner_orgs)
 
         assert installation_info == [
             {
