@@ -11,6 +11,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 
 export const StyledPanel = styled(Panel)`
   margin-bottom: 0px;
+  overflow: hidden;
 `;
 
 interface StyledPanelHeaderProps extends ComponentProps<typeof PanelHeader> {
