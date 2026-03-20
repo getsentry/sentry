@@ -120,11 +120,7 @@ export function SeerAutomationSettings() {
           <AutoSaveForm
             name="autoOpenPrs"
             schema={schema}
-            initialValue={
-              organization.enableSeerCoding === false
-                ? false
-                : (organization.autoOpenPrs ?? false)
-            }
+            initialValue={organization.autoOpenPrs ?? false}
             mutationOptions={orgMutationOpts}
           >
             {field => (
@@ -153,7 +149,9 @@ export function SeerAutomationSettings() {
                 }
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={
+                    organization.enableSeerCoding === false ? false : field.state.value
+                  }
                   onChange={field.handleChange}
                   disabled={
                     organization.enableSeerCoding === false
