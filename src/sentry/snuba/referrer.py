@@ -621,29 +621,8 @@ class Referrer(StrEnum):
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
     DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN = (
-        "dynamic-sampling.distribution.fetch-project-breakdown"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_SDK_VERSIONS_INFO = (
-        "dynamic-sampling.distribution.fetch-project-sdk-versions-info"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS = (
-        "dynamic-sampling.distribution.fetch-project-stats"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT = (
-        "dynamic-sampling.distribution.fetch-transactions-count"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS = (
-        "dynamic-sampling.distribution.fetch-transactions"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS = (
-        "dynamic-sampling.distribution.get-most-recent-day-with-transactions"
-    )
     DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
         "dynamic_sampling.counters.get_org_transaction_volumes"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_ORGS_WITH_COUNT_PER_ROOT = (
-        "dynamic_sampling.distribution.fetch_orgs_with_count_per_root_total_volumes"
     )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
         "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
@@ -651,11 +630,9 @@ class Referrer(StrEnum):
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
         "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
     )
-    DYNAMIC_SAMPLING_COUNTERS_GET_ACTIVE_ORGS = "dynamic_sampling.counters.get_active_orgs"
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS = (
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
-    DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
     DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
