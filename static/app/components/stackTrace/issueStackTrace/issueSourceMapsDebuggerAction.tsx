@@ -9,7 +9,7 @@ import {
   useSourceMapDebuggerData,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import {VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS} from 'sentry/components/stackTrace/frame/actions/utils';
+import {VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS} from 'sentry/components/stackTrace/frame/actions/utils';
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
@@ -40,7 +40,7 @@ export function IssueSourceMapsDebuggerAction() {
       : undefined;
 
   const frameHasValidFileEndingForSourceMapDebugger =
-    VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS.some(
+    VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS.some(
       ending =>
         (frame.absPath ?? '').endsWith(ending) || (frame.filename ?? '').endsWith(ending)
     );

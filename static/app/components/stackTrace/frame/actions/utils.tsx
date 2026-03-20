@@ -1,4 +1,4 @@
-export const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
+export const VALID_SOURCE_MAP_DEBUGGER_FILE_EXTENSIONS = [
   '.js',
   '.mjs',
   '.cjs',
