@@ -8,9 +8,13 @@ from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -22,6 +26,8 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_resolve_threshold_data_condition,
 )
 from sentry.workflow_engine.models import DetectorGroup, IncidentGroupOpenPeriod
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class IncidentListEndpointTest(APITestCase):
@@ -310,7 +316,7 @@ class WorkflowEngineIncidentListTest(APITestCase):
     def user(self):
         return self.create_user()
 
-    def test_single_written_metric_issue(self) -> None:
+    def test_migrated_metric_issue(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
 
@@ -345,6 +351,71 @@ class WorkflowEngineIncidentListTest(APITestCase):
         assert incident_data["organizationId"] == str(self.organization.id)
         assert incident_data["projects"] == [self.project.slug]
         assert incident_data["id"] is not None
+
+    @with_feature(
+        [
+            "organizations:incidents",
+            "organizations:performance-view",
+            "organizations:workflow-engine-rule-serializers",
+        ]
+    )
+    def test_single_written_metric_issue(self) -> None:
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        detector = self.create_detector(
+            project=self.project,
+            name="Single-written detector",
+            type=MetricIssue.slug,
+            workflow_condition_group=self.create_data_condition_group(),
+        )
+        self.create_data_condition(
+            type=Condition.GREATER,
+            comparison=5,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=detector.workflow_condition_group,
+        )
+
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=None,
+                event_types=[SnubaQueryEventType.EventType.ERROR],
+            )
+            query_subscription = create_snuba_subscription(
+                project=self.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=snuba_query,
+            )
+
+        data_source = self.create_data_source(
+            organization=self.organization,
+            source_id=str(query_subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+        self.create_data_source_detector(data_source, detector)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            group = self.create_group(type=MetricIssue.type_id, project=self.project)
+            group.priority = PriorityLevel.MEDIUM.value
+            group.save()
+            self.create_detector_group(detector=detector, group=group)
+            GroupOpenPeriod.objects.create(project=self.project, group=group)
+
+        resp = self.get_success_response(self.organization.slug)
+        assert len(resp.data) == 1
+
+        incident_data = resp.data[0]
+        assert incident_data["status"] == IncidentStatus.WARNING.value
+        assert incident_data["organizationId"] == str(self.organization.id)
+        assert incident_data["projects"] == [self.project.slug]
+        assert incident_data["alertRule"] is not None
+        assert incident_data["alertRule"]["id"] == str(get_fake_id_from_object_id(detector.id))
 
     @with_feature(
         [
