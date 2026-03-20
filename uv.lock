@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 resolution-markers = [
     "(python_full_version >= '3.14' and sys_platform == 'darwin') or (python_full_version >= '3.14' and sys_platform == 'linux')",
@@ -2362,7 +2362,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=12.14.1" },
-    { name = "taskbroker-client", specifier = ">=0.1.6" },
+    { name = "taskbroker-client", specifier = ">=0.1.7" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2735,7 +2735,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.1.6"
+version = "0.1.7"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2752,7 +2752,7 @@ dependencies = [
     { name = "zstandard", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.1.6-py3-none-any.whl", hash = "sha256:9e828b0ec816faa2a05464c9f2e4fd32652d62809d8d553617b37de6d96a5ecd" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.1.7-py3-none-any.whl", hash = "sha256:3f15c3f4f63546331626e006934c92faefd59c3516d8d58676b3bbcbce8d4828" },
 ]
 
 [[package]]
