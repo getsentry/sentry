@@ -39,9 +39,9 @@ export default function SeerAutomation() {
 
       <NoProjectMessage organization={organization}>
         <Stack gap="lg">
+          <SeerConnectGitHubBanner />
           {hasLegacySeer || hasCodeReviewBeta ? <NoActiveSeerSubscriptionBanner /> : null}
           <SettingsPageTabs />
-          <SeerConnectGitHubBanner />
           <SeerAutomationProjectList />
           <br />
           <SeerAutomationDefault />
