@@ -759,6 +759,7 @@ function ReorderableListItem<T extends {id: string | number}>(
         ref={setNodeRef}
         data-is-dragging={isDragging ? true : undefined}
         style={{
+          listStyleType: 'none',
           transform: CSS.Transform.toString(transform),
           transition: transition ?? undefined,
           zIndex: isDragging ? 1 : undefined,
