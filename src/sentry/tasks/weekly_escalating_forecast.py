@@ -2,6 +2,8 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import TypedDict
 
+from taskbroker_client.retry import Retry
+
 from sentry.constants import ObjectStatus
 from sentry.issues.escalating.forecasts import generate_and_save_forecasts
 from sentry.models.group import Group, GroupStatus
@@ -9,7 +11,6 @@ from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper

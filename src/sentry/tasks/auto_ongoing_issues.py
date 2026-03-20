@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 from django.db.models import Max, OuterRef, Subquery
+from taskbroker_client.retry import Retry
 
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS, bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
@@ -10,7 +11,6 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked

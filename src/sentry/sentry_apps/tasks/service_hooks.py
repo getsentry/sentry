@@ -1,5 +1,7 @@
 from time import time
 
+from taskbroker_client.retry import Retry
+
 from sentry import features, nodestore
 from sentry.api.serializers import serialize
 from sentry.http import safe_urlopen
@@ -9,7 +11,6 @@ from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import sentryapp_tasks
-from sentry.taskworker.retry import Retry
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 from sentry.utils.cache import cache
