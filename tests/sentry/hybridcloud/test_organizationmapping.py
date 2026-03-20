@@ -70,7 +70,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 name=self.organization.name,
                 slug=self.organization.slug,
                 status=self.organization.status,
-                region_name="us",
+                cell_name="us",
             ),
         )
 
@@ -103,7 +103,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 name=self.organization.name,
                 slug=self.organization.slug,
                 status=self.organization.status,
-                region_name="us",
+                cell_name="us",
                 customer_id=CustomerId(value="128"),
             ),
         )
@@ -116,7 +116,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 name=self.organization.name,
                 slug=self.organization.slug,
                 status=self.organization.status,
-                region_name="us",
+                cell_name="us",
                 customer_id=CustomerId(value=None),
             ),
         )
@@ -128,7 +128,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         fake_org_id = 7654321
         organization_mapping_service.upsert(
             organization_id=fake_org_id,
-            update=RpcOrganizationMappingUpdate(slug=self.organization.slug, region_name="us"),
+            update=RpcOrganizationMappingUpdate(slug=self.organization.slug, cell_name="us"),
         )
 
         assert_matching_organization_mapping(org=self.organization)
@@ -140,7 +140,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
             update=RpcOrganizationMappingUpdate(
-                slug=self.organization.slug, name="saaaaantry", region_name="eu"
+                slug=self.organization.slug, name="saaaaantry", cell_name="eu"
             ),
         )
 
@@ -152,7 +152,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
 
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
-            update=RpcOrganizationMappingUpdate(slug="foobar", name="saaaaantry", region_name="us"),
+            update=RpcOrganizationMappingUpdate(slug="foobar", name="saaaaantry", cell_name="us"),
         )
 
         # Assert that org mapping is rejected
