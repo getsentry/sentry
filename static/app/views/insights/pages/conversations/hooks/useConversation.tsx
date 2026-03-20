@@ -29,7 +29,7 @@ interface ConversationApiSpan {
   'precise.start_ts': number;
   project: string;
   'project.id': number;
-  'span.description': string;
+  'span.name': string;
   'span.op': string;
   'span.status': string;
   span_id: string;
@@ -46,7 +46,7 @@ interface ConversationApiSpan {
   'gen_ai.response.text'?: string;
   'gen_ai.tool.name'?: string;
   'gen_ai.usage.total_tokens'?: number;
-  'span.name'?: string;
+  'span.description'?: string;
   'user.email'?: string;
   'user.id'?: string;
   'user.ip'?: string;
@@ -87,7 +87,7 @@ function createNodeFromApiSpan(
     event_type: 'span',
     is_transaction: false,
     op: apiSpan['span.op'],
-    description: apiSpan['span.description'] || apiSpan['span.name'],
+    description: apiSpan['span.name'],
     start_timestamp: apiSpan['precise.start_ts'],
     end_timestamp: apiSpan['precise.finish_ts'],
     project_id: apiSpan['project.id'],
@@ -98,7 +98,7 @@ function createNodeFromApiSpan(
     sdk_name: '',
     transaction: '',
     transaction_id: '',
-    name: apiSpan['span.description'] || apiSpan['span.name'] || '',
+    name: apiSpan['span.name'] || '',
     errors: [],
     occurrences: [],
     additional_attributes: {
@@ -229,7 +229,7 @@ export function useConversation(
       return node;
     });
 
-    transformedNodes.sort((a, b) => (a.endTimestamp ?? 0) - (b.endTimestamp ?? 0));
+    transformedNodes.sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
 
     return {nodes: transformedNodes, nodeTraceMap: traceMap};
   }, [conversationQuery.data]);
