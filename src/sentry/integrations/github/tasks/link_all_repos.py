@@ -1,6 +1,8 @@
 import logging
 from typing import Any
 
+from taskbroker_client.retry import Retry
+
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.metrics import (
@@ -17,7 +19,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
-from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 

@@ -4,6 +4,7 @@ import logging
 from datetime import UTC, datetime, timedelta, timezone
 
 import sentry_sdk
+from taskbroker_client.retry import Retry
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
@@ -33,7 +34,6 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.query import RangeQuerySetWrapper
