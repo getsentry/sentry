@@ -261,7 +261,7 @@ function AttributesHighlights({
   ];
 
   return (
-    <ScrollCarousel gap="xl" aria-label={t('Attributes Highlights')}>
+    <StyledScrollCarousel gap="xl" aria-label={t('Attributes Highlights')}>
       {highlights.map(highlight => {
         const summary = highlight.getSummary();
 
@@ -276,9 +276,15 @@ function AttributesHighlights({
           </Flex>
         );
       })}
-    </ScrollCarousel>
+    </StyledScrollCarousel>
   );
 }
+
+const StyledScrollCarousel = styled(ScrollCarousel)`
+  flex-wrap: wrap;
+  overflow: visible;
+  white-space: normal;
+`;
 
 const HighlightsDescription = styled('div')`
   display: flex;
