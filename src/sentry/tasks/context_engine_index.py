@@ -34,7 +34,6 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
