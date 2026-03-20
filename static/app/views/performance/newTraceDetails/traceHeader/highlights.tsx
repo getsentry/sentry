@@ -261,30 +261,32 @@ function AttributesHighlights({
   ];
 
   return (
-    <StyledScrollCarousel gap="xl" aria-label={t('Attributes Highlights')}>
-      {highlights.map(highlight => {
-        const summary = highlight.getSummary();
+    <Flex wrap="wrap" overflow="visible" whiteSpace="normal">
+      {({className}) => (
+        <ScrollCarousel
+          gap="xl"
+          aria-label={t('Attributes Highlights')}
+          className={className}
+        >
+          {highlights.map(highlight => {
+            const summary = highlight.getSummary();
 
-        if (!summary) {
-          return null;
-        }
+            if (!summary) {
+              return null;
+            }
 
-        return (
-          <Flex align="center" gap="md" key={highlight.key}>
-            <HighlightsIconWrapper>{summary.icon}</HighlightsIconWrapper>
-            <HighlightsDescription>{summary.description}</HighlightsDescription>
-          </Flex>
-        );
-      })}
-    </StyledScrollCarousel>
+            return (
+              <Flex align="center" gap="md" key={highlight.key}>
+                <HighlightsIconWrapper>{summary.icon}</HighlightsIconWrapper>
+                <HighlightsDescription>{summary.description}</HighlightsDescription>
+              </Flex>
+            );
+          })}
+        </ScrollCarousel>
+      )}
+    </Flex>
   );
 }
-
-const StyledScrollCarousel = styled(ScrollCarousel)`
-  flex-wrap: wrap;
-  overflow: visible;
-  white-space: normal;
-`;
 
 const HighlightsDescription = styled('div')`
   display: flex;
