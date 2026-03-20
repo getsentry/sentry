@@ -79,7 +79,10 @@ class WorkflowEngineIncidentSerializer(Serializer):
             detector_ids_to_alert_rule_ids[detector_id] = alert_rule_id
 
         for open_period in item_list:
-            detector_id = open_periods_to_detectors[open_period].id
+            detector = open_periods_to_detectors.get(open_period)
+            if detector is None:
+                continue
+            detector_id = detector.id
             if detector_id in detector_ids_to_alert_rule_ids:
                 alert_rule_id = detector_ids_to_alert_rule_ids[detector_id]
             else:
@@ -126,8 +129,10 @@ class WorkflowEngineIncidentSerializer(Serializer):
 
         open_periods_to_detectors = {}
         for group in group_to_open_periods:
-            for op in group_to_open_periods[group]:
-                open_periods_to_detectors[op] = groups_to_detectors[group]
+            detector = groups_to_detectors.get(group)
+            if detector is not None:
+                for op in group_to_open_periods[group]:
+                    open_periods_to_detectors[op] = detector
 
         return open_periods_to_detectors
 
@@ -186,7 +191,9 @@ class WorkflowEngineDetailedIncidentSerializer(WorkflowEngineIncidentSerializer)
         )
 
     def _build_discover_query(self, open_period: GroupOpenPeriod) -> str:
-        detector = self.get_open_periods_to_detectors([open_period])[open_period]
+        detector = self.get_open_periods_to_detectors([open_period]).get(open_period)
+        if detector is None:
+            return ""
         try:
             data_source_detector = DataSourceDetector.objects.get(detector=detector)
         except DataSourceDetector.DoesNotExist:
