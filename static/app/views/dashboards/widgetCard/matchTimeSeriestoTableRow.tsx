@@ -37,6 +37,7 @@ export function matchTimeSeriesToTableRow({
     return (row?.[yAxis] as number) ?? null;
   }
 
+  // Finding a row that has the same group-by values as the time series
   const matchedRow = tableDataRows.find(row =>
     groupBy.every(group => toPythonString(row[group.key]) === toPythonString(group.value))
   );
