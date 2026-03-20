@@ -35,6 +35,7 @@ describe('SeerAutomation', () => {
 
   it('can update the org default autofix automation tuning setting', async () => {
     const organization = OrganizationFixture({
+      features: ['seat-based-seer-enabled'],
       defaultAutofixAutomationTuning: 'off',
     });
 
@@ -78,6 +79,7 @@ describe('SeerAutomation', () => {
 
   it('can update default code review setting', async () => {
     const organization = OrganizationFixture({
+      features: ['seat-based-seer-enabled'],
       autoEnableCodeReview: false,
     });
 
