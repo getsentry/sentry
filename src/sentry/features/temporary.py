@@ -300,8 +300,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-context-engine-fe-override-ui-flag", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable code editing tools in Seer Explorer chat
     manager.add("organizations:seer-explorer-chat-coding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Send code mappings to Seer for autofix to avoid expensive git tree fetches
-    manager.add("organizations:autofix-send-code-mappings", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Autofix to use Seer Explorer instead of legacy Celery pipeline
     manager.add("organizations:autofix-on-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Autofix to use Seer Explorer V2 designs
@@ -453,8 +451,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics multi-metric selection in dashboards
     manager.add("organizations:tracemetrics-multi-metric-selection-in-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable trace metrics in overlaying charts
-    manager.add("organizations:tracemetrics-overlay-charts-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics units in trace view UI
     manager.add("organizations:tracemetrics-units-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics UI refresh
@@ -467,7 +463,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:traces-overlay-charts-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable feature flag to cache detectors by data source
     manager.add("organizations:cache-detectors-by-data-source", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-
     # Enable single trace summary
     manager.add("organizations:single-trace-summary", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable seeing upsell modal when clicking upgrade for multi-org

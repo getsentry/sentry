@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
+from taskbroker_client.retry import Retry
 
 from sentry import eventstream, nodestore
 from sentry.models.project import Project
@@ -14,7 +15,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.query import TaskBulkQueryState, task_run_batch_query

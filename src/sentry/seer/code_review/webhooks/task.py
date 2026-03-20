@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 import sentry_sdk
+from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 from urllib3.exceptions import HTTPError
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -20,8 +22,6 @@ from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
-from sentry.taskworker.retry import Retry
-from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered

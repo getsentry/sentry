@@ -62,6 +62,11 @@ interface NextStepProps {
 function RootCauseNextStep({autofix, runId, section}: NextStepProps) {
   const {isPolling, startStep} = autofix;
 
+  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents(
+    autofix,
+    runId
+  );
+
   const handleYesClick = useCallback(() => {
     startStep('solution', runId);
   }, [startStep, runId]);
@@ -91,33 +96,18 @@ function RootCauseNextStep({autofix, runId, section}: NextStepProps) {
       rethinkPrompt={t('How can this root cause be improved?')}
       labelNevermind={t('Nevermind, make an implementation plan')}
       labelRethink={t('Rethink root cause')}
+      codingAgentIntegrations={codingAgentIntegrations}
+      onCodingAgentHandoff={handleCodingAgentHandoff}
     />
   );
 }
 
 function SolutionNextStep({autofix, runId, section}: NextStepProps) {
-  const organization = useOrganization();
-  const {isPolling, startStep, triggerCodingAgentHandoff} = autofix;
+  const {isPolling, startStep} = autofix;
 
-  const {data: codingAgentResponse} = useQuery(
-    organizationIntegrationsCodingAgents(organization)
-  );
-  const codingAgentIntegrations = useMemo(
-    () => codingAgentResponse?.integrations,
-    [codingAgentResponse?.integrations]
-  );
-
-  const handleCodingAgentHandoff = useCallback(
-    (integration: CodingAgentIntegration) => {
-      // OAuth redirect for integrations without identity
-      if (integration.requires_identity && !integration.has_identity) {
-        const currentUrl = window.location.href;
-        window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
-        return;
-      }
-      triggerCodingAgentHandoff(runId, integration);
-    },
-    [triggerCodingAgentHandoff, runId]
+  const {codingAgentIntegrations, handleCodingAgentHandoff} = useCodingAgents(
+    autofix,
+    runId
   );
 
   const handleYesClick = useCallback(() => {
@@ -302,4 +292,32 @@ function NextStepTemplate({
       </Flex>
     </Flex>
   );
+}
+
+function useCodingAgents(autofix: ReturnType<typeof useExplorerAutofix>, runId: number) {
+  const organization = useOrganization();
+  const {triggerCodingAgentHandoff} = autofix;
+
+  const {data: codingAgentResponse} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
+  const codingAgentIntegrations = useMemo(
+    () => codingAgentResponse?.integrations,
+    [codingAgentResponse?.integrations]
+  );
+
+  const handleCodingAgentHandoff = useCallback(
+    (integration: CodingAgentIntegration) => {
+      // OAuth redirect for integrations without identity
+      if (integration.requires_identity && !integration.has_identity) {
+        const currentUrl = window.location.href;
+        window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+        return;
+      }
+      triggerCodingAgentHandoff(runId, integration);
+    },
+    [triggerCodingAgentHandoff, runId]
+  );
+
+  return {codingAgentIntegrations, handleCodingAgentHandoff};
 }

@@ -76,7 +76,7 @@ function GenerateDashboardFromSeerModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Generate Dashboard with Seer')}</h4>
+        <h4>{t('Create Dashboard with Seer')}</h4>
       </Header>
       <Body>
         <p>{t('Describe the dashboard you would like Seer to generate for you.')}</p>
@@ -92,7 +92,7 @@ function GenerateDashboardFromSeerModal({
         />
       </Body>
       <Footer>
-        <Flex justify="end">
+        <Flex justify="end" gap="sm">
           <Button onClick={closeModal} disabled={isGenerating}>
             {t('Cancel')}
           </Button>
