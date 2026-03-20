@@ -150,7 +150,7 @@ export function PerformanceScoreRingWithTooltips({
   inPerformanceWidget = false,
   size = 140,
   x = 40,
-  y = 30,
+  y = 25,
   labelHeightPadding = 14,
   radiusPadding = 4,
 }: Props) {

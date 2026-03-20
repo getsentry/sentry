@@ -37,6 +37,7 @@ export function WheelWidgetVisualization({tableResults}: WheelWidgetVisualizatio
         text={score}
         width={220}
         height={200}
+        y={30}
         ringBackgroundColors={ringBackgroundColors}
         ringSegmentColors={ringSegmentColors}
       />
