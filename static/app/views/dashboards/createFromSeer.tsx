@@ -274,6 +274,7 @@ export default function CreateFromSeer() {
       }
       setisUpdating(true);
       completedAtRef.current = null;
+      hasValidatedRef.current = false;
       try {
         const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
         const {url} = parseQueryKey(queryKey);
