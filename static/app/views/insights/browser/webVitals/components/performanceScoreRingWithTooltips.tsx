@@ -150,10 +150,11 @@ export function PerformanceScoreRingWithTooltips({
   inPerformanceWidget = false,
   size = 140,
   x = 40,
-  y = 25,
+  y: yProp,
   labelHeightPadding = 14,
   radiusPadding = 4,
 }: Props) {
+  const y = yProp ?? (autoSize ? (height - size) / 2 : 25);
   const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
