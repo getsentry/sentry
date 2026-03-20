@@ -59,6 +59,7 @@ interface VisualizationWidgetProps {
   selection: PageFilters;
   widget: Widget;
   dashboardFilters?: DashboardFilters;
+  isFullScreen?: boolean;
   legendSelection?: LegendSelection;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
@@ -94,6 +95,7 @@ export function VisualizationWidget({
   onZoom,
   legendSelection,
   onLegendSelectionChange,
+  isFullScreen,
 }: VisualizationWidgetProps) {
   const {releases: releasesWithDate} = useReleaseStats(selection, {
     enabled: showReleaseAs !== 'none',
@@ -148,6 +150,7 @@ export function VisualizationWidget({
             onZoom={onZoom}
             legendSelection={legendSelection}
             onLegendSelectionChange={onLegendSelectionChange}
+            isFullScreen={isFullScreen}
           />
         );
       }}
@@ -165,6 +168,7 @@ interface VisualizationWidgetContentProps {
   dashboardFilters?: DashboardFilters;
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
+  isFullScreen?: boolean;
   isSampled?: boolean | null;
   legendSelection?: LegendSelection;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
@@ -197,6 +201,7 @@ function VisualizationWidgetContent({
   onZoom,
   legendSelection,
   onLegendSelectionChange,
+  isFullScreen,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -257,6 +262,7 @@ function VisualizationWidgetContent({
       : [];
 
   const showBreakdownData =
+    !isFullScreen &&
     widget.legendType === 'breakdown' &&
     usesTimeSeriesData(widget.displayType) &&
     tableResults &&

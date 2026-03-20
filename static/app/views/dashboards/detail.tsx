@@ -853,9 +853,7 @@ class DashboardDetail extends Component<Props, State> {
                   browserHistory.replace(
                     normalizeUrl({
                       pathname: `/organizations/${organization.slug}/dashboard/${newDashboard.id}/`,
-                      query: {
-                        query: omit(location.query, Object.values(DashboardFilterKeys)),
-                      },
+                      query: omit(location.query, Object.values(DashboardFilterKeys)),
                     })
                   );
                 }

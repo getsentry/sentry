@@ -185,6 +185,7 @@ const StyledCompactSelect = styled(CompactSelect)`
 `;
 
 const ButtonLabelWrapper = styled('span')`
+  gap: ${p => p.theme.space.xs};
   width: 100%;
   text-align: left;
   align-items: center;

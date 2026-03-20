@@ -1072,6 +1072,9 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  /* We need to cap the height at sm size as some items like the reorderable link with icons
+   * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
+  height: ${p => p.theme.form.sm.height};
   padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;
@@ -1192,6 +1195,9 @@ const PageFrameSidebarNavigationLink = styled(Link)`
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  /* We need to cap the height at sm size as some items like the reorderable link with icons
+   * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
+  height: ${p => p.theme.form.sm.height};
   padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;
