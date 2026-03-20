@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 
+from taskbroker_client.retry import Retry
+
 from sentry.locks import locks
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
-from sentry.taskworker.retry import Retry
 from sentry.uptime.consumers.results_consumer import (
     create_backfill_misses,
     get_host_provider_if_valid,

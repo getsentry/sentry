@@ -10,6 +10,7 @@ import {CompactSelect, TriggerLabel} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openLinkToDashboardModal} from 'sentry/actionCreators/modal';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
@@ -61,14 +62,23 @@ import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {SESSIONS_TAGS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {LINK_FIELD_TOOLTIP} from 'sentry/views/dashboards/widgetBuilder/settings';
 import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
 import {validateColumnTypes} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export const NONE = 'none';
+
+/**
+ * Fields that should not show the linked dashboard button.
+ */
+const FIELDS_DISABLED_FOR_LINKING: readonly string[] = [
+  SpanFields.IS_STARRED_TRANSACTION,
+];
 
 const NONE_AGGREGATE = {
   textValue: t('field'),
@@ -962,49 +972,56 @@ export function Visualize({error, setError}: VisualizeProps) {
                           )}
                           {hasDrillDownFlows &&
                             isTableWidget &&
-                            fields[index]?.kind === FieldValueKind.FIELD && (
-                              <Button
-                                priority="transparent"
-                                icon={<IconLink />}
-                                aria-label={t('Link field')}
-                                size="zero"
-                                onClick={() => {
-                                  openLinkToDashboardModal({
-                                    onLink: dashboardId => {
-                                      if (
-                                        fields[index]?.kind === FieldValueKind.FIELD &&
-                                        fields[index]?.field
-                                      ) {
-                                        const fieldName = fields[index].field;
-                                        const newLinkedDashboards: LinkedDashboard[] = [
-                                          ...linkedDashboards.filter(
-                                            ld => ld.field !== fieldName
-                                          ),
-                                          {dashboardId, field: fieldName},
-                                        ];
-                                        dispatch({
-                                          type: BuilderStateAction.SET_LINKED_DASHBOARDS,
-                                          payload: newLinkedDashboards,
-                                        });
-                                      }
-                                    },
-                                    currentLinkedDashboard: linkedDashboards.find(
-                                      linkedDashboard => {
+                            fields[index]?.kind === FieldValueKind.FIELD &&
+                            !FIELDS_DISABLED_FOR_LINKING.includes(
+                              fields[index]?.field ?? ''
+                            ) && (
+                              <Tooltip title={LINK_FIELD_TOOLTIP}>
+                                <Button
+                                  priority="transparent"
+                                  icon={<IconLink />}
+                                  aria-label={t('Link field')}
+                                  size="zero"
+                                  onClick={() => {
+                                    openLinkToDashboardModal({
+                                      onLink: dashboardId => {
                                         if (
                                           fields[index]?.kind === FieldValueKind.FIELD &&
                                           fields[index]?.field
                                         ) {
-                                          return (
-                                            linkedDashboard.field === fields[index].field
-                                          );
+                                          const fieldName = fields[index].field;
+                                          const newLinkedDashboards: LinkedDashboard[] = [
+                                            ...linkedDashboards.filter(
+                                              ld => ld.field !== fieldName
+                                            ),
+                                            {dashboardId, field: fieldName},
+                                          ];
+                                          dispatch({
+                                            type: BuilderStateAction.SET_LINKED_DASHBOARDS,
+                                            payload: newLinkedDashboards,
+                                          });
                                         }
-                                        return false;
-                                      }
-                                    ),
-                                    source,
-                                  });
-                                }}
-                              />
+                                      },
+                                      currentLinkedDashboard: linkedDashboards.find(
+                                        linkedDashboard => {
+                                          if (
+                                            fields[index]?.kind ===
+                                              FieldValueKind.FIELD &&
+                                            fields[index]?.field
+                                          ) {
+                                            return (
+                                              linkedDashboard.field ===
+                                              fields[index].field
+                                            );
+                                          }
+                                          return false;
+                                        }
+                                      ),
+                                      source,
+                                    });
+                                  }}
+                                />
+                              </Tooltip>
                             )}
                           {(!isBigNumberWidget || datasetConfig.enableEquations) && (
                             <Button

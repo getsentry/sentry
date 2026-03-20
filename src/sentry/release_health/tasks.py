@@ -9,6 +9,7 @@ from django.db import IntegrityError
 from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
+from taskbroker_client.retry import Retry
 
 from sentry import options
 from sentry.models.environment import Environment
@@ -20,7 +21,6 @@ from sentry.release_health import release_monitor
 from sentry.release_health.release_monitor.base import Totals
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import release_health_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 CHUNK_SIZE = 1000

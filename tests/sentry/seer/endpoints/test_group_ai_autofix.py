@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 from sentry.seer.autofix.autofix import TIMEOUT_SECONDS
 from sentry.seer.autofix.autofix_agent import AutofixStep
-from sentry.seer.autofix.constants import AutofixStatus
+from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, CodebaseState
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -913,6 +913,7 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
         mock_trigger_explorer.assert_called_once_with(
             group=group,
             step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
             stopping_point=AutofixStoppingPoint.CODE_CHANGES,
             run_id=None,
             intelligence_level="low",

@@ -916,7 +916,7 @@ export function useWidgetBuilderState(): {
           break;
         }
         case BuilderStateAction.SET_LINKED_DASHBOARDS:
-          if (displayType === DisplayType.TABLE) {
+          if (displayType === DisplayType.TABLE || legendType === 'breakdown') {
             setLinkedDashboards(action.payload, options);
           } else {
             setLinkedDashboards([], options);
@@ -930,6 +930,9 @@ export function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_LEGEND_TYPE:
           setLegendType(action.payload, options);
+          if (action.payload !== 'breakdown' && displayType !== DisplayType.TABLE) {
+            setLinkedDashboards([], options);
+          }
           break;
         case BuilderStateAction.SET_SELECTED_AGGREGATE:
           setSelectedAggregate(action.payload, options);

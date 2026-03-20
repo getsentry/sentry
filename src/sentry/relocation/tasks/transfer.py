@@ -3,6 +3,7 @@ import logging
 from django.db.models import Subquery
 from django.utils import timezone
 from sentry_sdk import capture_exception
+from taskbroker_client.task import Task
 
 from sentry.models.files.utils import get_relocation_storage
 from sentry.relocation.models.relocationtransfer import (
@@ -20,7 +21,6 @@ from sentry.relocation.services.relocation_export.service import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import relocation_control_tasks, relocation_tasks
-from sentry.taskworker.task import Task
 from sentry.types.cell import get_local_cell
 
 logger = logging.getLogger("sentry.relocation")

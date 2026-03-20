@@ -24,6 +24,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.utils.metrics import IntegrationProxyEvent, IntegrationProxyEventType
 from sentry.metrics.base import Tags
 from sentry.shared_integrations.exceptions import (
+    ApiForbiddenError,
     ApiHostError,
     ApiRateLimitedError,
     ApiTimeoutError,
@@ -66,6 +67,7 @@ class IntegrationProxyFailureMetricType(StrEnum):
     HOST_TIMEOUT_ERROR = "host_timeout_error"
     UNAUTHORIZED_ERROR = "unauthorized_error"
     RATE_LIMITED_ERROR = "rate_limited_error"
+    FORBIDDEN_ERROR = "forbidden_error"
     UNKNOWN_ERROR = "unknown_error"
     FAILED_VALIDATION = "failed_validation"
 
@@ -79,7 +81,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     log_extra: dict[str, str | int]
     enforce_rate_limit = False
     """
-    This endpoint is used to proxy requests from region silos to the third-party
+    This endpoint is used to proxy requests from cell silos to the third-party
     integration on behalf of credentials stored in the control silo.
     """
 
@@ -341,6 +343,10 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         elif isinstance(exc, ApiRateLimitedError):
             logger.info("hybrid_cloud.integration_proxy.rate_limited_error", extra=self.log_extra)
             self._add_failure_metric(IntegrationProxyFailureMetricType.RATE_LIMITED_ERROR)
+            return self.respond(status=exc.code)
+        elif isinstance(exc, ApiForbiddenError):
+            logger.info("hybrid_cloud.integration_proxy.forbidden_error", extra=self.log_extra)
+            self._add_failure_metric(IntegrationProxyFailureMetricType.FORBIDDEN_ERROR)
             return self.respond(status=exc.code)
 
         logger.warning(
