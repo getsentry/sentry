@@ -452,7 +452,7 @@ for (const entry of allPaths) {
 }
 
 // ─── Build effective params (user-supplied + defaults) ───────────────────────
-const effectiveParams: Record<string, string> = useDefaults
+const effectiveParams = useDefaults
   ? {...PARAM_DEFAULTS, ...userParams}
   : {...userParams};
 
