@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useDrawer} from 'sentry/components/globalDrawer';
-import {IconFocus, IconGroup} from 'sentry/icons';
+import {IconFocus} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
@@ -21,15 +21,17 @@ export function IssueSuperGroup({supergroup}: Props) {
   const {openDrawer} = useDrawer();
 
   const tooltipTitle = (
-    <Stack gap="sm">
-      <Text size="sm" bold>
-        {supergroup.title}
-      </Text>
-
-      <Stack gap="xs">
+    <Stack gap="md" align="flex-start">
+      <Stack gap="xs" align="flex-start">
+        <Text size="sm" bold align="left">
+          {supergroup.title}
+        </Text>
         <Text size="xs" variant="muted">
           {tn('%s issue', '%s issues', supergroup.group_ids.length)}
         </Text>
+      </Stack>
+
+      <Stack gap="xs" align="flex-start">
         {supergroup.error_type ? (
           <Flex align="baseline" gap="xs">
             <Text size="xs" variant="muted" bold>
@@ -53,21 +55,26 @@ export function IssueSuperGroup({supergroup}: Props) {
       </Stack>
 
       {supergroup.summary ? (
-        <Stack gap="xs">
-          <Flex align="center" gap="xs">
-            <IconFocus size="xs" />
-            <Text size="xs" bold>
-              {t('Root Cause')}
+        <Container background="secondary" border="primary" radius="md" width="100%">
+          <Flex direction="column" padding="sm md" gap="xs">
+            <Flex align="center" gap="xs">
+              <IconFocus size="xs" variant="promotion" />
+              <Text size="xs" bold>
+                {t('Root Cause')}
+              </Text>
+            </Flex>
+            <Text size="xs" align="left">
+              {supergroup.summary}
             </Text>
           </Flex>
-          <Text size="xs">{supergroup.summary}</Text>
-        </Stack>
+        </Container>
       ) : null}
     </Stack>
   );
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
       ariaLabel: t('Supergroup details'),
       drawerKey: 'supergroup-drawer',
@@ -75,9 +82,9 @@ export function IssueSuperGroup({supergroup}: Props) {
   };
 
   return (
-    <Tooltip title={tooltipTitle} skipWrapper>
+    <Tooltip title={tooltipTitle} skipWrapper maxWidth={400}>
       <SuperGroupButton onClick={handleClick} aria-label={t('supergroup')}>
-        <IconGroup size="xs" />
+        <IconFocus size="xs" />
         {`SG-${supergroup.id}`}
       </SuperGroupButton>
     </Tooltip>
