@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 def process_integration_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (
         integration := maybe_process_tombstone(
-            Integration, object_identifier, region_name=region_name
+            Integration, object_identifier, cell_name=region_name
         )
     ) is None:
         return
@@ -52,7 +52,7 @@ def process_identity_updates(object_identifier: int, region_name: str, **kwds: A
 def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (
         sentry_app := maybe_process_tombstone(
-            model=SentryApp, object_identifier=object_identifier, region_name=region_name
+            model=SentryApp, object_identifier=object_identifier, cell_name=region_name
         )
     ) is None:
         return
@@ -103,7 +103,7 @@ def process_sentry_app_installation_deletes(
 def process_api_application_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (
         api_application := maybe_process_tombstone(
-            ApiApplication, object_identifier, region_name=region_name
+            ApiApplication, object_identifier, cell_name=region_name
         )
     ) is None:
         return

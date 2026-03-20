@@ -130,7 +130,7 @@ def process_my_category(
 def maybe_process_tombstone(
     model: type[T],
     object_identifier: int,
-    region_name: str | None = None,
+    cell_name: str | None = None,
 ) -> T | None:
 ```
 
