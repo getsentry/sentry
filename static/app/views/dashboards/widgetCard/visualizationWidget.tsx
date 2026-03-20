@@ -40,7 +40,7 @@ import type {
   TimeSeries,
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
-import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
+import {formatBreakdownLegendValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatBreakdownLegendValue';
 import {createPlottableFromTimeSeries} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
@@ -373,14 +373,15 @@ function VisualizationWidgetContent({
               {labelContent}
             </Tooltip>
             <TextAlignRight>
-              {value === null ? (
-                '—'
-              ) : value > 0 && value < NUMBER_MIN_VALUE ? (
+              {dataType === 'number' &&
+              value !== null &&
+              value > 0 &&
+              value < NUMBER_MIN_VALUE ? (
                 <Tooltip title={value.toLocaleString()}>
-                  <span>{formatTooltipValue(value, dataType, dataUnit)}</span>
+                  <span>{formatBreakdownLegendValue(value, dataType, dataUnit)}</span>
                 </Tooltip>
               ) : (
-                formatTooltipValue(value, dataType, dataUnit)
+                formatBreakdownLegendValue(value, dataType, dataUnit)
               )}
             </TextAlignRight>
           </Fragment>
