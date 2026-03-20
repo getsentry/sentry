@@ -192,7 +192,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         workflow_id, rule_id = get_rule_workflow_ids(target)
 
         if not workflow_id and isinstance(target, Rule):
-            logger.exception("No workflow associated with rule", extra={"rule_id": rule_id})
+            logger.warning("No workflow associated with rule", extra={"rule_id": rule_id})
             return self._fetch_rule_fire_history(target, start, end, per_page, cursor)
 
         return self._fetch_combined_rule_workflow_fire_history(
@@ -263,7 +263,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
 
         workflow_id, rule_id = get_rule_workflow_ids(target)
         if not workflow_id and isinstance(target, Rule):
-            logger.exception("No workflow associated with rule", extra={"rule_id": target.id})
+            logger.warning("No workflow associated with rule", extra={"rule_id": target.id})
             existing_data = self._fetch_rule_fire_history_hourly_stats(target, start, end)
             return convert_hourly_stats(existing_data, start, end)
 
