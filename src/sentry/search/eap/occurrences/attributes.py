@@ -295,7 +295,11 @@ def issue_context_constructor(params: SnubaParams) -> VirtualColumnContext:
     return VirtualColumnContext(
         from_column_name="group_id",
         to_column_name="issue",
-        value_map={str(group.id): group.qualified_short_id for group in groups},
+        value_map={
+            str(group.id): group.qualified_short_id
+            for group in groups
+            if group.qualified_short_id is not None
+        },
     )
 
 
