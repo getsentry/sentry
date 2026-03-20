@@ -49,10 +49,12 @@ class FakeResponse:
         *,
         headers: dict[str, str] | None = None,
         text: str | None = None,
+        url: str = "",
     ) -> None:
         self._payload = payload
         self.headers = headers or {}
         self.text = text if text is not None else ""
+        self.url = url
 
     def json(self) -> Any:
         return self._payload
@@ -407,6 +409,12 @@ PAGINATED_CASES = [
         "next_cursor": "2",
     },
     {
+        "name": "get_pull_requests",
+        "kwargs": {
+            "state": None,
+            "head": "octocat:feature",
+            "pagination": {"cursor": "2", "per_page": 15},
+        },
         "path": "/repos/test-org/test-repo/pulls",
         "params": {"state": "all", "head": "octocat:feature", "per_page": "15", "page": "2"},
         "raw": [PULL_REQUEST_RAW],
@@ -691,6 +699,34 @@ ACTION_CASES = [
         "raw": CHECK_RUN_RAW,
         "expected_data": expected_check_run(CHECK_RUN_RAW),
     },
+    {
+        "name": "get_archive_link",
+        "id": "get_archive_link_tarball",
+        "operation": "get",
+        "kwargs": {"ref": "main"},
+        "path": "/repos/test-org/test-repo/tarball/main",
+        "headers": {"Accept": "application/vnd.github+json"},
+        "url": "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main",
+        "raw": "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main",
+        "expected_data": {
+            "url": "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main",
+            "headers": {},
+        },
+    },
+    {
+        "name": "get_archive_link",
+        "id": "get_archive_link_zip",
+        "operation": "get",
+        "kwargs": {"ref": "main", "archive_format": "zip"},
+        "path": "/repos/test-org/test-repo/zipball/main",
+        "headers": {"Accept": "application/vnd.github+json"},
+        "url": "https://codeload.github.com/test-org/test-repo/legacy.zip/refs/heads/main",
+        "raw": "https://codeload.github.com/test-org/test-repo/legacy.zip/refs/heads/main",
+        "expected_data": {
+            "url": "https://codeload.github.com/test-org/test-repo/legacy.zip/refs/heads/main",
+            "headers": {},
+        },
+    },
 ]
 
 
@@ -799,10 +835,12 @@ def test_paginated_methods(case: dict[str, Any]) -> None:
     ]
 
 
-@pytest.mark.parametrize("case", ACTION_CASES, ids=[case["name"] for case in ACTION_CASES])
+@pytest.mark.parametrize(
+    "case", ACTION_CASES, ids=[case.get("id", case["name"]) for case in ACTION_CASES]
+)
 def test_action_methods(case: dict[str, Any]) -> None:
     provider, client = make_provider()
-    client.queue(case["operation"], FakeResponse(case["raw"]))
+    client.queue(case["operation"], FakeResponse(case["raw"], url=case.get("url", "")))
 
     result = getattr(provider, case["name"])(**case["kwargs"])
 
@@ -956,26 +994,3 @@ def test_public_methods_are_accounted_for() -> None:
     }
 
     assert public_methods == covered_methods
-
-
-class TestGetArchiveLink:
-    def test_returns_archive_url(self):
-        repository = make_repository()
-        client = _make_client()
-        provider = GitHubProvider(client, repository["organization_id"], repository)
-
-        result = provider.get_archive_link("main")
-
-        assert result["data"]["url"] == client.archive_link_data
-        assert result["data"]["headers"] == {"Authorization": "token fake-github-token"}
-        assert result["type"] == "github"
-        assert ("get_archive_link", ("test-org/test-repo", "tarball", "main"), {}) in client.calls
-
-    def test_zip_format_uses_zipball(self):
-        repository = make_repository()
-        client = _make_client()
-        provider = GitHubProvider(client, repository["organization_id"], repository)
-
-        provider.get_archive_link("main", "zip")
-
-        assert ("get_archive_link", ("test-org/test-repo", "zipball", "main"), {}) in client.calls
