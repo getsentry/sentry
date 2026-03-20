@@ -1,14 +1,10 @@
-import styled from '@emotion/styled';
-
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {useDismissable} from 'sentry/components/banner';
-import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoAccess} from 'sentry/components/noAccess';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -31,12 +27,12 @@ import {InsightsProjectSelector} from 'sentry/views/insights/common/components/p
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import OverviewAgentsDurationChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsDurationChartWidget';
 import OverviewAgentsRunsChartWidget from 'sentry/views/insights/common/components/widgets/overviewAgentsRunsChartWidget';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import OverviewLLMCallsChartWidget from 'sentry/views/insights/common/components/widgets/overviewLLMCallsChartWidget';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useTraceViewDrawer} from 'sentry/views/insights/pages/agents/components/drawer';
 import {IssuesWidget} from 'sentry/views/insights/pages/agents/components/issuesWidget';
-import {LLMCallsWidget as LLMGenerationsWidget} from 'sentry/views/insights/pages/agents/components/llmCallsWidget';
+import {LLMCallsWidget as LLMCallsByModelWidget} from 'sentry/views/insights/pages/agents/components/llmCallsWidget';
 import {WidgetGrid} from 'sentry/views/insights/pages/agents/components/styles';
 import {TokenUsageWidget} from 'sentry/views/insights/pages/agents/components/tokenUsageWidget';
 import {ToolCallsWidget as ToolUsageWidget} from 'sentry/views/insights/pages/agents/components/toolCallsWidget';
@@ -46,7 +42,6 @@ import {useAgentSpanSearchProps} from 'sentry/views/insights/pages/agents/hooks/
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {useShowAgentOnboarding} from 'sentry/views/insights/pages/agents/hooks/useShowAgentOnboarding';
 import {Onboarding} from 'sentry/views/insights/pages/agents/onboarding';
-import {getAgentRunsFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
   TableUrlParams,
@@ -106,22 +101,6 @@ function AgentsContent({datePageFilterProps}: AgentsOverviewPageProps) {
   useOverviewPageTrackPageload();
   useAgentMonitoringTrackPageView();
 
-  // Fire a request to check if there are any agent runs
-  // If there are, we show the count/duration of agent runs
-  // If there are not, we show the count/duration of all AI spans
-  const agentRunsRequest = useSpans(
-    {
-      search: getAgentRunsFilter(),
-      fields: ['id'],
-      limit: 1,
-    },
-    Referrer.AGENT_RUNS_WIDGET
-  );
-
-  const hasAgentRuns = agentRunsRequest.isLoading
-    ? undefined
-    : agentRunsRequest.data?.length > 0;
-
   return (
     <SearchQueryBuilderProvider {...agentSpanSearchProps.provider}>
       <Layout.Body>
@@ -179,26 +158,18 @@ function AgentsContent({datePageFilterProps}: AgentsOverviewPageProps) {
                 <Stack gap="xl">
                   <WidgetGrid rowHeight={210} paddingBottom={0}>
                     <WidgetGrid.Position1>
-                      {hasAgentRuns === undefined ? (
-                        <LoadingPanel />
-                      ) : (
-                        <OverviewAgentsRunsChartWidget hasAgentRuns={hasAgentRuns} />
-                      )}
+                      <OverviewAgentsRunsChartWidget />
                     </WidgetGrid.Position1>
                     <WidgetGrid.Position2>
-                      {hasAgentRuns === undefined ? (
-                        <LoadingPanel />
-                      ) : (
-                        <OverviewAgentsDurationChartWidget hasAgentRuns={hasAgentRuns} />
-                      )}
+                      <OverviewLLMCallsChartWidget />
                     </WidgetGrid.Position2>
                     <WidgetGrid.Position3>
-                      <IssuesWidget />
+                      <OverviewAgentsDurationChartWidget />
                     </WidgetGrid.Position3>
                   </WidgetGrid>
                   <WidgetGrid rowHeight={260} paddingBottom={0}>
                     <WidgetGrid.Position1>
-                      <LLMGenerationsWidget />
+                      <LLMCallsByModelWidget />
                     </WidgetGrid.Position1>
                     <WidgetGrid.Position2>
                       <TokenUsageWidget />
@@ -207,6 +178,7 @@ function AgentsContent({datePageFilterProps}: AgentsOverviewPageProps) {
                       <ToolUsageWidget />
                     </WidgetGrid.Position3>
                   </WidgetGrid>
+                  <IssuesWidget />
                   <TracesTable openTraceViewDrawer={openTraceViewDrawer} />
                 </Stack>
               )}
@@ -230,25 +202,5 @@ function PageWithProviders() {
     </DomainOverviewPageProviders>
   );
 }
-
-function LoadingPanel() {
-  return (
-    <Stack
-      position="relative"
-      justify="center"
-      gap="md"
-      height="100%"
-      border="primary"
-      radius="md"
-    >
-      <LoadingMask visible />
-      <LoadingIndicator size={24} />
-    </Stack>
-  );
-}
-
-const LoadingMask = styled(TransparentLoadingMask)`
-  background: ${p => p.theme.tokens.background.primary};
-`;
 
 export default PageWithProviders;

@@ -1,10 +1,11 @@
 from typing import Any
 
+from taskbroker_client.task import Task
+
 from sentry.db.models import cell_silo_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.tasks.files import delete_file_region
-from sentry.taskworker.task import Task
 
 
 @cell_silo_model
