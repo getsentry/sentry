@@ -3,6 +3,7 @@ import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -33,6 +34,12 @@ interface ResolvedPlatform extends DetectedPlatform {
 function getAvailableFeaturesForPlatform(platformKey: PlatformKey): ProductSolution[] {
   return platformProductAvailability[platformKey] ?? [];
 }
+
+const platformOptions = platforms.map(platform => ({
+  value: platform.id,
+  label: platform.name,
+  leadingItems: () => <PlatformIcon platform={platform.id} size={16} />,
+}));
 
 /**
  * Converts a PlatformKey into an OnboardingSelectedSDK and writes it to
@@ -107,6 +114,14 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
       setSelectedFeatures(updated);
     },
     [currentFeatures, setSelectedFeatures]
+  );
+
+  const handleManualPlatformSelect = useCallback(
+    (option: {value: string}) => {
+      setPlatform(option.value as PlatformKey);
+      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    },
+    [setPlatform, setSelectedFeatures]
   );
 
   const handleSelectDetectedPlatform = useCallback(
@@ -189,6 +204,15 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         ) : (
           <Stack gap="md">
             <Heading as="h3">{t('Select a platform')}</Heading>
+            <CompactSelect
+              search={{
+                placeholder: t('Search SDKs by name...'),
+              }}
+              options={platformOptions}
+              value={currentPlatformKey ?? ''}
+              onChange={handleManualPlatformSelect}
+              virtualizeThreshold={50}
+            />
             {hasScmConnected && (
               <Button
                 size="zero"
