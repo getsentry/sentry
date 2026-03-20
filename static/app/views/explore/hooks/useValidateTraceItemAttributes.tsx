@@ -17,7 +17,7 @@ interface AttributeValidationResult {
   type?: 'boolean' | 'number' | 'string';
 }
 
-export interface ValidateAttributesResponse {
+interface ValidateAttributesResponse {
   attributes: Record<string, AttributeValidationResult>;
 }
 
