@@ -433,6 +433,24 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
         assert "querySort" in response.data
 
     @with_feature({"organizations:issue-views": True})
+    def test_recommended_sort_option_has_custom_error_message(self) -> None:
+        data = {
+            "name": "Recommended Sort View",
+            "query": "is:unresolved",
+            "querySort": "recommended",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_error_response(self.organization.slug, **data)
+        assert "querySort" in response.data
+        assert (
+            response.data["querySort"][0]
+            == 'The "recommended" sort is experimental, it cannot be saved at this time.'
+        )
+
+    @with_feature({"organizations:issue-views": True})
     def test_invalid_time_filters(self) -> None:
         data = {
             "name": "Invalid Time Filters View",

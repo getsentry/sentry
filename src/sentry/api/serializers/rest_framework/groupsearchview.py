@@ -9,6 +9,15 @@ from sentry.models.savedsearch import SORT_LITERALS, SortOptions
 MAX_VIEWS = 50
 
 
+class QuerySortField(serializers.ChoiceField):
+    def to_internal_value(self, data):
+        if data == "recommended":
+            raise ValidationError(
+                detail='The "recommended" sort is experimental, it cannot be saved at this time.'
+            )
+        return super().to_internal_value(data)
+
+
 class GroupSearchViewValidatorResponse(TypedDict):
     id: NotRequired[str]
     name: str
@@ -27,20 +36,13 @@ class ViewValidator(serializers.Serializer):
     id = serializers.CharField(required=False)
     name = serializers.CharField(required=True)
     query = serializers.CharField(required=True, allow_blank=True)
-    querySort = serializers.ChoiceField(
+    querySort = QuerySortField(
         required=False, choices=SortOptions.as_choices(), default=SortOptions.DATE
     )
 
     projects = serializers.ListField(required=True, allow_empty=True)
     environments = serializers.ListField(required=True, allow_empty=True)
     timeFilters = serializers.DictField(required=True, allow_empty=False)
-
-    def validate_querySort(self, value):
-        if value == "recommended":
-            raise ValidationError(
-                detail='The "recommended" sort is experimental, it cannot be saved at this time.'
-            )
-        return value
 
     def validate_projects(self, value):
         if value != [-1]:
