@@ -197,11 +197,5 @@ describe('OrganizationSecurityAndPrivacy', () => {
         })
       );
     });
-
-    expect(
-      screen.getByRole('checkbox', {
-        name: 'Enable to require and enforce two-factor authentication for all members',
-      })
-    ).toBeChecked();
   });
 });

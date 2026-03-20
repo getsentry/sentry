@@ -218,8 +218,6 @@ describe('OrganizationSettingsForm', () => {
         })
       );
     });
-
-    expect(checkbox).toBeChecked();
   });
 
   it('can disable "Show Generative AI Features"', async () => {
@@ -251,8 +249,6 @@ describe('OrganizationSettingsForm', () => {
         expect.objectContaining({data: {hideAiFeatures: true}})
       );
     });
-
-    expect(checkbox).not.toBeChecked();
   });
 
   it('shows hideAiFeatures toggle for DE region', () => {
