@@ -123,6 +123,7 @@ def proxy_error_embed_request(
 def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpResponseBase:
     """Take a django request object and proxy it to a cell silo"""
 
+    metric_tags = {"region": cell.name, "url_name": url_name}
     circuit_breaker: CircuitBreaker | None = None
     # TODO(mark) remove rollout options
     if options.get("apigateway.proxy.circuit-breaker.enabled"):
@@ -136,10 +137,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
 
     if circuit_breaker is not None:
         if not circuit_breaker.should_allow_request():
-            metrics.incr(
-                "apigateway.proxy.circuit_breaker.rejected",
-                tags={"region": cell.name, "url_name": url_name},
-            )
+            metrics.incr("apigateway.proxy.circuit_breaker.rejected", tags=metric_tags)
             if options.get("apigateway.proxy.circuit-breaker.enforce"):
                 body = {
                     "error": "apigateway",
@@ -162,7 +160,6 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     if not timeout:
         timeout = settings.GATEWAY_PROXY_TIMEOUT
     timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, timeout)
-    metric_tags = {"region": cell.name, "url_name": url_name}
 
     # XXX: See sentry.testutils.pytest.sentry for more information
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
@@ -192,12 +189,18 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
                 allow_redirects=False,
             )
     except Timeout:
-        if circuit_breaker is not None:
-            circuit_breaker.record_error()
+        metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
+        try:
+            if circuit_breaker is not None:
+                circuit_breaker.record_error()
+        except Exception:
+            logger.exception("Failed to record circuitbreaker failure")
+
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
 
     if resp.status_code >= 500 and circuit_breaker is not None:
+        metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
         circuit_breaker.record_error()
 
     new_headers = clean_outbound_headers(resp.headers)
