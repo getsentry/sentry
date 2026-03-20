@@ -25,7 +25,12 @@ const cacheKey = 'sentry-react-query-cache';
 // This can cause flickering when resetting form state before the cache is updated.
 // Using queueMicrotask will ensure the cache is updated before any state updates are processed.
 // This will also be the default in v6, so this is a forward compatible change.
-notifyManager.setScheduler(queueMicrotask);
+
+// Skipped in test environments because it causes act() warnings in tests that
+// don't await async query state updates.
+if (process.env.NODE_ENV !== 'test') {
+  notifyManager.setScheduler(queueMicrotask);
+}
 
 const indexedDbPersister = createAsyncStoragePersister({
   // We're using indexedDB as our storage provider because projects cache can be large
