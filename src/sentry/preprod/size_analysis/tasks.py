@@ -102,14 +102,14 @@ def compare_preprod_artifact_size_analysis(
                 return
 
             base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-                preprod_artifact_id__in=[base_artifact.id],
+                preprod_artifact_id=base_artifact.id,
                 preprod_artifact__project__organization_id=org_id,
                 preprod_artifact__project_id=project_id,
             ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")
             base_size_metrics = list(base_size_metrics_qs)
 
             head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-                preprod_artifact_id__in=[artifact_id],
+                preprod_artifact_id=artifact_id,
                 preprod_artifact__project__organization_id=org_id,
                 preprod_artifact__project_id=project_id,
             ).select_related(
@@ -166,7 +166,7 @@ def compare_preprod_artifact_size_analysis(
                 continue
 
             head_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-                preprod_artifact_id__in=[head_artifact.id],
+                preprod_artifact_id=head_artifact.id,
                 preprod_artifact__project__organization_id=org_id,
                 preprod_artifact__project_id=project_id,
             ).select_related(
@@ -177,7 +177,7 @@ def compare_preprod_artifact_size_analysis(
             head_size_metrics = list(head_size_metrics_qs)
 
             base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-                preprod_artifact_id__in=[artifact_id],
+                preprod_artifact_id=artifact_id,
                 preprod_artifact__project__organization_id=org_id,
                 preprod_artifact__project_id=project_id,
             ).select_related("preprod_artifact", "preprod_artifact__mobile_app_info")

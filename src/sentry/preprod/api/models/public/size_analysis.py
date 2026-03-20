@@ -266,8 +266,6 @@ def _build_success_comparison(
 class SizeAnalysisSummaryBuildError(Exception):
     """Raised when the summary builder encounters an unrecoverable data error."""
 
-    pass
-
 
 def build_comparison_summary_data(
     base_artifact: PreprodArtifact,
