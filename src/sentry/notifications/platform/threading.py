@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from dataclasses import dataclass
 from typing import Any, TypedDict
 
 from django.db import router, transaction
@@ -12,6 +13,38 @@ from sentry.notifications.platform.types import NotificationProviderKey, Notific
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ThreadKey:
+    """Identifies a specific thread — the notification source and the associations to look up."""
+
+    key_type: NotificationSource
+    """The notification source. Used as a namespace in the thread key hash."""
+
+    key_data: dict[str, Any]
+    """
+    The associations to look up for this thread.
+    e.g. for metric alerts: {"alert_rule_id": ..., "incident_id": ..., "trigger_action_id": ...}
+    e.g. for NOA: {"action_id": ..., "group_id": ..., "open_period_start": ...}
+    """
+
+
+@dataclass(frozen=True)
+class ThreadContext:
+    """
+    Resolved threading context passed from the service layer to the provider.
+    Wraps the ThreadKey with the resolved NotificationThread (if one exists).
+    """
+
+    thread_key: ThreadKey
+    """The key identifying this thread."""
+
+    thread: NotificationThread | None = None
+    """The resolved thread to reply in. None for the first message in a thread."""
+
+    reply_broadcast: bool = False
+    """If True, the threaded reply is also posted to the channel."""
 
 
 # Info needed to lookup a thread
