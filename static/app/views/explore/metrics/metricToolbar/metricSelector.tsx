@@ -10,16 +10,20 @@ import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem'
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
+import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {canUseMetricsSidePanelUI} from 'sentry/views/explore/metrics/metricsFlags';
@@ -28,6 +32,7 @@ import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 
 export const NONE_UNIT = 'none';
 
@@ -64,6 +69,8 @@ interface MetricSelectOption {
   metricName: string;
   metricType: TraceMetricTypeValue;
   value: string;
+  count?: number;
+  lastSeen?: number;
   metricUnit?: string;
   trailingItems?: MenuListItemProps['trailingItems'];
 }
@@ -170,6 +177,12 @@ export function MetricSelector({
         metricUnit: hasMetricUnitsUI
           ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
           : undefined,
+        count: option[`count(${TraceMetricKnownFieldKey.METRIC_NAME})`] as number,
+        lastSeen:
+          option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`] === undefined
+            ? undefined
+            : Number(option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]) /
+              1_000_000,
         trailingItems: () => (
           <MetricOptionTrailingItems
             hasMetricUnitsUI={hasMetricUnitsUI}
@@ -487,25 +500,119 @@ function MetricDetailPanel({
 
   return (
     <Stack gap="md">
-      <Text bold>{metric.metricName}</Text>
+      <Text bold wordBreak="break-all">
+        {metric.metricName}
+      </Text>
       <Flex gap="xs" align="center">
-        <Text variant="muted" size="sm">
-          {t('Type:')}
+        <Text variant="muted" size="md">
+          {t('Type')}
         </Text>
         <MetricTypeBadge metricType={metric.metricType} />
       </Flex>
       {hasDisplayMetricUnit(hasMetricUnitsUI, metric.metricUnit) ? (
         <Flex gap="xs" align="center">
-          <Text variant="muted" size="sm">
-            {t('Unit:')}
+          <Text variant="muted" size="md">
+            {t('Unit')}
           </Text>
           <Tag variant="promotion">{metric.metricUnit}</Tag>
         </Flex>
       ) : null}
+      {metric.lastSeen ? (
+        <Flex gap="xs" align="center">
+          <Text variant="muted" size="md">
+            {t('Last seen')}
+          </Text>
+          <DateTime date={metric.lastSeen} timeZone />
+        </Flex>
+      ) : null}
+      {metric.count === undefined ? null : (
+        <Flex gap="xs" align="center">
+          <Text variant="muted" size="md">
+            {t('Times seen')}
+          </Text>
+          <Text size="md">{metric.count.toLocaleString()}</Text>
+        </Flex>
+      )}
+      <MetricAttributesSection
+        metricName={metric.metricName}
+        metricType={metric.metricType}
+      />
     </Stack>
   );
 }
 
 function makeMetricSelectValue(metric: TraceMetric): string {
   return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
+}
+
+function MetricAttributesSection({
+  metricName,
+  metricType,
+}: {
+  metricName: string;
+  metricType: string;
+}) {
+  const traceMetricFilter = createTraceMetricFilter({name: metricName, type: metricType});
+
+  const {attributes: stringAttrs, isLoading: stringLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'string'
+    );
+  const {attributes: numberAttrs, isLoading: numberLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'number'
+    );
+  const {attributes: booleanAttrs, isLoading: booleanLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'boolean'
+    );
+
+  const attributeKeys = useMemo(() => {
+    const keys = new Set([
+      ...Object.keys(stringAttrs ?? {}),
+      ...Object.keys(numberAttrs ?? {}),
+      ...Object.keys(booleanAttrs ?? {}),
+    ]);
+    return [...keys]
+      .filter(key => !HiddenTraceMetricGroupByFields.includes(key))
+      .sort((a, b) => prettifyTagKey(a).localeCompare(prettifyTagKey(b)));
+  }, [stringAttrs, numberAttrs, booleanAttrs]);
+
+  if (stringLoading || numberLoading || booleanLoading) {
+    return (
+      <Stack gap="xs">
+        <Text size="md">{t('Attributes')}:</Text>
+        <Flex gap="xs">
+          <LoadingIndicator size={16} />
+        </Flex>
+      </Stack>
+    );
+  }
+
+  if (attributeKeys.length === 0) {
+    return (
+      <Stack gap="xs">
+        <Text size="md">{t('Attributes')}:</Text>
+        <Flex gap="xs">
+          <Text size="md">{t('No attributes found')}</Text>
+        </Flex>
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack gap="xs">
+      <Text size="md">{t('Attributes')}:</Text>
+      <Flex wrap="wrap" gap="xs">
+        {attributeKeys.map(key => (
+          <Tag key={key} variant="muted">
+            {prettifyTagKey(key)}
+          </Tag>
+        ))}
+      </Flex>
+    </Stack>
+  );
 }
