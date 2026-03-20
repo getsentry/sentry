@@ -840,17 +840,18 @@ class GitHubProvider:
         self,
         ref: str,
         archive_format: ArchiveFormat = "tarball",
+        request_options: RequestOptions | None = None,
     ) -> ActionResult[ArchiveLink]:
-        github_format = GITHUB_ARCHIVE_FORMAT_MAP[archive_format]
-        url = self.client.get_archive_link(self.repository["name"], github_format, ref)
-        token_data = self.client.get_access_token()
-        token = token_data["access_token"] if token_data else None
-        return ActionResult(
-            data=ArchiveLink(url=url, headers={"Authorization": f"token {token}"} if token else {}),
-            type="github",
-            raw=url,
-            meta={},
+        response = self.client.get(
+            f"/repos/{self.repository['name']}/{GITHUB_ARCHIVE_FORMAT_MAP[archive_format]}/{ref}",
+            headers=as_github_headers(request_options),
         )
+        return {
+            "data": ArchiveLink(url=response.url, headers={}),
+            "type": "github",
+            "raw": response.url,
+            "meta": _extract_response_meta(response),
+        }
 
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
         self.client.graphql(
