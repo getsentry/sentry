@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, NamedTuple, TypedDict
 
 from django.db import connection
 from django.db.models import Count, Max, OuterRef, Subquery
@@ -23,6 +23,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class IdPair(NamedTuple):
+    # One must be set.
+    workflow_id: int | None
+    rule_id: int | None
+
+
 class _Result(TypedDict):
     group: int
     count: int
@@ -36,6 +42,35 @@ def convert_results(results: Sequence[_Result]) -> Sequence[RuleGroupHistory]:
         RuleGroupHistory(group_lookup[r["group"]], r["count"], r["last_triggered"], r["event_id"])
         for r in results
     ]
+
+
+def convert_hourly_stats(
+    existing_data: dict[datetime, TimeSeriesValue], start: datetime, end: datetime
+) -> dict[datetime, TimeSeriesValue]:
+    results = []
+    current = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    while current <= end.replace(minute=0, second=0, microsecond=0):
+        results.append(existing_data.get(current, TimeSeriesValue(current, 0)))
+        current += timedelta(hours=1)
+    return results
+
+
+def get_rule_workflow_ids(target: Workflow | Rule) -> IdPair:
+    if isinstance(target, Workflow):
+        workflow_id = target.id
+        try:
+            alert_rule_workflow = AlertRuleWorkflow.objects.get(workflow=target)
+            rule_id = alert_rule_workflow.rule_id
+        except AlertRuleWorkflow.DoesNotExist:
+            rule_id = None
+    else:
+        rule_id = target.id
+        try:
+            alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=target.id)
+            workflow_id = alert_rule_workflow.workflow.id
+        except AlertRuleWorkflow.DoesNotExist:
+            workflow_id = None
+    return IdPair(workflow_id=workflow_id, rule_id=rule_id)
 
 
 # temporary hack for removing unnecessary subqueries from group by list
@@ -61,54 +96,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
             notification_uuid=notification_uuid,
         )
 
-    def fetch_workflow_fire_history(
-        self,
-        workflow_id: int,
-        start: datetime,
-        end: datetime,
-        per_page: int,
-        cursor: Cursor | None = None,
-    ) -> CursorResult[RuleGroupHistory]:
-        """
-        Look up WorkflowFireHistory for a single written Workflow
-        """
-
-        def data_fn(offset: int, limit: int) -> list[_Result]:
-            query = """
-                WITH workflow_data AS (
-                    SELECT group_id, date_added, event_id
-                    FROM workflow_engine_workflowfirehistory
-                    WHERE workflow_id = %s
-                    AND date_added >= %s AND date_added < %s
-                )
-                SELECT
-                    group_id as group,
-                    COUNT(*) as count,
-                    MAX(date_added) as last_triggered,
-                    (ARRAY_AGG(event_id ORDER BY date_added DESC))[1] as event_id
-                FROM workflow_data
-                GROUP BY group_id
-                ORDER BY count DESC, last_triggered DESC
-                LIMIT %s OFFSET %s
-            """
-
-            with connection.cursor() as cursor:
-                cursor.execute(query, [workflow_id, start, end, limit, offset])
-                return [
-                    _Result(
-                        group=row[0],
-                        count=row[1],
-                        last_triggered=row[2],
-                        event_id=row[3],
-                    )
-                    for row in cursor.fetchall()
-                ]
-
-        result = GenericOffsetPaginator(data_fn=data_fn).get_result(per_page, cursor)
-        result.results = convert_results(result.results)
-        return result
-
-    def fetch_rule_fire_history(
+    def _fetch_rule_fire_history(
         self,
         rule: Rule,
         start: datetime,
@@ -141,10 +129,10 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
             qs, order_by=("-count", "-last_triggered"), on_results=convert_results
         ).get_result(per_page, cursor)
 
-    def fetch_combined_rule_workflow_fire_history(
+    def _fetch_combined_rule_workflow_fire_history(
         self,
-        rule_id: int,
-        workflow_id: int,
+        rule_id: int | None,
+        workflow_id: int | None,
         start: datetime,
         end: datetime,
         per_page: int,
@@ -201,29 +189,18 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         cursor: Cursor | None = None,
         per_page: int = 25,
     ) -> CursorResult[RuleGroupHistory]:
-        if isinstance(target, Workflow):
-            try:
-                alert_rule_workflow = AlertRuleWorkflow.objects.get(workflow=target)
-                rule_id = alert_rule_workflow.rule_id
-                return self.fetch_combined_rule_workflow_fire_history(
-                    rule_id, target.id, start, end, per_page, cursor
-                )
-            except AlertRuleWorkflow.DoesNotExist:
-                return self.fetch_workflow_fire_history(target.id, start, end, per_page, cursor)
-        else:
-            try:
-                alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=target.id)
-                workflow_id = alert_rule_workflow.workflow.id
-                return self.fetch_combined_rule_workflow_fire_history(
-                    target.id, workflow_id, start, end, per_page, cursor
-                )
-            except AlertRuleWorkflow.DoesNotExist:
-                # If no workflow is associated with this rule, lookup RuleFireHistory only
-                logger.exception("No workflow associated with rule", extra={"rule_id": target.id})
-                return self.fetch_rule_fire_history(target, start, end, per_page, cursor)
+        workflow_id, rule_id = get_rule_workflow_ids(target)
 
-    def fetch_combined_rule_workflow_hourly_stats(
-        self, rule_id: int, workflow_id: int, start: datetime, end: datetime
+        if not workflow_id and rule_id:
+            logger.exception("No workflow associated with rule", extra={"rule_id": rule_id})
+            return self._fetch_rule_fire_history(rule_id, start, end, per_page, cursor)
+
+        return self._fetch_combined_rule_workflow_fire_history(
+            rule_id, workflow_id, start, end, per_page, cursor
+        )
+
+    def _fetch_combined_rule_workflow_hourly_stats(
+        self, rule_id: int | None, workflow_id: int | None, start: datetime, end: datetime
     ) -> dict[datetime, TimeSeriesValue]:
         existing_data: dict[datetime, TimeSeriesValue] = {}
         # Use raw SQL to combine data from both tables
@@ -260,7 +237,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         existing_data = {row[0]: TimeSeriesValue(row[0], row[1]) for row in results}
         return existing_data
 
-    def fetch_rule_fire_history_hourly_stats(
+    def _fetch_rule_fire_history_hourly_stats(
         self, rule: Rule, start: datetime, end: datetime
     ) -> dict[datetime, TimeSeriesValue]:
         qs = (
@@ -277,35 +254,6 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         existing_data = {row["bucket"]: TimeSeriesValue(row["bucket"], row["count"]) for row in qs}
         return existing_data
 
-    def fetch_workflow_hourly_stats(
-        self, workflow_id: int, start: datetime, end: datetime
-    ) -> dict[datetime, TimeSeriesValue]:
-        # Use raw SQL to combine data from both tables
-        with connection.cursor() as db_cursor:
-            db_cursor.execute(
-                """
-                SELECT
-                    DATE_TRUNC('hour', date_added) as bucket,
-                    COUNT(*) as count
-                FROM (
-                    SELECT date_added
-                    FROM workflow_engine_workflowfirehistory
-                    WHERE workflow_id = %s
-                        AND date_added >= %s
-                        AND date_added < %s
-                ) combined_data
-                GROUP BY DATE_TRUNC('hour', date_added)
-                ORDER BY bucket
-                """,
-                [workflow_id, start, end],
-            )
-
-            results = db_cursor.fetchall()
-
-        # Convert raw SQL results to the expected format
-        existing_data = {row[0]: TimeSeriesValue(row[0], row[1]) for row in results}
-        return existing_data
-
     def fetch_rule_hourly_stats(
         self, target: Rule | Workflow, start: datetime, end: datetime
     ) -> Sequence[TimeSeriesValue]:
@@ -313,33 +261,13 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         end = end.replace(tzinfo=timezone.utc)
         existing_data: dict[datetime, TimeSeriesValue] = {}
 
-        if isinstance(target, Workflow):
-            try:
-                alert_rule_workflow = AlertRuleWorkflow.objects.get(workflow=target)
-                rule_id = alert_rule_workflow.rule_id
-                existing_data = self.fetch_combined_rule_workflow_hourly_stats(
-                    rule_id, target.id, start, end
-                )
-            except AlertRuleWorkflow.DoesNotExist:
-                existing_data = self.fetch_workflow_hourly_stats(target.id, start, end)
-            except Workflow.DoesNotExist:
-                existing_data = {}
-        else:
-            try:
-                alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=target.id)
-                workflow = alert_rule_workflow.workflow
-                existing_data = self.fetch_combined_rule_workflow_hourly_stats(
-                    target.id, workflow.id, start, end
-                )
-            except AlertRuleWorkflow.DoesNotExist:
-                # If no workflow is associated with this rule, just use the original behavior
-                logger.exception("No workflow associated with rule", extra={"rule_id": target.id})
-                existing_data = self.fetch_rule_fire_history_hourly_stats(target, start, end)
+        workflow_id, rule_id = get_rule_workflow_ids(target)
+        if not workflow_id and rule_id:
+            logger.exception("No workflow associated with rule", extra={"rule_id": target.id})
+            existing_data = self._fetch_rule_fire_history_hourly_stats(target, start, end)
+            return convert_hourly_stats(existing_data, start, end)
 
-        # Fill in gaps with zero values for missing hours
-        results = []
-        current = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-        while current <= end.replace(minute=0, second=0, microsecond=0):
-            results.append(existing_data.get(current, TimeSeriesValue(current, 0)))
-            current += timedelta(hours=1)
-        return results
+        existing_data = self._fetch_combined_rule_workflow_hourly_stats(
+            rule_id, workflow_id, start, end
+        )
+        return convert_hourly_stats(existing_data, start, end)
