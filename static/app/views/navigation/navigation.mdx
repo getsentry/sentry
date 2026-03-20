@@ -329,7 +329,7 @@ export function MobileSecondaryPanel() {
   );
 }
 
-export function MockSecondaryNav({view = 'expanded', children}) {
+export function MockSecondaryNav({view = 'expanded', children}: {view: SecondaryNavState, children: React.ReactNode}) {
   const [currentView, setCurrentView] = useState(view);
   return (
     <SecondaryNavigationContext.Provider
