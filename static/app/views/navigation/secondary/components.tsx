@@ -493,9 +493,12 @@ function SecondaryNavigationLink({
 }
 
 function SecondaryNavigationSeparator() {
+  const organization = useOrganization({allowNull: true});
+  const hasPageFrame = organization?.features.includes('page-frame');
+
   return (
     <Container padding="0 xl">
-      <Separator orientation="horizontal" border="muted" />
+      <Separator orientation="horizontal" border={hasPageFrame ? 'primary' : 'muted'} />
     </Container>
   );
 }

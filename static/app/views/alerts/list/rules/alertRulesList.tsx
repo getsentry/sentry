@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -207,7 +206,7 @@ export default function AlertRulesList() {
   );
 
   return (
-    <Fragment>
+    <Layout.Page>
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug} />
 
       <PageFiltersContainer>
@@ -336,7 +335,7 @@ export default function AlertRulesList() {
           </Layout.Main>
         </Layout.Body>
       </PageFiltersContainer>
-    </Fragment>
+    </Layout.Page>
   );
 }
 

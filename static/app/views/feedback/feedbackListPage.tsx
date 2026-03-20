@@ -136,90 +136,92 @@ export default function FeedbackListPage() {
   const hideTop = isMediumOrSmaller && showItemPreview;
 
   return (
-    <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
-      <FullViewport>
+    <Layout.Page>
+      <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
         <FeedbackQueryKeys organization={organization}>
-          <Layout.Header unified>
-            <Layout.HeaderContent unified>
-              <Layout.Title>
-                {t('User Feedback')}
-                <PageHeadingQuestionTooltip
-                  title={t(
-                    'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
-                  )}
-                  docsUrl="https://docs.sentry.io/product/user-feedback/"
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <Flex gap="lg">
-                <FeedbackButton
-                  size="sm"
-                  feedbackOptions={{
-                    messagePlaceholder: t(
-                      'How can we improve the User Feedback experience?'
-                    ),
-                    tags: {
-                      ['feedback.source']: 'feedback-list',
-                    },
-                  }}
-                />
-                <LinkButton
-                  size="sm"
-                  icon={<IconSiren />}
-                  to={{
-                    pathname: makeAlertsPathname({
-                      path: '/new/issue/',
-                      organization,
-                    }),
-                    query: {
-                      alert_option: 'issues',
-                      referrer: 'feedback-list-page',
-                      ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
-                    },
-                  }}
-                >
-                  {t('Create Alert')}
-                </LinkButton>
-              </Flex>
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <PageFiltersContainer>
-            <ErrorBoundary>
-              <Stack align="stretch" gap="xl" background="primary" overflow="hidden">
-                <LayoutGrid hideTop={hideTop}>
-                  {!hideTop && (
-                    <Stack
-                      flexGrow={1}
-                      gap="md"
-                      area="top"
-                      direction={{xs: 'column', sm: 'row'}}
-                      align={{xs: 'stretch', sm: 'start'}}
-                    >
-                      <FeedbackFilters />
-                      <SearchContainer>
-                        <FeedbackSearch />
-                      </SearchContainer>
-                    </Stack>
-                  )}
-                  {hasSetupOneFeedback || hasSlug ? (
-                    isMediumOrSmaller ? (
-                      smallerScreenView
+          <FullViewport>
+            <Layout.Header unified>
+              <Layout.HeaderContent unified>
+                <Layout.Title>
+                  {t('User Feedback')}
+                  <PageHeadingQuestionTooltip
+                    title={t(
+                      'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
+                    )}
+                    docsUrl="https://docs.sentry.io/product/user-feedback/"
+                  />
+                </Layout.Title>
+              </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <Flex gap="lg">
+                  <FeedbackButton
+                    size="sm"
+                    feedbackOptions={{
+                      messagePlaceholder: t(
+                        'How can we improve the User Feedback experience?'
+                      ),
+                      tags: {
+                        ['feedback.source']: 'feedback-list',
+                      },
+                    }}
+                  />
+                  <LinkButton
+                    size="sm"
+                    icon={<IconSiren />}
+                    to={{
+                      pathname: makeAlertsPathname({
+                        path: '/new/issue/',
+                        organization,
+                      }),
+                      query: {
+                        alert_option: 'issues',
+                        referrer: 'feedback-list-page',
+                        ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
+                      },
+                    }}
+                  >
+                    {t('Create Alert')}
+                  </LinkButton>
+                </Flex>
+              </Layout.HeaderActions>
+            </Layout.Header>
+            <PageFiltersContainer>
+              <ErrorBoundary>
+                <Stack align="stretch" gap="xl" background="primary" overflow="hidden">
+                  <LayoutGrid hideTop={hideTop}>
+                    {!hideTop && (
+                      <Stack
+                        flexGrow={1}
+                        gap="md"
+                        area="top"
+                        direction={{xs: 'column', sm: 'row'}}
+                        align={{xs: 'stretch', sm: 'start'}}
+                      >
+                        <FeedbackFilters />
+                        <SearchContainer>
+                          <FeedbackSearch />
+                        </SearchContainer>
+                      </Stack>
+                    )}
+                    {hasSetupOneFeedback || hasSlug ? (
+                      isMediumOrSmaller ? (
+                        smallerScreenView
+                      ) : (
+                        largeScreenView
+                      )
                     ) : (
-                      largeScreenView
-                    )
-                  ) : (
-                    <SetupContainer>
-                      <FeedbackSetupPanel />
-                    </SetupContainer>
-                  )}
-                </LayoutGrid>
-              </Stack>
-            </ErrorBoundary>
-          </PageFiltersContainer>
+                      <SetupContainer>
+                        <FeedbackSetupPanel />
+                      </SetupContainer>
+                    )}
+                  </LayoutGrid>
+                </Stack>
+              </ErrorBoundary>
+            </PageFiltersContainer>
+          </FullViewport>
         </FeedbackQueryKeys>
-      </FullViewport>
-    </SentryDocumentTitle>
+      </SentryDocumentTitle>
+    </Layout.Page>
   );
 }
 

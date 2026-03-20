@@ -262,30 +262,32 @@ class IncidentsList extends DeprecatedAsyncComponent<
     const {organization, location} = this.props;
 
     return (
-      <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
-        <PageFiltersContainer>
-          <AlertHeader activeTab="stream" />
-          <Layout.Body>
-            <Layout.Main width="full">
-              {!this.tryRenderOnboarding() && (
-                <Fragment>
-                  <StyledAlert variant="info">
-                    {t('This page only shows metric alerts.')}
-                  </StyledAlert>
-                  <FilterBar
-                    location={location}
-                    onChangeFilter={this.handleChangeFilter}
-                    onChangeSearch={this.handleChangeSearch}
-                    onChangeStatus={this.handleChangeStatus}
-                    hasStatusFilters
-                  />
-                </Fragment>
-              )}
-              {this.renderList()}
-            </Layout.Main>
-          </Layout.Body>
-        </PageFiltersContainer>
-      </SentryDocumentTitle>
+      <Layout.Page>
+        <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug}>
+          <PageFiltersContainer>
+            <AlertHeader activeTab="stream" />
+            <Layout.Body>
+              <Layout.Main width="full">
+                {!this.tryRenderOnboarding() && (
+                  <Fragment>
+                    <StyledAlert variant="info">
+                      {t('This page only shows metric alerts.')}
+                    </StyledAlert>
+                    <FilterBar
+                      location={location}
+                      onChangeFilter={this.handleChangeFilter}
+                      onChangeSearch={this.handleChangeSearch}
+                      onChangeStatus={this.handleChangeStatus}
+                      hasStatusFilters
+                    />
+                  </Fragment>
+                )}
+                {this.renderList()}
+              </Layout.Main>
+            </Layout.Body>
+          </PageFiltersContainer>
+        </SentryDocumentTitle>
+      </Layout.Page>
     );
   }
 }
