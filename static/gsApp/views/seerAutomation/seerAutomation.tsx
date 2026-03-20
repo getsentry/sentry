@@ -19,9 +19,6 @@ import {SeerAutomationSettings} from 'getsentry/views/seerAutomation/settings';
 export default function SeerAutomation() {
   const organization = useOrganization();
 
-  const hasLegacySeer = organization.features.includes('seer-added');
-  const hasCodeReviewBeta = organization.features.includes('code-review-beta');
-
   if (showNewSeer(organization)) {
     return <SeerAutomationSettings />;
   }
@@ -40,7 +37,7 @@ export default function SeerAutomation() {
       <NoProjectMessage organization={organization}>
         <Stack gap="lg">
           <SeerConnectGitHubBanner />
-          {hasLegacySeer || hasCodeReviewBeta ? <NoActiveSeerSubscriptionBanner /> : null}
+          <NoActiveSeerSubscriptionBanner />
           <SettingsPageTabs />
           <SeerAutomationProjectList />
           <br />
