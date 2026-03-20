@@ -119,7 +119,10 @@ mutation MinimizeComment($commentId: ID!, $reason: ReportedContentClassifiers!) 
 """
 
 
-RESERVED_REFERRER_ALLOCATION: dict[Referrer, int] = {"emerge": 500}
+# TODO: Rate-limits are dynamic per org. Some will have higher limits. We need to dynamically
+#       configure the shared pool. The absolute allocation amount for explicit referrers can
+#       remain unchanged.
+REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
 
 
 def as_github_headers(
@@ -168,14 +171,8 @@ def _extract_response_meta(response: requests.Response) -> ResponseMeta:
 
 
 class GitHubProviderApiClient:
-    def __init__(self, client: GitHubApiClient, organization_id: int) -> None:
+    def __init__(self, client: GitHubApiClient) -> None:
         self.client = client
-        self.organization_id = organization_id
-
-    def _track_rate_limit_headers(self, response: requests.Response) -> None:
-        from sentry.scm.private.helpers import update_github_rate_limit_state
-
-        update_github_rate_limit_state(self.organization_id, dict(response.headers))
 
     def request(
         self,
@@ -185,7 +182,7 @@ class GitHubProviderApiClient:
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
     ) -> requests.Response:
-        response = self.client._request(
+        return self.client._request(
             method=method,
             path=path,
             headers=headers,
@@ -193,8 +190,6 @@ class GitHubProviderApiClient:
             params=params,
             raw_response=True,
         )
-        self._track_rate_limit_headers(response)
-        return response
 
     def get(
         self,
@@ -248,19 +243,21 @@ class GitHubProvider:
     def __init__(
         self, client: GitHubApiClient, organization_id: int, repository: Repository
     ) -> None:
-        self.client = GitHubProviderApiClient(client, organization_id=organization_id)
+        self.client = GitHubProviderApiClient(client)
         self.organization_id = organization_id
         self.repository = repository
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
-        from sentry.scm.private.helpers import is_rate_limited_with_reserved_quotas
+        # from sentry.scm.helpers import is_rate_limited_with_allocation_policy
 
-        return is_rate_limited_with_reserved_quotas(
-            self.organization_id,
-            referrer,
-            provider="github",
-            reserved_allocations=RESERVED_REFERRER_ALLOCATION,
-        )
+        # return is_rate_limited_with_allocation_policy(
+        #     self.organization_id,
+        #     referrer,
+        #     provider="github",
+        #     window=3600,
+        #     allocation_policy=REFERRER_ALLOCATION,
+        # )
+        return False  # Rate-limits temporarily disabled.
 
     def get_issue_comments(
         self,
