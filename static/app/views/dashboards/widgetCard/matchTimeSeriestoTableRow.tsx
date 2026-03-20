@@ -11,7 +11,16 @@ function toPythonString(value: unknown): string {
     return value ? 'True' : 'False';
   }
   if (Array.isArray(value)) {
-    return `[${value.join(',')}]`;
+    const items = value.map(item => {
+      if (item === null || item === undefined) {
+        return 'None';
+      }
+      if (typeof item === 'string') {
+        return `'${item}'`;
+      }
+      return String(item);
+    });
+    return `[${items.join(', ')}]`;
   }
   return String(value);
 }

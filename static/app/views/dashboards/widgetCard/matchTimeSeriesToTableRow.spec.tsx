@@ -82,6 +82,21 @@ describe('matchTimeSeriesToTableRow', () => {
     expect(result).toBe(50);
   });
 
+  it('matches array groupBy values using Python str() format', () => {
+    const result = matchTimeSeriesToTableRow({
+      tableDataRows: [
+        {id: '1', tags: "['a', 'b']", 'count()': 10},
+        {id: '2', tags: "['c', None]", 'count()': 20},
+      ],
+      timeSeries: TimeSeriesFixture({
+        yAxis: 'count()',
+        groupBy: [{key: 'tags', value: ['c', null]}],
+      }),
+    });
+
+    expect(result).toBe(20);
+  });
+
   it('returns the first row value when groupBy is an empty array', () => {
     const result = matchTimeSeriesToTableRow({
       tableDataRows: [{id: '1', 'count()': 42}],
