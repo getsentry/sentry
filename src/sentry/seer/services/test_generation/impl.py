@@ -8,8 +8,7 @@ class RegionBackedTestGenerationService(TestGenerationService):
     def start_unit_test_generation(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         github_org: str,
         repo: str,
         pr_id: int,
