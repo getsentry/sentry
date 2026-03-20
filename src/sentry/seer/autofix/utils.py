@@ -453,8 +453,10 @@ def resolve_repository_ids(
                 continue
 
             external_ids.add(repo.external_id)
-            providers.add(repo.provider)
-            providers.add(f"integrations:{repo.provider}")
+
+            bare_provider = repo.provider.removeprefix("integrations:")
+            providers.add(bare_provider)
+            providers.add(f"integrations:{bare_provider}")
 
     if not external_ids:
         return preferences

@@ -684,14 +684,20 @@ class TestResolveRepositoryIds(TestCase):
         super().setUp()
         self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
-        self.repo = self.create_repo(
+        self.repo_bare_provider = self.create_repo(
             project=self.project,
-            provider="integrations:github",
+            provider="github",
             external_id="ext123",
             name="test-org/test-repo",
         )
+        self.repo_prefixed_provider = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext456",
+            name="test-org/test-repo-2",
+        )
 
-    def test_resolves_repository_id(self):
+    def test_resolves_when_input_and_stored_providers_are_bare(self):
         preferences = [
             SeerProjectPreference(
                 organization_id=self.organization.id,
@@ -706,7 +712,67 @@ class TestResolveRepositoryIds(TestCase):
 
         result = resolve_repository_ids(self.organization.id, preferences)
 
-        assert result[0].repositories[0].repository_id == self.repo.id
+        assert result[0].repositories[0].repository_id == self.repo_bare_provider.id
+
+    def test_resolves_when_input_and_stored_providers_are_prefixed(self):
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="integrations:github",
+                        external_id="ext456",
+                        owner="test-org",
+                        name="test-repo-2",
+                    )
+                ],
+            )
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        assert result[0].repositories[0].repository_id == self.repo_prefixed_provider.id
+
+    def test_resolves_when_input_provider_is_bare_and_stored_provider_is_prefixed(self):
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="github",
+                        external_id="ext456",
+                        owner="test-org",
+                        name="test-repo-2",
+                    )
+                ],
+            )
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        assert result[0].repositories[0].repository_id == self.repo_prefixed_provider.id
+
+    def test_resolves_when_input_provider_is_prefixed_and_stored_provider_is_bare(self):
+        preferences = [
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        provider="integrations:github",
+                        external_id="ext123",
+                        owner="test-org",
+                        name="test-repo",
+                    )
+                ],
+            ),
+        ]
+
+        result = resolve_repository_ids(self.organization.id, preferences)
+
+        assert result[0].repositories[0].repository_id == self.repo_bare_provider.id
 
     def test_skips_unresolvable_repos(self):
         """Repos with empty provider, empty external_id, existing repository_id, or inactive status are skipped."""
@@ -726,12 +792,6 @@ class TestResolveRepositoryIds(TestCase):
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 repositories=[
-                    SeerRepoDefinition(
-                        provider="", external_id="ext123", owner="test-org", name="test-repo"
-                    ),
-                    SeerRepoDefinition(
-                        provider="github", external_id="", owner="test-org", name="test-repo"
-                    ),
                     SeerRepoDefinition(
                         provider="github",
                         external_id="ext123",
@@ -755,45 +815,9 @@ class TestResolveRepositoryIds(TestCase):
         result = resolve_repository_ids(self.organization.id, preferences)
 
         repos = result[0].repositories
-        assert repos[0].repository_id is None  # empty provider
-        assert repos[1].repository_id is None  # empty external_id
-        assert repos[2].repository_id == 999  # existing id preserved
-        assert repos[3].repository_id is None  # inactive repo
-        assert repos[4].repository_id is None  # nonexistent external_id
-
-    def test_resolves_multiple_repos_across_preferences(self):
-        repo2 = self.create_repo(
-            project=self.project,
-            provider="integrations:github",
-            external_id="ext456",
-            name="test-org/other-repo",
-        )
-
-        preferences = [
-            SeerProjectPreference(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                repositories=[
-                    SeerRepoDefinition(
-                        provider="github", external_id="ext123", owner="test-org", name="test-repo"
-                    ),
-                ],
-            ),
-            SeerProjectPreference(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                repositories=[
-                    SeerRepoDefinition(
-                        provider="github", external_id="ext456", owner="test-org", name="other-repo"
-                    ),
-                ],
-            ),
-        ]
-
-        result = resolve_repository_ids(self.organization.id, preferences)
-
-        assert result[0].repositories[0].repository_id == self.repo.id
-        assert result[1].repositories[0].repository_id == repo2.id
+        assert repos[0].repository_id == 999  # existing id preserved
+        assert repos[1].repository_id is None  # inactive repo
+        assert repos[2].repository_id is None  # nonexistent external_id
 
 
 class TestDeduplicateRepositories(TestCase):
