@@ -698,8 +698,8 @@ importers:
         specifier: 16.0.0
         version: 16.0.0
       knip:
-        specifier: 6.0.0
-        version: 6.0.0
+        specifier: 6.0.1
+        version: 6.0.1
       odiff-bin:
         specifier: ^4.3.2
         version: 4.3.2
@@ -7102,8 +7102,8 @@ packages:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
     engines: {node: '>=6'}
 
-  knip@6.0.0:
-    resolution: {integrity: sha512-5jQORgiHvO+9UiqmzZeyixg9Mc56A1Bze3sVI5XXeXy8tdh+CDD1SovjTc9CEKovJoM2NgZ3E58ZozYT8xrepA==}
+  knip@6.0.1:
+    resolution: {integrity: sha512-qk5m+w6IYEqfRG5546DXZJYl5AXsgFfDD6ULaDvkubqNtLye79sokBg3usURrWFjASMeQtvX19TfldU3jHkMNA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
 
@@ -17589,7 +17589,7 @@ snapshots:
 
   kleur@4.1.5: {}
 
-  knip@6.0.0:
+  knip@6.0.1:
     dependencies:
       '@nodelib/fs.walk': 1.2.8
       fast-glob: 3.3.3
