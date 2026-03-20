@@ -1,0 +1,428 @@
+---
+title: Navigation
+description: A two-tier navigation system consisting of a primary icon sidebar and a contextual secondary sidebar, adapting between desktop sidebar and mobile topbar layouts.
+category: navigation
+source: 'sentry/views/navigation'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/views/navigation/
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WAI-ARIA Navigation Landmark: https://www.w3.org/WAI/ARIA/apg/patterns/landmarks/examples/navigation.html
+---
+
+import {useState} from 'react';
+
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {
+  IconChevron,
+  IconCompass,
+  IconDashboard,
+  IconIssues,
+  IconSettings,
+  IconSiren,
+  IconStar,
+} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+import {Navigation} from 'sentry/views/navigation';
+import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {
+  PrimaryNavigationContext,
+  usePrimaryNavigation,
+} from 'sentry/views/navigation/primaryNavigationContext';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {
+  SecondaryNavigationContext,
+  SecondaryNavigationContextProvider,
+} from 'sentry/views/navigation/secondaryNavigationContext';
+
+export function MockPrimaryNav({
+  layout = 'sidebar',
+  activeGroup: defaultGroup = 'issues',
+  children,
+}) {
+  const [activeGroup, setActiveGroup] = useState(defaultGroup);
+  return (
+    <PrimaryNavigationContext.Provider
+      value={{
+        layout,
+        activeGroup,
+        setActiveGroup: group => group !== null && setActiveGroup(group),
+      }}
+    >
+      {children}
+    </PrimaryNavigationContext.Provider>
+  );
+}
+
+export function ActivePrimaryLink({group, ...props}) {
+  const {activeGroup, setActiveGroup} = usePrimaryNavigation();
+  return (
+    <PrimaryNavigation.Link
+      {...props}
+      aria-current={activeGroup === group ? 'page' : undefined}
+      onClick={() => setActiveGroup(group)}
+    />
+  );
+}
+
+export function MockSecondaryNav({view = 'expanded', children}) {
+  const [currentView, setCurrentView] = useState(view);
+  return (
+    <SecondaryNavigationContext.Provider
+      value={{view: currentView, setView: setCurrentView}}
+    >
+      {children}
+    </SecondaryNavigationContext.Provider>
+  );
+}
+
+Sentry's navigation is split into two sidebars that compose the full navigation experience:
+
+- **Primary** (`PrimaryNavigation.*`) — the narrow icon sidebar on the far left. Carries top-level destinations (Issues, Explore, Dashboards…) and footer utilities. Renders as a topbar on mobile.
+- **Secondary** (`SecondaryNavigation.*`) — the contextual sidebar that expands to the right of the primary. Shows subsections, views, and filters for the active primary group. Collapsible and resizable on desktop.
+
+Both namespaces export building-block components for composing navigation trees, plus layout containers (`Sidebar`, `Header`, `Body`) that handle the chrome.
+
+> [!NOTE]
+> Most components call `usePrimaryNavigation()` and `useSecondaryNavigation()` internally. Wrap demos in `MockPrimaryNav` / `MockSecondaryNav` (defined at the top of this file) to control layout and view state independently of the router.
+
+---
+
+## PrimaryNavigation
+
+The primary sidebar is composed from the following building blocks:
+
+- **`Sidebar`** — the outermost `<nav>` wrapper. Sets the fixed width, background, border, and `aria-label="Primary Navigation"` landmark.
+- **`SidebarHeader`** — reserves the top slot for the organization logo/dropdown. With the `page-frame` feature flag it renders as a bordered header at `PRIMARY_HEADER_HEIGHT`. Also renders a danger stripe for active superusers.
+- **`List` + `ListItem`** — semantic `<ul>`/`<li>` wrappers. `List` centers items on desktop and stretches them on mobile. `ListItem` scopes `IconDefaultsProvider` to the correct icon size.
+- **`Link`** — the primary navigational element. On desktop renders an icon above a label; on mobile renders them side by side. Active state shows a left-edge accent bar (or a bordered box in the `page-frame` variant). Requires `analyticsKey`, which is sent with every `navigation.primary_item_clicked` event.
+- **`Button`** — a non-navigational action button (e.g. search, help) in the same visual style as `Link`. Shows a tooltip on desktop. Accepts an `indicator` prop (`accent` / `warning` / `danger`) to overlay an unread dot badge.
+- **`ButtonFeatureBadge`** — an alpha/beta `FeatureBadge` absolutely positioned on top of a `Link`. Hidden when the `page-frame` flag is enabled.
+- **`ButtonBar`** — wraps the scraps `ButtonBar` with the correct `SizeProvider` for the current layout. Use inside `FooterItems` to group buttons with shared sizing.
+- **`Menu`** — a `DropdownMenu` trigger in the sidebar button style. Opens `right-end` on desktop, `bottom` on mobile. Accepts a `triggerWrap` for injecting a tour element without breaking the dropdown.
+- **`Separator`** — a full-width horizontal rule. Place inside a `ListItem` to divide sections.
+- **`FooterItems`** — pushes children to the bottom of the sidebar via `marginTop: auto`. On desktop wraps buttons in a vertical `ButtonBar`; on mobile renders a full-width stack. Use multiple `FooterItems` to create visually separate groups.
+- **`ButtonOverlay` + `usePrimaryNavigationButtonOverlay`** — a portal overlay (modal z-index, `FocusScope`) for floating panels triggered from footer buttons. The hook wires up positioning (`right-end` on desktop, `bottom` on mobile) with `isDismissable: true`.
+
+## SecondaryNavigation
+
+The secondary sidebar is composed from the following building blocks:
+
+- **`Sidebar`** — the resizable container. Persists width to `localStorage`, enforces min/max widths, and provides the `role="navigation" aria-label="Secondary Navigation"` landmark. Double-clicking the resize handle resets to `SECONDARY_SIDEBAR_WIDTH` (190px). Requires `NavigationTourProvider` — see the [Full Navigation](#full-navigation) demo below for correct composition.
+- **`Header`** — renders the section title and a collapse/expand toggle (hidden on mobile). Collapse state is persisted to `localStorage`.
+- **`Body`** — scrollable container (`overflow: auto`, `overscrollBehavior: contain`). All sections go inside `Body`.
+- **`Section`** — groups links under an optional title. When `collapsible` is `true` (default) and layout is `sidebar`, clicking the title toggles the section. Collapsed state is persisted to `localStorage` per `id`. Pass `trailingItems` for action buttons next to the title.
+- **`List` + `ListItem`** — semantic `<ul>`/`<li>` wrappers with margin/padding reset and `list-style-type: none`.
+- **`Link`** — navigational link with automatic active state detection via `isPrimaryNavigationLinkActive`. Accepts `leadingItems`, `trailingItems`, `activeTo`, `end`, and `isActive` to override detection.
+- **`Separator`** — a horizontal rule padded to `0 xl` for separating section groups within `Body`.
+- **`ProjectIcon`** — platform icon slot. Renders `IconMyProjects` (0 platforms), `IconAllProjects` (0 + `allProjects`), a single `PlatformIcon` (1 platform), or two overlapping `PlatformIcon`s (2+ platforms).
+- **`ReorderableList` + `ReorderableLink`** — `@dnd-kit`-powered drag-and-drop reordering. `ReorderableList` accepts an `items` array (each with an `id`), a render-function `children`, and an `onDragEnd` callback. `ReorderableLink` adds a grab handle that appears on hover/focus and is fully keyboard-accessible. Touch events are excluded from dragging so tap navigation works normally.
+- **`Indicator`** — a dot badge (`accent` / `warning` / `danger`) absolutely positioned at the top-right of its container.
+
+## Desktop Navigation
+
+The `Navigation` component composes both sidebars into the complete navigation experience. It handles:
+
+- Provider setup (`PrimaryNavigationContextProvider`, `NavigationTourProvider`)
+- Desktop vs. mobile layout switching based on viewport width
+- Collapsed secondary sidebar with peek-on-hover behavior
+- `SkipLink` for keyboard accessibility
+- Falling back to a user-only sidebar when no organization is present
+
+<Storybook.Demo maxHeight="60vh">
+  <Container border="primary" radius="md" overflow="auto" height="60vh">
+    <Navigation />
+  </Container>
+</Storybook.Demo>
+```jsx
+{/*
+  Navigation is a self-contained component. Drop it at the root layout level —
+  it manages all providers and layout switching internally.
+*/}
+<Navigation />
+```
+
+> [!NOTE]
+> `Navigation` calls `useOrganization({allowNull: true})`. When no organization is in context it renders a minimal user-only sidebar containing just the `UserDropdown`.
+
+## Mobile Navigation
+
+On narrow viewports the two-tier sidebar is replaced by `MobileNavigation`: a sticky topbar with an organization dropdown and a hamburger button. Tapping the hamburger opens a full-screen overlay that shows either the primary navigation items or, when a primary group is already active, the secondary navigation for that group. A back chevron in the secondary view returns to the primary list.
+
+The two frames below show both levels using `MockPrimaryNav layout="mobile"`, rendering each view directly without the portal overlay so both are visible at once.
+
+<Storybook.Demo>
+  {() => {
+    const [mobileProjects, setMobileProjects] = useState([
+      {id: 'all', label: 'My Projects', platforms: [], allProjects: true},
+      {id: 'my', label: 'My Projects', platforms: []},
+      {id: 'frontend', label: 'Frontend', platforms: ['javascript', 'python']},
+      {id: 'backend', label: 'Backend', platforms: ['python']},
+    ]);
+    return (
+      <NavigationTourProvider>
+        <Flex gap="xl" align="start" justify="center">
+          <Flex direction="column" gap="xs" align="center">
+            <Text size="sm" bold>
+              Primary
+            </Text>
+            <MockPrimaryNav layout="mobile" activeGroup="issues">
+              <SecondaryNavigationContextProvider>
+                <Flex
+                  direction="column"
+                  border="primary"
+                  radius="md"
+                  overflow="auto"
+                  width="320px"
+                  height="480px"
+                  background="tertiary"
+                >
+                  <PrimaryNavigation.List>
+                    <PrimaryNavigation.ListItem>
+                      <ActivePrimaryLink
+                        group="issues"
+                        to="/issues/"
+                        analyticsKey="issues"
+                        label="Issues"
+                      >
+                        <IconIssues />
+                      </ActivePrimaryLink>
+                    </PrimaryNavigation.ListItem>
+                    <PrimaryNavigation.ListItem>
+                      <ActivePrimaryLink
+                        group="explore"
+                        to="/explore/"
+                        analyticsKey="explore"
+                        label="Explore"
+                      >
+                        <IconCompass />
+                      </ActivePrimaryLink>
+                    </PrimaryNavigation.ListItem>
+                    <PrimaryNavigation.ListItem>
+                      <ActivePrimaryLink
+                        group="dashboards"
+                        to="/dashboards/"
+                        analyticsKey="dashboards"
+                        label="Dashboards"
+                      >
+                        <IconDashboard />
+                      </ActivePrimaryLink>
+                    </PrimaryNavigation.ListItem>
+                    <PrimaryNavigation.ListItem>
+                      <ActivePrimaryLink
+                        group="monitors"
+                        to="/monitors/"
+                        analyticsKey="monitors"
+                        label="Monitors"
+                      >
+                        <IconSiren />
+                      </ActivePrimaryLink>
+                    </PrimaryNavigation.ListItem>
+                    <PrimaryNavigation.ListItem>
+                      <ActivePrimaryLink
+                        group="settings"
+                        to="/settings/"
+                        analyticsKey="settings"
+                        label="Settings"
+                      >
+                        <IconSettings />
+                      </ActivePrimaryLink>
+                    </PrimaryNavigation.ListItem>
+                  </PrimaryNavigation.List>
+                  <Stack marginTop="auto" gap="md" paddingBottom="md">
+                    <PrimaryNavigation.FooterItems>
+                      <PrimaryNavigation.Menu
+                        analyticsKey="help"
+                        label="Help"
+                        icon={<IconSettings />}
+                        items={[
+                          {key: 'docs', label: 'Documentation'},
+                          {key: 'support', label: 'Support'},
+                        ]}
+                      />
+                      <PrimaryNavigation.Button
+                        analyticsKey="whats_new"
+                        label="What's New"
+                        indicator="accent"
+                        buttonProps={{icon: <IconStar />}}
+                      />
+                    </PrimaryNavigation.FooterItems>
+                  </Stack>
+                </Flex>
+              </SecondaryNavigationContextProvider>
+            </MockPrimaryNav>
+          </Flex>
+          <Flex direction="column" gap="xs" align="center">
+            <Text size="sm" bold>
+              Secondary
+            </Text>
+            <MockPrimaryNav layout="mobile" activeGroup="issues">
+              <MockSecondaryNav>
+                <Grid
+                  border="primary"
+                  radius="md"
+                  overflow="hidden"
+                  width="320px"
+                  height="480px"
+                  background="tertiary"
+                  areas={`"header" "content"`}
+                  columns="1fr"
+                  rows="auto 1fr"
+                >
+                  <Flex as="header" area="header" padding="md">
+                    <Button
+                      size="xs"
+                      priority="transparent"
+                      icon={<IconChevron direction="left" />}
+                      aria-label="Back to primary navigation"
+                    >
+                      Back
+                    </Button>
+                  </Flex>
+                  <Stack area="content" justify="start" align="stretch" overflowY="auto">
+                    <SecondaryNavigation.Header>Issues</SecondaryNavigation.Header>
+                    <SecondaryNavigation.Body>
+                      <SecondaryNavigation.Section id="mobile-feed">
+                        <SecondaryNavigation.List>
+                          <SecondaryNavigation.ListItem>
+                            <SecondaryNavigation.Link to="/issues/" isActive>
+                              Feed
+                            </SecondaryNavigation.Link>
+                          </SecondaryNavigation.ListItem>
+                          <SecondaryNavigation.ListItem>
+                            <SecondaryNavigation.Link
+                              to="/issues/errors/"
+                              isActive={false}
+                            >
+                              Errors
+                            </SecondaryNavigation.Link>
+                          </SecondaryNavigation.ListItem>
+                          <SecondaryNavigation.ListItem>
+                            <SecondaryNavigation.Link
+                              to="/issues/feedback/"
+                              isActive={false}
+                            >
+                              User Feedback
+                            </SecondaryNavigation.Link>
+                          </SecondaryNavigation.ListItem>
+                        </SecondaryNavigation.List>
+                      </SecondaryNavigation.Section>
+                      <SecondaryNavigation.Separator />
+                      <SecondaryNavigation.Section
+                        id="mobile-projects"
+                        title="Projects"
+                        collapsible
+                      >
+                        <SecondaryNavigation.List>
+                          <SecondaryNavigation.ListItem>
+                            <SecondaryNavigation.Link
+                              to="/issues/?project=backend"
+                              isActive={false}
+                              leadingItems={
+                                <SecondaryNavigation.ProjectIcon
+                                  projectPlatforms={['-1']}
+                                />
+                              }
+                            >
+                              My Projects
+                            </SecondaryNavigation.Link>
+                          </SecondaryNavigation.ListItem>
+                          <SecondaryNavigation.ListItem>
+                            <SecondaryNavigation.Link
+                              to="/issues/?project=backend"
+                              isActive={false}
+                              leadingItems={
+                                <SecondaryNavigation.ProjectIcon projectPlatforms={[]} />
+                              }
+                            >
+                              My Projects
+                            </SecondaryNavigation.Link>
+                          </SecondaryNavigation.ListItem>
+                          <SecondaryNavigation.ListItem>
+                            <SecondaryNavigation.Link
+                              to="/issues/?project=frontend"
+                              isActive={false}
+                              leadingItems={
+                                <SecondaryNavigation.ProjectIcon
+                                  projectPlatforms={['javascript', 'python']}
+                                />
+                              }
+                            >
+                              Frontend
+                            </SecondaryNavigation.Link>
+                          </SecondaryNavigation.ListItem>
+                          <SecondaryNavigation.ListItem>
+                            <SecondaryNavigation.Link
+                              to="/issues/?project=backend"
+                              isActive={false}
+                              leadingItems={
+                                <SecondaryNavigation.ProjectIcon
+                                  projectPlatforms={['python']}
+                                />
+                              }
+                            >
+                              Backend
+                            </SecondaryNavigation.Link>
+                          </SecondaryNavigation.ListItem>
+                        </SecondaryNavigation.List>
+                      </SecondaryNavigation.Section>
+                      <SecondaryNavigation.Section
+                        id="mobile-projects"
+                        title="Projects"
+                        collapsible
+                      >
+                        <SecondaryNavigation.ReorderableList
+                          items={mobileProjects}
+                          onDragEnd={setMobileProjects}
+                        >
+                          {item => (
+                            <SecondaryNavigation.ReorderableLink
+                              to={`/issues/?project=${item.id}`}
+                              isActive={false}
+                              icon={
+                                <SecondaryNavigation.ProjectIcon
+                                  projectPlatforms={item.platforms}
+                                  allProjects={item.allProjects}
+                                />
+                              }
+                            >
+                              {item.label}
+                            </SecondaryNavigation.ReorderableLink>
+                          )}
+                        </SecondaryNavigation.ReorderableList>
+                      </SecondaryNavigation.Section>
+                    </SecondaryNavigation.Body>
+                  </Stack>
+                </Grid>
+              </MockSecondaryNav>
+            </MockPrimaryNav>
+          </Flex>
+        </Flex>
+      </NavigationTourProvider>
+    );
+  }}
+</Storybook.Demo>
+```jsx
+{/*
+  In production, MobileNavigation is rendered automatically by Navigation
+  when the viewport is narrower than the md breakpoint.
+*/}
+<Navigation />
+```
+
+> [!NOTE]
+> The hamburger opens to the **secondary** level directly when a primary group is already active (i.e. the user is on an Issues, Explore, etc. page). Tapping the back chevron returns to the primary list.
+
+## Accessibility
+
+Both navigation sidebars meet [WCAG 2.2 AA](https://www.w3.org/TR/WCAG22/) standards:
+
+- **Landmark roles**: `PrimaryNavigation.Sidebar` renders `<nav aria-label="Primary Navigation">` and `SecondaryNavigation.Sidebar` renders `role="navigation" aria-label="Secondary Navigation"`, giving screen readers two distinct navigation landmarks.
+- **Active state**: Active links use both `aria-current="page"` and `aria-selected="true"` to communicate selection to assistive technologies.
+- **Keyboard navigation**: The drag-and-drop `ReorderableList` supports full keyboard reordering (Space/Enter to pick up, Arrow keys to move, Space/Enter to drop). Page scroll is locked during keyboard drag.
+- **Skip link**: A visually hidden "Skip to main content" link (`SkipLink`) is inserted before the primary sidebar on desktop and revealed on focus.
+- **Focus management**: `ButtonOverlay` wraps its content in `FocusScope` with `autoFocus` and `restoreFocus`, so focus is trapped in the overlay and returns to the trigger on close.

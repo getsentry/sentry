@@ -27,7 +27,7 @@ interface PrimaryNavigationContext {
   setActiveGroup: (group: NavigationGroup | null) => void;
 }
 
-const PrimaryNavigationContext = createContext<PrimaryNavigationContext>({
+export const PrimaryNavigationContext = createContext<PrimaryNavigationContext>({
   layout: 'sidebar',
   activeGroup: 'issues',
   setActiveGroup: () => {},
