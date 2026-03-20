@@ -2639,3 +2639,53 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             {"key": "project.id", "value": str(self.project.id)},
             {"key": "project.name", "value": self.project.slug},
         ]
+
+    def test_group_by_http_response_status_code(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    start_ts=self.start + timedelta(minutes=1),
+                    measurements={"http.response.status_code": {"value": 200}},
+                ),
+                self.create_span(
+                    {"description": "bar"},
+                    start_ts=self.start + timedelta(minutes=1),
+                    measurements={"http.response.status_code": {"value": 200}},
+                ),
+                self.create_span(
+                    {"description": "baz"},
+                    start_ts=self.start + timedelta(minutes=1),
+                    measurements={"http.response.status_code": {"value": 404}},
+                ),
+            ],
+        )
+
+        self.end = self.start + timedelta(minutes=6)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "count()",
+                "groupBy": ["http.response_status_code", "count()"],
+                "orderby": ["-count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 0,
+                "topEvents": 5,
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        time_series_by_status = {
+            ts["groupBy"][0]["value"]: ts
+            for ts in response.data["timeSeries"]
+            if ts["groupBy"] is not None
+        }
+        assert time_series_by_status["200"]["groupBy"] == [
+            {"key": "http.response_status_code", "value": "200"}
+        ]
+        assert time_series_by_status["404"]["groupBy"] == [
+            {"key": "http.response_status_code", "value": "404"}
+        ]

@@ -1,8 +1,11 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -10,12 +13,14 @@ import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
   useMetricName,
@@ -31,6 +36,7 @@ import {
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
@@ -54,11 +60,13 @@ interface MetricsGraphProps {
   additionalActions?: React.ReactNode;
   infoContentHidden?: boolean;
   isMetricOptionsEmpty?: boolean;
+  queryIndex?: number;
 }
 
 export function MetricsGraph({
   timeseriesResult,
   orientation,
+  queryIndex = 0,
   additionalActions,
   infoContentHidden,
   isMetricOptionsEmpty,
@@ -88,6 +96,7 @@ export function MetricsGraph({
       additionalActions={additionalActions}
       infoContentHidden={infoContentHidden}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
+      queryIndex={queryIndex}
     />
   );
 }
@@ -107,7 +116,9 @@ function Graph({
   infoContentHidden,
   additionalActions,
   isMetricOptionsEmpty,
+  queryIndex = 0,
 }: GraphProps) {
+  const organization = useOrganization();
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const metricLabel = useMetricLabel();
@@ -176,7 +187,26 @@ function Graph({
     return metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
   }, [aggregate, metricLabel, metricName, visualizes.length]);
 
-  const Title = <Widget.WidgetTitle title={chartTitle} />;
+  const Title = canUseMetricsUIRefresh(organization) ? (
+    <Flex align="center" gap="xs">
+      <VisualizeLabel
+        justify="center"
+        align="center"
+        radius="md"
+        paddingLeft="sm"
+        paddingRight="sm"
+        paddingTop="xs"
+        paddingBottom="xs"
+      >
+        <Text bold variant="accent">
+          {getVisualizeLabel(queryIndex)}
+        </Text>
+      </VisualizeLabel>
+      <Widget.WidgetTitle title={chartTitle} />
+    </Flex>
+  ) : (
+    <Widget.WidgetTitle title={chartTitle} />
+  );
 
   const chartIcon =
     visualize.chartType === ChartType.LINE
@@ -230,8 +260,21 @@ function Graph({
   const showEmptyState = isMetricOptionsEmpty && visualize.visible;
   const showChart = visualize.visible && !isMetricOptionsEmpty;
 
+  let height: number | undefined = MINIMIZED_GRAPH_HEIGHT;
+  if (visualize.visible) {
+    if (orientation === 'bottom' || infoContentHidden) {
+      height = STACKED_GRAPH_HEIGHT;
+    } else if (canUseMetricsUIRefresh(organization)) {
+      height = STACKED_GRAPH_HEIGHT;
+    } else {
+      height = undefined;
+    }
+  }
+
   return (
-    <WidgetWrapper hideFooterBorder={orientation === 'bottom'}>
+    <WidgetWrapper
+      hideFooterBorder={orientation === 'bottom' || canUseMetricsUIRefresh(organization)}
+    >
       <Widget
         Title={Title}
         Actions={Actions}
@@ -263,16 +306,14 @@ function Graph({
             />
           )
         }
-        height={
-          visualize.visible
-            ? orientation === 'bottom' || infoContentHidden
-              ? STACKED_GRAPH_HEIGHT
-              : undefined
-            : MINIMIZED_GRAPH_HEIGHT
-        }
+        height={height}
         revealActions="always"
         borderless
       />
     </WidgetWrapper>
   );
 }
+
+const VisualizeLabel = styled(Flex)`
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+`;

@@ -1,12 +1,13 @@
 import logging
 
+from taskbroker_client.retry import Retry
+
 from sentry.codecov.client import CodecovApiClient, ConfigurationError, GitProvider
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
-from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
