@@ -173,8 +173,8 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
-        raw_response: Literal[True] = ...,
         force_raise_for_status: bool = False,
+        raw_response: Literal[True] = ...,
     ) -> Response: ...
 
     @overload
@@ -192,8 +192,8 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
-        raw_response: bool = ...,
         force_raise_for_status: bool = False,
+        raw_response: bool = ...,
     ) -> Any: ...
 
     def _request(
@@ -210,8 +210,8 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
-        raw_response: bool = False,
         force_raise_for_status: bool = False,
+        raw_response: bool = False,
     ) -> Any | Response:
         if allow_redirects is None:
             allow_redirects = self.allow_redirects
