@@ -284,6 +284,7 @@ class RuleSerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
         from sentry.rules.conditions.event_frequency import EventFrequencyPercentCondition
+        # imported here due to circular dependency
 
         # Mark that we're using legacy Rule models
         report_used_legacy_models()
@@ -296,9 +297,11 @@ class RuleSerializer(Serializer):
             # WorkflowEngineRuleSerializer normalizes integer-valued floats to int when
             # rendering labels. Normalize here so both serializers produce consistent labels.
             normalized_value = normalized_data_condition.get("value")
-            if normalized_data_condition.get(
-                "id"
-            ) == EventFrequencyPercentCondition.id and isinstance(normalized_value, float):
+            if (
+                normalized_data_condition.get("id") == EventFrequencyPercentCondition.id
+                and isinstance(normalized_value, float)
+                and normalized_value.is_integer()
+            ):
                 normalized_data_condition["value"] = int(normalized_value)
             all_conditions.append(
                 dict(
