@@ -1,4 +1,5 @@
 import {Activity, useMemo, useRef, type ComponentType} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -113,10 +114,10 @@ const FramesPanel = styled(Panel)<{borderless: boolean}>`
   margin-bottom: 0;
   ${p =>
     p.borderless &&
-    `
-    border: 0;
-    border-radius: 0;
-  `}
+    css`
+      border: 0;
+      border-radius: 0;
+    `}
 
   > * + * {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};

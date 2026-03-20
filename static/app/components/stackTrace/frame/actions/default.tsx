@@ -13,15 +13,11 @@ import {t, tn} from 'sentry/locale';
 import {ChevronAction} from './chevron';
 import {HiddenFramesToggleAction} from './hiddenFramesToggle';
 
-interface DefaultFrameActionsProps {
-  isHovering: boolean;
-}
-
 /**
  * Default trailing actions rendered for every frame row:
  * hidden-frames toggle, repeated-frame badge, in-app badge, and chevron.
  */
-export function DefaultFrameActions({isHovering: _isHovering}: DefaultFrameActionsProps) {
+export function DefaultFrameActions() {
   const {hasAnyExpandableFrames} = useStackTraceContext();
   const {frame, hiddenFrameCount, timesRepeated} = useStackTraceFrameContext();
 
