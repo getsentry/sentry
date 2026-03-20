@@ -89,22 +89,25 @@ const args = process.argv.slice(2);
 
 if (args.includes('--help') || args.includes('-h')) {
   const bin = path.basename(process.argv[1] ?? '');
-  console.log(`Usage: node ${bin} [OPTIONS] --<param> <value> [...]
-
-Parse Sentry routes and build navigable URLs.
-
-Options:
-  --origin <url>    Base URL (default: ${DEFAULT_ORIGIN})
-  --all             Show all routes without param filtering
-  --defaults        Fill unresolved :params with fixture defaults
-  --help            Show this help
-
-Examples:
-  node ${bin} --orgId sentry
-  node ${bin} --orgId sentry --defaults
-  node ${bin} --orgId sentry --projectId project-slug
-  node ${bin} --origin https://sentry.io --orgId sentry --defaults
-  node ${bin} --all --defaults`);
+  const help = [
+    `Usage: node ${bin} [OPTIONS] --<param> <value> [...]`,
+    ``,
+    `Parse Sentry routes and build navigable URLs.`,
+    ``,
+    `Options:`,
+    `  --origin <url>    Base URL (default: ${DEFAULT_ORIGIN})`,
+    `  --all             Show all routes without param filtering`,
+    `  --defaults        Fill unresolved :params with fixture defaults`,
+    `  --help            Show this help`,
+    ``,
+    `Examples:`,
+    `  node ${bin} --orgId sentry`,
+    `  node ${bin} --orgId sentry --defaults`,
+    `  node ${bin} --orgId sentry --projectId project-slug`,
+    `  node ${bin} --origin https://sentry.io --orgId sentry --defaults`,
+    `  node ${bin} --all --defaults`,
+  ].join('\n');
+  console.log(help);
   process.exit(0);
 }
 
