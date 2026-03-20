@@ -17,7 +17,7 @@ export function DeleteMetricButton() {
         icon={<IconDelete />}
         size="zero"
         onClick={removeMetric}
-        aria-label={t('Remove Overlay')}
+        aria-label={t('Delete Metric')}
       />
     );
   }
