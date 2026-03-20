@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -334,7 +333,7 @@ export default function IntegrationDetailedView() {
         organization.features.includes('slack-staging-app');
 
       return (
-        <Flex gap="sm">
+        <Flex gap="md">
           {showStagingButton && (
             <IntegrationContext
               value={{
@@ -349,7 +348,7 @@ export default function IntegrationDetailedView() {
                 },
               }}
             >
-              <StyledIntegrationButton
+              <IntegrationButton
                 userHasAccess={userHasAccess}
                 onAddIntegration={onInstall}
                 onExternalClick={() => {
@@ -381,7 +380,7 @@ export default function IntegrationDetailedView() {
               },
             }}
           >
-            <StyledIntegrationButton
+            <IntegrationButton
               userHasAccess={userHasAccess}
               onAddIntegration={onInstall}
               onExternalClick={() => {
@@ -686,7 +685,3 @@ export default function IntegrationDetailedView() {
     </SentryDocumentTitle>
   );
 }
-
-const StyledIntegrationButton = styled(IntegrationButton)`
-  margin-bottom: ${p => p.theme.space.md};
-`;
