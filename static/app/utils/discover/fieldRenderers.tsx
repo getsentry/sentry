@@ -64,7 +64,10 @@ import {
   findLinkedDashboardForField,
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
-import {NUMBER_MAX_FRACTION_DIGITS} from 'sentry/views/dashboards/widgets/common/settings';
+import {
+  NUMBER_MAX_FRACTION_DIGITS,
+  NUMBER_MIN_VALUE,
+} from 'sentry/views/dashboards/widgets/common/settings';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -303,18 +306,30 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   number: {
     isSortable: true,
-    renderFunc: (field, data) => (
-      <NumberContainer>
-        {typeof data[field] === 'number'
-          ? formatFloat(data[field], NUMBER_MAX_FRACTION_DIGITS).toLocaleString(
-              undefined,
-              {
-                maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
-              }
-            )
-          : emptyValue}
-      </NumberContainer>
-    ),
+    renderFunc: (field, data) => {
+      if (typeof data[field] !== 'number') {
+        return <NumberContainer>{emptyValue}</NumberContainer>;
+      }
+      if (data[field] > 0 && data[field] < NUMBER_MIN_VALUE) {
+        return (
+          <NumberContainer>
+            <Tooltip title={data[field].toString()}>
+              <span>{data[field].toExponential(1)}</span>
+            </Tooltip>
+          </NumberContainer>
+        );
+      }
+      return (
+        <NumberContainer>
+          {formatFloat(data[field], NUMBER_MAX_FRACTION_DIGITS).toLocaleString(
+            undefined,
+            {
+              maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
+            }
+          )}
+        </NumberContainer>
+      );
+    },
   },
   percentage: {
     isSortable: true,
