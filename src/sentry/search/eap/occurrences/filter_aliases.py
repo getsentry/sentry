@@ -5,7 +5,12 @@ from sentry.search.events.types import SnubaParams
 
 
 def issue_filter_converter(params: SnubaParams, search_filter: SearchFilter) -> list[SearchFilter]:
-    if params.organization.id is None:
+    """
+    Transforms the issue filters to group id filters.
+    has: issue, i.e. "issue" != "" ==> group_id != ""
+    issue:<Issue_tag> ==> "group_id" == <ISSUE's group_id>
+    """
+    if params.organization_id is None:
         raise InvalidSearchQuery("filter: issue required organization id")
     value = search_filter.value.value
 
@@ -18,7 +23,6 @@ def issue_filter_converter(params: SnubaParams, search_filter: SearchFilter) -> 
         except Group.DoesNotExist:
             raise InvalidSearchQuery(f"Invalid value: '{value}' for issue filter")
     key = SearchKey("group_id")
-    # Nit: assert for "has issue", operator should be "!=" and value should be "".
     return [SearchFilter(key=key, operator=search_filter.operator, value=SearchValue(value))]
 
 
