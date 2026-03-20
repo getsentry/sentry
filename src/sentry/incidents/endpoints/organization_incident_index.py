@@ -135,7 +135,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             elif query_status == "closed":
                 incidents = incidents.filter(status=IncidentStatus.CLOSED.value)
 
-        if len(teams) > 0:
+        if teams:
             try:
                 teams_query, unassigned = parse_team_params(request, organization, teams)
             except InvalidParams as err:

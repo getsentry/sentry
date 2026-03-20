@@ -12,6 +12,7 @@ from sentry.incidents.endpoints.serializers.incident import (
 )
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod, IncidentType
+from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
@@ -38,6 +39,7 @@ class WorkflowEngineIncidentSerializer(Serializer):
     priority_to_incident_status: ClassVar[dict[int, int]] = {
         PriorityLevel.HIGH.value: IncidentStatus.CRITICAL.value,
         PriorityLevel.MEDIUM.value: IncidentStatus.WARNING.value,
+        PriorityLevel.LOW.value: IncidentStatus.OPEN.value,
     }
 
     def get_incident_status(self, priority: int | None, date_ended: datetime | None) -> int:
@@ -118,10 +120,9 @@ class WorkflowEngineIncidentSerializer(Serializer):
             "group", "detector"
         )
 
-        groups_to_detectors = {}
-        for dg in detector_groups:
-            if dg.detector is not None:
-                groups_to_detectors[dg.group] = dg.detector
+        groups_to_detectors: dict[Group, Detector] = {
+            dg.group: dg.detector for dg in detector_groups if dg.detector is not None
+        }
 
         open_periods_to_detectors = {}
         for group in group_to_open_periods:
