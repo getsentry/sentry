@@ -28,7 +28,6 @@ from sentry.api.event_search import (
     parse_search_query,
     SearchFilter,
 )
-from sentry.utils.snuba_rpc import SnubaRPCError
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.utils import snuba_rpc
@@ -88,7 +87,7 @@ def _check_if_bool(meta: RequestMeta, name: str, bool_cache: dict[str, bool]) ->
         bool_cache[name] = (
             len(rpc_response.attributes) == 1 and rpc_response.attributes[0].name == name
         )
-    except SnubaRPCError as error:
+    except Exception as error:
         logger.exception(
             "Error retrieving attribute info",
             extra={
