@@ -183,13 +183,14 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         Workflow Engine-based implementation that queries GroupOpenPeriod instead of Incident.
         """
         # Base query: GroupOpenPeriod for MetricIssue groups in the organization's projects.
-        # Require a DetectorGroup to exist — open periods without one can't be serialized
-        # (the serializer maps group -> detector via DetectorGroup).
+        # Require a DetectorGroup with a non-null detector — open periods without one
+        # can't be serialized (the serializer maps group -> detector via DetectorGroup).
+        # DetectorGroup.detector is nullable (SET_NULL on delete), so filter on the FK.
         open_periods = GroupOpenPeriod.objects.filter(
             project__organization=organization,
             project__in=projects,
             group__type=MetricIssue.type_id,
-            group__detectorgroup__isnull=False,
+            group__detectorgroup__detector__isnull=False,
         ).select_related("group", "project__organization")
 
         # Environment filter

@@ -375,6 +375,12 @@ class WorkflowEngineIncidentListTest(APITestCase):
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=detector.workflow_condition_group,
         )
+        self.create_data_condition(
+            type=Condition.LESS,
+            comparison=5,
+            condition_result=DetectorPriorityLevel.OK,
+            condition_group=detector.workflow_condition_group,
+        )
 
         with self.tasks():
             snuba_query = create_snuba_query(
@@ -405,7 +411,6 @@ class WorkflowEngineIncidentListTest(APITestCase):
             group.priority = PriorityLevel.MEDIUM.value
             group.save()
             self.create_detector_group(detector=detector, group=group)
-            GroupOpenPeriod.objects.create(project=self.project, group=group)
 
         resp = self.get_success_response(self.organization.slug)
         assert len(resp.data) == 1
