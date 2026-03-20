@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
@@ -40,6 +39,8 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     setSelectedFeatures,
   } = useOnboardingContext();
 
+  const [showManualPicker, setShowManualPicker] = useState(false);
+
   const platformsByKey = useMemo(() => new Map(platforms.map(p => [p.id, p])), []);
 
   const getPlatformInfo = useCallback(
@@ -62,8 +63,10 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     (platformKey: PlatformKey) => {
       const platformInfo = getPlatformInfo(platformKey);
       if (platformInfo) {
+        const {id: _id, ...platformInfoSelect} = platformInfo;
+
         setSelectedPlatform({
-          ...omit(platformInfo, 'id'),
+          ...platformInfoSelect,
           key: platformInfo.id,
           category: 'popular',
         });
@@ -76,8 +79,6 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   const {detectedPlatforms, isPending: isDetecting} = useScmPlatformDetection(
     hasScmConnected ? selectedRepository.id : undefined
   );
-
-  const [showManualPicker, setShowManualPicker] = useState(false);
 
   const currentFeatures = useMemo(
     () => selectedFeatures ?? [ProductSolution.ERROR_MONITORING],
