@@ -88,7 +88,7 @@ const DEFAULT_ORIGIN = 'http://dev.getsentry.net:7999';
 const args = process.argv.slice(2);
 
 if (args.includes('--help') || args.includes('-h')) {
-  const bin = path.basename(process.argv[1]);
+  const bin = path.basename(process.argv[1] ?? '');
   console.log(`Usage: node ${bin} [OPTIONS] --<param> <value> [...]
 
 Parse Sentry routes and build navigable URLs.
@@ -122,7 +122,7 @@ const knownKeys = new Set(['origin', 'all', 'defaults', 'help', 'h']);
 const knownStringKeys = new Set(['origin']);
 
 for (let i = 0; i < args.length; i++) {
-  const arg = args[i];
+  const arg = args[i]!;
   if (!arg.startsWith('--')) {
     console.error(`Unknown argument: ${arg}`);
     process.exit(1);
@@ -131,11 +131,11 @@ for (let i = 0; i < args.length; i++) {
   if (knownStringKeys.has(key)) {
     i++; // skip the value; parseArgs will handle it
   } else if (!knownKeys.has(key)) {
-    if (i + 1 >= args.length || args[i + 1].startsWith('--')) {
+    if (i + 1 >= args.length || args[i + 1]!.startsWith('--')) {
       console.error(`Error: --${key} requires a value`);
       process.exit(1);
     }
-    userParams[key] = args[i + 1];
+    userParams[key] = args[i + 1]!;
     i++;
   }
 }
@@ -146,7 +146,7 @@ const showAll = (values.all as boolean) ?? false;
 const useDefaults = (values.defaults as boolean) ?? false;
 
 if (!showAll && Object.keys(userParams).length === 0 && !useDefaults) {
-  const bin = path.basename(process.argv[1]);
+  const bin = path.basename(process.argv[1] ?? '');
   console.error(`Usage: node ${bin} [OPTIONS] --<param> <value> [...]`);
   console.error(`Run with --help for full usage.`);
   process.exit(1);
@@ -213,7 +213,7 @@ function resolveTemplate(expr: string): string {
   return expr.replace(/\$\{([^}]+)\}/g, (_, inner: string) => {
     const key = inner.trim();
     if (CONSTANTS[key] !== undefined) return CONSTANTS[key];
-    const hint = key.split(/[.[(\s]/)[0].trim();
+    const hint = (key.split(/[.[(\s]/)[0] ?? key).trim();
     return `<${hint}>`;
   });
 }
@@ -400,21 +400,21 @@ for (const line of lines) {
   const templateMatch = line.match(/\bpath:\s*`([^`]+)`/);
 
   if (singleMatch) {
-    pathValue = singleMatch[1];
+    pathValue = singleMatch[1]!;
   } else if (doubleMatch) {
-    pathValue = doubleMatch[1];
+    pathValue = doubleMatch[1]!;
   } else if (templateMatch) {
-    pathValue = resolveTemplate(templateMatch[1]);
+    pathValue = resolveTemplate(templateMatch[1]!);
     hasUnknown = pathValue.includes('<');
   }
 
   if (pathValue === null) continue;
 
-  while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
+  while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) {
     stack.pop();
   }
 
-  const parent = stack.length > 0 ? stack[stack.length - 1].fullPath : '';
+  const parent = stack.length > 0 ? stack[stack.length - 1]!.fullPath : '';
   let fullPath: string;
   if (pathValue.startsWith('/')) {
     fullPath = pathValue;
