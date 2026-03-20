@@ -233,6 +233,7 @@ const FrameSourceLineNumber = styled('div')<{
     `}
 `;
 
+// overrides code[class*='language-'] in global.tsx
 const FrameSourceCode = styled('code')`
   color: ${p => p.theme.tokens.content.primary};
   font-family: ${p => p.theme.font.family.mono};
