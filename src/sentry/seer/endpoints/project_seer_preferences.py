@@ -24,9 +24,6 @@ from sentry.seer.autofix.utils import (
     write_preference_to_sentry_db,
 )
 from sentry.seer.endpoints.organization_autofix_automation_settings import (
-    BranchOverrideSerializer,
-)
-from sentry.seer.endpoints.organization_autofix_automation_settings import (
     RepositorySerializer as BaseRepositorySerializer,
 )
 from sentry.seer.models import PreferenceResponse, SeerApiError, SeerProjectPreference
@@ -40,7 +37,6 @@ logger = logging.getLogger(__name__)
 class RepositorySerializer(BaseRepositorySerializer):
     organization_id = serializers.IntegerField(required=True)
     integration_id = serializers.CharField(required=True)
-    branch_overrides = BranchOverrideSerializer(many=True, required=False, allow_null=True)
 
 
 class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
