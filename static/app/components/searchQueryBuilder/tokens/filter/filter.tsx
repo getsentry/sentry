@@ -203,7 +203,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch, asyncTokenWarnings} = useSearchQueryBuilder();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -227,12 +227,20 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
   const tokenHasError = 'invalid' in token && defined(token.invalid);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
+  const asyncWarning = asyncTokenWarnings?.[getKeyName(token.key)];
+  const tokenHasAsyncWarning = defined(asyncWarning);
 
   return (
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
-      state={tokenHasWarning ? 'warning' : tokenHasError ? 'invalid' : 'valid'}
+      state={
+        tokenHasWarning || tokenHasAsyncWarning
+          ? 'warning'
+          : tokenHasError
+            ? 'invalid'
+            : 'valid'
+      }
       ref={ref}
       {...modifiedRowProps}
     >
@@ -243,6 +251,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         columnCount={4}
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
+        asyncWarning={asyncWarning}
       >
         {token.filter === FilterType.IS || token.filter === FilterType.HAS ? null : (
           <BaseGridCell {...gridCellProps}>

@@ -126,11 +126,11 @@ export interface SearchQueryBuilderProps {
    * and display the returned keys alongside any static filterKeys.
    */
   getTagKeys?: GetTagKeys;
-
   /**
    * Allows for customization of the invalid token messages.
    */
   invalidMessages?: SearchConfig['invalidMessages'];
+
   label?: string;
   /**
    * Allows for key suggestions to be rendered when the value matches the pattern.
@@ -194,6 +194,14 @@ export interface SearchQueryBuilderProps {
    * to the left of the clear button.
    */
   trailingItems?: React.ReactNode;
+  /**
+   * Optional async function to validate filter keys in batch.
+   * Called with an array of unique filter key strings from the current query.
+   * Should return a map of key -> warning message for keys that fail validation.
+   * Keys not present in the returned record are considered valid.
+   * Results are displayed as warnings alongside any sync getFilterTokenWarning results.
+   */
+  validateFilterKeys?: (keys: string[]) => Promise<Record<string, React.ReactNode>>;
 }
 
 function ActionButtons({

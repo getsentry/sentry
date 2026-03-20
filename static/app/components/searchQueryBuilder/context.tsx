@@ -16,6 +16,7 @@ import type {
   SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
+import {useAsyncFilterKeyValidation} from 'sentry/components/searchQueryBuilder/hooks/useAsyncFilterKeyValidation';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
   useQueryBuilderState,
@@ -40,6 +41,7 @@ interface SearchQueryBuilderContextData {
   aiSearchBadgeType: 'alpha' | 'beta';
   askSeerNLQueryRef: React.RefObject<string | null>;
   askSeerSuggestedQueryRef: React.RefObject<string | null>;
+  asyncTokenWarnings: Record<string, React.ReactNode>;
   autoSubmitSeer: boolean;
   committedQuery: string;
   currentInputValueRef: React.RefObject<string>;
@@ -128,6 +130,7 @@ export function SearchQueryBuilderProvider({
   filterKeyAliases,
   caseInsensitive,
   onCaseInsensitiveClick,
+  validateFilterKeys,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -198,6 +201,8 @@ export function SearchQueryBuilderProvider({
 
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
 
+  const asyncTokenWarnings = useAsyncFilterKeyValidation(parsedQuery, validateFilterKeys);
+
   const previousQuery = usePrevious(state.query);
   const firstRender = useRef(true);
   useEffect(() => {
@@ -242,6 +247,7 @@ export function SearchQueryBuilderProvider({
     return {
       ...state,
       aiSearchBadgeType,
+      asyncTokenWarnings,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
@@ -284,6 +290,7 @@ export function SearchQueryBuilderProvider({
     };
   }, [
     aiSearchBadgeType,
+    asyncTokenWarnings,
     autoSubmitSeer,
     caseInsensitive,
     disabled,

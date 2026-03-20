@@ -14,20 +14,23 @@ interface InvalidTokenTooltipProps extends Omit<TooltipProps, 'title'> {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
   token: ParseResultToken;
+  asyncWarning?: ReactNode;
 }
 
 function getForceVisible({
   isFocused,
   isInvalid,
   hasWarning,
+  hasAsyncWarning,
   forceVisible,
 }: {
+  hasAsyncWarning: boolean;
   hasWarning: boolean;
   isFocused: boolean;
   isInvalid: boolean;
   forceVisible?: boolean;
 }) {
-  if (!isInvalid && !hasWarning) {
+  if (!isInvalid && !hasWarning && !hasAsyncWarning) {
     return false;
   }
 
@@ -44,12 +47,14 @@ export function InvalidTokenTooltip({
   state,
   item,
   forceVisible,
+  asyncWarning,
   ...tooltipProps
 }: InvalidTokenTooltipProps) {
   const invalid = 'invalid' in token ? token.invalid : null;
   const warning = 'warning' in token ? token.warning : null;
 
   const hasWarning = Boolean(warning);
+  const hasAsyncWarning = Boolean(asyncWarning);
   const isInvalid = Boolean(invalid);
   const isFocused =
     state.selectionManager.isFocused && state.selectionManager.focusedKey === item.key;
@@ -57,9 +62,15 @@ export function InvalidTokenTooltip({
   return (
     <Tooltip
       skipWrapper
-      forceVisible={getForceVisible({isFocused, isInvalid, hasWarning, forceVisible})}
+      forceVisible={getForceVisible({
+        isFocused,
+        isInvalid,
+        hasWarning,
+        hasAsyncWarning,
+        forceVisible,
+      })}
       position="bottom"
-      title={warning ?? invalid?.reason ?? t('This token is invalid')}
+      title={asyncWarning ?? warning ?? invalid?.reason ?? t('This token is invalid')}
       {...tooltipProps}
     >
       {children}
@@ -68,7 +79,6 @@ export function InvalidTokenTooltip({
 }
 
 type GridInvalidTokenTooltipProps = InvalidTokenTooltipProps & {
-  children: React.ReactNode;
   columnCount: number;
 };
 
