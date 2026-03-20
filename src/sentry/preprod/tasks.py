@@ -611,8 +611,9 @@ def _assemble_preprod_artifact_size_analysis(
                         },
                     )
 
-            # Fire webhook for analysis failure (comparison task won't be triggered)
-            send_size_analysis_webhook(artifact=preprod_artifact, organization_id=org_id)
+        # Fire webhook unconditionally — the comparison task won't run
+        # (re-raise below) so notify subscribers with whatever DB state exists.
+        send_size_analysis_webhook(artifact=preprod_artifact, organization_id=org_id)
 
         # Re-raise to trigger further error handling if needed
         raise
