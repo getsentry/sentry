@@ -1,4 +1,4 @@
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 /**

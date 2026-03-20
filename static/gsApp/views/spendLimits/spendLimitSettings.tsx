@@ -652,7 +652,7 @@ function BudgetModeSettings({
   );
 }
 
-function SpendLimitSettings({
+export function SpendLimitSettings({
   header,
   activePlan,
   onDemandBudgets,
@@ -703,8 +703,6 @@ function SpendLimitSettings({
     </Flex>
   );
 }
-
-export default SpendLimitSettings;
 
 const InnerContainer = styled(Flex)`
   border-bottom: 3px solid ${p => p.theme.tokens.border.primary};

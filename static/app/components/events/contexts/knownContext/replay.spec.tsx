@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ContextCard from 'sentry/components/events/contexts/contextCard';
+import {ContextCard} from 'sentry/components/events/contexts/contextCard';
 import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
 
 const REPLAY_ID = '61d2d7c5acf448ffa8e2f8f973e2cd36';

@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
-from sentry.issue_detection.grouptype import WebVitalsGroup
+from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.producer import PayloadType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature

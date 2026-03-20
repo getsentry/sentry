@@ -34,7 +34,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.types.region import subdomain_is_locality
+from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
@@ -161,6 +161,13 @@ class OrganizationIntegrationsLoosePermission(OrganizationPermission):
         "POST": ["org:read", "org:write", "org:admin", "org:integrations"],
         "PUT": ["org:read", "org:write", "org:admin", "org:integrations"],
         "DELETE": ["org:admin", "org:integrations"],
+    }
+
+
+class OrganizationCodeMappingsBulkPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
+        "POST": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
     }
 
 

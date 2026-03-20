@@ -58,7 +58,7 @@ import {
   isTrialPlan,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {withPromotions} from 'getsentry/utils/withPromotions';
 import {Cart} from 'getsentry/views/amCheckout/components/cart';
 import {CheckoutSuccess} from 'getsentry/views/amCheckout/components/checkoutSuccess';

@@ -14,10 +14,10 @@ import {
   updateProjects,
 } from 'sentry/components/pageFilters/actions';
 import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
 

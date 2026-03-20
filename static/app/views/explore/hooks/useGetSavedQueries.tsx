@@ -2,10 +2,11 @@ import {useCallback, useMemo} from 'react';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
@@ -167,6 +168,22 @@ export class SavedQuery {
 
 export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['dataset']) {
   return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];
+}
+
+export const MAX_STARRED_SAVED_QUERIES_IN_NAV = 20;
+
+export function getStarredSavedQueriesQueryKey(organization: Organization): ApiQueryKey {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+    {
+      query: {
+        per_page: MAX_STARRED_SAVED_QUERIES_IN_NAV,
+        starred: 1,
+      },
+    },
+  ];
 }
 
 type Props = {

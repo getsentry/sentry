@@ -97,7 +97,7 @@ type GridEditableProps<
   title?: ReactNode;
 };
 
-export default function GridEditable<
+export function GridEditable<
   DataRow extends Record<string, any>,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
   SortBy extends GridColumnSortBy<unknown> = GridColumnSortBy<keyof DataRow>,

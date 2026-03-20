@@ -386,6 +386,33 @@ def _analyze_progard_filename(filename: str | None) -> str | None:
         return None
 
 
+def get_debug_id_from_dif_request(name: str | None, debug_id: str | None) -> str | None:
+    """Returns the effective debug ID from assemble request metadata.
+
+    Most DIF uploads provide an explicit ``debug_id``. ProGuard mappings instead
+    encode it in the request ``name`` such as ``/proguard/mapping-<uuid>.txt``.
+    """
+    try:
+        normalized_id = normalize_debug_id(debug_id)
+    except SymbolicError:
+        normalized_id = None
+
+    return normalized_id or _analyze_progard_filename(name)
+
+
+def build_proguard_reupload_dif_meta(source_dif: ProjectDebugFile, debug_id: str) -> DifMeta:
+    """Builds trusted ProGuard metadata for cloning a row with a new debug ID."""
+    return DifMeta(
+        file_format="proguard",
+        arch=source_dif.cpu_name,
+        debug_id=debug_id,
+        code_id=source_dif.code_id,
+        path=source_dif.object_name,
+        name=source_dif.object_name,
+        data=source_dif.data,
+    )
+
+
 @cell_silo_model
 class ProguardArtifactRelease(Model):
     __relocation_scope__ = RelocationScope.Excluded

@@ -14,7 +14,7 @@ from sentry.integrations.slack.webhooks.action import (
     UNLINK_IDENTITY_MESSAGE,
 )
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.issue_detection.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider

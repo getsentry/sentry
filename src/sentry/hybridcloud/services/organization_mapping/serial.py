@@ -6,7 +6,7 @@ from sentry.hybridcloud.services.organization_mapping.model import CustomerId
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import RpcOrganizationMappingFlags
-from sentry.types.region import Cell
+from sentry.types.cell import Cell
 
 
 def update_organization_mapping_from_instance(

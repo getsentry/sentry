@@ -9,11 +9,12 @@ from django.utils import timezone
 from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issue_detection.grouptype import (
+from sentry.issues.grouptype import (
+    FeedbackGroup,
+    NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
-from sentry.issues.grouptype import FeedbackGroup, NoiseConfig
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.issues.issue_search import convert_query_values, issue_search_config, parse_search_query
 from sentry.models.environment import Environment
@@ -2628,6 +2629,34 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
 
         assert len(results) == 0
+
+    def test_issue_id_filter(self) -> None:
+        # issue.id must be applied to the postgres queryset so that candidates
+        # include the searched group. Without this, _preprocess_group_id_redirects
+        # can intersect postgres candidates with the snuba group_id condition
+        # and produce an empty IN clause that crashes ClickHouse.
+        # Single value syntax
+        results = self.make_query(
+            search_filter_query=f"issue.id:{self.group1.id}",
+        )
+        assert set(results) == {self.group1}
+
+        # List syntax
+        results = self.make_query(
+            search_filter_query=f"issue.id:[{self.group1.id}]",
+        )
+        assert set(results) == {self.group1}
+
+        results = self.make_query(
+            search_filter_query=f"issue.id:[{self.group1.id},{self.group2.id}]",
+        )
+        assert set(results) == {self.group1, self.group2}
+
+        # Non-existent group should return empty results (not crash)
+        results = self.make_query(
+            search_filter_query="issue.id:[999999999]",
+        )
+        assert set(results) == set()
 
 
 class EventsSnubaSearchTest(TestCase, EventsSnubaSearchTestCases):

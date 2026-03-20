@@ -7,8 +7,8 @@ import {Button} from '@sentry/scraps/button';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import Form from 'sentry/components/forms/form';
+import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {FormModel} from 'sentry/components/forms/model';
 import type {JsonFormObject} from 'sentry/components/forms/types';
@@ -16,7 +16,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,

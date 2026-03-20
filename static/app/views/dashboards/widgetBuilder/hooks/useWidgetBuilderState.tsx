@@ -8,7 +8,6 @@ import {
   getEquationAliasIndex,
   isAggregateFieldOrEquation,
   isEquationAlias,
-  type AggregationKeyWithAlias,
   type Column,
   type QueryFieldValue,
   type Sort,
@@ -26,7 +25,9 @@ import {
   DEFAULT_CATEGORICAL_BAR_LIMIT,
   DisplayType,
   WidgetType,
+  type LegendType,
   type LinkedDashboard,
+  type Widget,
 } from 'sentry/views/dashboards/types';
 import {
   doesDisplayTypeSupportThresholds,
@@ -42,11 +43,8 @@ import {
   DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-import {buildTraceMetricAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
-import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {SpanFields} from 'sentry/views/insights/types';
 
 // For issues dataset, events and users are sorted descending and do not use '-'
@@ -63,10 +61,15 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
 
 export const MAX_NUM_Y_AXES = 3;
 
-export const stateParamsNotInUrl: Array<keyof WidgetBuilderStateParams> = ['textContent'];
-
-const SESSION_STORAGE_CONTENT_KEY_MAP = {
-  textContent: 'dashboard:widget-builder:text-content',
+export const WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP: Record<
+  keyof WidgetBuilderStateLocalParams,
+  {key: string; storeCondition: (widget: Widget) => boolean; widgetField: keyof Widget}
+> = {
+  textContent: {
+    key: 'dashboard:widget-builder:text-content',
+    widgetField: 'description',
+    storeCondition: (widget: Widget) => widget.displayType === DisplayType.TEXT,
+  },
 };
 
 export type WidgetBuilderStateQueryParams = {
@@ -76,14 +79,19 @@ export type WidgetBuilderStateQueryParams = {
   displayType?: DisplayType;
   field?: string[];
   legendAlias?: string[];
+  legendType?: LegendType;
   limit?: number;
+  linkedDashboards?: string[];
   query?: string[];
   selectedAggregate?: number;
   sort?: string[];
   thresholds?: string;
   title?: string;
-  traceMetric?: string;
   yAxis?: string[];
+};
+
+export type WidgetBuilderStateLocalParams = {
+  textContent?: string;
 };
 
 /**
@@ -91,9 +99,8 @@ export type WidgetBuilderStateQueryParams = {
  * Used as the payload type for SET_STATE actions, where text widget content
  * must be carried in-memory without being written to the URL.
  */
-export type WidgetBuilderStateParams = WidgetBuilderStateQueryParams & {
-  textContent?: string;
-};
+export type WidgetBuilderStateParams = WidgetBuilderStateQueryParams &
+  WidgetBuilderStateLocalParams;
 
 export const BuilderStateAction = {
   SET_TITLE: 'SET_TITLE',
@@ -107,11 +114,11 @@ export const BuilderStateAction = {
   SET_LINKED_DASHBOARDS: 'SET_LINKED_DASHBOARDS',
   SET_LIMIT: 'SET_LIMIT',
   SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
+  SET_LEGEND_TYPE: 'SET_LEGEND_TYPE',
   SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
   SET_STATE: 'SET_STATE',
   SET_TEXT_CONTENT: 'SET_TEXT_CONTENT',
   SET_THRESHOLDS: 'SET_THRESHOLDS',
-  SET_TRACE_METRIC: 'SET_TRACE_METRIC',
   // Categorical bar chart specific actions
   SET_CATEGORICAL_X_AXIS: 'SET_CATEGORICAL_X_AXIS',
   SET_CATEGORICAL_AGGREGATE: 'SET_CATEGORICAL_AGGREGATE',
@@ -131,15 +138,15 @@ type WidgetAction =
   | {payload: LinkedDashboard[]; type: typeof BuilderStateAction.SET_LINKED_DASHBOARDS}
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
   | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
+  | {
+      payload: LegendType | undefined;
+      type: typeof BuilderStateAction.SET_LEGEND_TYPE;
+    }
   | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
   | {payload: WidgetBuilderStateParams; type: typeof BuilderStateAction.SET_STATE}
   | {
       payload: ThresholdsConfig | null | undefined;
       type: typeof BuilderStateAction.SET_THRESHOLDS;
-    }
-  | {
-      payload: TraceMetric | undefined;
-      type: typeof BuilderStateAction.SET_TRACE_METRIC;
     }
   | {
       payload: string;
@@ -176,6 +183,7 @@ export interface WidgetBuilderState {
    */
   fields?: Column[];
   legendAlias?: string[];
+  legendType?: LegendType;
   limit?: number;
   linkedDashboards?: LinkedDashboard[];
   query?: string[];
@@ -184,7 +192,6 @@ export interface WidgetBuilderState {
   textContent?: string;
   thresholds?: ThresholdsConfig | null;
   title?: string;
-  traceMetric?: TraceMetric;
   /**
    * Y-axis aggregates for time-series charts (area, bar, line).
    * Not used by tables, big numbers, or categorical bar widgets.
@@ -340,6 +347,10 @@ export function useWidgetBuilderState(): {
     fieldName: 'legendAlias',
     decoder: decodeList,
   });
+  const [legendType, setLegendType] = useQueryParamState<LegendType | undefined>({
+    fieldName: 'legendType',
+    deserializer: deserializeLegendType,
+  });
   const [selectedAggregate, setSelectedAggregate] = useQueryParamState<number>({
     fieldName: 'selectedAggregate',
     decoder: decodeScalar,
@@ -357,14 +368,6 @@ export function useWidgetBuilderState(): {
     deserializer: deserializeLinkedDashboards,
     serializer: serializeLinkedDashboards,
   });
-  // TraceMetric widgets only support a single metric at this time. All aggregates
-  // must be in reference to this metric.
-  const [traceMetric, setTraceMetric] = useQueryParamState<TraceMetric | undefined>({
-    fieldName: 'traceMetric',
-    decoder: decodeScalar,
-    deserializer: deserializeTraceMetric,
-    serializer: serializeTraceMetric,
-  });
   const [axisRange, setAxisRange] = useQueryParamState<AxisRange | undefined>({
     fieldName: 'axisRange',
     decoder: decodeScalar,
@@ -372,7 +375,7 @@ export function useWidgetBuilderState(): {
   });
   const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
     string | undefined
-  >(SESSION_STORAGE_CONTENT_KEY_MAP.textContent, undefined);
+  >(WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP.textContent.key, undefined);
 
   const state = useMemo(
     () => ({
@@ -387,9 +390,9 @@ export function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
+      legendType,
       thresholds,
       linkedDashboards,
-      traceMetric,
       axisRange,
       // The selected aggregate is the last aggregate for big number and categorical bar widgets
       // if it hasn't been explicitly set.
@@ -422,9 +425,9 @@ export function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
+      legendType,
       thresholds,
       linkedDashboards,
-      traceMetric,
       axisRange,
       selectedAggregate,
     ]
@@ -586,7 +589,6 @@ export function useWidgetBuilderState(): {
             setDataset(undefined, options);
             setLinkedDashboards([], options);
             setThresholds(undefined, options);
-            setTraceMetric(undefined, options);
             setAxisRange(undefined, options);
             setSelectedAggregate(undefined, options);
           } else {
@@ -622,6 +624,7 @@ export function useWidgetBuilderState(): {
           }
           if (!usesTimeSeriesData(action.payload)) {
             setAxisRange(undefined, options);
+            setLegendType(undefined, options);
           }
           setSelectedAggregate(undefined, options);
           setLinkedDashboards([], options);
@@ -712,6 +715,7 @@ export function useWidgetBuilderState(): {
 
           setThresholds(undefined, options);
           setAxisRange(undefined, options);
+          setLegendType(undefined, options);
           setQuery([config.defaultWidgetQuery.conditions], options);
           setLegendAlias([], options);
           setSelectedAggregate(undefined, options);
@@ -853,6 +857,11 @@ export function useWidgetBuilderState(): {
               options
             );
           }
+
+          // Reset legend breakdown when more than one column is selected
+          if (action.payload.length > 1 && legendType === 'breakdown') {
+            setLegendType(undefined, options);
+          }
           break;
         }
         case BuilderStateAction.SET_Y_AXIS: {
@@ -907,7 +916,7 @@ export function useWidgetBuilderState(): {
           break;
         }
         case BuilderStateAction.SET_LINKED_DASHBOARDS:
-          if (displayType === DisplayType.TABLE) {
+          if (displayType === DisplayType.TABLE || legendType === 'breakdown') {
             setLinkedDashboards(action.payload, options);
           } else {
             setLinkedDashboards([], options);
@@ -918,6 +927,12 @@ export function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_LEGEND_ALIAS:
           setLegendAlias(action.payload, options);
+          break;
+        case BuilderStateAction.SET_LEGEND_TYPE:
+          setLegendType(action.payload, options);
+          if (action.payload !== 'breakdown' && displayType !== DisplayType.TABLE) {
+            setLinkedDashboards([], options);
+          }
           break;
         case BuilderStateAction.SET_SELECTED_AGGREGATE:
           setSelectedAggregate(action.payload, options);
@@ -960,6 +975,7 @@ export function useWidgetBuilderState(): {
             setFields(deserializeFields(action.payload.field), options);
           }
           setLegendAlias(action.payload.legendAlias, options);
+          setLegendType(action.payload.legendType, options);
           setLimit(action.payload.limit, options);
           setQuery(action.payload.query, options);
           setSelectedAggregate(action.payload.selectedAggregate, options);
@@ -968,90 +984,19 @@ export function useWidgetBuilderState(): {
           if (action.payload.yAxis) {
             setYAxis(deserializeFields(action.payload.yAxis), options);
           }
-          if (action.payload.traceMetric) {
-            setTraceMetric(deserializeTraceMetric(action.payload.traceMetric), options);
-          }
           setAxisRange(getAxisRange(action.payload.axisRange), options);
+          if (action.payload.linkedDashboards) {
+            setLinkedDashboards(
+              deserializeLinkedDashboards(action.payload.linkedDashboards),
+              options
+            );
+          }
           break;
         case BuilderStateAction.SET_THRESHOLDS:
           setThresholds(action.payload, options);
           break;
         case BuilderStateAction.SET_AXIS_RANGE:
           setAxisRange(action.payload, options);
-          break;
-        case BuilderStateAction.SET_TRACE_METRIC:
-          if (dataset === WidgetType.TRACEMETRICS) {
-            setTraceMetric(action.payload, options);
-
-            if (!action.payload) {
-              break;
-            }
-
-            // Check the validity of the aggregates against the new trace metric and
-            // set fields and sorting accordingly
-            let updatedAggregates: Column[] = [];
-            const aggregateSource = usesTimeSeriesData(displayType) ? yAxis : fields;
-            const validAggregateOptions = OPTIONS_BY_TYPE[action.payload.type] ?? [];
-
-            const newTraceMetric = action.payload;
-            if (aggregateSource && validAggregateOptions.length > 0) {
-              updatedAggregates = aggregateSource.map(field => {
-                if (field.kind === 'function' && field.function?.[0]) {
-                  const aggregate = field.function[0];
-                  const isValid = validAggregateOptions.some(
-                    opt => opt.value === aggregate
-                  );
-
-                  if (!isValid) {
-                    // Replace with first valid aggregate
-                    return buildTraceMetricAggregate(
-                      validAggregateOptions[0]!.value as AggregationKeyWithAlias,
-                      newTraceMetric
-                    );
-                  }
-
-                  // Valid aggregate — update args with new trace metric info
-                  return buildTraceMetricAggregate(aggregate, newTraceMetric);
-                }
-                return field;
-              });
-
-              // Update the appropriate source
-              if (usesTimeSeriesData(displayType)) {
-                setYAxis(updatedAggregates, options);
-              } else {
-                setFields(updatedAggregates, options);
-              }
-            }
-
-            // Update the sort if the current sort is not used in
-            // any of the current fields
-            if (
-              sort &&
-              sort.length > 0 &&
-              !checkTraceMetricSortUsed(
-                sort,
-                // Depending on the display type, the updated aggregates can be either
-                // the yAxis or the fields
-                usesTimeSeriesData(displayType) ? updatedAggregates : yAxis,
-                usesTimeSeriesData(displayType) ? fields : updatedAggregates
-              )
-            ) {
-              if (updatedAggregates.length > 0) {
-                setSort(
-                  [
-                    {
-                      field: generateFieldAsString(updatedAggregates[0]!),
-                      kind: 'desc',
-                    },
-                  ],
-                  options
-                );
-              } else {
-                setSort([], options);
-              }
-            }
-          }
           break;
         case BuilderStateAction.SET_CATEGORICAL_X_AXIS:
           // Only applies to categorical bar charts
@@ -1243,6 +1188,7 @@ export function useWidgetBuilderState(): {
       displayType,
       setLimit,
       setLegendAlias,
+      setLegendType,
       setSelectedAggregate,
       fields,
       setDataset,
@@ -1258,8 +1204,8 @@ export function useWidgetBuilderState(): {
       sort,
       query,
       description,
-      setTraceMetric,
       limit,
+      legendType,
       linkedDashboards,
       selectedAggregate,
     ]
@@ -1327,7 +1273,9 @@ export function serializeFields(fields: Column[]): string[] {
   });
 }
 
-function serializeLinkedDashboards(linkedDashboards: LinkedDashboard[] = []): string[] {
+export function serializeLinkedDashboards(
+  linkedDashboards: LinkedDashboard[] = []
+): string[] {
   return linkedDashboards.map(linkedDashboard => {
     return JSON.stringify({
       dashboardId: linkedDashboard.dashboardId,
@@ -1393,6 +1341,15 @@ function deserializeSelectedAggregate(value: string): number | undefined {
   return decodeInteger(value);
 }
 
+const VALID_LEGEND_TYPES: LegendType[] = ['default', 'breakdown'];
+
+function deserializeLegendType(value: string): LegendType | undefined {
+  if (VALID_LEGEND_TYPES.includes(value as LegendType)) {
+    return value as LegendType;
+  }
+  return undefined;
+}
+
 /**
  * Decodes the query from the query params
  * Returns an array with an empty string if the query is empty
@@ -1414,17 +1371,6 @@ function deserializeThresholds(value: string): ThresholdsConfig | undefined {
 
 export function serializeThresholds(thresholds: ThresholdsConfig | null): string {
   return JSON.stringify(thresholds);
-}
-
-export function serializeTraceMetric(traceMetric: TraceMetric | undefined): string {
-  return JSON.stringify(traceMetric);
-}
-
-function deserializeTraceMetric(traceMetric: string): TraceMetric | undefined {
-  if (traceMetric === '') {
-    return undefined;
-  }
-  return JSON.parse(traceMetric);
 }
 
 function checkTraceMetricSortUsed(

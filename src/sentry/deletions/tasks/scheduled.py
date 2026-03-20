@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry.deletions.models.scheduleddeletion import (
     BaseScheduledDeletion,
-    RegionScheduledDeletion,
+    CellScheduledDeletion,
     ScheduledDeletion,
 )
 from sentry.exceptions import DeleteAborted
@@ -42,7 +42,7 @@ def reattempt_deletions_control() -> None:
     silo_mode=SiloMode.CELL,
 )
 def reattempt_deletions() -> None:
-    _reattempt_deletions(RegionScheduledDeletion)
+    _reattempt_deletions(CellScheduledDeletion)
 
 
 def _reattempt_deletions(model_class: type[BaseScheduledDeletion]) -> None:
@@ -73,7 +73,7 @@ def run_scheduled_deletions_control() -> None:
 )
 def run_scheduled_deletions() -> None:
     _run_scheduled_deletions(
-        model_class=RegionScheduledDeletion,
+        model_class=CellScheduledDeletion,
         process_task=run_deletion,
     )
 
@@ -131,7 +131,7 @@ def run_deletion(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> No
     _run_deletion(
         deletion_id=deletion_id,
         first_pass=first_pass,
-        model_class=RegionScheduledDeletion,
+        model_class=CellScheduledDeletion,
         process_task=run_deletion,
     )
 

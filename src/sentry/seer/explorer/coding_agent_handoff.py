@@ -14,7 +14,6 @@ from requests import HTTPError
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from sentry import features
-from sentry.integrations.claude_code.integration import PROVIDER_KEY as CLAUDE_CODE_PROVIDER_KEY
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
@@ -44,8 +43,8 @@ def _resolve_client(
     """
     Resolve the coding agent client and/or installation for the given parameters.
 
-    For API-driven agents (GitHub Copilot, Claude Code), returns a client directly.
-    For UI-handoff agents (Cursor), returns an installation.
+    For per-user token agents (GitHub Copilot), returns a client directly.
+    For org-installed integrations (Claude Code, Cursor), returns an installation.
 
     Returns:
         Tuple of (client, installation). Exactly one will be non-None.
@@ -65,13 +64,7 @@ def _resolve_client(
         return GithubCopilotAgentClient(user_access_token), None
 
     if integration_id is not None:
-        integration, installation = _validate_and_get_integration(organization, integration_id)
-
-        # API-driven agents (e.g., Claude Code) get a direct client
-        if integration.provider == CLAUDE_CODE_PROVIDER_KEY:
-            return installation.get_client(), None
-
-        # UI-handoff agents (e.g., Cursor) use installation.launch()
+        _integration, installation = _validate_and_get_integration(organization, integration_id)
         return None, installation
 
     raise ValidationError("Either integration_id or provider must be provided")
@@ -129,11 +122,7 @@ def launch_coding_agents(
 
         try:
             if client is not None:
-                # User-authenticated client (e.g., GitHub Copilot)
                 coding_agent_state = client.launch(webhook_url="", request=launch_request)
-                # Set integration_id here for org-installed integrations like Claude Code.
-                if integration_id is not None:
-                    coding_agent_state.integration_id = integration_id
             elif installation is not None:
                 # Org-installed integration (e.g., Cursor)
                 coding_agent_state = installation.launch(launch_request)

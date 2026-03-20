@@ -102,13 +102,13 @@ class OrganizationEventsTraceMetaEndpointTest(
                     project=self.project,
                     group_id=first_group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 ),
                 self.create_eap_occurrence(
                     project=self.project,
                     group_id=second_group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 ),
             ]
         )
@@ -174,7 +174,6 @@ class OrganizationEventsTraceMetaEndpointTest(
                     project=self.gen1_project,
                     group_id=group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="error",
                 ),
             ]
         )
@@ -207,7 +206,6 @@ class OrganizationEventsTraceMetaEndpointTest(
                     project=self.gen1_project,
                     group_id=group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="error",
                 ),
             ]
         )

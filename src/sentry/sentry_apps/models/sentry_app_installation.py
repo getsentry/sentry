@@ -27,7 +27,7 @@ from sentry.sentry_apps.utils.errors import (
     SentryAppIntegratorError,
     SentryAppSentryError,
 )
-from sentry.types.region import find_all_cell_names, find_cells_for_orgs
+from sentry.types.cell import find_all_cell_names, find_cells_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -148,7 +148,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         except SentryApp.DoesNotExist:
             return None
 
-    def outbox_region_names(self) -> Collection[str]:
+    def outbox_cell_names(self) -> Collection[str]:
         return find_cells_for_orgs([self.organization_id])
 
     def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
@@ -191,9 +191,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
             with outbox_context(flush=False):
                 for ob in self.api_token.outboxes_for_update():
                     ob.save()
-        cell_caching_service.clear_key(
-            key=get_installation.key_from(self.id), region_name=cell_name
-        )
+        cell_caching_service.clear_key(key=get_installation.key_from(self.id), cell_name=cell_name)
 
     @classmethod
     def handle_async_deletion(

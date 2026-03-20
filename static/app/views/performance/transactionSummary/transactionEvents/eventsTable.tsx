@@ -9,10 +9,10 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import GridEditable from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -22,7 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {toArray} from 'sentry/utils/array/toArray';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -35,11 +35,11 @@ import {
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {COLUMN_TITLES} from 'sentry/views/performance/data';
@@ -52,7 +52,7 @@ import {
 } from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TitleProps} from './operationSort';
-import OperationSort from './operationSort';
+import {OperationSort} from './operationSort';
 
 function shouldRenderColumn(containsSpanOpsBreakdown: boolean, col: string): boolean {
   if (containsSpanOpsBreakdown && isSpanOperationBreakdownField(col)) {

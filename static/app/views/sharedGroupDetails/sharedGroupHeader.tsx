@@ -6,7 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import ShortId from 'sentry/components/shortId';
+import {ShortId} from 'sentry/components/shortId';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {EventCreatedTooltip} from 'sentry/views/issueDetails/eventCreatedTooltip';
@@ -53,7 +53,6 @@ export function SharedGroupHeader({group}: Props) {
           message={group.culprit}
           level={group.level}
           type={group.type}
-          data={group}
         />
       </Details>
     </Wrapper>

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import SearchBar from 'sentry/components/searchBar';
+import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {FiltersGrid} from 'sentry/views/replays/detail/filtersGrid';

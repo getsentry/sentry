@@ -10,6 +10,8 @@ from sentry.scm.errors import SCMProviderException
 from sentry.scm.types import (
     SHA,
     ActionResult,
+    ArchiveFormat,
+    ArchiveLink,
     Author,
     BranchName,
     BuildConclusion,
@@ -94,6 +96,11 @@ GITHUB_CONCLUSION_WRITE_MAP: dict[BuildConclusion, str] = {
     "timed_out": "timed_out",
     "action_required": "action_required",
     "unknown": "neutral",
+}
+
+GITHUB_ARCHIVE_FORMAT_MAP: dict[ArchiveFormat, str] = {
+    "tarball": "tarball",
+    "zip": "zipball",
 }
 
 GITHUB_REVIEW_EVENT_MAP: dict[ReviewEvent, str] = {
@@ -828,6 +835,22 @@ class GitHubProvider:
             data=data,
         )
         return map_action(response, map_check_run)
+
+    def get_archive_link(
+        self,
+        ref: str,
+        archive_format: ArchiveFormat = "tarball",
+    ) -> ActionResult[ArchiveLink]:
+        github_format = GITHUB_ARCHIVE_FORMAT_MAP[archive_format]
+        url = self.client.get_archive_link(self.repository["name"], github_format, ref)
+        token_data = self.client.get_access_token()
+        token = token_data["access_token"] if token_data else None
+        return ActionResult(
+            data=ArchiveLink(url=url, headers={"Authorization": f"token {token}"} if token else {}),
+            type="github",
+            raw=url,
+            meta={},
+        )
 
     def minimize_comment(self, comment_node_id: str, reason: str) -> None:
         self.client.graphql(

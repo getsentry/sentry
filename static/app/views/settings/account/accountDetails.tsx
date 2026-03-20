@@ -13,7 +13,7 @@ import languages from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 import {StacktraceOrder, type User} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   setApiQueryData,

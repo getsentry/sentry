@@ -24,7 +24,7 @@ describe('ProjectDetail > ProjectQuickLinks', () => {
     const keyTransactions = screen.getByRole('link', {name: 'View Transactions'});
 
     await userEvent.click(userFeedback);
-    expect(router.location.pathname).toBe('/organizations/org-slug/feedback/');
+    expect(router.location.pathname).toBe('/organizations/org-slug/issues/feedback/');
     expect(router.location.query).toEqual({project: '2'});
 
     await userEvent.click(keyTransactions);

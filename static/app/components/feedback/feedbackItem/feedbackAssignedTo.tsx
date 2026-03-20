@@ -9,7 +9,7 @@ import {
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
 import type {Group} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';

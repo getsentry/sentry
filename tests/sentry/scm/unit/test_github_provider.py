@@ -407,12 +407,6 @@ PAGINATED_CASES = [
         "next_cursor": "2",
     },
     {
-        "name": "get_pull_requests",
-        "kwargs": {
-            "state": None,
-            "head": "octocat:feature",
-            "pagination": {"cursor": "2", "per_page": 15},
-        },
         "path": "/repos/test-org/test-repo/pulls",
         "params": {"state": "all", "head": "octocat:feature", "per_page": "15", "page": "2"},
         "raw": [PULL_REQUEST_RAW],
@@ -962,3 +956,26 @@ def test_public_methods_are_accounted_for() -> None:
     }
 
     assert public_methods == covered_methods
+
+
+class TestGetArchiveLink:
+    def test_returns_archive_url(self):
+        repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository["organization_id"], repository)
+
+        result = provider.get_archive_link("main")
+
+        assert result["data"]["url"] == client.archive_link_data
+        assert result["data"]["headers"] == {"Authorization": "token fake-github-token"}
+        assert result["type"] == "github"
+        assert ("get_archive_link", ("test-org/test-repo", "tarball", "main"), {}) in client.calls
+
+    def test_zip_format_uses_zipball(self):
+        repository = make_repository()
+        client = _make_client()
+        provider = GitHubProvider(client, repository["organization_id"], repository)
+
+        provider.get_archive_link("main", "zip")
+
+        assert ("get_archive_link", ("test-org/test-repo", "zipball", "main"), {}) in client.calls

@@ -6,8 +6,8 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
-import Confirm from 'sentry/components/confirm';
-import FormField from 'sentry/components/forms/formField';
+import {Confirm} from 'sentry/components/confirm';
+import {FormField} from 'sentry/components/forms/formField';
 import type {TableType} from 'sentry/components/forms/types';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -38,7 +38,7 @@ function hasValue(value: any) {
   return defined(value) && !isEmptyObject(value);
 }
 
-export default function TableField({
+export function TableField({
   addButtonText = t('Add Item'),
   allowEmpty = false,
   ...props

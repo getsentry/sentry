@@ -73,7 +73,7 @@ from sentry.constants import (
     ObjectStatus,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
     calculate_sample_rates_of_projects,
@@ -87,6 +87,7 @@ from sentry.dynamic_sampling.utils import (
 )
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.hybridcloud.rpc.service import RpcValidationException
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -370,6 +371,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     enablePrReviewTestGeneration = serializers.BooleanField(required=False)
     enableSeerEnhancedAlerts = serializers.BooleanField(required=False)
     enableSeerCoding = serializers.BooleanField(required=False)
+    defaultCodingAgent = serializers.CharField(required=False, allow_null=True)
+    defaultCodingAgentIntegrationId = serializers.IntegerField(required=False, allow_null=True)
     autoOpenPrs = serializers.BooleanField(required=False)
     autoEnableCodeReview = serializers.BooleanField(required=False)
     defaultCodeReviewTriggers = serializers.ListField(
@@ -397,6 +400,16 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
         return validate_pii_config_update(organization, value)
+
+    def validate_defaultCodingAgentIntegrationId(self, value: int | None) -> int | None:
+        if value is None:
+            return None
+        organization = self.context["organization"]
+        if not integration_service.get_organization_integration(
+            integration_id=value, organization_id=organization.id
+        ):
+            raise serializers.ValidationError("Integration does not exist.")
+        return value
 
     def validate_sensitiveFields(self, value):
         if value and not all(value):
@@ -621,7 +634,9 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 update_tracked_data(option_inst)
             except OrganizationOption.DoesNotExist:
                 OrganizationOption.objects.set_value(
-                    organization=org, key=option, value=type_(data[key])
+                    organization=org,
+                    key=option,
+                    value=None if data[key] is None else type_(data[key]),
                 )
 
                 if data[key] != default_value:
@@ -1264,7 +1279,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=audit_log.get_event_id("ORG_RESTORE"),
                     data=organization.get_audit_log_data(),
                 )
-                RegionScheduledDeletion.cancel(organization)
+                CellScheduledDeletion.cancel(organization)
             elif changed_data:
                 if "enabledConsolePlatforms" in changed_data:
                     create_console_platform_audit_log(
@@ -1300,7 +1315,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         # TODO: this will take a long time for organizations with a lot of projects
         #       so we need to refactor this into an async task we can run and observe
         org_id = organization.id
-        measure = SamplingMeasure.TRANSACTIONS
+        measure = SamplingMeasure.SEGMENTS
         if options.get("dynamic-sampling.check_span_feature_flag"):
             span_org_ids = options.get("dynamic-sampling.measure.spans") or []
             if org_id in span_org_ids:
