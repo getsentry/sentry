@@ -42,11 +42,13 @@ import {
   SecondaryNavigationContextProvider,
 } from 'sentry/views/navigation/secondaryNavigationContext';
 
-export function MockPrimaryNav({
-  layout = 'sidebar',
-  activeGroup: defaultGroup = 'issues',
-  children,
-}) {
+export function MockPrimaryNav(
+  /** @type {{layout?: 'sidebar' | 'mobile', activeGroup?: 'issues' | 'explore' | 'dashboards' | 'insights' | 'monitors' | 'settings' | 'prevent' | 'admin', children: import('react').ReactNode}} */ {
+    layout = 'sidebar',
+    activeGroup: defaultGroup = 'issues',
+    children,
+  }
+) {
   const [activeGroup, setActiveGroup] = useState(defaultGroup);
   return (
     <PrimaryNavigationContext.Provider
@@ -61,7 +63,12 @@ export function MockPrimaryNav({
   );
 }
 
-export function ActivePrimaryLink({group, ...props}) {
+export function ActivePrimaryLink(
+  /** @type {React.ComponentProps<typeof PrimaryNavigation.Link> & {group: 'issues' | 'explore' | 'dashboards' | 'insights' | 'monitors' | 'settings' | 'prevent' | 'admin'}} */ {
+    group,
+    ...props
+  }
+) {
   const {activeGroup, setActiveGroup} = usePrimaryNavigation();
   return (
     <PrimaryNavigation.Link
@@ -72,7 +79,9 @@ export function ActivePrimaryLink({group, ...props}) {
   );
 }
 
-export function WithPageFrame({children}) {
+export function WithPageFrame(
+  /** @type {{children: import('react').ReactNode}} */ {children}
+) {
   const org = useOrganization({allowNull: true});
   return (
     <OrganizationContext.Provider
@@ -329,7 +338,12 @@ export function MobileSecondaryPanel() {
   );
 }
 
-export function MockSecondaryNav({view = 'expanded', children}) {
+export function MockSecondaryNav(
+  /** @type {{view?: 'expanded' | 'collapsed' | 'peek', children: import('react').ReactNode}} */ {
+    view = 'expanded',
+    children,
+  }
+) {
   const [currentView, setCurrentView] = useState(view);
   return (
     <SecondaryNavigationContext.Provider
