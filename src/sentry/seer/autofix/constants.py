@@ -47,6 +47,7 @@ class AutofixReferrer(enum.StrEnum):
     ISSUE_SUMMARY_ALERT_FIXABILITY = "issue_summary.alert_fixability"
     ISSUE_SUMMARY_POST_PROCESS_FIXABILITY = "issue_summary.post_process_fixability"
     SLACK = "slack"
+    ON_COMPLETION_HOOK = "autofix.on_completion_hook"
     UNKNOWN = "unknown"
 
 

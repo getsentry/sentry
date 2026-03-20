@@ -242,6 +242,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             run_id = trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep(step),
+                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
                 stopping_point=AutofixStoppingPoint(stopping_point) if stopping_point else None,
                 run_id=data.get("run_id"),
                 intelligence_level=data["intelligence_level"],
