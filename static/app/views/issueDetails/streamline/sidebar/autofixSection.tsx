@@ -3,20 +3,20 @@ import styled from '@emotion/styled';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  getOrderedAutofixArtifacts,
-  isCodeChangesArtifact,
-  isCodingAgentsArtifact,
-  isPullRequestsArtifact,
-  isRootCauseArtifact,
-  isSolutionArtifact,
+  getOrderedAutofixSections,
+  isCodeChangesSection,
+  isCodingAgentsSection,
+  isPullRequestsSection,
+  isRootCauseSection,
+  isSolutionSection,
   useExplorerAutofix,
-  type AutofixArtifact,
+  type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesPreview,
@@ -25,7 +25,8 @@ import {
   RootCausePreview,
   SolutionPreview,
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
-import Placeholder from 'sentry/components/placeholder';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconBug} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
@@ -33,6 +34,8 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
@@ -89,29 +92,113 @@ export function AutofixSection({group, project, event}: AutofixSectionProps) {
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
     >
-      <AutofixContent group={group} project={project} event={event} />
+      <AutofixContentHook
+        aiConfig={aiConfig}
+        group={group}
+        project={project}
+        event={event}
+      />
     </SidebarFoldSection>
   );
 }
 
-interface AutofixContentProps {
+const AutofixContentHook = HookOrDefault({
+  hookName: 'component:ai-configure-seer-quota-sidebar',
+  defaultComponent: AutofixContent,
+});
+
+export interface AutofixContentProps {
+  aiConfig: ReturnType<typeof useAiConfig>;
   group: Group;
   project: Project;
   event?: Event;
 }
 
-function AutofixContent({group, project, event}: AutofixContentProps) {
+export function AutofixContent({aiConfig, group, project, event}: AutofixContentProps) {
+  const organization = useOrganization();
   const autofix = useExplorerAutofix(group.id);
-  const artifacts = useMemo(
-    () => getOrderedAutofixArtifacts(autofix.runState),
-    [autofix.runState]
-  );
+  const {data: setupCheck, isPending} = useSeerOnboardingCheck();
 
-  if (autofix.isLoading || !event) {
+  if (
+    // waiting on the onboarding checks to load
+    isPending ||
+    // autofix results are loading
+    autofix.isLoading ||
+    // waiting for the event to load
+    !event ||
+    // waiting for the ai configs to load
+    aiConfig.isAutofixSetupLoading ||
+    // we're polling and no blocks have been added yet
+    (autofix.isPolling && !autofix.runState?.blocks?.length)
+  ) {
     return <Placeholder height="160px" />;
   }
 
-  if (!artifacts.length) {
+  const needOrgSetup =
+    // scm integration doesn't exist
+    !setupCheck?.hasSupportedScmIntegration;
+
+  const needProjSetup =
+    // scm integration not linked to project
+    !aiConfig.seerReposLinked ||
+    // autofix setting not enabled
+    !aiConfig.autofixEnabled;
+
+  if (needOrgSetup || needProjSetup) {
+    return (
+      <Flex direction="column" border="muted" radius="md" padding="lg" gap="lg">
+        <Text bold>{t('Finish Configuring Seer')}</Text>
+        <Text>
+          {t(
+            'Your organization has access to Seer, which will allow you to run Autofix on your issues, but you aren’t getting the most out of it.'
+          )}
+        </Text>
+        <Text>{t('Autofix can:')}</Text>
+        <Container as="ol" margin="0">
+          <li>{t('Determine the root cause of your issue and how to reproduce it')}</li>
+          <li>{t('Propose a solution')}</li>
+          <li>{t('Create a code fix')}</li>
+        </Container>
+        <Flex>
+          {needOrgSetup ? (
+            <LinkButton
+              to={`/settings/${organization.slug}/seer/onboarding/`}
+              icon={<IconSeer />}
+            >
+              {t('Set Up Seer')}
+            </LinkButton>
+          ) : needProjSetup ? (
+            <LinkButton
+              to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
+              icon={<IconSeer />}
+            >
+              {t('Set Up Seer for This Project')}
+            </LinkButton>
+          ) : null}
+        </Flex>
+      </Flex>
+    );
+  }
+
+  return (
+    <AutofixArtifacts autofix={autofix} group={group} project={project} event={event} />
+  );
+}
+
+interface AutofixArtifactsProps {
+  autofix: ReturnType<typeof useExplorerAutofix>;
+  event: Event;
+  group: Group;
+  project: Project;
+}
+
+function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProps) {
+  const sections = useMemo(
+    () => getOrderedAutofixSections(autofix.runState),
+    [autofix.runState]
+  );
+
+  if (!sections.length) {
     return (
       <AutofixEmptyState
         autofix={autofix}
@@ -123,12 +210,7 @@ function AutofixContent({group, project, event}: AutofixContentProps) {
   }
 
   return (
-    <AutofixPreviews
-      artifacts={artifacts}
-      event={event}
-      group={group}
-      project={project}
-    />
+    <AutofixPreviews sections={sections} event={event} group={group} project={project} />
   );
 }
 
@@ -196,13 +278,13 @@ function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStatePr
 }
 
 interface AutofixPreviewsProps {
-  artifacts: AutofixArtifact[];
   event: Event;
   group: Group;
   project: Project;
+  sections: AutofixSection[];
 }
 
-function AutofixPreviews({artifacts, event, group, project}: AutofixPreviewsProps) {
+function AutofixPreviews({event, group, project, sections}: AutofixPreviewsProps) {
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
@@ -211,26 +293,26 @@ function AutofixPreviews({artifacts, event, group, project}: AutofixPreviewsProp
 
   return (
     <Flex direction="column" gap="xl">
-      {artifacts.map(artifact => {
-        // there should only be 1 artifact of each type
-        if (isRootCauseArtifact(artifact)) {
-          return <RootCausePreview key="root-cause" artifact={artifact} />;
+      {sections.map(section => {
+        // there should only be 1 section of each type
+        if (isRootCauseSection(section)) {
+          return <RootCausePreview key="root-cause" section={section} />;
         }
 
-        if (isSolutionArtifact(artifact)) {
-          return <SolutionPreview key="solution" artifact={artifact} />;
+        if (isSolutionSection(section)) {
+          return <SolutionPreview key="solution" section={section} />;
         }
 
-        if (isCodeChangesArtifact(artifact)) {
-          return <CodeChangesPreview key="code-changes" artifact={artifact} />;
+        if (isCodeChangesSection(section)) {
+          return <CodeChangesPreview key="code-changes" section={section} />;
         }
 
-        if (isPullRequestsArtifact(artifact)) {
-          return <PullRequestsPreview key="pull-requests" artifact={artifact} />;
+        if (isPullRequestsSection(section)) {
+          return <PullRequestsPreview key="pull-requests" section={section} />;
         }
 
-        if (isCodingAgentsArtifact(artifact)) {
-          return <CodingAgentPreview key="coding-agent" artifact={artifact} />;
+        if (isCodingAgentsSection(section)) {
+          return <CodingAgentPreview key="coding-agent" section={section} />;
         }
 
         // TODO: maybe send a log?

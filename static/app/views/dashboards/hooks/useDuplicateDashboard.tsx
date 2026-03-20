@@ -67,23 +67,35 @@ export function useDuplicatePrebuiltDashboard({onSuccess}: UseDuplicateDashboard
   const [isLoading, setIsLoading] = useState(false);
 
   const duplicatePrebuiltDashboard = useCallback(
-    async (prebuiltId?: PrebuiltDashboardId) => {
-      if (!prebuiltId) {
-        throw new Error(
-          'Prebuilt dashboard ID is required to duplicate a prebuilt dashboard'
-        );
+    async (dashboardId?: string) => {
+      if (!dashboardId) {
+        throw new Error('Dashboard ID is required to duplicate a prebuilt dashboard');
       }
       try {
         setIsLoading(true);
+
+        // Fetch the saved dashboard to get the prebuilt ID and saved filters.
+        // Widgets are not stored for prebuilt dashboards, so we pull those
+        // from the static config and resolve any linked dashboard placeholders.
+        const savedDashboard = await fetchDashboard(api, organization.slug, dashboardId);
+
+        if (!savedDashboard.prebuiltId) {
+          throw new Error('Saved dashboard is missing its prebuilt ID');
+        }
+
         const dashboardDetail = await resolveLinkedDashboardIds({
           queryClient,
           orgSlug: organization.slug,
-          dashboard: toPrebuiltDashboardDetails(prebuiltId),
+          dashboard: toPrebuiltDashboardDetails(savedDashboard.prebuiltId),
         });
+
         const newDashboard = cloneDashboard(dashboardDetail);
         delete newDashboard.prebuiltId;
         newDashboard.title = `${newDashboard.title} copy`;
         newDashboard.widgets.map(widget => (widget.id = undefined));
+        if (savedDashboard.filters !== undefined) {
+          newDashboard.filters = savedDashboard.filters;
+        }
         const copiedDashboard = await createDashboard(
           api,
           organization.slug,

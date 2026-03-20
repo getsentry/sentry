@@ -46,13 +46,13 @@ from sentry.organizations.services.organization import (
     OrganizationCheckService,
     OrganizationService,
     OrganizationSignalService,
+    RpcCellUser,
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     RpcOrganizationSignal,
     RpcOrganizationSummary,
-    RpcRegionUser,
     RpcTeam,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
@@ -636,12 +636,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
         with unguarded_write(using=router.db_for_write(Team)):
             Team.objects.filter(organization_id=organization_id).update(idp_provisioned=False)
 
-    def update_region_user(
+    def update_cell_user(
         self,
         *,
-        user: RpcRegionUser,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        user: RpcCellUser,
+        cell_name: str,
     ) -> None:
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
         # OrganizationMember objects produces outboxes.  In this case, it is safe to do the update directly because
@@ -650,6 +649,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
             OrganizationMember.objects.filter(user_id=user.id).update(
                 user_is_active=user.is_active, user_email=user.email
             )
+
+    # TODO(cells): Remove when callers updated
+    def update_region_user(self, *, user: RpcCellUser, cell_name: str) -> None:
+        return self.update_cell_user(user=user, cell_name=cell_name)
 
     def get_option(self, *, organization_id: int, key: str) -> OptionValue:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
@@ -768,7 +771,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
 class ControlOrganizationCheckService(OrganizationCheckService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
-        # See RegionOrganizationCheckService below
+        # See CellOrganizationCheckService below
         try:
             org = OrganizationMapping.objects.get(slug=slug)
             if only_visible and org.status != OrganizationStatus.ACTIVE:
@@ -780,7 +783,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
         return None
 
     def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
-        # See RegionOrganizationCheckService below
+        # See CellOrganizationCheckService below
         org_mapping = OrganizationMapping.objects.filter(organization_id=id).first()
         if org_mapping is None:
             return False
@@ -789,7 +792,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
         return True
 
 
-class RegionOrganizationCheckService(OrganizationCheckService):
+class CellOrganizationCheckService(OrganizationCheckService):
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> int | None:
         # See ControlOrganizationCheckService above
         try:

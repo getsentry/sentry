@@ -11,7 +11,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import type {EventErrorData} from 'sentry/components/events/interfaces/types';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {
   GenericSchemaErrors,
   HttpProcessingErrors,

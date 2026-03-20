@@ -37,7 +37,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-export default function RouteAnalyticsContextProvider({children}: Props) {
+export function RouteAnalyticsContextProvider({children}: Props) {
   const useRouteActivatedHook = HookStore.get('react-hook:route-activated')[0];
 
   const context: RouteContextInterface = {

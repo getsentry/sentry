@@ -24,8 +24,8 @@ from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
     SeerOperatorInteractionType,
 )
-from sentry.seer.entrypoints.registry import entrypoint_registry
-from sentry.seer.entrypoints.types import SeerEntrypoint, SeerEntrypointKey
+from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
+from sentry.seer.entrypoints.types import SeerAutofixEntrypoint, SeerEntrypointKey
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -54,13 +54,45 @@ PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
 AUTOFIX_FALLBACK_CAUSE_ID = 0
 
 
-class SeerOperator[CachePayloadT]:
+def has_seer_autofix_entrypoint_access(
+    *,
+    organization: Organization,
+    entrypoint_key: SeerEntrypointKey | None = None,
+) -> bool:
+    """
+    Checks if the organization has access to Seer and at least one autofix entrypoint.
+    If an entrypoint_key is provided, ensures the organization has access to that specific
+    autofix entrypoint.
+    """
+    if not has_seer_access(organization):
+        return False
+
+    if entrypoint_key:
+        if entrypoint_key not in autofix_entrypoint_registry.registrations:
+            logger.error(
+                "seer.operator.invalid_entrypoint_key",
+                extra={
+                    "entrypoint_key": str(entrypoint_key),
+                    "organization_id": organization.id,
+                },
+            )
+            return False
+        entrypoint_cls = autofix_entrypoint_registry.registrations[entrypoint_key]
+        return entrypoint_cls.has_access(organization)
+
+    return any(
+        entrypoint_cls.has_access(organization=organization)
+        for entrypoint_cls in autofix_entrypoint_registry.registrations.values()
+    )
+
+
+class SeerAutofixOperator[CachePayloadT]:
     """
     A class that connects to entrypoint implementations and runs operations for Seer with them.
     It does this to ensure all entrypoints have consistent behavior and responses.
     """
 
-    def __init__(self, entrypoint: SeerEntrypoint[CachePayloadT]):
+    def __init__(self, entrypoint: SeerAutofixEntrypoint[CachePayloadT]):
         self.entrypoint = entrypoint
 
     @classmethod
@@ -70,29 +102,8 @@ class SeerOperator[CachePayloadT]:
         organization: Organization,
         entrypoint_key: SeerEntrypointKey | None = None,
     ) -> bool:
-        """
-        Checks if the organization has access to Seer, and atleast one entrypoint.
-        If an entrypoint_key is provided, ensures the organization has access to that entrypoint.
-        """
-        if not has_seer_access(organization):
-            return False
-
-        if entrypoint_key:
-            if entrypoint_key not in entrypoint_registry.registrations:
-                logger.error(
-                    "seer.operator.invalid_entrypoint_key",
-                    extra={
-                        "entrypoint_key": str(entrypoint_key),
-                        "organization_id": organization.id,
-                    },
-                )
-                return False
-            entrypoint_cls = entrypoint_registry.registrations[entrypoint_key]
-            return entrypoint_cls.has_access(organization)
-
-        return any(
-            entrypoint_cls.has_access(organization=organization)
-            for entrypoint_cls in entrypoint_registry.registrations.values()
+        return has_seer_autofix_entrypoint_access(
+            organization=organization, entrypoint_key=entrypoint_key
         )
 
     @classmethod
@@ -467,11 +478,11 @@ def process_autofix_updates(
 
         organization = group.project.organization
 
-        if not SeerOperator.has_access(organization=organization):
+        if not SeerAutofixOperator.has_access(organization=organization):
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
-        for entrypoint_key, entrypoint_cls in entrypoint_registry.registrations.items():
+        for entrypoint_key, entrypoint_cls in autofix_entrypoint_registry.registrations.items():
             logging_ctx = {
                 "organization_id": organization.id,
                 "group_id": group_id,

@@ -16,7 +16,7 @@ import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMa
 import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {QuickStartProps} from 'sentry/views/insights/crons/components/manualCheckInGuides';
@@ -204,7 +204,7 @@ const guideToSelectOption = ({key, label, icon}: {key: string} & OnboardingGuide
   leadingItems: <div>{icon}</div>,
 });
 
-export default function MonitorQuickStartGuide({monitorSlug, project}: Props) {
+export function MonitorQuickStartGuide({monitorSlug, project}: Props) {
   const org = useOrganization();
   const guideContainerRef = useRef<HTMLDivElement>(null);
 

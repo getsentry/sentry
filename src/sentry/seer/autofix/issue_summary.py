@@ -35,7 +35,7 @@ from sentry.seer.autofix.utils import (
     make_get_project_preference_request,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
-from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
@@ -157,12 +157,36 @@ def _trigger_autofix_task(
     event_id: str,
     user_id: int | None,
     auto_run_source: str,
-    referrer: AutofixReferrer = AutofixReferrer.UNKNOWN,
-    stopping_point: AutofixStoppingPoint | None = None,
+    referrer: AutofixReferrer | str = AutofixReferrer.UNKNOWN,
+    stopping_point: AutofixStoppingPoint | str | None = None,
 ):
     """
     Asynchronous task to trigger Autofix.
+    Task queue serializes enum parameters to strings, so we need to convert them back.
     """
+    # Convert deserialized string parameters back to their enum types
+    if isinstance(referrer, str):
+        try:
+            referrer = AutofixReferrer(referrer)
+        except ValueError as e:
+            logger.warning(
+                "_trigger_autofix_task.unknown_referrer",
+                extra={"group_id": group_id, "referrer": referrer},
+            )
+            sentry_sdk.capture_exception(e)
+            return
+
+    if isinstance(stopping_point, str):
+        try:
+            stopping_point = AutofixStoppingPoint(stopping_point)
+        except ValueError as e:
+            logger.warning(
+                "_trigger_autofix_task.unknown_stopping_point",
+                extra={"group_id": group_id, "stopping_point": stopping_point},
+            )
+            sentry_sdk.capture_exception(e)
+            return
+
     with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
         try:
             group = Group.objects.get(id=group_id)
@@ -219,7 +243,7 @@ def _trigger_autofix_task(
             )
             run_id = response.data.get("run_id")
 
-        if run_id and SeerOperator.has_access(organization=group.project.organization):
+        if run_id and SeerAutofixOperator.has_access(organization=group.project.organization):
             SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_id)
 
 

@@ -7,12 +7,13 @@ import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProje
 import {t, tct} from 'sentry/locale';
 import {IssueAlertActionType, type IntegrationAction} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import SetupMessagingIntegrationButton, {
+import {
   MessagingIntegrationAnalyticsView,
+  SetupMessagingIntegrationButton,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
@@ -248,7 +249,7 @@ export function useCreateNotificationAction({
   };
 }
 
-export default function IssueAlertNotificationOptions(
+export function IssueAlertNotificationOptions(
   notificationProps: IssueAlertNotificationProps
 ) {
   const {actions, setActions, querySuccess, shouldRenderSetupButton} = notificationProps;

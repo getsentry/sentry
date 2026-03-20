@@ -15,7 +15,11 @@ const MIN_REQUIRED_VERSION = '2.43.0';
 
 export const agentMonitoring: OnboardingConfig = {
   introduction: params => (
-    <SdkUpdateAlert projectId={params.project.id} minVersion={MIN_REQUIRED_VERSION} />
+    <SdkUpdateAlert
+      projectId={params.project.id}
+      minVersion={MIN_REQUIRED_VERSION}
+      packageName="sentry-sdk"
+    />
   ),
   install: () => {
     return [

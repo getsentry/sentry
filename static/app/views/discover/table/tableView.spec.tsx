@@ -16,7 +16,7 @@ import {TagStore} from 'sentry/stores/tagStore';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import TableView from 'sentry/views/discover/table/tableView';
+import {TableView} from 'sentry/views/discover/table/tableView';
 
 describe('TableView > CellActions', () => {
   let rows: TableData;

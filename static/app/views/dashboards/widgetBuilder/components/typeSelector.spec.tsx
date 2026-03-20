@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -43,6 +45,38 @@ describe('TypeSelector', () => {
     );
 
     expect(await screen.findByText('Please select a type')).toBeInTheDocument();
+  });
+
+  it('shows text widget option when dashboards-text-widgets feature is enabled', async () => {
+    mockUseNavigate.mockReturnValue(jest.fn());
+
+    render(
+      <WidgetBuilderProvider>
+        <TypeSelector />
+      </WidgetBuilderProvider>,
+      {
+        organization: OrganizationFixture({features: ['dashboards-text-widgets']}),
+      }
+    );
+
+    await userEvent.click(await screen.findByText('Table'));
+    expect(screen.getByText('Text (Markdown)')).toBeInTheDocument();
+  });
+
+  it('does not show text widget option without dashboards-text-widgets feature', async () => {
+    mockUseNavigate.mockReturnValue(jest.fn());
+
+    render(
+      <WidgetBuilderProvider>
+        <TypeSelector />
+      </WidgetBuilderProvider>,
+      {
+        organization: OrganizationFixture({features: []}),
+      }
+    );
+
+    await userEvent.click(await screen.findByText('Table'));
+    expect(screen.queryByText('Text (Markdown)')).not.toBeInTheDocument();
   });
 
   it('resets the widget builder state when the display type is changed on an issue widget', async () => {

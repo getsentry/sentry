@@ -5,8 +5,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
-import RadioField from 'sentry/components/forms/fields/radioField';
-import TextField from 'sentry/components/forms/fields/textField';
+import {RadioField} from 'sentry/components/forms/fields/radioField';
+import {TextField} from 'sentry/components/forms/fields/textField';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 type SuperuserAccessCategories = [string, React.ReactNode];

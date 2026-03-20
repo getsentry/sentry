@@ -30,8 +30,8 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import AddFilter from 'sentry/views/dashboards/globalFilter/addFilter';
-import GenericFilterSelector from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
+import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
+import {GenericFilterSelector} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/utils';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
@@ -113,7 +113,7 @@ export type FiltersBarProps = {
   storageNamespace?: string;
 };
 
-export default function FiltersBar({
+export function FiltersBar({
   filters,
   dashboard,
   dashboardPermissions,

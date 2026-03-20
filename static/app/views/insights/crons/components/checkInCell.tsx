@@ -11,7 +11,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import ShortId from 'sentry/components/shortId';
+import {ShortId} from 'sentry/components/shortId';
 import {
   StatusIndicator,
   type StatusIndicatorProps,
