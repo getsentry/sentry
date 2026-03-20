@@ -1,4 +1,4 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {FieldKind} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
@@ -136,9 +136,8 @@ describe('FilterSelector', () => {
     // Dismiss by clicking outside (without applying)
     await userEvent.click(document.body);
 
-    // Wait for the trigger to show the selected value instead of "All".
-    // The onClose handler resets stagedFilterValues to [], which causes the trigger
-    // to briefly show "All" — this assertion catches that regression.
+    // The onClose handler incorrectly resets stagedFilterValues to [], causing the trigger
+    // to show "All". Wait for "All" to appear and then be removed once the fix is in place.
     await waitFor(() => {
       expect(screen.queryByText('All')).not.toBeInTheDocument();
     });
