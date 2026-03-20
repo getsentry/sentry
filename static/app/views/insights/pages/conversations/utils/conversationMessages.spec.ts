@@ -322,23 +322,36 @@ describe('conversationMessages utilities', () => {
       expect(result.toolSpans[0]?.id).toBe('tool-1');
     });
 
-    it('sorts by timestamp', () => {
-      const gen1 = createMockNode({id: 'gen-1', startTimestamp: 2000});
-      const gen2 = createMockNode({id: 'gen-2', startTimestamp: 1000});
+    it('sorts by end timestamp, not start timestamp', () => {
+      // gen-1 starts later but ends first
+      const gen1 = createMockNode({
+        id: 'gen-1',
+        startTimestamp: 2000,
+        endTimestamp: 2100,
+      });
+      // gen-2 starts earlier but ends later
+      const gen2 = createMockNode({
+        id: 'gen-2',
+        startTimestamp: 1000,
+        endTimestamp: 3000,
+      });
       const tool1 = createMockToolNode({
         id: 'tool-1',
         toolName: 'a',
         startTimestamp: 3000,
+        endTimestamp: 3500,
       });
       const tool2 = createMockToolNode({
         id: 'tool-2',
         toolName: 'b',
         startTimestamp: 1500,
+        endTimestamp: 1600,
       });
 
       const result = partitionSpansByType([gen1, gen2, tool1, tool2] as any);
 
-      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-2', 'gen-1']);
+      // Sorted by end_timestamp: gen-1 (2100) before gen-2 (3000)
+      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1', 'gen-2']);
       expect(result.toolSpans.map(s => s.id)).toEqual(['tool-2', 'tool-1']);
     });
 
