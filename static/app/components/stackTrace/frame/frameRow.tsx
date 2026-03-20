@@ -11,7 +11,9 @@ import {
 import type {StackTraceFrameContextValue} from 'sentry/components/stackTrace/stackTraceContext';
 import type {FrameRow} from 'sentry/components/stackTrace/types';
 
-import {ChevronAction, DefaultFrameActions, HiddenFramesToggleAction} from './actions';
+import {ChevronAction} from './actions/chevron';
+import {DefaultFrameActions} from './actions/default';
+import {HiddenFramesToggleAction} from './actions/hiddenFramesToggle';
 import {FrameContent} from './frameContent';
 import {FrameHeader} from './frameHeader';
 

@@ -9,10 +9,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageLegend';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels/panel';
-import {
-  ChevronAction,
-  HiddenFramesToggleAction,
-} from 'sentry/components/stackTrace/frame/actions';
+import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
+import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actions/hiddenFramesToggle';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {StackTraceFrameRow} from 'sentry/components/stackTrace/frame/frameRow';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';

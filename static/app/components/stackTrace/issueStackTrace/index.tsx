@@ -17,6 +17,7 @@ import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashConte
 import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {Panel} from 'sentry/components/panels/panel';
+import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
 import {
   RelatedExceptionsTree,
   ToggleRelatedExceptionsButton,
@@ -33,7 +34,6 @@ import {
 } from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import {DisplayOptions} from 'sentry/components/stackTrace/toolbar';
 import {t, tn} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';

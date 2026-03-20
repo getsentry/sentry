@@ -9,12 +9,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
 import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
 import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import {DisplayOptions} from 'sentry/components/stackTrace/toolbar';
 import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';

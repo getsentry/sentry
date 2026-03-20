@@ -3,10 +3,8 @@ import {Fragment} from 'react';
 import {Tag} from '@sentry/scraps/badge';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  ChevronAction,
-  HiddenFramesToggleAction,
-} from 'sentry/components/stackTrace/frame/actions';
+import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
+import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actions/hiddenFramesToggle';
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
