@@ -33,6 +33,29 @@ describe('SeerAutomation', () => {
     ).toBeInTheDocument();
   });
 
+  it('does not show legacy banner for orgs without legacy or beta Seer features', () => {
+    const organization = OrganizationFixture({
+      features: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
+      method: 'GET',
+      body: {
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: false,
+        isCodeReviewEnabled: false,
+        isSeerConfigured: false,
+      },
+    });
+
+    render(<SeerAutomation />, {organization});
+
+    expect(
+      screen.queryByText('You are using an older Seer experience.')
+    ).not.toBeInTheDocument();
+  });
+
   it('can update the org default autofix automation tuning setting', async () => {
     const organization = OrganizationFixture({
       features: ['seat-based-seer-enabled'],
