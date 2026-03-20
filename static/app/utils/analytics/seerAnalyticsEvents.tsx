@@ -1,21 +1,55 @@
 import type {Organization} from 'sentry/types/organization';
 
 export type SeerAnalyticsEventsParameters = {
-  'autofix.coding_agent.launch_from_root_cause': {
+  'autofix.code_changes.re_run': {
     group_id: string;
     organization: Organization;
+    instruction_provided?: boolean;
+    mode?: 'explorer' | 'legacy';
+    referrer?: string;
+  };
+  'autofix.coding_agent.launch': {
+    group_id: string;
+    organization: Organization;
+    provider: string;
+    step: 'root_cause' | 'solution';
+    mode?: 'explorer' | 'legacy';
+    referrer?: string;
+  };
+  'autofix.create_pr_clicked': {
+    group_id: string;
+    organization: Organization;
+    instruction_provided?: boolean;
+    mode?: 'explorer' | 'legacy';
+    referrer?: string;
   };
   'autofix.root_cause.find_solution': {
     group_id: string;
-    instruction_provided: boolean;
     organization: Organization;
+    instruction_provided?: boolean;
+    mode?: 'explorer' | 'legacy';
+    referrer?: string;
   };
-  'autofix.setup_modal_viewed': {
-    groupId: string;
-    projectId: string;
-    setup_gen_ai_consent: boolean;
-    setup_integration: boolean;
-    setup_write_integration?: boolean;
+  'autofix.root_cause.re_run': {
+    group_id: string;
+    organization: Organization;
+    instruction_provided?: boolean;
+    mode?: 'explorer' | 'legacy';
+    referrer?: string;
+  };
+  'autofix.solution.code': {
+    group_id: string;
+    organization: Organization;
+    instruction_provided?: boolean;
+    mode?: 'explorer' | 'legacy';
+    referrer?: string;
+  };
+  'autofix.solution.re_run': {
+    group_id: string;
+    organization: Organization;
+    instruction_provided?: boolean;
+    mode?: 'explorer' | 'legacy';
+    referrer?: string;
   };
   'coding_integration.install_clicked': {
     organization: Organization;
@@ -83,13 +117,16 @@ export type SeerAnalyticsEventsParameters = {
 type SeerAnalyticsEventKey = keyof SeerAnalyticsEventsParameters;
 
 export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null> = {
-  'autofix.coding_agent.launch_from_root_cause':
-    'Autofix: Coding Agent Launch From Root Cause',
+  'autofix.coding_agent.launch': 'Autofix: Coding Agent Launch',
+  'autofix.code_changes.re_run': 'Autofix: Code Changes Re-run',
+  'autofix.create_pr_clicked': 'Autofix: Create PR Setup Clicked',
   'coding_integration.install_clicked': 'Coding Integration: Install Clicked',
   'coding_integration.send_to_agent_clicked': 'Coding Integration: Send to Agent Clicked',
   'coding_integration.setup_handoff_clicked': 'Coding Integration: Setup Handoff Clicked',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
-  'autofix.setup_modal_viewed': 'Autofix: Setup Modal Viewed',
+  'autofix.root_cause.re_run': 'Autofix: Root Cause Re-run',
+  'autofix.solution.code': 'Autofix: Code It Up',
+  'autofix.solution.re_run': 'Autofix: Solution Re-run',
   'seer.autofix.feedback_submitted': 'Seer: Autofix Feedback Submitted',
   'seer.config_reminder.rendered': 'Seer: Config Reminder Rendered',
   'seer.explorer.feedback_submitted': 'Seer Explorer: Feedback Submitted',

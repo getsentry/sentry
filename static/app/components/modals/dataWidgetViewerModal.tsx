@@ -631,6 +631,7 @@ function DataWidgetViewerModal(props: Props) {
                 widget={primaryWidget}
                 tableItemLimit={widget.limit}
                 onZoom={onZoom}
+                isFullScreen
                 showConfidenceWarning={
                   widget.widgetType === WidgetType.SPANS ||
                   widget.widgetType === WidgetType.TRACEMETRICS ||
