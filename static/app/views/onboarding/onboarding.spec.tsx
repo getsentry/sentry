@@ -659,6 +659,22 @@ describe('Onboarding', () => {
     });
 
     it('renders scm-platform-features step and advances to scm-project-details', async () => {
+      // Seed context with a selected platform so Continue is enabled
+      sessionStorage.setItem(
+        'onboarding',
+        JSON.stringify({
+          selectedPlatform: {
+            key: 'javascript',
+            name: 'JavaScript',
+            language: 'javascript',
+            link: 'https://docs.sentry.io/platforms/javascript/',
+            type: 'language',
+            category: 'popular',
+          },
+          selectedFeatures: ['error-monitoring'],
+        })
+      );
+
       const {router} = renderOnboarding('scm-platform-features');
 
       expect(screen.getByText('Platform & features')).toBeInTheDocument();

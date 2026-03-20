@@ -56,7 +56,7 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
   },
   [ProductSolution.METRICS]: {
     label: t('Metrics'),
-    icon: (props: SVGIconProps) => <IconGraph {...props} />,
+    icon: IconGraph as ComponentType<SVGIconProps>,
     description: t(
       'Track application performance and usage over time with custom metrics'
     ),
