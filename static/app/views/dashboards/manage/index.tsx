@@ -9,7 +9,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Switch} from '@sentry/scraps/switch';
@@ -684,11 +684,13 @@ function ManageDashboards() {
                             });
                           }}
                           size="sm"
-                          priority="primary"
+                          priority="default"
                           icon={<IconSeer />}
                         >
-                          {t('Create Dashboard with Seer')}
-                          <FeatureBadge type="experimental" />
+                          <Flex gap="sm" align="center">
+                            {t('Create Dashboard with Seer')}
+                            <FeatureBadge type="experimental" />
+                          </Flex>
                         </Button>
                       </Feature>
                       <Feature features="dashboards-import">
