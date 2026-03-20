@@ -90,7 +90,6 @@ Or like this in pytest-based tests:
 @pytest.fixture(autouse=True)
 def stale_database_reads():
     from taskbroker_client.task import Task
-    from taskbroker_client.task import Task as TaskbrokerClientTask
 
     _state = local()
 
@@ -135,7 +134,6 @@ def stale_database_reads():
     reports = StaleDatabaseReads(model_signal_handlers=[], transaction_blocks=[])
 
     old_signal_send = Task._signal_send
-    old_tb_signal_send = TaskbrokerClientTask._signal_send
 
     def signal_send(self, task, args=(), kwargs=(), **options):
         in_commit_hook = getattr(_state, "in_on_commit", None) or getattr(
@@ -150,19 +148,6 @@ def stale_database_reads():
 
         return old_signal_send(self, task, args, kwargs, **options)
 
-    def tb_signal_send(self, task, args=(), kwargs=(), **options):
-        in_commit_hook = getattr(_state, "in_on_commit", None) or getattr(
-            _state, "in_run_and_clear_commit_hooks", None
-        )
-
-        if getattr(_state, "in_signal_sender", None) and not in_commit_hook:
-            reports.model_signal_handlers.append((_state.in_signal_sender, self))
-
-        elif getattr(_state, "in_atomic", None) and not in_commit_hook:
-            reports.transaction_blocks.append(self)
-
-        return old_tb_signal_send(self, task, args, kwargs, **options)
-
     with (
         mock.patch.object(ModelSignal, "send", send),
         mock.patch.object(transaction, "on_commit", on_commit),
@@ -171,7 +156,6 @@ def stale_database_reads():
             BaseDatabaseWrapper, "run_and_clear_commit_hooks", run_and_clear_commit_hooks
         ),
         mock.patch.object(Task, "_signal_send", signal_send),
-        mock.patch.object(TaskbrokerClientTask, "_signal_send", tb_signal_send),
     ):
         yield reports
 
