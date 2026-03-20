@@ -38,6 +38,7 @@ function getAvailableFeaturesForPlatform(platformKey: PlatformKey): ProductSolut
 const platformOptions = platforms.map(platform => ({
   value: platform.id,
   label: platform.name,
+  textValue: `${platform.name} ${platform.id}`,
   leadingItems: () => <PlatformIcon platform={platform.id} size={16} />,
 }));
 
