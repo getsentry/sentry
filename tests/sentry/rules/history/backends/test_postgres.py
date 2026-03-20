@@ -450,3 +450,59 @@ class FetchRuleHourlyStatsPaginatedTest(BasePostgresRuleHistoryBackendTest):
         # Hour 3: 2 (workflow)
         # Hour 4: 0 total
         assert [r.count for r in results[-5:]] == [0, 2, 0, 1, 0]
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_combined_rule_and_workflow_history(self) -> None:
+        """Test combining RuleFireHistory and WorkflowFireHistory when both exist"""
+        rule = self.create_project_rule(project=self.event.project)
+        workflow_triggers = self.create_data_condition_group()
+        workflow = self.create_workflow(
+            when_condition_group=workflow_triggers,
+            organization=self.organization,
+        )
+        AlertRuleWorkflow.objects.create(rule_id=rule.id, workflow=workflow)
+
+        # RuleFireHistory: hour 2 has 1 entry, hour 4 has 2 entries
+        rfh1 = RuleFireHistory.objects.create(
+            project=rule.project,
+            rule=rule,
+            group=self.group,
+            date_added=before_now(hours=2),
+        )
+        rfh1.update(date_added=before_now(hours=2))
+
+        for _ in range(2):
+            rfh = RuleFireHistory.objects.create(
+                project=rule.project,
+                rule=rule,
+                group=self.group,
+                date_added=before_now(hours=4),
+            )
+            rfh.update(date_added=before_now(hours=4))
+
+        # WorkflowFireHistory: hour 1 has 1 entry, hour 3 has 2 entries
+        wfh1 = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            date_added=before_now(hours=1),
+        )
+        wfh1.update(date_added=before_now(hours=1))
+
+        for _ in range(2):
+            wfh = WorkflowFireHistory.objects.create(
+                workflow=workflow,
+                group=self.group,
+                date_added=before_now(hours=3),
+            )
+            wfh.update(date_added=before_now(hours=3))
+
+        results = self.backend.fetch_rule_hourly_stats(workflow, before_now(hours=24), before_now())
+        assert len(results) == 24
+
+        # Check the last 5 hours (from oldest to most recent):
+        # Hour 4: 2 (rule)
+        # Hour 3: 2 (workflow)
+        # Hour 2: 1 (rule)
+        # Hour 1: 1 (workflow)
+        # Hour 0: 0
+        assert [r.count for r in results[-5:]] == [2, 2, 1, 1, 0]
