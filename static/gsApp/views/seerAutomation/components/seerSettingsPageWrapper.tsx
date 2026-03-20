@@ -14,18 +14,24 @@ interface Props {
 export function SeerSettingsPageWrapper({children}: Props) {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
-  const isNewSeer = showNewSeer(organization);
 
   useEffect(() => {
-    // Trial is only for new Seer launch cohorts that aren't seat-based yet.
-    if (isNewSeer && !hasSeatBasedSeer) {
+    // If the org is on the old-seer plan then they shouldn't be here on this new settings page
+    // Or if we havn't launched the new seer yet.
+    // Then they need to see old settings page, or get downgraded off old seer.
+    if (!showNewSeer(organization)) {
+      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
+      return;
+    }
+
+    // If the org is not on the seat-based seer plan, then they should be redirected to the trial page
+    if (!organization.features.includes('seat-based-seer-enabled')) {
       navigate(normalizeUrl(`/settings/${organization.slug}/seer/trial/`));
       return;
     }
-  }, [hasSeatBasedSeer, isNewSeer, navigate, organization.slug]);
+  }, [navigate, organization.features, organization.slug, organization]);
 
-  if (!isNewSeer) {
+  if (!showNewSeer(organization)) {
     return <Fragment>{children}</Fragment>;
   }
 
