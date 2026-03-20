@@ -51,6 +51,7 @@ class RawSeerSimilarIssueData(TypedDict):
 
 class SimilarIssuesEmbeddingsResponse(TypedDict):
     responses: list[RawSeerSimilarIssueData]
+    model_used: NotRequired[str]
 
 
 # Like the data that comes back from seer, but guaranteed to have an existing parent hash

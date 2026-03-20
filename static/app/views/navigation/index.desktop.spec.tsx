@@ -177,6 +177,13 @@ describe('desktop navigation', () => {
   });
 
   describe('accessibility', () => {
+    it('renders a skip link', () => {
+      render(<Navigation />, navigationContext());
+      expect(
+        screen.getByRole('link', {name: 'Skip to main content'})
+      ).toBeInTheDocument();
+    });
+
     it('primary navigation links have correct accessible names and hrefs', () => {
       render(
         <Navigation />,
@@ -646,6 +653,8 @@ describe('desktop navigation', () => {
             'false'
           );
 
+          // Tab once to focus the skip link, then again to reach a nav element
+          await userEvent.tab();
           await userEvent.tab();
 
           await waitFor(() => {

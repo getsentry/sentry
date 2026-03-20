@@ -36,7 +36,7 @@ from sentry.seer.autofix.utils import (
     make_get_project_preference_request,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
-from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
@@ -243,7 +243,7 @@ def _trigger_autofix_task(
             )
             run_id = response.data.get("run_id")
 
-        if run_id and SeerOperator.has_access(organization=group.project.organization):
+        if run_id and SeerAutofixOperator.has_access(organization=group.project.organization):
             SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_id)
 
 
