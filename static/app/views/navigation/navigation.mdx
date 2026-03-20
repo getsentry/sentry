@@ -46,10 +46,6 @@ export function MockPrimaryNav({
   layout = 'sidebar',
   activeGroup: defaultGroup = 'issues',
   children,
-}: {
-  layout?: 'mobile' | 'sidebar';
-  activeGroup?: 'issues' | 'admin' | 'insights' | 'settings' | 'dashboards' | 'explore' | 'monitors' | 'prevent';
-  children: React.ReactNode;
 }) {
   const [activeGroup, setActiveGroup] = useState(defaultGroup);
   return (
@@ -65,7 +61,7 @@ export function MockPrimaryNav({
   );
 }
 
-export function ActivePrimaryLink({group, ...props}: {group: string} & React.ComponentProps<typeof PrimaryNavigation.Link>) {
+export function ActivePrimaryLink({group, ...props}) {
   const {activeGroup, setActiveGroup} = usePrimaryNavigation();
   return (
     <PrimaryNavigation.Link
@@ -76,7 +72,7 @@ export function ActivePrimaryLink({group, ...props}: {group: string} & React.Com
   );
 }
 
-export function WithPageFrame({children}: {children: React.ReactNode}) {
+export function WithPageFrame({children}) {
   const org = useOrganization({allowNull: true});
   return (
     <OrganizationContext.Provider
@@ -333,7 +329,7 @@ export function MobileSecondaryPanel() {
   );
 }
 
-export function MockSecondaryNav({view = 'expanded', children}: {view?: 'expanded' | 'collapsed' | 'peek'; children: React.ReactNode}) {
+export function MockSecondaryNav({view = 'expanded', children}) {
   const [currentView, setCurrentView] = useState(view);
   return (
     <SecondaryNavigationContext.Provider
