@@ -1,4 +1,4 @@
-import {Component, Fragment, useCallback, useMemo} from 'react';
+import {Component, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -836,7 +836,7 @@ export class Results extends Component<Props, State> {
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-        <Fragment>
+        <Layout.Page>
           <ResultsHeader
             setSavedQuery={setSavedQuery}
             errorCode={errorCode}
@@ -941,7 +941,7 @@ export class Results extends Component<Props, State> {
               </Confirm>
             </CustomMeasurementsProvider>
           </Layout.Body>
-        </Fragment>
+        </Layout.Page>
       </SentryDocumentTitle>
     );
   }

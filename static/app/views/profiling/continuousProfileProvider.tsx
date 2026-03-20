@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {ContinuousProfileHeader} from 'sentry/components/profiling/continuousProfileHeader';
 import type {RequestState} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
@@ -57,21 +58,23 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
   );
 
   return (
-    <ContinuousProfileProvider
-      orgSlug={organization.slug}
-      profileMeta={profileMeta}
-      projectSlug={projectSlug}
-      profile={profile}
-      setProfile={setProfile}
-    >
-      <ProfileTransactionContext value={profileTransaction}>
-        <ContinuousProfileHeader
-          transaction={
-            profileTransaction.type === 'resolved' ? profileTransaction.data : null
-          }
-        />
-        <Outlet />
-      </ProfileTransactionContext>
-    </ContinuousProfileProvider>
+    <Layout.Page>
+      <ContinuousProfileProvider
+        orgSlug={organization.slug}
+        profileMeta={profileMeta}
+        projectSlug={projectSlug}
+        profile={profile}
+        setProfile={setProfile}
+      >
+        <ProfileTransactionContext value={profileTransaction}>
+          <ContinuousProfileHeader
+            transaction={
+              profileTransaction.type === 'resolved' ? profileTransaction.data : null
+            }
+          />
+          <Outlet />
+        </ProfileTransactionContext>
+      </ContinuousProfileProvider>
+    </Layout.Page>
   );
 }
