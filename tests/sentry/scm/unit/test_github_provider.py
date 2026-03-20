@@ -811,7 +811,7 @@ ALIAS_METHODS = {
 }
 
 
-@pytest.mark.parametrize("case", PAGINATED_CASES, ids=[case["name"] for case in PAGINATED_CASES])
+@pytest.mark.parametrize("case", PAGINATED_CASES)
 def test_paginated_methods(case: dict[str, Any]) -> None:
     provider, client = make_provider()
     client.queue("get", FakeResponse(case["raw"]))
@@ -834,9 +834,7 @@ def test_paginated_methods(case: dict[str, Any]) -> None:
     ]
 
 
-@pytest.mark.parametrize(
-    "case", ACTION_CASES, ids=[case.get("id", case["name"]) for case in ACTION_CASES]
-)
+@pytest.mark.parametrize("case", ACTION_CASES)
 def test_action_methods(case: dict[str, Any]) -> None:
     provider, client = make_provider()
     client.queue(case["operation"], FakeResponse(case["raw"], url=case.get("url", "")))
@@ -889,7 +887,7 @@ def test_get_pull_request_diff_uses_raw_request_and_extracts_meta() -> None:
     ]
 
 
-@pytest.mark.parametrize("case", VOID_CASES, ids=[case["name"] for case in VOID_CASES])
+@pytest.mark.parametrize("case", VOID_CASES)
 def test_void_methods(case: dict[str, Any]) -> None:
     provider, client = make_provider()
     client.queue(case["operation"], {} if case["operation"] == "graphql" else FakeResponse({}))
