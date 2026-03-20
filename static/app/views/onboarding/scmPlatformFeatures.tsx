@@ -12,45 +12,55 @@ import {useOnboardingContext} from 'sentry/components/onboarding/onboardingConte
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {ScmCardButton} from 'sentry/views/onboarding/components/scmCardButton';
 import {ScmFeatureSelectionCards} from 'sentry/views/onboarding/components/scmFeatureSelectionCards';
 
-import {useScmPlatformDetection} from './components/useScmPlatformDetection';
+import {
+  useScmPlatformDetection,
+  type DetectedPlatform,
+} from './components/useScmPlatformDetection';
 import type {StepProps} from './types';
 
 const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
 
-function setPlatformInContext(
-  platformKey: PlatformKey,
-  setSelectedPlatform: (sdk?: OnboardingSelectedSDK) => void
-) {
-  const platformInfo = getPlatformInfo(platformKey);
-  if (platformInfo) {
-    setSelectedPlatform({
-      ...omit(platformInfo, 'id'),
-      key: platformInfo.id,
-      category: 'popular',
-    });
-  }
+interface ResolvedPlatform extends DetectedPlatform {
+  info: PlatformIntegration;
 }
 
 function getAvailableFeaturesForPlatform(platformKey: PlatformKey): ProductSolution[] {
   return platformProductAvailability[platformKey] ?? [];
 }
 
-export function ScmPlatformFeatures({onComplete}: StepProps) {
-  const {
-    selectedRepository,
-    selectedPlatform,
-    setSelectedPlatform,
-    selectedFeatures,
-    setSelectedFeatures,
-  } = useOnboardingContext();
+/**
+ * Converts a PlatformKey into an OnboardingSelectedSDK and writes it to
+ * onboarding context. Used by event handlers and the auto-select effect.
+ */
+function useSetPlatform() {
+  const {setSelectedPlatform} = useOnboardingContext();
 
+  return useCallback(
+    (platformKey: PlatformKey) => {
+      const platformInfo = getPlatformInfo(platformKey);
+      if (platformInfo) {
+        setSelectedPlatform({
+          ...omit(platformInfo, 'id'),
+          key: platformInfo.id,
+          category: 'popular',
+        });
+      }
+    },
+    [setSelectedPlatform]
+  );
+}
+
+export function ScmPlatformFeatures({onComplete}: StepProps) {
+  const {selectedRepository, selectedPlatform, selectedFeatures, setSelectedFeatures} =
+    useOnboardingContext();
+
+  const setPlatform = useSetPlatform();
   const hasScmConnected = !!selectedRepository;
 
   const {detectedPlatforms, isPending: isDetecting} = useScmPlatformDetection(
@@ -66,13 +76,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
   const resolvedPlatforms = useMemo(
     () =>
-      detectedPlatforms.reduce<
-        Array<
-          (typeof detectedPlatforms)[number] & {
-            info: NonNullable<ReturnType<typeof getPlatformInfo>>;
-          }
-        >
-      >((acc, detected) => {
+      detectedPlatforms.reduce<ResolvedPlatform[]>((acc, detected) => {
         const info = getPlatformInfo(detected.platform);
         if (info) {
           acc.push({...detected, info});
@@ -80,6 +84,19 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         return acc;
       }, []),
     [detectedPlatforms]
+  );
+
+  const availableFeatures = useMemo(
+    () =>
+      selectedPlatform?.key
+        ? [
+            ...new Set([
+              ProductSolution.ERROR_MONITORING,
+              ...getAvailableFeaturesForPlatform(selectedPlatform.key),
+            ]),
+          ]
+        : [],
+    [selectedPlatform?.key]
   );
 
   const handleToggleFeature = useCallback(
@@ -94,10 +111,10 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
   const handleSelectDetectedPlatform = useCallback(
     (platformKey: PlatformKey) => {
-      setPlatformInContext(platformKey, setSelectedPlatform);
+      setPlatform(platformKey);
       setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
     },
-    [setSelectedPlatform, setSelectedFeatures]
+    [setPlatform, setSelectedFeatures]
   );
 
   const showDetectedPlatforms = hasScmConnected && !showManualPicker;
@@ -107,7 +124,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
   // Auto-select the first detected platform when results load
   useEffect(() => {
     if (detectedPlatformKey && !currentPlatformKey) {
-      setPlatformInContext(detectedPlatformKey, setSelectedPlatform);
+      setPlatform(detectedPlatformKey);
       setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,14 +201,9 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
           </Stack>
         )}
 
-        {currentPlatformKey && (
+        {availableFeatures.length > 0 && (
           <ScmFeatureSelectionCards
-            availableFeatures={[
-              ...new Set([
-                ProductSolution.ERROR_MONITORING,
-                ...getAvailableFeaturesForPlatform(currentPlatformKey),
-              ]),
-            ]}
+            availableFeatures={availableFeatures}
             selectedFeatures={currentFeatures}
             onToggleFeature={handleToggleFeature}
           />

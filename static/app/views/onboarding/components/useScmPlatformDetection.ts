@@ -3,13 +3,13 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type DetectedPlatform = {
+export interface DetectedPlatform {
   bytes: number;
   confidence: string;
   language: string;
   platform: PlatformKey;
   priority: number;
-};
+}
 
 interface PlatformDetectionResponse {
   platforms: DetectedPlatform[];

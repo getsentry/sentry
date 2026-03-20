@@ -20,6 +20,8 @@ import {ScmCardButton} from './scmCardButton';
 
 type FeatureMeta = {
   description: string;
+  // IconGraphProps extends SVGIconProps with a narrower `type` union,
+  // so we use it as the shared type since all icons accept the superset.
   icon: ComponentType<IconGraphProps>;
   label: string;
 };
@@ -63,11 +65,11 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
   },
 };
 
-type ScmFeatureSelectionCardsProps = {
+interface ScmFeatureSelectionCardsProps {
   availableFeatures: ProductSolution[];
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
-};
+}
 
 export function ScmFeatureSelectionCards({
   availableFeatures,
@@ -92,7 +94,7 @@ export function ScmFeatureSelectionCards({
 
           return (
             <ScmCardButton
-              onClick={() => !isErrorMonitoring && onToggleFeature(feature)}
+              onClick={() => onToggleFeature(feature)}
               role="checkbox"
               aria-checked={isSelected}
               disabled={isErrorMonitoring}
