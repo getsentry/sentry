@@ -91,7 +91,6 @@ export function UserDropdown() {
             {...triggerProps}
             aria-label={user.email}
             avatar={avatarProps}
-            size="sm"
             onClick={e => {
               handleTriggerClick();
               triggerProps.onClick?.(e);
