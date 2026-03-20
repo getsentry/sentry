@@ -15,6 +15,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type SentryLogoProps = SVGIconProps & {
   /**
@@ -43,7 +44,7 @@ function BaseFooter({className}: Props) {
   const organization = useOrganization({allowNull: true});
 
   const secondaryNavigation = useSecondaryNavigation();
-  const hasPageFrame = organization?.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Container

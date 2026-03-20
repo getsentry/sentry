@@ -69,6 +69,7 @@ import {
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const MotionContainer = motion.create(Container);
 
@@ -166,8 +167,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
 function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const theme = useTheme();
   const secondaryNavigation = useSecondaryNavigation();
-  const organization = useOrganization({allowNull: true});
-  const hasPageFrame = organization?.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Container
@@ -266,9 +266,8 @@ interface SecondaryNavigationHeaderProps {
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
-  const organization = useOrganization();
   const isCollapsed = view !== 'expanded';
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Grid
@@ -436,7 +435,7 @@ function SecondaryNavigationLink({
 
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   const sharedLinkProps = {
     ...linkProps,
@@ -870,7 +869,7 @@ function SecondaryNavigationReorderableLink({
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {isDragging} = useReorderableItemContext();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   function handleNavigate() {
     if (isDragging) {

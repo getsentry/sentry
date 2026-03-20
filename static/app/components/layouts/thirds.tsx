@@ -5,15 +5,14 @@ import styled from '@emotion/styled';
 import {Container, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 /**
  * Main container for a page.
  */
 export function Page(props: FlexProps<'main'> & {withPadding?: boolean}) {
-  const organization = useOrganization({allowNull: true});
-  const hasPageFrame = organization?.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
   const secondaryNavigation = useSecondaryNavigation();
 
   const {withPadding, ...rest} = props;

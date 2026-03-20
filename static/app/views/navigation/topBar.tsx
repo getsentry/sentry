@@ -3,16 +3,16 @@ import {useTheme} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {PRIMARY_HEADER_HEIGHT} from './constants';
 
 export function TopBar() {
   const theme = useTheme();
-  const organization = useOrganization({allowNull: true});
   const secondaryNavigation = useSecondaryNavigation();
   const flexRef = useRef<HTMLDivElement>(null);
+  const hasPageFrame = useHasPageFrameFeature();
 
   useEffect(() => {
     if (!flexRef.current) {
@@ -44,7 +44,7 @@ export function TopBar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [theme.tokens.border.primary, secondaryNavigation.view]);
 
-  if (!organization?.features.includes('page-frame')) {
+  if (!hasPageFrame) {
     return null;
   }
 
