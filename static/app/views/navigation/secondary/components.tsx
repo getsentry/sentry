@@ -173,11 +173,7 @@ function SecondarySidebarWrapper(props: NavigationTourElementProps) {
     <Container
       background="secondary"
       borderRight={
-        hasPageFrame
-          ? secondaryNavigation.view === 'expanded'
-            ? undefined
-            : 'primary'
-          : 'primary'
+        hasPageFrame && secondaryNavigation.view === 'expanded' ? undefined : 'primary'
       }
       position="relative"
       height="100%"

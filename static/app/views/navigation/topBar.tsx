@@ -1,16 +1,16 @@
-import {useEffect, useRef} from 'react';
+import {useContext, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {PRIMARY_HEADER_HEIGHT} from './constants';
 
 export function TopBar() {
   const theme = useTheme();
-  const secondaryNavigation = useSecondaryNavigation();
+  const secondaryNavigation = useContext(SecondaryNavigationContext);
   const flexRef = useRef<HTMLDivElement>(null);
   const hasPageFrame = useHasPageFrameFeature();
 
@@ -19,7 +19,7 @@ export function TopBar() {
       return undefined;
     }
 
-    if (secondaryNavigation.view !== 'expanded') {
+    if (secondaryNavigation?.view !== 'expanded') {
       flexRef.current.style.borderBottom = `1px solid ${theme.tokens.border.primary}`;
       return undefined;
     }
@@ -42,7 +42,7 @@ export function TopBar() {
     handleScroll();
     window.addEventListener('scroll', handleScroll, {passive: true});
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [theme.tokens.border.primary, secondaryNavigation.view]);
+  }, [theme.tokens.border.primary, secondaryNavigation?.view]);
 
   if (!hasPageFrame) {
     return null;
