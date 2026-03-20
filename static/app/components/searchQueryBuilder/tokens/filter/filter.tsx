@@ -64,6 +64,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
       const items = token.value.items;
+      const multiValueJoiner = token.negated ? 'and' : 'or';
 
       if (items.length === 1 && items[0]!.value) {
         return (
@@ -83,7 +84,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
                 {formatFilterValue({token: item.value!})}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
-                <FilterValueOr> or </FilterValueOr>
+                <FilterValueJoiner> {multiValueJoiner} </FilterValueJoiner>
               ) : null}
             </Fragment>
           ))}
@@ -334,7 +335,7 @@ const DeleteButton = styled(UnstyledButton)`
   }
 `;
 
-const FilterValueOr = styled('span')`
+const FilterValueJoiner = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

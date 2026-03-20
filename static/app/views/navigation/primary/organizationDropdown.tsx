@@ -55,6 +55,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
 
   const {projects} = useProjects();
   const {layout} = usePrimaryNavigation();
+  const hasPageFrame = organization.features.includes('page-frame');
 
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
@@ -89,7 +90,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     ...letterAvatarProps,
                   }
           }
-          size={layout === 'mobile' ? 'xs' : 'md'}
+          {...(layout === 'mobile'
+            ? {size: 'xs' as const}
+            : hasPageFrame
+              ? {}
+              : {size: 'md' as const})}
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
           onClick={e => {

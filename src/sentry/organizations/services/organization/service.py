@@ -498,22 +498,6 @@ class OrganizationService(RpcService):
         """
         pass
 
-    # TODO(cells): Remove when callers updated
-    @cell_rpc_method(resolve=ByCellName())
-    @abstractmethod
-    def update_region_user(
-        self,
-        *,
-        user: RpcCellUser,
-        cell_name: str,
-    ) -> None:
-        """
-        Update all memberships in a cell to reflect changes in user details.
-
-        Will sync is_active and email attributes.
-        """
-        pass
-
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def reset_idp_flags(self, *, organization_id: int) -> None:

@@ -11,6 +11,7 @@ from django.urls import reverse
 from requests import HTTPError, Timeout
 from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
 from taskbroker_client.constants import CompressionType
+from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
 
 from sentry import analytics, nodestore
 from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
@@ -68,7 +69,6 @@ from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError,
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
-from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
