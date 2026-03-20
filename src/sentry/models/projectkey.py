@@ -275,6 +275,10 @@ class ProjectKey(Model):
         return self.build_integration_endpoint("otlp", "v1/logs")
 
     @property
+    def render_log_drain_endpoint(self) -> str:
+        return self.build_integration_endpoint("render")
+
+    @property
     def unreal_endpoint(self) -> str:
         return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
 
