@@ -16,6 +16,7 @@ from django.core.files.base import ContentFile
 from django.core.files.base import File as FileObj
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
+from taskbroker_client.task import Task
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, WrappingU32IntegerField
@@ -23,7 +24,6 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.abstractfileblobindex import AbstractFileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, AssembleChecksumMismatch, nooplogger
-from sentry.taskworker.task import Task
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

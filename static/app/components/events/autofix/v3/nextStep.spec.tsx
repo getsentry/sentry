@@ -108,6 +108,13 @@ describe('SeerDrawerNextStep', () => {
   });
 
   describe('RootCauseNextStep', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {integrations: []},
+      });
+    });
+
     it('returns null when section has no artifacts', () => {
       const autofix = makeAutofix();
       const {container} = render(
@@ -182,6 +189,24 @@ describe('SeerDrawerNextStep', () => {
         screen.getByRole('button', {name: 'Nevermind, make an implementation plan'})
       );
       expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
+    });
+
+    it('shows coding agent dropdown when integrations exist', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
+          ],
+        },
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep sections={[makeSection('root_cause')]} autofix={autofix} />
+      );
+      expect(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      ).toBeInTheDocument();
     });
   });
 
@@ -266,6 +291,49 @@ describe('SeerDrawerNextStep', () => {
       );
       expect(autofix.startStep).toHaveBeenCalledWith('code_changes', 1);
     });
+
+    it('shows coding agent dropdown when integrations exist', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
+          ],
+        },
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep sections={[makeSection('solution')]} autofix={autofix} />
+      );
+      expect(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      ).toBeInTheDocument();
+    });
+
+    it('calls triggerCodingAgentHandoff when coding agent option is clicked', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
+          ],
+        },
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep sections={[makeSection('solution')]} autofix={autofix} />
+      );
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      );
+      await userEvent.click(screen.getByText('Send to Copilot'));
+      expect(autofix.triggerCodingAgentHandoff).toHaveBeenCalledWith(1, {
+        id: '1',
+        name: 'Copilot',
+        provider: 'github',
+        requires_identity: false,
+      });
+    });
   });
 
   describe('CodeChangesNextStep', () => {
@@ -339,6 +407,24 @@ describe('SeerDrawerNextStep', () => {
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.click(screen.getByRole('button', {name: 'Nevermind, draft a PR'}));
       expect(autofix.createPR).toHaveBeenCalledWith(1);
+    });
+
+    it('does not show coding agent dropdown', () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
+          ],
+        },
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep sections={[makeSection('code_changes')]} autofix={autofix} />
+      );
+      expect(
+        screen.queryByRole('button', {name: 'More code fix options'})
+      ).not.toBeInTheDocument();
     });
   });
 });

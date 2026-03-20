@@ -4,6 +4,7 @@ import logging
 from datetime import UTC, datetime, timedelta, timezone
 
 import sentry_sdk
+from taskbroker_client.retry import Retry
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
