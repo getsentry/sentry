@@ -59,7 +59,7 @@ class RuleHistoryBackend(Service):
         raise NotImplementedError
 
     def fetch_rule_hourly_stats(
-        self, rule: Rule | Workflow, start: datetime, end: datetime
+        self, target: Rule | Workflow, start: datetime, end: datetime
     ) -> Sequence[TimeSeriesValue]:
         """
         Fetches counts of how often a rule has fired withing a given datetime range, bucketed by
