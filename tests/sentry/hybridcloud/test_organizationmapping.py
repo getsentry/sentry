@@ -90,7 +90,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 name=self.organization.name,
                 slug=self.organization.slug,
                 status=self.organization.status,
-                region_name="us",
+                cell_name="us",
                 customer_id=CustomerId(value="99"),
             ),
         )
