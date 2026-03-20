@@ -67,7 +67,7 @@ def get_rule_workflow_ids(target: Workflow | Rule) -> IdPair:
         rule_id = target.id
         try:
             alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=target.id)
-            workflow_id = alert_rule_workflow.workflow.id
+            workflow_id = alert_rule_workflow.workflow_id
         except AlertRuleWorkflow.DoesNotExist:
             workflow_id = None
     return IdPair(workflow_id=workflow_id, rule_id=rule_id)
