@@ -7,6 +7,7 @@ from typing import Any
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry import features, tagstore, tsdb
 from sentry.api import client
@@ -199,7 +200,42 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 )
             )
 
-            hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
+            # Fetch stats with graceful fallback for Snuba timeouts
+            # Stats are non-critical, so we don't fail the entire request if they timeout
+            try:
+                hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
+            except ReadTimeoutError:
+                # Snuba query exceeded timeout (30s), use empty stats
+                metrics.incr(
+                    "group.get.stats_fetch_timeout",
+                    sample_rate=1.0,
+                    tags={"error_type": "read_timeout"},
+                )
+                hourly_stats, daily_stats = [], []
+            except snuba.SnubaError as e:
+                # Other Snuba errors (e.g., connection errors, invalid query)
+                metrics.incr(
+                    "group.get.stats_fetch_error",
+                    sample_rate=1.0,
+                    tags={"error_type": "snuba_error"},
+                )
+                delete_logger.warning(
+                    f"Failed to fetch group stats: {e}",
+                    extra={"group_id": group.id, "organization_id": group.project.organization_id},
+                )
+                hourly_stats, daily_stats = [], []
+            except Exception as e:
+                # Unexpected errors - still degrade gracefully
+                metrics.incr(
+                    "group.get.stats_fetch_error",
+                    sample_rate=1.0,
+                    tags={"error_type": "other"},
+                )
+                delete_logger.exception(
+                    f"Unexpected error fetching group stats: {e}",
+                    extra={"group_id": group.id, "organization_id": group.project.organization_id},
+                )
+                hourly_stats, daily_stats = [], []
 
             if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
