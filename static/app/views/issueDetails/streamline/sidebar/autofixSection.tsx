@@ -10,10 +10,14 @@ import {Text} from '@sentry/scraps/text';
 
 import {
   getOrderedAutofixSections,
+  isCodeChangesArtifact,
   isCodeChangesSection,
   isCodingAgentsSection,
+  isPullRequestsArtifact,
   isPullRequestsSection,
+  isRootCauseArtifact,
   isRootCauseSection,
+  isSolutionArtifact,
   isSolutionSection,
   useExplorerAutofix,
   type AutofixSection,
@@ -25,6 +29,7 @@ import {
   RootCausePreview,
   SolutionPreview,
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
+import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconBug} from 'sentry/icons';
@@ -33,7 +38,9 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -198,6 +205,8 @@ function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProp
     [autofix.runState]
   );
 
+  const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
+
   if (!sections.length) {
     return (
       <AutofixEmptyState
@@ -205,12 +214,19 @@ function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProp
         event={event}
         group={group}
         project={project}
+        referrer={referrer}
       />
     );
   }
 
   return (
-    <AutofixPreviews sections={sections} event={event} group={group} project={project} />
+    <AutofixPreviews
+      sections={sections}
+      event={event}
+      group={group}
+      project={project}
+      referrer={referrer}
+    />
   );
 }
 
@@ -219,9 +235,16 @@ interface AutofixEmptyStateProps {
   event: Event;
   group: Group;
   project: Project;
+  referrer?: string;
 }
 
-function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStateProps) {
+function AutofixEmptyState({
+  autofix,
+  group,
+  event,
+  project,
+  referrer,
+}: AutofixEmptyStateProps) {
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
@@ -270,6 +293,9 @@ function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStatePr
         tooltipProps={{title: t('Fix the Issue')}}
         priority="primary"
         onClick={handleStartRootCause}
+        analyticsEventKey="autofix.start_fix_clicked"
+        analyticsEventName="Autofix: Start Fix Clicked"
+        analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
       >
         {t('Fix the Issue')}
       </Button>
@@ -282,9 +308,43 @@ interface AutofixPreviewsProps {
   group: Group;
   project: Project;
   sections: AutofixSection[];
+  referrer?: string;
 }
 
-function AutofixPreviews({event, group, project, sections}: AutofixPreviewsProps) {
+function AutofixPreviews({
+  event,
+  group,
+  project,
+  sections,
+  referrer,
+}: AutofixPreviewsProps) {
+  const hasRootCause = defined(
+    sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact)
+  );
+
+  const hasSolution = defined(
+    sections.findLast(isSolutionSection)?.artifacts?.some(isSolutionArtifact)
+  );
+
+  const hasCodeChanges = defined(
+    sections.findLast(isCodeChangesSection)?.artifacts?.some(isCodeChangesArtifact)
+  );
+  const hasPullRequests = defined(
+    sections.findLast(isPullRequestsSection)?.artifacts?.some(isPullRequestsArtifact)
+  );
+
+  // Track autofix features analytics
+  useRouteAnalyticsParams({
+    has_root_cause: hasRootCause,
+    has_solution: hasSolution,
+    has_coded_solution: hasCodeChanges,
+    has_pr: hasPullRequests,
+    autofix_mode: 'explorer',
+    autofix_referrer: referrer,
+  });
+
+  const {data: summaryData, isPending: isSummaryPending} = useGroupSummaryData(group);
+
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
@@ -325,6 +385,21 @@ function AutofixPreviews({event, group, project, sections}: AutofixPreviewsProps
         tooltipProps={{title: t('Open Seer')}}
         priority="primary"
         onClick={openSeerDrawer}
+        analyticsEventKey="issue_details.seer_opened"
+        analyticsEventName="Issue Details: Seer Opened"
+        analyticsParams={{
+          group_id: group.id,
+          has_streamlined_ui: true,
+          autofix_exists: true,
+          autofix_step_type: sections[sections.length - 1]?.step ?? null,
+          has_summary: Boolean(summaryData && !isSummaryPending),
+          has_root_cause: hasRootCause,
+          has_solution: hasSolution,
+          has_coded_solution: hasCodeChanges,
+          has_pr: hasPullRequests,
+          mode: 'explorer',
+          referrer,
+        }}
       >
         {t('Open Seer')}
       </Button>

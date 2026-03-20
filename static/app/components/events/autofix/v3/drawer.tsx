@@ -119,7 +119,7 @@ function InnerSeerDrawer({
     return <SeerWelcomeScreen group={group} project={project} event={event} />;
   }
 
-  return <SeerDrawerContent autofix={aiAutofix} aiConfig={aiConfig} />;
+  return <SeerDrawerContent group={group} autofix={aiAutofix} aiConfig={aiConfig} />;
 }
 
 function useHandleCopyMarkdown({
