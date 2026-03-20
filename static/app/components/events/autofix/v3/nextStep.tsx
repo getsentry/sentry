@@ -157,6 +157,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
     runId,
     group,
     step: 'solution',
+    referrer,
   });
 
   const handleYesClick = useCallback(() => {
@@ -371,9 +372,9 @@ function NextStepTemplate({
 interface UseCodingAgentsOptions {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
+  referrer: string | undefined;
   runId: number;
   step: 'root_cause' | 'solution';
-  referrer?: string;
 }
 
 function useCodingAgents({

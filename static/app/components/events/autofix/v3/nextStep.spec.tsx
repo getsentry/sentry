@@ -126,6 +126,7 @@ describe('SeerDrawerNextStep', () => {
       const autofix = makeAutofix();
       const {container} = render(
         <SeerDrawerNextStep
+          group={GroupFixture()}
           sections={[makeSection('root_cause', [])]}
           autofix={autofix}
         />
@@ -404,6 +405,7 @@ describe('SeerDrawerNextStep', () => {
       const autofix = makeAutofix();
       const {container} = render(
         <SeerDrawerNextStep
+          group={GroupFixture()}
           sections={[makeSection('code_changes', [])]}
           autofix={autofix}
         />

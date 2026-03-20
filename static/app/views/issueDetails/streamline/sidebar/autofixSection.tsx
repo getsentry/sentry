@@ -38,7 +38,6 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -318,20 +317,18 @@ function AutofixPreviews({
   sections,
   referrer,
 }: AutofixPreviewsProps) {
-  const hasRootCause = defined(
-    sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact)
-  );
+  const hasRootCause =
+    sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact) ?? false;
 
-  const hasSolution = defined(
-    sections.findLast(isSolutionSection)?.artifacts?.some(isSolutionArtifact)
-  );
+  const hasSolution =
+    sections.findLast(isSolutionSection)?.artifacts?.some(isSolutionArtifact) ?? false;
 
-  const hasCodeChanges = defined(
-    sections.findLast(isCodeChangesSection)?.artifacts?.some(isCodeChangesArtifact)
-  );
-  const hasPullRequests = defined(
-    sections.findLast(isPullRequestsSection)?.artifacts?.some(isPullRequestsArtifact)
-  );
+  const hasCodeChanges =
+    sections.findLast(isCodeChangesSection)?.artifacts?.some(isCodeChangesArtifact) ??
+    false;
+  const hasPullRequests =
+    sections.findLast(isPullRequestsSection)?.artifacts?.some(isPullRequestsArtifact) ??
+    false;
 
   // Track autofix features analytics
   useRouteAnalyticsParams({
