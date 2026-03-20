@@ -32,6 +32,7 @@ export function WheelWidgetVisualization({tableResults}: WheelWidgetVisualizatio
   return (
     <Flex justify="center" align="center" direction="column" height="100%">
       <PerformanceScoreRingWithTooltips
+        autoSize
         projectScore={projectScore}
         text={score}
         width={220}

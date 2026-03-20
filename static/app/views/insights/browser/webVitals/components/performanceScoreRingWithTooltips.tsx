@@ -43,6 +43,7 @@ type Props = {
   ringSegmentColors: readonly string[];
   text: React.ReactNode;
   width: number;
+  autoSize?: boolean;
   barWidth?: number;
   differenceToPreviousPeriod?: ProjectScore;
   hideWebVitalLabels?: boolean;
@@ -143,6 +144,7 @@ export function PerformanceScoreRingWithTooltips({
   text,
   differenceToPreviousPeriod,
   webVitalLabelCoordinates,
+  autoSize = false,
   barWidth = 16,
   hideWebVitalLabels = false,
   inPerformanceWidget = false,
@@ -205,7 +207,11 @@ export function PerformanceScoreRingWithTooltips({
   );
 
   return (
-    <ProgressRingContainer ref={elem} {...mouseTrackingProps}>
+    <ProgressRingContainer
+      ref={elem}
+      {...mouseTrackingProps}
+      style={autoSize ? {width: '100%', height: '100%'} : undefined}
+    >
       {webVitalTooltip && (
         <PerformanceScoreRingTooltip x={mousePosition.x} y={mousePosition.y}>
           <Flex justify="between" align="center">
@@ -231,7 +237,11 @@ export function PerformanceScoreRingWithTooltips({
           <PerformanceScoreRingTooltipArrow />
         </PerformanceScoreRingTooltip>
       )}
-      <svg height={height} width={width}>
+      <svg
+        height={autoSize ? '100%' : height}
+        width={autoSize ? '100%' : width}
+        viewBox={`0 0 ${width} ${height}`}
+      >
         {!hideWebVitalLabels && (
           <Fragment>
             {Object.keys(weights).map((key, index) => {
