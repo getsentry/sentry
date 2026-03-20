@@ -35,7 +35,6 @@ src/sentry/locale/**
 .gitattributes
 .gitignore
 .npmrc
-.prettierignore
 .python-version
 .tx/config
 .vercelignore
