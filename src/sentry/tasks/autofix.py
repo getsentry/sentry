@@ -273,12 +273,12 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
         if features.has("organizations:seer-project-settings-dual-write", organization):
             try:
-                # Seer API responses don't include repository_id.
-                # Resolve before dual-writing so repos aren't skipped.
-                # This will not be necessary once we cut over reads from Seer API to Sentry DB.
                 validated_preferences = [
                     SeerProjectPreference.validate(pref) for pref in preferences_to_set
                 ]
+                # Seer API responses don't include repository_id.
+                # Resolve before dual-writing so repos aren't skipped.
+                # This will not be necessary once we start keying by repo ID.
                 resolved_preferences = resolve_repository_ids(
                     organization_id, validated_preferences
                 )

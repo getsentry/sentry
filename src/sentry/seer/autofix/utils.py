@@ -448,8 +448,7 @@ def resolve_repository_ids(
     providers: set[str] = set()
     for pref in preferences:
         for repo in pref.repositories:
-            # We can't resolve repos with None providers or external IDs.
-            if repo.repository_id is not None or not repo.external_id or not repo.provider:
+            if repo.repository_id is not None:
                 continue
 
             external_ids.add(repo.external_id)
@@ -471,7 +470,7 @@ def resolve_repository_ids(
         ] = db_repo["id"]
 
     def _resolve_repo(repo: SeerRepoDefinition) -> SeerRepoDefinition:
-        if repo.repository_id is not None or not repo.external_id or not repo.provider:
+        if repo.repository_id is not None:
             return repo
         resolved_id = resolved_ids.get(
             (repo.external_id, repo.provider.removeprefix("integrations:"))
