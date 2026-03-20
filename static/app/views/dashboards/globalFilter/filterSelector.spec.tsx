@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {FieldKind} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
@@ -136,14 +136,22 @@ describe('FilterSelector', () => {
     // Dismiss by clicking outside (without applying)
     await userEvent.click(document.body);
 
-    // The onClose handler incorrectly resets stagedFilterValues to [], causing the trigger
-    // to show "All". Wait for "All" to appear and then be removed once the fix is in place.
+    // Wait for the dropdown to close (overlay removed from DOM)
     await waitFor(() => {
-      expect(screen.queryByText('All')).not.toBeInTheDocument();
+      expect(screen.queryByText('safari')).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('firefox')).toBeInTheDocument();
+    // Flush requestAnimationFrame callbacks (control.tsx uses nextFrameCallback for onClose)
+    await act(async () => {
+      await new Promise(resolve => requestAnimationFrame(resolve));
+    });
+
+    // The underlying filter value should not have been modified
     expect(mockOnUpdateFilter).not.toHaveBeenCalled();
+
+    // The trigger should still show the selected values, not "All"
+    expect(screen.queryByText('All')).not.toBeInTheDocument();
+    expect(screen.getByText('firefox')).toBeInTheDocument();
   });
 
   it('translates subregion codes to human-readable names for spans dataset', async () => {
