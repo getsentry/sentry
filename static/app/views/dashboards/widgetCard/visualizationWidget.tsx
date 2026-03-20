@@ -30,7 +30,10 @@ import {
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
-import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import {
+  MISSING_DATA_MESSAGE,
+  NUMBER_MIN_VALUE,
+} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
   TabularColumn,
@@ -370,7 +373,15 @@ function VisualizationWidgetContent({
               {labelContent}
             </Tooltip>
             <TextAlignRight>
-              {value === null ? '—' : formatTooltipValue(value, dataType, dataUnit)}
+              {value === null ? (
+                '—'
+              ) : value > 0 && value < NUMBER_MIN_VALUE ? (
+                <Tooltip title={value.toString()}>
+                  <span>{formatTooltipValue(value, dataType, dataUnit)}</span>
+                </Tooltip>
+              ) : (
+                formatTooltipValue(value, dataType, dataUnit)
+              )}
             </TextAlignRight>
           </Fragment>
         );
