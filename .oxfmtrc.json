@@ -3,9 +3,19 @@
     "newlinesBetween": true,
     "customGroups": [
       {
+        "groupName": "react-side-effect-style",
+        "selector": "side_effect_style",
+        "elementNamePattern": ["react", "react-*", "react-*/**"]
+      },
+      {
+        "groupName": "react-side-effect",
+        "selector": "side_effect",
+        "elementNamePattern": ["react", "react-*", "react-*/**"]
+      },
+      {
         "groupName": "react",
         "selector": "external",
-        "elementNamePattern": ["react", "react-*"]
+        "elementNamePattern": ["react", "react-*", "react-*/**"]
       },
       {
         "groupName": "test-utils",
@@ -41,11 +51,29 @@
         "groupName": "getsentry",
         "selector": "external",
         "elementNamePattern": ["admin", "admin/**", "getsentry", "getsentry/**"]
+      },
+      {
+        "groupName": "deep-sibling-side-effect",
+        "selector": "side_effect",
+        "elementNamePattern": ["./*/**"]
+      },
+      {
+        "groupName": "deep-sibling",
+        "selector": "sibling",
+        "elementNamePattern": ["./*/**"]
+      },
+      {
+        "groupName": "explicit-index",
+        "selector": "index",
+        "elementNamePattern": ["./index", "./index.*"]
       }
     ],
     "groups": [
+      ["side_effect", "react-side-effect", "deep-sibling-side-effect"],
+      ["side_effect_style", "react-side-effect-style"],
       "builtin",
       "react",
+      {"newlinesBetween": false},
       "external",
       "test-utils",
       "sentry-assets",
@@ -54,7 +82,11 @@
       "getsentry",
       "style",
       "parent",
-      ["sibling", "subpath", "index"],
+      "deep-sibling",
+      {"newlinesBetween": false},
+      ["sibling", "subpath", "explicit-index"],
+      {"newlinesBetween": false},
+      "index",
       "unknown"
     ]
   },
@@ -68,15 +100,6 @@
   "useTabs": false,
   "arrowParens": "avoid",
   "sortPackageJson": false,
-  "overrides": [
-    {
-      "files": ["*.json", "*.toml"],
-      "options": {
-        "bracketSpacing": true,
-        "bracketSameLine": true
-      }
-    }
-  ],
   "ignorePatterns": [
     ".devenv/bin/**/*",
     "src/**/templates/**/*.html",
