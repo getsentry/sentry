@@ -7,7 +7,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import WorkflowFireHistory
+from sentry.workflow_engine.models import AlertRuleWorkflow, WorkflowFireHistory
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = [requires_snuba]
@@ -268,6 +268,107 @@ class FetchRuleGroupsPaginatedTest(BasePostgresRuleHistoryBackendTest, BaseWorkf
                     group=group_2,
                     count=1,
                     last_triggered=before_now(days=2),
+                    event_id="workflow_event_group2",
+                ),
+            ],
+            per_page=1,
+            cursor=result.next,
+        )
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_combined_rule_and_workflow_history(self) -> None:
+        """Test combining RuleFireHistory and WorkflowFireHistory when both exist"""
+        rule = self.create_project_rule(project=self.event.project)
+        workflow_triggers = self.create_data_condition_group()
+        workflow = self.create_workflow(
+            when_condition_group=workflow_triggers,
+            organization=self.organization,
+        )
+        AlertRuleWorkflow.objects.create(rule_id=rule.id, workflow=workflow)
+
+        # RuleFireHistory: self.group fired 2 days ago, group_2 fired 4 days ago
+        rfh1 = RuleFireHistory.objects.create(
+            project=rule.project,
+            rule=rule,
+            group=self.group,
+            date_added=before_now(days=2),
+            event_id="rule_event_group1",
+        )
+        rfh1.update(date_added=before_now(days=2))
+
+        group_2 = self.create_group()
+        rfh2 = RuleFireHistory.objects.create(
+            project=rule.project,
+            rule=rule,
+            group=group_2,
+            date_added=before_now(days=4),
+            event_id="rule_event_group2",
+        )
+        rfh2.update(date_added=before_now(days=4))
+
+        # WorkflowFireHistory: self.group fired 1 day ago (more recent), group_2 fired 3 days ago
+        wfh1 = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=self.group,
+            date_added=before_now(days=1),
+            event_id="workflow_event_group1",
+        )
+        wfh1.update(date_added=before_now(days=1))
+
+        wfh2 = WorkflowFireHistory.objects.create(
+            workflow=workflow,
+            group=group_2,
+            date_added=before_now(days=3),
+            event_id="workflow_event_group2",
+        )
+        wfh2.update(date_added=before_now(days=3))
+
+        # self.group: 2 total (1 rule + 1 workflow), last_triggered=1 day ago
+        # group_2: 2 total (1 rule + 1 workflow), last_triggered=3 days ago
+        self.run_test(
+            workflow,
+            before_now(days=6),
+            before_now(days=0),
+            [
+                RuleGroupHistory(
+                    group=self.group,
+                    count=2,
+                    last_triggered=before_now(days=1),
+                    event_id="workflow_event_group1",
+                ),
+                RuleGroupHistory(
+                    group=group_2,
+                    count=2,
+                    last_triggered=before_now(days=3),
+                    event_id="workflow_event_group2",
+                ),
+            ],
+        )
+
+        # Test pagination
+        result = self.run_test(
+            workflow,
+            before_now(days=6),
+            before_now(days=0),
+            [
+                RuleGroupHistory(
+                    group=self.group,
+                    count=2,
+                    last_triggered=before_now(days=1),
+                    event_id="workflow_event_group1",
+                ),
+            ],
+            per_page=1,
+        )
+        self.run_test(
+            workflow,
+            before_now(days=6),
+            before_now(days=0),
+            [
+                RuleGroupHistory(
+                    group=group_2,
+                    count=2,
+                    last_triggered=before_now(days=3),
                     event_id="workflow_event_group2",
                 ),
             ],

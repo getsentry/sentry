@@ -46,7 +46,7 @@ def convert_results(results: Sequence[_Result]) -> Sequence[RuleGroupHistory]:
 
 def convert_hourly_stats(
     existing_data: dict[datetime, TimeSeriesValue], start: datetime, end: datetime
-) -> dict[datetime, TimeSeriesValue]:
+) -> list[TimeSeriesValue]:
     results = []
     current = start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     while current <= end.replace(minute=0, second=0, microsecond=0):
@@ -191,9 +191,9 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
     ) -> CursorResult[RuleGroupHistory]:
         workflow_id, rule_id = get_rule_workflow_ids(target)
 
-        if not workflow_id and rule_id:
+        if not workflow_id and isinstance(target, Rule):
             logger.exception("No workflow associated with rule", extra={"rule_id": rule_id})
-            return self._fetch_rule_fire_history(rule_id, start, end, per_page, cursor)
+            return self._fetch_rule_fire_history(target, start, end, per_page, cursor)
 
         return self._fetch_combined_rule_workflow_fire_history(
             rule_id, workflow_id, start, end, per_page, cursor
@@ -262,7 +262,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         existing_data: dict[datetime, TimeSeriesValue] = {}
 
         workflow_id, rule_id = get_rule_workflow_ids(target)
-        if not workflow_id and rule_id:
+        if not workflow_id and isinstance(target, Rule):
             logger.exception("No workflow associated with rule", extra={"rule_id": target.id})
             existing_data = self._fetch_rule_fire_history_hourly_stats(target, start, end)
             return convert_hourly_stats(existing_data, start, end)
