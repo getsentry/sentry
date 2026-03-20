@@ -37,15 +37,14 @@ type ProjectData = {
 };
 
 type Props = {
-  height: number;
   projectScore: ProjectScore;
   ringBackgroundColors: readonly string[];
   ringSegmentColors: readonly string[];
   text: React.ReactNode;
-  width: number;
   autoSize?: boolean;
   barWidth?: number;
   differenceToPreviousPeriod?: ProjectScore;
+  height?: number;
   hideWebVitalLabels?: boolean;
   inPerformanceWidget?: boolean;
   labelHeightPadding?: number;
@@ -53,6 +52,7 @@ type Props = {
   radiusPadding?: number;
   size?: number;
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
+  width?: number;
   x?: number;
   y?: number;
 };
@@ -139,12 +139,12 @@ export function PerformanceScoreRingWithTooltips({
   projectData,
   ringBackgroundColors,
   ringSegmentColors,
-  width,
-  height,
   text,
   differenceToPreviousPeriod,
   webVitalLabelCoordinates,
   autoSize = false,
+  width = 220,
+  height = 200,
   barWidth = 16,
   hideWebVitalLabels = false,
   inPerformanceWidget = false,

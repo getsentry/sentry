@@ -35,8 +35,6 @@ export function WheelWidgetVisualization({tableResults}: WheelWidgetVisualizatio
         autoSize
         projectScore={projectScore}
         text={score}
-        width={220}
-        height={200}
         y={30}
         ringBackgroundColors={ringBackgroundColors}
         ringSegmentColors={ringSegmentColors}
