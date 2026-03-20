@@ -1,7 +1,7 @@
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {UseMutationOptions} from 'sentry/utils/queryClient';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
