@@ -18,8 +18,7 @@ class DatabaseBackedIssueService(IssueService):
     def get_external_issue_groups(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         external_issue_key: str,
         integration_id: int,
     ) -> list[RpcExternalIssueGroupMetadata] | None:
