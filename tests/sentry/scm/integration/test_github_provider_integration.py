@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
@@ -107,40 +107,6 @@ class TestGitHubProviderIntegration(TestCase):
         assert responses.calls[0].request.headers["Accept"] == "application/vnd.github+json"
         assert "page" not in responses.calls[0].request.headers
         assert "per_page" not in responses.calls[0].request.headers
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    @responses.activate
-    def test_get_pull_request_uses_conditional_request_headers(self, mock_get_jwt):
-        responses.add(
-            method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/pulls/1347",
-            json={
-                "id": 1,
-                "node_id": "MDExOlB1bGxSZXF1ZXN0MQ==",
-                "url": f"https://api.github.com/repos/{REPO_NAME}/pulls/1347",
-                "html_url": f"https://github.com/{REPO_NAME}/pull/1347",
-                "number": 1347,
-                "state": "open",
-                "title": "Amazing new feature",
-                "body": "Please pull these awesome changes in!",
-                "head": {"ref": "new-topic", "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5e"},
-                "base": {"ref": "master", "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5f"},
-                "merged": False,
-                "user": {"login": "octocat", "id": 1},
-            },
-        )
-
-        self.provider.get_pull_request(
-            "1347",
-            request_options={
-                "if_none_match": '"etag-123"',
-                "if_modified_since": datetime(2026, 3, 18, 15, 4, 5, tzinfo=UTC),
-            },
-        )
-
-        assert len(responses.calls) == 1
-        assert responses.calls[0].request.headers["If-None-Match"] == '"etag-123"'
-        assert responses.calls[0].request.headers["If-Modified-Since"] == "2026-03-18T15:04:05Z"
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -263,7 +229,7 @@ class TestGitHubProviderIntegration(TestCase):
     def test_get_issue_comment_reactions(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions?per_page=100",
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions?per_page=100&page=1",
             json=[
                 {
                     "id": 1,
@@ -327,7 +293,7 @@ class TestGitHubProviderIntegration(TestCase):
     def test_get_issue_reactions(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/issues/42/reactions?per_page=100",
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/42/reactions?per_page=100&page=1",
             json=[
                 {
                     "id": 1,

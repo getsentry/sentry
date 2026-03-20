@@ -174,6 +174,7 @@ class BaseApiClient:
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: Literal[True] = ...,
+        force_raise_for_status: bool = False,
     ) -> Response: ...
 
     @overload
@@ -192,6 +193,7 @@ class BaseApiClient:
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = ...,
+        force_raise_for_status: bool = False,
     ) -> Any: ...
 
     def _request(
@@ -209,6 +211,7 @@ class BaseApiClient:
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = False,
+        force_raise_for_status: bool = False,
     ) -> Any | Response:
         if allow_redirects is None:
             allow_redirects = self.allow_redirects
@@ -263,6 +266,8 @@ class BaseApiClient:
                 }
                 resp: Response = session.send(finalized_request, **session_settings)
                 if raw_response:
+                    if force_raise_for_status:
+                        resp.raise_for_status()
                     return resp
                 resp.raise_for_status()
         except RestrictedIPAddress as e:

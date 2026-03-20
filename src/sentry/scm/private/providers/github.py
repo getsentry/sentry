@@ -52,6 +52,7 @@ from sentry.scm.types import (
     ReviewSide,
     TreeEntry,
 )
+from sentry.shared_integrations.exceptions import ApiError
 
 # GitHub's Checks API status values map to generic BuildStatus.
 # "requested", "waiting", and "pending" are GitHub Actions-internal states that
@@ -131,16 +132,11 @@ def as_github_headers(
     # GitHub recommends this accept header.
     headers = {"Accept": "application/vnd.github+json"}
 
-    # If we were to receive a 304 status response what would we do with it? We haven't thought
-    # through how to bubble up the type to the SCM.
-    #
     # if request_options:
     #     if_none_match = request_options.get("if_none_match")
     #     if if_none_match is not None:
     #         headers["If-None-Match"] = if_none_match
 
-    #     # If the "if_modified_since" header was provided then we'll only fetch those items which
-    #     # were recently modified.
     #     if_modified_since = request_options.get("if_modified_since")
     #     if if_modified_since is not None:
     #         headers["If-Modified-Since"] = if_modified_since.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -155,7 +151,7 @@ def as_github_params(params: dict[str, Any], pagination: PaginationParams | None
         params["per_page"] = str(pagination["per_page"])
         params["page"] = str(pagination["cursor"])
     else:
-        params["per_page"] = "50"
+        params["per_page"] = "100"
         params["page"] = "1"
 
     return params
@@ -182,14 +178,18 @@ class GitHubProviderApiClient:
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
     ) -> requests.Response:
-        return self.client._request(
-            method=method,
-            path=path,
-            headers=headers,
-            data=data,
-            params=params,
-            raw_response=True,
-        )
+        try:
+            return self.client._request(
+                method=method,
+                path=path,
+                headers=headers,
+                data=data,
+                params=params,
+                raw_response=True,
+                force_raise_for_status=True,
+            )
+        except ApiError as e:
+            raise SCMProviderException(str(e)) from e
 
     def get(
         self,
