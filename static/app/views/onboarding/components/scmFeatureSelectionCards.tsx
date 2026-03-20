@@ -13,14 +13,14 @@ import {
   IconTimer,
   IconWarning,
 } from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {IconGraphProps} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 
 import {ScmCardButton} from './scmCardButton';
 
 type FeatureMeta = {
   description: string;
-  icon: ComponentType<SVGIconProps>;
+  icon: ComponentType<IconGraphProps>;
   label: string;
 };
 
@@ -56,7 +56,7 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
   },
   [ProductSolution.METRICS]: {
     label: t('Metrics'),
-    icon: IconGraph as ComponentType<SVGIconProps>,
+    icon: IconGraph,
     description: t(
       'Track application performance and usage over time with custom metrics'
     ),
