@@ -173,6 +173,10 @@ def relay_server(relay_server_setup, settings):
 
     yield {"url": relay_server_setup["url"]}
 
+    if not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
+        with get_docker_client() as docker_client:
+            _remove_container_if_exists(docker_client, _relay_server_container_name())
+
 
 def adjust_settings_for_relay_tests(settings):
     """
