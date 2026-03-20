@@ -112,11 +112,22 @@ async function validateDashboardAndRecordMetrics(
   try {
     await validateDashboard(organization.slug, newDashboard);
     Sentry.metrics.count('dashboards.seer.validation', 1, {
-      attributes: {status: 'success', ...(seerRunId ? {seer_run_id: seerRunId} : {})},
+      attributes: {
+        status: 'success',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+      },
     });
   } catch (error) {
     Sentry.metrics.count('dashboards.seer.validation', 1, {
-      attributes: {status: 'failure', ...(seerRunId ? {seer_run_id: seerRunId} : {})},
+      attributes: {
+        status: 'failure',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+      },
+    });
+    Sentry.captureException(error, {
+      tags: {seer_run_id: seerRunId},
     });
   }
 }
@@ -148,6 +159,10 @@ export default function CreateFromSeer() {
   // validation errors.
   const completedAtRef = useRef<number | null>(null);
 
+  // Additional guards to prevent duplicate metrics recording and on reload
+  const hasValidatedRef = useRef(false);
+  const hasSeenNonTerminalRef = useRef(false);
+
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(organization.slug, seerRunId),
     {
@@ -166,11 +181,16 @@ export default function CreateFromSeer() {
           if (Date.now() - completedAtRef.current < POST_COMPLETE_POLL_MS) {
             return POLL_INTERVAL_MS;
           }
-          validateDashboardAndRecordMetrics(organization, dashboard, seerRunId);
+          if (!hasValidatedRef.current && hasSeenNonTerminalRef.current) {
+            hasValidatedRef.current = true;
+            validateDashboardAndRecordMetrics(organization, dashboard, seerRunId);
+          }
           return false;
         }
+        hasSeenNonTerminalRef.current = true;
         // Status left "completed" (hook triggered a re-run), reset
         completedAtRef.current = null;
+        hasValidatedRef.current = false;
         return POLL_INTERVAL_MS;
       },
     }
