@@ -44,7 +44,7 @@ All changes to core components:
 
 To work with core components locally, you'll need a frontend development environment. If you don't have one set up yet, follow the [frontend development setup guide](https://develop.sentry.dev/development-infrastructure/frontend-development-server/).
 
-Once you have a local development environment setup, run `pnpm run dev-ui` to run the dev server, or `pnpm run dev-ui-storybook` to run the dev server and generate component types at build time (comes at the expense of slower dev server startup).
+Once you have a local development environment setup, run `pnpm run dev:ui` to run the dev server.
 
 # Contributing to Design Tokens
 
@@ -141,7 +141,7 @@ export const documentation = import('!!type-loader!@sentry/scraps/button/linkBut
 ```
 
 > [!TIP]
-> The [inline loader syntax](https://rspack.rs/api/loader-api/inline) looks unusual, but it's required for Rspack to process the types correctly. Note that the documentation will not be generated unless you run `pnpm run dev-ui-storybook`.
+> The [inline loader syntax](https://rspack.rs/api/loader-api/inline) looks unusual, but it's required for Rspack to process the types correctly. Note that the documentation will not be generated unless you run `pnpm run dev:ui`.
 
 For a complete example, see the [`button.mdx`](https://github.com/getsentry/sentry/blob/master/static/app/components/core/button/index.mdx?plain=1) file.
 

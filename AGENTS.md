@@ -134,7 +134,7 @@ make reset-db
 pnpm run dev
 
 # Start only the UI development server with hot reload
-pnpm run dev-ui
+pnpm run dev:ui
 ```
 
 #### Typechecking

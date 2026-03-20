@@ -7,3 +7,13 @@ fixtures/profiles/embedded.js
 fixtures/artifact_bundle_debug_ids/**/*
 fixtures/artifact_bundle_duplicated_debug_ids/**/*
 pnpm-lock.yaml
+api-docs/paths/events/issue-hashes.json
+api-docs/paths/events/latest-event.json
+api-docs/paths/events/oldest-event.json
+api-docs/paths/events/project-event-details.json
+src/sentry/issues/event.schema.json
+static/app/data/world.json
+static/app/utils/profiling/profile/formats/android/trace.json
+static/app/utils/profiling/profile/formats/ios/trace.json
+static/app/utils/profiling/profile/formats/node/trace.json
+static/app/utils/profiling/profile/formats/typescript/trace.json

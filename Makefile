@@ -1,7 +1,7 @@
 .PHONY: all
 all: develop
 
-WEBPACK := pnpm run build-acceptance
+WEBPACK := pnpm run build:acceptance
 
 freeze-requirements:
 	@uv lock
@@ -34,7 +34,7 @@ devenv-sync:
 
 build-js-po:
 	mkdir -p build
-	pnpm run build-js-po
+	pnpm run build:js-po
 
 build-spectacular-docs:
 	@echo "--> Building drf-spectacular openapi spec (combines with deprecated docs)"
@@ -42,7 +42,7 @@ build-spectacular-docs:
 
 build-deprecated-docs:
 	@echo "--> Building deprecated openapi spec from json files"
-	pnpm run build-deprecated-docs
+	pnpm run build:deprecated-docs
 
 build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
@@ -54,7 +54,7 @@ watch-api-docs:
 
 diff-api-docs:
 	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
-	pnpm run diff-docs
+	pnpm run diff-api-docs
 
 build: locale
 
@@ -85,7 +85,7 @@ update-local-locales: pull-transifex compile-locale
 
 build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
-	pnpm run build-chartcuterie-config
+	pnpm run build:chartcuterie-config
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
@@ -101,22 +101,6 @@ test-cli: create-db
 	cd test_cli && sentry --config=test_conf upgrade --traceback --noinput
 	cd test_cli && sentry --config=test_conf export --help
 	rm -r test_cli
-	@echo ""
-
-test-js-build:
-	@echo "--> Running type check"
-	@pnpm run tsc -p tsconfig.json
-	@echo "--> Building static assets"
-	@NODE_ENV=production pnpm run build-profile > .artifacts/webpack-stats.json
-
-test-js:
-	@echo "--> Running JavaScript tests"
-	@pnpm run test
-	@echo ""
-
-test-js-ci:
-	@echo "--> Running CI JavaScript tests"
-	@pnpm run test-ci
 	@echo ""
 
 test-python-ci:

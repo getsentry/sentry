@@ -158,7 +158,7 @@ jobs:
           #
           # This quiets up the logs quite a bit.
           DEBUG_PRINT_LIMIT: 0
-        run: pnpm run test-ci --forceExit
+        run: pnpm run test:ci --forceExit
 
   form-field-registry:
     if: needs.files-changed.outputs.frontend_all == 'true'

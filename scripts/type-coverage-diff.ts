@@ -73,7 +73,7 @@ function showHelp() {
 ${colors.bold('Type Coverage Diff')} - Compare TypeScript type coverage between commits
 
 ${colors.bold('USAGE:')}
-  pnpm run type-coverage-diff [OPTIONS]
+  pnpm run type-coverage:diff [OPTIONS]
 
 ${colors.bold('OPTIONS:')}
   --days-ago <number>        Compare with commit from N days ago (default: 5)
@@ -84,11 +84,11 @@ ${colors.bold('OPTIONS:')}
   --help, -h                 Show this help message
 
 ${colors.bold('EXAMPLES:')}
-  pnpm run type-coverage-diff
-  pnpm run type-coverage-diff --days-ago 7
-  pnpm run type-coverage-diff --commit abc1234
-  pnpm run type-coverage-diff --commit HEAD~5 --verbose
-  pnpm run type-coverage-diff --days-ago 7 --output weekly-report.json
+  pnpm run type-coverage:diff
+  pnpm run type-coverage:diff --days-ago 7
+  pnpm run type-coverage:diff --commit abc1234
+  pnpm run type-coverage:diff --commit HEAD~5 --verbose
+  pnpm run type-coverage:diff --days-ago 7 --output weekly-report.json
 
 ${colors.bold('DESCRIPTION:')}
   This tool compares TypeScript type coverage between two commits and shows:

@@ -87,7 +87,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           GH_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          pnpm run build-acceptance
+          pnpm run build:acceptance
 
       - name: Build chartcuterie configuration module
         run: |
