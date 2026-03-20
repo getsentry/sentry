@@ -376,7 +376,7 @@ function VisualizationWidgetContent({
               {value === null ? (
                 '—'
               ) : value > 0 && value < NUMBER_MIN_VALUE ? (
-                <Tooltip title={value.toString()}>
+                <Tooltip title={value.toLocaleString()}>
                   <span>{formatTooltipValue(value, dataType, dataUnit)}</span>
                 </Tooltip>
               ) : (

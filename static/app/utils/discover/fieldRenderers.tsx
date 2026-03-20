@@ -313,8 +313,8 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       if (data[field] > 0 && data[field] < NUMBER_MIN_VALUE) {
         return (
           <NumberContainer>
-            <Tooltip title={data[field].toString()}>
-              <span>{data[field].toExponential(1)}</span>
+            <Tooltip title={data[field].toLocaleString()}>
+              <span>{`<${NUMBER_MIN_VALUE}`}</span>
             </Tooltip>
           </NumberContainer>
         );
