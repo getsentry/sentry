@@ -4128,6 +4128,7 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
             },
             type=ProfileFileIOGroupType.type_id,
         )
+        assert group_info is not None
         profile_group = group_info.group
 
         # Boost ProfileFileIOGroupType so it outranks the error group
