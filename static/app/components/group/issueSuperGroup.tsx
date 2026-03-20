@@ -21,8 +21,8 @@ export function IssueSuperGroup({supergroup}: Props) {
   const {openDrawer} = useDrawer();
 
   const tooltipTitle = (
-    <Stack gap="md" align="flex-start">
-      <Stack gap="xs" align="flex-start">
+    <Stack gap="md" align="start">
+      <Stack gap="xs" align="start">
         <Text size="sm" bold align="left">
           {supergroup.title}
         </Text>
@@ -31,7 +31,7 @@ export function IssueSuperGroup({supergroup}: Props) {
         </Text>
       </Stack>
 
-      <Stack gap="xs" align="flex-start">
+      <Stack gap="xs" align="start">
         {supergroup.error_type ? (
           <Flex align="baseline" gap="xs">
             <Text size="xs" variant="muted" bold>

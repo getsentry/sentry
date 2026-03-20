@@ -24,12 +24,12 @@ export function useSuperGroupForIssues({bufferLimit = 25}: Props = {}) {
     bufferLimit,
     getQueryKey: useCallback(
       (ids: readonly string[]): ApiQueryKey => [
-        getApiUrl('/organizations/$organizationIdOrSlug/seer/supergroup-lookup/', {
+        getApiUrl('/organizations/$organizationIdOrSlug/seer/supergroup/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {
           query: {
-            issue_id: ids.join(','),
+            query: `issue.id:[${ids.map(id => `"${id}"`).join(',')}]`,
           },
         },
       ],
