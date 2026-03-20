@@ -57,15 +57,11 @@ export default function SeerAutomationTrial() {
   );
 
   useEffect(() => {
-    // If the org is on the old-seer plan then they shouldn't be here on this new settings page
-    // they need to goto the old settings page, or get downgraded off old seer.
-    if (!showNewSeer(organization)) {
-      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
-      return;
-    }
-
-    // If you've already got Seer, then go to settings and you should see the new ones.
-    if (organization.features.includes('seat-based-seer-enabled')) {
+    // Trial only applies to new Seer cohorts that are not seat-based yet.
+    if (
+      !showNewSeer(organization) ||
+      organization.features.includes('seat-based-seer-enabled')
+    ) {
       navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
       return;
     }
