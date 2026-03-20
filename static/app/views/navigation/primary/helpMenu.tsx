@@ -23,7 +23,6 @@ export function PrimaryNavigationHelpMenu() {
   return (
     <PrimaryNavigation.Menu
       triggerWrap={NavigationTourReminder}
-      size="sm"
       items={[
         {
           key: 'search',
