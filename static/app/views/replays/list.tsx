@@ -112,36 +112,38 @@ export default function ReplaysListContainer() {
 
   return (
     <AnalyticsArea name="list">
-      <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
-        <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
-          <ReplayQueryParamsProvider>
-            <ReplaysHeader />
-            <PageFiltersContainer>
-              <Layout.Body>
-                <Layout.Main width="full">
-                  <Grid gap="xl" columns="100%">
-                    <ReplayListPageHeaderHook />
-                    {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
-                      <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
-                        <ReplayIndexContainer />
-                      </ReplayAccess>
-                    ) : (
-                      <Fragment>
-                        <Flex gap="xl" wrap="wrap">
-                          <ReplaysFilters />
-                          <ReplaysSearch />
-                          <SaveReplayQueryButton />
-                        </Flex>
-                        <ReplayOnboardingPanel />
-                      </Fragment>
-                    )}
-                  </Grid>
-                </Layout.Main>
-              </Layout.Body>
-            </PageFiltersContainer>
-          </ReplayQueryParamsProvider>
-        </ReplayPreferencesContextProvider>
-      </SentryDocumentTitle>
+      <Layout.Page>
+        <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
+          <ReplayPreferencesContextProvider prefsStrategy={LocalStorageReplayPreferences}>
+            <ReplayQueryParamsProvider>
+              <ReplaysHeader />
+              <PageFiltersContainer>
+                <Layout.Body>
+                  <Layout.Main width="full">
+                    <Grid gap="xl" columns="100%">
+                      <ReplayListPageHeaderHook />
+                      {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
+                        <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
+                          <ReplayIndexContainer />
+                        </ReplayAccess>
+                      ) : (
+                        <Fragment>
+                          <Flex gap="xl" wrap="wrap">
+                            <ReplaysFilters />
+                            <ReplaysSearch />
+                            <SaveReplayQueryButton />
+                          </Flex>
+                          <ReplayOnboardingPanel />
+                        </Fragment>
+                      )}
+                    </Grid>
+                  </Layout.Main>
+                </Layout.Body>
+              </PageFiltersContainer>
+            </ReplayQueryParamsProvider>
+          </ReplayPreferencesContextProvider>
+        </SentryDocumentTitle>
+      </Layout.Page>
     </AnalyticsArea>
   );
 }

@@ -98,17 +98,22 @@ function ReplayDetailsContent() {
   );
 
   return (
-    <SentryDocumentTitle title={title}>
-      <FullViewport>
-        {replay ? (
-          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
-            {content}
-          </ReplayDetailsProviders>
-        ) : (
-          content
-        )}
-      </FullViewport>
-    </SentryDocumentTitle>
+    <Layout.Page>
+      <SentryDocumentTitle title={title}>
+        <FullViewport>
+          {replay ? (
+            <ReplayDetailsProviders
+              replay={replay}
+              projectSlug={readerResult.projectSlug}
+            >
+              {content}
+            </ReplayDetailsProviders>
+          ) : (
+            content
+          )}
+        </FullViewport>
+      </SentryDocumentTitle>
+    </Layout.Page>
   );
 }
 

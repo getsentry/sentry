@@ -835,114 +835,119 @@ export class Results extends Component<Props, State> {
     }
 
     return (
-      <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-        <Fragment>
-          <ResultsHeader
-            setSavedQuery={setSavedQuery}
-            errorCode={errorCode}
-            organization={organization}
-            location={location}
-            eventView={eventView}
-            yAxis={yAxisArray}
-            isHomepage={isHomepage}
-            splitDecision={splitDecision}
-          />
-          <Layout.Body>
-            <CustomMeasurementsProvider organization={organization} selection={selection}>
-              <Top width="full">
-                {this.renderMetricsFallbackBanner()}
-                {this.renderError(error)}
-                {this.renderTips()}
-                {this.renderQueryIncompatibleWithDatasetBanner()}
-                {this.renderTransactionsDatasetDeprecationBanner()}
-                {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
+      <Layout.Page>
+        <SentryDocumentTitle title={title} orgSlug={organization.slug}>
+          <Fragment>
+            <ResultsHeader
+              setSavedQuery={setSavedQuery}
+              errorCode={errorCode}
+              organization={organization}
+              location={location}
+              eventView={eventView}
+              yAxis={yAxisArray}
+              isHomepage={isHomepage}
+              splitDecision={splitDecision}
+            />
+            <Layout.Body>
+              <CustomMeasurementsProvider
+                organization={organization}
+                selection={selection}
+              >
+                <Top width="full">
+                  {this.renderMetricsFallbackBanner()}
+                  {this.renderError(error)}
+                  {this.renderTips()}
+                  {this.renderQueryIncompatibleWithDatasetBanner()}
+                  {this.renderTransactionsDatasetDeprecationBanner()}
+                  {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
-                <Wrapper>
-                  <PageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter />
-                  </PageFilterBar>
-                </Wrapper>
-                <CustomMeasurementsContext.Consumer>
-                  {contextValue =>
-                    this.renderSearchBar(contextValue?.customMeasurements ?? undefined)
-                  }
-                </CustomMeasurementsContext.Consumer>
-                <MetricsCardinalityProvider
-                  organization={organization}
-                  location={location}
-                >
-                  <ResultsChart
-                    api={api}
+                  <Wrapper>
+                    <PageFilterBar condensed>
+                      <ProjectPageFilter />
+                      <EnvironmentPageFilter />
+                      <DatePageFilter />
+                    </PageFilterBar>
+                  </Wrapper>
+                  <CustomMeasurementsContext.Consumer>
+                    {contextValue =>
+                      this.renderSearchBar(contextValue?.customMeasurements ?? undefined)
+                    }
+                  </CustomMeasurementsContext.Consumer>
+                  <MetricsCardinalityProvider
+                    organization={organization}
+                    location={location}
+                  >
+                    <ResultsChart
+                      api={api}
+                      organization={organization}
+                      eventView={eventView}
+                      location={location}
+                      onAxisChange={this.handleYAxisChange}
+                      onDisplayChange={this.handleDisplayChange}
+                      onTopEventsChange={this.handleTopEventsChange}
+                      onIntervalChange={this.handleIntervalChange}
+                      total={totalValues}
+                      confirmedQuery={confirmedQuery}
+                      yAxis={yAxisArray}
+                    />
+                  </MetricsCardinalityProvider>
+                </Top>
+                <Layout.Main width={showTags ? 'twothirds' : 'full'}>
+                  <Table
                     organization={organization}
                     eventView={eventView}
                     location={location}
-                    onAxisChange={this.handleYAxisChange}
-                    onDisplayChange={this.handleDisplayChange}
-                    onTopEventsChange={this.handleTopEventsChange}
-                    onIntervalChange={this.handleIntervalChange}
-                    total={totalValues}
+                    title={title}
+                    setError={this.setError}
+                    onChangeShowTags={this.handleChangeShowTags}
+                    showTags={showTags}
                     confirmedQuery={confirmedQuery}
-                    yAxis={yAxisArray}
+                    onCursor={this.handleCursor}
+                    isHomepage={isHomepage}
+                    setTips={this.setTips}
+                    queryDataset={savedQueryDataset}
+                    setSplitDecision={(value?: SavedQueryDatasets) => {
+                      if (
+                        hasDatasetSelectorFeature &&
+                        value !== SavedQueryDatasets.DISCOVER &&
+                        value !== savedQuery?.dataset
+                      ) {
+                        this.setSplitDecision(value);
+                      }
+                    }}
+                    dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
                   />
-                </MetricsCardinalityProvider>
-              </Top>
-              <Layout.Main width={showTags ? 'twothirds' : 'full'}>
-                <Table
-                  organization={organization}
-                  eventView={eventView}
-                  location={location}
-                  title={title}
-                  setError={this.setError}
-                  onChangeShowTags={this.handleChangeShowTags}
-                  showTags={showTags}
-                  confirmedQuery={confirmedQuery}
-                  onCursor={this.handleCursor}
-                  isHomepage={isHomepage}
-                  setTips={this.setTips}
-                  queryDataset={savedQueryDataset}
-                  setSplitDecision={(value?: SavedQueryDatasets) => {
-                    if (
-                      hasDatasetSelectorFeature &&
-                      value !== SavedQueryDatasets.DISCOVER &&
-                      value !== savedQuery?.dataset
-                    ) {
-                      this.setSplitDecision(value);
-                    }
-                  }}
-                  dataset={hasDatasetSelectorFeature ? eventView.dataset : undefined}
-                />
-              </Layout.Main>
-              {showTags ? this.renderTagsTable() : null}
-              <Confirm
-                priority="primary"
-                header={<strong>{t('May lead to thumb twiddling')}</strong>}
-                confirmText={t('Do it')}
-                cancelText={t('Nevermind')}
-                onConfirm={this.handleConfirmed}
-                onCancel={this.handleCancelled}
-                message={
-                  <p>
-                    {tct(
-                      `You've created a query that will search for events made
+                </Layout.Main>
+                {showTags ? this.renderTagsTable() : null}
+                <Confirm
+                  priority="primary"
+                  header={<strong>{t('May lead to thumb twiddling')}</strong>}
+                  confirmText={t('Do it')}
+                  cancelText={t('Nevermind')}
+                  onConfirm={this.handleConfirmed}
+                  onCancel={this.handleCancelled}
+                  message={
+                    <p>
+                      {tct(
+                        `You've created a query that will search for events made
                       [dayLimit:over more than 30 days] for [projectLimit:more than 10 projects].
                       A lot has happened during that time, so this might take awhile.
                       Are you sure you want to do this?`,
-                      {
-                        dayLimit: <strong />,
-                        projectLimit: <strong />,
-                      }
-                    )}
-                  </p>
-                }
-              >
-                {this.setOpenFunction}
-              </Confirm>
-            </CustomMeasurementsProvider>
-          </Layout.Body>
-        </Fragment>
-      </SentryDocumentTitle>
+                        {
+                          dayLimit: <strong />,
+                          projectLimit: <strong />,
+                        }
+                      )}
+                    </p>
+                  }
+                >
+                  {this.setOpenFunction}
+                </Confirm>
+              </CustomMeasurementsProvider>
+            </Layout.Body>
+          </Fragment>
+        </SentryDocumentTitle>
+      </Layout.Page>
     );
   }
 }
