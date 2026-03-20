@@ -106,7 +106,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
       align="center"
       justify="center"
       position="relative"
-      borderBottom={hasPageFrame ? 'muted' : undefined}
+      borderBottom={hasPageFrame ? 'primary' : undefined}
       width={hasPageFrame ? '100%' : undefined}
       {...props}
     >
