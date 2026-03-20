@@ -38,7 +38,7 @@ x-sentry-service-config:
       description: Shared instance of postgres used by sentry services
       remote:
         repo_name: sentry-shared-postgres
-        branch: main
+        branch: beezz/chore/upgrade-postgres-to-v17
         repo_link: https://github.com/getsentry/sentry-shared-postgres.git
     redis:
       description: Shared instance of redis used by sentry services
