@@ -21,7 +21,7 @@ import {
 const appQueryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 const cacheKey = 'sentry-react-query-cache';
 
-// In v5, React Query batches with a promise timeout tick
+// In v5, React Query batches with macrotask (setTimeout 0)
 // This can cause flickering when resetting form state before the cache is updated.
 // Using queueMicrotask will ensure the cache is updated before any state updates are processed.
 // This will also be the default in v6, so this is a forward compatible change.
