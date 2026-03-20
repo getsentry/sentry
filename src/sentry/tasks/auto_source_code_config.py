@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from taskbroker_client.retry import Retry
+
 from sentry.issues.auto_source_code_config.task import process_event
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(

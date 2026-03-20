@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {ActorAvatar} from '@sentry/scraps/avatar';
 
 import {Count} from 'sentry/components/count';
-import {EventOrGroupExtraDetails} from 'sentry/components/eventOrGroupExtraDetails';
+import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
@@ -15,7 +15,7 @@ import {GroupChart} from 'sentry/components/stream/groupChart';
 import {IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssueSummary} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issueSummary';
@@ -34,7 +34,7 @@ function Issue({data}: {data: Group}) {
     <StyledPanelItem>
       <IssueSummaryWrapper>
         <IssueSummary data={data} organization={organization} />
-        <EventOrGroupExtraDetails data={data} />
+        <GroupMetaRow data={data} />
       </IssueSummaryWrapper>
       <ChartWrapper>
         <GroupChart

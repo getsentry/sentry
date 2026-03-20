@@ -8,16 +8,16 @@ import pytest
 
 from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
-from sentry.issue_detection.grouptype import (
-    PerformanceMNPlusOneDBQueriesGroupType,
-    PerformanceNPlusOneGroupType,
-)
 from sentry.issue_detection.performance_detection import (
     _detect_performance_problems,
     get_detection_settings,
     run_detector_on_data,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.grouptype import (
+    PerformanceMNPlusOneDBQueriesGroupType,
+    PerformanceNPlusOneGroupType,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import get_event

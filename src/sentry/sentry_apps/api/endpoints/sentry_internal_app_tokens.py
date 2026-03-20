@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
+from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
 from sentry.models.apitoken import ApiToken
@@ -31,7 +32,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
-    permission_classes = (SentryInternalAppTokenPermission,)
+    permission_classes = (SentryInternalAppTokenPermission, DisallowImpersonatedTokenCreation)
 
     def get(self, request: Request, sentry_app) -> Response:
         if not sentry_app.is_internal:

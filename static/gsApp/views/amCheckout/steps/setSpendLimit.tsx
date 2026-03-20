@@ -6,11 +6,11 @@ import {t} from 'sentry/locale';
 
 import type {OnDemandBudgets} from 'getsentry/types';
 import {displayBudgetName} from 'getsentry/utils/billing';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
 import {ReserveAdditionalVolume} from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
-import SpendLimitSettings from 'getsentry/views/spendLimits/spendLimitSettings';
+import {SpendLimitSettings} from 'getsentry/views/spendLimits/spendLimitSettings';
 import {
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,

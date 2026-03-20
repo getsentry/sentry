@@ -6,7 +6,7 @@ import pytest
 from django.core.cache import cache
 
 from sentry.integrations.slack.message_builder.image_block_builder import ImageBlockBuilder
-from sentry.issue_detection.grouptype import (
+from sentry.issues.grouptype import (
     PerformanceHTTPOverheadGroupType,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,

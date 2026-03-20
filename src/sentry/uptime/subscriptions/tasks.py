@@ -5,10 +5,10 @@ from datetime import timedelta
 from uuid import uuid4
 
 from django.utils import timezone
+from taskbroker_client.retry import Retry
 
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
-from sentry.taskworker.retry import Retry
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
     UptimeRegionScheduleMode,

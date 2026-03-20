@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.utils import timezone
+from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 
 from sentry import analytics, features
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
@@ -28,8 +30,6 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.models import SeerProjectPreference
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
-from sentry.taskworker.retry import Retry
-from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 

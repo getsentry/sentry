@@ -6,7 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconClock, IconLightning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
 import {type ProductTrial} from 'getsentry/types';
 

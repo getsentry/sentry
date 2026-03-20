@@ -23,7 +23,7 @@ type Props = {
   title: React.ComponentType<TitleProps>;
 };
 
-function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
+export function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const menuEl = useRef<Element | null>(null);
 
@@ -246,5 +246,3 @@ const DropdownContent = styled('div')`
 const TitleWrapper = styled('div')`
   cursor: pointer;
 `;
-
-export default OperationSort;

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-interface ButtonBarProps extends Omit<GridProps, 'gap'> {
+export interface ButtonBarProps extends Omit<GridProps, 'gap'> {
   children: NonNullable<React.ReactNode>;
   orientation?: 'horizontal' | 'vertical';
 }

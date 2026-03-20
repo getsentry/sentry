@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -977,7 +977,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.detector.id)
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.detector.id
         ).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1004,7 +1004,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         with outbox_runner():
             self.get_error_response(self.organization.slug, error_detector.id, status_code=403)
 
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=error_detector.id
         ).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1030,7 +1030,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         with outbox_runner():
             self.get_success_response(self.organization.slug, self.detector.id)
 
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.detector.id
         ).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -1057,7 +1057,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         # Verify detector was not deleted
         error_detector.refresh_from_db()
         assert error_detector.status != ObjectStatus.PENDING_DELETION
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=error_detector.id
         ).exists()
 

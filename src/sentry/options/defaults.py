@@ -686,6 +686,15 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# When enabled, new Slack installations will request extended scopes
+# (reactions:write, channels:history, groups:history, app_mentions:read)
+# Existing installations must re-authorize to get these scopes.
+register("slack.extended-scopes-enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Slack Staging App
+register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("slack-staging.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register("slack-staging.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # Issue Summary on Alerts (timeout in seconds)
 register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1083,6 +1092,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for batched nodestore fetches in group events endpoint.
+# When disabled, falls back to lazy per-event nodestore fetches.
+register(
+    "issues.group_events.batch_nodestore_enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for all Seer services
 #
 # TODO: So far this is only being checked when calling the Seer similar issues service during
@@ -1178,12 +1196,6 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "explorer.service_map.allowed_organizations",
-    default=[],
-    type=Sequence,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "explorer.service_map.max_edges",
@@ -1357,14 +1369,6 @@ register(
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Custom model costs mapping for AI Agent Monitoring. Used to map alternative model ids to existing model ids.
-# {"alternative_model_id": "gpt-4o", "existing_model_id": "openai/gpt-4o"}
-register(
-    "ai-agent-monitoring.custom-model-mapping",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # ## sentry.killswitches
@@ -2648,6 +2652,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Hard timeout for webhook requests to prevent indefinite hangs.
+# Must be strictly less than the shortest task processing_deadline_duration that
+# calls send_and_save_webhook_request (currently 8s for send_alert_webhook_v2 and
+# send_resource_change_webhook), otherwise timeout_alarm raises ValueError.
+register(
+    "sentry-apps.webhook.hard-timeout.sec",
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables statistical detectors for a project
 register(
     "statistical_detectors.enable",
@@ -3263,15 +3277,6 @@ register(
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When > 0, use SMEMBERS+SADD instead of SUNIONSTORE when the destination set
-# exceeds this many bytes (via MEMORY USAGE). This avoids the expensive
-# re-serialisation of the entire destination set during SUNIONSTORE.
-register(
-    "spans.buffer.zero-copy-dest-threshold-bytes",
-    type=Int,
-    default=0,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Latency threshold in milliseconds for logging slow EVALSHA pipeline operations
 register(
     "spans.buffer.evalsha-latency-threshold",
@@ -3789,6 +3794,12 @@ register(
 
 register(
     "demo-mode.users",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-org-ids",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

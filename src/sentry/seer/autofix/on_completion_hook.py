@@ -11,8 +11,9 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
 )
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_project_seer_preferences
-from sentry.seer.entrypoints.operator import SeerOperator, process_autofix_updates
+from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import Artifact
 from sentry.seer.explorer.client_utils import fetch_run_status
@@ -22,7 +23,7 @@ from sentry.seer.models import (
     SeerApiResponseValidationError,
     SeerAutomationHandoffConfiguration,
 )
-from sentry.seer.supergroups import trigger_supergroups_embedding
+from sentry.seer.supergroups.embeddings import trigger_supergroups_embedding
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
@@ -171,7 +172,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         event_type = f"seer.{event_name}"
         try:
             sentry_app_event_type = SentryAppEventType(event_type)
-            if SeerOperator.has_access(organization=organization):
+            if SeerAutofixOperator.has_access(organization=organization):
                 metrics.incr(
                     "autofix.on_completion_hook.process_autofix_updates",
                     tags={"event_type": str(event_type)},
@@ -242,6 +243,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
             trigger_supergroups_embedding(
                 organization_id=organization.id,
                 group_id=group_id,
+                project_id=group.project_id,
                 artifact_data=root_cause_artifact.data,
             )
         except Exception:
@@ -386,7 +388,12 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                 "stopping_point": stopping_point,
             },
         )
-        trigger_autofix_explorer(group=group, step=next_step, run_id=run_id)
+        trigger_autofix_explorer(
+            group=group,
+            step=next_step,
+            referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+            run_id=run_id,
+        )
 
     @classmethod
     def _push_changes(cls, organization: Organization, run_id: int, state: SeerRunState) -> None:

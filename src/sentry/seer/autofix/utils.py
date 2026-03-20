@@ -19,6 +19,7 @@ from sentry.constants import (
     DataCategory,
     ObjectStatus,
 )
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.code_mapping import (
     get_sorted_code_mapping_configs,
 )
@@ -692,12 +693,16 @@ def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) 
         raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
-def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
+def get_autofix_repos_from_project_code_mappings(
+    project: Project,
+    code_mappings: list[RepositoryProjectPathConfig] | None = None,
+) -> list[dict]:
     if settings.SEER_AUTOFIX_FORCE_USE_REPOS:
         # This is for testing purposes only, for example in s4s we want to force the use of specific repo(s)
         return settings.SEER_AUTOFIX_FORCE_USE_REPOS
 
-    code_mappings = get_sorted_code_mapping_configs(project)
+    if code_mappings is None:
+        code_mappings = get_sorted_code_mapping_configs(project)
 
     repos: dict[tuple, dict] = {}
     for code_mapping in code_mappings:
@@ -1016,9 +1021,7 @@ def get_coding_agent_prompt(
     base_prompt = "Please fix the following issue. Ensure that your fix is fully working."
 
     if short_id:
-        base_prompt = (
-            f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the pull request description."
-        )
+        base_prompt = f"{base_prompt}\n\nInclude 'Fixes {short_id}' in the commit message."
 
     if instruction and instruction.strip():
         base_prompt = f"{base_prompt}\n\n{instruction.strip()}"

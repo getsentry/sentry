@@ -8,11 +8,11 @@ import {Link} from '@sentry/scraps/link';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import type {GridColumn, GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -25,10 +25,10 @@ import type {
   TableData,
   TableDataRow,
 } from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
-import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {SegmentExplorerQuery} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
   useDomainViewFilters,

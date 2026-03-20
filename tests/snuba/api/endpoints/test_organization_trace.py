@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta
 from unittest import mock
 from uuid import uuid4
 
@@ -9,7 +10,7 @@ from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.uptime import UptimeRegionConfig
-from sentry.issue_detection.grouptype import (
+from sentry.issues.grouptype import (
     PerformanceFileIOMainThreadGroupType,
     PerformanceSlowDBQueryGroupType,
 )
@@ -17,7 +18,8 @@ from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.search.events.types import SnubaParams
-from sentry.testutils.cases import UptimeResultEAPTestCase
+from sentry.snuba.trace import _run_errors_query_eap
+from sentry.testutils.cases import OccurrenceTestCase, SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
@@ -191,7 +193,6 @@ class OrganizationEventsTraceEndpointTest(
     OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase
 ):
     url_name = "sentry-api-0-organization-trace"
-    FEATURES = ["organizations:trace-spans-format"]
 
     def assert_event(self, result, event_data, message):
         assert result["transaction"] == event_data.transaction, message
@@ -274,11 +275,10 @@ class OrganizationEventsTraceEndpointTest(
             kwargs={"organization_id_or_slug": org.slug, "trace_id": uuid4().hex},
         )
 
-        with self.feature(self.FEATURES):
-            response = self.client.get(
-                url,
-                format="json",
-            )
+        response = self.client.get(
+            url,
+            format="json",
+        )
 
         assert response.status_code == 404, response.content
 
@@ -897,3 +897,144 @@ class OrganizationEventsTraceEndpointTest(
             assert total == 2
             assert counts.get(file_io_type, 0) == 1
             assert counts.get(slow_db_type, 0) == 1
+
+
+class TestTracingErrorsQueryEAP(TestCase, SnubaTestCase, OccurrenceTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        now = datetime.now()
+        self.start = now - timedelta(hours=1)
+        self.end = now + timedelta(hours=1)
+        self.trace_id = uuid4().hex
+
+    def test_transforms_eap_results_to_legacy_format(self) -> None:
+        group = self.create_group(project=self.project)
+        event_id = uuid4().hex
+
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id,
+                    title="test error",
+                    level="error",
+                    transaction="/api/test",
+                ),
+            ]
+        )
+
+        snuba_params = SnubaParams(
+            start=self.start,
+            end=self.end,
+            organization=self.organization,
+            projects=[self.project],
+        )
+
+        results = _run_errors_query_eap(
+            snuba_params=snuba_params,
+            trace_id=self.trace_id,
+            referrer="test.trace.errors_eap",
+        )
+
+        assert len(results) == 1
+        row = results[0]
+        # Verify legacy field names are present
+        assert row["id"] == event_id
+        assert row["project.id"] is not None
+        assert row["project.name"] is not None
+        assert row["timestamp"] is not None
+        assert row["timestamp_ms"] is not None
+        assert "trace.span" in row
+        assert row["transaction"] == "/api/test"
+        assert row["issue"] == group.id
+        assert row["issue.id"] == group.id
+        assert row["title"] == "test error"
+        assert "message" in row
+        assert row["tags[level]"] == "error"
+        assert row["event_type"] == "error"
+
+    def test_excludes_issue_platform_occurrences(self) -> None:
+        group_error = self.create_group(project=self.project)
+        group_perf = self.create_group(project=self.project)
+
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    group_id=group_error.id,
+                    trace_id=self.trace_id,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group_error.id,
+                    trace_id=self.trace_id,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group_error.id,
+                    trace_id=uuid4().hex,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group_perf.id,
+                    trace_id=self.trace_id,
+                    issue_occurrence_id=uuid4().hex,
+                ),
+            ]
+        )
+
+        snuba_params = SnubaParams(
+            start=self.start,
+            end=self.end,
+            organization=self.organization,
+            projects=[self.project],
+        )
+
+        results = _run_errors_query_eap(
+            snuba_params=snuba_params,
+            trace_id=self.trace_id,
+            referrer="test.trace.errors_eap",
+        )
+
+        assert len(results) == 2
+        assert results[0]["issue"] == group_error.id
+
+    def test_error_id_bias(self) -> None:
+        group = self.create_group(project=self.project)
+        event_id_1 = uuid4().hex
+        event_id_2 = uuid4().hex
+        event_id_3 = uuid4().hex
+
+        self.store_eap_items(
+            [
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id_1,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id_2,
+                ),
+                self.create_eap_occurrence(
+                    group_id=group.id,
+                    trace_id=self.trace_id,
+                    event_id=event_id_3,
+                ),
+            ]
+        )
+
+        snuba_params = SnubaParams(
+            start=self.start,
+            end=self.end,
+            organization=self.organization,
+            projects=[self.project],
+        )
+
+        results = _run_errors_query_eap(
+            snuba_params=snuba_params,
+            trace_id=self.trace_id,
+            referrer="test.trace.errors_eap",
+            error_id=event_id_3,
+        )
+
+        assert len(results) == 3
+        assert results[0]["id"] == event_id_3

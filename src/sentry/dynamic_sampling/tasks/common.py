@@ -26,7 +26,7 @@ from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
@@ -59,12 +59,6 @@ MEASURE_CONFIGS: dict[SamplingMeasure, MeasureConfig] = {
         "use_case_id": UseCaseID.SPANS,
         "tags": {},
     },
-    # TRANSACTIONS: TransactionMRI without tag filters (legacy)
-    SamplingMeasure.TRANSACTIONS: {
-        "mri": TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.TRANSACTIONS,
-        "tags": {},
-    },
 }
 
 
@@ -83,7 +77,7 @@ class GetActiveOrgs:
         max_projects: int | None = None,
         time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
-        measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
+        measure: SamplingMeasure = SamplingMeasure.SEGMENTS,
     ) -> None:
         config = MEASURE_CONFIGS[measure]
         self.metric_id = indexer.resolve_shared_org(str(config["mri"]))
@@ -242,7 +236,7 @@ class GetActiveOrgsVolumes:
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
         include_keep: bool = True,
         orgs: list[int] | None = None,
-        measure: SamplingMeasure = SamplingMeasure.TRANSACTIONS,
+        measure: SamplingMeasure = SamplingMeasure.SEGMENTS,
     ) -> None:
         self.include_keep = include_keep
         self.orgs = orgs

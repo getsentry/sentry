@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanOp} from 'sentry/views/insights/pages/agents/utils/query';
@@ -229,7 +229,7 @@ export function useConversation(
       return node;
     });
 
-    transformedNodes.sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
+    transformedNodes.sort((a, b) => (a.endTimestamp ?? 0) - (b.endTimestamp ?? 0));
 
     return {nodes: transformedNodes, nodeTraceMap: traceMap};
   }, [conversationQuery.data]);

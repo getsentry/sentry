@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import Mock, patch
 
 import orjson
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
-from sentry.issue_detection.grouptype import WebVitalsGroup
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
+from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.seer.autofix.autofix import (
     TIMEOUT_SECONDS,
@@ -14,6 +16,7 @@ from sentry.seer.autofix.autofix import (
     _get_logs_for_event,
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
+    _pre_resolve_stacktrace_frames,
     _respond_with_error,
     get_all_tags_overview,
     trigger_autofix,
@@ -1515,3 +1518,147 @@ class UpdateAutofixTest(TestCase):
 
         assert response.status_code == 200
         assert response.data == mock_response.json.return_value
+
+
+class TestPreResolveStacktraceFrames(TestCase):
+    def _make_serialized_event(self, frames, platform="python"):
+        return {
+            "platform": platform,
+            "entries": [
+                {
+                    "type": "exception",
+                    "data": {
+                        "values": [
+                            {
+                                "stacktrace": {
+                                    "frames": frames,
+                                }
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+
+    def test_resolves_frames_with_code_mapping(self):
+        project = self.create_project()
+        repo = self.create_repo(
+            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
+        )
+        self.create_code_mapping(
+            project=project, repo=repo, stack_root="src/", source_root="sentry/"
+        )
+
+        event = self._make_serialized_event(
+            [
+                {"filename": "src/utils.py", "inApp": True},
+                {"filename": "src/models.py", "inApp": True},
+                {"filename": "lib/external.py", "inApp": False},
+            ]
+        )
+
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
+
+        frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["repo_name"] == "getsentry/sentry"
+        assert frames[0]["filename"] == "sentry/utils.py"
+        assert frames[1]["repo_name"] == "getsentry/sentry"
+        assert frames[1]["filename"] == "sentry/models.py"
+        # Non in-app frames should not be resolved
+        assert "repo_name" not in frames[2]
+
+    def test_no_code_mappings_is_noop(self):
+        event = self._make_serialized_event([{"filename": "src/utils.py", "inApp": True}])
+
+        _pre_resolve_stacktrace_frames(event, [])
+
+        frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
+        assert "repo_name" not in frames[0]
+
+    def test_unmatched_frames_left_unresolved(self):
+        project = self.create_project()
+        repo = self.create_repo(
+            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
+        )
+        self.create_code_mapping(
+            project=project, repo=repo, stack_root="src/", source_root="sentry/"
+        )
+
+        event = self._make_serialized_event(
+            [
+                {"filename": "src/utils.py", "inApp": True},
+                {"filename": "unknown/other.py", "inApp": True},
+            ]
+        )
+
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
+
+        frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["repo_name"] == "getsentry/sentry"
+        assert "repo_name" not in frames[1]
+
+    def test_multiple_repos(self):
+        project = self.create_project()
+        repo1 = self.create_repo(
+            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
+        )
+        repo2 = self.create_repo(
+            name="getsentry/seer", provider="github", external_id="456", integration_id=234
+        )
+        self.create_code_mapping(
+            project=project, repo=repo1, stack_root="src/", source_root="sentry/"
+        )
+        self.create_code_mapping(
+            project=project, repo=repo2, stack_root="ml/", source_root="src/seer/"
+        )
+
+        event = self._make_serialized_event(
+            [
+                {"filename": "src/utils.py", "inApp": True},
+                {"filename": "ml/models.py", "inApp": True},
+            ]
+        )
+
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
+
+        frames = event["entries"][0]["data"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["repo_name"] == "getsentry/sentry"
+        assert frames[0]["filename"] == "sentry/utils.py"
+        assert frames[1]["repo_name"] == "getsentry/seer"
+        assert frames[1]["filename"] == "src/seer/models.py"
+
+    def test_resolves_thread_frames(self):
+        project = self.create_project()
+        repo = self.create_repo(
+            name="getsentry/sentry", provider="github", external_id="123", integration_id=234
+        )
+        self.create_code_mapping(
+            project=project, repo=repo, stack_root="src/", source_root="sentry/"
+        )
+
+        event = {
+            "platform": "python",
+            "entries": [
+                {
+                    "type": "threads",
+                    "data": {
+                        "values": [
+                            {
+                                "stacktrace": {
+                                    "frames": [
+                                        {"filename": "src/tasks.py", "inApp": True},
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+
+        _pre_resolve_stacktrace_frames(event, get_sorted_code_mapping_configs(project))
+
+        entry: Any = event["entries"][0]
+        frames = entry["data"]["values"][0]["stacktrace"]["frames"]
+        assert frames[0]["repo_name"] == "getsentry/sentry"
+        assert frames[0]["filename"] == "sentry/tasks.py"

@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {FieldKind} from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DASHBOARD_ONLY_SPAN_ATTRIBUTES,
   SENTRY_LOG_BOOLEAN_TAGS,
@@ -49,8 +48,6 @@ type TraceItemAttributeResult = {
   secondaryAliases: TagCollection;
 };
 
-const EMPTY_STRING_SET = new Set<string>();
-
 export type TraceItemAttributeConfig = {
   enabled: boolean;
   traceItemType: TraceItemDataset;
@@ -74,11 +71,6 @@ function useTraceItemAttributeConfig({
   search,
   query,
 }: TraceItemAttributeConfig): TypedTraceItemAttributesResult {
-  const organization = useOrganization();
-  const hasBooleanFilters = organization.features.includes(
-    'search-query-builder-explicit-boolean-filters'
-  );
-
   const projects = rawProjects && isProjectArray(rawProjects) ? rawProjects : undefined;
   const projectIds =
     rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
@@ -107,7 +99,7 @@ function useTraceItemAttributeConfig({
 
   const {attributes: booleanAttributes, isLoading: booleanAttributesLoading} =
     useTraceItemAttributeKeys({
-      enabled: enabled && hasBooleanFilters,
+      enabled,
       type: 'boolean',
       traceItemType,
       projectIds,
@@ -117,20 +109,16 @@ function useTraceItemAttributeConfig({
     });
 
   const booleanBaseKeys = useMemo(() => {
-    if (!hasBooleanFilters) {
-      return EMPTY_STRING_SET;
-    }
-
     const keys = new Set(getDefaultBooleanAttributes(traceItemType));
     for (const key of Object.keys(booleanAttributes ?? {})) {
       keys.add(extractBaseKey(key));
     }
 
     return keys;
-  }, [booleanAttributes, hasBooleanFilters, traceItemType]);
+  }, [booleanAttributes, traceItemType]);
 
   const allNumberAttributes = useMemo(() => {
-    const shouldRemove = hasBooleanFilters && booleanBaseKeys.size > 0;
+    const shouldRemove = booleanBaseKeys.size > 0;
     const attributes: TagCollection = {};
     const secondaryAliases: TagCollection = {};
 
@@ -165,7 +153,7 @@ function useTraceItemAttributeConfig({
     }
 
     return {attributes, secondaryAliases};
-  }, [numberAttributes, traceItemType, booleanBaseKeys, hasBooleanFilters]);
+  }, [numberAttributes, traceItemType, booleanBaseKeys]);
 
   const allStringAttributes = useMemo(() => {
     const tags = getDefaultStringAttributes(traceItemType).map(tag => [
@@ -185,10 +173,6 @@ function useTraceItemAttributeConfig({
   }, [stringAttributes, traceItemType]);
 
   const allBooleanAttributes = useMemo(() => {
-    if (!hasBooleanFilters) {
-      return {attributes: {}, secondaryAliases: {}};
-    }
-
     const tags = getDefaultBooleanAttributes(traceItemType).map(tag => [
       tag,
       {key: tag, name: tag, kind: FieldKind.BOOLEAN},
@@ -203,7 +187,7 @@ function useTraceItemAttributeConfig({
       attributes: {...booleanAttributes, ...Object.fromEntries(tags)},
       secondaryAliases,
     };
-  }, [booleanAttributes, hasBooleanFilters, traceItemType]);
+  }, [booleanAttributes, traceItemType]);
 
   return useMemo(
     () => ({

@@ -3,14 +3,11 @@ import styled from '@emotion/styled';
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {UnhandledTag} from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
-import type {Event, EventOrGroupType, Level} from 'sentry/types/event';
-import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
+import type {EventOrGroupType, Level} from 'sentry/types/event';
 import {eventTypeHasLogLevel} from 'sentry/utils/events';
 import {Divider} from 'sentry/views/issueDetails/divider';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
-  data: Event | BaseGroup | GroupTombstoneHelper;
   message: React.ReactNode;
   type: EventOrGroupType;
   className?: string;
@@ -25,7 +22,6 @@ export function EventMessage({
   type,
   showUnhandled = false,
 }: Props) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const showEventLevel = level && eventTypeHasLogLevel(type);
   const renderedMessage = message ? (
     <Message>{message}</Message>
@@ -37,7 +33,7 @@ export function EventMessage({
     <LevelMessageContainer className={className}>
       {showEventLevel && <ErrorLevelWithMargin level={level} />}
       {showUnhandled ? <UnhandledTag /> : null}
-      {hasStreamlinedUI && showUnhandled ? <Divider /> : null}
+      {showUnhandled ? <Divider /> : null}
       {renderedMessage}
     </LevelMessageContainer>
   );

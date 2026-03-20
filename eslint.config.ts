@@ -173,6 +173,11 @@ const restrictedImportPaths = [
     name: '@tanstack/react-form',
     message: 'Use @sentry/scraps/form instead',
   },
+  {
+    name: 'framer-motion',
+    importNames: ['Reorder'],
+    message: "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead.",
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
@@ -603,10 +608,24 @@ export default typescript.config([
           '@typescript-eslint/prefer-promise-reject-errors': 'error',
           '@typescript-eslint/require-await': 'error',
           '@typescript-eslint/no-meaningless-void-operator': 'error',
-          '@sentry/no-default-export-components': 'error',
+          '@sentry/no-default-exports': 'error',
           '@sentry/no-unnecessary-type-annotation': 'error',
         }
       : {},
+  },
+  {
+    name: 'files/allowing default exports',
+    files: [
+      '*.config.*',
+      '**/__mocks__/*',
+      'static/app/stories/*-loader.ts',
+      'static/app/chartcuterie/config.tsx',
+      'tests/js/*-transform.*',
+      'tests/js/test-*/*',
+    ],
+    rules: {
+      '@sentry/no-default-exports': 'off',
+    },
   },
   {
     name: 'plugin/typescript-eslint/custom',

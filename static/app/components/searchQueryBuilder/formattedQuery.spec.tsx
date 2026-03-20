@@ -40,6 +40,14 @@ describe('FormattedQuery', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders negated filters with multiple values using and', () => {
+    render(<FormattedQuery {...defaultProps} query="!browser.name:[Firefox,Chrome]" />);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('browser.name is not Firefox and Chrome'))
+    ).toBeInTheDocument();
+  });
+
   it('renders "is" filter correctly', () => {
     render(<FormattedQuery {...defaultProps} query="is:unresolved" />);
 

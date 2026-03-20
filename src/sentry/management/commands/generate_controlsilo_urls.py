@@ -155,11 +155,9 @@ class Command(BaseCommand):
             pattern_code = "\n  ".join(js_regex)
             ts_code = f"""// This is generated code.
 // To update it run `getsentry django generate_controlsilo_urls --format=js --output=/path/to/thisfile.ts`
-const patterns: RegExp[] = [
+export const controlsiloUrlPatterns: RegExp[] = [
   {pattern_code}
 ];
-
-export default patterns;
 """
             return ts_code
 

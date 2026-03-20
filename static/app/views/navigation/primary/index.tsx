@@ -1,10 +1,7 @@
 import {Fragment, useRef} from 'react';
-import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
-import {ButtonBar} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -14,97 +11,53 @@ import {
   IconDashboard,
   IconGraph,
   IconIssues,
-  IconPrevent,
   IconSettings,
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
-import {useNavigation} from 'sentry/views/navigation/navigationContext';
 import {
   NavigationTour,
   NavigationTourElement,
 } from 'sentry/views/navigation/navigationTour';
-import {
-  SeparatorItem,
-  SidebarLink,
-  SidebarList,
-} from 'sentry/views/navigation/primary/components';
-import {PrimaryNavigationHelp} from 'sentry/views/navigation/primary/help';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {PrimaryNavigationHelpMenu} from 'sentry/views/navigation/primary/helpMenu';
 import {PrimaryNavigationOnboarding} from 'sentry/views/navigation/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/navigation/primary/serviceIncidents';
 import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary/useActivateNavigationGroupOnHover';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
-
-function SidebarBody({
-  children,
-  ref,
-}: {
-  children: React.ReactNode;
-  ref: React.RefObject<HTMLUListElement | null>;
-}) {
-  const {layout} = useNavigation();
-  return (
-    <SidebarList isMobile={layout === 'mobile'} data-primary-list-container ref={ref}>
-      {children}
-    </SidebarList>
-  );
-}
-
-function SidebarFooter({children}: {children: React.ReactNode}) {
-  const {layout} = useNavigation();
-  const isMobile = layout === 'mobile';
-
-  if (!children) {
-    return null;
-  }
-
-  return (
-    <Flex
-      display="flex"
-      // @TODO(Jonas): add a <Flex grow={1]> between the primary and secondary nav
-      align="center"
-      justify={isMobile ? 'start' : 'center'}
-      width={isMobile ? '100%' : 'auto'}
-    >
-      {isMobile ? (
-        <Stack width="100%">{children}</Stack>
-      ) : (
-        <FooterButtonBar orientation="vertical">{children}</FooterButtonBar>
-      )}
-    </Flex>
-  );
-}
-
-function showPreventNavigation() {
-  // only people with test analytics can see the prevent nav
-  // Legacy Seer and New Seer orgs are getting a Seer Config Reminder icon, which
-  // means that the only Prevent sub-nav item remaining is the Tests item.
-  return false;
-}
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
   const ref = useRef<HTMLUListElement>(null);
 
+  const {layout} = usePrimaryNavigation();
+  const hasPageFrame = organization.features.includes('page-frame');
+
   const makeNavigationItemProps = useActivateNavigationGroupOnHover({ref});
 
   return (
     <Fragment>
-      <SidebarBody ref={ref}>
+      <PrimaryNavigation.List ref={ref}>
         <NavigationTourElement id={NavigationTour.ISSUES} title={null} description={null}>
           {tourProps => (
-            <SidebarLink
-              to={`/${prefix}/issues/`}
-              analyticsKey="issues"
-              label={t('Issues')}
-              {...mergeProps(makeNavigationItemProps('issues'), tourProps)}
-            >
-              <IconIssues />
-            </SidebarLink>
+            <PrimaryNavigation.ListItem>
+              <PrimaryNavigation.Link
+                to={`/${prefix}/issues/`}
+                analyticsKey="issues"
+                label={t('Issues')}
+                {...mergeProps(
+                  makeNavigationItemProps('issues', `/${prefix}/issues/`),
+                  tourProps
+                )}
+              >
+                <IconIssues />
+              </PrimaryNavigation.Link>
+            </PrimaryNavigation.ListItem>
           )}
         </NavigationTourElement>
 
@@ -114,15 +67,23 @@ export function PrimaryNavigationItems() {
           description={null}
         >
           {tourProps => (
-            <SidebarLink
-              to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
-              activeTo={`/${prefix}/explore`}
-              analyticsKey="explore"
-              label={t('Explore')}
-              {...mergeProps(makeNavigationItemProps('explore'), tourProps)}
-            >
-              <IconCompass />
-            </SidebarLink>
+            <PrimaryNavigation.ListItem>
+              <PrimaryNavigation.Link
+                to={`/${prefix}/explore/${getDefaultExploreRoute(organization)}/`}
+                analyticsKey="explore"
+                label={t('Explore')}
+                {...mergeProps(
+                  makeNavigationItemProps(
+                    'explore',
+                    `/${prefix}/explore/${getDefaultExploreRoute(organization)}/`,
+                    `/${prefix}/explore`
+                  ),
+                  tourProps
+                )}
+              >
+                <IconCompass />
+              </PrimaryNavigation.Link>
+            </PrimaryNavigation.ListItem>
           )}
         </NavigationTourElement>
 
@@ -137,15 +98,23 @@ export function PrimaryNavigationItems() {
             description={null}
           >
             {tourProps => (
-              <SidebarLink
-                to={`/${prefix}/dashboards/`}
-                activeTo={`/${prefix}/dashboard`}
-                analyticsKey="dashboards"
-                label={t('Dashboards')}
-                {...mergeProps(makeNavigationItemProps('dashboards'), tourProps)}
-              >
-                <IconDashboard />
-              </SidebarLink>
+              <PrimaryNavigation.ListItem>
+                <PrimaryNavigation.Link
+                  to={`/${prefix}/dashboards/`}
+                  analyticsKey="dashboards"
+                  label={t('Dashboards')}
+                  {...mergeProps(
+                    makeNavigationItemProps(
+                      'dashboards',
+                      `/${prefix}/dashboards/`,
+                      `/${prefix}/dashboard`
+                    ),
+                    tourProps
+                  )}
+                >
+                  <IconDashboard />
+                </PrimaryNavigation.Link>
+              </PrimaryNavigation.ListItem>
             )}
           </NavigationTourElement>
         </Feature>
@@ -157,48 +126,45 @@ export function PrimaryNavigationItems() {
             description={null}
           >
             {tourProps => (
-              <SidebarLink
-                to={`/${prefix}/insights/`}
-                activeTo={`/${prefix}/insights`}
-                analyticsKey="insights"
-                label={t('Insights')}
-                {...mergeProps(makeNavigationItemProps('insights'), tourProps)}
-              >
-                <IconGraph type="area" />
-              </SidebarLink>
+              <PrimaryNavigation.ListItem>
+                <PrimaryNavigation.Link
+                  to={`/${prefix}/insights/`}
+                  analyticsKey="insights"
+                  label={t('Insights')}
+                  {...mergeProps(
+                    makeNavigationItemProps(
+                      'insights',
+                      `/${prefix}/insights/`,
+                      `/${prefix}/insights`
+                    ),
+                    tourProps
+                  )}
+                >
+                  <IconGraph type="area" />
+                </PrimaryNavigation.Link>
+              </PrimaryNavigation.ListItem>
             )}
           </NavigationTourElement>
         </Feature>
 
-        {showPreventNavigation() ? (
-          <Container position="relative" height="100%">
-            <SidebarLink
-              to={`/${prefix}/prevent/tests/`}
-              activeTo={`/${prefix}/prevent/`}
-              analyticsKey="prevent"
-              label={t('Prevent')}
-              {...makeNavigationItemProps('prevent')}
-            >
-              <IconPrevent />
-            </SidebarLink>
-            <BetaBadge type="beta" />
-          </Container>
-        ) : null}
-
-        <SeparatorItem />
+        {hasPageFrame ? null : (
+          <PrimaryNavigation.ListItem padding="0 md">
+            <PrimaryNavigation.Separator />
+          </PrimaryNavigation.ListItem>
+        )}
 
         <Feature features={['workflow-engine-ui']}>
-          <Container position="relative" height="100%">
-            <SidebarLink
+          <PrimaryNavigation.ListItem>
+            <PrimaryNavigation.Link
               to={`/${prefix}/monitors/`}
               analyticsKey="monitors"
               label={t('Monitors')}
-              {...makeNavigationItemProps('monitors')}
+              {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
             >
               <IconSiren />
-            </SidebarLink>
-            <BetaBadge type="alpha" />
-          </Container>
+              <PrimaryNavigation.ButtonFeatureBadge type="alpha" />
+            </PrimaryNavigation.Link>
+          </PrimaryNavigation.ListItem>
         </Feature>
 
         <NavigationTourElement
@@ -207,21 +173,33 @@ export function PrimaryNavigationItems() {
           description={null}
         >
           {tourProps => (
-            <SidebarLink
-              to={`/settings/${organization.slug}/`}
-              activeTo="/settings/"
-              analyticsKey="settings"
-              label={t('Settings')}
-              {...mergeProps(makeNavigationItemProps('settings'), tourProps)}
-            >
-              <IconSettings />
-            </SidebarLink>
+            <PrimaryNavigation.ListItem>
+              <PrimaryNavigation.Link
+                to={`/settings/${organization.slug}/`}
+                analyticsKey="settings"
+                label={t('Settings')}
+                {...mergeProps(
+                  makeNavigationItemProps(
+                    'settings',
+                    `/settings/${organization.slug}/`,
+                    '/settings/'
+                  ),
+                  tourProps
+                )}
+              >
+                <IconSettings />
+              </PrimaryNavigation.Link>
+            </PrimaryNavigation.ListItem>
           )}
         </NavigationTourElement>
-      </SidebarBody>
+      </PrimaryNavigation.List>
 
-      <Stack gap="md" marginTop="auto" paddingBottom="md">
-        <SidebarFooter>
+      <Stack
+        gap={layout === 'mobile' ? undefined : 'md'}
+        marginTop="auto"
+        paddingBottom="md"
+      >
+        <PrimaryNavigation.FooterItems>
           <ErrorBoundary customComponent={null}>
             <PrimaryNavigationOnboarding />
           </ErrorBoundary>
@@ -240,31 +218,12 @@ export function PrimaryNavigationItems() {
           <ErrorBoundary customComponent={null}>
             <PrimaryNavigationWhatsNew />
           </ErrorBoundary>
-          <PrimaryNavigationHelp />
-        </SidebarFooter>
-        <SidebarFooter>
+          <PrimaryNavigationHelpMenu />
+        </PrimaryNavigation.FooterItems>
+        <PrimaryNavigation.FooterItems>
           <UserDropdown />
-        </SidebarFooter>
+        </PrimaryNavigation.FooterItems>
       </Stack>
     </Fragment>
   );
 }
-
-// Force all buttons to the same size
-const FooterButtonBar = styled(ButtonBar)`
-  & > button,
-  & > span > button {
-    width: ${p => p.theme.form.md.height};
-    height: ${p => p.theme.form.md.height};
-  }
-`;
-
-const BetaBadge = styled(FeatureBadge)`
-  position: absolute;
-  pointer-events: none;
-  top: -2px;
-  right: 2px;
-  font-size: ${p => p.theme.font.size.xs};
-  padding: 0 ${p => p.theme.space.xs};
-  height: 16px;
-`;

@@ -39,7 +39,6 @@ DEFAULT_OPTIONS = {
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
     "spans.process-segments.schema-validation": 1.0,
-    "spans.buffer.zero-copy-dest-threshold-bytes": 0,
     "spans.buffer.done-flush-conditional-zrem": False,
     "spans.buffer.write-distributed-payloads": False,
     "spans.buffer.read-distributed-payloads": False,
@@ -1104,100 +1103,6 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
     assert_clean(buffer.client)
 
 
-@mock.patch("sentry.spans.buffer.emit_observability_metrics")
-def test_zero_copy(emit_observability_metrics: mock.MagicMock) -> None:
-    """
-    Test that zero-copy mode (SMEMBERS+SADD instead of SUNIONSTORE) produces
-    identical results. Uses a threshold of 1 byte so that every merge triggers
-    the zero-copy path.
-    """
-    with override_options(
-        {
-            **DEFAULT_OPTIONS,
-            "spans.buffer.zero-copy-dest-threshold-bytes": 1,
-            "spans.buffer.max-spans-per-evalsha": 1,
-        }
-    ):
-        buf = SpansBuffer(assigned_shards=list(range(32)))
-        buf.client.flushdb()
-
-        spans = [
-            Span(
-                payload=_payload("a" * 16),
-                trace_id="a" * 32,
-                span_id="a" * 16,
-                parent_span_id="b" * 16,
-                segment_id=None,
-                project_id=1,
-            ),
-            Span(
-                payload=_payload("d" * 16),
-                trace_id="a" * 32,
-                span_id="d" * 16,
-                parent_span_id="b" * 16,
-                segment_id=None,
-                project_id=1,
-            ),
-            Span(
-                payload=_payload("c" * 16),
-                trace_id="a" * 32,
-                span_id="c" * 16,
-                parent_span_id="b" * 16,
-                segment_id=None,
-                project_id=1,
-            ),
-            Span(
-                payload=_payload("b" * 16),
-                trace_id="a" * 32,
-                span_id="b" * 16,
-                parent_span_id=None,
-                segment_id=None,
-                is_segment_span=True,
-                project_id=1,
-            ),
-        ]
-
-        process_spans(spans, buf, now=0)
-
-        assert_ttls(buf.client)
-
-        assert buf.flush_segments(now=5) == {}
-        rv = buf.flush_segments(now=11)
-        _normalize_output(rv)
-        assert rv == {
-            _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
-                queue_key=mock.ANY,
-                score=mock.ANY,
-                ingested_count=mock.ANY,
-                project_id=1,
-                spans=[
-                    _output_segment(b"a" * 16, b"b" * 16, False),
-                    _output_segment(b"b" * 16, b"b" * 16, True),
-                    _output_segment(b"c" * 16, b"b" * 16, False),
-                    _output_segment(b"d" * 16, b"b" * 16, False),
-                ],
-            )
-        }
-        buf.done_flush_segments(rv)
-        assert buf.flush_segments(now=30) == {}
-
-        assert_clean(buf.client)
-
-        # Verify used_zero_copy_dest metric was emitted
-        emit_observability_metrics.assert_called()
-        args, _ = emit_observability_metrics.call_args
-        gauge_metrics = args[1]
-        zero_copy_values = [
-            value
-            for evalsha_metrics in gauge_metrics
-            for metric_name, value in evalsha_metrics
-            if metric_name == b"used_zero_copy_dest"
-        ]
-        assert any(v == 1 for v in zero_copy_values), (
-            f"Expected at least one evalsha call to use zero-copy, got {zero_copy_values}"
-        )
-
-
 def test_partition_routing_stable_across_rebalance() -> None:
     """
     Verify that spans are routed to the queue matching their source Kafka
@@ -1620,7 +1525,6 @@ def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
         segment_id=segment_id,
         project_id=example["project_id"],
         payload=payload,
-        end_timestamp=cast(float, example["end_timestamp"]),
         is_segment_span=bool(example.get("parent_span_id") is None or example.get("is_segment")),
     )
 

@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.types.region import get_local_locality
+from sentry.types.cell import get_local_locality
 from sentry.utils import linksign
 
 

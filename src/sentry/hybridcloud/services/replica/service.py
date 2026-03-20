@@ -60,7 +60,7 @@ class ControlReplicaService(RpcService):
         return DatabaseBackedControlReplicaService()
 
 
-class RegionReplicaService(RpcService):
+class CellReplicaService(RpcService):
     key = "region_replica"
     local_mode = SiloMode.CELL
 
@@ -70,8 +70,7 @@ class RegionReplicaService(RpcService):
         self,
         *,
         auth_provider: RpcAuthProvider,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         pass
 
@@ -81,15 +80,17 @@ class RegionReplicaService(RpcService):
         self,
         *,
         auth_identity: RpcAuthIdentity,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         pass
 
     @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def upsert_replicated_api_key(
-        self, *, api_key: RpcApiKey, cell_name: str | None = None, region_name: str | None = None
+        self,
+        *,
+        api_key: RpcApiKey,
+        cell_name: str,
     ) -> None:
         pass
 
@@ -99,15 +100,17 @@ class RegionReplicaService(RpcService):
         self,
         *,
         api_token: RpcApiToken,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         pass
 
     @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def delete_replicated_api_token(
-        self, *, apitoken_id: int, cell_name: str | None = None, region_name: str | None = None
+        self,
+        *,
+        apitoken_id: int,
+        cell_name: str,
     ) -> None:
         pass
 
@@ -117,8 +120,7 @@ class RegionReplicaService(RpcService):
         self,
         *,
         token: RpcOrgAuthToken,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         pass
 
@@ -128,8 +130,7 @@ class RegionReplicaService(RpcService):
         self,
         *,
         slug_reservation: RpcOrganizationSlugReservation,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         pass
 
@@ -139,24 +140,26 @@ class RegionReplicaService(RpcService):
         self,
         *,
         organization_slug_reservation_id: int,
-        cell_name: str | None = None,
-        region_name: str | None = None,
+        cell_name: str,
     ) -> None:
         pass
 
     @cell_rpc_method(resolve=ByCellName())
     @abc.abstractmethod
     def delete_replicated_auth_provider(
-        self, *, auth_provider_id: int, cell_name: str | None = None, region_name: str | None = None
+        self,
+        *,
+        auth_provider_id: int,
+        cell_name: str,
     ) -> None:
         pass
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from .impl import DatabaseBackedRegionReplicaService
+        from .impl import DatabaseBackedCellReplicaService
 
-        return DatabaseBackedRegionReplicaService()
+        return DatabaseBackedCellReplicaService()
 
 
-region_replica_service = RegionReplicaService.create_delegation()
+cell_replica_service = CellReplicaService.create_delegation()
 control_replica_service = ControlReplicaService.create_delegation()

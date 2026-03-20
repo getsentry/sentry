@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import sentry_sdk
 
-from sentry.issue_detection.grouptype import WebVitalsGroup
+from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.ingest import hash_fingerprint
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka

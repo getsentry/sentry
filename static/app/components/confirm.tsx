@@ -188,7 +188,7 @@ export const openConfirmModal = ({
  *
  * This is the declarative alternative to using openConfirmModal
  */
-function Confirm({
+export function Confirm({
   disabled,
   children,
   stopPropagation = false,
@@ -364,5 +364,3 @@ function ConfirmModal({
     </Fragment>
   );
 }
-
-export default Confirm;

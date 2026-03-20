@@ -44,12 +44,12 @@ def create_post_provision_outbox(
 
 def create_organization_provisioning_outbox(
     organization_id: int,
-    region_name: str,
+    cell_name: str,
     org_provision_payload: OrganizationProvisioningOptions | None,
 ) -> ControlOutbox:
     payload = org_provision_payload.dict() if org_provision_payload is not None else None
     return ControlOutbox(
-        cell_name=region_name,
+        cell_name=cell_name,
         shard_scope=OutboxScope.PROVISION_SCOPE,
         category=OutboxCategory.PROVISION_ORGANIZATION,
         shard_identifier=organization_id,
@@ -129,17 +129,13 @@ class DatabaseBackedControlOrganizationProvisioningService(
     def provision_organization(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         org_provision_args: OrganizationProvisioningOptions,
     ) -> RpcOrganizationSlugReservation:
-        resolved_cell_name = cell_name or region_name
-        assert resolved_cell_name is not None, "cell_name or region_name must be provided"
-
         # Generate a new non-conflicting slug and org ID
-        org_id = self._generate_org_snowflake_id(region_name=resolved_cell_name)
+        org_id = self._generate_org_snowflake_id(region_name=cell_name)
         slug = self._generate_org_slug(
-            region_name=resolved_cell_name, slug=org_provision_args.provision_options.slug
+            region_name=cell_name, slug=org_provision_args.provision_options.slug
         )
 
         # Generate a provisioning outbox for the region and drain
@@ -158,13 +154,13 @@ class DatabaseBackedControlOrganizationProvisioningService(
                 slug=slug,
                 organization_id=org_id,
                 user_id=org_provision_args.provision_options.owning_user_id,
-                cell_name=resolved_cell_name,
+                cell_name=cell_name,
             )
 
             org_slug_res.save(unsafe_write=True)
             create_organization_provisioning_outbox(
                 organization_id=org_id,
-                region_name=resolved_cell_name,
+                cell_name=cell_name,
                 org_provision_payload=provision_payload,
             ).save()
 
@@ -183,14 +179,11 @@ class DatabaseBackedControlOrganizationProvisioningService(
     def update_organization_slug(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         organization_id: int,
         desired_slug: str,
         require_exact: bool = True,
     ) -> RpcOrganizationSlugReservation:
-        resolved_cell_name = cell_name or region_name
-        assert resolved_cell_name is not None, "cell_name or region_name must be provided"
         existing_slug_reservations = list(
             OrganizationSlugReservation.objects.filter(organization_id=organization_id)
         )
@@ -209,14 +202,14 @@ class DatabaseBackedControlOrganizationProvisioningService(
         )
 
         # If there's already a matching primary slug reservation for the org,
-        # just replicate it to the region to kick off the organization sync process
+        # just replicate it to the cell to kick off the organization sync process
         if existing_primary_alias and existing_primary_alias.slug == desired_slug:
-            existing_primary_alias.handle_async_replication(resolved_cell_name, organization_id)
+            existing_primary_alias.handle_async_replication(cell_name, organization_id)
             return serialize_slug_reservation(existing_primary_alias)
 
         slug_base = desired_slug
         if not require_exact:
-            slug_base = self._generate_org_slug(region_name=resolved_cell_name, slug=slug_base)
+            slug_base = self._generate_org_slug(region_name=cell_name, slug=slug_base)
 
         try:
             with outbox_context(
@@ -226,7 +219,7 @@ class DatabaseBackedControlOrganizationProvisioningService(
                     slug=slug_base,
                     organization_id=organization_id,
                     user_id=-1,
-                    cell_name=resolved_cell_name,
+                    cell_name=cell_name,
                     reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
                 ).save(unsafe_write=True)
 
@@ -295,23 +288,19 @@ class DatabaseBackedControlOrganizationProvisioningService(
     def bulk_create_organization_slug_reservations(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         slug_mapping: dict[int, str],
     ) -> None:
-        resolved_cell_name = cell_name or region_name
-        assert resolved_cell_name is not None, "cell_name or region_name must be provided"
-
         slug_reservations_to_create: list[OrganizationSlugReservation] = []
 
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))):
             for org_id, slug in slug_mapping.items():
                 slug_reservation = OrganizationSlugReservation(
-                    slug=self._generate_org_slug(slug=slug, region_name=resolved_cell_name),
+                    slug=self._generate_org_slug(slug=slug, region_name=cell_name),
                     organization_id=org_id,
                     reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS.value,
                     user_id=-1,
-                    cell_name=resolved_cell_name,
+                    cell_name=cell_name,
                 )
                 slug_reservation.save(unsafe_write=True)
 

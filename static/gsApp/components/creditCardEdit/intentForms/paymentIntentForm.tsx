@@ -9,7 +9,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
 import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import {usePaymentIntentData} from 'getsentry/hooks/useIntentData';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function PaymentIntentForm(props: IntentFormProps) {
   const {organization, referrer, onSuccess} = props;
