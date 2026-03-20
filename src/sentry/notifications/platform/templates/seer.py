@@ -161,14 +161,13 @@ class SeerAutofixTrigger(NotificationData):
         )
 
 
-@dataclass(frozen=True)
 class SeerExplorerError(NotificationData):
     error_message: str
     error_title: str = "Seer had some trouble..."
     source: NotificationSource = NotificationSource.SEER_EXPLORER_ERROR
 
 
-@template_registry.register(SeerExplorerError.source)
+@template_registry.register(NotificationSource.SEER_EXPLORER_ERROR)
 class SeerExplorerErrorTemplate(NotificationTemplate[SeerExplorerError]):
     category = NotificationCategory.SEER
     example_data = SeerExplorerError(
@@ -184,7 +183,6 @@ class SeerExplorerErrorTemplate(NotificationTemplate[SeerExplorerError]):
         )
 
 
-@dataclass(frozen=True)
 class SeerExplorerResponse(NotificationData):
     """Notification data for Explorer completion response in Slack."""
 
@@ -195,7 +193,7 @@ class SeerExplorerResponse(NotificationData):
     source: NotificationSource = NotificationSource.SEER_EXPLORER_RESPONSE
 
 
-@template_registry.register(SeerExplorerResponse.source)
+@template_registry.register(NotificationSource.SEER_EXPLORER_RESPONSE)
 class SeerExplorerResponseTemplate(NotificationTemplate[SeerExplorerResponse]):
     category = NotificationCategory.SEER
     example_data = SeerExplorerResponse(
