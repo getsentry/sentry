@@ -696,7 +696,9 @@ def trends_aggregation_impl(
             ]
 
 
-def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
+def _recommended_aggregation(
+    timestamp_column: str, type_column: str | None = None
+) -> Sequence[str]:
     hour = 3600
 
     # Recency: exponential decay based on time since last event (24hr halflife)
@@ -729,14 +731,26 @@ def _recommended_aggregation(timestamp_column: str) -> Sequence[str]:
     event_volume_weight = options.get("snuba.search.recommended.event-volume-weight")
     event_volume = "least(1.0, divide(log(plus(count(), 1)), log(10001)))"
 
+    # Group type boost: additive signal per issue type
+    group_type_boosts = options.get("snuba.search.recommended.group-type-boost")
+    if group_type_boosts:
+        type_expr = f"any({type_column})" if type_column else "1"
+        conditions = []
+        for type_id, boost in group_type_boosts.items():
+            conditions.append(f"equals({type_expr}, {int(type_id)}), {float(boost)}")
+        type_boost = f"multiIf({', '.join(conditions)}, 0.0)"
+    else:
+        type_boost = "0.0"
+
     return [
         (
-            f"plus(plus(plus(plus("
+            f"plus(plus(plus(plus(plus("
             f"multiply({recency_weight}, {recency}), "
             f"multiply({spike_weight}, {spike})), "
             f"multiply({severity_weight}, {severity})), "
             f"multiply({user_impact_weight}, {user_impact})), "
-            f"multiply({event_volume_weight}, {event_volume}))"
+            f"multiply({event_volume_weight}, {event_volume})), "
+            f"{type_boost})"
         ),
         "",
     ]
@@ -747,7 +761,7 @@ def recommended_aggregation(
     end: datetime,
     aggregate_kwargs: Any = None,
 ) -> Sequence[str]:
-    return _recommended_aggregation("timestamp")
+    return _recommended_aggregation(timestamp_column="timestamp")
 
 
 def recommended_issue_platform_aggregation(
@@ -755,7 +769,9 @@ def recommended_issue_platform_aggregation(
     end: datetime,
     aggregate_kwargs: Any = None,
 ) -> Sequence[str]:
-    return _recommended_aggregation("client_timestamp")
+    return _recommended_aggregation(
+        timestamp_column="client_timestamp", type_column="occurrence_type_id"
+    )
 
 
 class PostgresSnubaQueryExecutor(AbstractQueryExecutor):

@@ -4098,3 +4098,66 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
 
         scores = {group_id: score for group_id, score in results}
         assert scores[high_volume_group.id] > scores[low_volume_group.id]
+
+    def test_recommended_group_type_boost(self) -> None:
+        base_datetime = before_now(hours=1)
+
+        # Store identical events for two groups so their base scores are equal
+        self.store_event(
+            data={
+                "fingerprint": ["boosted-group"],
+                "event_id": "a" * 32,
+                "message": "boosted",
+                "timestamp": base_datetime.isoformat(),
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "fingerprint": ["normal-group"],
+                "event_id": "b" * 32,
+                "message": "normal",
+                "timestamp": base_datetime.isoformat(),
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        boosted_group = Group.objects.get(project=self.project, message="boosted")
+        normal_group = Group.objects.get(project=self.project, message="normal")
+
+        # Both are error groups (type=1). Boost type 1 and verify scores increase.
+        with self.options({"snuba.search.recommended.group-type-boost": {"1": 0.5}}):
+            query_executor = self.backend._get_query_executor()
+            boosted_results = query_executor.snuba_search(
+                start=None,
+                end=None,
+                project_ids=[self.project.id],
+                environment_ids=[],
+                sort_field="recommended",
+                organization=self.organization,
+                group_ids=[boosted_group.id, normal_group.id],
+                limit=150,
+                referrer=Referrer.TESTING_TEST,
+            )[0]
+
+        # Without boost
+        query_executor = self.backend._get_query_executor()
+        normal_results = query_executor.snuba_search(
+            start=None,
+            end=None,
+            project_ids=[self.project.id],
+            environment_ids=[],
+            sort_field="recommended",
+            organization=self.organization,
+            group_ids=[boosted_group.id, normal_group.id],
+            limit=150,
+            referrer=Referrer.TESTING_TEST,
+        )[0]
+
+        boosted_scores = {gid: score for gid, score in boosted_results}
+        normal_scores = {gid: score for gid, score in normal_results}
+
+        # With type boost, both groups (same type) should score higher than without
+        assert boosted_scores[boosted_group.id] > normal_scores[boosted_group.id]

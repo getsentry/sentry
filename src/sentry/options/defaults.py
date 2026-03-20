@@ -921,7 +921,7 @@ register(
 register("snuba.search.hits-sample-size", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "snuba.search.recommended.recency-weight",
-    default=0.20,
+    default=0.15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -931,7 +931,7 @@ register(
 )
 register(
     "snuba.search.recommended.severity-weight",
-    default=0.25,
+    default=0.20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -941,8 +941,14 @@ register(
 )
 register(
     "snuba.search.recommended.event-volume-weight",
-    default=0.25,
+    default=0.20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.recommended.group-type-boost",
+    type=Dict,
+    default={"7001": 0.15},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
