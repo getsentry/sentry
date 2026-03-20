@@ -846,14 +846,14 @@ export default typescript.config([
     },
   },
   {
+    // turn off features that conflict with formatter
     name: 'plugin/prettier',
     ...prettier,
     rules: {
-      // import sorting is handled with prettier-plugin-sort-imports
+      // import sorting is handled by oxfmt
       'import/order': 'off',
       'sort-imports': 'off',
       'import/newline-after-import': 'off',
-      // prettier-plugin-sort-imports always combines imports
       'import/no-duplicates': 'off',
     },
   },
