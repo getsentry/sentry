@@ -13,20 +13,20 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry
+from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
 from sentry.taskworker.retry import Retry
 
-logger = logging.getLogger("sentry.tasks.integrations.gitlab")
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
     name="sentry.tasks.integrations.gitlab.update_project_webhook",
     namespace=integrations_tasks,
     silo_mode=SiloMode.CELL,
-    retry=Retry(times=3, delay=60),
+    processing_deadline_duration=60,
+    retry=Retry(times=3, delay=60, on=(Exception,), ignore=(Integration.DoesNotExist,)),
 )
-@retry(exclude=(Integration.DoesNotExist,))
 def update_project_webhook(integration_id: int, organization_id: int, repository_id: int) -> None:
     """
     Update a single project webhook for a GitLab integration.
@@ -101,9 +101,8 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
     name="sentry.tasks.integrations.gitlab.update_all_project_webhooks",
     namespace=integrations_tasks,
     silo_mode=SiloMode.CELL,
-    retry=Retry(times=3, delay=60),
+    retry=Retry(times=3, delay=60, on=(Exception,), ignore=(Integration.DoesNotExist,)),
 )
-@retry(exclude=(Integration.DoesNotExist,))
 def update_all_project_webhooks(integration_id: int, organization_id: int) -> None:
     """
     Spawn individual tasks to update all project webhooks for a GitLab integration.
