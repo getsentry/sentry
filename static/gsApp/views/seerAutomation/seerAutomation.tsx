@@ -13,6 +13,7 @@ import {NoActiveSeerSubscriptionBanner} from 'getsentry/views/seerAutomation/com
 import {SeerAutomationDefault} from 'getsentry/views/seerAutomation/components/seerAutomationDefault';
 import {SeerAutomationProjectList} from 'getsentry/views/seerAutomation/components/seerAutomationProjectList';
 import {SeerConnectGitHubBanner} from 'getsentry/views/seerAutomation/components/seerConnectGitHubBanner';
+import {SettingsPageTabs} from 'getsentry/views/seerAutomation/components/settingsPageTabs';
 import {SeerAutomationSettings} from 'getsentry/views/seerAutomation/settings';
 
 export default function SeerAutomation() {
@@ -43,7 +44,7 @@ export default function SeerAutomation() {
         <Stack gap="lg">
           {showNoActiveSeerSubscriptionBanner ? <NoActiveSeerSubscriptionBanner /> : null}
           <SeerConnectGitHubBanner />
-
+          <SettingsPageTabs />
           <SeerAutomationProjectList />
           <br />
           <SeerAutomationDefault />
