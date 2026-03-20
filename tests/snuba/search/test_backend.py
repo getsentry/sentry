@@ -14,6 +14,7 @@ from sentry.issues.grouptype import (
     NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.issues.issue_search import convert_query_values, issue_search_config, parse_search_query
@@ -4102,62 +4103,48 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
     def test_recommended_group_type_boost(self) -> None:
         base_datetime = before_now(hours=1)
 
-        # Store identical events for two groups so their base scores are equal
-        self.store_event(
+        error_event = self.store_event(
             data={
-                "fingerprint": ["boosted-group"],
+                "fingerprint": ["error-group"],
                 "event_id": "a" * 32,
-                "message": "boosted",
                 "timestamp": base_datetime.isoformat(),
+                "message": "error event",
                 "level": "error",
+                "stacktrace": {"frames": [{"module": "group1"}]},
             },
             project_id=self.project.id,
         )
-        self.store_event(
-            data={
-                "fingerprint": ["normal-group"],
-                "event_id": "b" * 32,
-                "message": "normal",
-                "timestamp": base_datetime.isoformat(),
-                "level": "error",
-            },
+        error_group = error_event.group
+
+        _, group_info = self.process_occurrence(
+            event_id=uuid.uuid4().hex,
             project_id=self.project.id,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"my_tag": "1"},
+                "timestamp": base_datetime.isoformat(),
+                "received": base_datetime.isoformat(),
+            },
+            type=ProfileFileIOGroupType.type_id,
         )
+        profile_group = group_info.group
 
-        boosted_group = Group.objects.get(project=self.project, message="boosted")
-        normal_group = Group.objects.get(project=self.project, message="normal")
-
-        # Both are error groups (type=1). Boost type 1 and verify scores increase.
-        with self.options({"snuba.search.recommended.group-type-boost": {"1": 0.5}}):
+        # Boost ProfileFileIOGroupType so it outranks the error group
+        boost = {ProfileFileIOGroupType.type_id: 0.5}
+        with self.options({"snuba.search.recommended.group-type-boost": boost}):
             query_executor = self.backend._get_query_executor()
-            boosted_results = query_executor.snuba_search(
+            results = query_executor.snuba_search(
                 start=None,
                 end=None,
                 project_ids=[self.project.id],
                 environment_ids=[],
                 sort_field="recommended",
                 organization=self.organization,
-                group_ids=[boosted_group.id, normal_group.id],
+                group_ids=[error_group.id, profile_group.id],
                 limit=150,
                 referrer=Referrer.TESTING_TEST,
             )[0]
 
-        # Without boost
-        query_executor = self.backend._get_query_executor()
-        normal_results = query_executor.snuba_search(
-            start=None,
-            end=None,
-            project_ids=[self.project.id],
-            environment_ids=[],
-            sort_field="recommended",
-            organization=self.organization,
-            group_ids=[boosted_group.id, normal_group.id],
-            limit=150,
-            referrer=Referrer.TESTING_TEST,
-        )[0]
-
-        boosted_scores = {gid: score for gid, score in boosted_results}
-        normal_scores = {gid: score for gid, score in normal_results}
-
-        # With type boost, both groups (same type) should score higher than without
-        assert boosted_scores[boosted_group.id] > normal_scores[boosted_group.id]
+        scores = {gid: score for gid, score in results}
+        assert scores[profile_group.id] > scores[error_group.id]

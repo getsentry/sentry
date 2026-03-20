@@ -947,7 +947,7 @@ register(
 register(
     "snuba.search.recommended.group-type-boost",
     type=Dict,
-    default={"7001": 0.15},
+    default={7001: 0.15},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register("snuba.track-outcomes-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)

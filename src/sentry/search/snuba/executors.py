@@ -737,7 +737,7 @@ def _recommended_aggregation(
         type_expr = f"any({type_column})" if type_column else "1"
         conditions = []
         for type_id, boost in group_type_boosts.items():
-            conditions.append(f"equals({type_expr}, {int(type_id)}), {float(boost)}")
+            conditions.append(f"equals({type_expr}, {type_id}), {boost}")
         type_boost = f"multiIf({', '.join(conditions)}, 0.0)"
     else:
         type_boost = "0.0"
