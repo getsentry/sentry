@@ -17,7 +17,7 @@ import {
   DataConditionHandlerGroupType,
   type DataConditionGroup,
 } from 'sentry/types/workflowEngine/dataConditions';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FILTER_MATCH_OPTIONS} from 'sentry/views/automations/components/actionFilters/constants';

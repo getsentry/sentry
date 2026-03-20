@@ -5,6 +5,7 @@ import color from 'color';
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 
 import {useQuery} from 'sentry/utils/queryClient';
 
@@ -14,7 +15,7 @@ interface AvatarButtonProps extends Omit<ButtonProps, 'children' | 'icon' | 'pri
   size?: Exclude<ButtonProps['size'], 'zero'>;
 }
 
-export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps) {
+export function AvatarButton({avatar, size: explicitSize, ...props}: AvatarButtonProps) {
   const theme = useTheme();
   const avatarDefinition = useAvatar({
     identifier: avatar.identifier,
@@ -36,6 +37,9 @@ export function AvatarButton({avatar, size = 'md', ...props}: AvatarButtonProps)
     enabled: !!imageUrl && avatarDefinition.type === 'image',
     staleTime: Infinity,
   });
+
+  const contextSize = useSizeContext();
+  const size = explicitSize ?? contextSize ?? 'md';
 
   if (avatarDefinition.type === 'letter') {
     const avatarChonk = color(avatarDefinition.configuration.background)

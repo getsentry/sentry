@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
@@ -20,7 +20,7 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getAlertText,
   getIntegrationStatus,
@@ -42,7 +42,7 @@ import type {
   AlertType,
   IntegrationTab,
 } from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {useIntegrationTabs} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationTabs';
 import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
@@ -328,34 +328,74 @@ export default function IntegrationDetailedView() {
         return null;
       }
 
+      const showStagingButton =
+        integrationSlug === 'slack' &&
+        organization.features.includes('slack-staging-app');
+
       return (
-        <IntegrationContext
-          value={{
-            provider,
-            type: integrationType,
-            installStatus: installationStatus,
-            analyticsParams: {
-              view: 'integrations_directory_integration_detail',
-              already_installed: installationStatus !== 'Not Installed',
-              ...(referrer && {referrer}),
-            },
-          }}
-        >
-          <StyledIntegrationButton
-            userHasAccess={userHasAccess}
-            onAddIntegration={onInstall}
-            onExternalClick={() => {
-              trackIntegrationAnalytics('integrations.installation_start', {
+        <Flex gap="md">
+          {showStagingButton && (
+            <IntegrationContext
+              value={{
+                provider,
+                type: integrationType,
+                installStatus: installationStatus,
+                modalParams: {use_staging: '1'},
+                analyticsParams: {
+                  view: 'integrations_directory_integration_detail',
+                  already_installed: installationStatus !== 'Not Installed',
+                  ...(referrer && {referrer}),
+                },
+              }}
+            >
+              <IntegrationButton
+                userHasAccess={userHasAccess}
+                onAddIntegration={onInstall}
+                onExternalClick={() => {
+                  trackIntegrationAnalytics('integrations.installation_start', {
+                    view: 'integrations_directory_integration_detail',
+                    integration: integrationSlug,
+                    integration_type: integrationType,
+                    already_installed: installationStatus !== 'Not Installed',
+                    organization,
+                  });
+                }}
+                buttonProps={{
+                  ...buttonProps,
+                  'data-test-id': 'install-staging-button',
+                  buttonText: t('Add %s to Staging', provider.metadata.noun),
+                }}
+              />
+            </IntegrationContext>
+          )}
+          <IntegrationContext
+            value={{
+              provider,
+              type: integrationType,
+              installStatus: installationStatus,
+              analyticsParams: {
                 view: 'integrations_directory_integration_detail',
-                integration: integrationSlug,
-                integration_type: integrationType,
                 already_installed: installationStatus !== 'Not Installed',
-                organization,
-              });
+                ...(referrer && {referrer}),
+              },
             }}
-            buttonProps={buttonProps}
-          />
-        </IntegrationContext>
+          >
+            <IntegrationButton
+              userHasAccess={userHasAccess}
+              onAddIntegration={onInstall}
+              onExternalClick={() => {
+                trackIntegrationAnalytics('integrations.installation_start', {
+                  view: 'integrations_directory_integration_detail',
+                  integration: integrationSlug,
+                  integration_type: integrationType,
+                  already_installed: installationStatus !== 'Not Installed',
+                  organization,
+                });
+              }}
+              buttonProps={buttonProps}
+            />
+          </IntegrationContext>
+        </Flex>
       );
     },
     [
@@ -645,7 +685,3 @@ export default function IntegrationDetailedView() {
     </SentryDocumentTitle>
   );
 }
-
-const StyledIntegrationButton = styled(IntegrationButton)`
-  margin-bottom: ${p => p.theme.space.md};
-`;

@@ -17,7 +17,7 @@ import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadin
 import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -991,7 +991,6 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
 const TableWrapper = styled('div')`
   margin-top: ${p => p.theme.space.lg};
   min-height: 0;
-  flex: 1;
   border-bottom-left-radius: ${p => p.theme.radius.md};
   border-bottom-right-radius: ${p => p.theme.radius.md};
 `;

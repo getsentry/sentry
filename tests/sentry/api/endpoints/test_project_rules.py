@@ -168,6 +168,21 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
             assert workflow_resp_2["id"] == str(get_fake_id_from_object_id(self.workflow.id))
             assert workflow_resp_1["id"] == str(self.rule.id)
 
+    @with_feature("organizations:workflow-engine-projectrulesendpoint-get")
+    def test_workflow_engine_granular_flag(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert (
+            len(response.data)
+            == Workflow.objects.filter(organization=self.project.organization).count()
+        )
+        returned_ids = {item["id"] for item in response.data}
+        assert str(self.rule.id) in returned_ids
+        assert str(get_fake_id_from_object_id(self.workflow.id)) in returned_ids
+
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_unsupported_condition(self) -> None:
         """Test with an unsupported condition e.g. IssueResolvedTriggerCondition

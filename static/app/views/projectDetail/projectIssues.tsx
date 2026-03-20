@@ -11,10 +11,10 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import type {Client} from 'sentry/api';
 import {DiscoverButton} from 'sentry/components/discoverButton';
-import GroupList from 'sentry/components/issues/groupList';
+import {GroupList} from 'sentry/components/issues/groupList';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import Pagination from 'sentry/components/pagination';
+import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {QueryCount} from 'sentry/components/queryCount';

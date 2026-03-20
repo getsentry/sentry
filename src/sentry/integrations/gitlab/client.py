@@ -105,6 +105,12 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         prepared_request.headers["Authorization"] = f"Bearer {access_token}"
         return prepared_request
 
+    @control_silo_function
+    def get_access_token(self) -> dict[str, str | None] | None:
+        if self.identity.data["access_token"]:
+            return {"access_token": self.identity.data["access_token"], "permissions": None}
+        return None
+
     def _refresh_auth(self):
         """
         Modeled after Doorkeeper's docs
@@ -122,7 +128,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
     def request(self, *args: Any, **kwargs: Any):
         if SiloMode.get_current_mode() == SiloMode.CELL:
-            # Skip token refreshes in Region silo, as these will
+            # Skip token refreshes in Cell silo, as these will
             # be handled below by the control silo when the
             # integration proxy invokes the client code.
             return super().request(*args, **kwargs)

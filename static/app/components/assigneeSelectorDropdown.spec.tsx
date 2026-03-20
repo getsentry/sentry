@@ -7,7 +7,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import AssigneeSelectorDropdown, {
+import {
+  AssigneeSelectorDropdown,
   type AssignableEntity,
 } from 'sentry/components/assigneeSelectorDropdown';
 import {ConfigStore} from 'sentry/stores/configStore';

@@ -1,6 +1,6 @@
 import {setFieldErrors} from '@sentry/scraps/form';
 
-import RequestError from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 function createMockFormApi(values: Record<string, unknown>) {
   return {

@@ -9,7 +9,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
+import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
@@ -55,6 +55,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
 
   const {projects} = useProjects();
   const {layout} = usePrimaryNavigation();
+  const hasPageFrame = organization.features.includes('page-frame');
 
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
@@ -89,7 +90,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     ...letterAvatarProps,
                   }
           }
-          size={layout === 'mobile' ? 'xs' : 'md'}
+          {...(layout === 'mobile'
+            ? {size: 'xs' as const}
+            : hasPageFrame
+              ? {}
+              : {size: 'md' as const})}
           aria-label={t('Toggle organization menu')}
           {...triggerProps}
           onClick={e => {

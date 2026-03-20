@@ -53,11 +53,12 @@ import {
   withoutPerformanceSupport,
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
-import platforms, {otherPlatform} from 'sentry/data/platforms';
+import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
@@ -433,6 +434,7 @@ export function Onboarding({organization, project}: OnboardingProps) {
   });
   const received = !!firstIssue;
 
+  const isEAPTraceEnabled = organization.features.includes('trace-spans-format');
   const tracesQuery = useTraces({
     enabled: received,
     limit: 1,
@@ -640,7 +642,16 @@ export function Onboarding({organization, project}: OnboardingProps) {
                       >
                         {t('Take me to my trace')}
                       </Button>
-                    ) : null}
+                    ) : isEAPTraceEnabled ? null : (
+                      <SampleButton
+                        triggerText={t('Take me to an example')}
+                        loadingMessage={t('Processing sample trace...')}
+                        errorMessage={t('Failed to create sample trace')}
+                        organization={organization}
+                        project={project}
+                        api={api}
+                      />
+                    )}
                   </GuidedSteps.ButtonWrapper>
                 </Fragment>
               ) : (

@@ -5,7 +5,7 @@ import type {Theme} from '@emotion/react';
 import type {LegendComponentOption} from 'echarts';
 import merge from 'lodash/merge';
 
-import type BaseChart from 'sentry/components/charts/baseChart';
+import type {BaseChart} from 'sentry/components/charts/baseChart';
 import {truncationFormatter} from 'sentry/components/charts/utils';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;

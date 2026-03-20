@@ -13,7 +13,7 @@ import {
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,
@@ -21,7 +21,7 @@ import {
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -446,7 +446,7 @@ export function isCodeChangesSection(section: AutofixSection): boolean {
   return section.step === 'code_changes';
 }
 
-export function isPullRequestSection(section: AutofixSection): boolean {
+export function isPullRequestsSection(section: AutofixSection): boolean {
   return section.step === 'pull_request';
 }
 
@@ -460,29 +460,25 @@ export type AutofixArtifact =
   | RepoPRState[]
   | ExplorerCodingAgentState[];
 
-export function getOrderedAutofixArtifacts(
-  runState: ExplorerAutofixState | null
-): AutofixArtifact[] {
-  return getOrderedAutofixSections(runState)
-    .map(section => {
-      if (isRootCauseSection(section)) {
-        return section.artifacts.findLast(isRootCauseArtifact) ?? null;
-      }
-      if (isSolutionSection(section)) {
-        return section.artifacts.findLast(isSolutionArtifact) ?? null;
-      }
-      if (isCodeChangesSection(section)) {
-        return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
-      }
-      if (isPullRequestSection(section)) {
-        return section.artifacts.findLast(isPullRequestsArtifact) ?? null;
-      }
-      if (isCodingAgentsSection(section)) {
-        return section.artifacts.findLast(isCodingAgentsArtifact) ?? null;
-      }
-      return null;
-    })
-    .filter(defined);
+export function getAutofixArtifactFromSection(
+  section: AutofixSection
+): AutofixArtifact | null {
+  if (isRootCauseSection(section)) {
+    return section.artifacts.findLast(isRootCauseArtifact) ?? null;
+  }
+  if (isSolutionSection(section)) {
+    return section.artifacts.findLast(isSolutionArtifact) ?? null;
+  }
+  if (isCodeChangesSection(section)) {
+    return section.artifacts.findLast(isCodeChangesArtifact) ?? null;
+  }
+  if (isPullRequestsSection(section)) {
+    return section.artifacts.findLast(isPullRequestsArtifact) ?? null;
+  }
+  if (isCodingAgentsSection(section)) {
+    return section.artifacts.findLast(isCodingAgentsArtifact) ?? null;
+  }
+  return null;
 }
 
 function isLastMessageOfSection(message?: Block['message']): boolean {
@@ -550,6 +546,13 @@ export function useExplorerAutofix(
   const orgSlug = organization.slug;
 
   const [waitingForResponse, setWaitingForResponse] = useState(false);
+
+  /**
+   * Triggering coding agents take a while and explorer state doesn't update until the end.
+   * This means while the request on ongoing, we need to disable the UI to prevent users
+   * from clicking other steps.
+   */
+  const [waitingForCodingAgent, setWaitingForCodingAgent] = useState(false);
 
   const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
     makeExplorerAutofixQueryKey(orgSlug, groupId),
@@ -663,6 +666,7 @@ export function useExplorerAutofix(
    */
   const reset = useCallback(() => {
     setWaitingForResponse(false);
+    setWaitingForCodingAgent(false);
     setApiQueryData<ExplorerAutofixResponse>(
       queryClient,
       makeExplorerAutofixQueryKey(orgSlug, groupId),
@@ -675,7 +679,7 @@ export function useExplorerAutofix(
    */
   const triggerCodingAgentHandoff = useCallback(
     async (runId: number, integration: CodingAgentIntegration) => {
-      setWaitingForResponse(true);
+      setWaitingForCodingAgent(true);
 
       trackAnalytics('coding_integration.send_to_agent_clicked', {
         organization,
@@ -775,7 +779,7 @@ export function useExplorerAutofix(
         addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
         throw e;
       } finally {
-        setWaitingForResponse(false);
+        setWaitingForCodingAgent(false);
       }
     },
     [api, orgSlug, groupId, queryClient, organization, user.id]
@@ -801,7 +805,8 @@ export function useExplorerAutofix(
     /**
      * Whether we're actively processing (used for UI indicators).
      */
-    isPolling: isActivelyProcessing(runState, waitingForResponse),
+    isPolling:
+      isActivelyProcessing(runState, waitingForResponse) || waitingForCodingAgent,
     /**
      * Start or continue an autofix step.
      */

@@ -1,11 +1,11 @@
 ---
 name: hybrid-cloud-rpc
-description: Guide for creating, updating, and deprecating hybrid cloud RPC services in Sentry. Use when asked to "add RPC method", "create RPC service", "hybrid cloud service", "new RPC model", "deprecate RPC method", "remove RPC endpoint", "cross-silo service", "regional RPC", or "control silo service". Covers service scaffolding, method signatures, RPC models, region resolvers, testing, and safe deprecation workflows.
+description: Guide for creating, updating, and deprecating hybrid cloud RPC services in Sentry. Use when asked to "add RPC method", "create RPC service", "hybrid cloud service", "new RPC model", "deprecate RPC method", "remove RPC endpoint", "cross-silo service", "cell RPC", or "control silo service". Covers service scaffolding, method signatures, RPC models, cell resolvers, testing, and safe deprecation workflows.
 ---
 
 # Hybrid Cloud RPC Services
 
-This skill guides you through creating, modifying, and deprecating RPC services in Sentry's hybrid cloud architecture. RPC services enable cross-silo communication between the Control silo (user auth, billing, org management) and Region silos (project data, events, issues).
+This skill guides you through creating, modifying, and deprecating RPC services in Sentry's hybrid cloud architecture. RPC services enable cross-silo communication between the Control silo (user auth, billing, org management) and Cell silos (project data, events, issues).
 
 ## Critical Constraints
 
@@ -44,9 +44,9 @@ The service's `local_mode` determines where the database-backed implementation r
 | Region silo (projects, events, issues, org data)  | `SiloMode.CELL`    | `@cell_rpc_method(resolve=...)` | `OrganizationService`              |
 | Control silo (users, auth, billing, org mappings) | `SiloMode.CONTROL` | `@rpc_method`                   | `OrganizationMemberMappingService` |
 
-**Decision rule**: If the Django models you need to query live in the region database, use `SiloMode.CELL`. If they live in the control database, use `SiloMode.CONTROL`.
+**Decision rule**: If the Django models you need to query live in the cell database, use `SiloMode.CELL`. If they live in the control database, use `SiloMode.CONTROL`.
 
-Region-silo services require a `RegionResolutionStrategy` on every RPC method so the framework knows which region to route remote calls to. Load `references/resolvers.md` for the full resolver table.
+Cell-silo services require a `CellResolutionStrategy` on every RPC method so the framework knows which cell to route remote calls to. Load `references/resolvers.md` for the full resolver table.
 
 ## Step 3: Create a New Service
 
@@ -231,7 +231,7 @@ class MyServiceTest(TestCase):
         assert result is not None
 ```
 
-For tests that need named regions (e.g., testing region resolution):
+For tests that need named cells (e.g., testing cell resolution):
 
 ```python
 @all_silo_test(regions=create_test_regions("us", "eu"))

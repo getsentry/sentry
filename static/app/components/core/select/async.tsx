@@ -8,7 +8,7 @@ import {Client} from 'sentry/api';
 import type {ReactSelect} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {t} from 'sentry/locale';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {ControlProps, GeneralSelectValue} from './';
 import {Select} from './';

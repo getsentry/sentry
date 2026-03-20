@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 def process_integration_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (
         integration := maybe_process_tombstone(
-            Integration, object_identifier, region_name=region_name
+            Integration, object_identifier, cell_name=region_name
         )
     ) is None:
         return
@@ -45,14 +45,14 @@ def process_integration_updates(object_identifier: int, region_name: str, **kwds
 
 @receiver(process_control_outbox, sender=OutboxCategory.IDENTITY_UPDATE)
 def process_identity_updates(object_identifier: int, region_name: str, **kwds: Any):
-    maybe_process_tombstone(Identity, object_identifier, region_name=region_name)
+    maybe_process_tombstone(Identity, object_identifier, cell_name=region_name)
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_UPDATE)
 def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (
         sentry_app := maybe_process_tombstone(
-            model=SentryApp, object_identifier=object_identifier, region_name=region_name
+            model=SentryApp, object_identifier=object_identifier, cell_name=region_name
         )
     ) is None:
         return
@@ -71,13 +71,13 @@ def process_sentry_app_deletes(
     **kwds: Any,
 ):
     action_service.update_action_status_for_sentry_app_via_sentry_app_id(
-        region_name=region_name,
+        cell_name=region_name,
         status=ObjectStatus.DISABLED,
         sentry_app_id=object_identifier,
     )
     if slug := payload.get("slug"):
         action_service.update_action_status_for_webhook_via_sentry_app_slug(
-            region_name=region_name,
+            cell_name=region_name,
             status=ObjectStatus.DISABLED,
             sentry_app_slug=slug,
         )
@@ -92,7 +92,7 @@ def process_sentry_app_installation_deletes(
     **kwds: Any,
 ):
     action_service.update_action_status_for_sentry_app_installation(
-        region_name=region_name,
+        cell_name=region_name,
         status=ObjectStatus.DISABLED,
         sentry_app_id=payload["sentry_app_id"],
         organization_id=payload["organization_id"],
@@ -103,7 +103,7 @@ def process_sentry_app_installation_deletes(
 def process_api_application_updates(object_identifier: int, region_name: str, **kwds: Any):
     if (
         api_application := maybe_process_tombstone(
-            ApiApplication, object_identifier, region_name=region_name
+            ApiApplication, object_identifier, cell_name=region_name
         )
     ) is None:
         return

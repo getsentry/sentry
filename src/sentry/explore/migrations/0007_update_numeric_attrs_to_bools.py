@@ -3,11 +3,15 @@
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
+from typing import Any
+from enum import Enum
+import logging
+import re
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.explore.models import ExploreSavedQueryDataset
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
-from sentry.snuba.utils import get_dataset
+
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
 )
@@ -24,11 +28,48 @@ from sentry.api.event_search import (
     parse_search_query,
     SearchFilter,
 )
-from sentry.search.eap.constants import SUPPORTED_TRACE_ITEM_TYPE_MAP
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.events.constants import TAG_KEY_RE
 from sentry.search.events.types import SnubaParams
 from sentry.utils import snuba_rpc
+from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.spans_rpc import Spans
+
+
+logger = logging.getLogger(__name__)
+
+TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
+
+
+class SupportedTraceItemType(str, Enum):
+    LOGS = "logs"
+    SPANS = "spans"
+    UPTIME_RESULTS = "uptime_results"
+    TRACEMETRICS = "tracemetrics"
+    PROFILE_FUNCTIONS = "profile_functions"
+    PREPROD = "preprod"
+    ATTACHMENTS = "attachments"
+    PROCESSING_ERRORS = "processing_errors"
+    OCCURRENCES = "occurrences"
+
+
+SUPPORTED_TRACE_ITEM_TYPE_MAP = {
+    SupportedTraceItemType.LOGS: TraceItemType.TRACE_ITEM_TYPE_LOG,
+    SupportedTraceItemType.SPANS: TraceItemType.TRACE_ITEM_TYPE_SPAN,
+    SupportedTraceItemType.UPTIME_RESULTS: TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
+    SupportedTraceItemType.TRACEMETRICS: TraceItemType.TRACE_ITEM_TYPE_METRIC,
+    SupportedTraceItemType.PROFILE_FUNCTIONS: TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
+    SupportedTraceItemType.PREPROD: TraceItemType.TRACE_ITEM_TYPE_PREPROD,
+    SupportedTraceItemType.ATTACHMENTS: TraceItemType.TRACE_ITEM_TYPE_ATTACHMENT,
+    SupportedTraceItemType.PROCESSING_ERRORS: TraceItemType.TRACE_ITEM_TYPE_PROCESSING_ERROR,
+}
+
+
+def get_dataset(dataset_label: str) -> Any | None:
+    return {
+        "spans": Spans,
+        "logs": OurLogs,
+        "segment_spans": Spans,
+    }.get(dataset_label)
 
 
 def _check_if_bool(meta: RequestMeta, name: str, bool_cache: dict[str, bool]) -> bool:
@@ -41,8 +82,20 @@ def _check_if_bool(meta: RequestMeta, name: str, bool_cache: dict[str, bool]) ->
         type=AttributeKey.Type.TYPE_BOOLEAN,
         value_substring_match=name,
     )
-    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
-    bool_cache[name] = len(rpc_response.attributes) == 1 and rpc_response.attributes[0].name == name
+    try:
+        rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
+        bool_cache[name] = (
+            len(rpc_response.attributes) == 1 and rpc_response.attributes[0].name == name
+        )
+    except Exception as error:
+        logger.exception(
+            "Error retrieving attribute info",
+            extra={
+                "tag": name,
+                "error": error,
+            },
+        )
+        bool_cache[name] = False
     return bool_cache[name]
 
 
@@ -50,7 +103,7 @@ def update_numeric_attrs_to_bools(apps: StateApps, schema_editor: BaseDatabaseSc
     ExploreSavedQuery = apps.get_model("explore", "ExploreSavedQuery")
 
     for saved_query in RangeQuerySetWrapperWithProgressBar(
-        ExploreSavedQuery.objects.filter(query__query__icontains=",number]")
+        ExploreSavedQuery.objects.filter(query__query__icontains="number]")
     ):
         trace_item_type = ExploreSavedQueryDataset.get_type_name(saved_query.dataset)
         dataset = get_dataset(trace_item_type)
@@ -145,6 +198,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
+        ("sentry", "1055_rename_regiontombstone_to_celltombstone"),
         ("explore", "0006_add_changed_reason_field_explore"),
     ]
 

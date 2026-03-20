@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
 
 const FREQUENCY_OPTIONS = [

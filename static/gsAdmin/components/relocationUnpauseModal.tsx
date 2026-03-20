@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ApiForm} from 'sentry/components/forms/apiForm';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 
 import type {Relocation} from 'admin/types';
 import {RelocationSteps} from 'admin/types';
