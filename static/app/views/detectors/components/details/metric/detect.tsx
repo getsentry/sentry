@@ -30,6 +30,7 @@ import {
   isAnomalyDetectionComparison,
 } from 'sentry/views/detectors/utils/anomalyDetectionLabels';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 
 function getDetectorTypeLabel(detector: MetricDetector) {
   if (detector.config.detectionType === 'dynamic') {
@@ -75,6 +76,19 @@ function makeDirectionText(condition: MetricCondition) {
   }
 }
 
+function convertComparisonValue(
+  comparison: MetricCondition['comparison'],
+  config: MetricDetector['config']
+) {
+  if (typeof comparison !== 'number') {
+    return '';
+  }
+  if (config.detectionType === 'percent') {
+    return String(percentThresholdAbsoluteToDelta(comparison));
+  }
+  return String(comparison);
+}
+
 export function getConditionDescription({
   aggregate,
   config,
@@ -84,8 +98,6 @@ export function getConditionDescription({
   condition: MetricCondition;
   config: MetricDetector['config'];
 }) {
-  const comparisonValue =
-    typeof condition.comparison === 'number' ? String(condition.comparison) : '';
   const unit = getMetricDetectorSuffix(config.detectionType, aggregate);
 
   if (config.detectionType === 'dynamic') {
@@ -104,17 +116,21 @@ export function getConditionDescription({
     return t('Dynamic threshold');
   }
 
+  // This should never happen, but we need to narrow the type
+  if (typeof condition.comparison !== 'number') {
+    return t('Invalid comparison value');
+  }
+
   if (config.detectionType === 'percent') {
-    const direction =
-      condition.type === DataConditionType.GREATER ? t('higher') : t('lower');
-    const delta = config.comparisonDelta;
-    const timeRange = getExactDuration(delta);
+    const direction = condition.comparison >= 100 ? t('higher') : t('lower');
+    const deltaComparison = percentThresholdAbsoluteToDelta(condition.comparison);
+    const timeRange = getExactDuration(config.comparisonDelta);
 
     if (condition.conditionResult === DetectorPriorityLevel.OK) {
       return t(
         `Below or equal to %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
         {
-          comparisonValue,
+          comparisonValue: deltaComparison,
           unit,
           direction,
           timeRange,
@@ -125,7 +141,7 @@ export function getConditionDescription({
     return t(
       `%(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
       {
-        comparisonValue,
+        comparisonValue: deltaComparison,
         unit,
         direction,
         timeRange,
@@ -133,7 +149,7 @@ export function getConditionDescription({
     );
   }
 
-  return `${makeDirectionText(condition)} ${comparisonValue}${unit}`;
+  return `${makeDirectionText(condition)} ${convertComparisonValue(condition.comparison, config)}${unit}`;
 }
 
 function DetectorPriorities({detector}: {detector: MetricDetector}) {
