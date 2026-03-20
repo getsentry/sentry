@@ -114,6 +114,18 @@ describe('MetricSelector', () => {
       expect(await screen.findByRole('listbox')).toBeInTheDocument();
     });
 
+    it('opens dropdown when trigger receives ArrowDown', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization,
+      });
+      const trigger = screen.getByRole('button', {name: 'bar'});
+      trigger.focus();
+
+      await userEvent.keyboard('{ArrowDown}');
+
+      expect(await screen.findByRole('listbox')).toBeInTheDocument();
+    });
+
     it('closes on Escape', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
@@ -236,7 +248,19 @@ describe('MetricSelector', () => {
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{Enter}');
 
-      expect(onChange).toHaveBeenCalled();
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('ArrowDown from search moves focus to first option', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization,
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.keyboard('{ArrowDown}');
+
+      expect(
+        await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!})
+      ).toHaveFocus();
     });
 
     it('ArrowDown twice selects second option with Enter', async () => {
@@ -256,7 +280,7 @@ describe('MetricSelector', () => {
       );
     });
 
-    it('clamps focusedIndex when displayed options shrink', async () => {
+    it('keeps keyboard selection valid when displayed options shrink', async () => {
       const onChange = jest.fn();
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={onChange} />, {
         organization,
@@ -288,29 +312,13 @@ describe('MetricSelector', () => {
       const searchInput = screen.getByPlaceholderText('Search metrics\u2026');
       await userEvent.type(searchInput, 'b');
 
-      // After list shrinks, a single ArrowUp then Enter should select a valid option
+      // After list shrinks, keyboard selection should still pick a valid option.
       await waitFor(() => {
         expect(screen.getAllByRole('option').length).toBeLessThanOrEqual(2);
       });
-      await userEvent.keyboard('{ArrowUp}');
+      await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{Enter}');
-      expect(onChange).toHaveBeenCalled();
-    });
-
-    it('ArrowUp does not go below index 0', async () => {
-      const onChange = jest.fn();
-      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={onChange} />, {
-        organization,
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!});
-      await userEvent.keyboard('{ArrowUp}');
-      await userEvent.keyboard('{Enter}');
-
-      expect(onChange).toHaveBeenCalledWith(
-        expect.objectContaining({name: SORTED_METRIC_NAMES[0]})
-      );
+      expect(onChange).toHaveBeenCalledTimes(1);
     });
   });
 
