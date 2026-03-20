@@ -350,17 +350,6 @@ export function MetricSelector({
     overscan: 20,
   });
 
-  const focusedIndex = useMemo(
-    () => collectionItems.findIndex(item => item.key === focusedKey),
-    [collectionItems, focusedKey]
-  );
-
-  useEffect(() => {
-    if (focusedIndex >= 0 && isOpen) {
-      virtualizer.scrollToIndex(focusedIndex, {align: 'auto'});
-    }
-  }, [focusedIndex, isOpen, virtualizer]);
-
   const highlightedOption = focusedKey
     ? (displayedOptionsMap.get(String(focusedKey)) ?? null)
     : null;
