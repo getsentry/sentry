@@ -24,9 +24,10 @@ export async function dispatch({
 }) {
   core.startGroup('Dispatching request to getsentry.');
 
-  const dispatches = targetWorkflow !== undefined
-    ? [{workflow: targetWorkflow, pathFilterName: 'backend_all'}]
-    : DISPATCHES;
+  const dispatches =
+    targetWorkflow !== undefined
+      ? [{workflow: targetWorkflow, pathFilterName: 'backend_all'}]
+      : DISPATCHES;
 
   await Promise.all(
     dispatches.map(({workflow, pathFilterName}) => {
