@@ -35,6 +35,7 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import {OrganizationContainerRoute} from 'sentry/views/organizationContainer';
+import OrganizationStartupApply from 'sentry/views/organizationStartupApply';
 import {OrganizationLayout} from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
 import TransactionSummaryTab from 'sentry/views/performance/transactionSummary/tabs';
@@ -307,27 +308,12 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: '/startup-apply/',
-      component: errorHandler(withDomainRequired(OrganizationContainerRoute)),
-      customerDomainOnlyRoute: true,
+      component: errorHandler(OrganizationContainerRoute),
       children: [
         {
-          index: true,
-          component: make(
-            () => import('sentry/views/organizationStartupApply')
-          ),
-        },
-      ],
-    },
-    {
-      path: '/organizations/:orgId/startup-apply/',
-      component: withDomainRedirect(errorHandler(OrganizationContainerRoute)),
-      children: [
-        {
-          index: true,
-          component: make(
-            () => import('sentry/views/organizationStartupApply')
-          ),
+          path: '/startup-apply/',
+          component: errorHandler(OrganizationStartupApply),
+          withOrgPath: true,
         },
       ],
     },
