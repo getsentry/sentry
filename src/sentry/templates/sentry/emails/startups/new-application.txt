@@ -1,0 +1,10 @@
+New Startup Program Application
+
+Startup: {{ startup_name }}
+Org Slug: {{ org_slug }}
+Founders: {{ founders }}
+Contact: {{ contact_email }}
+Founded: {{ founding_date }}
+Funding: {{ funding_details }}
+
+Review this application in the admin panel.
