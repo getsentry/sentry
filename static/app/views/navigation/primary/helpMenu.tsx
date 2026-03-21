@@ -52,11 +52,11 @@ export function PrimaryNavigationHelpMenu() {
         {
           key: 'search',
           label: t('Search support, docs and more'),
-          leadingItems: (
+          leadingItems: hasPageFrame ? (
             <MenuIcon>
               <IconSearch />
             </MenuIcon>
-          ),
+          ) : undefined,
           onAction() {
             openHelpSearchModal({organization});
           },
@@ -68,11 +68,11 @@ export function PrimaryNavigationHelpMenu() {
             {
               key: 'give-feedback',
               label: t('Give feedback'),
-              leadingItems: (
+              leadingItems: hasPageFrame ? (
                 <MenuIcon>
                   <IconMegaphone />
                 </MenuIcon>
-              ),
+              ) : undefined,
               onAction() {
                 openForm?.({
                   tags: {
@@ -85,11 +85,11 @@ export function PrimaryNavigationHelpMenu() {
             {
               key: 'tour',
               label: t('Tour the new navigation'),
-              leadingItems: (
+              leadingItems: hasPageFrame ? (
                 <MenuIcon>
                   <IconGlobe />
                 </MenuIcon>
-              ),
+              ) : undefined,
               onAction() {
                 startTour();
               },
