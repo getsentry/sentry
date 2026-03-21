@@ -38,6 +38,7 @@ import {addBillingMetricUsage} from 'admin/components/addBillingMetricUsage';
 import {addGiftBudgetAction} from 'admin/components/addGiftBudgetAction';
 import {AddGiftEventsAction} from 'admin/components/addGiftEventsAction';
 import {CancelSubscriptionAction} from 'admin/components/cancelSubscriptionAction';
+import {triggerAddToStartupProgramModal} from 'admin/components/addToStartupProgramAction';
 import {triggerChangeBalanceModal} from 'admin/components/changeBalanceAction';
 import {triggerChangeDatesModal} from 'admin/components/changeDatesAction';
 import {triggerGoogleDomainModal} from 'admin/components/changeGoogleDomainAction';
@@ -479,6 +480,19 @@ export function CustomerDetails() {
             skipConfirmModal: true, // ZD ticket fields added in component rendered by triggerChangeBalanceModal
             onAction: () =>
               triggerChangeBalanceModal({
+                orgId,
+                subscription,
+                onSuccess: reloadData,
+              }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
+            key: 'addToStartupProgram',
+            name: 'Add to Startup Program',
+            help: 'Add credit for the Sentry for Startups program.',
+            skipConfirmModal: true,
+            onAction: () =>
+              triggerAddToStartupProgramModal({
                 orgId,
                 subscription,
                 onSuccess: reloadData,
