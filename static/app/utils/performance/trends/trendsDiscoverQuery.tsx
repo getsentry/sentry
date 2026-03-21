@@ -25,7 +25,6 @@ type TrendsRequest = {
   projects: Project[];
   trendChangeType?: TrendChangeType;
   trendFunctionField?: TrendFunctionField;
-  withBreakpoint?: boolean;
 };
 
 type RequestProps = DiscoverQueryProps & TrendsRequest;
@@ -79,12 +78,11 @@ function getTrendsRequestPayload(props: RequestProps) {
 
 export function TrendsDiscoverQuery(props: Omit<Props, 'projects'>) {
   const {projects} = useProjects();
-  const route = props.withBreakpoint ? 'events-trends-statsv2' : 'events-trends-stats';
   return (
     <GenericDiscoverQuery<TrendsData, TrendsRequest>
       {...props}
       projects={projects}
-      route={route}
+      route="events-trends-statsv2"
       getRequestPayload={getTrendsRequestPayload}
     >
       {({tableData, ...rest}) => {

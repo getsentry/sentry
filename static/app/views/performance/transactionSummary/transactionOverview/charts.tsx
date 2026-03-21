@@ -236,7 +236,6 @@ export function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             projects={project ? [project] : []}
-            withBreakpoint={organization.features.includes('performance-new-trends')}
           />
         )}
         {display === DisplayModes.VITALS && (

@@ -40,7 +40,6 @@ type Props = ViewProps & {
   queryExtra: Query;
   trendFunction: TrendFunctionField;
   trendParameter: string;
-  withBreakpoint?: boolean;
 };
 
 export function TrendChart({
@@ -52,7 +51,6 @@ export function TrendChart({
   trendFunction,
   trendParameter,
   queryExtra,
-  withBreakpoint,
   eventView,
   start: propsStart,
   end: propsEnd,
@@ -65,7 +63,7 @@ export function TrendChart({
 
   const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
   const shouldGetBreakpoint =
-    withBreakpoint && !isCardinalityCheckLoading && !outcome?.forceTransactionsOnly;
+    !isCardinalityCheckLoading && !outcome?.forceTransactionsOnly;
 
   function handleLegendSelectChanged(legendChange: {
     name: string;
@@ -172,13 +170,11 @@ export function TrendChart({
     <Fragment>
       {header}
       {shouldGetBreakpoint ? (
-        // queries events-trends-statsv2 for breakpoint data (feature flag only)
         <TrendsDiscoverQuery
           eventView={trendView}
           orgSlug={organization.slug}
           location={location}
           limit={1}
-          withBreakpoint
         >
           {({isLoading, trendsData}) => {
             const events = normalizeTrends(trendsData?.events?.data || []);
@@ -236,7 +232,6 @@ export function TrendChart({
                       loading={loading || isLoading}
                       reloading={reloading}
                       timeFrame={timeframe}
-                      withBreakpoint
                       transaction={selectedTransaction}
                       {...contentCommonProps}
                     />
@@ -250,7 +245,6 @@ export function TrendChart({
                 loading={isLoading || isCardinalityCheckLoading}
                 reloading={isLoading}
                 timeFrame={metricsTimeFrame}
-                withBreakpoint
                 transaction={selectedTransaction}
                 {...contentCommonProps}
               />

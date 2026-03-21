@@ -109,7 +109,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     eventsTrendsStats = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trends-stats/',
+      url: '/organizations/org-slug/events-trends-statsv2/',
       body: [],
     });
 
@@ -255,12 +255,11 @@ describe('Performance > Widgets > WidgetContainer', () => {
           noPagination: true,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query:
-            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
-          sort: 'trend_percentage()',
+          query: 'transaction.op:pageload tpm():>0.1',
+          sort: '-trend_percentage()',
           statsPeriod: '14d',
           trendFunction: 'p95(transaction.duration)',
-          trendType: 'improved',
+          trendType: 'any',
         }),
       })
     );
@@ -712,12 +711,11 @@ describe('Performance > Widgets > WidgetContainer', () => {
           middle: undefined,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query:
-            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
-          sort: 'trend_percentage()',
+          query: 'transaction.op:pageload tpm():>0.1',
+          sort: '-trend_percentage()',
           statsPeriod: '7d',
           trendFunction: 'p95(transaction.duration)',
-          trendType: 'improved',
+          trendType: 'any',
         }),
       })
     );
@@ -1000,12 +998,11 @@ describe('Performance > Widgets > WidgetContainer', () => {
           middle: undefined,
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
-          query:
-            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
+          query: 'transaction.op:pageload tpm():>0.1',
           sort: '-trend_percentage()',
           statsPeriod: '7d',
           trendFunction: 'p95(transaction.duration)',
-          trendType: 'regression',
+          trendType: 'any',
         }),
       })
     );

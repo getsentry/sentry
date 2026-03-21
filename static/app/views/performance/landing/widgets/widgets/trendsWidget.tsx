@@ -31,7 +31,6 @@ import {
   QUERY_LIMIT_PARAM,
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
 } from 'sentry/views/performance/landing/widgets/utils';
-import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -55,7 +54,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const {projects} = useProjects();
 
-  const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
+  const {isLoading: isCardinalityCheckLoading} = useMetricsCardinalityContext();
 
   const {
     eventView: _eventView,
@@ -64,16 +63,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     InteractiveTitle,
   } = props;
 
-  const withBreakpoint =
-    organization.features.includes('performance-new-trends') &&
-    !isCardinalityCheckLoading &&
-    !outcome?.forceTransactionsOnly;
-
-  const trendChangeType =
-    props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
-      ? TrendChangeType.IMPROVED
-      : TrendChangeType.REGRESSION;
-  const derivedTrendChangeType = withBreakpoint ? TrendChangeType.ANY : trendChangeType;
+  const derivedTrendChangeType = TrendChangeType.ANY;
   const trendFunctionField = TrendFunctionField.P95;
 
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
@@ -82,19 +72,12 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   eventView.fields = fields;
   eventView.sorts = [
     {
-      kind: derivedTrendChangeType === TrendChangeType.IMPROVED ? 'asc' : 'desc',
+      kind: 'desc',
       field: 'trend_percentage()',
     },
   ];
   const rest = {...props, eventView};
-  if (withBreakpoint) {
-    eventView.additionalConditions.addFilterValues('tpm()', ['>0.1']);
-  } else {
-    eventView.additionalConditions.addFilterValues('tpm()', ['>0.01']);
-    eventView.additionalConditions.addFilterValues('count_percentage()', ['>0.25', '<4']);
-    eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
-    eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
-  }
+  eventView.additionalConditions.addFilterValues('tpm()', ['>0.1']);
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -109,7 +92,6 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           limit={QUERY_LIMIT_PARAM}
           cursor="0:0:1"
           noPagination
-          withBreakpoint={withBreakpoint}
         />
       ),
       transform: transformTrendsDiscover,

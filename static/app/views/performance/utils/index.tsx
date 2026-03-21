@@ -28,7 +28,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 
 export const QUERY_KEYS = [
   'environment',
@@ -226,32 +225,8 @@ export function trendsTargetRoute({
     ...additionalQuery,
   };
 
-  const query = decodeScalar(location.query.query, '');
-  const conditions = new MutableSearch(query);
-
   const modifiedConditions = initialConditions ?? new MutableSearch([]);
 
-  // Trends on metrics don't need these conditions
-  if (!organization.features.includes('performance-new-trends')) {
-    // No need to carry over tpm filters to transaction summary
-    if (conditions.hasFilter('tpm()')) {
-      modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
-    } else {
-      modifiedConditions.setFilterValues('tpm()', ['>0.01']);
-    }
-
-    if (conditions.hasFilter('transaction.duration')) {
-      modifiedConditions.setFilterValues(
-        'transaction.duration',
-        conditions.getFilterValues('transaction.duration')
-      );
-    } else {
-      modifiedConditions.setFilterValues('transaction.duration', [
-        '>0',
-        `<${DEFAULT_MAX_DURATION}`,
-      ]);
-    }
-  }
   newQuery.query = modifiedConditions.formatString();
 
   return {pathname: getPerformanceTrendsUrl(organization, view), query: {...newQuery}};
