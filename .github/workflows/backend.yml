@@ -394,6 +394,12 @@ jobs:
             done
           fi
 
+      - name: Kafka teardown diagnostics
+        if: ${{ !cancelled() }}
+        run: |
+          echo "=== Kafka teardown diagnostics ==="
+          cat .artifacts/kafka-teardown-diag.txt 2>/dev/null || echo "(no diagnostic file found)"
+
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
         if: ${{ !cancelled() }}

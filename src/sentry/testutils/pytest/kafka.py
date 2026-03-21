@@ -80,52 +80,60 @@ def scope_consumers():
 
     yield all_consumers
 
-    import sys
+    import os
+    import pathlib
 
-    def _diag(msg):
-        sys.stderr.write(msg + "\n")
-        sys.stderr.flush()
+    diag_file = (
+        pathlib.Path(os.environ.get("ARTIFACTS_PATH", ".artifacts")) / "kafka-teardown-diag.txt"
+    )
+    diag_file.parent.mkdir(parents=True, exist_ok=True)
 
-    for consumer_name, consumer in all_consumers.items():
-        _diag(
-            f"[teardown-diag] {consumer_name}: consumer is {'set' if consumer is not None else 'None'}"
-        )
-        if consumer is not None:
-            try:
-                arroyo_consumer = consumer._StreamProcessor__consumer
-                last_run = consumer._StreamProcessor__last_run
-                gap = time.time() - last_run
+    with open(diag_file, "a") as f:
 
-                member_id = None
+        def _diag(msg):
+            f.write(msg + "\n")
+            f.flush()
+
+        _diag(f"pid={os.getpid()}")
+
+        for consumer_name, consumer in all_consumers.items():
+            _diag(f"{consumer_name}: consumer is {'set' if consumer is not None else 'None'}")
+            if consumer is not None:
                 try:
-                    member_id = arroyo_consumer.member_id
+                    arroyo_consumer = consumer._StreamProcessor__consumer
+                    last_run = consumer._StreamProcessor__last_run
+                    gap = time.time() - last_run
+
+                    member_id = None
+                    try:
+                        member_id = arroyo_consumer.member_id
+                    except Exception as e:
+                        _diag(f"{consumer_name}: member_id error: {e}")
+
+                    _diag(
+                        f"{consumer_name}: seconds_since_last_poll={gap:.1f} member_id={member_id}"
+                    )
+
+                    raw = arroyo_consumer._KafkaConsumer__consumer
+                    try:
+                        assignment = raw.assignment()
+                        _diag(f"{consumer_name}: assignment={assignment}")
+                        if assignment:
+                            committed = raw.committed(assignment, timeout=3.0)
+                            _diag(f"{consumer_name}: committed(timeout=3)={committed}")
+                    except Exception as e:
+                        _diag(f"{consumer_name}: pre-shutdown probe error: {e}")
+
+                    consumer.signal_shutdown()
+                    t = threading.Thread(target=consumer.run, daemon=True)
+                    t.start()
+                    t.join(timeout=10)
+                    if t.is_alive():
+                        _diag(f"{consumer_name}: shutdown HUNG (10s timeout)")
+                    else:
+                        _diag(f"{consumer_name}: shutdown completed OK")
                 except Exception as e:
-                    _diag(f"[teardown-diag] {consumer_name}: member_id error: {e}")
-
-                _diag(
-                    f"[teardown-diag] {consumer_name}: seconds_since_last_poll={gap:.1f} member_id={member_id}"
-                )
-
-                raw = arroyo_consumer._KafkaConsumer__consumer
-                try:
-                    assignment = raw.assignment()
-                    _diag(f"[teardown-diag] {consumer_name}: assignment={assignment}")
-                    if assignment:
-                        committed = raw.committed(assignment, timeout=3.0)
-                        _diag(f"[teardown-diag] {consumer_name}: committed(timeout=3)={committed}")
-                except Exception as e:
-                    _diag(f"[teardown-diag] {consumer_name}: pre-shutdown probe error: {e}")
-
-                consumer.signal_shutdown()
-                t = threading.Thread(target=consumer.run, daemon=True)
-                t.start()
-                t.join(timeout=10)
-                if t.is_alive():
-                    _diag(f"[teardown-diag] {consumer_name}: shutdown HUNG (10s timeout)")
-                else:
-                    _diag(f"[teardown-diag] {consumer_name}: shutdown completed OK")
-            except Exception as e:
-                _diag(f"[teardown-diag] {consumer_name}: EXCEPTION: {e}")
+                    _diag(f"{consumer_name}: EXCEPTION: {e}")
 
 
 @pytest.fixture(scope="function")
