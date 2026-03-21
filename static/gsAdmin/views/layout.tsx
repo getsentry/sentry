@@ -79,6 +79,7 @@ export function Layout() {
               <NavLink to="/_admin/spike-projection-generation/">
                 Spike Projection Generation
               </NavLink>
+              <NavLink to="/_admin/startups/">Startups</NavLink>
               <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
             </Navigation>
             <div>

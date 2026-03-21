@@ -38,6 +38,8 @@ import {Relocations} from 'admin/views/relocations';
 import {SentryAppDetails} from 'admin/views/sentryAppDetails';
 import {SentryApps} from 'admin/views/sentryApps';
 import {SentryEmployees} from 'admin/views/sentryEmployees';
+import {StartupApplicationDetail} from 'admin/views/startupApplicationDetail';
+import {StartupApplications} from 'admin/views/startupApplications';
 import {UserDetails} from 'admin/views/userDetails';
 import {Users} from 'admin/views/users';
 
@@ -290,6 +292,19 @@ function buildRoutes() {
           {
             index: true,
             component: LaunchpadAdminPage,
+          },
+        ],
+      },
+      {
+        path: 'startups/',
+        children: [
+          {
+            index: true,
+            component: StartupApplications,
+          },
+          {
+            path: ':applicationId/',
+            component: StartupApplicationDetail,
           },
         ],
       },

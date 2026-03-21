@@ -307,6 +307,31 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: '/startup-apply/',
+      component: errorHandler(withDomainRequired(OrganizationContainerRoute)),
+      customerDomainOnlyRoute: true,
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/organizationStartupApply')
+          ),
+        },
+      ],
+    },
+    {
+      path: '/organizations/:orgId/startup-apply/',
+      component: withDomainRedirect(errorHandler(OrganizationContainerRoute)),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/organizationStartupApply')
+          ),
+        },
+      ],
+    },
+    {
       path: '/stories/*',
       withOrgPath: true,
       // eslint-disable-next-line boundaries/element-types -- storybook entrypoint
