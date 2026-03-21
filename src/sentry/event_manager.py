@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, overload
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import orjson
 import psycopg2.errors
@@ -19,9 +19,6 @@ from django.db import IntegrityError, OperationalError, connection, router, tran
 from django.db.models import Max, Q
 from django.db.models.signals import post_save
 from django.utils.encoding import force_str
-from urllib3.connectionpool import HTTPConnectionPool
-from urllib3.exceptions import MaxRetryError, TimeoutError
-from urllib3.response import BaseHTTPResponse
 from usageaccountant import UsageUnit
 
 from sentry import (
@@ -60,7 +57,6 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
 )
 from sentry.grouping.enhancer import get_enhancements_version
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.ingest.config import is_in_transition, update_or_set_grouping_config_if_needed
 from sentry.grouping.ingest.hashing import (
     find_grouphash_with_group,
@@ -91,7 +87,6 @@ from sentry.issue_detection.performance_detection import detect_performance_prob
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
-from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
@@ -114,13 +109,11 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
-from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.signals import (
     first_event_received,
@@ -137,13 +130,8 @@ from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.circuit_breaker import (
-    ERROR_COUNT_CACHE_KEY,
-    CircuitBreakerPassthrough,
-    circuit_breaker_activated,
-)
 from sentry.utils.dates import to_datetime
-from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
+from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.eventuser import EventUser
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
@@ -172,8 +160,6 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 
 
 HIGH_SEVERITY_THRESHOLD = 0.1
-
-SEER_ERROR_COUNT_KEY = ERROR_COUNT_CACHE_KEY("sentry.seer.severity-failures")
 
 
 @dataclass
@@ -1569,18 +1555,7 @@ def _create_group(
     # add sdk tag to metadata
     group_data.setdefault("metadata", {}).update(sdk_metadata_from_event(event))
 
-    # add severity to metadata for alert filtering
     severity: Mapping[str, Any] = {}
-    try:
-        group_type = group_creation_kwargs.get("type", None)
-        severity = _get_severity_metadata_for_group(event, project.id, group_type)
-        group_data["metadata"].update(severity)
-    except Exception as e:
-        logger.exception(
-            "Failed to get severity metadata for group",
-            repr(e),
-            extra={"event_id": event.event_id},
-        )
 
     # the kwargs only include priority for non-error issue platform events, which takes precedence.
     priority = group_creation_kwargs.get("priority", None)
@@ -1958,149 +1933,6 @@ def _process_existing_aggregate(
     return bool(is_regression)
 
 
-severity_connection_pool = connection_from_url(
-    settings.SEER_GROUPING_URL,
-    retries=settings.SEER_SEVERITY_RETRIES,
-    timeout=settings.SEER_SEVERITY_TIMEOUT,  # Defaults to 300 milliseconds
-)
-
-
-class SeverityScoreRequest(TypedDict):
-    message: str
-    has_stacktrace: int
-    handled: bool | None
-    org_id: int
-    project_id: int
-    trigger_timeout: NotRequired[bool]
-    trigger_error: NotRequired[bool]
-
-
-def make_severity_score_request(
-    body: SeverityScoreRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    payload: SeverityScoreRequest = {**body}
-    if options.get("processing.severity-backlog-test.timeout"):
-        payload["trigger_timeout"] = True
-    if options.get("processing.severity-backlog-test.error"):
-        payload["trigger_error"] = True
-    return make_signed_seer_api_request(
-        connection_pool or severity_connection_pool,
-        "/v0/issues/severity-score",
-        body=orjson.dumps(payload),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def _get_severity_metadata_for_group(
-    event: Event, project_id: int, group_type: int | None
-) -> Mapping[str, Any]:
-    """
-    Returns severity metadata for an event if all of the following are true
-    - the feature flag is enabled
-    - the event platform supports severity
-    - the event group type is an error
-
-    Returns {} if conditions aren't met or on exception.
-    """
-    from sentry.receivers.rules import PLATFORMS_WITH_PRIORITY_ALERTS
-
-    if killswitch_matches_context(
-        "issues.severity.skip-seer-requests", {"project_id": event.project_id}
-    ):
-        logger.warning(
-            "get_severity_metadata_for_group.seer_killswitch_enabled",
-            extra={"event_id": event.event_id, "project_id": project_id},
-        )
-        metrics.incr("issues.severity.seer_killswitch_enabled")
-        return {}
-
-    seer_based_priority_enabled = features.has(
-        "organizations:seer-based-priority", event.project.organization, actor=None
-    )
-    if not seer_based_priority_enabled:
-        return {}
-
-    feature_enabled = features.has("projects:first-event-severity-calculation", event.project)
-    if not feature_enabled:
-        return {}
-
-    is_supported_platform = (
-        any(event.platform.startswith(platform) for platform in PLATFORMS_WITH_PRIORITY_ALERTS)
-        if event.platform
-        else False
-    )
-    if not is_supported_platform:
-        return {}
-
-    is_error_group = group_type == ErrorGroupType.type_id if group_type else True
-    if not is_error_group:
-        return {}
-
-    passthrough_data = options.get(
-        "issues.severity.seer-circuit-breaker-passthrough-limit",
-        CircuitBreakerPassthrough(limit=1, window=10),
-    )
-    if circuit_breaker_activated("sentry.seer.severity", passthrough_data=passthrough_data):
-        logger.warning(
-            "get_severity_metadata_for_group.circuit_breaker_activated",
-            extra={"event_id": event.event_id, "project_id": project_id},
-        )
-        return {}
-
-    from sentry import ratelimits as ratelimiter
-
-    ratelimit = options.get("issues.severity.seer-global-rate-limit")
-    # This is temporary until we update the option values to be a dict
-    if "limit" not in ratelimit or "window" not in ratelimit:
-        return {}
-
-    if ratelimiter.backend.is_limited(
-        "seer:severity-calculation:global-limit",
-        limit=ratelimit["limit"],
-        window=ratelimit["window"],
-    ):
-        logger.warning(
-            "get_severity_metadata_for_group.rate_limited_globally",
-            extra={"event_id": event.event_id, "project_id": project_id},
-        )
-        metrics.incr("issues.severity.rate_limited_globally")
-        return {}
-
-    ratelimit = options.get("issues.severity.seer-project-rate-limit")
-    # This is temporary until we update the option values to be a dict
-    if "limit" not in ratelimit or "window" not in ratelimit:
-        return {}
-
-    if ratelimiter.backend.is_limited(
-        f"seer:severity-calculation:{project_id}",
-        limit=ratelimit["limit"],
-        window=ratelimit["window"],
-    ):
-        logger.warning(
-            "get_severity_metadata_for_group.rate_limited_for_project",
-            extra={"event_id": event.event_id, "project_id": project_id},
-        )
-        metrics.incr("issues.severity.rate_limited_for_project", tags={"project_id": project_id})
-        return {}
-
-    try:
-        severity, reason = _get_severity_score(event)
-
-        return {
-            "severity": severity,
-            "severity_reason": reason,
-        }
-    except Exception as e:
-        logger.warning("Failed to calculate severity score for group", repr(e))
-        update_severity_error_count()
-        metrics.incr("issues.severity.error")
-        return {}
-
-
 def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, Any]) -> int:
     """
     Returns priority for an event based on severity score and log level.
@@ -2139,105 +1971,6 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
         )
 
         return PriorityLevel.MEDIUM
-
-
-def update_severity_error_count(reset=False) -> None:
-    timeout = 60 * 60  # 1 hour
-    if reset:
-        cache.set(SEER_ERROR_COUNT_KEY, 0, timeout=timeout)
-        return
-
-    try:
-        cache.incr(SEER_ERROR_COUNT_KEY)
-        cache.touch(SEER_ERROR_COUNT_KEY, timeout=timeout)
-    except ValueError:
-        cache.set(SEER_ERROR_COUNT_KEY, 1, timeout=timeout)
-
-
-def _get_severity_score(event: Event) -> tuple[float, str]:
-    # Short circuit the severity value if we know the event is fatal or info/debug
-    level = str(event.data.get("level", "error"))
-    if LOG_LEVELS_MAP[level] == logging.FATAL:
-        return 1.0, "log_level_fatal"
-    if LOG_LEVELS_MAP[level] <= logging.INFO:
-        return 0.0, "log_level_info"
-
-    op = "event_manager._get_severity_score"
-    logger_data = {"event_id": event.data["event_id"], "op": op}
-    severity = 1.0
-    reason = None
-
-    event_type = get_event_type(event.data)
-    metadata = event_type.get_metadata(event.data)
-
-    exception_type = metadata.get("type")
-    exception_value = metadata.get("value")
-
-    if exception_type:
-        title = exception_type
-        if exception_value:
-            title += f": {exception_value}"
-
-        # We truncate the title to 128 characters as any more than that is unlikely to be helpful
-        # and would slow down the model.
-        title = trim(title, 128)
-    else:
-        # Fall back to using just the title for events without an exception.
-        title = event.title
-
-    # If all we have is `<unlabeled event>` (or one of its equally unhelpful friends), bail
-    if title in PLACEHOLDER_EVENT_TITLES:
-        logger_data.update({"event_type": event_type.key, "title": title})
-        logger.warning(
-            "Unable to get severity score because of unusable `message` value '%s'",
-            title,
-            extra=logger_data,
-        )
-        return 0.0, "bad_title"
-
-    payload: SeverityScoreRequest = {
-        "message": title,
-        "has_stacktrace": int(has_stacktrace(event.data)),
-        "handled": is_handled(event.data),
-        "org_id": event.project.organization_id,
-        "project_id": event.project_id,
-    }
-
-    logger_data["payload"] = payload
-
-    with sentry_sdk.start_span(op=op):
-        try:
-            with metrics.timer(op):
-                timeout = options.get(
-                    "issues.severity.seer-timeout",
-                    settings.SEER_SEVERITY_TIMEOUT,
-                )
-                viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
-                response = make_severity_score_request(
-                    payload, timeout=timeout, viewer_context=viewer_context
-                )
-                severity = orjson.loads(response.data).get("severity")
-                reason = "ml"
-        except MaxRetryError:
-            reason = "microservice_max_retry"
-            update_severity_error_count()
-            metrics.incr("issues.severity.error", tags={"reason": "max_retries"})
-            logger.exception("Seer severity microservice max retries exceeded")
-        except TimeoutError:
-            reason = "microservice_timeout"
-            update_severity_error_count()
-            metrics.incr("issues.severity.error", tags={"reason": "timeout"})
-            logger.exception("Seer severity microservice timeout")
-        except Exception:
-            reason = "microservice_error"
-            update_severity_error_count()
-            metrics.incr("issues.severity.error", tags={"reason": "unknown"})
-            logger.exception("Seer severity microservice error")
-            sentry_sdk.capture_exception()
-        else:
-            update_severity_error_count(reset=True)
-
-    return severity, reason
 
 
 Attachment = CachedAttachment
