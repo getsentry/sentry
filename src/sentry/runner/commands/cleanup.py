@@ -737,6 +737,7 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
 
     from sentry.models.groupemailthread import GroupEmailThread
     from sentry.models.userreport import UserReport
+    from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
     # Deletions that use `BulkDeleteQuery` (and don't need to worry about child relations)
     # (model, datetime_field, order_by)
@@ -749,6 +750,7 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
     BULK_QUERY_DELETES = [
         (UserReport, "date_added", None),
         (GroupEmailThread, "date", None),
+        (WorkflowFireHistory, "date_added", None),
     ] + additional_bulk_query_deletes
 
     return BULK_QUERY_DELETES
