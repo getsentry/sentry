@@ -1,4 +1,5 @@
 import logging
+import threading
 import time
 from collections.abc import MutableMapping
 
@@ -81,7 +82,50 @@ def scope_consumers():
 
     for consumer_name, consumer in all_consumers.items():
         if consumer is not None:
-            consumer.signal_shutdown()
+            try:
+                arroyo_consumer = consumer._StreamProcessor__consumer
+                last_run = consumer._StreamProcessor__last_run
+                gap = time.time() - last_run
+
+                member_id = None
+                try:
+                    member_id = arroyo_consumer.member_id
+                except Exception as e:
+                    _log.warning("[teardown-diag] %s: member_id error: %s", consumer_name, e)
+
+                _log.warning(
+                    "[teardown-diag] %s: seconds_since_last_poll=%.1f member_id=%s",
+                    consumer_name,
+                    gap,
+                    member_id,
+                )
+
+                raw = arroyo_consumer._KafkaConsumer__consumer
+                try:
+                    assignment = raw.assignment()
+                    _log.warning("[teardown-diag] %s: assignment=%s", consumer_name, assignment)
+                    if assignment:
+                        committed = raw.committed(assignment, timeout=3.0)
+                        _log.warning(
+                            "[teardown-diag] %s: committed(timeout=3)=%s",
+                            consumer_name,
+                            committed,
+                        )
+                except Exception as e:
+                    _log.warning(
+                        "[teardown-diag] %s: pre-shutdown probe error: %s", consumer_name, e
+                    )
+
+                consumer.signal_shutdown()
+                t = threading.Thread(target=consumer.run, daemon=True)
+                t.start()
+                t.join(timeout=10)
+                if t.is_alive():
+                    _log.warning("[teardown-diag] %s: shutdown HUNG (10s timeout)", consumer_name)
+                else:
+                    _log.warning("[teardown-diag] %s: shutdown completed OK", consumer_name)
+            except Exception:
+                _log.warning("Failed to cleanup consumer %s", consumer_name, exc_info=True)
 
 
 @pytest.fixture(scope="function")
