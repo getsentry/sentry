@@ -242,7 +242,19 @@ export function SeerAutomationSettings() {
             {field => (
               <field.Layout.Row
                 label={t('Enable Seer Context in Alerts')}
-                hintText={t('Seer will provide extra context in supported alerts.')}
+                hintText={
+                  <Flex gap="sm">
+                    <span>
+                      {t('Seer will provide extra context in supported alerts.')}
+                    </span>
+                    <QuestionTooltip
+                      size="xs"
+                      title={t(
+                        'Enable Seer to include Agent output in alerts when available. Agent output may include code snippets, explanations, and more.'
+                      )}
+                    />
+                  </Flex>
+                }
               >
                 <field.Switch
                   checked={field.state.value}
