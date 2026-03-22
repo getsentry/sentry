@@ -760,12 +760,14 @@ function ReorderableListItem<T extends {id: string | number}>(
       value={{attributes, isDragging, listeners, setActivatorNodeRef}}
     >
       <Container
+        as="li"
         radius="md"
         position="relative"
         background={isDragging ? 'secondary' : undefined}
         ref={setNodeRef}
         data-is-dragging={isDragging ? true : undefined}
         style={{
+          listStyleType: 'none',
           transform: CSS.Transform.toString(transform),
           transition: transition ?? undefined,
           zIndex: isDragging ? 1 : undefined,
@@ -830,7 +832,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
       onDragCancel={() => scrollLock.release()}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        <Stack direction="column" padding="0" width="100%">
+        <Stack direction="column" as="ul" padding="0" width="100%" margin="0">
           {items.map(item => (
             <ReorderableListItem key={item.id} item={item}>
               {props.children(item)}
