@@ -106,7 +106,12 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
       description={NAVIGATION_TOUR_CONTENT[stepId].description}
       title={NAVIGATION_TOUR_CONTENT[stepId].title}
     >
-      {({ref, ...props}) => (
+      {({ref, 'aria-expanded': _ariaExpanded, ...props}) => (
+        // aria-expanded is omitted here because TourGuide passes it via useOverlay's
+        // triggerProps (designed for button/disclosure triggers), but this element is
+        // a plain container div with no role that supports aria-expanded. Spreading it
+        // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
+        // without a matching ARIA role.
         <Container
           height="100%"
           right="0"
