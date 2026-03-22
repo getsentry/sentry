@@ -231,6 +231,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "use_reranking": True,
             "model": "v1",
             "training_mode": False,
+            "platform": "python",
             "k": 1,
         }
 
@@ -688,6 +689,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "use_reranking": True,
                     "model": "v1",
                     "training_mode": False,
+                    "platform": "python",
                 },
             ),
             headers={"content-type": "application/json;charset=utf-8"},
@@ -718,6 +720,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "use_reranking": True,
                     "model": "v1",
                     "training_mode": False,
+                    "platform": "python",
                     "k": 1,
                 },
             ),
@@ -751,6 +754,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "use_reranking": True,
                     "model": "v1",
                     "training_mode": False,
+                    "platform": "python",
                 },
             ),
             headers={"content-type": "application/json;charset=utf-8"},
