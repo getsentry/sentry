@@ -277,6 +277,24 @@ describe('desktop navigation', () => {
       inactiveLinks.forEach(assertInactiveNavLink);
     });
 
+    it("What's New button sets aria-expanded on open and resets it on close", async () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
+
+      const whatsNewButton = screen.getByRole('button', {name: "What's New"});
+      expect(whatsNewButton).toHaveAttribute('aria-expanded', 'false');
+
+      await userEvent.click(whatsNewButton);
+      expect(whatsNewButton).toHaveAttribute('aria-expanded', 'true');
+
+      await userEvent.click(document.body);
+      expect(whatsNewButton).toHaveAttribute('aria-expanded', 'false');
+    });
+
     describe('route inference', () => {
       async function assertRouteActivatesLinks(
         pathname: string,
