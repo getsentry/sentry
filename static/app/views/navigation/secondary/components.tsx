@@ -438,7 +438,6 @@ function SecondaryNavigationLink({
     state: {source: SIDEBAR_NAVIGATION_SOURCE},
     to,
     'aria-current': isActive ? ('page' as const) : undefined,
-    'aria-selected': isActive,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (analyticsItemName) {
         trackAnalytics('navigation.secondary_item_clicked', {
@@ -631,7 +630,7 @@ function navigationItemStyles(p: {layout: 'mobile' | 'sidebar'; theme: Theme}) {
         .hover};
     }
 
-    &[aria-selected='true'] {
+    &[aria-current='page'] {
       color: ${p.theme.tokens.interactive.link.accent.rest};
       background-color: ${p.theme.tokens.interactive.transparent.accent.selected
         .background.rest};
@@ -681,7 +680,7 @@ const MobileNavigationLink = styled(Link)`
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
@@ -888,7 +887,6 @@ function SecondaryNavigationReorderableLink({
     layout,
     isDragging,
     'aria-current': isActive ? ('page' as const) : undefined,
-    'aria-selected': isActive,
     onClick: handleNavigate,
     onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
       // When the grab handle has focus, dnd-kit owns Space/Enter for pick-up
@@ -1103,7 +1101,7 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
       p.theme.tokens.interactive.transparent.accent.background.active};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
@@ -1176,7 +1174,7 @@ const SidebarNavigationLink = styled(Link)`
       p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
@@ -1220,7 +1218,7 @@ const PageFrameSidebarNavigationLink = styled(Link)`
       p.theme.tokens.interactive.transparent.accent.background.active};
   }
 
-  &[aria-selected='true'] {
+  &[aria-current='page'] {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     border-color: ${p => p.theme.tokens.border.transparent.accent.muted};

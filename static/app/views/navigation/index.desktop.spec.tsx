@@ -66,14 +66,19 @@ function navigationContext({
   };
 }
 
-function assertActiveNavLink(link: HTMLElement) {
+function assertActivePrimaryNavLink(link: HTMLElement) {
+  expect(link).toHaveAttribute('aria-current', 'location');
+  expect(link).not.toHaveAttribute('aria-selected');
+}
+
+function assertActiveSecondaryNavLink(link: HTMLElement) {
   expect(link).toHaveAttribute('aria-current', 'page');
-  expect(link).toHaveAttribute('aria-selected', 'true');
+  expect(link).not.toHaveAttribute('aria-selected');
 }
 
 function assertInactiveNavLink(link: HTMLElement) {
   expect(link).not.toHaveAttribute('aria-current');
-  expect(link).toHaveAttribute('aria-selected', 'false');
+  expect(link).not.toHaveAttribute('aria-selected');
 }
 
 function assertValidListHTML(list: HTMLElement) {
@@ -240,11 +245,15 @@ describe('desktop navigation', () => {
 
       const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
       const links = within(primaryNav).getAllByRole('link');
-      const activeLinks = links.filter(l => l.getAttribute('aria-current') === 'page');
-      const inactiveLinks = links.filter(l => l.getAttribute('aria-current') !== 'page');
+      const activeLinks = links.filter(
+        l => l.getAttribute('aria-current') === 'location'
+      );
+      const inactiveLinks = links.filter(
+        l => l.getAttribute('aria-current') !== 'location'
+      );
 
       expect(activeLinks).toHaveLength(1);
-      activeLinks.forEach(assertActiveNavLink);
+      activeLinks.forEach(assertActivePrimaryNavLink);
       inactiveLinks.forEach(assertInactiveNavLink);
     });
 
@@ -264,7 +273,7 @@ describe('desktop navigation', () => {
       const inactiveLinks = links.filter(l => l.getAttribute('aria-current') !== 'page');
 
       expect(activeLinks).toHaveLength(1);
-      activeLinks.forEach(assertActiveNavLink);
+      activeLinks.forEach(assertActiveSecondaryNavLink);
       inactiveLinks.forEach(assertInactiveNavLink);
     });
 
@@ -286,14 +295,14 @@ describe('desktop navigation', () => {
         );
 
         const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
-        assertActiveNavLink(
+        assertActivePrimaryNavLink(
           within(primaryNav).getByRole('link', {name: activePrimaryLink})
         );
 
         const secondaryNav = screen.getByRole('navigation', {
           name: 'Secondary Navigation',
         });
-        assertActiveNavLink(
+        assertActiveSecondaryNavLink(
           await within(secondaryNav).findByRole('link', {name: activeSecondaryLink})
         );
         unmount();

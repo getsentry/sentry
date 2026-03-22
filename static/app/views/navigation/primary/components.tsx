@@ -169,8 +169,8 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     to: props.to,
     reloadDocument: appState === 'stale',
     state: {source: SIDEBAR_NAVIGATION_SOURCE},
-    'aria-selected': props['aria-selected'],
     'aria-current': props['aria-current'],
+    'data-active-group': props['data-active-group'],
     onMouseEnter: props.onMouseEnter,
     onMouseLeave: props.onMouseLeave,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -503,7 +503,7 @@ const MobileNavigationLink = styled((props: LinkProps) => (
   }
 
   &:hover,
-  &[aria-selected='true'] {
+  &[data-active-group='true'] {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover};
 
     [data-icon-container] {
@@ -512,7 +512,7 @@ const MobileNavigationLink = styled((props: LinkProps) => (
     }
   }
 
-  &[aria-current='page'] {
+  &[aria-current='location'] {
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
 
     &::before {
@@ -583,7 +583,7 @@ const DesktopNavigationLink = styled((props: LinkProps) => (
   }
 
   &:hover,
-  &[aria-selected='true'] {
+  &[data-active-group='true'] {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover};
 
     [data-icon-container] {
@@ -592,7 +592,7 @@ const DesktopNavigationLink = styled((props: LinkProps) => (
     }
   }
 
-  &[aria-current='page'] {
+  &[aria-current='location'] {
     color: ${p => p.theme.tokens.interactive.link.accent.rest};
 
     &::before {
@@ -642,7 +642,7 @@ const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
   }
 
   &:hover,
-  &[aria-selected='true'] {
+  &[data-active-group='true'] {
     [data-icon-container] {
       border: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
       background-color: ${p =>
@@ -672,7 +672,7 @@ const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
     }
   }
 
-  &[aria-current='page'] {
+  &[aria-current='location'] {
     [data-icon-container] {
       background-color: ${p =>
         p.theme.tokens.interactive.transparent.accent.selected.background.rest};
