@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
@@ -124,7 +125,10 @@ function setupMocks() {
   });
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/dashboards/`,
-    body: [],
+    body: [
+      DashboardListItemFixture({id: '1', title: 'Starred Dashboard 1'}),
+      DashboardListItemFixture({id: '2', title: 'Starred Dashboard 2'}),
+    ],
   });
 
   mockUsingCustomerDomain.mockReturnValue(false);
@@ -175,22 +179,38 @@ describe('desktop navigation', () => {
         });
     });
 
-    it('secondary navigation renders a nav landmark with a list of links (nav > ul > li > a)', () => {
-      render(
-        <PrimaryNavigationContextProvider>
-          <Navigation />
-        </PrimaryNavigationContextProvider>,
-        navigationContext()
-      );
+    it('all secondary navigation sections render valid ul > li structure', async () => {
+      const routes = [
+        '/organizations/org-slug/issues/',
+        '/organizations/org-slug/explore/traces/',
+        '/organizations/org-slug/dashboards/',
+        '/organizations/org-slug/insights/frontend/',
+        '/organizations/org-slug/monitors/',
+        '/settings/org-slug/',
+      ];
 
-      const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      within(secondaryNav).getAllByRole('list').forEach(assertValidListHTML);
+      for (const pathname of routes) {
+        const {unmount} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: {features: ALL_AVAILABLE_FEATURES},
+            initialRouterConfig: {location: {pathname}},
+          })
+        );
 
-      within(secondaryNav)
-        .getAllByRole('link')
-        .forEach(link => {
-          expect(link.closest('li')).toBeInTheDocument();
+        const secondaryNav = screen.getByRole('navigation', {
+          name: 'Secondary Navigation',
         });
+        within(secondaryNav).getAllByRole('list').forEach(assertValidListHTML);
+        within(secondaryNav)
+          .getAllByRole('link')
+          .forEach(link => {
+            expect(link.closest('li')).toBeInTheDocument();
+          });
+        unmount();
+      }
     });
   });
 
