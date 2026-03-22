@@ -82,6 +82,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
     <SizeProvider size={hasPageFrame ? 'sm' : 'md'}>
       <Flex
         as="header"
+        position="relative"
         direction="column"
         align="center"
         justify="center"
