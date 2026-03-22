@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import {Outlet} from 'react-router-dom';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import type {RequestState} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
@@ -39,25 +38,23 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
   );
 
   return (
-    <Layout.Page>
-      <TransactionProfileProvider
-        orgSlug={organization.slug}
-        profileId={params.eventId!}
-        projectSlug={projectSlug}
-        profile={profile}
-        setProfile={setProfile}
-      >
-        <ProfileTransactionContext value={profileTransaction}>
-          <ProfileHeader
-            eventId={params.eventId!}
-            projectId={projectSlug}
-            transaction={
-              profileTransaction.type === 'resolved' ? profileTransaction.data : null
-            }
-          />
-          <Outlet />
-        </ProfileTransactionContext>
-      </TransactionProfileProvider>
-    </Layout.Page>
+    <TransactionProfileProvider
+      orgSlug={organization.slug}
+      profileId={params.eventId!}
+      projectSlug={projectSlug}
+      profile={profile}
+      setProfile={setProfile}
+    >
+      <ProfileTransactionContext value={profileTransaction}>
+        <ProfileHeader
+          eventId={params.eventId!}
+          projectId={projectSlug}
+          transaction={
+            profileTransaction.type === 'resolved' ? profileTransaction.data : null
+          }
+        />
+        <Outlet />
+      </ProfileTransactionContext>
+    </TransactionProfileProvider>
   );
 }
