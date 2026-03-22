@@ -105,8 +105,13 @@ export function SeerAutomationSettings() {
             {field => (
               <field.Layout.Row
                 label={t('Auto-Trigger Fixes by Default')}
-                hintText={t(
-                  'For all new projects, Seer will automatically create a root cause analysis for highly actionable issues and propose a solution without a user needing to prompt it.'
+                hintText={tct(
+                  'For all new projects, Seer will automatically create a root cause analysis for [docs:highly actionable] issues and propose a solution without a user needing to prompt it.',
+                  {
+                    docs: (
+                      <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                    ),
+                  }
                 )}
               >
                 <field.Switch
@@ -128,8 +133,13 @@ export function SeerAutomationSettings() {
                 label={t('Allow Autofix to create PRs by Default')}
                 hintText={
                   <Stack gap="sm">
-                    {t(
-                      'For all new projects with connected repos, Seer will be able to make pull requests for highly actionable issues.'
+                    {tct(
+                      'For all new projects with connected repos, Seer will be able to make pull requests for [docs:highly actionable] issues.',
+                      {
+                        docs: (
+                          <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                        ),
+                      }
                     )}
                     {organization.enableSeerCoding === false && (
                       <Alert variant="warning">
