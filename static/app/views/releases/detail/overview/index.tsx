@@ -40,8 +40,6 @@ import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
-import type {TrendView} from 'sentry/views/performance/trends/types';
-import {TrendChangeType} from 'sentry/views/performance/trends/types';
 import {
   getReleaseParams,
   isReleaseArchived,
@@ -68,8 +66,6 @@ export enum TransactionsListOption {
   TPM = 'tpm',
   SLOW = 'slow',
   SLOW_LCP = 'slow_lcp',
-  REGRESSION = 'regression',
-  IMPROVEMENT = 'improved',
 }
 
 type RouteParams = {
@@ -207,30 +203,6 @@ function ReleaseOverview() {
     }
   };
 
-  const getReleaseTrendView = (projectId: number, versionDate: string): EventView => {
-    const {environments} = selection;
-
-    const {start, end, statsPeriod} = getReleaseParams({
-      location,
-      releaseBounds,
-    });
-
-    const trendView = EventView.fromSavedQuery({
-      id: undefined,
-      version: 2,
-      name: `Release ${formatVersion(version)}`,
-      fields: ['transaction'],
-      query: 'tpm():>0.01 trend_percentage():>0%',
-      range: statsPeriod || undefined,
-      environment: environments,
-      projects: [projectId],
-      start: start ? getUtcDateString(start) : undefined,
-      end: end ? getUtcDateString(end) : undefined,
-    }) as TrendView;
-    trendView.middle = versionDate;
-    return trendView;
-  };
-
   const handleTransactionsListSortChange = (value: string) => {
     const target = {
       pathname: location.pathname,
@@ -280,7 +252,6 @@ function ReleaseOverview() {
     selectedSort.value === TransactionsListOption.SLOW_LCP
       ? [t('transaction'), t('failure_count()'), t('tpm()'), t('p75(lcp)')]
       : [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')];
-  const releaseTrendView = getReleaseTrendView(project.id, releaseMeta.released);
 
   const generateLink = {
     transaction: generateTransactionLink(
@@ -397,7 +368,6 @@ function ReleaseOverview() {
               location={location}
               organization={organization}
               eventView={releaseEventView}
-              trendView={releaseTrendView}
               selected={selectedSort}
               options={sortOptions}
               handleDropdownChange={handleTransactionsListSortChange}
@@ -481,7 +451,7 @@ function generateTransactionLink(
   version: string,
   projectId: number,
   selection: PageFilters,
-  value: string
+  _value: string
 ) {
   return (
     organization: Organization,
@@ -489,7 +459,6 @@ function generateTransactionLink(
     _location: Location
   ): LocationDescriptor => {
     const {transaction} = tableRow;
-    const trendTransaction = ['regression', 'improved'].includes(value);
     const {environments, datetime} = selection;
     const {start, end, period} = datetime;
 
@@ -497,14 +466,14 @@ function generateTransactionLink(
       organization,
       transaction: transaction! as string,
       query: {
-        query: trendTransaction ? '' : `release:${version}`,
+        query: `release:${version}`,
         environment: environments,
         start: start ? getUtcDateString(start) : undefined,
         end: end ? getUtcDateString(end) : undefined,
         statsPeriod: period,
       },
       projectID: projectId.toString(),
-      display: trendTransaction ? DisplayModes.TREND : DisplayModes.DURATION,
+      display: DisplayModes.DURATION,
     });
   };
 }
@@ -530,20 +499,6 @@ function getDropdownOptions(): DropdownOption[] {
       sort: {kind: 'desc', field: 'p75_measurements_lcp'},
       value: TransactionsListOption.SLOW_LCP,
       label: t('Slow LCP'),
-    },
-    {
-      sort: {kind: 'desc', field: 'trend_percentage()'},
-      query: [['confidence()', '>6']],
-      trendType: TrendChangeType.REGRESSION,
-      value: TransactionsListOption.REGRESSION,
-      label: t('Trending Regressions'),
-    },
-    {
-      sort: {kind: 'asc', field: 'trend_percentage()'},
-      query: [['confidence()', '>6']],
-      trendType: TrendChangeType.IMPROVED,
-      value: TransactionsListOption.IMPROVEMENT,
-      label: t('Trending Improvements'),
     },
   ];
 }

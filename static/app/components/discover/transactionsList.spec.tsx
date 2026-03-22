@@ -128,21 +128,6 @@ describe('TransactionsList', () => {
         },
         match: [MockApiClient.matchQuery({sort: '-count'})],
       });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-trends/`,
-        headers: {Link: pageLinks},
-        body: {
-          meta: {
-            transaction: 'string',
-            trend_percentage: 'percentage',
-            trend_difference: 'number',
-          },
-          data: [
-            {transaction: '/a', 'trend_percentage()': 1.25, 'trend_difference()': 25},
-            {transaction: '/b', 'trend_percentage()': 1.05, 'trend_difference()': 5},
-          ],
-        },
-      });
     });
 
     it('renders basic UI components', async () => {
@@ -174,69 +159,6 @@ describe('TransactionsList', () => {
 
       const gridCells = screen.getAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
-    });
-
-    it('renders a trend view', async () => {
-      options.push({
-        sort: {kind: 'desc', field: 'trend_percentage()'},
-        value: 'regression',
-        label: 'Trending Regressions',
-        trendType: 'regression',
-      });
-      render(
-        <WrapperComponent
-          api={api}
-          location={location}
-          organization={organization}
-          trendView={eventView}
-          selected={options[2]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-        />
-      );
-
-      expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
-
-      const filterDropdown = screen.getByRole('button', {
-        name: 'Filter Trending Regressions',
-      });
-      expect(filterDropdown).toBeInTheDocument();
-      await userEvent.click(filterDropdown);
-
-      const menuOptions = await screen.findAllByRole('option');
-      expect(menuOptions.map(e => e.textContent)).toEqual([
-        'Transactions',
-        'Failing Transactions',
-        'Trending Regressions',
-      ]);
-
-      expect(
-        screen.queryByRole('button', {
-          name: 'Open in Discover',
-        })
-      ).not.toBeInTheDocument();
-
-      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
-
-      const gridCells = screen.getAllByTestId('grid-cell');
-      expect(gridCells.map(e => e.textContent)).toEqual(
-        expect.arrayContaining([
-          '/a',
-          '(no value)',
-          '(no value)',
-          '/b',
-          '(no value)',
-          '(no value)',
-        ])
-      );
-
-      const tableHeadings = screen.getAllByTestId('table-header');
-      expect(tableHeadings.map(e => e.textContent)).toEqual([
-        'transaction',
-        'percentage',
-        'difference',
-      ]);
     });
 
     it('renders default titles', async () => {

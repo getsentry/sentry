@@ -19,20 +19,18 @@ import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import type {DomainView, DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
 import type {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
-import type {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
+import type {TrendChangeType} from 'sentry/views/performance/trends/types';
 
 import {TransactionsTable} from './transactionsTable';
 
@@ -128,7 +126,6 @@ type Props = {
    * A list of preferred table headers to use over the field names.
    */
   titles?: string[];
-  trendView?: TrendView;
 };
 
 type TableRenderProps = Omit<React.ComponentProps<typeof Pagination>, 'size'> &
@@ -290,8 +287,7 @@ class _TransactionsList extends Component<Props> {
             onChange={opt => handleDropdownChange(opt.value)}
           />
         </div>
-        {!this.isTrend() &&
-          (handleOpenAllEventsClick ? (
+        {handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
               <LinkButton
                 onClick={handleOpenAllEventsClick}
@@ -326,7 +322,7 @@ class _TransactionsList extends Component<Props> {
                 {t('Open in Discover')}
               </DiscoverButton>
             </GuideAnchor>
-          ))}
+          )}
       </Fragment>
     );
   }
@@ -399,71 +395,8 @@ class _TransactionsList extends Component<Props> {
     );
   }
 
-  renderTrendsTable(): React.ReactNode {
-    const {
-      trendView,
-      location,
-      selected,
-      organization,
-      cursorName,
-      generateLink,
-      domainViewFilters,
-    } = this.props;
-
-    const sortedEventView: TrendView = trendView!.clone();
-    sortedEventView.sorts = [selected.sort];
-    sortedEventView.trendType = selected.trendType;
-    if (selected.query) {
-      const query = new MutableSearch(sortedEventView.query);
-      selected.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
-      sortedEventView.query = query.formatString();
-    }
-    const cursor = decodeScalar(location.query?.[cursorName]);
-
-    return (
-      <TrendsEventsDiscoverQuery
-        eventView={sortedEventView}
-        orgSlug={organization.slug}
-        location={location}
-        cursor={cursor}
-        limit={5}
-      >
-        {({isLoading, trendsData, pageLinks}) => (
-          <TableRender
-            organization={organization}
-            eventView={sortedEventView}
-            location={location}
-            isLoading={isLoading}
-            tableData={trendsData}
-            pageLinks={pageLinks}
-            onCursor={this.handleCursor}
-            paginationCursorSize="sm"
-            header={this.renderHeader({view: domainViewFilters?.view})}
-            titles={['transaction', 'percentage', 'difference']}
-            columnOrder={decodeColumnOrder([
-              {field: 'transaction'},
-              {field: 'trend_percentage()'},
-              {field: 'trend_difference()'},
-            ])}
-            generateLink={generateLink}
-            useAggregateAlias
-          />
-        )}
-      </TrendsEventsDiscoverQuery>
-    );
-  }
-
-  isTrend(): boolean {
-    const {selected} = this.props;
-    return selected.trendType !== undefined;
-  }
-
   render() {
-    return (
-      <Fragment>
-        {this.isTrend() ? this.renderTrendsTable() : this.renderTransactionTable()}
-      </Fragment>
-    );
+    return <Fragment>{this.renderTransactionTable()}</Fragment>;
   }
 }
 
