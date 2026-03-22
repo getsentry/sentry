@@ -1,12 +1,9 @@
-import {Grid} from '@sentry/scraps/layout';
-
 import * as Storybook from 'sentry/stories';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import {
-  AutofixOverviewSection,
-  CodeReviewOverviewSection,
-  SCMOverviewSection,
-} from 'sentry/views/settings/seer/overview/seerOverview';
+import {AutofixOverviewSection} from 'sentry/views/settings/seer/overview/autofixOverviewSection';
+import {CodeReviewOverviewSection} from 'sentry/views/settings/seer/overview/codeReviewOverviewSection';
+import {SeerOverview} from 'sentry/views/settings/seer/overview/components';
+import {SCMOverviewSection} from 'sentry/views/settings/seer/overview/scmOverviewSection';
 import type {useSeerOverviewData} from 'sentry/views/settings/seer/overview/useSeerOverviewData';
 
 function OrganizationIntegrationsFixture(
@@ -58,7 +55,7 @@ const baseStats: ReturnType<typeof useSeerOverviewData>['stats'] = {
   reposWithCodeReviewCount: 10, // equal to seerRepoCount
 };
 
-function SeerOverview({
+function TestableOverview({
   stats,
   isLoading,
 }: {
@@ -66,25 +63,25 @@ function SeerOverview({
   stats: ReturnType<typeof useSeerOverviewData>['stats'];
 }) {
   return (
-    <Grid columns="minmax(max-content, 140px) max-content 1fr" gap="xl">
+    <SeerOverview>
       <SCMOverviewSection stats={stats} isLoading={isLoading} />
       <AutofixOverviewSection stats={stats} isLoading={isLoading} />
       <CodeReviewOverviewSection stats={stats} isLoading={isLoading} />
-    </Grid>
+    </SeerOverview>
   );
 }
 
 export default Storybook.story('SeerOverview', story => {
   story('No alerts (healthy state)', () => (
-    <SeerOverview stats={baseStats} isLoading={false} />
+    <TestableOverview stats={baseStats} isLoading={false} />
   ));
 
-  story('Loading state', () => <SeerOverview stats={baseStats} isLoading />);
+  story('Loading state', () => <TestableOverview stats={baseStats} isLoading />);
 
   // SCM stories
 
   story('SCM: No SCM integrations installed', () => (
-    <SeerOverview
+    <TestableOverview
       stats={{
         ...baseStats,
         integrationCount: 0,
@@ -104,7 +101,7 @@ export default Storybook.story('SeerOverview', story => {
   ));
 
   story('SCM: Integrations installed but no repos connected', () => (
-    <SeerOverview
+    <TestableOverview
       stats={{
         ...baseStats,
         totalRepoCount: 0,
@@ -120,7 +117,7 @@ export default Storybook.story('SeerOverview', story => {
   ));
 
   story('SCM: Some repos not yet added to Seer', () => (
-    <SeerOverview
+    <TestableOverview
       stats={{
         ...baseStats,
         totalRepoCount: 10,
@@ -138,7 +135,7 @@ export default Storybook.story('SeerOverview', story => {
   // Autofix stories
 
   story('Autofix: No projects have repos linked', () => (
-    <SeerOverview
+    <TestableOverview
       stats={{
         ...baseStats,
         projectsWithReposCount: 0, // hides header link, CompactSelect, and ButtonBar
@@ -150,7 +147,7 @@ export default Storybook.story('SeerOverview', story => {
   ));
 
   story('Autofix: Some projects with repos (partial)', () => (
-    <SeerOverview
+    <TestableOverview
       stats={{
         ...baseStats,
         projectsWithReposCount: 3, // < totalProjects (6) → shows "Handoff all to" CompactSelect
@@ -164,7 +161,7 @@ export default Storybook.story('SeerOverview', story => {
   // Code Review stories
 
   story('Code Review: No repos have code review enabled', () => (
-    <SeerOverview
+    <TestableOverview
       stats={{
         ...baseStats,
         reposWithCodeReviewCount: 0, // seerRepoCount > 0 → ButtonBar visible, shows 0/10
