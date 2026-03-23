@@ -63,9 +63,6 @@ importers:
       '@mdx-js/loader':
         specifier: ^3.1.0
         version: 3.1.0(acorn@8.16.0)(webpack@5.99.6(esbuild@0.25.10))
-      '@mdx-js/mdx':
-        specifier: ^3.1.0
-        version: 3.1.0(acorn@8.16.0)
       '@popperjs/core':
         specifier: ^2.11.5
         version: 2.11.5

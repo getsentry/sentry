@@ -69,6 +69,7 @@ import {
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const MotionContainer = motion.create(Container);
 
@@ -165,10 +166,15 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
 
 function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const theme = useTheme();
+  const secondaryNavigation = useSecondaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
     <Container
       background="secondary"
-      borderRight="primary"
+      borderRight={
+        hasPageFrame && secondaryNavigation.view === 'expanded' ? undefined : 'primary'
+      }
       position="relative"
       height="100%"
     >
@@ -256,15 +262,14 @@ interface SecondaryNavigationHeaderProps {
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
-  const organization = useOrganization();
   const isCollapsed = view !== 'expanded';
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Grid
       columns="1fr auto"
       align="center"
-      borderBottom="muted"
+      borderBottom={hasPageFrame ? 'primary' : 'muted'}
       height={
         layout === 'mobile'
           ? undefined
@@ -426,7 +431,7 @@ function SecondaryNavigationLink({
 
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   const sharedLinkProps = {
     ...linkProps,
@@ -860,7 +865,7 @@ function SecondaryNavigationReorderableLink({
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {isDragging} = useReorderableItemContext();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   function handleNavigate() {
     if (isDragging) {
