@@ -36,11 +36,11 @@ class OrganizationGroupSearchViewVisitEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         # Create or update the last_visited timestamp
-        GroupSearchViewLastVisited.objects.create_or_update(
+        GroupSearchViewLastVisited.objects.update_or_create(
             organization=organization,
             user_id=request.user.id,
             group_search_view=view,
-            values={"last_visited": timezone.now()},
+            defaults={"last_visited": timezone.now()},
         )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
