@@ -843,7 +843,7 @@ def update_autofix(
                     {"detail": "Code generation is disabled for this organization"}, status=403
                 )
         except Organization.DoesNotExist:
-            pass
+            return Response({"detail": "Organization not found"}, status=404)
 
     data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
     body = orjson.dumps(data)
