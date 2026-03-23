@@ -46,10 +46,10 @@ class OrganizationSeerExplorerUpdateEndpoint(OrganizationEndpoint):
         if not has_access:
             return Response({"detail": error}, status=403)
 
-        if not request.data:
+        if not request.data or not isinstance(request.data, dict):
             return Response(status=400, data={"error": "Need a body with a payload"})
 
-        payload_type = request.data.get("type") if isinstance(request.data, dict) else None
+        payload_type = request.data.get("type")
         if payload_type in CODING_PAYLOAD_TYPES:
             if not organization.get_option(
                 "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT

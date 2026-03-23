@@ -38,7 +38,7 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
         """
         Send an update event to autofix for a given group.
         """
-        if not request.data:
+        if not request.data or not isinstance(request.data, dict):
             return Response(status=400, data={"error": "Need a body with a run_id and payload"})
 
         user = request.user
