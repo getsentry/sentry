@@ -14,6 +14,7 @@ from sentry.seer.autofix.artifact_schemas import (
     SolutionArtifact,
     TriageArtifact,
 )
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.prompts import (
     code_changes_prompt,
     impact_assessment_prompt,
@@ -187,6 +188,7 @@ def get_autofix_explorer_client(
 def trigger_autofix_explorer(
     group: Group,
     step: AutofixStep,
+    referrer: AutofixReferrer,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     intelligence_level: Literal["low", "medium", "high"] = "low",
@@ -213,12 +215,15 @@ def trigger_autofix_explorer(
     )
 
     prompt = build_step_prompt(step, group, user_context)
-    prompt_metadata = {"step": step.value}
+    prompt_metadata = {
+        "step": step.value,
+        "referrer": referrer.value,
+    }
     artifact_key = step.value if config.artifact_schema else None
     artifact_schema = config.artifact_schema
 
     if run_id is None:
-        metadata = {"group_id": group.id}
+        metadata = {"group_id": group.id, "referrer": referrer.value}
         if stopping_point:
             metadata["stopping_point"] = stopping_point.value
         run_id = client.start_run(

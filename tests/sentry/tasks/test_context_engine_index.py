@@ -135,7 +135,7 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
                 "sentry.tasks.context_engine_index.features.has",
                 side_effect=feature_enabled_for_test_orgs,
             ):
-                _feature_enabled, eligible = get_allowed_org_ids_context_engine_indexing()
+                eligible = get_allowed_org_ids_context_engine_indexing()
 
         assert len(eligible) > 0
         assert org_ids[0] in eligible
@@ -160,7 +160,7 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
                     "organizations:seer-explorer-context-engine": [org_with_flag.slug],
                 }
             ):
-                _feature_enabled, eligible = get_allowed_org_ids_context_engine_indexing()
+                eligible = get_allowed_org_ids_context_engine_indexing()
 
         assert org_without_flag.id not in eligible
 
@@ -171,9 +171,8 @@ class TestGetAllowedOrgIdsContextEngineIndexing(TestCase):
                 "organizations:seer-explorer-context-engine": False,
             }
         ):
-            feature_enabled, eligible = get_allowed_org_ids_context_engine_indexing()
+            eligible = get_allowed_org_ids_context_engine_indexing()
 
-        assert feature_enabled == []
         assert eligible == []
 
 
@@ -185,7 +184,7 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
     def test_dispatches_for_allowed_orgs(self, mock_get_orgs, mock_index, mock_build):
         org1 = self.create_organization()
         org2 = self.create_organization()
-        mock_get_orgs.return_value = ([org1.id, org2.id], [org1.id, org2.id])
+        mock_get_orgs.return_value = [org1.id, org2.id]
 
         with override_options(
             {

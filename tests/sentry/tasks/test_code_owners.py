@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from rest_framework.exceptions import NotFound
+from taskbroker_client.retry import RetryTaskError
 
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
@@ -10,7 +11,6 @@ from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.tasks.codeowners import code_owners_auto_sync, update_code_owners_schema
-from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 

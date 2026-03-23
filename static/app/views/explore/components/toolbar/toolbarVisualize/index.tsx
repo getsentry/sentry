@@ -136,6 +136,7 @@ export function ToolbarVisualizeDropdown({
 interface ToolbarVisualizeAddProps {
   add: () => void;
   disabled: boolean;
+  display?: 'button' | 'link';
   label?: string;
 }
 
@@ -143,13 +144,14 @@ export function ToolbarVisualizeAddChart({
   add,
   disabled,
   label,
+  display = 'link',
 }: ToolbarVisualizeAddProps) {
   return (
     <ToolbarFooterButton
-      size="zero"
+      size={display === 'link' ? 'zero' : 'md'}
       icon={<IconAdd />}
       onClick={add}
-      priority="link"
+      priority={display === 'link' ? 'link' : undefined}
       aria-label={label ?? t('Add Chart')}
       disabled={disabled}
     >

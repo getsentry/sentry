@@ -49,13 +49,13 @@ from sentry.snuba.referrer import Referrer
 def get_total_span_count(settings: ResolverSettings) -> Column:
     """
     This column represents a count of the all of spans.
-    It works by counting the number of spans that have the attribute "sentry.exclusive_time_ms" (which is set on every span)
+    It works by counting the number of spans that have the attribute "sentry.duration_ms" (which is set on every span)
     """
     extrapolation_mode = settings["extrapolation_mode"]
     return Column(
         aggregation=AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
-            key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+            key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.duration_ms"),
             extrapolation_mode=extrapolation_mode,
         )
     )
@@ -216,7 +216,7 @@ def failure_rate_if(args: ResolvedArguments, settings: ResolverSettings) -> Colu
         right=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
-                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.duration_ms"),
                 filter=key_equal_value_filter,
                 extrapolation_mode=extrapolation_mode,
             ),
@@ -996,7 +996,7 @@ def user_misery(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
     )
 
 
-_SPAN_COUNT_KEY = AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms")
+_SPAN_COUNT_KEY = AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.duration_ms")
 
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(

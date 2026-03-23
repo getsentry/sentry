@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 
 from sentry import features, quotas
@@ -48,7 +49,6 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -222,6 +222,7 @@ def _trigger_autofix_task(
             run_id = trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep.ROOT_CAUSE,
+                referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
             )
