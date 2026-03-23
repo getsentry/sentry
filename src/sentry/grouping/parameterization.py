@@ -307,14 +307,20 @@ class Parameterizer:
         matches_counter: defaultdict[str, int] = defaultdict(int)
 
         def _handle_regex_match(match: re.Match[str]) -> str:
-            # Find the first (should be only) non-None match entry, and sub in the placeholder. For
-            # example, given the groupdict item `('hex', '0x40000015')`, this returns '<hex>' as a
-            # replacement for the original value in the string.
-            for key, value in match.groupdict().items():
-                if value is not None:
-                    matches_counter[key] += 1
-                    return f"<{key}>"
-            return ""
+            # Since
+            #   a) our regex consists of a bunch of named capturing groups separated by `|`,
+            #   b) no other capturing groups in the regex are named, and
+            #   c) there's nothing else in the regex,
+            # there should be exactly one named matching group, making the last matching group also
+            # the only matching group.
+            key = match.lastgroup
+            value = match.groupdict().get(key or "")  # Empty string for mypy appeasment
+
+            if not key or not value:  # Insurance - shouldn't happen IRL
+                return ""
+
+            matches_counter[key] += 1
+            return f"<{key}>"
 
         with metrics.timer(
             "grouping.parameterize", tags={"experimental": self._experimental}
