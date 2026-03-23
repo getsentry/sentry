@@ -303,6 +303,7 @@ class DashboardDetail extends Component<Props, State> {
               measure.duration,
               {unit: 'millisecond'}
             );
+            performance.clearMarks('dashboard.widget.fullScreenViewClick');
           } catch {
             // performance.measure throws if the start mark doesn't exist
           }
