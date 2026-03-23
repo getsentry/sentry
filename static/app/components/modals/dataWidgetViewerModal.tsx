@@ -219,6 +219,7 @@ function DataWidgetViewerModal(props: Props) {
         }
       );
       performance.clearMarks('dashboard.widget.fullScreenViewClick');
+      performance.clearMeasures('dashboard.widget.onFullScreenView');
     } catch {
       // performance.measure throws if the start mark doesn't exist (e.g. direct URL navigation)
     }
