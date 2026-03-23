@@ -690,39 +690,12 @@ describe('Onboarding', () => {
       });
     });
 
-    it('renders scm-project-details step and advances to setup-docs when platform is set', async () => {
-      const nextJsProject = ProjectFixture({
-        platform: 'javascript-nextjs',
-        id: '2',
-        slug: 'javascript-nextjs',
-      });
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${scmOrganization.slug}/sdks/`,
-        body: {},
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/keys/`,
-        method: 'GET',
-        body: [ProjectKeysFixture()[0]],
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/issues/`,
-        body: [],
-      });
-
-      jest
-        .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-        .mockImplementation(() => ({
-          project: nextJsProject,
-          isProjectActive: false,
-        }));
-
-      const {router} = render(
+    it('renders scm-project-details step with project details form', () => {
+      render(
         <OnboardingContextProvider
           initialValue={{
             selectedPlatform: {
-              key: nextJsProject.slug as PlatformKey,
+              key: 'javascript-nextjs' as PlatformKey,
               type: 'framework',
               language: 'javascript',
               category: 'browser',
@@ -745,25 +718,13 @@ describe('Onboarding', () => {
       );
 
       expect(screen.getByText('Project details')).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/onboarding/${scmOrganization.slug}/setup-docs/`
-        );
-      });
+      expect(screen.getByRole('button', {name: 'Create project'})).toBeInTheDocument();
     });
 
-    it('does not advance to setup-docs without a platform selected', async () => {
-      const {router} = renderOnboarding('scm-project-details');
+    it('create project button is disabled without a platform selected', () => {
+      renderOnboarding('scm-project-details');
 
-      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
-
-      // Should stay on the same step
-      expect(router.location.pathname).toBe(
-        `/onboarding/${scmOrganization.slug}/scm-project-details/`
-      );
+      expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
     });
 
     it('navigates back from scm-connect to welcome', async () => {
