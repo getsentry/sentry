@@ -11,7 +11,6 @@ from django.utils import timezone
 from sentry import features, ratelimits
 from sentry.issues.grouptype import GroupType
 from sentry.processing_errors.grouptype import (
-    JS_SOURCEMAP_ERROR_TYPES,
     ProcessingErrorPacketValue,
     SourcemapConfigurationType,
 )
@@ -37,8 +36,11 @@ class DetectorConfig:
     """Configuration for a processing error detector type."""
 
     config_type: type[GroupType]
-    error_types: frozenset[str]
     feature_flag: str | None = None
+
+    @property
+    def error_types(self) -> frozenset[str]:
+        return self.config_type.detector_settings.handler.error_types
 
     @property
     def slug(self) -> str:
@@ -48,7 +50,6 @@ class DetectorConfig:
 DETECTOR_CONFIGS: list[DetectorConfig] = [
     DetectorConfig(
         config_type=SourcemapConfigurationType,
-        error_types=JS_SOURCEMAP_ERROR_TYPES,
         feature_flag="organizations:sourcemap-issue-detection",
     ),
 ]
