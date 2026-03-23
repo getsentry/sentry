@@ -6,13 +6,17 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ScmCardButton} from 'sentry/views/onboarding/components/scmCardButton';
 import {ScmFeatureSelectionCards} from 'sentry/views/onboarding/components/scmFeatureSelectionCards';
 
@@ -41,7 +45,16 @@ const platformOptions = platforms.map(platform => ({
   leadingItems: () => <PlatformIcon platform={platform.id} size={16} />,
 }));
 
+function shouldSuggestFramework(platformKey: PlatformKey): boolean {
+  const info = getPlatformInfo(platformKey);
+  return (
+    info?.type === 'language' &&
+    Object.values(SupportedLanguages).includes(info.language as SupportedLanguages)
+  );
+}
+
 export function ScmPlatformFeatures({onComplete}: StepProps) {
+  const organization = useOrganization();
   const {
     selectedRepository,
     selectedPlatform,
@@ -114,15 +127,67 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     [currentFeatures, setSelectedFeatures]
   );
 
-  const handleManualPlatformSelect = useCallback(
-    (option: {value: string}) => {
-      if (option.value === selectedPlatform?.key) {
-        return;
-      }
-      setPlatform(option.value as PlatformKey);
+  const applyPlatformSelection = useCallback(
+    (sdk: OnboardingSelectedSDK) => {
+      setSelectedPlatform(sdk);
       setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
     },
-    [selectedPlatform?.key, setPlatform, setSelectedFeatures]
+    [setSelectedPlatform, setSelectedFeatures]
+  );
+
+  const handleManualPlatformSelect = useCallback(
+    async (option: {value: string}) => {
+      const platformKey = option.value as PlatformKey;
+      if (platformKey === selectedPlatform?.key) {
+        return;
+      }
+
+      // For base languages (JavaScript, Python, etc.), show a modal suggesting
+      // specific frameworks — matching the legacy onboarding behavior.
+      if (shouldSuggestFramework(platformKey)) {
+        const platformInfo = getPlatformInfo(platformKey);
+        if (platformInfo) {
+          const basePlatformSdk: OnboardingSelectedSDK = {
+            key: platformInfo.id,
+            name: platformInfo.name,
+            language: platformInfo.language,
+            type: platformInfo.type,
+            link: platformInfo.link,
+            category: 'popular',
+          };
+
+          const {FrameworkSuggestionModal, modalCss} =
+            await import('sentry/components/onboarding/frameworkSuggestionModal');
+
+          openModal(
+            deps => (
+              <FrameworkSuggestionModal
+                {...deps}
+                organization={organization}
+                selectedPlatform={basePlatformSdk}
+                onConfigure={selectedFramework => {
+                  applyPlatformSelection(selectedFramework);
+                }}
+                onSkip={() => applyPlatformSelection(basePlatformSdk)}
+                newOrg
+              />
+            ),
+            {modalCss}
+          );
+          return;
+        }
+      }
+
+      setPlatform(platformKey);
+      setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
+    },
+    [
+      selectedPlatform?.key,
+      setPlatform,
+      setSelectedFeatures,
+      applyPlatformSelection,
+      organization,
+    ]
   );
 
   const handleSelectDetectedPlatform = useCallback(
