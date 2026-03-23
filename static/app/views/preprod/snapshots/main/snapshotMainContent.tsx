@@ -286,6 +286,10 @@ function ImageFileName({
   fileName: string;
   previousFileName?: string;
 }) {
+  if (!fileName) {
+    return null;
+  }
+
   if (previousFileName) {
     return (
       <Tooltip
