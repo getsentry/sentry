@@ -236,3 +236,25 @@ class ThreadingServiceStoreExistingThreadTest(ThreadingServiceTestBase):
 
         assert NotificationThread.objects.count() == 1
         assert NotificationRecord.objects.count() == 2
+
+
+class ThreadingServiceStoreErrorTest(ThreadingServiceTestBase):
+    def test_store_error_with_existing_thread(self) -> None:
+        thread, _ = ThreadingService.store_new_thread(
+            threading_config=self.threading_config,
+            external_message_id=self.message_id,
+        )
+
+        error_details = {"msg": "channel_not_found", "error_code": 404}
+        record = ThreadingService.store_error(
+            thread=thread,
+            provider_key=self.provider_key,
+            target_id=self.target_id,
+            error_details=error_details,
+        )
+
+        assert record.thread_id == thread.id
+        assert record.message_id == ""
+        assert record.error_details == error_details
+        assert record.provider_key == self.provider_key
+        assert record.target_id == self.target_id

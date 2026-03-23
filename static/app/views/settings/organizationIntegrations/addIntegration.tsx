@@ -77,7 +77,9 @@ export class AddIntegration extends Component<Props> {
       organization,
       ...analyticsParams,
     });
-    const name = 'sentryAddIntegration';
+    const name = modalParams?.use_staging
+      ? 'sentryAddStagingIntegration'
+      : 'sentryAddIntegration';
     const {url, width, height} = provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
 

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -14,6 +14,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {SecondaryNavigationContext} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type SentryLogoProps = SVGIconProps & {
   /**
@@ -41,8 +43,18 @@ function BaseFooter({className}: Props) {
   const {state: appState} = useFrontendVersion();
   const organization = useOrganization({allowNull: true});
 
+  const secondaryNavigation = useContext(SecondaryNavigationContext);
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
-    <Container as="footer" background="primary" className={className}>
+    <Container
+      as="footer"
+      background="primary"
+      className={className}
+      borderLeft={
+        hasPageFrame && secondaryNavigation?.view === 'expanded' ? 'secondary' : undefined
+      }
+    >
       <LeftLinks>
         {isSelfHosted && (
           <Fragment>

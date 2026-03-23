@@ -78,7 +78,7 @@ jest.mock('@tanstack/react-virtual', () => {
 
 describe('LogsInfiniteTable', () => {
   const organization = OrganizationFixture({
-    features: ['ourlogs-enabled', 'ourlogs-replay-ui'],
+    features: ['ourlogs-enabled'],
   });
   const project = ProjectFixture();
 
