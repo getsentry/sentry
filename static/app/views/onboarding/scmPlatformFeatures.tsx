@@ -11,7 +11,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
+import {
+  getDisabledProducts,
+  platformProductAvailability,
+} from 'sentry/components/onboarding/productSelection';
 import {platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -118,14 +121,47 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     [selectedPlatform?.key]
   );
 
+  const disabledProducts = useMemo(
+    () => getDisabledProducts(organization),
+    [organization]
+  );
+
+  const disabledFeatureSet = useMemo(
+    () => new Set(Object.keys(disabledProducts) as ProductSolution[]),
+    [disabledProducts]
+  );
+
   const handleToggleFeature = useCallback(
     (feature: ProductSolution) => {
-      const updated = currentFeatures.includes(feature)
-        ? currentFeatures.filter(f => f !== feature)
-        : [...currentFeatures, feature];
-      setSelectedFeatures(updated);
+      if (disabledProducts[feature]) {
+        disabledProducts[feature]?.onClick?.();
+        return;
+      }
+
+      const newFeatures = new Set(
+        currentFeatures.includes(feature)
+          ? currentFeatures.filter(f => f !== feature)
+          : [...currentFeatures, feature]
+      );
+
+      // Profiling requires tracing — mirror the constraint from ProductSelection
+      if (availableFeatures.includes(ProductSolution.PROFILING)) {
+        if (
+          feature === ProductSolution.PROFILING &&
+          newFeatures.has(ProductSolution.PROFILING)
+        ) {
+          newFeatures.add(ProductSolution.PERFORMANCE_MONITORING);
+        } else if (
+          feature === ProductSolution.PERFORMANCE_MONITORING &&
+          !newFeatures.has(ProductSolution.PERFORMANCE_MONITORING)
+        ) {
+          newFeatures.delete(ProductSolution.PROFILING);
+        }
+      }
+
+      setSelectedFeatures(Array.from(newFeatures));
     },
-    [currentFeatures, setSelectedFeatures]
+    [currentFeatures, setSelectedFeatures, disabledProducts, availableFeatures]
   );
 
   const applyPlatformSelection = useCallback(
@@ -324,6 +360,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
           <ScmFeatureSelectionCards
             availableFeatures={availableFeatures}
             selectedFeatures={currentFeatures}
+            disabledFeatures={disabledFeatureSet}
             onToggleFeature={handleToggleFeature}
           />
         )}

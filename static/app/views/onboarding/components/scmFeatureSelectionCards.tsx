@@ -68,6 +68,7 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
 
 interface ScmFeatureSelectionCardsProps {
   availableFeatures: ProductSolution[];
+  disabledFeatures: Set<ProductSolution>;
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
 }
@@ -75,6 +76,7 @@ interface ScmFeatureSelectionCardsProps {
 export function ScmFeatureSelectionCards({
   availableFeatures,
   selectedFeatures,
+  disabledFeatures,
   onToggleFeature,
 }: ScmFeatureSelectionCardsProps) {
   const alwaysEnabledCount = availableFeatures.filter(
@@ -99,7 +101,7 @@ export function ScmFeatureSelectionCards({
               label={meta.label}
               description={meta.description}
               isSelected={selectedFeatures.includes(feature) || !!meta.alwaysEnabled}
-              disabled={!!meta.alwaysEnabled}
+              disabled={!!meta.alwaysEnabled || disabledFeatures.has(feature)}
               onClick={() => onToggleFeature(feature)}
             />
           );

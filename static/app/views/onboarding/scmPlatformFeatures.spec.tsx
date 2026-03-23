@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   OnboardingContextProvider,
   type OnboardingSessionState,
@@ -35,7 +36,9 @@ const mockRepository: Repository = {
 };
 
 describe('ScmPlatformFeatures', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    features: ['performance-view', 'session-replay', 'profiling-view'],
+  });
 
   beforeEach(() => {
     sessionStorageWrapper.clear();
@@ -211,5 +214,97 @@ describe('ScmPlatformFeatures', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
     });
+  });
+
+  it('enabling profiling auto-enables tracing', async () => {
+    const pythonPlatform = DetectedPlatformFixture({
+      platform: 'python',
+      language: 'Python',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/42/platforms/`,
+      body: {platforms: [pythonPlatform]},
+    });
+
+    render(
+      <ScmPlatformFeatures
+        onComplete={jest.fn()}
+        stepIndex={2}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedRepository: mockRepository,
+          selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        }),
+      }
+    );
+
+    // Wait for feature cards to appear
+    await screen.findByText('What do you want to set up?');
+
+    // Neither profiling nor tracing should be checked initially
+    expect(screen.getByRole('checkbox', {name: /Profiling/})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
+
+    // Enable profiling — tracing should auto-enable
+    await userEvent.click(screen.getByRole('checkbox', {name: /Profiling/}));
+
+    expect(screen.getByRole('checkbox', {name: /Profiling/})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeChecked();
+  });
+
+  it('disabling tracing auto-disables profiling', async () => {
+    const pythonPlatform = DetectedPlatformFixture({
+      platform: 'python',
+      language: 'Python',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/42/platforms/`,
+      body: {platforms: [pythonPlatform]},
+    });
+
+    render(
+      <ScmPlatformFeatures
+        onComplete={jest.fn()}
+        stepIndex={2}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedRepository: mockRepository,
+          selectedPlatform: {
+            key: 'python',
+            name: 'Python',
+            language: 'python',
+            type: 'language',
+            link: 'https://docs.sentry.io/platforms/python/',
+            category: 'popular',
+          },
+          selectedFeatures: [
+            ProductSolution.ERROR_MONITORING,
+            ProductSolution.PERFORMANCE_MONITORING,
+            ProductSolution.PROFILING,
+          ],
+        }),
+      }
+    );
+
+    // Wait for feature cards to appear
+    await screen.findByText('What do you want to set up?');
+
+    // Both should be checked initially
+    expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: /Profiling/})).toBeChecked();
+
+    // Disable tracing — profiling should auto-disable
+    await userEvent.click(screen.getByRole('checkbox', {name: /Tracing/}));
+
+    expect(screen.getByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: /Profiling/})).not.toBeChecked();
   });
 });
