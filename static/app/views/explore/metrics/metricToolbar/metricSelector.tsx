@@ -597,6 +597,7 @@ function MetricListBoxOption({
 }: MetricListBoxOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
   const option = item.value!;
+  const [isHovered, setIsHovered] = useState(false);
   const {optionProps, isFocused, isSelected, isDisabled, isPressed} = useOption(
     {key: item.key, 'aria-label': option.label},
     listState,
@@ -604,9 +605,13 @@ function MetricListBoxOption({
   );
   const optionPropsMerged = mergeProps(optionProps, {
     onMouseEnter: () => {
-      listState.selectionManager.setFocused(true);
+      // Only update focusedKey — do NOT call setFocused(true).
+      // setFocused(true) triggers a useEffect in useSelectableItem that calls
+      // focusSafely(ref.current), which would steal DOM focus from the search input.
       listState.selectionManager.setFocusedKey(item.key);
+      setIsHovered(true);
     },
+    onMouseLeave: () => setIsHovered(false),
   });
 
   return (
@@ -617,7 +622,7 @@ function MetricListBoxOption({
       ref={mergeRefs(ref, measureRef)}
       size={size}
       label={option.label}
-      isFocused={listState.selectionManager.isFocused && isFocused}
+      isFocused={isFocused || isHovered}
       isSelected={isSelected}
       isPressed={isPressed}
       disabled={isDisabled}
