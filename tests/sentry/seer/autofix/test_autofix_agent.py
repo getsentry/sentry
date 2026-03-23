@@ -1,5 +1,8 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+from rest_framework.exceptions import PermissionDenied
+
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     build_step_prompt,
@@ -732,3 +735,13 @@ class TestTriggerCodingAgentHandoff(TestCase):
                 "relevant_repo": "owner/nonexistent-repo",
             },
         )
+
+    def test_raises_permission_denied_when_coding_disabled(self):
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
+            trigger_coding_agent_handoff(
+                group=self.group,
+                run_id=123,
+                integration_id=456,
+            )

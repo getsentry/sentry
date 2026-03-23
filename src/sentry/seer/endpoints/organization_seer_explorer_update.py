@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.models.organization import Organization
 from sentry.seer.explorer.client_utils import (
     explorer_connection_pool,
@@ -19,6 +20,8 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 logger = logging.getLogger(__name__)
+
+CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
 
 
 class OrganizationSeerExplorerUpdatePermission(OrganizationPermission):
@@ -45,6 +48,16 @@ class OrganizationSeerExplorerUpdateEndpoint(OrganizationEndpoint):
 
         if not request.data:
             return Response(status=400, data={"error": "Need a body with a payload"})
+
+        payload_type = request.data.get("type") if isinstance(request.data, dict) else None
+        if payload_type in CODING_PAYLOAD_TYPES:
+            if not organization.get_option(
+                "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+            ):
+                return Response(
+                    status=403,
+                    data={"detail": "Code generation is disabled for this organization"},
+                )
 
         path = "/v1/automation/explorer/update"
 

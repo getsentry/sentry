@@ -1,6 +1,9 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+import pytest
+from rest_framework.exceptions import PermissionDenied
+
 from sentry.integrations.claude_code.utils import ClaudeSessionEvent
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.integrations.github_copilot.models import (
@@ -1096,3 +1099,17 @@ class TestPollClaudeCodeAgents(TestCase):
 
         mock_integration_service.get_integration.assert_called_once()
         assert mock_client.list_session_events.call_count == 2
+
+
+class TestLaunchCodingAgentsForRunCodingDisabled(TestCase):
+    def test_raises_permission_denied_when_coding_disabled(self):
+        from sentry.seer.autofix.coding_agent import launch_coding_agents_for_run
+
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(PermissionDenied, match="Code generation is disabled"):
+            launch_coding_agents_for_run(
+                organization_id=self.organization.id,
+                run_id=123,
+                integration_id=1,
+            )

@@ -1519,6 +1519,42 @@ class UpdateAutofixTest(TestCase):
         assert response.status_code == 200
         assert response.data == mock_response.json.return_value
 
+    @pytest.mark.parametrize("payload_type", ["select_solution", "create_pr"])
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_blocks_coding_payloads_when_disabled(self, mock_request, payload_type):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        response = update_autofix(
+            organization_id=self.organization.id,
+            run_id=self.run_id,
+            payload={"type": payload_type},
+        )
+
+        assert response.status_code == 403
+        assert response.data["detail"] == "Code generation is disabled for this organization"
+        mock_request.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
+    def test_update_autofix_allows_select_root_cause_when_coding_disabled(self, mock_request):
+        from sentry.seer.autofix.autofix import update_autofix
+
+        self.organization.update_option("sentry:enable_seer_coding", False)
+        mock_response = Mock()
+        mock_response.status = 200
+        mock_response.json.return_value = {"run_id": self.run_id}
+        mock_request.return_value = mock_response
+
+        response = update_autofix(
+            organization_id=self.organization.id,
+            run_id=self.run_id,
+            payload={"type": "select_root_cause", "cause_id": 1},
+        )
+
+        assert response.status_code == 200
+        mock_request.assert_called_once()
+
 
 class TestPreResolveStacktraceFrames(TestCase):
     def _make_serialized_event(self, frames, platform="python"):

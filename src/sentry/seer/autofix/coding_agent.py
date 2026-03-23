@@ -12,7 +12,7 @@ from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 from sentry import features
-from sentry.constants import ObjectStatus
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.integrations.claude_code.integration import (
     ClaudeCodeIntegrationMetadata,
 )
@@ -427,6 +427,9 @@ def launch_coding_agents_for_run(
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         raise NotFound("Organization not found")
+
+    if not organization.get_option("sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT):
+        raise PermissionDenied("Code generation is disabled for this organization")
 
     integration = None
     installation: CodingAgentIntegration | None = None

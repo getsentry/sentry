@@ -12,7 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
-from sentry.constants import CELL_API_DEPRECATION_DATE
+from sentry.constants import CELL_API_DEPRECATION_DATE, ENABLE_SEER_CODING_DEFAULT
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.seer.models import SeerApiError
@@ -22,6 +22,8 @@ from sentry.seer.signed_seer_api import (
 )
 
 logger = logging.getLogger(__name__)
+
+CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
 
 
 @cell_silo_endpoint
@@ -45,6 +47,17 @@ class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
                 status=401,
                 data={"error": "You must be authenticated to use this endpoint"},
             )
+
+        payload = request.data.get("payload", {})
+        payload_type = payload.get("type") if isinstance(payload, dict) else None
+        if payload_type in CODING_PAYLOAD_TYPES:
+            if not group.organization.get_option(
+                "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+            ):
+                return Response(
+                    status=403,
+                    data={"detail": "Code generation is disabled for this organization"},
+                )
 
         path = "/v1/automation/autofix/update"
 
