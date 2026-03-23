@@ -64,6 +64,8 @@ from sentry.organizations.absolute_url import customer_domain_path
             "/settings/projects/getting-started/abc123/",
         ),
         ("/settings/teams/peeps/", "/settings/teams/peeps/"),
+        ("/settings/seer/", "/settings/seer/"),
+        ("/settings/seer/repos/", "/settings/seer/repos/"),
         # Prevent routes should remain as-is
         ("/prevent/", "/prevent/"),
         ("/prevent/tokens/", "/prevent/tokens/"),
