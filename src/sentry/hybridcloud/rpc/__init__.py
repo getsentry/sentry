@@ -10,7 +10,6 @@ from typing import Any, Generic, Self, TypeVar, cast
 import pydantic
 from django.db import router, transaction
 from django.db.models import Model
-from pydantic import root_validator
 
 from sentry.silo.base import SiloMode
 from sentry.utils.env import in_test_environment
@@ -38,23 +37,6 @@ class ValueEqualityEnum(Enum):
 
     def __hash__(self) -> int:
         return hash(self.value)
-
-
-# TODO(cells): Tmp support for cell_name as well as region_name in Rpc classes.
-# Remove once all callers pass cell_name directly.
-class AcceptCellNameMixin:
-    region_name: str  # must be defined by subclass
-
-    @root_validator(pre=True)
-    @classmethod
-    def _accept_cell_name(cls, values: dict[str, Any]) -> dict[str, Any]:
-        if "cell_name" in values and "region_name" not in values:
-            values["region_name"] = values.pop("cell_name")
-        return values
-
-    @property
-    def cell_name(self) -> str:
-        return self.region_name
 
 
 class RpcModel(pydantic.BaseModel):
