@@ -6,37 +6,19 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  getMetricIds,
+  type MetricIds,
+  useSizeAnalysisComparison,
+} from 'sentry/utils/preprod/useSizeAnalysisComparison';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {InsightComparisonSection} from 'sentry/views/preprod/buildComparison/main/insightComparisonSection';
-import type {SizeAnalysisComparisonResults} from 'sentry/views/preprod/types/appSizeTypes';
 
-type ContentProps = SectionProps;
+type SectionProps = MetricIds & {project: Project};
 
-function EventInsightDiffContent({baseMetricId, headMetricId, project}: ContentProps) {
-  const organization = useOrganization();
-
-  const query = useApiQuery<SizeAnalysisComparisonResults>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/preprodartifacts/size-analysis/compare/$headSizeMetricId/$baseSizeMetricId/download/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.id,
-            headSizeMetricId: headMetricId,
-            baseSizeMetricId: baseMetricId,
-          },
-        }
-      ),
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+function EventInsightDiffContent({baseMetricId, headMetricId, project}: SectionProps) {
+  const query = useSizeAnalysisComparison({baseMetricId, headMetricId, project});
 
   if (query.isLoading) {
     return <LoadingIndicator />;
@@ -66,12 +48,6 @@ function EventInsightDiffContent({baseMetricId, headMetricId, project}: ContentP
   );
 }
 
-type SectionProps = {
-  baseMetricId: string;
-  headMetricId: string;
-  project: Project;
-};
-
 function EventInsightDiffSection({baseMetricId, headMetricId, project}: SectionProps) {
   return (
     <InterimSection title={t('Insight Diff')} type={SectionKey.INSIGHT_DIFF}>
@@ -84,24 +60,6 @@ function EventInsightDiffSection({baseMetricId, headMetricId, project}: SectionP
       </ErrorBoundary>
     </InterimSection>
   );
-}
-
-interface MetricIds {
-  baseMetricId: string;
-  headMetricId: string;
-}
-
-function getMetricIds(event: Event): MetricIds | undefined {
-  const headMetricId = event.occurrence?.evidenceData?.headSizeMetricId;
-  const baseMetricId = event.occurrence?.evidenceData?.baseSizeMetricId;
-
-  if (baseMetricId && headMetricId) {
-    return {
-      baseMetricId,
-      headMetricId,
-    };
-  }
-  return undefined;
 }
 
 type Props = {
