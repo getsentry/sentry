@@ -99,7 +99,7 @@ def _query_coverage(coverage_db_path: str, db_file_paths: list[str]) -> set[str]
                 WHERE f.path LIKE '%' || ?
                   AND c.context != ''
             """,
-                (f"%{file_path}",),
+                (file_path,),
             )
             rows = cur.fetchall()
             matched = 0
@@ -166,7 +166,7 @@ def main() -> int:
             print(f"Computing selected tests for {len(changed)} changed files...")
             try:
                 affected_test_files = _query_coverage(str(coverage_db), db_paths)
-            except sqlite3.Error as e:
+            except (sqlite3.Error, ValueError) as e:
                 print(f"Error querying coverage database: {e}", file=sys.stderr)
                 return 1
 
