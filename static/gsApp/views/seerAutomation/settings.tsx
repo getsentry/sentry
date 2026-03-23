@@ -123,7 +123,9 @@ export function SeerAutomationSettings() {
             initialValue={
               organization.defaultCodingAgentIntegrationId
                 ? String(organization.defaultCodingAgentIntegrationId)
-                : (organization.defaultCodingAgent ?? 'seer')
+                : organization.defaultCodingAgent
+                  ? organization.defaultCodingAgent
+                  : 'none'
             }
             mutationOptions={codingAgentMutationOpts}
           >
