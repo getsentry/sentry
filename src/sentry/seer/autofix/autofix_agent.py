@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, Literal
 
 from django.utils import timezone
 from pydantic import BaseModel
+from rest_framework.exceptions import PermissionDenied
 
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.seer.autofix.artifact_schemas import (
     ImpactAssessmentArtifact,
     RootCauseArtifact,
@@ -422,7 +424,11 @@ def trigger_coding_agent_handoff(
     Returns:
         Dictionary with 'successes' and 'failures' lists
     """
-    # Fetch project preferences for repos and auto_create_pr setting
+    if not group.organization.get_option(
+        "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+    ):
+        raise PermissionDenied("Code generation is disabled for this organization")
+
     auto_create_pr = False
     repo_definitions: list[SeerRepoDefinition] = []
     try:

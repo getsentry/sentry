@@ -25,10 +25,11 @@ from sentry.issues.auto_source_code_config.code_mapping import (
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
-from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES, AutofixReferrer
 from sentry.seer.autofix.types import (
     AutofixCreatePRPayload,
     AutofixSelectRootCausePayload,
@@ -831,6 +832,15 @@ def update_autofix(
     """
     Issue an update to an autofix run. Intentionally matching the output of trigger_autofix.
     """
+    if payload.get("type") in CODING_PAYLOAD_TYPES:
+        try:
+            org = Organization.objects.get(id=organization_id)
+            if not org.get_option("sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT):
+                return Response(
+                    {"detail": "Code generation is disabled for this organization"}, status=403
+                )
+        except Organization.DoesNotExist:
+            return Response({"detail": "Organization not found"}, status=404)
 
     data = AutofixUpdateRequest(organization_id=organization_id, run_id=run_id, payload=payload)
     body = orjson.dumps(data)

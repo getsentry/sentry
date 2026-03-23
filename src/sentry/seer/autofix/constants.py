@@ -1,5 +1,7 @@
 import enum
 
+CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
+
 
 class FixabilityScoreThresholds(enum.Enum):
     SUPER_HIGH = 0.76
