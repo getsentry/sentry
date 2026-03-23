@@ -53,7 +53,6 @@ from sentry.scm.types import (
     TreeEntry,
 )
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.shared_integrations.response.base import BaseApiResponse
 
 # GitHub's Checks API status values map to generic BuildStatus.
 # "requested", "waiting", and "pending" are GitHub Actions-internal states that
@@ -234,7 +233,7 @@ class GitHubProviderApiClient:
         if not isinstance(response, dict) or ("data" not in response and "errors" not in response):
             raise SCMProviderException("GraphQL response is not in expected format")
 
-        response_data = BaseApiResponse.from_response(response)
+        response_data = response.json()
 
         errors = response_data.get("errors", [])
         if errors and not response_data.get("data"):
