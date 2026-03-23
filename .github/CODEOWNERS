@@ -697,7 +697,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_weekly_escalating_forecast.py      @getsentry/issue-detection-backend
 /tests/sentry/tasks/test_llm_issue_detection.py             @getsentry/issue-detection-backend
-/tests/sentry/processing_errors/                            @getsentry/issue-detection-backend
 /tests/snuba/search/                                        @getsentry/issue-workflow
 ## End of Issues
 
