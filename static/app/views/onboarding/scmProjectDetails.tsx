@@ -31,7 +31,16 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     useOnboardingContext();
   const {teams} = useTeams();
   const createProjectAndRules = useCreateProjectAndRules();
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
+
+  // Notification actions (Connect to messaging) deferred to VDY-28 UI polish pass.
+  // No-op avoids the API call that useCreateNotificationAction makes on mount.
+  const createNotificationAction = useCallback(
+    () =>
+      undefined as ReturnType<
+        ReturnType<typeof useCreateNotificationAction>['createNotificationAction']
+      >,
+    []
+  );
 
   const firstAdminTeam = useMemo(
     () => teams.find((team: Team) => team.access.includes('team:admin')),
@@ -150,11 +159,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
           <Text variant="muted" size="sm">
             {t('Get notified when things go wrong')}
           </Text>
-          <IssueAlertOptions
-            {...alertRuleConfig}
-            onFieldChange={handleAlertChange}
-            notificationProps={notificationProps}
-          />
+          <IssueAlertOptions {...alertRuleConfig} onFieldChange={handleAlertChange} />
         </Stack>
       </Stack>
 

@@ -53,16 +53,6 @@ describe('ScmProjectDetails', () => {
   beforeEach(() => {
     sessionStorageWrapper.clear();
     TeamStore.loadInitialData([teamWithAccess]);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/`,
-      body: [],
-      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/config/integrations/`,
-      body: {providers: []},
-    });
   });
 
   afterEach(() => {
