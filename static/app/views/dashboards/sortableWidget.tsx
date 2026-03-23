@@ -4,9 +4,13 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {LazyRender} from 'sentry/components/lazyRender';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';
-import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
+import {
+  GRID_BODY_ROW_HEIGHT,
+  GRID_HEAD_ROW_HEIGHT,
+} from 'sentry/components/tables/gridEditable/styles';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -34,8 +38,6 @@ import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
 
-// Height of the table header row in the GridEditable component
-const GRID_HEAD_ROW_HEIGHT = 45;
 // Widget frame header (title bar): 26px + 16px padding
 const WIDGET_HEADER_HEIGHT = 42;
 // Widget frame padding (top visualization padding + bottom padding + border)
@@ -44,7 +46,7 @@ const WIDGET_FRAME_PADDING = 20;
 /**
  * Calculates the pixel height needed for a table widget based on its row count.
  */
-export function getTableContentHeight(rowCount: number): number {
+function calculateTableContentHeight(rowCount: number): number {
   return (
     WIDGET_HEADER_HEIGHT +
     GRID_HEAD_ROW_HEIGHT +
@@ -137,9 +139,9 @@ export function SortableWidget(props: Props) {
         return;
       }
 
-      const rowCount = data.tableResults?.[0]?.data?.length ?? 0;
-      if (rowCount > 0) {
-        props.onContentHeight(index, getTableContentHeight(rowCount));
+      const rowCount = data.tableResults?.[0]?.data?.length;
+      if (defined(rowCount)) {
+        props.onContentHeight(index, calculateTableContentHeight(rowCount));
       }
     },
     [isAutoHeight, index, props.onContentHeight] // eslint-disable-line react-hooks/exhaustive-deps

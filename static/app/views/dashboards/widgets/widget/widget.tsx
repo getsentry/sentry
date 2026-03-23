@@ -121,7 +121,7 @@ const exported = Object.assign(WidgetLayout, {
 
 export {exported as Widget};
 
-const HEADER_HEIGHT = '26px';
+export const HEADER_HEIGHT = '26px';
 
 const TitleHoverItems = styled('div')`
   display: flex;
