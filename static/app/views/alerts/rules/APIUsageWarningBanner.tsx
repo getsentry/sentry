@@ -2,12 +2,19 @@ import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function APIUsageWarningBanner() {
-  const organization = useOrganization();
+interface Props {
+  errors?: Array<{detail: string}>;
+}
 
-  if (!organization.features.includes('workflow-engine-rule-serializers')) {
+export function APIUsageWarningBanner({errors}: Props) {
+  const hasUnsupportedError = errors?.some(
+    ({detail}) =>
+      detail.includes('Condition not supported') ||
+      detail.includes('Filter not supported')
+  );
+
+  if (!hasUnsupportedError) {
     return null;
   }
 
