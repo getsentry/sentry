@@ -247,6 +247,25 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["conditions"][0]["name"]
         assert response.data["filters"][0]["name"]
 
+    @with_feature("organizations:workflow-engine-projectruledetailsendpoint-get")
+    def test_workflow_engine_granular_flag_dual_written_rule(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["environment"] is None
+        assert response.data["conditions"][0]["name"]
+
+    @with_feature("organizations:workflow-engine-projectruledetailsendpoint-get")
+    def test_workflow_engine_granular_flag_single_written_rule(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.fake_workflow_id, status_code=200
+        )
+        assert response.data["id"] == str(self.fake_workflow_id)
+        assert response.data["environment"] is None
+        assert response.data["conditions"][0]["name"]
+        assert response.data["filters"][0]["name"]
+
     def test_non_existing_rule(self) -> None:
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)
 
