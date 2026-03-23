@@ -1522,14 +1522,19 @@ class UpdateAutofixTest(TestCase):
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
     def test_update_autofix_blocks_coding_payloads_when_disabled(self, mock_request):
         from sentry.seer.autofix.autofix import update_autofix
+        from sentry.seer.autofix.types import AutofixCreatePRPayload, AutofixSelectSolutionPayload
 
         self.organization.update_option("sentry:enable_seer_coding", False)
 
-        for payload_type in ("select_solution", "create_pr"):
+        payloads: list[AutofixSelectSolutionPayload | AutofixCreatePRPayload] = [
+            AutofixSelectSolutionPayload(type="select_solution"),
+            AutofixCreatePRPayload(type="create_pr"),
+        ]
+        for payload in payloads:
             response = update_autofix(
                 organization_id=self.organization.id,
                 run_id=self.run_id,
-                payload={"type": payload_type},
+                payload=payload,
             )
 
             assert response.status_code == 403
