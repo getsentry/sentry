@@ -51,6 +51,7 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
 
   return (
     <CompositeSelect
+      disabled={groups.length === 0}
       style={{width: '100%'}}
       trigger={triggerProps => (
         <OverlayTrigger.Button
