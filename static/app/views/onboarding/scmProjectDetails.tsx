@@ -1,18 +1,86 @@
-import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
+import {useState} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {TeamSelector} from 'sentry/components/teamSelector';
+import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Team} from 'sentry/types/organization';
+import {slugify} from 'sentry/utils/slugify';
+import {useTeams} from 'sentry/utils/useTeams';
 
 import type {StepProps} from './types';
 
 export function ScmProjectDetails({onComplete}: StepProps) {
+  const {selectedPlatform, selectedRepository} = useOnboardingContext();
+  const {teams} = useTeams();
+
+  const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
+
+  const defaultName = slugify(selectedRepository?.name ?? selectedPlatform?.key ?? '');
+
+  const [projectName, setProjectName] = useState(defaultName);
+  const [teamSlug, setTeamSlug] = useState(firstAdminTeam?.slug ?? '');
+
+  const canSubmit = projectName.length > 0 && teamSlug.length > 0;
+
   return (
-    <Flex direction="column" align="center" justify="center" gap="lg" flexGrow={1}>
-      <Heading as="h2">{t('Project details')}</Heading>
-      <Button priority="primary" onClick={() => onComplete()}>
-        {t('Continue')}
-      </Button>
+    <Flex direction="column" align="center" gap="xl" flexGrow={1}>
+      <Stack align="center" gap="md">
+        <Heading as="h2">{t('Project details')}</Heading>
+        <Text variant="muted">
+          {t(
+            'Set the project name, assign a team, and configure how you want to receive issue alerts'
+          )}
+        </Text>
+      </Stack>
+
+      <Stack gap="lg" width="100%" maxWidth="600px">
+        <Stack gap="sm">
+          <Flex gap="xs" align="center">
+            <IconProject size="sm" />
+            <Text bold>{t('Give your project a name')}</Text>
+          </Flex>
+          <Input
+            type="text"
+            placeholder={t('project-name')}
+            value={projectName}
+            onChange={e => setProjectName(slugify(e.target.value))}
+          />
+        </Stack>
+
+        <Stack gap="sm">
+          <Flex gap="xs" align="center">
+            <Text bold>{t('Assign a team')}</Text>
+          </Flex>
+          <TeamSelector
+            allowCreate
+            name="team"
+            aria-label={t('Select a Team')}
+            clearable={false}
+            placeholder={t('Select a Team')}
+            teamFilter={(tm: Team) => tm.access.includes('team:admin')}
+            value={teamSlug}
+            onChange={({value}: {value: string}) => setTeamSlug(value)}
+          />
+        </Stack>
+      </Stack>
+
+      <Flex gap="md" align="center">
+        <Button onClick={() => onComplete()}>{t('Back')}</Button>
+        <Button
+          priority="primary"
+          onClick={() => onComplete()}
+          disabled={!canSubmit}
+          icon={<IconProject />}
+        >
+          {t('Create project')}
+        </Button>
+      </Flex>
     </Flex>
   );
 }
