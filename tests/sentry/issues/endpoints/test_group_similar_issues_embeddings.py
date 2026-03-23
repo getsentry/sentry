@@ -405,6 +405,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "use_reranking": True,
                     "model": "v1",
                     "training_mode": False,
+                    "platform": "python",
                 },
                 "raw_similar_issue_data": {
                     "should_group": True,
