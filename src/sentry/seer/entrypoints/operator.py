@@ -504,6 +504,7 @@ class SeerExplorerOperator[CachePayloadT]:
                     category_key=category_key,
                     category_value=category_value,
                     limit=1,
+                    only_current_user=False,
                 )
 
                 if existing_runs:
