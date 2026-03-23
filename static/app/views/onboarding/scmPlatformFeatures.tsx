@@ -358,9 +358,12 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
       <Button
         priority="primary"
         onClick={() => {
-          // Persist detected platform to context if user accepted default
+          // Persist derived defaults to context if user accepted them
           if (currentPlatformKey && !selectedPlatform?.key) {
             setPlatform(currentPlatformKey);
+          }
+          if (!selectedFeatures) {
+            setSelectedFeatures(currentFeatures);
           }
           onComplete();
         }}
