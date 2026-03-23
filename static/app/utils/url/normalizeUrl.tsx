@@ -8,7 +8,7 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   [/\/organizations\/(?!new)[^/]+\/(.*)/, '/$1'],
   // For /settings/:orgId/ -> /settings/organization/
   [
-    /\/settings\/(?!account\/|billing\/|projects\/|teams\/|stats|seer\/)[^/]+\/?$/,
+    /\/settings\/(?!account\/|billing\/|projects\/|teams\/|stats\/|seer\/)[^/]+\/?$/,
     '/settings/organization/',
   ],
   // Move /settings/:orgId/:section -> /settings/:section
