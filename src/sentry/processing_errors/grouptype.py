@@ -79,22 +79,22 @@ class ProcessingErrorDetectorHandler(
     Base handler for processing error configuration issue detectors.
 
     Subclasses define class-level attributes to customize which error types
-    to match, issue titles, fingerprints, and metrics. The ``group_type_id``
-    attribute is resolved at runtime via the GroupType registry to avoid
-    circular references between the handler and its GroupType.
+    to match, issue titles, fingerprints, and metrics. The group type is
+    resolved at runtime from the detector's slug via the GroupType registry.
     """
 
     error_types: ClassVar[frozenset[str]]
     fingerprint_key: ClassVar[str]
     issue_title: ClassVar[str]
     issue_subtitle: ClassVar[str]
-    group_type_id: ClassVar[int]
 
     @property
     def group_type(self) -> type[GroupType]:
         from sentry.issues.grouptype import registry
 
-        return registry.get_by_type_id(self.group_type_id)
+        gt = registry.get_by_slug(self.detector.type)
+        assert gt is not None, f"No GroupType registered for slug {self.detector.type}"
+        return gt
 
     @override
     @property
@@ -245,7 +245,6 @@ class SourcemapDetectorHandler(ProcessingErrorDetectorHandler):
     fingerprint_key = "sourcemap"
     issue_title = "Broken source maps detected"
     issue_subtitle = "Source maps are not configured correctly for this project"
-    group_type_id = 13001
 
 
 @dataclass(frozen=True)
