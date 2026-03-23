@@ -725,6 +725,7 @@ ACTION_CASES: list[dict[str, Any]] = [
         "raw": "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main",
         "expected_data": {
             "url": "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main",
+            "headers": {},
         },
     },
     {
@@ -739,6 +740,7 @@ ACTION_CASES: list[dict[str, Any]] = [
         "raw": "https://codeload.github.com/test-org/test-repo/legacy.zip/refs/heads/main",
         "expected_data": {
             "url": "https://codeload.github.com/test-org/test-repo/legacy.zip/refs/heads/main",
+            "headers": {},
         },
     },
 ]

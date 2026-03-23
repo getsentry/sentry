@@ -62,6 +62,7 @@ class ArchiveLink(TypedDict):
     """A download URL bundled with the authentication headers required to fetch it."""
 
     url: str
+    headers: dict[str, str]
 
 
 type BuildStatus = Literal["pending", "running", "completed"]
