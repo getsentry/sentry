@@ -110,9 +110,9 @@ export function ScmFeatureSelectionCards({
                 radius="md"
               >
                 <Flex gap="md" align="start">
-                  <Flex padding="xs 0 0 0">
-                    <Icon size="sm" />
-                  </Flex>
+                  <Container padding="xs 0 0 0">
+                    {containerProps => <Icon size="sm" {...containerProps} />}
+                  </Container>
                   <Flex direction="column" gap="xs" flex="1">
                     <Flex justify="between" align="center">
                       <Text bold>{meta.label}</Text>
