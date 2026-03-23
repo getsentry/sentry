@@ -7,7 +7,10 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
+import {
+  organizationIntegrationsCodingAgents,
+  type CodingAgentIntegration,
+} from 'sentry/components/events/autofix/useAutofix';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
