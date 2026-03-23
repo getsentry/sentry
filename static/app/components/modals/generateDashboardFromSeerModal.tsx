@@ -76,10 +76,10 @@ function GenerateDashboardFromSeerModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Create Dashboard with Seer')}</h4>
+        <h4>{t('Create Dashboard with Agent')}</h4>
       </Header>
       <Body>
-        <p>{t('Describe the dashboard you would like Seer to generate for you.')}</p>
+        <p>{t('Describe the dashboard you would like to be generated for you.')}</p>
         <TextArea
           value={prompt}
           onChange={(e: {target: HTMLTextAreaElement}) => setPrompt(e.target.value)}

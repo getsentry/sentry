@@ -112,11 +112,22 @@ async function validateDashboardAndRecordMetrics(
   try {
     await validateDashboard(organization.slug, newDashboard);
     Sentry.metrics.count('dashboards.seer.validation', 1, {
-      attributes: {status: 'success', ...(seerRunId ? {seer_run_id: seerRunId} : {})},
+      attributes: {
+        status: 'success',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+      },
     });
   } catch (error) {
     Sentry.metrics.count('dashboards.seer.validation', 1, {
-      attributes: {status: 'failure', ...(seerRunId ? {seer_run_id: seerRunId} : {})},
+      attributes: {
+        status: 'failure',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+      },
+    });
+    Sentry.captureException(error, {
+      tags: {seer_run_id: seerRunId},
     });
   }
 }
@@ -148,6 +159,10 @@ export default function CreateFromSeer() {
   // validation errors.
   const completedAtRef = useRef<number | null>(null);
 
+  // Additional guards to prevent duplicate metrics recording and on reload
+  const hasValidatedRef = useRef(false);
+  const hasSeenNonTerminalRef = useRef(false);
+
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(organization.slug, seerRunId),
     {
@@ -155,9 +170,6 @@ export default function CreateFromSeer() {
       retry: false,
       enabled: !!seerRunId && hasFeature,
       refetchInterval: query => {
-        if (isUpdating) {
-          return POLL_INTERVAL_MS;
-        }
         const status = query.state.data?.[0]?.session?.status;
         if (statusIsTerminal(status)) {
           if (completedAtRef.current === null) {
@@ -166,11 +178,17 @@ export default function CreateFromSeer() {
           if (Date.now() - completedAtRef.current < POST_COMPLETE_POLL_MS) {
             return POLL_INTERVAL_MS;
           }
-          validateDashboardAndRecordMetrics(organization, dashboard, seerRunId);
+          if (!hasValidatedRef.current && hasSeenNonTerminalRef.current) {
+            hasValidatedRef.current = true;
+            validateDashboardAndRecordMetrics(organization, dashboard, seerRunId);
+          }
           return false;
         }
-        // Status left "completed" (hook triggered a re-run), reset
-        completedAtRef.current = null;
+        if (status !== undefined && !statusIsTerminal(status)) {
+          hasSeenNonTerminalRef.current = true;
+          hasValidatedRef.current = false;
+          completedAtRef.current = null;
+        }
         return POLL_INTERVAL_MS;
       },
     }
@@ -186,7 +204,10 @@ export default function CreateFromSeer() {
     }
     const prevUpdatedAt = prevSessionStatusRef.current.updated_at;
     const prevStatus = prevSessionStatusRef.current.status;
-    prevSessionStatusRef.current = {status: sessionStatus, updated_at: sessionUpdatedAt};
+    prevSessionStatusRef.current = {
+      status: sessionStatus,
+      updated_at: sessionUpdatedAt,
+    };
 
     const isTerminal = statusIsTerminal(sessionStatus);
     const wasTerminal = statusIsTerminal(prevStatus);
@@ -254,6 +275,7 @@ export default function CreateFromSeer() {
       }
       setisUpdating(true);
       completedAtRef.current = null;
+      hasValidatedRef.current = false;
       try {
         const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
         const {url} = parseQueryKey(queryKey);

@@ -21,14 +21,16 @@ import {
 } from 'sentry/components/events/autofix/v3/autofixCards';
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
 import {Placeholder} from 'sentry/components/placeholder';
+import type {Group} from 'sentry/types/group';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
   autofix: ReturnType<typeof useExplorerAutofix>;
+  group: Group;
 }
 
-export function SeerDrawerContent({aiConfig, autofix}: SeerDrawerContentProps) {
+export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentProps) {
   const sections = useMemo(
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
@@ -55,7 +57,7 @@ export function SeerDrawerContent({aiConfig, autofix}: SeerDrawerContentProps) {
     <Flex direction="column" gap="lg">
       <SeerDrawerArtifacts autofix={autofix} sections={sections} />
       {autofix.runState?.status === 'completed' && (
-        <SeerDrawerNextStep autofix={autofix} sections={sections} />
+        <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
       )}
     </Flex>
   );

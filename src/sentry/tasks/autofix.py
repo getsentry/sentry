@@ -6,7 +6,7 @@ from django.utils import timezone
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
 from sentry.constants import ObjectStatus
 from sentry.models.group import Group
@@ -20,10 +20,14 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.utils import (
     bulk_get_project_preferences,
     bulk_set_project_preferences,
+    bulk_write_preferences_to_sentry_db,
+    deduplicate_repositories,
     get_autofix_repos_from_project_code_mappings,
     get_autofix_state,
     get_seer_seat_based_tier_cache_key,
+    resolve_repository_ids,
 )
+from sentry.seer.models import SeerProjectPreference
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.utils import metrics
@@ -249,6 +253,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
                 continue
             repositories = existing_pref.get("repositories") or []
 
+        repositories = deduplicate_repositories(repositories)
+
         # Preserve existing repositories and automation_handoff, only update the stopping point
         preferences_to_set.append(
             {
@@ -264,6 +270,23 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     if len(preferences_to_set) > 0:
         bulk_set_project_preferences(organization_id, preferences_to_set)
+
+        if features.has("organizations:seer-project-settings-dual-write", organization):
+            try:
+                validated_preferences = [
+                    SeerProjectPreference.validate(pref) for pref in preferences_to_set
+                ]
+                # Seer API responses don't include repository_id.
+                # Resolve before dual-writing so repos aren't skipped.
+                # This will not be necessary once we start keying by repo ID.
+                resolved_preferences = resolve_repository_ids(
+                    organization_id, validated_preferences
+                )
+                bulk_write_preferences_to_sentry_db(projects, resolved_preferences)
+            except Exception:
+                logger.exception(
+                    "seer.write_preferences.failed", extra={"organization_id": organization_id}
+                )
 
     # Invalidate existing cache entry and set cache to True to prevent race conditions where another
     # request re-caches False before the billing flag has fully propagated
