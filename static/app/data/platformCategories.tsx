@@ -513,6 +513,8 @@ export const limitedMetricsSupportPrefixes = new Set<string>([
   'react-native',
   'ruby',
   'flutter',
+  'unity',
+  'unreal',
 ]);
 
 export const profiling: PlatformKey[] = [
