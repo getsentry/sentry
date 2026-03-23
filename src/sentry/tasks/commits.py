@@ -5,6 +5,7 @@ import logging
 import sentry_sdk
 from django.urls import reverse
 from sentry_sdk import set_tag
+from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
@@ -24,7 +25,6 @@ from sentry.shared_integrations.exceptions import IntegrationError, IntegrationR
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service

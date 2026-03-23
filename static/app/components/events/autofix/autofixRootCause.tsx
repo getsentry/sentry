@@ -529,9 +529,11 @@ function AutofixRootCauseDisplay({
 
     setSolutionText('');
 
-    trackAnalytics('autofix.coding_agent.launch_from_root_cause', {
+    trackAnalytics('autofix.coding_agent.launch', {
       organization,
       group_id: groupId,
+      step: 'root_cause',
+      provider: integration.provider,
     });
     trackAnalytics('coding_integration.send_to_agent_clicked', {
       organization,

@@ -269,6 +269,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="byte",
         ),
         ResolvedAttribute(
+            public_alias="http.response_status_code",
+            internal_name="http.response.status_code",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
             public_alias="sampling_rate",
             internal_name="sentry.sampling_factor",
             search_type="percentage",

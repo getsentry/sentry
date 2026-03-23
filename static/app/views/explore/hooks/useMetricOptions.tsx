@@ -41,6 +41,7 @@ function metricOptionsQueryKey({
     TraceMetricKnownFieldKey.METRIC_NAME,
     TraceMetricKnownFieldKey.METRIC_TYPE,
     `count(${TraceMetricKnownFieldKey.METRIC_NAME})`,
+    `max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`,
   ];
   if (hasMetricUnitsUI) {
     queryFields.push(TraceMetricKnownFieldKey.METRIC_UNIT);

@@ -1,4 +1,3 @@
-import {compile} from '@mdx-js/mdx';
 import type {KnipConfig} from 'knip';
 
 const isProductionMode = process.argv.includes('--production');
@@ -62,9 +61,6 @@ const config: KnipConfig = {
     // ignore eslint plugins in production
     '!static/eslint/**/*.ts!',
   ],
-  compilers: {
-    mdx: async text => String(await compile(text)),
-  },
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
     'core-js',
@@ -87,6 +83,9 @@ const config: KnipConfig = {
     unlisted: 'off',
   },
   include: ['nsExports', 'nsTypes'],
+  mdx: {
+    config: 'tsconfig.mdx.json',
+  },
 };
 
 export default config;
