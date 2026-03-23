@@ -189,7 +189,7 @@ export const BACKEND_OVERVIEW_SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           orderby: `-equation|count_if(${SpanFields.CACHE_HIT},equals,false) / count(${SpanFields.SPAN_DURATION})`,
         },
       ],
-      limit: 4,
+      limit: 3,
       widgetType: WidgetType.SPANS,
     },
   ],
