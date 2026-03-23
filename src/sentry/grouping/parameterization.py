@@ -297,14 +297,14 @@ class Parameterizer:
             #   c) there's nothing else in the regex,
             # there should be exactly one named matching group, making the last matching group also
             # the only matching group.
-            key = match.lastgroup
-            value = match.groupdict().get(key or "")  # Empty string for mypy appeasment
+            matched_key = match.lastgroup
+            value = match.groupdict().get(matched_key or "")  # Empty string for mypy appeasment
 
-            if not key or not value:  # Insurance - shouldn't happen IRL
+            if not matched_key or not value:  # Insurance - shouldn't happen IRL
                 return ""
 
-            matches_counter[key] += 1
-            return f"<{key}>"
+            matches_counter[matched_key] += 1
+            return f"<{matched_key}>"
 
         with metrics.timer(
             "grouping.parameterize", tags={"experimental": self._experimental}
