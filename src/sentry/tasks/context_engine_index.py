@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta, timezone
 
-import orjson
 import sentry_sdk
 from taskbroker_client.retry import Retry
 
@@ -28,6 +27,7 @@ from sentry.seer.explorer.explorer_service_map_utils import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
+    ExplorerIndexSentryKnowledgeRequest,
     OrgProjectKnowledgeIndexRequest,
     OrgProjectKnowledgeProjectData,
     SeerViewerContext,
@@ -278,9 +278,9 @@ def schedule_context_engine_indexing_tasks() -> None:
     processing_deadline_duration=30,
 )
 def index_sentry_knowledge() -> None:
-    body = orjson.dumps({"replace_existing": True})
-
-    response = make_index_sentry_knowledge_request(body)
+    response = make_index_sentry_knowledge_request(
+        body=ExplorerIndexSentryKnowledgeRequest(replace_existing=True)
+    )
 
     if response.status >= 400:
         raise Exception(
