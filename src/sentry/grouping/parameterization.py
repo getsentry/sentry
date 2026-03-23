@@ -289,6 +289,11 @@ class Parameterizer:
         # use newlines and indentation for better legibility when defining regexes
         self._parameterization_regex = re.compile(rf"(?x){'|'.join(pattern_strings)}")
 
+        # Collect replacement callbacks, if any
+        self.replacement_functions = {
+            r.name: r.replacement_callback for r in regexes if r.replacement_callback
+        }
+
     def parameterize(self, input_str: str) -> str:
         """
         Replace all regex matches in the input string with placeholder strings, using the regexes
