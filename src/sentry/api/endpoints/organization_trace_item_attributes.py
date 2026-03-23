@@ -16,6 +16,8 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import (
     PageToken,
     RequestMeta,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import (
     TraceItemType as ProtoTraceItemType,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
@@ -883,7 +885,7 @@ def _check_attribute_exists(
 
     # For number/boolean attrs, use the typed names RPC with an exists filter
     # so we verify both type identity and time-window intersection.
-    rpc_request = TraceItemAttributeNamesRequest(
+    names_request = TraceItemAttributeNamesRequest(
         meta=meta,
         limit=100,
         type=attr_type,
@@ -892,8 +894,8 @@ def _check_attribute_exists(
             exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
         ),
     )
-    rpc_response = snuba_rpc.attribute_names_rpc(rpc_request)
-    for attribute in rpc_response.attributes:
+    names_response = snuba_rpc.attribute_names_rpc(names_request)
+    for attribute in names_response.attributes:
         if attribute.name == name:
             return (attr_type, name)
 
