@@ -82,10 +82,21 @@ class RecordingClient:
     def get(
         self,
         path: str,
-        params: dict[str, str] | None = None,
-        headers: dict[str, str] | None = None,
+        params: dict[str, Any] | None = None,
+        pagination: Any | None = None,
+        request_options: Any | None = None,
+        extra_headers: dict[str, str] | None = None,
     ) -> FakeResponse:
-        self.calls.append({"operation": "get", "path": path, "params": params, "headers": headers})
+        self.calls.append(
+            {
+                "operation": "get",
+                "path": path,
+                "params": params,
+                "pagination": pagination,
+                "request_options": request_options,
+                "extra_headers": extra_headers,
+            }
+        )
         return self._pop("get")
 
     def post(
@@ -325,12 +336,13 @@ REVIEW_RAW = make_github_review()
 CHECK_RUN_RAW = make_github_check_run()
 
 
-PAGINATED_CASES = [
+PAGINATED_CASES: list[dict[str, Any]] = [
     {
         "name": "get_issue_comments",
         "kwargs": {"issue_id": "42"},
         "path": "/repos/test-org/test-repo/issues/42/comments",
-        "params": {"per_page": "100", "page": "1"},
+        "params": None,
+        "pagination": None,
         "raw": [COMMENT_RAW],
         "expected_data": [expected_comment(COMMENT_RAW)],
         "next_cursor": "2",
@@ -339,7 +351,8 @@ PAGINATED_CASES = [
         "name": "get_pull_request_comments",
         "kwargs": {"pull_request_id": "42", "pagination": {"cursor": "4", "per_page": 25}},
         "path": "/repos/test-org/test-repo/issues/42/comments",
-        "params": {"per_page": "25", "page": "4"},
+        "params": None,
+        "pagination": {"cursor": "4", "per_page": 25},
         "raw": [COMMENT_RAW],
         "expected_data": [expected_comment(COMMENT_RAW)],
         "next_cursor": "5",
@@ -348,7 +361,8 @@ PAGINATED_CASES = [
         "name": "get_issue_comment_reactions",
         "kwargs": {"issue_id": "42", "comment_id": "99"},
         "path": "/repos/test-org/test-repo/issues/comments/99/reactions",
-        "params": {"per_page": "100", "page": "1"},
+        "params": None,
+        "pagination": None,
         "raw": [REACTION_RAW],
         "expected_data": [expected_reaction(REACTION_RAW)],
         "next_cursor": "2",
@@ -357,7 +371,8 @@ PAGINATED_CASES = [
         "name": "get_issue_reactions",
         "kwargs": {"issue_id": "42"},
         "path": "/repos/test-org/test-repo/issues/42/reactions",
-        "params": {"per_page": "100", "page": "1"},
+        "params": None,
+        "pagination": None,
         "raw": [REACTION_RAW],
         "expected_data": [expected_reaction(REACTION_RAW)],
         "next_cursor": "2",
@@ -366,7 +381,8 @@ PAGINATED_CASES = [
         "name": "get_commits",
         "kwargs": {"ref": "main", "pagination": {"cursor": "3", "per_page": 10}},
         "path": "/repos/test-org/test-repo/commits",
-        "params": {"sha": "main", "per_page": "10", "page": "3"},
+        "params": {"sha": "main"},
+        "pagination": {"cursor": "3", "per_page": 10},
         "raw": [COMMIT_RAW],
         "expected_data": [expected_commit(COMMIT_RAW)],
         "next_cursor": "4",
@@ -375,7 +391,8 @@ PAGINATED_CASES = [
         "name": "get_commits_by_path",
         "kwargs": {"path": "src/main.py", "ref": "main"},
         "path": "/repos/test-org/test-repo/commits",
-        "params": {"path": "src/main.py", "sha": "main", "per_page": "100", "page": "1"},
+        "params": {"path": "src/main.py", "sha": "main"},
+        "pagination": None,
         "raw": [COMMIT_RAW],
         "expected_data": [expected_commit(COMMIT_RAW)],
         "next_cursor": "2",
@@ -384,7 +401,8 @@ PAGINATED_CASES = [
         "name": "compare_commits",
         "kwargs": {"start_sha": "aaa", "end_sha": "bbb"},
         "path": "/repos/test-org/test-repo/compare/aaa...bbb",
-        "params": {"per_page": "100", "page": "1"},
+        "params": None,
+        "pagination": None,
         "raw": COMPARISON_RAW,
         "expected_data": [expected_commit(COMMIT_RAW)],
         "next_cursor": "2",
@@ -393,7 +411,8 @@ PAGINATED_CASES = [
         "name": "get_pull_request_files",
         "kwargs": {"pull_request_id": "42"},
         "path": "/repos/test-org/test-repo/pulls/42/files",
-        "params": {"per_page": "100", "page": "1"},
+        "params": None,
+        "pagination": None,
         "raw": [PULL_REQUEST_FILE_RAW],
         "expected_data": [expected_pull_request_file(PULL_REQUEST_FILE_RAW)],
         "next_cursor": "2",
@@ -402,7 +421,8 @@ PAGINATED_CASES = [
         "name": "get_pull_request_commits",
         "kwargs": {"pull_request_id": "42"},
         "path": "/repos/test-org/test-repo/pulls/42/commits",
-        "params": {"per_page": "100", "page": "1"},
+        "params": None,
+        "pagination": None,
         "raw": [PULL_REQUEST_COMMIT_RAW],
         "expected_data": [expected_pull_request_commit(PULL_REQUEST_COMMIT_RAW)],
         "next_cursor": "2",
@@ -415,7 +435,8 @@ PAGINATED_CASES = [
             "pagination": {"cursor": "2", "per_page": 15},
         },
         "path": "/repos/test-org/test-repo/pulls",
-        "params": {"state": "all", "head": "octocat:feature", "per_page": "15", "page": "2"},
+        "params": {"state": "all", "head": "octocat:feature"},
+        "pagination": {"cursor": "2", "per_page": 15},
         "raw": [PULL_REQUEST_RAW],
         "expected_data": [expected_pull_request(PULL_REQUEST_RAW)],
         "next_cursor": "3",
@@ -423,7 +444,7 @@ PAGINATED_CASES = [
 ]
 
 
-ACTION_CASES = [
+ACTION_CASES: list[dict[str, Any]] = [
     {
         "name": "create_issue_comment",
         "operation": "post",
@@ -438,7 +459,6 @@ ACTION_CASES = [
         "operation": "get",
         "kwargs": {"pull_request_id": "42"},
         "path": "/repos/test-org/test-repo/pulls/42",
-        "headers": {"Accept": "application/vnd.github+json"},
         "raw": PULL_REQUEST_RAW,
         "expected_data": expected_pull_request(PULL_REQUEST_RAW),
     },
@@ -474,7 +494,6 @@ ACTION_CASES = [
         "operation": "get",
         "kwargs": {"branch": "main"},
         "path": "/repos/test-org/test-repo/branches/main",
-        "headers": {"Accept": "application/vnd.github+json"},
         "raw": BRANCH_RAW,
         "expected_data": expected_git_ref_from_branch(BRANCH_RAW),
     },
@@ -511,7 +530,6 @@ ACTION_CASES = [
         "kwargs": {"path": "README.md", "ref": "main"},
         "path": "/repos/test-org/test-repo/contents/README.md",
         "params": {"ref": "main"},
-        "headers": {"Accept": "application/vnd.github+json"},
         "raw": FILE_CONTENT_RAW,
         "expected_data": expected_file_content(FILE_CONTENT_RAW),
     },
@@ -520,7 +538,6 @@ ACTION_CASES = [
         "operation": "get",
         "kwargs": {"sha": "abc123"},
         "path": "/repos/test-org/test-repo/commits/abc123",
-        "headers": {"Accept": "application/vnd.github+json"},
         "raw": COMMIT_RAW,
         "expected_data": expected_commit(COMMIT_RAW),
     },
@@ -530,7 +547,6 @@ ACTION_CASES = [
         "kwargs": {"tree_sha": "tree123", "recursive": False},
         "path": "/repos/test-org/test-repo/git/trees/tree123",
         "params": {},
-        "headers": {"Accept": "application/vnd.github+json"},
         "raw": TREE_RAW,
         "expected_data": expected_tree(TREE_RAW),
     },
@@ -539,7 +555,6 @@ ACTION_CASES = [
         "operation": "get",
         "kwargs": {"sha": "abc123"},
         "path": "/repos/test-org/test-repo/git/commits/abc123",
-        "headers": {"Accept": "application/vnd.github+json"},
         "raw": GIT_COMMIT_OBJECT_RAW,
         "expected_data": expected_git_commit_object(GIT_COMMIT_OBJECT_RAW),
     },
@@ -676,7 +691,6 @@ ACTION_CASES = [
         "operation": "get",
         "kwargs": {"check_run_id": "300"},
         "path": "/repos/test-org/test-repo/check-runs/300",
-        "headers": {"Accept": "application/vnd.github+json"},
         "raw": CHECK_RUN_RAW,
         "expected_data": expected_check_run(CHECK_RUN_RAW),
     },
@@ -704,7 +718,6 @@ ACTION_CASES = [
         "operation": "get",
         "kwargs": {"ref": "main"},
         "path": "/repos/test-org/test-repo/tarball/main",
-        "headers": {"Accept": "application/vnd.github+json"},
         "url": "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main",
         "raw": "https://codeload.github.com/test-org/test-repo/legacy.tar.gz/refs/heads/main",
         "expected_data": {
@@ -718,7 +731,6 @@ ACTION_CASES = [
         "operation": "get",
         "kwargs": {"ref": "main", "archive_format": "zip"},
         "path": "/repos/test-org/test-repo/zipball/main",
-        "headers": {"Accept": "application/vnd.github+json"},
         "url": "https://codeload.github.com/test-org/test-repo/legacy.zip/refs/heads/main",
         "raw": "https://codeload.github.com/test-org/test-repo/legacy.zip/refs/heads/main",
         "expected_data": {
@@ -729,7 +741,7 @@ ACTION_CASES = [
 ]
 
 
-VOID_CASES = [
+VOID_CASES: list[dict[str, Any]] = [
     {
         "name": "delete_issue_comment",
         "operation": "delete",
@@ -829,7 +841,9 @@ def test_paginated_methods(case: dict[str, Any]) -> None:
             "operation": "get",
             "path": case["path"],
             "params": case["params"],
-            "headers": {"Accept": "application/vnd.github+json"},
+            "pagination": case["pagination"],
+            "request_options": None,
+            "extra_headers": None,
         }
     ]
 
@@ -845,14 +859,15 @@ def test_action_methods(case: dict[str, Any]) -> None:
     expected_call = {"operation": case["operation"], "path": case["path"]}
     if "data" in case:
         expected_call["data"] = case["data"]
-    if "params" in case:
-        expected_call["params"] = case["params"]
-    elif case["operation"] == "get":
-        expected_call["params"] = None
-    if "headers" in case:
-        expected_call["headers"] = case["headers"]
+    if case["operation"] == "get":
+        expected_call["params"] = case.get("params")
+        expected_call["pagination"] = None
+        expected_call["request_options"] = None
+        expected_call["extra_headers"] = None
     else:
-        expected_call["headers"] = None
+        if "params" in case:
+            expected_call["params"] = case["params"]
+        expected_call["headers"] = case.get("headers")
     assert client.calls == [expected_call]
 
 
@@ -866,7 +881,7 @@ def test_get_pull_request_diff_uses_raw_request_and_extracts_meta() -> None:
         },
         text="diff --git a/f.py b/f.py",
     )
-    client.queue("request", response)
+    client.queue("get", response)
 
     result = provider.get_pull_request_diff("42")
 
@@ -877,12 +892,12 @@ def test_get_pull_request_diff_uses_raw_request_and_extracts_meta() -> None:
     assert result["meta"]["last_modified"].isoformat() == "2026-02-04T10:00:00+00:00"
     assert client.calls == [
         {
-            "operation": "request",
-            "method": "GET",
+            "operation": "get",
             "path": "/repos/test-org/test-repo/pulls/42",
-            "data": None,
             "params": None,
-            "headers": {"Accept": "application/vnd.github.v3.diff"},
+            "pagination": None,
+            "request_options": None,
+            "extra_headers": {"Accept": "application/vnd.github.v3.diff"},
         }
     ]
 
