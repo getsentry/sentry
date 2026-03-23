@@ -152,7 +152,9 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[st
     if isinstance(group_id, str) and not group_id.isdigit():
         group = _group_by_short_id(group_id, organization_id)
     else:
-        group = Group.objects.filter(id=int(group_id)).first()
+        group = Group.objects.filter(
+            id=int(group_id), project__organization_id=organization_id
+        ).first()
 
     if not group:
         logger.warning(

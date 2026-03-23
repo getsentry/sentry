@@ -12,13 +12,13 @@ _path_patterns: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\/?organizations\/(?!new)[^/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/
     (
-        re.compile(r"\/settings\/(?!account\/|!billing\/|projects\/|teams)[^/]+\/?$"),
+        re.compile(r"\/settings\/(?!account\/|!billing\/|projects\/|seer\/|teams)[^/]+\/?$"),
         "/settings/organization/",
     ),
     # Move /settings/:orgId/:section -> /settings/:section
     # but not /settings/organization or /settings/projects which is a new URL
     (
-        re.compile(r"^\/?settings\/(?!account\/|billing\/|projects\/|teams)[^/]+\/(.*)"),
+        re.compile(r"^\/?settings\/(?!account\/|billing\/|projects\/|seer\/|teams)[^/]+\/(.*)"),
         r"/settings/\1",
     ),
     (re.compile(r"^\/?join-request\/[^/]+\/?.*"), r"/join-request/"),

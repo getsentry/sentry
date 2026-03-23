@@ -27,9 +27,11 @@ from sentry.seer.explorer.explorer_service_map_utils import (
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
+    ExplorerIndexSentryKnowledgeRequest,
     OrgProjectKnowledgeIndexRequest,
     OrgProjectKnowledgeProjectData,
     SeerViewerContext,
+    make_index_sentry_knowledge_request,
     make_org_project_knowledge_index_request,
 )
 from sentry.tasks.base import instrumented_task
@@ -268,3 +270,22 @@ def schedule_context_engine_indexing_tasks() -> None:
         "Scheduled context engine indexing tasks",
         extra={"total_org_count": len(allowed_org_ids), "dispatched": dispatched},
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.context_engine_index.index_sentry_knowledge",
+    namespace=seer_tasks,
+    processing_deadline_duration=30,
+)
+def index_sentry_knowledge() -> None:
+    response = make_index_sentry_knowledge_request(
+        body=ExplorerIndexSentryKnowledgeRequest(replace_existing=True)
+    )
+
+    if response.status >= 400:
+        raise Exception(
+            f"Seer sentry-knowledge endpoint returned {response.status}: {response.data.decode()}"
+        )
+
+    logger.info("Successfully called Seer sentry-knowledge endpoint")
+    return None

@@ -90,6 +90,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           orderby: '',
         },
       ],
+      limit: 3,
     },
   ],
   0,

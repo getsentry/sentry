@@ -41,6 +41,7 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     use_reranking: NotRequired[bool]
     model: NotRequired[GroupingVersion]  # Model version, defaults to V1 for backward compatibility
     training_mode: NotRequired[bool]  # whether to just insert embedding without querying
+    platform: NotRequired[str]
 
 
 class RawSeerSimilarIssueData(TypedDict):

@@ -9,7 +9,9 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
-from sentry.search.eap.columns import ResolvedArguments
+from sentry.search.eap.columns import (
+    ResolvedArguments,
+)
 from sentry.search.eap.normalizer import unquote_literal
 
 
@@ -122,4 +124,4 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
                 value=attr_value,
             )
         )
-    return (aggregate_key, trace_filter)
+    return aggregate_key, trace_filter
