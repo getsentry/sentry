@@ -400,16 +400,15 @@ class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
                 "triggers": sorted(new_rule.get("triggers", []), key=lambda t: t.get("label", "")),
             }
             assert_serializer_parity(
-                old_sorted,
-                new_sorted,
-                {
+                old=old_sorted,
+                new=new_sorted,
+                known_differences={
                     # resolveThreshold: Old serializer checked AlertRule.resolve_threshold for None,
                     # but workflow engine always creates a resolve condition during migration.
                     # Cannot distinguish between explicit None vs migrated value without AlertRule.
                     "resolveThreshold",
                     "triggers.resolveThreshold",  # same reason as above
                 },
-                label="List old vs new",
             )
 
 

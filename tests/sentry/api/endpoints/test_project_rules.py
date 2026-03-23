@@ -1593,4 +1593,4 @@ class GetProjectRulesDeltaTest(APITestCase):
         we_rule = we_response.data[0]
         assert legacy_rule["id"] == str(rule.id)
 
-        assert_serializer_parity(legacy_rule, we_rule, label="Legacy vs workflow engine")
+        assert_serializer_parity(old=legacy_rule, new=we_rule)

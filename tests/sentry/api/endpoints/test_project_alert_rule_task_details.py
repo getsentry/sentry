@@ -148,9 +148,9 @@ class ProjectAlertRuleTaskDetailsDeltaTest(APITestCase):
         new_data = response_new.data["alertRule"]
 
         assert_serializer_parity(
-            old_data,
-            new_data,
-            {
+            old=old_data,
+            new=new_data,
+            known_differences={
                 # createdBy: Lost during migration when AlertRuleActivity CREATED type wasn't
                 # tracked. Detector.created_by_id is None if user wasn't provided during migration.
                 # Cannot use AlertRuleActivity as it's being phased out.
@@ -161,5 +161,4 @@ class ProjectAlertRuleTaskDetailsDeltaTest(APITestCase):
                 "resolveThreshold",
                 "triggers.resolveThreshold",  # same reason as above
             },
-            label="Task details old vs new",
         )

@@ -6,11 +6,10 @@ from typing import Any
 
 
 def assert_serializer_parity(
+    *,
     old: Mapping[str, Any],
     new: Mapping[str, Any],
     known_differences: set[str] | None = None,
-    *,
-    label: str = "old vs new",
 ) -> None:
     """Assert that two serializer responses are equal, modulo known differences.
 
@@ -19,19 +18,19 @@ def assert_serializer_parity(
     * ``"field"`` — skip ``field`` at the top level.
     * ``"parent.field"`` — skip ``field`` inside ``parent``.  If ``parent`` is a
       list of dicts, the exclusion applies to every element.  Callers must sort
-      any list fields to the same order before calling.
+      any list fields to the same order before calling if order should be ignored.
 
     Raises if any listed known difference is not actually different — unnecessary
     entries should be removed.
 
     Examples::
 
-        assert_serializer_parity(old, new, {"resolveThreshold"})
+        assert_serializer_parity(old=old, new=new)
 
         assert_serializer_parity(
-            old,
-            new,
-            {"resolveThreshold", "triggers.resolveThreshold"},
+            old=old,
+            new=new,
+            known_differences={"resolveThreshold", "triggers.resolveThreshold"},
         )
     """
     known_diffs = frozenset(known_differences or ())
@@ -40,13 +39,15 @@ def assert_serializer_parity(
     unnecessary = (checker.unnecessary_candidates - checker.fired) | (
         known_diffs - checker.fired - checker.unnecessary_candidates
     )
-    assert not checker.mismatches, f"{label} serializer differences:\n" + "\n".join(
-        checker.mismatches
-    )
+    assert not checker.mismatches, "Serializer differences:\n" + "\n".join(checker.mismatches)
     assert not unnecessary, (
-        f"{label} unnecessary known_differences (no actual difference found):\n"
+        "Unnecessary known_differences (no actual difference found):\n"
         + "\n".join(sorted(unnecessary))
     )
+
+
+def _qualify(prefix: str, name: str) -> str:
+    return f"{prefix}.{name}" if prefix else name
 
 
 @dataclass
@@ -54,6 +55,10 @@ class _ParityChecker:
     mismatches: list[str] = field(default_factory=list)
     fired: set[str] = field(default_factory=set)
     unnecessary_candidates: set[str] = field(default_factory=set)
+
+    def _nested_diffs(self, known_diffs: frozenset[str], key: str) -> frozenset[str]:
+        prefix = key + "."
+        return frozenset(e[len(prefix) :] for e in known_diffs if e.startswith(prefix))
 
     def collect(
         self,
@@ -63,26 +68,16 @@ class _ParityChecker:
         path: str = "",
         kd_prefix: str = "",
     ) -> None:
-        def fp(key: str) -> str:
-            return f"{path}.{key}" if path else key
-
-        def kd_key(key: str) -> str:
-            return f"{kd_prefix}.{key}" if kd_prefix else key
-
-        def nested_diffs(key: str) -> frozenset[str]:
-            prefix = key + "."
-            return frozenset(e[len(prefix) :] for e in known_diffs if e.startswith(prefix))
-
         for key in set(list(old.keys()) + list(new.keys())):
             if key in known_diffs:
-                full_kd_key = kd_key(key)
+                full_kd_key = _qualify(kd_prefix, key)
                 if key not in new or key not in old or old[key] != new[key]:
                     self.fired.add(full_kd_key)
                 else:
                     self.unnecessary_candidates.add(full_kd_key)
                 continue
 
-            full_path = fp(key)
+            full_path = _qualify(path, key)
 
             if key not in new:
                 self.mismatches.append(f"Missing from new: {full_path}")
@@ -93,10 +88,10 @@ class _ParityChecker:
 
             old_val = old[key]
             new_val = new[key]
-            nested = nested_diffs(key)
+            nested = self._nested_diffs(known_diffs, key)
 
             if nested:
-                child_kd_prefix = kd_key(key)
+                child_kd_prefix = _qualify(kd_prefix, key)
                 if isinstance(old_val, list) and isinstance(new_val, list):
                     if len(old_val) != len(new_val):
                         self.mismatches.append(
