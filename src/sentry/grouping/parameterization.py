@@ -314,9 +314,9 @@ class Parameterizer:
             parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
             metric_tags["changed"] = parameterized != input_str
 
-        for regex_key, value in matches_counter.items():
+        for regex_key, count in matches_counter.items():
             # Track the kinds of replacements being made
-            metrics.incr("grouping.value_parameterized", amount=value, tags={"key": regex_key})
+            metrics.incr("grouping.value_parameterized", amount=count, tags={"key": regex_key})
 
         return parameterized
 
