@@ -146,6 +146,7 @@ class GitHubProviderApiClient:
         data: dict[str, Any] | None = None,
         params: dict[str, str] | None = None,
         headers: dict[str, str] | None = None,
+        allow_redirects: bool | None = None,
     ) -> requests.Response:
         try:
             return self.client._request(
@@ -156,6 +157,7 @@ class GitHubProviderApiClient:
                 params=params,
                 raw_response=True,
                 force_raise_for_status=True,
+                allow_redirects=allow_redirects,
             )
         except ApiError as e:
             raise SCMProviderException(str(e)) from e
@@ -167,6 +169,7 @@ class GitHubProviderApiClient:
         pagination: PaginationParams | None = None,
         request_options: RequestOptions | None = None,
         extra_headers: dict[str, str] | None = None,
+        allow_redirects: bool | None = None,
     ) -> requests.Response:
         headers = {"Accept": "application/vnd.github+json"}
 
@@ -190,7 +193,13 @@ class GitHubProviderApiClient:
             params["per_page"] = "100"
             params["page"] = "1"
 
-        return self.request("GET", path=path, params=params, headers=headers)
+        return self.request(
+            "GET",
+            path=path,
+            params=params,
+            headers=headers,
+            allow_redirects=allow_redirects,
+        )
 
     def post(
         self,
@@ -835,6 +844,7 @@ class GitHubProvider:
         response = self.client.get(
             f"/repos/{self.repository['name']}/{GITHUB_ARCHIVE_FORMAT_MAP[archive_format]}/{ref}",
             request_options=request_options,
+            allow_redirects=False,
         )
         return {
             "data": ArchiveLink(url=response.url, headers={}),

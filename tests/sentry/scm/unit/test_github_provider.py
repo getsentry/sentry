@@ -86,6 +86,7 @@ class RecordingClient:
         pagination: Any | None = None,
         request_options: Any | None = None,
         extra_headers: dict[str, str] | None = None,
+        allow_redirects: bool | None = None,
     ) -> FakeResponse:
         self.calls.append(
             {
