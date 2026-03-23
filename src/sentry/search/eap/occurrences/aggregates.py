@@ -1,4 +1,8 @@
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, Function
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeKey,
+    ExtrapolationMode,
+    Function,
+)
 
 from sentry.search.eap import constants
 from sentry.search.eap.aggregate_utils import count_processor, resolve_key_eq_value_filter
@@ -19,21 +23,23 @@ OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES = [
     OCCURRENCE_GROUP_ID_KEY,
 ]
 
+COMMON_COUNTABLE_ATTRIBUTE_TYPES = {
+    "duration",
+    "number",
+    "integer",
+    "percentage",
+    "currency",
+    *constants.SIZE_TYPE,
+    *constants.DURATION_TYPE,
+}
+
 OCCURRENCE_AGGREGATE_DEFINITIONS = {
     "avg": AggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    "integer",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types=COMMON_COUNTABLE_ATTRIBUTE_TYPES,
             )
         ],
     ),
@@ -44,15 +50,7 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
         processor=count_processor,
         arguments=[
             AttributeArgumentDefinition(
-                attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
-                },
+                attribute_types=COMMON_COUNTABLE_ATTRIBUTE_TYPES,
                 default_arg="group_id",
             )
         ],
@@ -65,28 +63,16 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
+                    *COMMON_COUNTABLE_ATTRIBUTE_TYPES,
                     "boolean",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
                 },
                 default_arg="group_id",
             ),
             AttributeArgumentDefinition(
                 attribute_types={
                     "string",
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
                     "boolean",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
+                    *COMMON_COUNTABLE_ATTRIBUTE_TYPES,
                 }
             ),
             ValueArgumentDefinition(
@@ -116,16 +102,24 @@ OCCURRENCE_AGGREGATE_DEFINITIONS = {
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
-                    "duration",
-                    "number",
-                    "integer",
-                    "percentage",
-                    "currency",
+                    *COMMON_COUNTABLE_ATTRIBUTE_TYPES,
                     "string",
-                    *constants.SIZE_TYPE,
-                    *constants.DURATION_TYPE,
                 },
             )
         ],
+    ),
+    "sample_count": AggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        infer_search_type_from_arguments=False,
+        default_search_type="integer",
+        processor=count_processor,
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types=COMMON_COUNTABLE_ATTRIBUTE_TYPES,
+                default_arg="group_id",
+            )
+        ],
+        attribute_resolver=count_argument_resolver_optimized(OCCURRENCES_ALWAYS_PRESENT_ATTRIBUTES),
+        extrapolation_mode_override=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
     ),
 }
