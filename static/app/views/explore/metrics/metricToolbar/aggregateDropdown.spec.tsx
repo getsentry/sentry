@@ -417,4 +417,55 @@ describe('AggregateDropdown', () => {
     expect(callArgs.aggregateFields).toHaveLength(1);
     expect(callArgs.aggregateFields[0].parsedFunction?.name).toBe('per_second');
   });
+
+  it('only allows one rate aggregate at a time', async () => {
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-enabled'],
+    });
+
+    const setQueryParams = jest.fn();
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.SAMPLES,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [
+        new VisualizeFunction('per_second(value,test_metric,distribution,-)'),
+      ],
+      aggregateSortBys: [
+        {field: 'per_second(value,test_metric,distribution,-)', kind: 'desc'},
+      ],
+    });
+
+    render(
+      <AggregateDropdown traceMetric={{name: 'test_metric', type: 'distribution'}} />,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, setQueryParams, stateful: true}),
+      }
+    );
+
+    const trigger = screen.getByRole('button', {name: /Agg/});
+    await userEvent.click(trigger);
+
+    await waitFor(() =>
+      expect(screen.getByRole('option', {name: 'per_second'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+    );
+
+    await userEvent.click(screen.getByRole('option', {name: 'per_minute'}));
+
+    await waitFor(() => {
+      expect(setQueryParams).toHaveBeenCalled();
+    });
+
+    const callArgs = setQueryParams.mock.calls[setQueryParams.mock.calls.length - 1]![0];
+    expect(callArgs.aggregateFields).toHaveLength(1);
+    expect(callArgs.aggregateFields[0].parsedFunction?.name).toBe('per_minute');
+  });
 });
