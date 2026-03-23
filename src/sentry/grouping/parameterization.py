@@ -302,7 +302,7 @@ class Parameterizer:
         For example, turn "Error with order #1231" into "Error with order #<int>".
         """
 
-        matches_counter: defaultdict[str, int] = defaultdict(int)
+        replacement_counts: defaultdict[str, int] = defaultdict(int)
 
         def _handle_regex_match(match: re.Match[str]) -> str:
             # Since
@@ -327,7 +327,7 @@ class Parameterizer:
             # The replacement callback might return the original value, if it determines it's not
             # something which should be replaced, and we don't want to count that
             if replacement_string != orig_value:
-                matches_counter[matched_key] += 1
+                replacement_counts[matched_key] += 1
 
             return replacement_string
 
@@ -337,7 +337,7 @@ class Parameterizer:
             parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
             metric_tags["changed"] = parameterized != input_str
 
-        for regex_key, count in matches_counter.items():
+        for regex_key, count in replacement_counts.items():
             # Track the kinds of replacements being made
             metrics.incr("grouping.value_parameterized", amount=count, tags={"key": regex_key})
 
