@@ -1,6 +1,6 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {matchTimeSeriesToTableRowValue} from './matchTimeSeriestoTableRow';
+import {matchTimeSeriesToTableRowValue} from './matchTimeSeriesToTableRowValue';
 
 describe('matchTimeSeriesToTableRowValue', () => {
   it('returns the first row value when there is no groupBy', () => {
