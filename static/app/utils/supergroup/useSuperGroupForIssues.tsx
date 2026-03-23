@@ -36,7 +36,7 @@ export function useSuperGroupForIssues() {
         }),
         {
           query: {
-            group_id: ids as string[],
+            group_id: ids,
           },
         },
       ],
