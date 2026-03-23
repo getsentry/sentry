@@ -4,7 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function WorkflowEngineAlert() {
+export function APIUsageWarningBanner() {
   const organization = useOrganization();
 
   if (!organization.features.includes('workflow-engine-rule-serializers')) {

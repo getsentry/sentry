@@ -27,6 +27,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {APIUsageWarningBanner} from 'sentry/views/alerts/rules/APIUsageWarningBanner';
 import {AnomalyDetectionFeedbackBanner} from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import {MetricHistory} from 'sentry/views/alerts/rules/metric/details/metricHistory';
@@ -40,7 +41,6 @@ import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/u
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {UserSnoozeDeprecationBanner} from 'sentry/views/alerts/rules/userSnoozeDeprecationBanner';
-import {WorkflowEngineAlert} from 'sentry/views/alerts/rules/workflowEngineAlert';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
@@ -172,7 +172,7 @@ export function MetricDetailsBody({
       )}
       <Layout.Body>
         <Layout.Main>
-          <WorkflowEngineAlert />
+          <APIUsageWarningBanner />
           {rule.snooze && (
             <Alert.Container>
               {rule.snoozeForEveryone ? (

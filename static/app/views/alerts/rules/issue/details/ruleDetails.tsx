@@ -41,10 +41,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {APIUsageWarningBanner} from 'sentry/views/alerts/rules/APIUsageWarningBanner';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 import {UserSnoozeDeprecationBanner} from 'sentry/views/alerts/rules/userSnoozeDeprecationBanner';
-import {WorkflowEngineAlert} from 'sentry/views/alerts/rules/workflowEngineAlert';
 
 import {IssueAlertDetailsChart} from './alertChart';
 import {AlertRuleIssuesList} from './issuesList';
@@ -465,7 +465,7 @@ export default function AlertRuleDetails() {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main>
-          <WorkflowEngineAlert />
+          <APIUsageWarningBanner />
           {renderIncompatibleAlert()}
           {renderDisabledAlertBanner()}
           {rule.snooze && (
