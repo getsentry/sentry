@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -9,7 +10,6 @@ import {
   type OnboardingSessionState,
 } from 'sentry/components/onboarding/onboardingContext';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {RepositoryStatus, type Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
@@ -34,17 +34,7 @@ const mockPlatform: OnboardingSelectedSDK = {
   type: 'framework',
 };
 
-const mockRepository: Repository = {
-  id: '42',
-  name: 'getsentry/sentry',
-  externalId: '123',
-  externalSlug: 'getsentry/sentry',
-  url: 'https://github.com/getsentry/sentry',
-  integrationId: '1',
-  status: RepositoryStatus.ACTIVE,
-  dateCreated: '2024-01-01T00:00:00.000Z',
-  provider: {id: 'integrations:github', name: 'GitHub'},
-};
+const mockRepository = RepositoryFixture({id: '42', name: 'getsentry/sentry'});
 
 describe('ScmProjectDetails', () => {
   const organization = OrganizationFixture();
