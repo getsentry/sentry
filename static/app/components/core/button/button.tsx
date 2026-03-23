@@ -1,7 +1,7 @@
-import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -59,6 +59,7 @@ export function Button({
           justify="center"
           minWidth="0"
           height="100%"
+          overflow="visible"
           whiteSpace="nowrap"
           visibility={busy ? 'hidden' : undefined}
         >
@@ -83,9 +84,10 @@ export function Button({
               justify="center"
               position="absolute"
               visibility="visible"
-              inset={0}
+              inset="0"
+              style={{marginInline: '-4px'}}
             >
-              {({className}) => <BusySpinner className={className} aria-hidden />}
+              <IndeterminateLoader variant="monochrome" aria-hidden />
             </Flex>
           )}
         </Flex>
@@ -101,23 +103,4 @@ const StyledButton = styled('button')<
   }
 >`
   ${p => getButtonStyles(p)}
-`;
-
-const spin = keyframes`
-  to {
-    transform: rotate(360deg);
-  }
-`;
-
-const BusySpinner = styled('span')`
-  &::after {
-    content: '';
-    display: block;
-    width: 1em;
-    height: 1em;
-    border-radius: 50%;
-    border: 2px solid currentColor;
-    border-top-color: transparent;
-    animation: ${spin} 0.6s linear infinite;
-  }
 `;
