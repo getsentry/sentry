@@ -19,7 +19,7 @@ export function CreateFromSeerLoading({blocks}: CreateFromSeerLoadingProps) {
   }
   const blocksToRender = blocks.slice(-3);
   return (
-    <Layout.Page withPadding>
+    <Layout.Page withPadding background="secondary">
       <Flex direction="column" gap="lg" align="center" justify="center" flex="1">
         <Flex direction="column" gap="sm" width="500px">
           <Heading as="h3">{t('Generating Dashboard')}</Heading>
@@ -27,7 +27,7 @@ export function CreateFromSeerLoading({blocks}: CreateFromSeerLoadingProps) {
             {t('Stay on this page while we get this made for you')}
           </Text>
           <Container overflow="hidden" maxHeight="500px" paddingTop="lg">
-            <Stack border="primary" radius="md" background="secondary">
+            <Stack border="primary" radius="md" background="primary">
               {blocksToRender.map((block, index) => (
                 <BlockComponent
                   key={block.id}
