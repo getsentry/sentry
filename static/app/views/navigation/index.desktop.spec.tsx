@@ -91,7 +91,7 @@ function assertValidListHTML(list: HTMLElement) {
     if (child.querySelector('hr, [role="separator"]')) {
       expect(child.children).toHaveLength(1);
     } else {
-      expect(child.querySelectorAll('a')).toHaveLength(1);
+      expect(child.querySelectorAll('a, [role="link"]')).toHaveLength(1);
     }
   });
 }
@@ -126,8 +126,19 @@ function setupMocks() {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/dashboards/`,
     body: [
-      DashboardListItemFixture({id: '1', title: 'Starred Dashboard 1'}),
-      DashboardListItemFixture({id: '2', title: 'Starred Dashboard 2'}),
+      // This ensures that we test the "All Projects", "My projects", "multiple projects" icons
+      DashboardListItemFixture({id: '1', title: 'All projects', projects: []}),
+      DashboardListItemFixture({id: '2', title: 'My projects', projects: [-1]}),
+      DashboardListItemFixture({
+        id: '3',
+        title: 'Multiple projects',
+        projects: [1, 2, 3],
+      }),
+      DashboardListItemFixture({
+        id: '4',
+        title: 'Single project',
+        projects: [1],
+      }),
     ],
   });
 
@@ -156,62 +167,6 @@ describe('desktop navigation', () => {
     expect(
       screen.queryByRole('navigation', {name: 'Secondary Navigation'})
     ).not.toBeInTheDocument();
-  });
-
-  describe('HTML structure', () => {
-    it('primary navigation renders a nav landmark with a list of links (nav > ul > li > a)', () => {
-      render(
-        <PrimaryNavigationContextProvider>
-          <Navigation />
-        </PrimaryNavigationContextProvider>,
-        navigationContext({
-          organization: {features: ALL_AVAILABLE_FEATURES},
-        })
-      );
-
-      const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
-      within(primaryNav).getAllByRole('list').forEach(assertValidListHTML);
-
-      within(primaryNav)
-        .getAllByRole('link')
-        .forEach(link => {
-          expect(link.closest('li')).toBeInTheDocument();
-        });
-    });
-
-    it('all secondary navigation sections render valid ul > li structure', async () => {
-      const routes = [
-        '/organizations/org-slug/issues/',
-        '/organizations/org-slug/explore/traces/',
-        '/organizations/org-slug/dashboards/',
-        '/organizations/org-slug/insights/frontend/',
-        '/organizations/org-slug/monitors/',
-        '/settings/org-slug/',
-      ];
-
-      for (const pathname of routes) {
-        const {unmount} = render(
-          <PrimaryNavigationContextProvider>
-            <Navigation />
-          </PrimaryNavigationContextProvider>,
-          navigationContext({
-            organization: {features: ALL_AVAILABLE_FEATURES},
-            initialRouterConfig: {location: {pathname}},
-          })
-        );
-
-        const secondaryNav = screen.getByRole('navigation', {
-          name: 'Secondary Navigation',
-        });
-        within(secondaryNav).getAllByRole('list').forEach(assertValidListHTML);
-        within(secondaryNav)
-          .getAllByRole('link')
-          .forEach(link => {
-            expect(link.closest('li')).toBeInTheDocument();
-          });
-        unmount();
-      }
-    });
   });
 
   describe('accessibility', () => {
@@ -316,7 +271,7 @@ describe('desktop navigation', () => {
     });
 
     describe('route inference', () => {
-      async function assertRouteActivatesLinks(
+      async function assertNavStructureAndActiveLinksForRoute(
         pathname: string,
         activePrimaryLink: string,
         activeSecondaryLink: string,
@@ -337,12 +292,31 @@ describe('desktop navigation', () => {
           within(primaryNav).getByRole('link', {name: activePrimaryLink})
         );
 
+        within(primaryNav).getAllByRole('list').forEach(assertValidListHTML);
+        within(primaryNav)
+          .getAllByRole('link')
+          .forEach(link => expect(link.closest('li')).toBeInTheDocument());
+
         const secondaryNav = screen.getByRole('navigation', {
           name: 'Secondary Navigation',
         });
+
         assertActiveSecondaryNavLink(
           await within(secondaryNav).findByRole('link', {name: activeSecondaryLink})
         );
+        within(secondaryNav).getAllByRole('list').forEach(assertValidListHTML);
+        within(secondaryNav)
+          .getAllByRole('link')
+          .forEach(link => expect(link.closest('li')).toBeInTheDocument());
+
+        screen.queryAllByRole('img').forEach(img => {
+          const hasAlt = img.hasAttribute('alt') && img.getAttribute('alt') !== '';
+          const hasAriaLabel =
+            img.hasAttribute('aria-label') && img.getAttribute('aria-label') !== '';
+          const hasAriaLabelledBy = img.hasAttribute('aria-labelledby');
+          expect(hasAlt || hasAriaLabel || hasAriaLabelledBy).toBe(true);
+        });
+
         unmount();
       }
 
@@ -397,7 +371,12 @@ describe('desktop navigation', () => {
         ];
 
         for (const [pathname, primary, secondary, route] of cases) {
-          await assertRouteActivatesLinks(pathname, primary, secondary, route);
+          await assertNavStructureAndActiveLinksForRoute(
+            pathname,
+            primary,
+            secondary,
+            route
+          );
         }
       });
 
@@ -490,7 +469,12 @@ describe('desktop navigation', () => {
             organizationUrl: 'https://org-slug.sentry.io',
             sentryUrl: 'https://sentry.io',
           });
-          await assertRouteActivatesLinks(pathname, primary, secondary, route);
+          await assertNavStructureAndActiveLinksForRoute(
+            pathname,
+            primary,
+            secondary,
+            route
+          );
         }
       });
     });
@@ -725,7 +709,7 @@ describe('desktop navigation', () => {
         });
       });
 
-      describe('peek Preview', () => {
+      describe('peek preview', () => {
         it('shows the sidebar on hover when collapsed', async () => {
           localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 

@@ -107,4 +107,7 @@
     "--config-file=${workspaceFolder}/pyproject.toml"
   ],
   "mypy-type-checker.cwd": "${workspaceFolder}",
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
 }

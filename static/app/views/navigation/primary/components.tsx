@@ -204,6 +204,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
         width={hasPageFrame ? theme.form.sm.height : undefined}
         height={hasPageFrame ? theme.form.sm.height : undefined}
         data-icon-container
+        aria-hidden="true"
       >
         {props.children}
       </Flex>

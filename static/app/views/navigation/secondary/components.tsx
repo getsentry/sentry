@@ -349,7 +349,7 @@ function SectionTitle(props: SectionTitleProps) {
             <Text bold ellipsis align="left">
               {props.children}
             </Text>
-            <Flex align="center" flexShrink={0}>
+            <Flex align="center" flexShrink={0} aria-hidden="true">
               {props.trailingItems ? (
                 <div onClick={e => e.stopPropagation()}>{props.trailingItems}</div>
               ) : (
@@ -510,22 +510,38 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
   switch (props.projectPlatforms.length) {
     case 0:
       icons = props.allProjects ? (
-        <IconAllProjects size="md" />
+        <IconAllProjects size="md" aria-hidden="true" />
       ) : (
-        <IconMyProjects size="md" />
+        <IconMyProjects size="md" aria-hidden="true" />
       );
       break;
     case 1:
-      icons = <PlatformIcon platform={props.projectPlatforms[0]!} size={16} />;
+      icons = (
+        <PlatformIcon platform={props.projectPlatforms[0]!} size={16} aria-hidden />
+      );
       break;
     default:
       icons = (
         <Fragment>
           <Container position="absolute" top="0" right="6px" width="12px" height="12px">
-            {p => <PlatformIcon {...p} platform={props.projectPlatforms[0]!} size={12} />}
+            {p => (
+              <PlatformIcon
+                {...p}
+                platform={props.projectPlatforms[0]!}
+                size={12}
+                aria-hidden
+              />
+            )}
           </Container>
           <Container position="absolute" bottom="0" right="0" width="12px" height="12px">
-            {p => <PlatformIcon {...p} platform={props.projectPlatforms[1]!} size={12} />}
+            {p => (
+              <PlatformIcon
+                {...p}
+                platform={props.projectPlatforms[1]!}
+                size={12}
+                aria-hidden
+              />
+            )}
           </Container>
         </Fragment>
       );
@@ -540,6 +556,7 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
       height="18px"
       position="relative"
       data-project-icon
+      aria-hidden="true"
     >
       {icons}
     </Stack>
@@ -968,7 +985,7 @@ function GrabHandle(props: FlexProps<'div'>) {
           style={{cursor: isDragging ? 'grabbing' : 'grab'}}
           onClick={e => e.stopPropagation()}
         >
-          <IconGrabbable variant="muted" />
+          <IconGrabbable variant="muted" aria-hidden="true" />
         </GrabHandleAnimation>
       )}
     </Flex>
