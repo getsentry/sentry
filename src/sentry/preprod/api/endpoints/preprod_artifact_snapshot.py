@@ -444,6 +444,16 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         },
                     )
 
+                    base_metrics = PreprodSnapshotMetrics.objects.filter(
+                        preprod_artifact=base_artifact
+                    ).first()
+                    if base_metrics:
+                        PreprodSnapshotComparison.objects.get_or_create(
+                            head_snapshot_metrics=snapshot_metrics,
+                            base_snapshot_metrics=base_metrics,
+                            defaults={"state": PreprodSnapshotComparison.State.PENDING},
+                        )
+
                     compare_snapshots.apply_async(
                         kwargs={
                             "project_id": project.id,

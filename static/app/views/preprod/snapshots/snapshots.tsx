@@ -17,7 +17,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
+import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
+import {ComparisonState, getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -54,6 +55,12 @@ export default function SnapshotsPage() {
     {
       staleTime: 0,
       enabled: !!snapshotId,
+      refetchInterval: query => {
+        const state = query.state.data?.[0]?.comparison_run_info?.state;
+        return state === ComparisonState.PENDING || state === ComparisonState.PROCESSING
+          ? 5_000
+          : false;
+      },
     }
   );
 
@@ -340,47 +347,59 @@ export default function SnapshotsPage() {
           </Layout.HeaderActions>
         </Layout.Header>
 
-        <Flex
-          direction="row"
-          flex="1"
-          minHeight="0"
-          width="100%"
-          overflow="hidden"
-          style={{maxHeight: 'calc(100vh - 205px)'}}
-        >
-          <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
-            <SnapshotSidebarContent
-              items={filteredItems}
-              totalItemCount={sidebarItems.length}
-              currentItemKey={currentItemKey}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              onSelectItem={handleSelectItem}
+        {comparisonRunInfo?.state &&
+        [ComparisonState.PENDING, ComparisonState.PROCESSING].includes(
+          comparisonRunInfo.state
+        ) ? (
+          <Flex width="100%" justify="center" align="center">
+            <BuildProcessing
+              title={t('Generating snapshot comparison')}
+              message={t('Hang tight, this may take a few minutes...')}
             />
           </Flex>
-          <DragHandle
-            data-is-held={isHeld}
-            onMouseDown={onMouseDown}
-            onDoubleClick={onDoubleClick}
+        ) : (
+          <Flex
+            direction="row"
+            flex="1"
+            minHeight="0"
+            width="100%"
+            overflow="hidden"
+            style={{maxHeight: 'calc(100vh - 205px)'}}
           >
-            <IconGrabbable size="sm" />
-          </DragHandle>
-          <Flex flex="1" minWidth={0} overflow="hidden">
-            <SnapshotMainContent
-              selectedItem={deferredItem}
-              variantIndex={safeVariantIndex}
-              onVariantChange={setVariantIndex}
-              imageBaseUrl={imageBaseUrl}
-              diffImageBaseUrl={diffImageBaseUrl}
-              showOverlay={showOverlay}
-              onShowOverlayChange={setShowOverlay}
-              overlayColor={overlayColor}
-              onOverlayColorChange={setOverlayColor}
-              diffMode={diffMode}
-              onDiffModeChange={setDiffMode}
-            />
+            <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
+              <SnapshotSidebarContent
+                items={filteredItems}
+                totalItemCount={sidebarItems.length}
+                currentItemKey={currentItemKey}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onSelectItem={handleSelectItem}
+              />
+            </Flex>
+            <DragHandle
+              data-is-held={isHeld}
+              onMouseDown={onMouseDown}
+              onDoubleClick={onDoubleClick}
+            >
+              <IconGrabbable size="sm" />
+            </DragHandle>
+            <Flex flex="1" minWidth={0} overflow="hidden">
+              <SnapshotMainContent
+                selectedItem={deferredItem}
+                variantIndex={safeVariantIndex}
+                onVariantChange={setVariantIndex}
+                imageBaseUrl={imageBaseUrl}
+                diffImageBaseUrl={diffImageBaseUrl}
+                showOverlay={showOverlay}
+                onShowOverlayChange={setShowOverlay}
+                overlayColor={overlayColor}
+                onOverlayColorChange={setOverlayColor}
+                diffMode={diffMode}
+                onDiffModeChange={setDiffMode}
+              />
+            </Flex>
           </Flex>
-        </Flex>
+        )}
       </Layout.Page>
     </SentryDocumentTitle>
   );
