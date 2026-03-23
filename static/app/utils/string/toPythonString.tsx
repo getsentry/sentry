@@ -19,5 +19,8 @@ export function toPythonString(value: unknown): string {
     });
     return `[${items.join(', ')}]`;
   }
-  return String(value);
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return value.toString();
+  }
+  return typeof value === 'string' ? value : JSON.stringify(value) ?? 'None';
 }
