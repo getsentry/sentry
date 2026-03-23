@@ -27,7 +27,6 @@ class SnapshotImageResponse(BaseModel):
     image_file_name: str
     width: int
     height: int
-    previous_image_file_name: str | None = None
 
     class Config:
         extra = "allow"
@@ -65,7 +64,7 @@ class SnapshotDetailsApiResponse(BaseModel):
     removed: list[SnapshotImageResponse] = []
     removed_count: int = 0
 
-    renamed: list[SnapshotImageResponse] = []
+    renamed: list[SnapshotDiffPair] = []
     renamed_count: int = 0
 
     changed: list[SnapshotDiffPair] = []
