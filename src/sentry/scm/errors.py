@@ -8,6 +8,7 @@ type ErrorCode = Literal[
     "integration_not_found",
     "unsupported_integration",
     "unknown_provider",
+    "malformed_external_id",
 ]
 
 ERROR_CODES: dict[ErrorCode, str] = {
@@ -18,6 +19,7 @@ ERROR_CODES: dict[ErrorCode, str] = {
     "integration_not_found": "An unsupported integration provider was found.",
     "unsupported_integration": "An unsupported integration provider was found.",
     "unknown_provider": "Could not resolve source code management provider.",
+    "malformed_external_id": "The repository's external ID was malformed.",
 }
 
 

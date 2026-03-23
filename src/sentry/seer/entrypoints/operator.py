@@ -787,7 +787,8 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                         summary = block.message.content
                         break
             except Exception as e:
-                lifecycle.add_extra("fetch_run_status_error", str(e))
+                lifecycle.record_failure(failure_reason=e)
+                return
 
             for (
                 entrypoint_key,

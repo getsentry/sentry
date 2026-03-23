@@ -1,4 +1,4 @@
-import {useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,6 +12,8 @@ import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -78,8 +80,22 @@ export default function SnapshotsPage() {
     sizeStorageKey: 'snapshot-sidebar-width',
   });
 
-  const comparisonType = data?.comparison_type ?? 'solo';
+  const location = useLocation();
+  const navigate = useNavigate();
+  const viewOverride = location.query.view;
+  const comparisonType =
+    viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
   const comparisonRunInfo = data?.comparison_run_info;
+
+  const isSoloView = comparisonType === 'solo';
+  const handleToggleView = useCallback(() => {
+    const {view: _view, ...restQuery} = location.query;
+    if (isSoloView) {
+      navigate({...location, query: restQuery}, {replace: true});
+    } else {
+      navigate({...location, query: {...location.query, view: 'solo'}}, {replace: true});
+    }
+  }, [location, navigate, isSoloView]);
 
   const sidebarItems = useMemo(() => {
     if (!data) {
@@ -298,6 +314,8 @@ export default function SnapshotsPage() {
               comparisonRunInfo={comparisonRunInfo}
               hasBaseArtifact={data.base_artifact_id !== null}
               refetch={refetch}
+              isSoloView={isSoloView}
+              onToggleView={handleToggleView}
             />
           </Layout.HeaderActions>
         </Layout.Header>
