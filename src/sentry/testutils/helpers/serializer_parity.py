@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -33,93 +34,85 @@ def assert_serializer_parity(
             {"resolveThreshold", "triggers.resolveThreshold"},
         )
     """
-    known_diffs = known_differences or set()
-    mismatches: list[str] = []
-    fired: set[str] = set()
-    unnecessary_candidates: set[str] = set()
-    _collect_mismatches(old, new, known_diffs, mismatches, fired, unnecessary_candidates, "", "")
-    unnecessary = (unnecessary_candidates - fired) | (known_diffs - fired - unnecessary_candidates)
-    assert not mismatches, f"{label} serializer differences:\n" + "\n".join(mismatches)
+    known_diffs = frozenset(known_differences or ())
+    checker = _ParityChecker()
+    checker.collect(old, new, known_diffs)
+    unnecessary = (checker.unnecessary_candidates - checker.fired) | (
+        known_diffs - checker.fired - checker.unnecessary_candidates
+    )
+    assert not checker.mismatches, f"{label} serializer differences:\n" + "\n".join(
+        checker.mismatches
+    )
     assert not unnecessary, (
         f"{label} unnecessary known_differences (no actual difference found):\n"
         + "\n".join(sorted(unnecessary))
     )
 
 
-def _collect_mismatches(
-    old: Mapping[str, Any],
-    new: Mapping[str, Any],
-    known_differences: set[str],
-    mismatches: list[str],
-    fired: set[str],
-    unnecessary_candidates: set[str],
-    path: str,
-    kd_prefix: str,
-) -> None:
-    def _fp(field: str) -> str:
-        return f"{path}.{field}" if path else field
+@dataclass
+class _ParityChecker:
+    mismatches: list[str] = field(default_factory=list)
+    fired: set[str] = field(default_factory=set)
+    unnecessary_candidates: set[str] = field(default_factory=set)
 
-    def _kd_key(field: str) -> str:
-        return f"{kd_prefix}.{field}" if kd_prefix else field
+    def collect(
+        self,
+        old: Mapping[str, Any],
+        new: Mapping[str, Any],
+        known_diffs: frozenset[str],
+        path: str = "",
+        kd_prefix: str = "",
+    ) -> None:
+        def fp(key: str) -> str:
+            return f"{path}.{key}" if path else key
 
-    def _nested_diffs(field: str) -> set[str]:
-        prefix = field + "."
-        return {entry[len(prefix) :] for entry in known_differences if entry.startswith(prefix)}
+        def kd_key(key: str) -> str:
+            return f"{kd_prefix}.{key}" if kd_prefix else key
 
-    for field in set(list(old.keys()) + list(new.keys())):
-        if field in known_differences:
-            kd_key = _kd_key(field)
-            if field not in new or field not in old or old[field] != new[field]:
-                fired.add(kd_key)
-            else:
-                unnecessary_candidates.add(kd_key)
-            continue
+        def nested_diffs(key: str) -> frozenset[str]:
+            prefix = key + "."
+            return frozenset(e[len(prefix) :] for e in known_diffs if e.startswith(prefix))
 
-        fp = _fp(field)
+        for key in set(list(old.keys()) + list(new.keys())):
+            if key in known_diffs:
+                full_kd_key = kd_key(key)
+                if key not in new or key not in old or old[key] != new[key]:
+                    self.fired.add(full_kd_key)
+                else:
+                    self.unnecessary_candidates.add(full_kd_key)
+                continue
 
-        if field not in new:
-            mismatches.append(f"Missing from new: {fp}")
-            continue
-        if field not in old:
-            mismatches.append(f"Extra in new: {fp}")
-            continue
+            full_path = fp(key)
 
-        old_val = old[field]
-        new_val = new[field]
-        nested = _nested_diffs(field)
+            if key not in new:
+                self.mismatches.append(f"Missing from new: {full_path}")
+                continue
+            if key not in old:
+                self.mismatches.append(f"Extra in new: {full_path}")
+                continue
 
-        if nested:
-            new_kd_prefix = _kd_key(field)
-            if isinstance(old_val, list) and isinstance(new_val, list):
-                if len(old_val) != len(new_val):
-                    mismatches.append(f"{fp} count: old={len(old_val)}, new={len(new_val)}")
-                for i, (old_item, new_item) in enumerate(zip(old_val, new_val)):
-                    item_path = f"{fp}[{i}]"
-                    if isinstance(old_item, Mapping) and isinstance(new_item, Mapping):
-                        _collect_mismatches(
-                            old_item,
-                            new_item,
-                            nested,
-                            mismatches,
-                            fired,
-                            unnecessary_candidates,
-                            item_path,
-                            new_kd_prefix,
+            old_val = old[key]
+            new_val = new[key]
+            nested = nested_diffs(key)
+
+            if nested:
+                child_kd_prefix = kd_key(key)
+                if isinstance(old_val, list) and isinstance(new_val, list):
+                    if len(old_val) != len(new_val):
+                        self.mismatches.append(
+                            f"{full_path} count: old={len(old_val)}, new={len(new_val)}"
                         )
-                    elif old_item != new_item:
-                        mismatches.append(f"{item_path}: old={old_item!r}, new={new_item!r}")
-            elif isinstance(old_val, Mapping) and isinstance(new_val, Mapping):
-                _collect_mismatches(
-                    old_val,
-                    new_val,
-                    nested,
-                    mismatches,
-                    fired,
-                    unnecessary_candidates,
-                    fp,
-                    new_kd_prefix,
-                )
+                    for i, (old_item, new_item) in enumerate(zip(old_val, new_val)):
+                        item_path = f"{full_path}[{i}]"
+                        if isinstance(old_item, Mapping) and isinstance(new_item, Mapping):
+                            self.collect(old_item, new_item, nested, item_path, child_kd_prefix)
+                        elif old_item != new_item:
+                            self.mismatches.append(
+                                f"{item_path}: old={old_item!r}, new={new_item!r}"
+                            )
+                elif isinstance(old_val, Mapping) and isinstance(new_val, Mapping):
+                    self.collect(old_val, new_val, nested, full_path, child_kd_prefix)
+                elif old_val != new_val:
+                    self.mismatches.append(f"{full_path}: old={old_val!r}, new={new_val!r}")
             elif old_val != new_val:
-                mismatches.append(f"{fp}: old={old_val!r}, new={new_val!r}")
-        elif old_val != new_val:
-            mismatches.append(f"{fp}: old={old_val!r}, new={new_val!r}")
+                self.mismatches.append(f"{full_path}: old={old_val!r}, new={new_val!r}")
