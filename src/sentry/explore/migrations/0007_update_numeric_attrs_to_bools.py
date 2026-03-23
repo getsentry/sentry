@@ -198,7 +198,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1055_rename_regiontombstone_to_celltombstone"),
+        ("sentry", "1041_projectkeymapping"),
         ("explore", "0006_add_changed_reason_field_explore"),
     ]
 
