@@ -590,9 +590,9 @@ class GitLabProvider:
                 position["position_type"] = "text"
                 side = comment.get("side", "RIGHT")
                 if side == "LEFT":
-                    position["old_line"] = str(comment["line"])
+                    position["old_line"] = comment["line"]
                 else:
-                    position["new_line"] = str(comment["line"])
+                    position["new_line"] = comment["line"]
             else:
                 position["position_type"] = "file"
 
