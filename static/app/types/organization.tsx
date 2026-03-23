@@ -109,7 +109,6 @@ export interface Organization extends OrganizationSummary {
     | null;
   defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
-  enablePrReviewTestGeneration?: boolean;
   enableSeerCoding?: boolean;
   enableSeerEnhancedAlerts?: boolean;
   enabledConsolePlatforms?: string[];

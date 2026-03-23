@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 
+from taskbroker_client.retry import Retry
+
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 

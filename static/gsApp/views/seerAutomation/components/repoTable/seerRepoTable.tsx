@@ -158,14 +158,17 @@ export function SeerRepoTable() {
           priority="primary"
           icon={<IconAdd />}
           onClick={() => {
-            openModal(deps => <ScmRepoTreeModal {...deps} />, {
-              modalCss: css`
-                width: 700px;
-              `,
-              onClose: () => {
-                queryClient.invalidateQueries({queryKey: queryOptions.queryKey});
-              },
-            });
+            openModal(
+              deps => <ScmRepoTreeModal {...deps} title={t('Add Repository')} />,
+              {
+                modalCss: css`
+                  width: 700px;
+                `,
+                onClose: () => {
+                  queryClient.invalidateQueries({queryKey: queryOptions.queryKey});
+                },
+              }
+            );
           }}
         >
           {t('Add Repository')}

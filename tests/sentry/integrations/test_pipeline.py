@@ -69,12 +69,12 @@ class FinishPipelineTestCase(IntegrationTestCase):
         with patch.multiple(
             self.provider,
             needs_default_identity=False,
-            is_region_restricted=False,
+            is_cell_restricted=False,
         ):
             yield
 
     def _setup_cell_restriction(self):
-        self.provider.is_region_restricted = True
+        self.provider.is_cell_restricted = True
         na_orgs = [
             self.create_organization(name="na_org"),
             self.create_organization(name="na_org_2"),
@@ -142,8 +142,8 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.signals.integration_added.send_robust")
     def test_provider_should_check_cell_violation(self, *args) -> None:
-        """Ensures we validate cells if `provider.is_region_restricted` is set to True"""
-        self.provider.is_region_restricted = True
+        """Ensures we validate cells if `provider.is_cell_restricted` is set to True"""
+        self.provider.is_cell_restricted = True
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch(
             "sentry.integrations.pipeline.is_violating_cell_restriction"
@@ -153,7 +153,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.signals.integration_added.send_robust")
     def test_provider_should_not_check_cell_violation(self, *args) -> None:
-        """Ensures we don't reject cells if `provider.is_region_restricted` is set to False"""
+        """Ensures we don't reject cells if `provider.is_cell_restricted` is set to False"""
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch(
             "sentry.integrations.pipeline.is_violating_cell_restriction"

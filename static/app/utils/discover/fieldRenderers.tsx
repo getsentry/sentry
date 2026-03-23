@@ -928,7 +928,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => {
       const score = data['performance_score(measurements.score.total)'];
       if (typeof score !== 'number') {
-        return <Container>{emptyValue}</Container>;
+        return <RightAlignedContainer>{emptyValue}</RightAlignedContainer>;
       }
       return (
         <RightAlignedContainer>

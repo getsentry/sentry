@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from google.cloud.exceptions import NotFound
+from taskbroker_client.retry import Retry
 
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.lib.storage import (
@@ -25,7 +26,6 @@ from sentry.replays.usecases.reader import fetch_segments_metadata
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import replays_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.pubsub import KafkaPublisher
 

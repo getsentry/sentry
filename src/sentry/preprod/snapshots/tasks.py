@@ -8,6 +8,7 @@ from django.db import IntegrityError
 from django.utils import timezone
 from objectstore_client.client import RequestError
 from pydantic import ValidationError
+from taskbroker_client.retry import Retry
 
 from sentry.objectstore import get_preprod_session
 from sentry.preprod.models import PreprodArtifact
@@ -25,7 +26,6 @@ from sentry.preprod.vcs.status_checks.snapshots.tasks import (
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

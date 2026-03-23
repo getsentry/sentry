@@ -1,8 +1,10 @@
 import {useCallback} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricVisualize,
   useSetMetricVisualize,
@@ -22,6 +24,7 @@ interface MetricToolbarProps {
 }
 
 export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
+  const organization = useOrganization();
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
@@ -29,13 +32,43 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
     setVisualize(visualize.replace({visible: !visualize.visible}));
   }, [setVisualize, visualize]);
   const setTraceMetric = useSetTraceMetric();
+  const canRemoveMetric = metricQueries.length > 1;
+
+  if (canUseMetricsUIRefresh(organization)) {
+    return (
+      <Flex width="100%" align="start" gap="md" data-test-id="metric-toolbar">
+        <VisualizeLabel
+          index={queryIndex}
+          visualize={visualize}
+          onClick={toggleVisibility}
+        />
+        <Stack flex="1" minWidth={0} gap="sm" width="100%">
+          <Flex minWidth={0} gap="xs" align="center">
+            <Container width="100%" maxWidth={canRemoveMetric ? '225px' : undefined}>
+              <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
+            </Container>
+            {canRemoveMetric && <DeleteMetricButton />}
+          </Flex>
+          <Flex flex="2 1 0" minWidth={0}>
+            <AggregateDropdown traceMetric={traceMetric} />
+          </Flex>
+          <Flex flex="3 1 0" minWidth={0}>
+            <GroupBySelector traceMetric={traceMetric} />
+          </Flex>
+          <Flex minWidth={0} width="100%">
+            <Filter traceMetric={traceMetric} />
+          </Flex>
+        </Stack>
+      </Flex>
+    );
+  }
 
   return (
     <Grid
       width="100%"
       align="center"
       gap="md"
-      columns={`34px 2fr 3fr 6fr ${metricQueries.length > 1 ? '40px' : '0'}`}
+      columns={`34px 2fr 3fr 6fr ${canRemoveMetric ? '40px' : '0'}`}
       data-test-id="metric-toolbar"
     >
       <VisualizeLabel
@@ -57,7 +90,7 @@ export function MetricToolbar({traceMetric, queryIndex}: MetricToolbarProps) {
       <Flex minWidth={0}>
         <Filter traceMetric={traceMetric} />
       </Flex>
-      {metricQueries.length > 1 && <DeleteMetricButton />}
+      {canRemoveMetric && <DeleteMetricButton />}
     </Grid>
   );
 }
