@@ -19,6 +19,8 @@ class ParameterizationRegex:
     raw_pattern_experimental: str | None = None
     lookbehind: str | None = None  # positive lookbehind prefix if needed
     lookahead: str | None = None  # positive lookahead postfix if needed
+    # Function which takes the matched value and returns the replacement value.
+    replacement_callback: ParameterizationReplacementFunction | None = None
 
     # These need to be used with `(?x)`, to tell the regex compiler to ignore comments
     # and unescaped whitespace, so we can use newlines and indentation for better legibility.
