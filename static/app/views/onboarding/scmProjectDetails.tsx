@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
@@ -18,9 +18,9 @@ import {slugify} from 'sentry/utils/slugify';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
+  DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
   IssueAlertOptions,
-  RuleAction,
   type AlertRuleOptions,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
@@ -33,22 +33,22 @@ export function ScmProjectDetails({onComplete}: StepProps) {
   const createProjectAndRules = useCreateProjectAndRules();
   const {createNotificationAction} = useCreateNotificationAction();
 
-  const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
+  const firstAdminTeam = useMemo(
+    () => teams.find((team: Team) => team.access.includes('team:admin')),
+    [teams]
+  );
   const defaultName = slugify(selectedRepository?.name ?? selectedPlatform?.key ?? '');
 
-  // Track user overrides separately so derived defaults update if context changes
-  const [projectNameOverride, setProjectNameOverride] = useState<string | null>(null);
-  const [teamSlugOverride, setTeamSlugOverride] = useState<string | null>(null);
+  // State tracks user edits; derived values fall back to defaults from context/teams
+  const [projectName, setProjectName] = useState<string | null>(null);
+  const [teamSlug, setTeamSlug] = useState<string | null>(null);
 
-  const projectName = projectNameOverride ?? defaultName;
-  const teamSlug = teamSlugOverride ?? firstAdminTeam?.slug ?? '';
+  const projectNameResolved = projectName ?? defaultName;
+  const teamSlugResolved = teamSlug ?? firstAdminTeam?.slug ?? '';
 
-  const [alertRuleConfig, setAlertRuleConfig] = useState<AlertRuleOptions>({
-    alertSetting: RuleAction.DEFAULT_ALERT,
-    threshold: '10',
-    metric: 0,
-    interval: '1m',
-  });
+  const [alertRuleConfig, setAlertRuleConfig] = useState<AlertRuleOptions>(
+    DEFAULT_ISSUE_ALERT_OPTIONS_VALUES
+  );
 
   const handleAlertChange = useCallback(
     <K extends keyof AlertRuleOptions>(key: K, value: AlertRuleOptions[K]) => {
@@ -58,8 +58,8 @@ export function ScmProjectDetails({onComplete}: StepProps) {
   );
 
   const canSubmit =
-    projectName.length > 0 &&
-    teamSlug.length > 0 &&
+    projectNameResolved.length > 0 &&
+    teamSlugResolved.length > 0 &&
     !!selectedPlatform &&
     !createProjectAndRules.isPending;
 
@@ -70,9 +70,9 @@ export function ScmProjectDetails({onComplete}: StepProps) {
 
     try {
       const {project} = await createProjectAndRules.mutateAsync({
-        projectName,
+        projectName: projectNameResolved,
         platform: selectedPlatform,
-        team: teamSlug,
+        team: teamSlugResolved,
         alertRuleConfig: getRequestDataFragment(alertRuleConfig),
         createNotificationAction,
       });
@@ -94,8 +94,8 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     selectedPlatform,
     canSubmit,
     createProjectAndRules,
-    projectName,
-    teamSlug,
+    projectNameResolved,
+    teamSlugResolved,
     alertRuleConfig,
     createNotificationAction,
     setSelectedPlatform,
@@ -122,8 +122,8 @@ export function ScmProjectDetails({onComplete}: StepProps) {
           <Input
             type="text"
             placeholder={t('project-name')}
-            value={projectName}
-            onChange={e => setProjectNameOverride(slugify(e.target.value))}
+            value={projectNameResolved}
+            onChange={e => setProjectName(slugify(e.target.value))}
           />
         </Stack>
 
@@ -138,8 +138,8 @@ export function ScmProjectDetails({onComplete}: StepProps) {
             clearable={false}
             placeholder={t('Select a Team')}
             teamFilter={(tm: Team) => tm.access.includes('team:admin')}
-            value={teamSlug}
-            onChange={({value}: {value: string}) => setTeamSlugOverride(value)}
+            value={teamSlugResolved}
+            onChange={({value}: {value: string}) => setTeamSlug(value)}
           />
         </Stack>
 
