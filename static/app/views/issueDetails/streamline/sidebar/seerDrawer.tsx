@@ -28,7 +28,7 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
     organization.features.includes('autofix-on-explorer')
   ) {
     if (organization.features.includes('autofix-on-explorer-v2')) {
-      return <ExplorerSeerDrawerV3 event={event} group={group} project={project} />;
+      return <ExplorerSeerDrawerV3 group={group} project={project} />;
     }
     return <ExplorerSeerDrawer event={event} group={group} project={project} />;
   }
