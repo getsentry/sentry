@@ -15,6 +15,10 @@ from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState,
 
 logger = logging.getLogger(__name__)
 
+# GitHub Copilot API enforces a 30,000-character limit on problem_statement.
+# We use a lower ceiling to leave headroom for JSON encoding overhead.
+GITHUB_COPILOT_MAX_PROBLEM_STATEMENT_LENGTH = 25_000
+
 
 class GithubCopilotAgentClient(CodingAgentClient):
     integration_name = "github_copilot"
@@ -46,21 +50,20 @@ class GithubCopilotAgentClient(CodingAgentClient):
         repo = request.repository.name
 
         # GitHub Copilot has a 30,000 character limit for problem_statement.
-        # Use 25,000 to leave headroom for JSON encoding expansion.
-        max_prompt_length = 25000
+        # Use GITHUB_COPILOT_MAX_PROBLEM_STATEMENT_LENGTH to leave headroom for JSON encoding expansion.
         prompt = request.prompt
 
-        if len(prompt) > max_prompt_length:
+        if len(prompt) > GITHUB_COPILOT_MAX_PROBLEM_STATEMENT_LENGTH:
             logger.warning(
                 "coding_agent.github_copilot.prompt_truncated",
                 extra={
                     "owner": owner,
                     "repo": repo,
                     "original_length": len(prompt),
-                    "truncated_length": max_prompt_length,
+                    "truncated_length": GITHUB_COPILOT_MAX_PROBLEM_STATEMENT_LENGTH,
                 },
             )
-            prompt = prompt[:max_prompt_length]
+            prompt = prompt[:GITHUB_COPILOT_MAX_PROBLEM_STATEMENT_LENGTH]
 
         payload = GithubCopilotTaskRequest(
             problem_statement=prompt,
