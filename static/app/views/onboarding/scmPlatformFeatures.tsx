@@ -6,7 +6,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -16,6 +16,7 @@ import {platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
+import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ScmCardButton} from 'sentry/views/onboarding/components/scmCardButton';
 import {ScmFeatureSelectionCards} from 'sentry/views/onboarding/components/scmFeatureSelectionCards';
@@ -142,40 +143,61 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         return;
       }
 
-      // For base languages (JavaScript, Python, etc.), show a modal suggesting
-      // specific frameworks — matching the legacy onboarding behavior.
-      if (shouldSuggestFramework(platformKey)) {
-        const platformInfo = getPlatformInfo(platformKey);
-        if (platformInfo) {
-          const basePlatformSdk: OnboardingSelectedSDK = {
+      // Block disabled gaming/console platforms
+      const platformInfo = getPlatformInfo(platformKey);
+      if (
+        platformInfo &&
+        isDisabledGamingPlatform({
+          platform: {id: platformKey, ...platformInfo},
+          enabledConsolePlatforms: organization.enabledConsolePlatforms,
+        })
+      ) {
+        openConsoleModal({
+          organization,
+          selectedPlatform: {
             key: platformInfo.id,
             name: platformInfo.name,
             language: platformInfo.language,
             type: platformInfo.type,
             link: platformInfo.link,
             category: 'popular',
-          };
+          },
+          origin: 'onboarding',
+        });
+        return;
+      }
 
-          const {FrameworkSuggestionModal, modalCss} =
-            await import('sentry/components/onboarding/frameworkSuggestionModal');
+      // For base languages (JavaScript, Python, etc.), show a modal suggesting
+      // specific frameworks — matching the legacy onboarding behavior.
+      if (platformInfo && shouldSuggestFramework(platformKey)) {
+        const basePlatformSdk: OnboardingSelectedSDK = {
+          key: platformInfo.id,
+          name: platformInfo.name,
+          language: platformInfo.language,
+          type: platformInfo.type,
+          link: platformInfo.link,
+          category: 'popular',
+        };
 
-          openModal(
-            deps => (
-              <FrameworkSuggestionModal
-                {...deps}
-                organization={organization}
-                selectedPlatform={basePlatformSdk}
-                onConfigure={selectedFramework => {
-                  applyPlatformSelection(selectedFramework);
-                }}
-                onSkip={() => applyPlatformSelection(basePlatformSdk)}
-                newOrg
-              />
-            ),
-            {modalCss}
-          );
-          return;
-        }
+        const {FrameworkSuggestionModal, modalCss} =
+          await import('sentry/components/onboarding/frameworkSuggestionModal');
+
+        openModal(
+          deps => (
+            <FrameworkSuggestionModal
+              {...deps}
+              organization={organization}
+              selectedPlatform={basePlatformSdk}
+              onConfigure={selectedFramework => {
+                applyPlatformSelection(selectedFramework);
+              }}
+              onSkip={() => applyPlatformSelection(basePlatformSdk)}
+              newOrg
+            />
+          ),
+          {modalCss}
+        );
+        return;
       }
 
       setPlatform(platformKey);
