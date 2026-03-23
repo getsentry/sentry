@@ -319,8 +319,13 @@ class Parameterizer:
             if not matched_key or not orig_value:  # Insurance - shouldn't happen IRL
                 return ""
 
+            replacement_callback = self.replacement_functions.get(matched_key)
+            replacement_string = (
+                replacement_callback(orig_value) if replacement_callback else f"<{matched_key}>"
+            )
+
             matches_counter[matched_key] += 1
-            return f"<{matched_key}>"
+            return replacement_string
 
         with metrics.timer(
             "grouping.parameterize", tags={"experimental": self.is_experimental}
