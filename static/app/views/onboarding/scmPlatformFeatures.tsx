@@ -148,7 +148,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
       if (
         platformInfo &&
         isDisabledGamingPlatform({
-          platform: platformInfo,
+          platform: {...platformInfo, category: 'popular'},
           enabledConsolePlatforms: organization.enabledConsolePlatforms,
         })
       ) {
