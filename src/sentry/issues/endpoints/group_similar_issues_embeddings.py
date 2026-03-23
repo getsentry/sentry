@@ -126,6 +126,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "use_reranking": options.get("seer.similarity.similar_issues.use_reranking"),
             "model": model_version,
             "training_mode": False,
+            "platform": latest_event.platform or "unknown",
         }
         # Add optional parameters
         if request.GET.get("k"):
