@@ -216,22 +216,26 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     hour is checked for the seer-explorer-context-engine feature flag, keeping feature check
     volume at ~1/24th of total orgs.
     """
-    now = datetime.now(UTC)
-    TOTAL_HOURLY_SLOTS = 24
-
-    eligible_org_ids: list[int] = []
-
-    for org in RangeQuerySetWrapper(
-        Organization.objects.filter(status=ObjectStatus.ACTIVE),
-        result_value_getter=lambda o: o.id,
+    with sentry_sdk.start_span(
+        op="explorer.context_engine.get_allowed_org_ids_context_engine_indexing"
     ):
-        # Ordering of these if blocks is very crucial. We want to check the hour first as
-        # checking the feature flag is an expensive operation and we want to avoid it if possible.
-        if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == now.hour:
-            if features.has("organizations:seer-explorer-context-engine", org):
-                eligible_org_ids.append(org.id)
+        now = datetime.now(UTC)
+        TOTAL_HOURLY_SLOTS = 24
 
-    return eligible_org_ids
+        eligible_org_ids: list[int] = []
+
+        for org in RangeQuerySetWrapper(
+            Organization.objects.filter(status=ObjectStatus.ACTIVE),
+            result_value_getter=lambda o: o.id,
+        ):
+            # Ordering of these if blocks is very crucial. We want to check the hour first as
+            # checking the feature flag is an expensive operation and we want to avoid it if possible.
+            if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == now.hour:
+                with sentry_sdk.start_span(op="explorer.context_engine.has_feature"):
+                    if features.has("organizations:seer-explorer-context-engine", org):
+                        eligible_org_ids.append(org.id)
+
+        return eligible_org_ids
 
 
 @instrumented_task(
