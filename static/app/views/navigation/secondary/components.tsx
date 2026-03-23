@@ -37,6 +37,7 @@ import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layou
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
+import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconAllProjects, IconChevron, IconGrabbable, IconMyProjects} from 'sentry/icons';
@@ -68,6 +69,7 @@ import {
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const MotionContainer = motion.create(Container);
 
@@ -76,7 +78,6 @@ interface SecondarySidebarProps {
 }
 
 function SecondarySidebar({children}: SecondarySidebarProps) {
-  const theme = useTheme();
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
   const resizableContainerRef = useRef<HTMLDivElement>(null);
@@ -124,7 +125,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
               initial={{x: -6, opacity: 0}}
               animate={{x: 0, opacity: 1}}
               exit={{x: 6, opacity: 0}}
-              transition={theme.motion.framer.smooth.fast}
+              transition={{duration: 0.06}}
             >
               <Grid
                 rows="auto 1fr auto"
@@ -165,10 +166,15 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
 
 function SecondarySidebarWrapper(props: NavigationTourElementProps) {
   const theme = useTheme();
+  const secondaryNavigation = useSecondaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
     <Container
       background="secondary"
-      borderRight="primary"
+      borderRight={
+        hasPageFrame && secondaryNavigation.view === 'expanded' ? undefined : 'primary'
+      }
       position="relative"
       height="100%"
     >
@@ -256,15 +262,14 @@ interface SecondaryNavigationHeaderProps {
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
-  const organization = useOrganization();
   const isCollapsed = view !== 'expanded';
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Grid
       columns="1fr auto"
       align="center"
-      borderBottom="muted"
+      borderBottom={hasPageFrame ? 'primary' : 'muted'}
       height={
         layout === 'mobile'
           ? undefined
@@ -426,7 +431,7 @@ function SecondaryNavigationLink({
 
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   const sharedLinkProps = {
     ...linkProps,
@@ -795,7 +800,12 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
     setItems(props.items);
   }, [props.items]);
 
+  // During a keyboard-driven drag, lock page scroll so ArrowUp/Down don't
+  // scroll the sidebar behind the dragged item.
+  const scrollLock = useScrollLock(document.body);
+
   function handleDragEnd(event: DragEndEvent) {
+    scrollLock.release();
     const {active, over} = event;
     if (over && active.id !== over.id) {
       const oldIndex = items.findIndex(item => item.id === active.id);
@@ -811,7 +821,9 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      onDragStart={() => scrollLock.acquire()}
       onDragEnd={handleDragEnd}
+      onDragCancel={() => scrollLock.release()}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <Stack direction="column" padding="0" width="100%">
@@ -853,7 +865,7 @@ function SecondaryNavigationReorderableLink({
   const {layout} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {isDragging} = useReorderableItemContext();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   function handleNavigate() {
     if (isDragging) {
@@ -966,6 +978,7 @@ const GrabHandleAnimation = styled('div')`
     opacity ${p => p.theme.motion.smooth.moderate},
     transform ${p => p.theme.motion.smooth.moderate};
   transform: translate(-50%, -50%);
+
   &:active {
     cursor: grabbing;
   }
@@ -1038,7 +1051,8 @@ const StyledReorderableFakeLink = styled('div')<{
       scale 150ms ease;
   }
 
-  :hover [data-reorderable-handle-slot] {
+  :hover [data-reorderable-handle-slot],
+  :has(:focus-visible) [data-reorderable-handle-slot] {
     opacity: 0;
     scale: 0.95;
   }
@@ -1063,6 +1077,9 @@ const StyledPageFrameReorderableFakeLink = styled('div')<{
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  /* We need to cap the height at sm size as some items like the reorderable link with icons
+   * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
+  height: ${p => p.theme.form.sm.height};
   padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;
@@ -1183,6 +1200,9 @@ const PageFrameSidebarNavigationLink = styled(Link)`
   align-items: center;
   position: relative;
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  /* We need to cap the height at sm size as some items like the reorderable link with icons
+   * will otherwise cause the links to be taller, visually standing out when they are laid out in a list */
+  height: ${p => p.theme.form.sm.height};
   padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid transparent;

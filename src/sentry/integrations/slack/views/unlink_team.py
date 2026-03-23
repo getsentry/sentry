@@ -33,7 +33,8 @@ def build_team_unlinking_url(
         channel_name=channel_name,
         channel_id=channel_id,
         response_url=response_url,
-        # The team-linking view is region-specific, so skip the middleware proxy if necessary.
+        # TODO(cells): This is broken for a multi-cell locality as the router cannot identify
+        # the correct cell silo for routing. The endpoint should be moved to the control silo.
         url_prefix=(
             generate_locality_url() if SiloMode.get_current_mode() == SiloMode.CELL else None
         ),

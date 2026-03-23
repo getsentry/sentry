@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+from taskbroker_client.retry import Retry
+
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -18,9 +20,9 @@ from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_
 from sentry.seer.entrypoints.slack.metrics import ProcessMentionHaltReason
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+
 
 logger = logging.getLogger(__name__)
 

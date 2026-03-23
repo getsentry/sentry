@@ -76,12 +76,6 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
-  height: 16px;
-  line-height: 16px;
-  min-width: 16px;
-  border-radius: 16px;
-  font-size: 10px;
-  padding: 0 ${p => p.theme.space.xs};
 `;
 
 const ButtonLabelWrapper = styled(Flex)`

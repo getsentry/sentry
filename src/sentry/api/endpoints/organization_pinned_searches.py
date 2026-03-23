@@ -50,13 +50,13 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
-        SavedSearch.objects.create_or_update(
+        SavedSearch.objects.update_or_create(
             organization=organization,
             name=PINNED_SEARCH_NAME,
             owner_id=request.user.id,
             type=result["type"],
             visibility=Visibility.OWNER_PINNED,
-            values={"query": result["query"], "sort": result["sort"]},
+            defaults={"query": result["query"], "sort": result["sort"]},
         )
 
         # This entire endpoint will be removed once custom views are GA'd

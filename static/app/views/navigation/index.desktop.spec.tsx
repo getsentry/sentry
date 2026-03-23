@@ -15,6 +15,7 @@ import {
 import {ConfigStore} from 'sentry/stores/configStore';
 import {Navigation} from 'sentry/views/navigation';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
+import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
@@ -128,10 +129,15 @@ describe('desktop navigation', () => {
   beforeEach(setupMocks);
 
   it('renders user-only navigation when there is no organization', () => {
-    render(<Navigation />, {
-      organization: null,
-      initialRouterConfig: {location: {pathname: '/'}},
-    });
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: null,
+        initialRouterConfig: {location: {pathname: '/'}},
+      }
+    );
 
     // Primary nav sidebar renders but contains no nav links
     const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
@@ -146,7 +152,9 @@ describe('desktop navigation', () => {
   describe('HTML structure', () => {
     it('primary navigation renders a nav landmark with a list of links (nav > ul > li > a)', () => {
       render(
-        <Navigation />,
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
         navigationContext({
           organization: {features: ALL_AVAILABLE_FEATURES},
         })
@@ -163,7 +171,12 @@ describe('desktop navigation', () => {
     });
 
     it('secondary navigation renders a nav landmark with a list of links (nav > ul > li > a)', () => {
-      render(<Navigation />, navigationContext());
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
 
       const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
       within(secondaryNav).getAllByRole('list').forEach(assertValidListHTML);
@@ -177,9 +190,23 @@ describe('desktop navigation', () => {
   });
 
   describe('accessibility', () => {
+    it('renders a skip link', () => {
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
+      expect(
+        screen.getByRole('link', {name: 'Skip to main content'})
+      ).toBeInTheDocument();
+    });
+
     it('primary navigation links have correct accessible names and hrefs', () => {
       render(
-        <Navigation />,
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
         navigationContext({
           organization: {features: [...ALL_AVAILABLE_FEATURES, 'workflow-engine-ui']},
         })
@@ -204,7 +231,12 @@ describe('desktop navigation', () => {
     });
 
     it('primary navigation marks exactly one link as active for the current route', () => {
-      render(<Navigation />, navigationContext());
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
 
       const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
       const links = within(primaryNav).getAllByRole('link');
@@ -217,7 +249,12 @@ describe('desktop navigation', () => {
     });
 
     it('secondary navigation marks exactly one link as active for the current route', async () => {
-      render(<Navigation />, navigationContext());
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
 
       const secondaryNav = screen.getByRole('navigation', {name: 'Secondary Navigation'});
       await within(secondaryNav).findByRole('link', {name: /Starred View 1/});
@@ -239,7 +276,9 @@ describe('desktop navigation', () => {
         route?: string
       ) {
         const {unmount} = render(
-          <Navigation />,
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
           navigationContext({
             organization: {features: ALL_AVAILABLE_FEATURES},
             initialRouterConfig: {location: {pathname}, route: route ?? ''},
@@ -319,7 +358,9 @@ describe('desktop navigation', () => {
         jest.spyOn(Sentry.logger, 'warn');
 
         render(
-          <Navigation />,
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
           navigationContext({
             initialRouterConfig: {location: {pathname: '/unknown-route/'}},
           })
@@ -340,7 +381,9 @@ describe('desktop navigation', () => {
 
       it('shows admin secondary navigation on /manage/ routes', async () => {
         render(
-          <Navigation />,
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
           navigationContext({
             initialRouterConfig: {location: {pathname: '/manage/'}},
           })
@@ -409,7 +452,12 @@ describe('desktop navigation', () => {
   describe('interactions', () => {
     describe('secondary Navigation', () => {
       it('shows content for the active primary group', () => {
-        render(<Navigation />, navigationContext());
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
 
         const secondaryNav = screen.getByRole('navigation', {
           name: 'Secondary Navigation',
@@ -420,7 +468,12 @@ describe('desktop navigation', () => {
       });
 
       it('can collapse a section', async () => {
-        render(<Navigation />, navigationContext());
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
 
         const secondaryNav = screen.getByRole('navigation', {
           name: 'Secondary Navigation',
@@ -441,7 +494,12 @@ describe('desktop navigation', () => {
       });
 
       it('can expand a collapsed section', async () => {
-        render(<Navigation />, navigationContext());
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
 
         const secondaryNav = screen.getByRole('navigation', {
           name: 'Secondary Navigation',
@@ -467,7 +525,9 @@ describe('desktop navigation', () => {
 
       it('shows organization and account settings links on settings routes', () => {
         render(
-          <Navigation />,
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
           navigationContext({
             initialRouterConfig: {location: {pathname: '/settings/organization/'}},
           })
@@ -497,7 +557,12 @@ describe('desktop navigation', () => {
 
     describe('secondary sidebar', () => {
       it('can collapse the sidebar', async () => {
-        render(<Navigation />, navigationContext());
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
 
         await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
 
@@ -505,7 +570,12 @@ describe('desktop navigation', () => {
       });
 
       it('can expand a collapsed sidebar', async () => {
-        render(<Navigation />, navigationContext());
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext()
+        );
 
         await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
         await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
@@ -517,7 +587,12 @@ describe('desktop navigation', () => {
 
       describe('persistence', () => {
         it('defaults to expanded when no localStorage key exists', () => {
-          render(<Navigation />, navigationContext());
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
 
           expect(
             screen.queryByTestId('collapsed-secondary-sidebar')
@@ -528,7 +603,12 @@ describe('desktop navigation', () => {
         it('restores collapsed state from localStorage on mount', async () => {
           localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
-          render(<Navigation />, navigationContext());
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
 
           expect(
             await screen.findByTestId('collapsed-secondary-sidebar')
@@ -537,7 +617,12 @@ describe('desktop navigation', () => {
         });
 
         it('persists collapsed state to localStorage when collapsing', async () => {
-          render(<Navigation />, navigationContext());
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
 
           await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
 
@@ -549,7 +634,12 @@ describe('desktop navigation', () => {
         it('does not update localStorage when peek is triggered by hover', async () => {
           localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
-          render(<Navigation />, navigationContext());
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
 
           await screen.findByTestId('collapsed-secondary-sidebar');
 
@@ -571,7 +661,12 @@ describe('desktop navigation', () => {
         it('persists expanded state to localStorage when expanding', async () => {
           localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
-          render(<Navigation />, navigationContext());
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
 
           await screen.findByTestId('collapsed-secondary-sidebar');
 
@@ -587,7 +682,12 @@ describe('desktop navigation', () => {
         it('shows the sidebar on hover when collapsed', async () => {
           localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
-          render(<Navigation />, navigationContext());
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
 
           await screen.findByTestId('collapsed-secondary-sidebar');
           expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
@@ -610,7 +710,12 @@ describe('desktop navigation', () => {
         it('hides the sidebar on mouse leave when collapsed', async () => {
           localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
-          render(<Navigation />, navigationContext());
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
 
           await screen.findByTestId('collapsed-secondary-sidebar');
 
@@ -638,7 +743,12 @@ describe('desktop navigation', () => {
         it('shows the sidebar when a nav element receives keyboard focus while collapsed', async () => {
           localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
-          render(<Navigation />, navigationContext());
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext()
+          );
 
           await screen.findByTestId('collapsed-secondary-sidebar');
           expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
@@ -646,6 +756,8 @@ describe('desktop navigation', () => {
             'false'
           );
 
+          // Tab once to focus the skip link, then again to reach a nav element
+          await userEvent.tab();
           await userEvent.tab();
 
           await waitFor(() => {
@@ -658,7 +770,9 @@ describe('desktop navigation', () => {
 
         it('shows hovered group content when sidebar is expanded', async () => {
           render(
-            <Navigation />,
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
             navigationContext({
               initialRouterConfig: {
                 location: {pathname: '/organizations/org-slug/issues/'},
@@ -684,7 +798,9 @@ describe('desktop navigation', () => {
           localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
 
           render(
-            <Navigation />,
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
             navigationContext({
               initialRouterConfig: {
                 location: {pathname: '/organizations/org-slug/issues/'},
