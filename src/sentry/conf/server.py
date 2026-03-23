@@ -910,6 +910,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.seer.code_review.webhooks.task",
     "sentry.seer.entrypoints.operator",
     "sentry.seer.entrypoints.slack.messaging",
+    "sentry.seer.entrypoints.slack.tasks",
     "sentry.snuba.tasks",
     "sentry.tasks.activity",
     "sentry.tasks.assemble",
