@@ -335,6 +335,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
       renderWrapAs={PassthroughWrapper}
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
       shouldApplyMinWidth={false}
+      size="sm"
       minMenuWidth={200}
       trigger={triggerProps => {
         return (
