@@ -6,7 +6,7 @@ from typing import Any
 import jsonschema
 import orjson
 from django.conf import settings
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -448,11 +448,14 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         preprod_artifact=base_artifact
                     ).first()
                     if base_metrics:
-                        PreprodSnapshotComparison.objects.get_or_create(
-                            head_snapshot_metrics=snapshot_metrics,
-                            base_snapshot_metrics=base_metrics,
-                            defaults={"state": PreprodSnapshotComparison.State.PENDING},
-                        )
+                        try:
+                            PreprodSnapshotComparison.objects.get_or_create(
+                                head_snapshot_metrics=snapshot_metrics,
+                                base_snapshot_metrics=base_metrics,
+                                defaults={"state": PreprodSnapshotComparison.State.PENDING},
+                            )
+                        except IntegrityError:
+                            pass
 
                     compare_snapshots.apply_async(
                         kwargs={
