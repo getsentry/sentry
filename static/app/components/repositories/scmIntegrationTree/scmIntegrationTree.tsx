@@ -11,7 +11,10 @@ import {addRepository, hideRepository} from 'sentry/actionCreators/integrations'
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
-import {buildIntegrationTreeNodes} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTreeNodes';
+import {
+  buildIntegrationTreeNodes,
+  DISCONNECTED_SECTION_KEY,
+} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTreeNodes';
 import {ScmIntegrationTreeRow} from 'sentry/components/repositories/scmIntegrationTree/scmIntegrationTreeRow';
 import type {
   ProviderFilter,
@@ -48,6 +51,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
   const {
     scmProviders,
     scmIntegrations,
+    connectedRepos,
     connectedIdentifiers,
     refetchIntegrations,
     reposByIntegrationId,
@@ -63,12 +67,14 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     new Set()
   );
 
-  // Expand all providers once data first loads
+  // Expand all providers (and disconnected section) once data first loads
   const providersInitialized = useRef(false);
   useEffect(() => {
     if (!providersInitialized.current && scmProviders.length > 0) {
       providersInitialized.current = true;
-      setExpandedProviders(new Set(scmProviders.map(p => p.key)));
+      setExpandedProviders(
+        new Set([...scmProviders.map(p => p.key), DISCONNECTED_SECTION_KEY])
+      );
     }
   }, [scmProviders]);
 
@@ -105,6 +111,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
       buildIntegrationTreeNodes({
         scmProviders,
         scmIntegrations,
+        connectedRepos,
         reposByIntegrationId,
         reposPendingByIntegrationId,
         connectedIdentifiers,
@@ -118,6 +125,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     [
       scmProviders,
       scmIntegrations,
+      connectedRepos,
       reposByIntegrationId,
       reposPendingByIntegrationId,
       connectedIdentifiers,
@@ -140,6 +148,8 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
       if (node.type === 'integration') return `integration:${node.integration.id}`;
       if (node.type === 'add-config') return `add-config:${node.provider.key}`;
       if (node.type === 'no-match') return `no-match:${node.integrationId}`;
+      if (node.type === 'disconnected-section') return 'disconnected-section';
+      if (node.type === 'disconnected-repo') return `disconnected-repo:${node.repo.id}`;
       return `repo:${node.repo.identifier}`;
     },
   });
@@ -148,6 +158,33 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
     refetchIntegrations();
   }, [refetchIntegrations]);
 
+  // Optimistically remove a repo from cache and call the API
+  const removeRepo = useCallback(
+    async (repo: Repository) => {
+      const previousData = queryClient.getQueryData(reposQueryKey as any);
+      queryClient.setQueryData(
+        reposQueryKey as any,
+        (old: InfiniteData<{json: Repository[]}> | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map(page => ({
+              ...page,
+              json: page.json.filter(r => r.id !== repo.id),
+            })),
+          };
+        }
+      );
+      try {
+        await hideRepository(api, organization.slug, repo.id);
+        addSuccessMessage(t('Removed %s', repo.name));
+      } catch {
+        queryClient.setQueryData(reposQueryKey as any, previousData);
+      }
+    },
+    [api, organization.slug, queryClient, reposQueryKey]
+  );
+
   const handleToggleRepo = useCallback(
     async (
       repo: IntegrationRepository,
@@ -155,39 +192,14 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
       isConnected: boolean
     ) => {
       setTogglingRepos(prev => new Set(prev).add(repo.identifier));
-
       try {
         if (isConnected) {
           const connectedRepo = queryClient
             .getQueryData<InfiniteData<{json: Repository[]}>>(reposQueryKey as any)
             ?.pages.flatMap(p => p.json)
             .find(r => r.name === repo.identifier);
-
-          if (!connectedRepo) {
-            return;
-          }
-
-          // Optimistically remove repo from cache so the UI updates immediately
-          const previousData = queryClient.getQueryData(reposQueryKey as any);
-          queryClient.setQueryData(
-            reposQueryKey as any,
-            (old: InfiniteData<{json: Repository[]}> | undefined) => {
-              if (!old) return old;
-              return {
-                ...old,
-                pages: old.pages.map(page => ({
-                  ...page,
-                  json: page.json.filter(r => r.id !== connectedRepo.id),
-                })),
-              };
-            }
-          );
-
-          try {
-            await hideRepository(api, organization.slug, connectedRepo.id);
-            addSuccessMessage(t('Removed %s', repo.name));
-          } catch {
-            queryClient.setQueryData(reposQueryKey as any, previousData);
+          if (connectedRepo) {
+            await removeRepo(connectedRepo);
           }
         } else {
           const newRepo = await addRepository(
@@ -219,7 +231,23 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
         });
       }
     },
-    [api, organization.slug, queryClient, reposQueryKey]
+    [api, organization.slug, queryClient, removeRepo, reposQueryKey]
+  );
+
+  const handleRemoveDisconnectedRepo = useCallback(
+    async (repo: Repository) => {
+      setTogglingRepos(prev => new Set(prev).add(repo.id));
+      try {
+        await removeRepo(repo);
+      } finally {
+        setTogglingRepos(prev => {
+          const next = new Set(prev);
+          next.delete(repo.id);
+          return next;
+        });
+      }
+    },
+    [removeRepo]
   );
 
   // Dynamic height: fill remaining viewport
@@ -291,6 +319,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
                 onToggleProvider={toggleProvider}
                 onToggleIntegration={toggleIntegration}
                 onToggleRepo={handleToggleRepo}
+                onRemoveDisconnectedRepo={handleRemoveDisconnectedRepo}
               />
             );
           })}
