@@ -1519,21 +1519,22 @@ class UpdateAutofixTest(TestCase):
         assert response.status_code == 200
         assert response.data == mock_response.json.return_value
 
-    @pytest.mark.parametrize("payload_type", ["select_solution", "create_pr"])
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")
-    def test_update_autofix_blocks_coding_payloads_when_disabled(self, mock_request, payload_type):
+    def test_update_autofix_blocks_coding_payloads_when_disabled(self, mock_request):
         from sentry.seer.autofix.autofix import update_autofix
 
         self.organization.update_option("sentry:enable_seer_coding", False)
 
-        response = update_autofix(
-            organization_id=self.organization.id,
-            run_id=self.run_id,
-            payload={"type": payload_type},
-        )
+        for payload_type in ("select_solution", "create_pr"):
+            response = update_autofix(
+                organization_id=self.organization.id,
+                run_id=self.run_id,
+                payload={"type": payload_type},
+            )
 
-        assert response.status_code == 403
-        assert response.data["detail"] == "Code generation is disabled for this organization"
+            assert response.status_code == 403
+            assert response.data["detail"] == "Code generation is disabled for this organization"
+
         mock_request.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix.make_autofix_update_request")

@@ -2,7 +2,6 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import orjson
-import pytest
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
@@ -92,24 +91,23 @@ class TestGroupAutofixUpdate(APITestCase):
         self.group.refresh_from_db()
         assert isinstance(self.group.seer_autofix_last_triggered, datetime)
 
-    @pytest.mark.parametrize("payload_type", ["select_solution", "create_branch", "create_pr"])
     @patch("sentry.seer.endpoints.group_autofix_update.make_signed_seer_api_request")
-    def test_coding_payload_blocked_when_coding_disabled(
-        self, mock_request: MagicMock, payload_type: str
-    ) -> None:
+    def test_coding_payload_blocked_when_coding_disabled(self, mock_request: MagicMock) -> None:
         self.organization.update_option("sentry:enable_seer_coding", False)
 
-        response = self.client.post(
-            self.url,
-            data={
-                "run_id": 123,
-                "payload": {"type": payload_type},
-            },
-            format="json",
-        )
+        for payload_type in ("select_solution", "create_branch", "create_pr"):
+            response = self.client.post(
+                self.url,
+                data={
+                    "run_id": 123,
+                    "payload": {"type": payload_type},
+                },
+                format="json",
+            )
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["detail"] == "Code generation is disabled for this organization"
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert response.data["detail"] == "Code generation is disabled for this organization"
+
         mock_request.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_autofix_update.make_signed_seer_api_request")
