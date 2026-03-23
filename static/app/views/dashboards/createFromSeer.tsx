@@ -170,9 +170,6 @@ export default function CreateFromSeer() {
       retry: false,
       enabled: !!seerRunId && hasFeature,
       refetchInterval: query => {
-        if (isUpdating) {
-          return POLL_INTERVAL_MS;
-        }
         const status = query.state.data?.[0]?.session?.status;
         if (statusIsTerminal(status)) {
           if (completedAtRef.current === null) {
@@ -187,10 +184,11 @@ export default function CreateFromSeer() {
           }
           return false;
         }
-        hasSeenNonTerminalRef.current = true;
-        // Status left "completed" (hook triggered a re-run), reset
-        completedAtRef.current = null;
-        hasValidatedRef.current = false;
+        if (status !== undefined && !statusIsTerminal(status)) {
+          hasSeenNonTerminalRef.current = true;
+          hasValidatedRef.current = false;
+          completedAtRef.current = null;
+        }
         return POLL_INTERVAL_MS;
       },
     }
@@ -206,7 +204,10 @@ export default function CreateFromSeer() {
     }
     const prevUpdatedAt = prevSessionStatusRef.current.updated_at;
     const prevStatus = prevSessionStatusRef.current.status;
-    prevSessionStatusRef.current = {status: sessionStatus, updated_at: sessionUpdatedAt};
+    prevSessionStatusRef.current = {
+      status: sessionStatus,
+      updated_at: sessionUpdatedAt,
+    };
 
     const isTerminal = statusIsTerminal(sessionStatus);
     const wasTerminal = statusIsTerminal(prevStatus);
