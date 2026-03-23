@@ -29,6 +29,7 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
@@ -209,7 +210,6 @@ function VisualizationWidgetContent({
   const {selection} = usePageFilters();
 
   const firstWidgetQuery = widget.queries[0];
-  const aggregates = firstWidgetQuery?.aggregates ?? []; // All widget queries have the same aggregates
   const columns = firstWidgetQuery?.columns ?? []; // All widget queries have the same columns
 
   const timeSeriesWithPlottable = timeseriesResults
@@ -279,33 +279,17 @@ function VisualizationWidgetContent({
           return null;
         }
 
-        let value: number | null = null;
         const yAxis = timeSeries.yAxis;
         const firstColumnGroupByValue = timeSeries.groupBy?.find(
           groupBy => groupBy.key === firstColumn
         )?.value;
 
-        if (tableDataRows) {
-          // If there is one column, the table results will be an array with multiple elements
-          // [{column: 'value', aggregate: 123}, {column: 'value', aggregate: 123}]
-          if (columns.length === 1) {
-            if (firstColumnGroupByValue !== undefined && firstColumn) {
-              // for 20 series, this is only 20 x 20 lookups, which is negligible and worth it for code readability
-              value =
-                (tableDataRows.find(
-                  row => row[firstColumn] === firstColumnGroupByValue
-                )?.[yAxis] as number) ?? null;
-            }
-          }
-          // If there is no columns, and only aggregates, the table result will be an array with a single element
-          // [{aggregate1: 123}, {aggregate2: 345}]
-          else if (columns.length === 0 && aggregates.length > 0) {
-            const row = tableDataRows[0];
-            if (row) {
-              value = (row[yAxis] as number) ?? null;
-            }
-          }
-        }
+        const value = tableDataRows
+          ? matchTimeSeriesToTableRowValue({
+              tableDataRows,
+              timeSeries,
+            })
+          : null;
         const dataType = timeSeries.meta.valueType;
         const dataUnit = timeSeries.meta.valueUnit ?? undefined;
         const label = plottable?.label ?? timeSeries.yAxis;

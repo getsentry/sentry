@@ -75,7 +75,11 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
 
         try:
             client = SeerExplorerClient(
-                organization, request.user, on_completion_hook=DashboardOnCompletionHook
+                organization,
+                request.user,
+                on_completion_hook=DashboardOnCompletionHook,
+                category_key="dashboard_generate",
+                category_value=str(organization.id),
             )
             run_id = client.start_run(
                 prompt=prompt,
