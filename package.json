@@ -222,7 +222,6 @@
     "style-loader": "4.0.0",
     "swc-plugin-component-annotate": "1.13.0",
     "ts-checker-rspack-plugin": "1.2.6",
-    "tslib": "^2.8.1",
     "type-fest": "^5.2.0",
     "zod": "^4.3.5",
     "zrender": "6.0.0",
