@@ -368,12 +368,13 @@ def _cleanup(
                 return model.__name__.lower() not in model_list
 
             deletes = models_which_use_deletions_code_path()
+            bulk_query_deletes = generate_bulk_query_deletes()
 
             _run_specialized_cleanups(is_filtered, days, models_attempted)
 
             # Handle project/organization specific logic
             project_id, organization_id = _handle_project_organization_cleanup(
-                project, organization, days, deletes
+                project, organization, days, deletes, bulk_query_deletes
             )
             if organization_id is not None:
                 transaction.set_tag("organization_id", organization_id)
@@ -381,6 +382,7 @@ def _cleanup(
                 transaction.set_tag("project_id", project_id)
 
             run_bulk_query_deletes(
+                bulk_query_deletes,
                 is_filtered,
                 days,
                 project,
@@ -511,6 +513,7 @@ def _handle_project_organization_cleanup(
     organization: str | None,
     days: int,
     deletes: list[tuple[type[BaseModel], str, str]],
+    bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
 ) -> tuple[int | None, int | None]:
     """Handle project/organization specific cleanup logic."""
     project_id = None
@@ -519,6 +522,7 @@ def _handle_project_organization_cleanup(
     if SiloMode.get_current_mode() != SiloMode.CONTROL:
         if project:
             remove_cross_project_models(deletes)
+            remove_cross_project_bulk_query_models(bulk_query_deletes)
             project_id = get_project_id_or_fail(project)
         elif organization:
             organization_id = get_organization_id_or_fail(organization)
@@ -732,6 +736,15 @@ def remove_old_nodestore_values(days: int) -> None:
         click.echo("NodeStore backend does not support cleanup operation", err=True)
 
 
+def remove_cross_project_bulk_query_models(
+    bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
+) -> list[tuple[type[BaseModel], str, str | None]]:
+    from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+
+    bulk_query_deletes.remove((WorkflowFireHistory, "date_added", None))
+    return bulk_query_deletes
+
+
 def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None]]:
     from django.apps import apps
 
@@ -757,6 +770,7 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
 
 
 def run_bulk_query_deletes(
+    bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
     is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
     project: str | None,
@@ -772,7 +786,6 @@ def run_bulk_query_deletes(
         raise CleanupExecutionAborted()
 
     debug_output("Running bulk query deletes in bulk_query_deletes")
-    bulk_query_deletes = generate_bulk_query_deletes()
     for model_tp, dtfield, order_by in bulk_query_deletes:
         chunk_size = 10000
 
