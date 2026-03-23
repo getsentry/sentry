@@ -376,10 +376,7 @@ describe('AggregateDropdown', () => {
       fields: ['id', 'timestamp'],
       sortBys: [{field: 'timestamp', kind: 'desc'}],
       aggregateCursor: '',
-      aggregateFields: [
-        new VisualizeFunction('sum(value,test_metric,distribution,-)'),
-        new VisualizeFunction('count(value,test_metric,distribution,-)'),
-      ],
+      aggregateFields: [new VisualizeFunction('sum(value,test_metric,distribution,-)')],
       aggregateSortBys: [{field: 'sum(value,test_metric,distribution,-)', kind: 'desc'}],
     });
 
@@ -396,12 +393,6 @@ describe('AggregateDropdown', () => {
 
     await waitFor(() =>
       expect(screen.getByRole('option', {name: 'sum'})).toHaveAttribute(
-        'aria-selected',
-        'true'
-      )
-    );
-    await waitFor(() =>
-      expect(screen.getByRole('option', {name: 'count'})).toHaveAttribute(
         'aria-selected',
         'true'
       )

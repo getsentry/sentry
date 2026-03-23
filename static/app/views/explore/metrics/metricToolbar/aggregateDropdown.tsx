@@ -1,4 +1,4 @@
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {CompositeSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
@@ -14,78 +14,77 @@ import {
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 
-function findGroupKey(
-  metricType: string,
-  aggregateValue: string | undefined
-): string | number | undefined {
-  const groups = GROUPED_OPTIONS_BY_TYPE[metricType];
-
-  if (!aggregateValue || !groups) {
-    return undefined;
-  }
-
-  for (const group of groups) {
-    if (group.options.some(opt => String(opt.value) === aggregateValue)) {
-      return group.key;
-    }
-  }
-
-  return undefined;
-}
+const MULTI_SELECT_GROUP_KEYS = new Set(['percentiles', 'stats']);
 
 export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
   const visualize = useMetricVisualize();
-
   const visualizes = useMetricVisualizes();
   const setMetricVisualizes = useSetMetricVisualizes();
 
+  const groups = GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? [];
+  const selectedNames = new Set(visualizes.map(v => v.parsedFunction?.name ?? ''));
+
+  function handleChange(selectedOptions: Array<SelectOption<string>>) {
+    if (selectedOptions.length === 0) {
+      setMetricVisualizes([
+        updateVisualizeYAxis(
+          visualize,
+          DEFAULT_YAXIS_BY_TYPE[traceMetric.type]!,
+          traceMetric
+        ),
+      ]);
+    } else {
+      setMetricVisualizes(
+        selectedOptions.map(o => updateVisualizeYAxis(visualize, o.value, traceMetric))
+      );
+    }
+  }
+
+  const triggerLabel = [...selectedNames].filter(Boolean).join(', ') || t('None');
+
   return (
-    <CompactSelect
-      multiple
+    <CompositeSelect
       style={{width: '100%'}}
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
           prefix={t('Agg')}
           style={{width: '100%'}}
-        />
+        >
+          {triggerLabel}
+        </OverlayTrigger.Button>
       )}
-      options={GROUPED_OPTIONS_BY_TYPE[traceMetric.type] ?? []}
-      value={visualizes.map(v => v.parsedFunction?.name ?? '')}
-      onChange={(option: Array<SelectOption<string>>) => {
-        if (option.length === 0) {
-          setMetricVisualizes([
-            updateVisualizeYAxis(
-              visualize,
-              DEFAULT_YAXIS_BY_TYPE[traceMetric.type]!,
-              traceMetric
-            ),
-          ]);
-        } else {
-          // Find the newly selected aggregate by comparing with current selection
-          const currentValues = new Set(
-            visualizes.map(v => v.parsedFunction?.name ?? '')
-          );
-          const newlySelected = option.find(o => !currentValues.has(o.value));
+    >
+      {groups.map(group => {
+        const groupKey = String(group.key);
+        const isMulti = MULTI_SELECT_GROUP_KEYS.has(groupKey);
+        const activeValues = group.options
+          .map(opt => String(opt.value))
+          .filter(v => selectedNames.has(v));
 
-          // If something new was selected, use its group; otherwise keep existing group
-          const targetGroup = newlySelected
-            ? findGroupKey(traceMetric.type, newlySelected.value)
-            : findGroupKey(traceMetric.type, visualizes?.[0]?.parsedFunction?.name ?? '');
-
-          // Filter to only keep aggregates from the same group
-          // This auto-deselects incompatible aggregates when switching groups
-          const compatibleOptions = option.filter(
-            o => findGroupKey(traceMetric.type, o.value) === targetGroup
-          );
-
-          setMetricVisualizes(
-            compatibleOptions.map(o =>
-              updateVisualizeYAxis(visualize, o.value, traceMetric)
-            )
+        if (isMulti) {
+          return (
+            <CompositeSelect.Region
+              key={groupKey}
+              label={group.label as string}
+              multiple
+              options={group.options}
+              value={activeValues}
+              onChange={(opts: Array<SelectOption<string>>) => handleChange(opts)}
+            />
           );
         }
-      }}
-    />
+
+        return (
+          <CompositeSelect.Region
+            key={groupKey}
+            label={group.label as string}
+            options={group.options}
+            value={activeValues[0] as string}
+            onChange={(opt: SelectOption<string>) => handleChange([opt])}
+          />
+        );
+      })}
+    </CompositeSelect>
   );
 }
