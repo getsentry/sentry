@@ -6,7 +6,7 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
+import {closeModal, openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -190,8 +190,12 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
               selectedPlatform={basePlatformSdk}
               onConfigure={selectedFramework => {
                 applyPlatformSelection(selectedFramework);
+                closeModal();
               }}
-              onSkip={() => applyPlatformSelection(basePlatformSdk)}
+              onSkip={() => {
+                applyPlatformSelection(basePlatformSdk);
+                closeModal();
+              }}
               newOrg
             />
           ),
@@ -223,9 +227,18 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
     [selectedPlatform?.key, setPlatform, setSelectedFeatures]
   );
 
-  const showDetectedPlatforms = hasScmConnected && !showManualPicker;
   const detectedPlatformKey = resolvedPlatforms[0]?.platform;
   const currentPlatformKey = selectedPlatform?.key;
+
+  // If the user previously selected a platform manually (not in the detected
+  // list), show the manual picker so their selection is visible.
+  const currentPlatformIsDetected = resolvedPlatforms.some(
+    p => p.platform === currentPlatformKey
+  );
+  const showDetectedPlatforms =
+    hasScmConnected &&
+    !showManualPicker &&
+    (!currentPlatformKey || currentPlatformIsDetected);
 
   // Auto-select the first detected platform when results load
   useEffect(() => {
