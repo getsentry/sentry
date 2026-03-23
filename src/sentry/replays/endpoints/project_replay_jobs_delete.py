@@ -58,7 +58,7 @@ class ReplayDeletionJobCreateSerializer(serializers.Serializer):
 
 @cell_silo_endpoint
 class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
-    owner = ApiOwner.REPLAY
+    owner = ApiOwner.DATA_BROWSING
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
@@ -133,7 +133,6 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
 
 @cell_silo_endpoint
 class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
-    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -147,7 +146,9 @@ class ProjectReplayDeletionJobDetailEndpoint(ProjectReplayEndpoint):
 
         try:
             job = ReplayDeletionJobModel.objects.get(
-                id=job_id, organization_id=project.organization_id, project_id=project.id
+                id=job_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
             )
         except ReplayDeletionJobModel.DoesNotExist:
             raise ResourceDoesNotExist

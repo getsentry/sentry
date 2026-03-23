@@ -61,10 +61,10 @@ const SECTION_ORDER: SectionConfig[] = [
 ];
 
 interface SnapshotSidebarContentProps {
-  currentItemName: string | null;
+  currentItemKey: string | null;
   items: SidebarItem[];
   onSearchChange: (query: string) => void;
-  onSelectItem: (name: string) => void;
+  onSelectItem: (key: string) => void;
   searchQuery: string;
   totalItemCount: number;
 }
@@ -72,7 +72,7 @@ interface SnapshotSidebarContentProps {
 export function SnapshotSidebarContent({
   items,
   totalItemCount,
-  currentItemName,
+  currentItemKey,
   searchQuery,
   onSearchChange,
   onSelectItem,
@@ -127,14 +127,14 @@ export function SnapshotSidebarContent({
   }, [items, isDiffMode]);
 
   useEffect(() => {
-    if (!listRef.current || !currentItemName) {
+    if (!listRef.current || !currentItemKey) {
       return;
     }
     const el = listRef.current.querySelector(
-      `[data-item-name="${CSS.escape(currentItemName)}"]`
+      `[data-item-name="${CSS.escape(currentItemKey)}"]`
     );
     el?.scrollIntoView({block: 'nearest'});
-  }, [currentItemName]);
+  }, [currentItemKey]);
 
   const isSearching = searchQuery.length > 0;
 
@@ -144,6 +144,34 @@ export function SnapshotSidebarContent({
   };
 
   const isGroupedDiff = isDiffMode && groupedItems !== null;
+
+  const renderItem = (item: SidebarItem) => {
+    const isSelected = item.key === currentItemKey;
+    return (
+      <SidebarItemRow
+        key={item.key}
+        data-item-name={item.key}
+        isSelected={isSelected}
+        onClick={() => onSelectItem(item.key)}
+      >
+        <Flex align="center" gap="sm" flex="1" minWidth="0">
+          <Text
+            size="md"
+            variant={isSelected ? 'accent' : 'muted'}
+            bold={isSelected}
+            ellipsis
+          >
+            {item.name}
+          </Text>
+        </Flex>
+        {item.badge && (
+          <Text variant="muted" size="xs">
+            {item.badge}
+          </Text>
+        )}
+      </SidebarItemRow>
+    );
+  };
 
   return (
     <Stack height="100%" width="100%">
@@ -195,64 +223,13 @@ export function SnapshotSidebarContent({
                 </SidebarSectionTitle>
                 {isExpanded && (
                   <SidebarSectionContent>
-                    {sectionItems.map(item => (
-                      <SidebarItemRow
-                        key={item.name}
-                        data-item-name={item.name}
-                        isSelected={item.name === currentItemName}
-                        onClick={() => onSelectItem(item.name)}
-                      >
-                        <Flex align="center" gap="sm" flex="1" minWidth="0">
-                          <Text
-                            size="md"
-                            variant={item.name === currentItemName ? 'accent' : 'muted'}
-                            bold={item.name === currentItemName}
-                            ellipsis
-                          >
-                            {item.name}
-                          </Text>
-                        </Flex>
-                        {item.type === 'changed' && item.pair.diff !== null && (
-                          <Text variant="muted" size="xs">
-                            {`${(item.pair.diff * 100).toFixed(1)}%`}
-                          </Text>
-                        )}
-                      </SidebarItemRow>
-                    ))}
+                    {sectionItems.map(renderItem)}
                   </SidebarSectionContent>
                 )}
               </Disclosure>
             );
           })}
-        {!isGroupedDiff &&
-          items.map(item => {
-            const isSelected = item.name === currentItemName;
-
-            return (
-              <SidebarItemRow
-                key={item.name}
-                data-item-name={item.name}
-                isSelected={isSelected}
-                onClick={() => onSelectItem(item.name)}
-              >
-                <Flex align="center" gap="sm" flex="1" minWidth="0">
-                  <Text
-                    size="md"
-                    variant={isSelected ? 'accent' : 'muted'}
-                    bold={isSelected}
-                    ellipsis
-                  >
-                    {item.name}
-                  </Text>
-                </Flex>
-                {item.type === 'solo' && item.images.length > 1 && (
-                  <Text variant="muted" size="xs">
-                    {item.images.length}
-                  </Text>
-                )}
-              </SidebarItemRow>
-            );
-          })}
+        {!isGroupedDiff && items.map(renderItem)}
         {items.length === 0 && (
           <Flex align="center" justify="center" padding="lg">
             <Text variant="muted" size="sm">

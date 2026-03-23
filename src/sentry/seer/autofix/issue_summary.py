@@ -8,6 +8,7 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 
 from sentry import features, quotas
@@ -35,7 +36,7 @@ from sentry.seer.autofix.utils import (
     make_get_project_preference_request,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
-from sentry.seer.entrypoints.operator import SeerOperator
+from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
@@ -48,7 +49,6 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -216,12 +216,11 @@ def _trigger_autofix_task(
 
         # Route to explorer-based autofix if both feature flags are enabled
         run_id: int | None = None
-        if features.has("organizations:seer-explorer", group.organization) and features.has(
-            "organizations:autofix-on-explorer", group.organization
-        ):
+        if features.has("organizations:autofix-on-explorer", group.organization):
             run_id = trigger_autofix_explorer(
                 group=group,
                 step=AutofixStep.ROOT_CAUSE,
+                referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
             )
@@ -243,7 +242,7 @@ def _trigger_autofix_task(
             )
             run_id = response.data.get("run_id")
 
-        if run_id and SeerOperator.has_access(organization=group.project.organization):
+        if run_id and SeerAutofixOperator.has_access(organization=group.project.organization):
             SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_id)
 
 

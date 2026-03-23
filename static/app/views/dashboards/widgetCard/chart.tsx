@@ -283,6 +283,9 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   const {start, end, period, utc} = selection.datetime;
   const {projects, environments} = selection;
 
+  // TODO(JoshuaKGoldberg):
+  //   Unexpected unnecessary non-capturing group. This group can be removed without changing the behaviour of the regex  regexp/no-useless-non-capturing-group
+  // eslint-disable-next-line regexp/no-useless-non-capturing-group
   const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
   const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
     seriesName?.match(otherRegex)
@@ -991,7 +994,6 @@ const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boole
 const TableWrapper = styled('div')`
   margin-top: ${p => p.theme.space.lg};
   min-height: 0;
-  flex: 1;
   border-bottom-left-radius: ${p => p.theme.radius.md};
   border-bottom-right-radius: ${p => p.theme.radius.md};
 `;

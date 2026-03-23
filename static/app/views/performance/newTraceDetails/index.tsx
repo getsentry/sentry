@@ -2,6 +2,9 @@ import {useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+
+import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -9,6 +12,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {TraceAiSpans} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
@@ -147,7 +151,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
       orgSlug={organization.slug}
     >
       <NoProjectMessage organization={organization}>
-        <TraceExternalLayout>
+        <LayoutPageWithHiddenFooter>
           <TraceMetaDataHeader
             rootEventResults={rootEventResults}
             tree={tree}
@@ -208,31 +212,29 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               <TraceAiSpans traceSlug={traceSlug} />
             ) : null}
           </TraceInnerLayout>
-        </TraceExternalLayout>
+        </LayoutPageWithHiddenFooter>
       </NoProjectMessage>
     </SentryDocumentTitle>
   );
 }
 
-const TraceExternalLayout = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 100%;
-  max-height: 100vh;
-
+const LayoutPageWithHiddenFooter = styled(Layout.Page)`
   ~ footer {
     display: none;
   }
 `;
 
-const FlexBox = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-`;
-
-const TraceInnerLayout = styled(FlexBox)`
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
-  flex-grow: 1;
-  overflow-y: auto;
-`;
+function TraceInnerLayout(props: FlexProps<'div'>) {
+  const hasPageFrame = useHasPageFrameFeature();
+  return (
+    <Flex
+      {...props}
+      background={hasPageFrame ? 'primary' : undefined}
+      direction="column"
+      gap="md"
+      padding="xl"
+      flex="1"
+      overflowY="auto"
+    />
+  );
+}

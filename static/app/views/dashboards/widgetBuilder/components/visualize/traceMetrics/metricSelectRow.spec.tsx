@@ -1,6 +1,9 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {AggregationKeyWithAlias} from 'sentry/utils/discover/fields';
+import type {
+  AggregationKeyWithAlias,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
@@ -97,6 +100,68 @@ describe('MetricSelectRow', () => {
     expect(new Set(metricSelectors.map(selector => selector.textContent))).toEqual(
       new Set(['beta_metric'])
     );
+  });
+
+  it('allows selection for multiple metrics', async () => {
+    const aggregates: QueryFieldValue[] = [
+      {
+        kind: 'function',
+        function: [
+          'per_second' as AggregationKeyWithAlias,
+          'value',
+          'alpha_metric',
+          'counter',
+          '-',
+        ],
+      },
+      {
+        kind: 'function',
+        function: [
+          'sum' as AggregationKeyWithAlias,
+          'value',
+          'alpha_metric',
+          'counter',
+          '-',
+        ],
+      },
+    ];
+    render(
+      <WidgetBuilderProvider>
+        {aggregates.map((aggregate, index) => (
+          <MetricSelectRow key={index} field={aggregate} index={index} disabled={false} />
+        ))}
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {
+              yAxis: [
+                'per_second(value,alpha_metric,counter,-)',
+                'sum(value,alpha_metric,counter,-)',
+              ],
+              dataset: WidgetType.TRACEMETRICS,
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+        organization: {
+          features: ['tracemetrics-multi-metric-selection-in-dashboards'],
+        },
+      }
+    );
+
+    // Both metric selectors show the same metric value (alphabetically first)
+    const metricSelectors = await screen.findAllByRole('button', {name: 'alpha_metric'});
+    expect(metricSelectors).toHaveLength(2);
+
+    // Change the first metric to 'beta_metric'
+    await userEvent.click(metricSelectors[0]!);
+    await userEvent.click(await screen.findByRole('option', {name: 'beta_metric'}));
+
+    // Both metrics should be selected
+    expect(screen.getByRole('button', {name: 'beta_metric'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'alpha_metric'})).toBeInTheDocument();
   });
 
   it('replaces invalid aggregates when changing to an incompatible metric type', async () => {

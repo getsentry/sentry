@@ -142,10 +142,7 @@ def test_debounce(
         assert not args
         tasks.append(kwargs)
 
-    with (
-        mock.patch("sentry.taskworker.task.Task._signal_send", signal_send),
-        mock.patch("taskbroker_client.task.Task._signal_send", signal_send),
-    ):
+    with mock.patch("taskbroker_client.task.Task._signal_send", signal_send):
         schedule_build_project_config(public_key=default_projectkey.public_key)
         schedule_build_project_config(public_key=default_projectkey.public_key)
 
@@ -505,7 +502,6 @@ class TestInvalidationTask:
         assert schedule_inner.call_count == 2
 
 
-@override_options({"taskworker.enabled": True})
 @django_db_all(transaction=True)
 @thread_leak_allowlist(reason="relay integration tests", issue=97040)
 def test_invalidate_hierarchy(

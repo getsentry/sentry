@@ -1,19 +1,20 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
+import {validateDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
@@ -29,6 +30,8 @@ import {DashboardState} from './types';
 
 const POLL_INTERVAL_MS = 500;
 const DASHBOARD_ARTIFACT_KEY = 'dashboard';
+const POST_COMPLETE_POLL_MS = 5000;
+const EMPTY_DASHBOARDS: never[] = [];
 
 type DashboardArtifact = {
   title: string;
@@ -37,6 +40,7 @@ type DashboardArtifact = {
 
 type WidgetArtifact = {
   display_type: Widget['displayType'];
+  interval: string;
   layout: {h: number; min_h: number; w: number; x: number; y: number};
   queries: Widget['queries'];
   title: string;
@@ -49,7 +53,6 @@ function normalizeWidget(raw: WidgetArtifact): Widget {
   const {display_type, widget_type, ...rest} = raw;
   return {
     ...rest,
-    interval: '',
     displayType: display_type,
     widgetType: widget_type,
     layout: raw.layout
@@ -101,10 +104,41 @@ function extractMessages(
   return messages;
 }
 
+async function validateDashboardAndRecordMetrics(
+  organization: Organization,
+  newDashboard: DashboardDetails,
+  seerRunId: number | null
+) {
+  try {
+    await validateDashboard(organization.slug, newDashboard);
+    Sentry.metrics.count('dashboards.seer.validation', 1, {
+      attributes: {
+        status: 'success',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+      },
+    });
+  } catch (error) {
+    Sentry.metrics.count('dashboards.seer.validation', 1, {
+      attributes: {
+        status: 'failure',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+      },
+    });
+    Sentry.captureException(error, {
+      tags: {seer_run_id: seerRunId},
+    });
+  }
+}
+
+function statusIsTerminal(status?: string | null) {
+  return status === 'completed' || status === 'error' || status === 'awaiting_user_input';
+}
+
 export default function CreateFromSeer() {
   const organization = useOrganization();
   const location = useLocation();
-  const api = useApi();
   const queryClient = useQueryClient();
 
   const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
@@ -114,7 +148,20 @@ export default function CreateFromSeer() {
 
   const [dashboard, setDashboard] = useState<DashboardDetails>(EMPTY_DASHBOARD);
   const [isUpdating, setisUpdating] = useState(false); // State tracks if dashboard is being updated from user chat input
-  const prevUpdatedAtRef = useRef<string | null>(null);
+  const prevSessionStatusRef = useRef<{
+    status: string | null;
+    updated_at: string | null;
+  }>({status: null, updated_at: null});
+
+  // Timestamp of when we observe a "completed" status.
+  // This is required to poll for POST_COMPLETE_POLL_MS
+  // since backend hooks can resume runs in case of
+  // validation errors.
+  const completedAtRef = useRef<number | null>(null);
+
+  // Additional guards to prevent duplicate metrics recording and on reload
+  const hasValidatedRef = useRef(false);
+  const hasSeenNonTerminalRef = useRef(false);
 
   const {data, isError} = useApiQuery<SeerExplorerResponse>(
     makeSeerExplorerQueryKey(organization.slug, seerRunId),
@@ -123,51 +170,71 @@ export default function CreateFromSeer() {
       retry: false,
       enabled: !!seerRunId && hasFeature,
       refetchInterval: query => {
-        if (isUpdating) {
-          return POLL_INTERVAL_MS;
-        }
         const status = query.state.data?.[0]?.session?.status;
-        if (status === 'completed' || status === 'error') {
+        if (statusIsTerminal(status)) {
+          if (completedAtRef.current === null) {
+            completedAtRef.current = Date.now();
+          }
+          if (Date.now() - completedAtRef.current < POST_COMPLETE_POLL_MS) {
+            return POLL_INTERVAL_MS;
+          }
+          if (!hasValidatedRef.current && hasSeenNonTerminalRef.current) {
+            hasValidatedRef.current = true;
+            validateDashboardAndRecordMetrics(organization, dashboard, seerRunId);
+          }
           return false;
+        }
+        if (status !== undefined && !statusIsTerminal(status)) {
+          hasSeenNonTerminalRef.current = true;
+          hasValidatedRef.current = false;
+          completedAtRef.current = null;
         }
         return POLL_INTERVAL_MS;
       },
     }
   );
 
-  const session = data?.session ?? null;
+  const session = data?.session;
   const sessionStatus = session?.status ?? null;
   const sessionUpdatedAt = session?.updated_at ?? null;
 
   useEffect(() => {
-    const prevUpdatedAt = prevUpdatedAtRef.current;
-    prevUpdatedAtRef.current = sessionUpdatedAt;
+    if (!session) {
+      return;
+    }
+    const prevUpdatedAt = prevSessionStatusRef.current.updated_at;
+    const prevStatus = prevSessionStatusRef.current.status;
+    prevSessionStatusRef.current = {
+      status: sessionStatus,
+      updated_at: sessionUpdatedAt,
+    };
 
-    const isTerminal = sessionStatus === 'completed' || sessionStatus === 'error';
+    const isTerminal = statusIsTerminal(sessionStatus);
+    const wasTerminal = statusIsTerminal(prevStatus);
 
     // Only trigger Dashboard rerender when transition to a new completed state
-    if (prevUpdatedAt !== sessionUpdatedAt && isTerminal && session) {
+    if (prevUpdatedAt !== sessionUpdatedAt && isTerminal && !wasTerminal) {
       if (isUpdating) {
         setisUpdating(false);
       }
       const dashboardData = extractDashboardFromSession(session);
       if (dashboardData) {
-        setDashboard({
+        const newDashboard = {
           ...EMPTY_DASHBOARD,
           title: dashboardData.title,
           widgets: dashboardData.widgets,
-        });
+        };
+        setDashboard(newDashboard);
       }
     }
-  }, [isUpdating, sessionStatus, session, sessionUpdatedAt]);
+  }, [organization, seerRunId, isUpdating, sessionStatus, session, sessionUpdatedAt]);
 
   const blockMessages = useMemo(
     () => (session ? extractMessages(session) : []),
     [session]
   );
 
-  const isLoading =
-    !!seerRunId && sessionStatus !== 'completed' && sessionStatus !== 'error' && !isError;
+  const isLoading = !statusIsTerminal(sessionStatus) && !isError;
 
   // Prevent repeat errors on the same widget
   const reportedWidgetErrors = useRef(new Set<string>());
@@ -207,25 +274,23 @@ export default function CreateFromSeer() {
         return;
       }
       setisUpdating(true);
+      completedAtRef.current = null;
+      hasValidatedRef.current = false;
       try {
-        const {url} = parseQueryKey(
-          makeSeerExplorerQueryKey(organization.slug, seerRunId)
-        );
-        await api.requestPromise(url, {
+        const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
+        const {url} = parseQueryKey(queryKey);
+        await fetchMutation({
+          url,
           method: 'POST',
-          data: {
-            query: message,
-          },
+          data: {query: message},
         });
-        queryClient.invalidateQueries({
-          queryKey: makeSeerExplorerQueryKey(organization.slug, seerRunId),
-        });
+        queryClient.invalidateQueries({queryKey});
       } catch {
         setisUpdating(false);
         addErrorMessage(t('Failed to send message'));
       }
     },
-    [api, organization.slug, queryClient, seerRunId]
+    [organization.slug, queryClient, seerRunId]
   );
 
   if (!hasFeature) {
@@ -260,13 +325,14 @@ export default function CreateFromSeer() {
   return (
     <ErrorBoundary>
       <WidgetErrorProvider value={handleWidgetError}>
-        <DashboardDetail
+        <MemoizedDashboardDetail
           initialState={DashboardState.PREVIEW}
           dashboard={dashboard}
-          dashboards={[]}
+          dashboards={EMPTY_DASHBOARDS} // This prop is unused for the create from seer flow
         />
         <DashboardChatPanel
           blocks={session?.blocks ?? []}
+          pendingUserInput={session?.pending_user_input}
           onSend={sendMessage}
           isUpdating={isUpdating}
         />
@@ -274,6 +340,8 @@ export default function CreateFromSeer() {
     </ErrorBoundary>
   );
 }
+
+const MemoizedDashboardDetail = memo(DashboardDetail);
 
 const MessageBlock = styled(MarkedText)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};

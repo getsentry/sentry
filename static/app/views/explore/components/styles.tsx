@@ -1,8 +1,11 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, type ContainerProps} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SchemaHintsSection} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
@@ -27,16 +30,21 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   }
 `;
 
-export const ExploreContentSection = styled('section')`
-  background-color: ${p => p.theme.tokens.background.secondary};
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 0;
-  padding: ${p => p.theme.space.xl};
-
-  display: flex;
-  flex-direction: column;
-`;
+export function ExploreContentSection(props: ContainerProps) {
+  const hasPageFrame = useHasPageFrameFeature();
+  return (
+    <Flex
+      {...props}
+      background={hasPageFrame ? 'primary' : 'secondary'}
+      flex="1 1 auto"
+      minHeight="0"
+      minWidth="0"
+      padding="xl"
+      display="flex"
+      direction="column"
+    />
+  );
+}
 
 export const ExploreFilterSection = styled('div')`
   display: grid;

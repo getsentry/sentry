@@ -31,11 +31,13 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.eap.common_columns import COMMON_COLUMNS
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.uptime_results.attributes import UPTIME_ATTRIBUTE_DEFINITIONS
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.uptime.eap_utils import get_columns_for_uptime_result
@@ -325,6 +327,90 @@ def _run_errors_query(errors_query: DiscoverQueryBuilder):
     return error_data
 
 
+def _run_errors_query_eap(
+    snuba_params: SnubaParams,
+    trace_id: str,
+    referrer: str,
+    error_id: str | None = None,
+) -> list[dict[str, Any]]:
+    if not trace_id:
+        return []
+
+    selected_columns = [
+        "id",
+        "project_id",
+        "project.name",
+        "timestamp",
+        "span_id",
+        "transaction",
+        "group_id",
+        "title",
+        "message",
+        "level",
+    ]
+
+    try:
+        result = Occurrences.run_table_query(
+            params=snuba_params,
+            query_string=f"trace:{trace_id}",
+            selected_columns=selected_columns,
+            orderby=["id"],
+            offset=0,
+            limit=ERROR_LIMIT,
+            referrer=referrer,
+            config=SearchResolverConfig(),
+            occurrence_category=OccurrenceCategory.ERROR,
+        )
+        eap_data = result.get("data", [])
+    except Exception:
+        logger.exception(
+            "Fetching error occurrences for trace from EAP failed",
+            extra={
+                "trace_id": trace_id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization else None
+                ),
+                "project_ids": snuba_params.project_ids,
+                "referrer": referrer,
+            },
+        )
+        return []
+
+    # Replicate the legacy to_other(id, error_id, 0, 1) ordering bias:
+    # move the row matching error_id to the front of the list
+    # TODO: is there a better way to do this?
+    if error_id is not None and eap_data:
+        target_idx = None
+        for i, row in enumerate(eap_data):
+            if row.get("id") == error_id:
+                target_idx = i
+                break
+        if target_idx is not None and target_idx > 0:
+            eap_data.insert(0, eap_data.pop(target_idx))
+
+    transformed: list[dict[str, Any]] = []
+    for row in eap_data:
+        transformed.append(
+            {
+                "id": row.get("id", ""),
+                "project.name": row.get("project.name", ""),
+                "project.id": row.get("project_id"),
+                "timestamp": row.get("timestamp", ""),
+                "timestamp_ms": row.get("timestamp", ""),
+                "trace.span": row.get("span_id", ""),
+                "transaction": row.get("transaction", ""),
+                "issue": row.get("group_id"),
+                "issue.id": row.get("group_id"),
+                "title": row.get("title", ""),
+                "message": row.get("message", ""),
+                "tags[level]": row.get("level", ""),
+                "event_type": "error",
+            }
+        )
+
+    return transformed
+
+
 def _perf_issues_query(
     snuba_params: SnubaParams,
     trace_id: str,
@@ -580,6 +666,32 @@ def query_trace_data(
     errors_data = errors_future.result()
     occurrence_data = occurrence_future.result()
     uptime_data = uptime_future.result() if uptime_future else []
+
+    callsite = "snuba.trace.errors_query"
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_errors_data = _run_errors_query_eap(
+            snuba_params=snuba_params,
+            trace_id=trace_id,
+            referrer=referrer.value,
+            error_id=error_id,
+        )
+        errors_data = EAPOccurrencesComparator.check_and_choose(
+            control_data=errors_data,
+            experimental_data=eap_errors_data,
+            callsite=callsite,
+            is_experimental_data_a_null_result=len(eap_errors_data) == 0,
+            reasonable_match_comparator=lambda snuba, eap: {e["id"] for e in eap}.issubset(
+                {e["id"] for e in snuba}
+            ),
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization else None
+                ),
+                "project_ids": snuba_params.project_ids,
+            },
+        )
+
     result: list[dict[str, Any]] = []
     root_span: dict[str, Any] | None = None
 

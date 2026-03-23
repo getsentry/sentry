@@ -306,7 +306,7 @@ export function TracesTable({
   );
 
   if (frameless) {
-    return tableComponent;
+    return <FramelessContainer>{tableComponent}</FramelessContainer>;
   }
   return (
     <Container>
@@ -502,6 +502,14 @@ function AgentTags({agents}: {agents: string[]}) {
     </Flex>
   );
 }
+
+const FramelessContainer = styled('div')`
+  height: 100%;
+
+  tbody {
+    align-content: start;
+  }
+`;
 
 const GridEditableContainer = styled('div')`
   position: relative;

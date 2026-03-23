@@ -19,7 +19,7 @@ from sentry.auth.services.auth import auth_service
 from sentry.auth.services.orgauthtoken import orgauthtoken_rpc_service
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.hybridcloud.outbox.signals import process_region_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.hybridcloud.services.organization_mapping.model import CustomerId
 from sentry.hybridcloud.services.organization_mapping.serial import (
@@ -38,7 +38,7 @@ from sentry.workflow_engine.models import Action
 logger = logging.getLogger(__name__)
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS)
+@receiver(process_cell_outbox, sender=OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS)
 def update_sentry_app_action_data(
     shard_identifier: int,
     object_identifier: int,
@@ -84,32 +84,32 @@ def update_sentry_app_action_data(
         logger.info("Could not update Action", extra={"action_id": shard_identifier})
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
+@receiver(process_cell_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
 def process_audit_log_event(payload: Any, **kwds: Any):
     if payload is not None:
         log_rpc_service.record_audit_log(event=AuditLogEvent(**payload))
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.ORGAUTHTOKEN_UPDATE_USED)
+@receiver(process_cell_outbox, sender=OutboxCategory.ORGAUTHTOKEN_UPDATE_USED)
 def process_orgauthtoken_update(payload: Any, **kwds: Any):
     if payload is not None:
         orgauthtoken_rpc_service.update_orgauthtoken(**payload)
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.USER_IP_EVENT)
+@receiver(process_cell_outbox, sender=OutboxCategory.USER_IP_EVENT)
 def process_user_ip_event(payload: Any, **kwds: Any):
     if payload is not None:
         log_rpc_service.record_user_ip(event=UserIpEvent(**payload))
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.PROJECT_UPDATE)
+@receiver(process_cell_outbox, sender=OutboxCategory.PROJECT_UPDATE)
 def process_project_updates(object_identifier: int, **kwds: Any):
     if (proj := maybe_process_tombstone(Project, object_identifier)) is None:
         return
     proj
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)
+@receiver(process_cell_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)
 def process_organization_mapping_customer_id_update(
     object_identifier: int, payload: Any, **kwds: Any
 ):
@@ -123,7 +123,7 @@ def process_organization_mapping_customer_id_update(
         organization_mapping_service.upsert(organization_id=org.id, update=update)
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.DISABLE_AUTH_PROVIDER)
+@receiver(process_cell_outbox, sender=OutboxCategory.DISABLE_AUTH_PROVIDER)
 def process_disable_auth_provider(object_identifier: int, shard_identifier: int, **kwds: Any):
     # Deprecated
     auth_service.disable_provider(provider_id=object_identifier)
@@ -132,7 +132,7 @@ def process_disable_auth_provider(object_identifier: int, shard_identifier: int,
 
 # See the comment on /src/sentry/relocation/tasks/process.py::uploading_start for a detailed description of
 # how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
-@receiver(process_region_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REPLY)
+@receiver(process_cell_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REPLY)
 def process_relocation_reply_with_export(payload: Any, **kwds):
     uuid = payload["relocation_uuid"]
     slug = payload["org_slug"]
