@@ -298,9 +298,11 @@ class Parameterizer:
             # there should be exactly one named matching group, making the last matching group also
             # the only matching group.
             matched_key = match.lastgroup
-            value = match.groupdict().get(matched_key or "")  # Empty string for mypy appeasment
+            orig_value = match.groupdict().get(
+                matched_key or ""  # Empty string for mypy appeasment
+            )
 
-            if not matched_key or not value:  # Insurance - shouldn't happen IRL
+            if not matched_key or not orig_value:  # Insurance - shouldn't happen IRL
                 return ""
 
             matches_counter[matched_key] += 1
