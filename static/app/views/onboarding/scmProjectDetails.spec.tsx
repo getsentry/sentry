@@ -190,4 +190,36 @@ describe('ScmProjectDetails', () => {
       expect(onComplete).toHaveBeenCalled();
     });
   });
+
+  it('shows error message on project creation failure', async () => {
+    const onComplete = jest.fn();
+
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      statusCode: 500,
+      body: {detail: 'Internal Error'},
+    });
+
+    render(
+      <ScmProjectDetails
+        onComplete={onComplete}
+        stepIndex={3}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedPlatform: mockPlatform,
+        }),
+      }
+    );
+
+    const createButton = await screen.findByRole('button', {name: 'Create project'});
+    await userEvent.click(createButton);
+
+    await waitFor(() => {
+      expect(onComplete).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -34,11 +34,15 @@ export function ScmProjectDetails({onComplete}: StepProps) {
   const {createNotificationAction} = useCreateNotificationAction();
 
   const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
-
   const defaultName = slugify(selectedRepository?.name ?? selectedPlatform?.key ?? '');
 
-  const [projectName, setProjectName] = useState(defaultName);
-  const [teamSlug, setTeamSlug] = useState(firstAdminTeam?.slug ?? '');
+  // Track user overrides separately so derived defaults update if context changes
+  const [projectNameOverride, setProjectNameOverride] = useState<string | null>(null);
+  const [teamSlugOverride, setTeamSlugOverride] = useState<string | null>(null);
+
+  const projectName = projectNameOverride ?? defaultName;
+  const teamSlug = teamSlugOverride ?? firstAdminTeam?.slug ?? '';
+
   const [alertRuleConfig, setAlertRuleConfig] = useState<AlertRuleOptions>({
     alertSetting: RuleAction.DEFAULT_ALERT,
     threshold: '10',
@@ -46,12 +50,12 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     interval: '1m',
   });
 
-  const handleAlertChange = <K extends keyof AlertRuleOptions>(
-    key: K,
-    value: AlertRuleOptions[K]
-  ) => {
-    setAlertRuleConfig(prev => ({...prev, [key]: value}));
-  };
+  const handleAlertChange = useCallback(
+    <K extends keyof AlertRuleOptions>(key: K, value: AlertRuleOptions[K]) => {
+      setAlertRuleConfig(prev => ({...prev, [key]: value}));
+    },
+    []
+  );
 
   const canSubmit =
     projectName.length > 0 &&
@@ -119,7 +123,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
             type="text"
             placeholder={t('project-name')}
             value={projectName}
-            onChange={e => setProjectName(slugify(e.target.value))}
+            onChange={e => setProjectNameOverride(slugify(e.target.value))}
           />
         </Stack>
 
@@ -135,7 +139,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
             placeholder={t('Select a Team')}
             teamFilter={(tm: Team) => tm.access.includes('team:admin')}
             value={teamSlug}
-            onChange={({value}: {value: string}) => setTeamSlug(value)}
+            onChange={({value}: {value: string}) => setTeamSlugOverride(value)}
           />
         </Stack>
 
