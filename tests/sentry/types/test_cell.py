@@ -142,7 +142,7 @@ class CellDirectoryTest(TestCase):
             cell.validate()
 
     def test_locality_to_url(self) -> None:
-        locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT)
+        locality = Locality("us", frozenset(["us"]), RegionCategory.MULTI_TENANT, new_org_cell="us")
         with override_settings(SILO_MODE=SiloMode.CELL, SENTRY_REGION="us"):
             assert locality.to_url("/avatar/abcdef/") == "http://us.testserver/avatar/abcdef/"
         with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_REGION=""):
