@@ -1,7 +1,10 @@
 import functools
 from typing import Callable
 
+from django.conf import settings
+
 from sentry.scm.types import Referrer
+from sentry.utils import redis
 
 
 def usage_count_key(provider: str, organization_id: int, window: int, referrer: str) -> str:
@@ -18,7 +21,7 @@ def is_rate_limited(
     referrer: Referrer,
     referrer_allocation: dict[Referrer, float],
     rate_limit_window_seconds: int,
-    get_and_set_rate_limit: Callable[[str, str], tuple[int | None, int]],
+    get_and_set_rate_limit: Callable[[str, str, int], tuple[int | None, int]],
     get_time_in_seconds: Callable[[], int],
 ) -> bool:
     """
@@ -39,14 +42,22 @@ def is_rate_limited(
         'Referrer must exist in the allocation pool. Pass "shared" if no allocation was defined.'
     )
 
-    # Find the window of the request. GitHub's rate-limit window is always the current hour.
-    window = get_time_in_seconds() // rate_limit_window_seconds
+    # Find the bucket ID of the request. The bucket ID is the number of windows which have
+    # previously elapsed.
+    current_time = get_time_in_seconds()
+    time_bucket = current_time // rate_limit_window_seconds
+
+    # Computed as the window minus the number seconds elapsed within the window. So if our window
+    # is 100 seconds and 10 seconds of the current window has already elapsed then the remaining
+    # time is 90 seconds.
+    expires_in = rate_limit_window_seconds - int(current_time % rate_limit_window_seconds)
 
     # Get the total capacity of the service-provider and the amount of quota we've consumed for
     # a given referrer. If the referrer does not exist in the allocation pool
     service_capacity, quota_used = get_and_set_rate_limit(
         total_limit_key(provider, organization_id),
-        usage_count_key(provider, organization_id, window, referrer),
+        usage_count_key(provider, organization_id, time_bucket, referrer),
+        expires_in,
     )
 
     # If no limit could be found we fail open. We'll populate the limit on the other-side of the
@@ -133,3 +144,38 @@ def update_rate_limits_from_provider(
 
     if kvs:
         set_key_values(kvs)
+
+
+def get_and_set_rate_limit(
+    total_key: str,
+    usage_key: str,
+    expiration: int,
+) -> tuple[int | None, int]:
+    """
+    Get the request limit and incr/expire quota usage for the key.
+
+    :param total_key: The location of the request limit.
+    :param usage_key: The location of the quota counter.
+    :param expiration: The number of seconds until the key expires.
+    """
+    with redis.redis_clusters.get(settings.SENTRY_SCM_REDIS_CLUSTER).pipeline() as pipe:
+        pipe.get(total_key)
+        pipe.incr(usage_key)
+        pipe.expire(usage_key, expiration)
+
+        result = pipe.execute()
+        return (int(result[0]) if result[0] is not None else None, int(result[1]))
+
+
+def get_accounted_usage(keys: list[str]) -> int:
+    """Return the sum of a given set of keys."""
+    with redis.redis_clusters.get(settings.SENTRY_SCM_REDIS_CLUSTER).pipeline() as pipe:
+        (pipe.get(key) for key in keys)
+        return sum(result if not isinstance(result, int) else 0 for result in pipe.execute())
+
+
+def set_key_values(kvs: dict[str, int]) -> None:
+    """For a given set of key, value pairs set them in the Redis Cluster."""
+    with redis.redis_clusters.get(settings.SENTRY_SCM_REDIS_CLUSTER).pipeline() as pipe:
+        (pipe.set(k, v) for k, v in kvs.items())
+        pipe.execute()

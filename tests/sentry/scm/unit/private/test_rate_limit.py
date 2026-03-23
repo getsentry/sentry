@@ -16,7 +16,7 @@ def test_is_rate_limited_allocated_excess():
         "my_referrer",
         {"my_referrer": 0.11},
         rate_limit_window_seconds=3600,
-        get_and_set_rate_limit=lambda _, __: (100, 10),
+        get_and_set_rate_limit=lambda _, __, ___: (100, 10),
         get_time_in_seconds=lambda: 1234567890,
     )
     assert result is False
@@ -30,7 +30,7 @@ def test_is_rate_limited_allocated_exhausted():
         "my_referrer",
         {"my_referrer": 1.0},
         rate_limit_window_seconds=3600,
-        get_and_set_rate_limit=lambda _, __: (10, 10),
+        get_and_set_rate_limit=lambda _, __, ___: (10, 10),
         get_time_in_seconds=lambda: 1234567890,
     )
     assert result is True
@@ -44,7 +44,7 @@ def test_is_rate_limited_unallocated_excess():
         "shared",
         {},
         rate_limit_window_seconds=3600,
-        get_and_set_rate_limit=lambda _, __: (100, 10),
+        get_and_set_rate_limit=lambda _, __, ___: (100, 10),
         get_time_in_seconds=lambda: 1234567890,
     )
     assert result is False
@@ -58,7 +58,7 @@ def test_is_rate_limited_unallocated_exhausted():
         "shared",
         {},
         rate_limit_window_seconds=3600,
-        get_and_set_rate_limit=lambda _, __: (10, 10),
+        get_and_set_rate_limit=lambda _, __, ___: (10, 10),
         get_time_in_seconds=lambda: 1234567890,
     )
     assert result is True
@@ -73,7 +73,7 @@ def test_is_rate_limited_unallocated_but_not_shared():
             "other",
             {},
             rate_limit_window_seconds=3600,
-            get_and_set_rate_limit=lambda _, __: (10, 10),
+            get_and_set_rate_limit=lambda _, __, ___: (10, 10),
             get_time_in_seconds=lambda: 1234567890,
         )
 
@@ -86,7 +86,7 @@ def test_is_rate_limited_limit_not_set():
         "my_referrer",
         {"my_referrer": 0.000000001},
         rate_limit_window_seconds=3600,
-        get_and_set_rate_limit=lambda _, __: (None, 100000000000000),
+        get_and_set_rate_limit=lambda _, __, ___: (None, 100000000000000),
         get_time_in_seconds=lambda: 1234567890,
     )
     assert result is False
