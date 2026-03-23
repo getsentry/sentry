@@ -1,5 +1,5 @@
 import {Alert} from '@sentry/scraps/alert';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {Form} from 'sentry/components/forms/form';
@@ -11,6 +11,7 @@ import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {SCMOverviewSection} from 'sentry/views/settings/seer/overview/scmOverviewSection';
 
 import {SeerSettingsPageContent} from 'getsentry/views/seerAutomation/components/seerSettingsPageContent';
 import {SeerSettingsPageWrapper} from 'getsentry/views/seerAutomation/components/seerSettingsPageWrapper';
@@ -19,6 +20,8 @@ import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/use
 export function SeerAutomationSettings() {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+
+  const showSeerOverview = organization.features.includes('seer-overview');
 
   return (
     <SeerSettingsPageWrapper>
@@ -41,6 +44,11 @@ export function SeerAutomationSettings() {
         )}
       />
       <SeerSettingsPageContent>
+        {showSeerOverview ? (
+          <Grid columns="minmax(max-content, 140px) 1fr max-content" gap="xl">
+            <SCMOverviewSection canWrite={canWrite} />
+          </Grid>
+        ) : null}
         <Form
           saveOnBlur
           apiMethod="PUT"
