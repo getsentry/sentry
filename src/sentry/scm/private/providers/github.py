@@ -850,9 +850,9 @@ class GitHubProvider:
             allow_redirects=False,
         )
         return {
-            "data": ArchiveLink(url=response.url, headers={}),
+            "data": ArchiveLink(url=response.headers["Location"]),
             "type": "github",
-            "raw": response.url,
+            "raw": response.headers["Location"],
             "meta": _extract_response_meta(response),
         }
 
