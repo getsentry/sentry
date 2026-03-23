@@ -7,10 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {
-  organizationIntegrationsCodingAgents,
-  type CodingAgentIntegration,
-} from 'sentry/components/events/autofix/useAutofix';
+import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -54,7 +51,7 @@ export function SeerAutomationSettings() {
     value:
       option.value === 'seer' || option.value === 'none'
         ? option.value
-        : (option.value as CodingAgentIntegration).id!,
+        : option.value.id!,
     label: option.label,
   }));
 
