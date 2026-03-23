@@ -10,7 +10,7 @@ import {
   MenuComponents,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -375,9 +375,11 @@ export function FilterSelector({
           </Flex>
         )}
         trigger={triggerProps => (
-          <OverlayTrigger.Button {...triggerProps}>
-            {renderFilterSelectorTrigger(activeFilterValues)}
-          </OverlayTrigger.Button>
+          <Container maxWidth={FILTER_SELECTOR_MAX_WIDTH}>
+            <OverlayTrigger.Button {...triggerProps}>
+              {renderFilterSelectorTrigger(activeFilterValues)}
+            </OverlayTrigger.Button>
+          </Container>
         )}
       />
     );
@@ -467,9 +469,11 @@ export function FilterSelector({
         </Flex>
       )}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps}>
-          {renderFilterSelectorTrigger(stagedFilterValues)}
-        </OverlayTrigger.Button>
+        <Container maxWidth={FILTER_SELECTOR_MAX_WIDTH}>
+          <OverlayTrigger.Button {...triggerProps}>
+            {renderFilterSelectorTrigger(stagedFilterValues)}
+          </OverlayTrigger.Button>
+        </Container>
       )}
     />
   );
@@ -490,6 +494,8 @@ const translateKnownFilterOptions = (
   }
   return options;
 };
+
+export const FILTER_SELECTOR_MAX_WIDTH = '300px';
 
 export const MenuTitleWrapper = styled('span')`
   display: inline-block;

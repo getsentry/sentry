@@ -7,17 +7,20 @@ export function toPythonString(value: unknown): string {
   if (typeof value === 'boolean') {
     return value ? 'True' : 'False';
   }
+  if (value === null || value === undefined) {
+    return 'None';
+  }
   if (Array.isArray(value)) {
     const items = value.map(item => {
-      if (item === null || item === undefined) {
-        return 'None';
-      }
       if (typeof item === 'string') {
         return `'${item}'`;
       }
-      return String(item);
+      return toPythonString(item);
     });
     return `[${items.join(', ')}]`;
   }
-  return String(value);
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return value.toString();
+  }
+  return typeof value === 'string' ? value : (JSON.stringify(value) ?? 'None');
 }

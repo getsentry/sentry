@@ -265,6 +265,11 @@ class SupergroupsGetRequest(TypedDict):
     supergroup_id: int
 
 
+class SupergroupsGetByGroupIdsRequest(TypedDict):
+    organization_id: int
+    group_ids: list[int]
+
+
 class ServiceMapUpdateRequest(TypedDict):
     organization_id: int
     nodes: list[dict[str, Any]]
@@ -386,6 +391,20 @@ def make_supergroups_get_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v0/issues/supergroups/get",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_supergroups_get_by_group_ids_request(
+    body: SupergroupsGetByGroupIdsRequest,
+    viewer_context: SeerViewerContext,
+    timeout: int | float | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/get-by-group-ids",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,

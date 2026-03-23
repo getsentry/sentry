@@ -8,7 +8,7 @@ import {
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -22,7 +22,10 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
-import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
+import {
+  FILTER_SELECTOR_MAX_WIDTH,
+  MenuTitleWrapper,
+} from 'sentry/views/dashboards/globalFilter/filterSelector';
 import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {
   BetweenFilterSelectorTrigger,
@@ -328,9 +331,11 @@ export function NumericFilterSelector({
         </MenuBodyWrap>
       }
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps}>
-          {filter.renderSelectorTrigger()}
-        </OverlayTrigger.Button>
+        <Container maxWidth={FILTER_SELECTOR_MAX_WIDTH}>
+          <OverlayTrigger.Button {...triggerProps}>
+            {filter.renderSelectorTrigger()}
+          </OverlayTrigger.Button>
+        </Container>
       )}
       menuFooter={
         hasStagedChanges
