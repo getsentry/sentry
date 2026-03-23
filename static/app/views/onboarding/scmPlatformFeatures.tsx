@@ -284,7 +284,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
               </Flex>
             ) : (
               <Stack gap="sm">
-                <Flex gap="md" wrap="wrap">
+                <Flex gap="md" wrap="wrap" role="radiogroup">
                   {resolvedPlatforms.map(({platform, info}) => (
                     <ScmPlatformCard
                       key={platform}
