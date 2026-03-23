@@ -53,7 +53,7 @@ function UserAndOrganizationNavigation() {
     <NavigationLayout>
       {layout === 'mobile' ? (
         <Fragment>
-          {/* @TODO(JonasBadalic): this becomes mobileHeader once page frame released */}
+          {/* @TODO(JonasBadalic): rename this to mobileHeader once page frame released */}
           <MobileNavigation />
           <DesktopNavigation />
         </Fragment>
