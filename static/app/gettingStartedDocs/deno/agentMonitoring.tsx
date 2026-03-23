@@ -12,10 +12,9 @@ import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmO
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 const PACKAGE_NAME = '@sentry/deno';
-const IMPORT_SPECIFIER = 'npm:@sentry/deno';
 const MIN_VERSION = '10.45.0';
 
-const sentryImport = `import * as Sentry from "${IMPORT_SPECIFIER}";`;
+const sentryImport = `import * as Sentry from "npm:@sentry/deno";`;
 
 export const agentMonitoring: OnboardingConfig = {
   introduction: params => (
