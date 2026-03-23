@@ -122,9 +122,11 @@ function extractThresholdsFromConditions(
         typeof condition.comparison === 'number'
     )
     .map(condition => {
-      let value = normalizePercentageThreshold(aggregate, Number(condition.comparison));
+      let value = Number(condition.comparison);
       if (detectionType === 'percent') {
         value = percentThresholdAbsoluteToDelta(value);
+      } else {
+        value = normalizePercentageThreshold(aggregate, value);
       }
       return {
         value,
@@ -144,12 +146,7 @@ function extractThresholdsFromConditions(
           type: resolutionCondition.type,
           value:
             detectionType === 'percent'
-              ? percentThresholdAbsoluteToDelta(
-                  normalizePercentageThreshold(
-                    aggregate,
-                    Number(resolutionCondition.comparison)
-                  )
-                )
+              ? percentThresholdAbsoluteToDelta(Number(resolutionCondition.comparison))
               : normalizePercentageThreshold(
                   aggregate,
                   Number(resolutionCondition.comparison)
