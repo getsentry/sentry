@@ -1,3 +1,5 @@
+import base64
+import time
 from collections.abc import Callable
 from datetime import datetime
 from email.utils import parsedate_to_datetime
@@ -123,7 +125,76 @@ mutation MinimizeComment($commentId: ID!, $reason: ReportedContentClassifiers!) 
 # TODO: Rate-limits are dynamic per org. Some will have higher limits. We need to dynamically
 #       configure the shared pool. The absolute allocation amount for explicit referrers can
 #       remain unchanged.
-REFERRER_ALLOCATION: dict[Referrer, int] = {"shared": 4500, "emerge": 500}
+REFERRER_ALLOCATION: dict[Referrer, float] = {"emerge": 0.1}
+GITHUB_RATE_LIMIT_WINDOW = 3600
+
+
+def is_rate_limited(
+    organization_id: int,
+    referrer: Referrer,
+    referrer_allocation: dict[Referrer, float],
+    get_and_set_rate_limit: Callable[[str, str], tuple[int | None, int]],
+    get_time_in_seconds: Callable[[], int],
+) -> bool:
+    # Find the window of the request. GitHub's rate-limit window is always the current hour.
+    window = get_time_in_seconds() // GITHUB_RATE_LIMIT_WINDOW
+
+    total_key = f"limit:scm:gh:{organization_id}"
+    referrer_key = f"rl:scm:gh:{organization_id}:{referrer}:{window}"
+
+    limit, used = get_and_set_rate_limit(total_key, referrer_key)
+
+    # If no limit could be found we fail open. We'll populate the limit
+    # on the other-side of the HTTP request.
+    if limit is None:
+        return True
+
+    # If a limit was found we compute the amount of available quota for the referrer. If
+    # the quota is exceeded by its used count (which is referrer scoped) then we fail the
+    # request.
+    limit_by_referrer = int(limit * referrer_allocation[referrer])
+    return used >= limit_by_referrer
+
+
+def update_limits_from_github(
+    organization_id: int,
+    referrer_allocation: dict[Referrer, float],
+    recorded_limit: int,
+    specified_limit: int,
+    specified_usage: int,
+    specified_next_window: int,
+    get_accounted_usage: Callable[[list[str]], int],
+    get_time_in_seconds: Callable[[], int],
+    set_key_values: Callable[[dict[str, int]], None],
+) -> None:
+    # We need to figure out what window Sentry thinks its in and what window GitHub thinks
+    # its in.
+    window = get_time_in_seconds() // GITHUB_RATE_LIMIT_WINDOW
+    specified_window = (specified_next_window // GITHUB_RATE_LIMIT_WINDOW) - 1
+
+    # If the windows do not match the usage values are useless to us. If we've rolled over
+    # into the next window then we allow _more_ traffic than should be allowed. If GitHub
+    # rolls over into the next window then we may incorrectly throttle some requests while
+    # we catch up. In practice, clock skew should not be so extreme. A few seconds delay
+    # for an hour long window is assumed to be an irrelevant implementation detail.
+    if window != specified_window:
+        if recorded_limit != specified_limit:
+            total_key = f"limit:scm:gh:{organization_id}"
+            set_key_values({total_key: specified_limit})
+        return None
+
+    # The shared usage is the delta of the accounted usage and the reported usage. This
+    # value is expected to be strictly higher than our accounted shared usage because a
+    # significant portion of Sentry accesses GitHub without passing through the rate-limiter.
+    #
+    # TODO: If one day a significant majority of usage of GitHub transits the SCM this can
+    #       go away and we can just set the limit blindly.
+    usage = get_accounted_usage(
+        [f"rl:scm:gh:{organization_id}:{referrer}:{window}" for referrer in referrer_allocation]
+    )
+    shared_usage = max(0, specified_usage - usage)
+    shared_referrer = f"rl:scm:gh:{organization_id}:shared:{window}"
+    set_key_values({total_key: specified_limit, shared_referrer: shared_usage})
 
 
 def as_github_headers(
@@ -241,23 +312,34 @@ class GitHubProviderApiClient:
 
 class GitHubProvider:
     def __init__(
-        self, client: GitHubApiClient, organization_id: int, repository: Repository
+        self,
+        client: GitHubApiClient,
+        organization_id: int,
+        repository: Repository,
+        get_and_set_rate_limit: Callable[[str, str], tuple[int | None, int]],
     ) -> None:
         self.client = GitHubProviderApiClient(client)
         self.organization_id = organization_id
         self.repository = repository
+        self.get_and_set_rate_limit = get_and_set_rate_limit
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
-        # from sentry.scm.helpers import is_rate_limited_with_allocation_policy
+        # Find the window of the request.
+        window = int(time.time()) // GITHUB_RATE_LIMIT_WINDOW
 
-        # return is_rate_limited_with_allocation_policy(
-        #     self.organization_id,
-        #     referrer,
-        #     provider="github",
-        #     window=3600,
-        #     allocation_policy=REFERRER_ALLOCATION,
-        # )
-        return False  # Rate-limits temporarily disabled.
+        total_key = f"limit:scm:gh:{self.organization_id}"
+        referrer_key = f"rl:scm:gh:{self.organization_id}:{referrer}:{window}"
+
+        limit, used = self.get_and_set_rate_limit(total_key, referrer_key)
+
+        # If no limit could be found we fail open. We'll populate the limit
+        # on the other-side of the HTTP request.
+        if limit is None:
+            return True
+
+        # If a limit was found we compute the amount of available quota for the referrer.
+        limit_by_referrer = int(limit * REFERRERS[referrer])
+        return used >= limit_by_referrer
 
     def get_issue_comments(
         self,
@@ -1059,3 +1141,17 @@ def map_paginated_action[T](
         "raw": raw,
         "meta": meta,
     }
+
+
+REFERRER_IDS: dict[str, int] = {"shared": 0, "emerge": 1}
+PROVIDER_IDS: dict[str, int] = {"github": 0}
+REFERRERS: dict[str, float] = {}
+
+
+def encode_ratelimit_key(organization_id: int, provider: str, referrer: str, window: int) -> str:
+    return base64.b64encode(
+        PROVIDER_IDS[provider].to_bytes(1, "big")
+        + organization_id.to_bytes(8, "big")
+        + window.to_bytes(8, "big")
+        + REFERRER_IDS[referrer].to_bytes(1, "big")
+    ).decode("utf-8")
