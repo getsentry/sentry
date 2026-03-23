@@ -324,7 +324,11 @@ class Parameterizer:
                 replacement_callback(orig_value) if replacement_callback else f"<{matched_key}>"
             )
 
-            matches_counter[matched_key] += 1
+            # The replacement callback might return the original value, if it determines it's not
+            # something which should be replaced, and we don't want to count that
+            if replacement_string != orig_value:
+                matches_counter[matched_key] += 1
+
             return replacement_string
 
         with metrics.timer(
