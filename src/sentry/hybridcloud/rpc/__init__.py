@@ -41,7 +41,7 @@ class ValueEqualityEnum(Enum):
 
 
 # TODO(cells): Tmp support for cell_name as well as region_name in Rpc classes.
-# Remove once all callers pass region_name directly.
+# Remove once all callers pass cell_name directly.
 class AcceptCellNameMixin:
     region_name: str  # must be defined by subclass
 
