@@ -10,9 +10,7 @@ Unsupported actions:
     * create_pull_request_draft
     * create_review
     * get_check_run
-    * get_git_commit
     * get_pull_request_diff
-    * get_tree
     * minimize_comment
     * request_review
     * resolve_review_thread
@@ -22,9 +20,12 @@ Unsupported actions:
 
 import datetime
 import functools
+import logging
 from collections.abc import Callable
 from typing import Any, Iterable
 from urllib.parse import urlencode
+
+logger = logging.getLogger(__name__)
 
 from sentry.integrations.gitlab.client import GitLabApiClient
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
@@ -40,7 +41,10 @@ from sentry.scm.types import (
     Commit,
     CommitAuthor,
     FileContent,
+    GitCommitObject,
+    GitCommitTree,
     GitRef,
+    GitTree,
     PaginatedActionResult,
     PaginatedResponseMeta,
     PaginationParams,
@@ -56,6 +60,7 @@ from sentry.scm.types import (
     RequestOptions,
     ReviewComment,
     ReviewSide,
+    TreeEntry,
 )
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -329,6 +334,46 @@ class GitLabProvider:
     def create_branch(self, branch: BranchName, sha: SHA) -> ActionResult[GitRef]:
         raw = self.client.create_branch(self._repo_id, branch, sha)
         return make_result(map_git_ref, raw)
+
+    @catch_provider_exception
+    def get_tree(
+        self,
+        tree_sha: SHA,
+        recursive: bool = True,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitTree]:
+        """List the repository tree at a given ref.
+
+        GitLab's tree API takes a ref (commit SHA, branch, tag) rather than a
+        tree-object SHA.  We treat ``tree_sha`` as a ref so callers can pass a
+        commit SHA obtained from ``get_git_commit``.
+        """
+        raw = self.client.get_repository_tree(self._repo_id, ref=tree_sha, recursive=recursive)
+        return ActionResult(
+            data=GitTree(
+                sha=tree_sha,
+                tree=[map_tree_entry(e) for e in raw],
+                truncated=False,
+            ),
+            type="gitlab",
+            raw=raw,
+            meta={},
+        )
+
+    @catch_provider_exception
+    def get_git_commit(
+        self,
+        sha: SHA,
+        request_options: RequestOptions | None = None,
+    ) -> ActionResult[GitCommitObject]:
+        """Get a commit as a git object.
+
+        GitLab's commit endpoint does not expose the tree-object SHA.  We set
+        ``tree.sha`` to the commit SHA so that downstream code can pass it to
+        ``get_tree`` (which accepts any ref).
+        """
+        raw = self.client.get_commit(self._repo_id, sha)
+        return make_result(map_git_commit_object, raw)
 
     @catch_provider_exception
     def get_archive_link(
@@ -664,6 +709,26 @@ def map_reaction_result(raw: dict[str, Any]) -> ReactionResult:
         id=str(raw["id"]),
         content=REACTION_BY_AWARD_NAME[raw["name"]],
         author=map_author(raw["user"]),
+    )
+
+
+def map_git_commit_object(raw: dict[str, Any]) -> GitCommitObject:
+    return GitCommitObject(
+        sha=raw["id"],
+        # GitLab's commit API does not return a tree-object SHA.  We use the
+        # commit SHA so callers can pass it to get_tree (which accepts any ref).
+        tree=GitCommitTree(sha=raw["id"]),
+        message=raw["message"],
+    )
+
+
+def map_tree_entry(raw: dict[str, Any]) -> TreeEntry:
+    return TreeEntry(
+        path=raw["path"],
+        mode=raw["mode"],
+        type=raw["type"],
+        sha=raw["id"],
+        size=None,
     )
 
 
