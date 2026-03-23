@@ -1,7 +1,7 @@
 import dataclasses
 import re
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 
 from sentry.utils import metrics
 
@@ -279,29 +279,17 @@ class Parameterizer:
             # the "experimental" parameterizer isn't actually experimental.
             and any(r.experimental_pattern is not None for r in regexes)
         )
-        self._parameterization_regex = self._make_regex_from_patterns(
-            regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
-        )
 
-    def _make_regex_from_patterns(self, pattern_keys: Iterable[str]) -> re.Pattern[str]:
-        """
-        Takes list of pattern keys and returns a compiled regex pattern that matches any of them.
+        if self._experimental:
+            pattern_strings = [
+                r.experimental_pattern if r.experimental_pattern else r.pattern for r in regexes
+            ]
+        else:
+            pattern_strings = [r.pattern for r in regexes]
 
-        @param pattern_keys: A list of keys to match in the _parameterization_regex_components dict.
-        @returns: A compiled regex pattern that matches any of the given keys.
-        @raises: KeyError on pattern key not in the _parameterization_regex_components dict
-
-        The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace,
-        so we can use newlines and indentation for better legibility in patterns above.
-        """
-
-        regexes_map = (
-            EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP
-            if self._experimental
-            else DEFAULT_PARAMETERIZATION_REGEXES_MAP
-        )
-
-        return re.compile(rf"(?x){'|'.join(regexes_map[k] for k in pattern_keys)}")
+        # The `(?x)` tells the regex compiler to ignore comments and unescaped whitespace, so we can
+        # use newlines and indentation for better legibility when defining regexes
+        self._parameterization_regex = re.compile(rf"(?x){'|'.join(pattern_strings)}")
 
     def parameterize(self, input_str: str) -> str:
         """
