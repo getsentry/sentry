@@ -28,7 +28,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {CAN_MARK, trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -206,6 +206,9 @@ function DataWidgetViewerModal(props: Props) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!CAN_MARK) {
+      return;
+    }
     try {
       const measure = performance.measure(
         'dashboard.widget.onFullScreenView',
