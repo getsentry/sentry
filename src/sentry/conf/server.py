@@ -1144,7 +1144,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "index-sentry-knowledge": {
         "task": "seer:sentry.tasks.context_engine_index.index_sentry_knowledge",
         # Run once a month at midnight
-        "schedule": crontab("0", "0", "1", "*/1", "*"),
+        "schedule": crontab("0", "0", "*", "1", "*"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
