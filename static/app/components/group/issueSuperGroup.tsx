@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useDrawer} from 'sentry/components/globalDrawer';
-import {IconFocus} from 'sentry/icons';
+import {IconFocus, IconStack} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {SupergroupDetailDrawer} from 'sentry/views/issueList/supergroups/supergroupDrawer';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
@@ -84,8 +84,8 @@ export function IssueSuperGroup({supergroup}: Props) {
   return (
     <Tooltip title={tooltipTitle} skipWrapper maxWidth={400}>
       <SuperGroupButton onClick={handleClick} aria-label={t('supergroup')}>
-        <IconFocus size="xs" />
-        {`SG-${supergroup.id}`}
+        <IconStack size="xs" />
+        {supergroup.group_ids.length > 50 ? '50+' : supergroup.group_ids.length}
       </SuperGroupButton>
     </Tooltip>
   );
