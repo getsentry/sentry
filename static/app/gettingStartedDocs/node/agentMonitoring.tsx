@@ -145,12 +145,17 @@ export function getManualConfigureStep(
     packageName = '@sentry/node',
     importMode,
     configFileName,
+    sentryImport,
   }: {
     configFileName?: string;
     importMode?: 'esm' | 'cjs' | 'esm-only';
     packageName?: `@sentry/${string}`;
+    /** Override the generated import statement (e.g. for Deno's `npm:` specifier). */
+    sentryImport?: string;
   } = {}
 ): OnboardingStep[] {
+  const importStatement = sentryImport ?? getImport(packageName, importMode).join('\n');
+
   return [
     {
       title: t('Configure'),
@@ -165,7 +170,7 @@ export function getManualConfigureStep(
             {
               label: configFileName ?? 'JavaScript',
               language: 'javascript',
-              code: `${getImport(packageName, importMode).join('\n')}
+              code: `${importStatement}
 
 Sentry.init({
   dsn: "${params.dsn.public}",
