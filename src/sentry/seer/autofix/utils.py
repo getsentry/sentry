@@ -462,12 +462,18 @@ def resolve_repository_ids(
         return preferences
 
     resolved_ids: dict[tuple[str, str], int] = {}
-    for db_repo in Repository.objects.filter(
-        organization_id=organization_id,
-        external_id__in=external_ids,
-        provider__in=providers,
-        status=ObjectStatus.ACTIVE,
-    ).values("id", "external_id", "provider"):
+    for db_repo in (
+        Repository.objects.filter(
+            organization_id=organization_id,
+            external_id__in=external_ids,
+            provider__in=providers,
+            status=ObjectStatus.ACTIVE,
+        )
+        .values("id", "external_id", "provider")
+        .order_by("provider")
+    ):
+        # order_by("provider") ensures "github" comes before "integrations:github",
+        # so the integrations: row overwrites the bare row and is preferred.
         resolved_ids[
             (str(db_repo["external_id"]), str(db_repo["provider"]).removeprefix("integrations:"))
         ] = db_repo["id"]
