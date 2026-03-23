@@ -13,6 +13,7 @@ import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
 import {slugify} from 'sentry/utils/slugify';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
@@ -72,10 +73,12 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         createNotificationAction,
       });
 
-      // Update context so SetupDocs can find the project by slug
+      // onboarding.tsx uses selectedPlatform.key as the project slug for
+      // useRecentCreatedProject lookup. The types don't align (PlatformKey vs
+      // string) because the field is overloaded for both purposes.
       setSelectedPlatform({
         ...selectedPlatform,
-        key: project.slug,
+        key: project.slug as PlatformKey,
       });
 
       onComplete();
