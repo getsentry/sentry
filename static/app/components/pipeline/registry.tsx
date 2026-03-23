@@ -1,5 +1,6 @@
 import {dummyIntegrationPipeline} from './pipelineDummyProvider';
 import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
+import {gitlabIntegrationPipeline} from './pipelineIntegrationGitLab';
 
 /**
  * All registered pipeline definitions.
@@ -7,6 +8,7 @@ import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
 export const PIPELINE_REGISTRY = [
   dummyIntegrationPipeline,
   githubIntegrationPipeline,
+  gitlabIntegrationPipeline,
 ] as const;
 
 type AllPipelines = (typeof PIPELINE_REGISTRY)[number];
