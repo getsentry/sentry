@@ -13,7 +13,7 @@ import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIn
 
 const PACKAGE_NAME = '@sentry/deno';
 const IMPORT_SPECIFIER = 'npm:@sentry/deno';
-const MIN_VERSION = '10.12.0';
+const MIN_VERSION = '10.45.0';
 
 const sentryImport = `import * as Sentry from "${IMPORT_SPECIFIER}";`;
 
@@ -57,6 +57,8 @@ export const agentMonitoring: OnboardingConfig = {
     if (selected === AgentIntegration.MANUAL) {
       return getManualConfigureStep(params, {
         sentryImport,
+        docUrl:
+          'https://docs.sentry.io/platforms/javascript/guides/deno/ai-agent-monitoring/#manual-instrumentation',
       });
     }
 
