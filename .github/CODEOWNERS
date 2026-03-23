@@ -332,7 +332,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/explore/                                                @getsentry/explore
 /static/app/views/traces/                                                 @getsentry/explore
 /static/app/components/quickTrace/                                        @getsentry/explore
-/src/sentry/insights/                                                     @getsentry/data-browsing
+/src/sentry/insights/                                                     @getsentry/dashboards
 /static/app/views/performance/                                            @getsentry/data-browsing
 /static/app/components/performance/                                       @getsentry/data-browsing
 /static/app/utils/performance/                                            @getsentry/data-browsing
@@ -341,7 +341,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/searchQueryBuilder/                                @getsentry/data-browsing
 /static/app/components/arithmeticBuilder/                                 @getsentry/data-browsing
 
-/static/app/components/charts/                                            @getsentry/data-browsing
+/static/app/components/charts/                                            @getsentry/dashboards
 
 /static/app/views/insights/                                               @getsentry/dashboards
 
@@ -350,7 +350,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /static/app/views/discover/                                               @getsentry/explore
 /static/app/utils/discover/                                               @getsentry/explore
-/static/app/utils/timeSeries/                                             @getsentry/data-browsing
+/static/app/utils/timeSeries/                                             @getsentry/dashboards
 ## Endof Visibility
 
 
