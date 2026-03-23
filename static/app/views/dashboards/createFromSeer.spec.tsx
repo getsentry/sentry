@@ -116,7 +116,7 @@ describe('CreateFromSeer', () => {
       },
     });
 
-    expect(screen.getByText('Generating dashboard...')).toBeInTheDocument();
+    expect(screen.getByText('Generating Dashboard')).toBeInTheDocument();
   });
 
   it('renders dashboard and chat panel when session is completed', async () => {
