@@ -37,6 +37,7 @@ import {Container, Flex, Grid, Stack, type FlexProps} from '@sentry/scraps/layou
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {useHovercardContext} from 'sentry/components/hovercard';
@@ -756,12 +757,14 @@ function ReorderableListItem<T extends {id: string | number}>(
       value={{attributes, isDragging, listeners, setActivatorNodeRef}}
     >
       <Container
+        as="li"
         radius="md"
         position="relative"
         background={isDragging ? 'secondary' : undefined}
         ref={setNodeRef}
         data-is-dragging={isDragging ? true : undefined}
         style={{
+          listStyleType: 'none',
           transform: CSS.Transform.toString(transform),
           transition: transition ?? undefined,
           zIndex: isDragging ? 1 : undefined,
@@ -826,7 +829,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
       onDragCancel={() => scrollLock.release()}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        <Stack direction="column" padding="0" width="100%">
+        <Stack direction="column" padding="0" width="100%" as="ul" margin="0">
           {items.map(item => (
             <ReorderableListItem key={item.id} item={item}>
               {props.children(item)}
@@ -912,7 +915,11 @@ function SecondaryNavigationReorderableLink({
           {icon}
         </Flex>
       </Flex>
-      {children}
+      <Tooltip title={children} position="top" showOnlyOnOverflow skipWrapper>
+        <Text variant="inherit" ellipsis>
+          {children}
+        </Text>
+      </Tooltip>
       {trailingItems}
     </Fragment>
   );

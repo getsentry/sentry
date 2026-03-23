@@ -67,11 +67,7 @@ export function IssueViewItem({view, isActive}: IssueViewItemProps) {
         });
       }}
     >
-      <Tooltip title={view.label} position="top" showOnlyOnOverflow skipWrapper>
-        <Text ellipsis variant="inherit">
-          {view.label}
-        </Text>
-      </Tooltip>
+      {view.label}
     </SecondaryNavigation.ReorderableLink>
   );
 }

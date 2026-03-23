@@ -43,8 +43,10 @@ class Lock {
         document.body.style.width = '100%';
         document.body.style.paddingRight = `${existingPaddingRight + scrollbarWidth}px`;
       } else {
-        this.initialOverflow = this.container.style.overflow;
-        this.container.style.overflow = 'hidden';
+        if (this.container) {
+          this.initialOverflow = this.container.style.overflow;
+          this.container.style.overflow = 'hidden';
+        }
       }
     }
     this.acquiredBy.add(id);
