@@ -179,7 +179,7 @@ export const sanitizedMarked = (src: string): string => {
 };
 
 /**
- * Renders a single line of markdown not wrapped in a paragraph tag.
+ * Renders markdown without any heading tags applied.
  * WARNING: Does not apply any syntax highlighting.
  */
 export const sanitizedMarkedNoHeadings = (src: string): string => {
@@ -189,6 +189,10 @@ export const sanitizedMarkedNoHeadings = (src: string): string => {
   });
 };
 
+/**
+ * Renders a single line of markdown not wrapped in a paragraph tag.
+ * WARNING: Does not apply any syntax highlighting.
+ */
 export const singleLineRenderer = (text: string): string => {
   // https://marked.js.org/using_advanced#inline
   return noHighlightingMarked.parse(text, {
