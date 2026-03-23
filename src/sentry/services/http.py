@@ -5,7 +5,6 @@ from collections.abc import MutableMapping
 from typing import Any
 
 from granian import Granian
-from granian.constants import Interfaces as GranianInterfaces
 
 from sentry.services.base import Service
 
@@ -15,7 +14,7 @@ def _run_server(options: dict[str, Any]):
         target=options["module"],
         address=options["host"],
         port=options["port"],
-        interface=GranianInterfaces.WSGI,
+        interface=options["iface"],
         workers=options["workers"],
         backlog=options["backlog"],
         workers_kill_timeout=options["workers-kill-timeout"],
@@ -51,6 +50,7 @@ class SentryHTTPServer(Service):
         host = host or settings.SENTRY_WEB_HOST
         port = port or int(os.environ.get("SENTRY_GRANIAN_PORT", "0")) or settings.SENTRY_WEB_PORT
         workers = workers or int(os.environ.get("SENTRY_GRANIAN_WORKERS", "1"))
+        iface = os.environ.get("SENTRY_GRANIAN_IFACE", "wsgi")
         reload = bool(os.environ.get("SENTRY_GRANIAN_RELOAD"))
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
@@ -58,7 +58,8 @@ class SentryHTTPServer(Service):
             for k, v in extra_options.items():
                 options[k] = v
 
-        options.setdefault("module", "sentry.wsgi:application")
+        options.setdefault("module", f"sentry.{iface[:4]}:application")
+        options.setdefault("iface", iface)
         options.setdefault("host", host)
         options.setdefault("port", port)
         options.setdefault("workers", workers)
