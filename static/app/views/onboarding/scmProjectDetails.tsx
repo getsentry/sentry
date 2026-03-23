@@ -26,7 +26,8 @@ import {
 import type {StepProps} from './types';
 
 export function ScmProjectDetails({onComplete}: StepProps) {
-  const {selectedPlatform, setCreatedProjectSlug} = useOnboardingContext();
+  const {selectedPlatform, selectedFeatures, setCreatedProjectSlug} =
+    useOnboardingContext();
   const {teams} = useTeams();
   const createProjectAndRules = useCreateProjectAndRules();
 
@@ -89,7 +90,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
       // selectedPlatform.key (which the platform features step needs).
       setCreatedProjectSlug(project.slug);
 
-      onComplete();
+      onComplete(undefined, selectedFeatures ? {product: selectedFeatures} : undefined);
     } catch (error) {
       addErrorMessage(t('Failed to create project'));
       Sentry.captureException(error);
@@ -102,6 +103,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     teamSlugResolved,
     alertRuleConfig,
     createNotificationAction,
+    selectedFeatures,
     setCreatedProjectSlug,
     onComplete,
   ]);
