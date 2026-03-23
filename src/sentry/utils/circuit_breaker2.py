@@ -86,6 +86,10 @@ class TripStrategy(Protocol):
         count-based strategies shouldn't track total requests."""
         ...
 
+    def recovery_tracking_quotas(self) -> list[Quota]:
+        """Extra quotas to increment during RECOVERY state only. Defaults to empty list."""
+        ...
+
     def should_trip(
         self,
         controlling_quota: Quota,
@@ -142,6 +146,9 @@ class CountBasedTripStrategy(TripStrategy):
     def tracking_quotas(self) -> list[Quota]:
         return []
 
+    def recovery_tracking_quotas(self) -> list[Quota]:
+        return []
+
     def should_trip(
         self,
         controlling_quota: Quota,
@@ -164,6 +171,7 @@ class RateBasedTripStrategy(TripStrategy):
         self.threshold = threshold
         self.floor = floor
         self._total_requests_quota: Quota | None = None
+        self._recovery_total_requests_quota: Quota | None = None
 
     def initialize(self, key: str, window: int, window_granularity: int) -> None:
         self._total_requests_quota = Quota(
@@ -172,9 +180,18 @@ class RateBasedTripStrategy(TripStrategy):
             _COUNTER_QUOTA_LIMIT,
             f"{key}.circuit_breaker.total_requests",
         )
+        self._recovery_total_requests_quota = Quota(
+            window,
+            window_granularity,
+            _COUNTER_QUOTA_LIMIT,
+            f"{key}.circuit_breaker.recovery_total_requests",
+        )
 
     def tracking_quotas(self) -> list[Quota]:
         return [self._total_requests_quota] if self._total_requests_quota else []
+
+    def recovery_tracking_quotas(self) -> list[Quota]:
+        return [self._recovery_total_requests_quota] if self._recovery_total_requests_quota else []
 
     def primary_quota_limit(self) -> int:
         return _COUNTER_QUOTA_LIMIT
@@ -196,11 +213,14 @@ class RateBasedTripStrategy(TripStrategy):
         if error_count < self.floor:
             return False
 
-        assert self._total_requests_quota is not None
+        total_requests_quota = (
+            self._recovery_total_requests_quota if is_recovery else self._total_requests_quota
+        )
+        assert total_requests_quota is not None
         # total_grants is the number of remaining requests out of the quota limit,
         # so we need to subtract it from the quota limit to get the number of requests counted
         _, total_grants = limiter.check_within_quotas(
-            [RequestedQuota(key, _COUNTER_QUOTA_LIMIT, [self._total_requests_quota])], window_end
+            [RequestedQuota(key, _COUNTER_QUOTA_LIMIT, [total_requests_quota])], window_end
         )
         total_requests_counted = _COUNTER_QUOTA_LIMIT - total_grants[0].granted
 
@@ -366,13 +386,19 @@ class CircuitBreaker:
 
     def record_success(self) -> None:
         """Record a successful request. Only meaningful when a strategy tracks total requests."""
-        tracking = [q for s in self.trip_strategies for q in s.tracking_quotas()]
-        if not tracking:
-            return
-
         now = int(time.time())
         state, _ = self._get_state_and_remaining_time()
         if state == CircuitBreakerState.BROKEN:
+            return
+
+        tracking = [q for s in self.trip_strategies for q in s.tracking_quotas()]
+        if state == CircuitBreakerState.RECOVERY:
+            tracking = [
+                *tracking,
+                *[q for s in self.trip_strategies for q in s.recovery_tracking_quotas()],
+            ]
+
+        if not tracking:
             return
 
         # Tell the limiter to increment the key by 1 for each tracking quota
@@ -430,6 +456,11 @@ class CircuitBreaker:
             else [self.primary_quota]
         )
         quotas = [*quotas, *[q for s in self.trip_strategies for q in s.tracking_quotas()]]
+        if state == CircuitBreakerState.RECOVERY:
+            quotas = [
+                *quotas,
+                *[q for s in self.trip_strategies for q in s.recovery_tracking_quotas()],
+            ]
 
         self.limiter.use_quotas(
             [RequestedQuota(self.key, 1, quotas)],
