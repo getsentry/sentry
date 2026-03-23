@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
-import {AssignedTo} from 'sentry/components/group/assignedTo';
-import type {OnAssignCallback} from 'sentry/components/group/assigneeSelector';
 import {
   BACKEND_TAGS,
   DEFAULT_TAGS,
@@ -16,19 +14,13 @@ import {
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {SeerSection} from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
@@ -55,28 +47,8 @@ export function useFetchAllEnvsGroupData(
   );
 }
 
-export function GroupSidebar({event, group, project, organization, environments}: Props) {
-  const location = useLocation();
-
+export function GroupSidebar({event, group, project, environments}: Props) {
   const {areAiFeaturesAllowed} = useAiConfig(group, project);
-
-  const onAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
-    const {alert_date, alert_rule_id, alert_type} = location.query;
-    trackAnalytics('issue_details.action_clicked', {
-      organization,
-      action_type: 'assign',
-      assigned_type: type,
-      assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
-      alert_date:
-        typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
-      alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-      alert_type: typeof alert_type === 'string' ? alert_type : undefined,
-      org_streamline_only: organization.streamlineOnly ?? undefined,
-      ...getAnalyticsDataForGroup(group),
-      ...getAnalyicsDataForProject(project),
-    });
-    IssueListCacheStore.reset();
-  };
 
   const renderPluginIssue = () => {
     const issues: React.ReactNode[] = [];
@@ -118,7 +90,6 @@ export function GroupSidebar({event, group, project, organization, environments}
           <SeerSection group={group} project={project} event={event} />
         </ErrorBoundary>
       )}
-      <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
       {renderPluginIssue()}
       {issueTypeConfig.pages.tagsTab.enabled && (
         <TagFacets
