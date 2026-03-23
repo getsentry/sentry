@@ -48,11 +48,11 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 # check the type if it's an input
                 if types and type_enum not in types:
                     continue
-                NotificationSettingProvider.objects.create_or_update(
+                NotificationSettingProvider.objects.update_or_create(
                     **kwargs,
                     provider=external_provider.value,
                     type=type_enum.value,
-                    values={
+                    defaults={
                         "value": NotificationSettingsOptionEnum.ALWAYS.value,
                     },
                 )
@@ -71,11 +71,11 @@ class DatabaseBackedNotificationsService(NotificationsService):
             kwargs["user_id"] = actor.id
         else:
             kwargs["team_id"] = actor.id
-        NotificationSettingOption.objects.create_or_update(
+        NotificationSettingOption.objects.update_or_create(
             type=type.value,
             scope_type=scope_type.value,
             scope_identifier=scope_identifier,
-            values={"value": value.value},
+            defaults={"value": value.value},
             **kwargs,
         )
 
