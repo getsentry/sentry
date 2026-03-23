@@ -261,7 +261,7 @@ class Parameterizer:
         if regex_keys:
             regexes = [r for r in regexes if r.name in regex_keys]
 
-        self._experimental = (
+        self.is_experimental = (
             use_experimental_regexes
             # Only mark the parameterizer as experimental if there are actually any experiments
             # running. If there aren't, then both parameterizers use the default regex patterns, so
@@ -269,7 +269,7 @@ class Parameterizer:
             and any(r.experimental_pattern is not None for r in regexes)
         )
 
-        if self._experimental:
+        if self.is_experimental:
             pattern_strings = [
                 r.experimental_pattern if r.experimental_pattern else r.pattern for r in regexes
             ]
@@ -309,7 +309,7 @@ class Parameterizer:
             return f"<{matched_key}>"
 
         with metrics.timer(
-            "grouping.parameterize", tags={"experimental": self._experimental}
+            "grouping.parameterize", tags={"experimental": self.is_experimental}
         ) as metric_tags:
             parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
             metric_tags["changed"] = parameterized != input_str

@@ -190,7 +190,7 @@ def test_default_parameterizer_misses_experimental_cases(
 
 
 @pytest.mark.skipif(
-    not experimental_parameterizer._experimental, reason="no experimental regexes to test"
+    not experimental_parameterizer.is_experimental, reason="no experimental regexes to test"
 )
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
 def test_experimental_parameterization(name: str, input: str, expected: str) -> None:
