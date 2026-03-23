@@ -48,7 +48,7 @@ class SafeRenderer extends marked.Renderer {
 class NoHeadingRenderer extends SafeRenderer {
   heading(tokens: Tokens.Heading) {
     // Render headings as bold text instead of h1-h6 elements
-    return `<strong>${this.parser.parseInline(tokens.tokens)}</strong>`;
+    return super.strong({...tokens, type: 'strong'});
   }
 }
 
