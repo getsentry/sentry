@@ -47,15 +47,15 @@ def _facade_type_for_provider_class(
 
 class Facade:
     # `Facade` itself declares no capability methods, so MyPy rejects direct
-    # calls like `facade.do_alpha_1()` and forces `isinstance` guards.
+    # calls like `facade.create_issue_comment()` and forces `isinstance` guards.
     #
     # At construction time __new__ builds a private subclass that has exactly
     # the methods supported by `impl` as real class-body attributes.  Python
     # 3.12+ runtime_checkable isinstance() checks look at the class body, not
-    # __getattr__, so this is what makes `isinstance(facade, CanAlpha)` work.
+    # __getattr__, so this is what makes `isinstance(facade, protocol)` work.
     #
-    # After the isinstance guard MyPy narrows `facade` to `Facade & CanAlpha`
-    # (or any other intersection) and statically validates method calls.
+    # After the isinstance guard MyPy narrows `facade` to `Facade & Protocol`
+    # and statically validates method calls.
 
     provider: Provider
     referrer: Referrer
