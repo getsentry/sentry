@@ -116,18 +116,24 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
   const handleManualPlatformSelect = useCallback(
     (option: {value: string}) => {
+      if (option.value === selectedPlatform?.key) {
+        return;
+      }
       setPlatform(option.value as PlatformKey);
       setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
     },
-    [setPlatform, setSelectedFeatures]
+    [selectedPlatform?.key, setPlatform, setSelectedFeatures]
   );
 
   const handleSelectDetectedPlatform = useCallback(
     (platformKey: PlatformKey) => {
+      if (platformKey === selectedPlatform?.key) {
+        return;
+      }
       setPlatform(platformKey);
       setSelectedFeatures([ProductSolution.ERROR_MONITORING]);
     },
-    [setPlatform, setSelectedFeatures]
+    [selectedPlatform?.key, setPlatform, setSelectedFeatures]
   );
 
   const showDetectedPlatforms = hasScmConnected && !showManualPicker;
