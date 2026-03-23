@@ -3859,6 +3859,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "taskworker.producer.max_futures",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "taskworker.route.overrides",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
