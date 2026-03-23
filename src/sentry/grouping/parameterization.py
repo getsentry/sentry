@@ -2,8 +2,14 @@ import dataclasses
 import re
 from collections import defaultdict
 from collections.abc import Sequence
+from typing import Callable
 
 from sentry.utils import metrics
+
+# Function parameterization regexes can specify to provide a customized replacement string. Can also
+# be used to do conditional replacement, by returning the original value in cases where replacement
+# shouldn't happen.
+ParameterizationReplacementFunction = Callable[[str], str]
 
 
 @dataclasses.dataclass
@@ -13,6 +19,8 @@ class ParameterizationRegex:
     raw_pattern_experimental: str | None = None
     lookbehind: str | None = None  # positive lookbehind prefix if needed
     lookahead: str | None = None  # positive lookahead postfix if needed
+    # Function which takes the matched value and returns the replacement value.
+    replacement_callback: ParameterizationReplacementFunction | None = None
 
     # These need to be used with `(?x)`, to tell the regex compiler to ignore comments
     # and unescaped whitespace, so we can use newlines and indentation for better legibility.
@@ -250,6 +258,7 @@ class Parameterizer:
         # List of `ParameterizationRegex` objects defining the regexes to use. If nothing is passed,
         # the default set will be used.
         regexes: Sequence[ParameterizationRegex] = DEFAULT_PARAMETERIZATION_REGEXES,
+        *,
         # List of `ParameterizationRegex.name` values, used to selectively enable pattern types. To
         # use all available parameterization, omit this argument.
         regex_keys: Sequence[str] | None = None,
@@ -280,6 +289,11 @@ class Parameterizer:
         # use newlines and indentation for better legibility when defining regexes
         self._parameterization_regex = re.compile(rf"(?x){'|'.join(pattern_strings)}")
 
+        # Collect replacement callbacks, if any
+        self.replacement_functions = {
+            r.name: r.replacement_callback for r in regexes if r.replacement_callback
+        }
+
     def parameterize(self, input_str: str) -> str:
         """
         Replace all regex matches in the input string with placeholder strings, using the regexes
@@ -288,7 +302,7 @@ class Parameterizer:
         For example, turn "Error with order #1231" into "Error with order #<int>".
         """
 
-        matches_counter: defaultdict[str, int] = defaultdict(int)
+        replacement_counts: defaultdict[str, int] = defaultdict(int)
 
         def _handle_regex_match(match: re.Match[str]) -> str:
             # Since
@@ -305,8 +319,17 @@ class Parameterizer:
             if not matched_key or not orig_value:  # Insurance - shouldn't happen IRL
                 return ""
 
-            matches_counter[matched_key] += 1
-            return f"<{matched_key}>"
+            replacement_callback = self.replacement_functions.get(matched_key)
+            replacement_string = (
+                replacement_callback(orig_value) if replacement_callback else f"<{matched_key}>"
+            )
+
+            # The replacement callback might return the original value, if it determines it's not
+            # something which should be replaced, and we don't want to count that
+            if replacement_string != orig_value:
+                replacement_counts[matched_key] += 1
+
+            return replacement_string
 
         with metrics.timer(
             "grouping.parameterize", tags={"experimental": self.is_experimental}
@@ -314,7 +337,7 @@ class Parameterizer:
             parameterized = self._parameterization_regex.sub(_handle_regex_match, input_str)
             metric_tags["changed"] = parameterized != input_str
 
-        for regex_key, count in matches_counter.items():
+        for regex_key, count in replacement_counts.items():
             # Track the kinds of replacements being made
             metrics.incr("grouping.value_parameterized", amount=count, tags={"key": regex_key})
 
