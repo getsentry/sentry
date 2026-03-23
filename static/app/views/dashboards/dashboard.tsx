@@ -32,6 +32,7 @@ import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
+import {TABLE_MIN_HEIGHT} from './utils/prebuiltConfigs/settings';
 import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
 import {
   assignDefaultLayout,
@@ -159,7 +160,7 @@ export function Dashboard({
       const gridH = Math.ceil(
         (measuredHeight + WIDGET_MARGINS[1]) / (ROW_HEIGHT + WIDGET_MARGINS[1])
       );
-      const clampedH = Math.max(2, Math.min(gridH, layout.h));
+      const clampedH = Math.max(TABLE_MIN_HEIGHT, Math.min(gridH, layout.h));
 
       if (clampedH >= layout.h) {
         return layout;

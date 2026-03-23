@@ -51,7 +51,7 @@ function calculateTableContentHeight(rowCount: number): number {
   return (
     WIDGET_HEADER_HEIGHT +
     GRID_HEAD_ROW_HEIGHT +
-    rowCount * GRID_BODY_ROW_HEIGHT +
+    rowCount * (GRID_BODY_ROW_HEIGHT + 1) +
     WIDGET_FRAME_PADDING
   );
 }
