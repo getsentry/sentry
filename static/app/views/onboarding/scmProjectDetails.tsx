@@ -155,7 +155,6 @@ export function ScmProjectDetails({onComplete}: StepProps) {
       </Stack>
 
       <Flex gap="md" align="center">
-        <Button onClick={() => onComplete()}>{t('Back')}</Button>
         <Button
           priority="primary"
           onClick={handleCreateProject}
