@@ -14,7 +14,7 @@ import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIn
 const PACKAGE_NAME = '@sentry/deno';
 const MIN_VERSION = '10.45.0';
 
-const sentryImport = `import * as Sentry from "npm:@sentry/deno";`;
+const sentryImport = `import * as Sentry from "npm:${PACKAGE_NAME}";`;
 
 export const agentMonitoring: OnboardingConfig = {
   introduction: params => (
