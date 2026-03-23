@@ -80,10 +80,9 @@ export function ScmFeatureSelectionCards({
   disabledProducts,
   onToggleFeature,
 }: ScmFeatureSelectionCardsProps) {
-  const alwaysEnabledCount = availableFeatures.filter(
-    f => FEATURE_META[f].alwaysEnabled && !selectedFeatures.includes(f)
+  const selectedCount = availableFeatures.filter(
+    f => selectedFeatures.includes(f) || FEATURE_META[f].alwaysEnabled
   ).length;
-  const selectedCount = selectedFeatures.length + alwaysEnabledCount;
   const totalCount = availableFeatures.length;
 
   return (
