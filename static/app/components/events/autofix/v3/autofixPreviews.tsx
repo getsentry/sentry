@@ -10,10 +10,16 @@ import {
   CodingAgentStatus,
   getCodingAgentName,
 } from 'sentry/components/events/autofix/types';
-import type {
-  RootCauseArtifact,
-  SolutionArtifact,
+import {
+  getAutofixArtifactFromSection,
+  isCodeChangesArtifact,
+  isCodingAgentsArtifact,
+  isPullRequestsArtifact,
+  isRootCauseArtifact,
+  isSolutionArtifact,
+  type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
@@ -21,42 +27,64 @@ import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t, tn} from 'sentry/locale';
-import {
-  type Artifact,
-  type ExplorerCodingAgentState,
-  type ExplorerFilePatch,
-  type RepoPRState,
-} from 'sentry/views/seerExplorer/types';
+import {type ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
 
-interface RootCausePreviewProps {
-  artifact: Artifact<RootCauseArtifact>;
+interface ArtifactPreviewProps {
+  section: AutofixSection;
 }
 
-export function RootCausePreview({artifact}: RootCausePreviewProps) {
+export function RootCausePreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
+
   return (
     <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
-      {artifact.data?.one_line_description}
+      {section.status === 'processing' ? (
+        <Placeholder height="3rem" />
+      ) : artifact?.data ? (
+        <Text>{artifact.data.one_line_description}</Text>
+      ) : (
+        <Text variant="muted">
+          {t(
+            'Seer failed to generate a root cause. This one is on us. Try running it again.'
+          )}
+        </Text>
+      )}
     </ArtifactCard>
   );
 }
 
-interface SolutionPreviewProps {
-  artifact: Artifact<SolutionArtifact>;
-}
+export function SolutionPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isSolutionArtifact(sectionArtifact) ? sectionArtifact : null;
+  }, [section]);
 
-export function SolutionPreview({artifact}: SolutionPreviewProps) {
   return (
     <ArtifactCard icon={<IconList />} title={t('Implementation Plan')}>
-      {artifact.data?.one_line_summary}
+      {section.status === 'processing' ? (
+        <Placeholder height="3rem" />
+      ) : artifact?.data ? (
+        <Text>{artifact.data.one_line_summary}</Text>
+      ) : (
+        <Text variant="muted">
+          {t(
+            'Seer failed to generate an implementation plan. This one is on us. Try running it again.'
+          )}
+        </Text>
+      )}
     </ArtifactCard>
   );
 }
 
-interface CodeChangesPreviewProps {
-  artifact: ExplorerFilePatch[];
-}
+export function CodeChangesPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : [];
+  }, [section]);
 
-export function CodeChangesPreview({artifact}: CodeChangesPreviewProps) {
   const patchesForRepos = useMemo(() => {
     const patchesByRepo = new Map<string, ExplorerFilePatch[]>();
     for (const patch of artifact) {
@@ -79,42 +107,67 @@ export function CodeChangesPreview({artifact}: CodeChangesPreviewProps) {
     }
 
     if (reposChanged === 0) {
-      return t('No files changed');
-    }
-
-    if (reposChanged === 1) {
-      return tn(
-        '%s file changed in 1 repo',
-        '%s files changed in 1 repo',
-        filesChanged.size
+      return (
+        <Text variant="muted">
+          {t(
+            'Seer failed to generate a code change. This one is on us. Try running it again.'
+          )}
+        </Text>
       );
     }
 
-    return t('%s files changed in %s repos', filesChanged.size, reposChanged);
+    if (reposChanged === 1) {
+      return (
+        <Text>
+          {tn(
+            '%s file changed in 1 repo',
+            '%s files changed in 1 repo',
+            filesChanged.size
+          )}
+        </Text>
+      );
+    }
+
+    return (
+      <Text>{t('%s files changed in %s repos', filesChanged.size, reposChanged)}</Text>
+    );
   }, [patchesForRepos]);
 
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
-      {summary}
+      {section.status === 'processing' ? <Placeholder height="1.5rem" /> : summary}
     </ArtifactCard>
   );
 }
 
-interface PullRequestsPreviewProps {
-  artifact: RepoPRState[];
-}
+export function PullRequestsPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : [];
+  }, [section]);
 
-export function PullRequestsPreview({artifact}: PullRequestsPreviewProps) {
   return (
     <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
       {artifact.map(pullRequest => {
-        if (!pullRequest.repo_name || !pullRequest.pr_number || !pullRequest.pr_url) {
-          return null;
+        if (pullRequest.pr_creation_status === 'creating') {
+          return <Placeholder key={pullRequest.repo_name} height="1.5rem" />;
         }
-        const label = `${pullRequest.repo_name}#${pullRequest.pr_number}`;
+
+        if (
+          pullRequest.pr_creation_status === 'completed' &&
+          pullRequest.pr_url &&
+          pullRequest.pr_number
+        ) {
+          return (
+            <ExternalLink key={pullRequest.repo_name} href={pullRequest.pr_url}>
+              {pullRequest.repo_name}#{pullRequest.pr_number}
+            </ExternalLink>
+          );
+        }
+
         return (
-          <ExternalLink key={label} href={pullRequest.pr_url}>
-            {label}
+          <ExternalLink key={pullRequest.repo_name} disabled>
+            {t('Failed to create PR in %s', pullRequest.repo_name)}
           </ExternalLink>
         );
       })}
@@ -122,11 +175,12 @@ export function PullRequestsPreview({artifact}: PullRequestsPreviewProps) {
   );
 }
 
-interface CodingAgentPreviewProps {
-  artifact: ExplorerCodingAgentState[];
-}
+export function CodingAgentPreview({section}: ArtifactPreviewProps) {
+  const artifact = useMemo(() => {
+    const sectionArtifact = getAutofixArtifactFromSection(section);
+    return isCodingAgentsArtifact(sectionArtifact) ? sectionArtifact : [];
+  }, [section]);
 
-export function CodingAgentPreview({artifact}: CodingAgentPreviewProps) {
   const provider = artifact[0]?.provider;
 
   const agentName = useMemo(() => getCodingAgentName(provider), [provider]);

@@ -9,6 +9,7 @@ from typing import Any
 import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
+from taskbroker_client.retry import Retry
 
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
@@ -42,7 +43,6 @@ from sentry.tasks.assemble import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import preprod_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import bind_organization_context
