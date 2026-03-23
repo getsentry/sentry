@@ -24,6 +24,7 @@ export enum DataConditionType {
   EXISTING_HIGH_PRIORITY_ISSUE = 'existing_high_priority_issue',
   FIRST_SEEN_EVENT = 'first_seen_event',
   ISSUE_CATEGORY = 'issue_category',
+  ISSUE_TYPE = 'issue_type',
   ISSUE_OCCURRENCES = 'issue_occurrences',
   LATEST_ADOPTED_RELEASE = 'latest_adopted_release',
   LATEST_RELEASE = 'latest_release',

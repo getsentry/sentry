@@ -35,7 +35,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
@@ -74,6 +73,43 @@ class WebhookTest(APITestCase):
         )
 
         assert response.status_code == 401
+
+    @patch("sentry.integrations.github.webhook.metrics")
+    def test_invalid_signature_emits_hmac_failure_metric(self, mock_metrics: MagicMock) -> None:
+        self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        mock_metrics.incr.assert_called_with(
+            "github.webhook.hmac_failure",
+            tags={"reason": "invalid_signature"},
+            sample_rate=1.0,
+        )
+
+    @patch("sentry.integrations.github.webhook.metrics")
+    @patch.object(GitHubIntegrationsWebhookEndpoint, "get_secret", return_value=None)
+    def test_missing_secret_emits_hmac_failure_metric(
+        self, mock_get_secret: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE="sha1=2b116e7c1f7510b62727673b0f9acc0db951263a",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        mock_metrics.incr.assert_called_with(
+            "github.webhook.hmac_failure",
+            tags={"reason": "missing_secret"},
+            sample_rate=1.0,
+        )
 
     def test_missing_signature_event(self) -> None:
         response = self.client.post(
@@ -188,7 +224,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
             integration_id=integration.id,
         )
 
-        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+        with patch.object(GithubRequestParser, "get_cells_from_organizations", return_value=[]):
             response = self.client.post(
                 path=self.url,
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,
@@ -205,7 +241,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         assert integration.name == "octocat"
         assert integration.status == ObjectStatus.DISABLED
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
             assert repo.status == ObjectStatus.DISABLED
 
@@ -269,7 +305,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         )
         integration.add_organization(self.project.organization.id, self.user)
 
-        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+        with patch.object(GithubRequestParser, "get_cells_from_organizations", return_value=[]):
             response = self.client.post(
                 path=self.url,
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,
@@ -313,7 +349,7 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         )
         integration.add_organization(self.project.organization.id, self.user)
 
-        with patch.object(GithubRequestParser, "get_regions_from_organizations", return_value=[]):
+        with patch.object(GithubRequestParser, "get_cells_from_organizations", return_value=[]):
             response = self.client.post(
                 path=self.url,
                 data=INSTALLATION_DELETE_EVENT_EXAMPLE,
@@ -472,7 +508,6 @@ class PushEventWebhookTest(APITestCase):
         assert repos[0] == repo
 
     def test_anonymous_lookup(self) -> None:
-
         repo = Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -849,7 +884,6 @@ class PullRequestEventWebhookTest(APITestCase):
 
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo(self, mock_metrics: MagicMock) -> None:
-
         self._create_integration_and_send_pull_request_opened_event()
 
         repos = Repository.objects.all()
@@ -861,7 +895,6 @@ class PullRequestEventWebhookTest(APITestCase):
         mock_metrics.incr.assert_any_call("github.webhook.repository_created")
 
     def test_ignores_hidden_repo(self) -> None:
-
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -919,7 +952,6 @@ class PullRequestEventWebhookTest(APITestCase):
         mock_metrics.incr.assert_any_call("github.webhook.repository_created")
 
     def test_multiple_orgs_ignores_hidden_repo(self) -> None:
-
         org2 = self.create_organization()
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -1167,7 +1199,6 @@ class PullRequestEventWebhookTest(APITestCase):
         mock_assign_seat.delay.assert_called_once_with(contributor.id)
 
 
-@with_feature("organizations:integrations-github-project-management")
 class IssuesEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
@@ -1189,7 +1220,6 @@ class IssuesEventWebhookTest(APITestCase):
     @patch("sentry.integrations.github.webhook.sync_group_assignee_inbound_by_external_actor")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_assigned_issue(self, mock_record: MagicMock, mock_sync: MagicMock) -> None:
-
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -1223,7 +1253,6 @@ class IssuesEventWebhookTest(APITestCase):
     @patch("sentry.integrations.github.webhook.sync_group_assignee_inbound_by_external_actor")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_unassigned_issue(self, mock_record: MagicMock, mock_sync: MagicMock) -> None:
-
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -1257,7 +1286,6 @@ class IssuesEventWebhookTest(APITestCase):
         assert_success_metric(mock_record)
 
     def test_missing_assignee_data(self) -> None:
-
         Repository.objects.create(
             organization_id=self.project.organization.id,
             external_id="35129377",
@@ -1283,7 +1311,6 @@ class IssuesEventWebhookTest(APITestCase):
 
     @patch("sentry.integrations.github.webhook.metrics")
     def test_creates_missing_repo_for_issues(self, mock_metrics: MagicMock) -> None:
-
         response = self.client.post(
             path=self.url,
             data=ISSUES_ASSIGNED_EVENT_EXAMPLE,

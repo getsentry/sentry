@@ -4,9 +4,9 @@ import {Link} from '@sentry/scraps/link';
 import {openModal} from 'sentry/actionCreators/modal';
 import {DateTime} from 'sentry/components/dateTime';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
-import NewInstanceLevelOAuthClient from 'admin/views/instanceLevelOAuth/components/newInstanceLevelOAuthClient';
+import {NewInstanceLevelOAuthClient} from 'admin/views/instanceLevelOAuth/components/newInstanceLevelOAuthClient';
 
 const getRow = (row: any) => [
   <td key="name">
@@ -22,7 +22,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-function InstanceLevelOAuth() {
+export function InstanceLevelOAuth() {
   return (
     <div>
       <PageHeader title="Instance Level OAuth Clients">
@@ -52,5 +52,3 @@ function InstanceLevelOAuth() {
     </div>
   );
 }
-
-export default InstanceLevelOAuth;

@@ -1,11 +1,12 @@
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
@@ -136,7 +137,9 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
     meta: EventsMetaType;
   }>(
     [
-      `/api/0/organizations/${organization.slug}/spans-samples/`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/spans-samples/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       {
         query: {
           query: query.formatString(),

@@ -4,6 +4,7 @@ from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
 from django.utils import timezone
+from taskbroker_client.state import CurrentTaskState
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
@@ -13,7 +14,6 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.match import MatchType
 from sentry.services.eventstore.models import Event, GroupEvent
-from sentry.taskworker.state import CurrentTaskState
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils import json
 from sentry.utils.snuba import RateLimitExceeded
@@ -730,12 +730,15 @@ class TestGetGroupsToFire(TestDelayedWorkflowBase):
         )
 
         # NOTE: no WHEN DCGs. We only collect IF DCGs here to fire their actions in the fire_actions_for_groups function
-        assert result == {
-            self.group1.id: set(self.workflow1_if_dcgs),
-            self.group2.id: {
-                self.workflow2_if_dcgs[1]
-            },  # WHEN DCG passed so we have the passing if dcg here. IF DCG with slow condition did not pass
-        }
+        assert (
+            result
+            == {
+                self.group1.id: set(self.workflow1_if_dcgs),
+                self.group2.id: {
+                    self.workflow2_if_dcgs[1]
+                },  # WHEN DCG passed so we have the passing if dcg here. IF DCG with slow condition did not pass
+            }
+        )
 
     def test_missing_query_result_excludes_group(self) -> None:
         existing_query = UniqueConditionQuery(

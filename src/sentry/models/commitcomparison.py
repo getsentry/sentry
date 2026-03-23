@@ -1,12 +1,12 @@
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models.base import DefaultFieldsModel, region_silo_model
+from sentry.db.models.base import DefaultFieldsModel, cell_silo_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
-@region_silo_model
+@cell_silo_model
 class CommitComparison(DefaultFieldsModel):
     """
     Captures Git information provided by our users and links with our richer data models.
@@ -33,6 +33,8 @@ class CommitComparison(DefaultFieldsModel):
 
     # Pull request information
     pr_number = models.PositiveIntegerField(null=True)
+
+    extras = models.JSONField(default=dict, db_default={})
 
     # Sentry data, can be hydrated separately
     head_commit = FlexibleForeignKey(

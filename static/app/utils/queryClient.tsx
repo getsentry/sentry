@@ -9,10 +9,31 @@ import type {
 } from '@tanstack/react-query';
 import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
 
-import type {APIRequestMethod, ApiResult, ResponseMeta} from 'sentry/api';
+import type {ApiResult, ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {
+  ApiQueryKey,
+  InfiniteApiQueryKey,
+  QueryKeyEndpointOptions,
+} from 'sentry/utils/api/apiQueryKey';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+
+export type {
+  /**
+   * @deprecated Use `import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';` directly instead.
+   */
+  ApiQueryKey,
+  /**
+   * @deprecated Use `import type {InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';` directlyinstead.
+   */
+  InfiniteApiQueryKey,
+  /**
+   * @deprecated Use `import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';` directly instead.
+   */
+  QueryKeyEndpointOptions,
+};
 
 // Overrides to the default react-query options.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
@@ -25,41 +46,7 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
   },
 };
 
-const QUERY_API_CLIENT = new Client();
-
-export type QueryKeyEndpointOptions<
-  Headers = Record<string, string>,
-  Query = Record<string, any>,
-  Data = Record<string, any>,
-> = {
-  data?: Data;
-  headers?: Headers;
-  host?: string;
-  method?: APIRequestMethod;
-  query?: Query;
-};
-
-export type ApiQueryKey =
-  | readonly [url: string]
-  | readonly [
-      url: string,
-      options: QueryKeyEndpointOptions<
-        Record<string, string>,
-        Record<string, any>,
-        Record<string, any>
-      >,
-    ];
-export type InfiniteApiQueryKey =
-  | readonly ['infinite', url: string]
-  | readonly [
-      'infinite',
-      url: string,
-      options: QueryKeyEndpointOptions<
-        Record<string, string>,
-        Record<string, any>,
-        Record<string, any>
-      >,
-    ];
+export const QUERY_API_CLIENT = new Client();
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError> extends Omit<
   UseQueryOptions<ApiResult<TApiResponse>, TError, ApiResult<TApiResponse>, ApiQueryKey>,
@@ -87,31 +74,6 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError> extends
    * can be updated or invalidated manually with QueryClient if you neeed to do so.
    */
   staleTime: number;
-}
-
-function isInfiniteQueryKey(
-  queryKey: ApiQueryKey | InfiniteApiQueryKey
-): queryKey is InfiniteApiQueryKey {
-  return queryKey[0] === 'infinite';
-}
-
-export function parseQueryKey(queryKey: undefined | ApiQueryKey | InfiniteApiQueryKey) {
-  if (!queryKey) {
-    return {isInfinite: false, url: undefined, options: undefined};
-  }
-
-  if (isInfiniteQueryKey(queryKey)) {
-    return {
-      isInfinite: true,
-      url: queryKey[1],
-      options: queryKey[2],
-    };
-  }
-  return {
-    isInfinite: false,
-    url: queryKey[0],
-    options: queryKey[1],
-  };
 }
 
 export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError> & {
@@ -195,15 +157,15 @@ export function useApiQueries<TResponseData, TError = RequestError>(
 export function fetchDataQuery<TResponseData = unknown>(
   context: QueryFunctionContext<ApiQueryKey>
 ): Promise<ApiResult<TResponseData>> {
-  const [url, opts] = context.queryKey;
+  const {url, options} = parseQueryKey(context.queryKey);
 
   return QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
-    host: opts?.host,
-    method: opts?.method ?? 'GET',
-    data: opts?.data,
-    query: opts?.query,
-    headers: opts?.headers,
+    host: options?.host,
+    method: options?.method ?? 'GET',
+    data: options?.data,
+    query: options?.query,
+    headers: options?.headers,
   });
 }
 
@@ -216,6 +178,10 @@ export function getApiQueryData<TResponseData>(
   queryClient: QueryClient,
   queryKey: ApiQueryKey
 ): TResponseData | undefined {
+  const {version} = parseQueryKey(queryKey);
+  if (version !== 'v1') {
+    return undefined;
+  }
   return queryClient.getQueryData<ApiResult<TResponseData>>(queryKey)?.[0];
 }
 
@@ -229,6 +195,10 @@ export function setApiQueryData<TResponseData>(
   updater: Updater<TResponseData | undefined, TResponseData | undefined>,
   options?: SetDataOptions
 ): TResponseData | undefined {
+  const {version} = parseQueryKey(queryKey);
+  if (version !== 'v1') {
+    return undefined;
+  }
   const updateResult = queryClient.setQueryData<ApiResult<TResponseData>>(
     queryKey,
     previous => {
@@ -278,15 +248,13 @@ export function useInfiniteApiQuery<TResponseData>({
 }) {
   return useInfiniteQuery({
     queryKey,
-    queryFn: ({
-      pageParam,
-      queryKey: [, url, endpointOptions],
-    }): Promise<ApiResult<TResponseData>> => {
+    queryFn: ({pageParam}): Promise<ApiResult<TResponseData>> => {
+      const {url, options} = parseQueryKey(queryKey);
       return QUERY_API_CLIENT.requestPromise(url, {
         includeAllArgs: true,
-        headers: endpointOptions?.headers,
+        headers: options?.headers,
         query: {
-          ...endpointOptions?.query,
+          ...options?.query,
           cursor: pageParam?.cursor,
         },
       });

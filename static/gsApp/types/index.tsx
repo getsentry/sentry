@@ -835,7 +835,7 @@ export type BillingMetricHistory = {
   trueForward: boolean;
   usage: number;
   usageExceeded: boolean;
-  retention?: {downsampled: number | null; standard: number};
+  retention?: {downsampled: number | null; standard: number | null};
 };
 
 export type BillingHistory = {
@@ -1189,10 +1189,6 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * Whether the category has spike protection support
    */
   hasSpikeProtection: boolean;
-  /**
-   * The maximum number of free events that can be gifted
-   */
-  maxAdminGift: number;
   /**
    * How usage is tallied for the category
    */

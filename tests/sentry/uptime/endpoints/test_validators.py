@@ -95,15 +95,15 @@ class UptimeMonitorDataSourceValidatorTest(TestCase):
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)
         assert not validator.is_valid()
 
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.MAX_MONITORS_PER_DOMAIN", 1)
     def test_too_many_urls(self):
-        for _ in range(0, 100):
-            self.create_uptime_subscription(
-                url="https://www.google.com",
-                interval_seconds=3600,
-                timeout_ms=30000,
-                url_domain="google",
-                url_domain_suffix="com",
-            )
+        self.create_uptime_subscription(
+            url="https://www.google.com",
+            interval_seconds=3600,
+            timeout_ms=30000,
+            url_domain="google",
+            url_domain_suffix="com",
+        )
 
         data = self.get_valid_data(url="https://www.google.com")
         validator = UptimeMonitorDataSourceValidator(data=data, context=self.context)

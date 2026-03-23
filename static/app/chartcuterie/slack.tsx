@@ -1,9 +1,9 @@
 import type {Theme} from '@emotion/react';
 
-import Grid from 'sentry/components/charts/components/grid';
-import Legend from 'sentry/components/charts/components/legend';
-import XAxis from 'sentry/components/charts/components/xAxis';
-import YAxis from 'sentry/components/charts/components/yAxis';
+import {Grid} from 'sentry/components/charts/components/grid';
+import {Legend} from 'sentry/components/charts/components/legend';
+import {XAxis} from 'sentry/components/charts/components/xAxis';
+import {YAxis} from 'sentry/components/charts/components/yAxis';
 
 export const DEFAULT_FONT_FAMILY = 'sans-serif';
 

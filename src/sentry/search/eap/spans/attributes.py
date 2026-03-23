@@ -269,6 +269,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="byte",
         ),
         ResolvedAttribute(
+            public_alias="http.response_status_code",
+            internal_name="http.response.status_code",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
             public_alias="sampling_rate",
             internal_name="sentry.sampling_factor",
             search_type="percentage",
@@ -676,6 +681,7 @@ SPAN_VIRTUAL_CONTEXTS = {
         filter_column="sentry.device.class",
         # TODO: need to change this so the VCC is using it too, but would require rewriting the term_resolver
         default_value="Unknown",
+        sort_column="sentry.device.class",
     ),
     "span.module": VirtualColumnDefinition(
         constructor=module_context_constructor,

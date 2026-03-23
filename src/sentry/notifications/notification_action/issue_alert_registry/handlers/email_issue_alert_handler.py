@@ -3,6 +3,7 @@ from typing import Any
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.registry import issue_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseIssueAlertHandler
+from sentry.notifications.types import FallthroughChoiceType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
@@ -55,3 +56,10 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
             final_blob[EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value] = blob.fallthrough_type
 
         return final_blob
+
+    @classmethod
+    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+        target_type = blob["targetType"]
+        fallthrough_type = blob.get("fallthrough_type", FallthroughChoiceType.ACTIVE_MEMBERS.value)
+        label = f"Send a notification to {target_type} and if none can be found then send a notification to {fallthrough_type}"
+        return label

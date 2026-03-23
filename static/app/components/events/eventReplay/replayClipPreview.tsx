@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
-import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
+import {ReplayClipPreviewPlayer} from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
 interface ReplayClipPreviewProps extends Omit<
   React.ComponentProps<typeof ReplayClipPreviewPlayer>,

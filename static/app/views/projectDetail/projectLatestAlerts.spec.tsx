@@ -6,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ProjectLatestAlerts from './projectLatestAlerts';
+import {ProjectLatestAlerts} from './projectLatestAlerts';
 
 describe('ProjectDetail > ProjectLatestAlerts', () => {
   let endpointMock: jest.Mock;

@@ -136,7 +136,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
         # clear environment prod
         self.issues_list.global_selection.open_environment_selector()
-        clear_path = '//button[@aria-label="Reset" and @role="button"]'
+        clear_path = '//button[.//text()="Reset"]'
         self.browser.wait_until(xpath=clear_path)
         button = self.browser.element(xpath=clear_path)
         # Use JavaScript to execute click to avoid click intercepted issues

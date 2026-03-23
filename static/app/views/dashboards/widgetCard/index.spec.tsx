@@ -13,13 +13,13 @@ import {
 
 import * as modal from 'sentry/actionCreators/modal';
 import * as LineChart from 'sentry/components/charts/lineChart';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
-import ReleaseWidgetQueries from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 
@@ -295,9 +295,10 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
+    // TOP_N is converted to AREA, so the discover URL no longer has display=top5
     expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?display=top5&environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
+      '/organizations/org-slug/explore/discover/results/?environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
@@ -828,7 +829,7 @@ describe('Dashboards > WidgetCard', () => {
         api={api}
         organization={{
           ...organization,
-          features: [...organization.features, 'dashboards-mep'],
+          features: [...organization.features],
         }}
         widget={multipleQueryWidget}
         selection={selection}
@@ -845,6 +846,32 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     expect(await screen.findByText('Indexed')).toBeInTheDocument();
+  });
+
+  it('does not render description for text display type widgets', async () => {
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.TEXT,
+          description: 'Valid widget description',
+        }}
+        selection={selection}
+        isEditingDashboard={false}
+        onDelete={() => undefined}
+        onEdit={() => undefined}
+        onDuplicate={() => undefined}
+        renderErrorMessage={() => undefined}
+        showContextMenu
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />
+    );
+
+    // Wait for the widget to render by checking for the actions button
+    await screen.findByLabelText('Widget actions');
+    expect(screen.queryByLabelText('Widget description')).not.toBeInTheDocument();
   });
 
   it('displays the transaction deprecation warning and explore links for transaction widgets', async () => {

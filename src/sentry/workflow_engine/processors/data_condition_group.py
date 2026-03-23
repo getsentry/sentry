@@ -63,6 +63,18 @@ class TriggerResult:
         return TriggerResult(triggered=self.triggered, error=error)
 
     @staticmethod
+    def choose_tainted(a: "TriggerResult", b: "TriggerResult") -> "TriggerResult":
+        """
+        Returns the first tainted TriggerResult, or `a` if neither is tainted.
+        Useful for tracking whether any evaluation in a series was tainted.
+        """
+        if a.is_tainted():
+            return a
+        if b.is_tainted():
+            return b
+        return a
+
+    @staticmethod
     def any(items: Iterable["TriggerResult"]) -> "TriggerResult":
         """
         Like `any()`, but for TriggerResult. If any inputs had errors that could

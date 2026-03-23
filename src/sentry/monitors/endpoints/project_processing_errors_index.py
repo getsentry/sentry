@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
@@ -22,7 +22,7 @@ from sentry.monitors.processing_errors.errors import ProcessingErrorType
 from sentry.monitors.processing_errors.manager import delete_errors_for_project_by_type
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Crons"])
 class ProjectProcessingErrorsIndexEndpoint(ProjectEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (ProjectAlertRulePermission,)

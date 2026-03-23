@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import override
+from typing import Any, override
 
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -23,10 +23,12 @@ from sentry.incidents.logic import (
     translate_aggregate_field,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.models.project import Project
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
+    EntitySubscription,
     get_entity_key_from_query_builder,
     get_entity_subscription,
 )
@@ -107,7 +109,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
     data_source_type_handler = QuerySubscriptionDataSourceHandler
 
-    def __init__(self, *args, timeWindowSeconds=False, **kwargs):
+    def __init__(self, *args: Any, timeWindowSeconds: bool = False, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         # if true, time_window is interpreted as seconds.
         # if false, time_window is interpreted as minutes.
@@ -144,7 +146,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 "Invalid dataset, valid values are %s" % [item.value for item in Dataset]
             )
 
-    def validate_query(self, query: str):
+    def validate_query(self, query: str) -> str:
         query_terms = query.split()
         for query_term in query_terms:
             if query_term in UNSUPPORTED_QUERIES:
@@ -176,7 +178,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return validated
 
-    def _validate_extrapolation_mode(self, data: dict) -> ExtrapolationMode | None:
+    def _validate_extrapolation_mode(self, data: dict[str, Any]) -> ExtrapolationMode | None:
         extrapolation_mode = data.get("extrapolation_mode")
         if extrapolation_mode is not None:
             extrapolation_mode_enum = ExtrapolationMode.from_str(extrapolation_mode)
@@ -195,7 +197,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             return extrapolation_mode_enum
         return None
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         data = super().validate(data)
         self._validate_aggregate(data)
         self._validate_query(data)
@@ -225,9 +227,9 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
 
         return data
 
-    def _validate_aggregate(self, data):
+    def _validate_aggregate(self, data: dict[str, Any]) -> None:
         dataset = data.setdefault("dataset", Dataset.Events)
-        aggregate = data.get("aggregate")
+        aggregate = data["aggregate"]
         event_types = data.get("event_types", [])
         allow_mri = features.has(
             "organizations:custom-metrics",
@@ -265,7 +267,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 aggregate, allow_mri=allow_mri, allow_eap=allow_eap
             )
 
-    def _validate_query(self, data):
+    def _validate_query(self, data: dict[str, Any]) -> None:
         dataset = data.setdefault("dataset", Dataset.Events)
 
         if features.has(
@@ -277,12 +279,19 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             self.context["organization"],
             actor=self.context.get("user", None),
         ):
-            column = get_column_from_aggregate(
-                data["aggregate"],
-                allow_mri=True,
-                allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
-            )
-            if is_mri(column) and dataset != Dataset.PerformanceMetrics:
+            try:
+                column_is_mri = is_mri(
+                    get_column_from_aggregate(
+                        data["aggregate"],
+                        allow_mri=True,
+                        allow_eap=dataset == Dataset.EventsAnalyticsPlatform,
+                    )
+                )
+            # If the column raises an invalid search query its definitely not an MRI, and validate_aggregate will
+            # determine if there's any issues with it
+            except InvalidSearchQuery:
+                column_is_mri = False
+            if column_is_mri and dataset != Dataset.PerformanceMetrics:
                 raise serializers.ValidationError(
                     "You can use an MRI only on alerts on performance metrics"
                 )
@@ -294,19 +303,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             raise serializers.ValidationError(
                 "Invalid dataset for this query type. Valid datasets are %s"
                 % sorted(dataset.name.lower() for dataset in valid_datasets)
-            )
-
-        if (
-            not features.has(
-                "organizations:mep-rollout-flag",
-                self.context["organization"],
-                actor=self.context.get("user", None),
-            )
-            and dataset == Dataset.PerformanceMetrics
-            and query_type == SnubaQuery.Type.PERFORMANCE
-        ):
-            raise serializers.ValidationError(
-                "This project does not have access to the `generic_metrics` dataset"
             )
 
         projects = data.get("projects")
@@ -335,7 +331,12 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         if dataset != Dataset.EventsAnalyticsPlatform:
             self._validate_snql_query(data, entity_subscription, projects)
 
-    def _validate_snql_query(self, data, entity_subscription, projects):
+    def _validate_snql_query(
+        self,
+        data: dict[str, Any],
+        entity_subscription: EntitySubscription,
+        projects: list[Project],
+    ) -> None:
         end = timezone.now()
         start = end - timedelta(minutes=10)
         try:
@@ -359,7 +360,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             )
 
         dataset = Dataset(data["dataset"].value)
-        self._validate_time_window(data.get("time_window"), dataset)
+        self._validate_time_window(data["time_window"], dataset)
 
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
 
@@ -377,10 +378,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         except Exception:
             logger.exception("Error while validating snuba alert rule query")
             raise serializers.ValidationError(
-                "Invalid Query or Metric: An error occurred while attempting " "to run the query"
+                "Invalid Query or Metric: An error occurred while attempting to run the query"
             )
 
-    def _validate_time_window(self, value: int, dataset: Dataset):
+    def _validate_time_window(self, value: int, dataset: Dataset) -> int:
         time_window_seconds = value * 60 if not self.time_window_seconds else value
 
         if dataset == Dataset.Metrics:
@@ -396,17 +397,14 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 )
         return time_window_seconds
 
-    def _validate_performance_dataset(self, dataset):
+    def _validate_performance_dataset(self, dataset: Dataset) -> Dataset:
         if dataset != Dataset.Transactions:
             return dataset
 
         has_dynamic_sampling = features.has(
             "organizations:dynamic-sampling", self.context["organization"]
         )
-        has_performance_metrics_flag = features.has(
-            "organizations:mep-rollout-flag", self.context["organization"]
-        )
-        has_performance_metrics = has_dynamic_sampling and has_performance_metrics_flag
+        has_performance_metrics = has_dynamic_sampling
 
         has_on_demand_metrics = features.has(
             "organizations:on-demand-metrics-extraction",
@@ -446,7 +444,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         return value
 
     @override
-    def create_source(self, validated_data) -> QuerySubscription:
+    def create_source(self, validated_data: dict[str, Any]) -> QuerySubscription:
         snuba_query = create_snuba_query(
             query_type=validated_data["query_type"],
             dataset=validated_data["dataset"],

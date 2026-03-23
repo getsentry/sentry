@@ -6,7 +6,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.models.organization import Organization
 from sentry.rules import MatchType
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleWorkflow,
@@ -163,7 +163,7 @@ DUPLICATE_WORKFLOW_CONFIGS: list[MockWorkflowConfig] = [
 ]
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDeduplicateWorkflowsTest(APITestCase):
     endpoint = "sentry-api-0-organization-deduplicate-workflows"
     method = "put"
@@ -317,9 +317,9 @@ class OrganizationDeduplicateWorkflowsTest(APITestCase):
         all_actions_in_org = Action.objects.filter(
             dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__organization=org
         )
-        assert (
-            remaining_actions.count() == all_actions_in_org.count()
-        ), f"Found orphaned Action objects in org {org.name}"
+        assert remaining_actions.count() == all_actions_in_org.count(), (
+            f"Found orphaned Action objects in org {org.name}"
+        )
 
         # Verify no orphaned DataConditionGroupAction objects exist
         remaining_dcga = DataConditionGroupAction.objects.filter(
@@ -328,9 +328,9 @@ class OrganizationDeduplicateWorkflowsTest(APITestCase):
         all_dcga_in_org = DataConditionGroupAction.objects.filter(
             condition_group__workflowdataconditiongroup__workflow__organization=org
         )
-        assert (
-            remaining_dcga.count() == all_dcga_in_org.count()
-        ), f"Found orphaned DataConditionGroupAction objects in org {org.name}"
+        assert remaining_dcga.count() == all_dcga_in_org.count(), (
+            f"Found orphaned DataConditionGroupAction objects in org {org.name}"
+        )
 
     def run_configuration(self, idx: int) -> None:
         self.set_up_workflows(idx)

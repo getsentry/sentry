@@ -65,7 +65,7 @@ def bulk_delete_artifacts(
             all_file_ids.append(artifact.file_id)
         if artifact.installable_app_file_id:
             all_file_ids.append(artifact.installable_app_file_id)
-        mobile_app_info = getattr(artifact, "mobile_app_info", None)
+        mobile_app_info = artifact.get_mobile_app_info()
         app_icon_id = mobile_app_info.app_icon_id if mobile_app_info else None
         if app_icon_id:
             try:
@@ -80,7 +80,9 @@ def bulk_delete_artifacts(
     with transaction.atomic(using=router.db_for_write(PreprodArtifact)):
         files_deleted = 0
         if all_file_ids:
-            files_deleted, _ = File.objects.filter(id__in=all_file_ids).delete()
+            for file in File.objects.filter(id__in=all_file_ids):
+                file.delete()
+                files_deleted += 1
 
         _, deleted_by_model = PreprodArtifact.objects.filter(id__in=preprod_artifact_ids).delete()
 

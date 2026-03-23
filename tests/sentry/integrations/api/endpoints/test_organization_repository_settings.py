@@ -308,5 +308,136 @@ class OrganizationRepositorySettingsTest(APITestCase):
             assert audit_log is not None
             assert audit_log.data["repository_count"] == 2
             assert set(audit_log.data["repository_ids"]) == {repo1.id, repo2.id}
+            assert audit_log.data["repository_names"] == "repo1, repo2"
+            assert audit_log.data["code_review_change"] == " (enabled code review)"
             assert audit_log.data["enabled_code_review"] is True
             assert audit_log.data["code_review_triggers"] == [CodeReviewTrigger.ON_NEW_COMMIT]
+
+    def test_audit_log_disabled_code_review(self) -> None:
+        repo = Repository.objects.create(name="my-repo", organization_id=self.org.id)
+        RepositorySettings.objects.create(
+            repository=repo, enabled_code_review=True, code_review_triggers=[]
+        )
+
+        with outbox_runner():
+            response = self.client.put(
+                self.url,
+                data={
+                    "repositoryIds": [repo.id],
+                    "enabledCodeReview": False,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log = AuditLogEntry.objects.filter(organization_id=self.org.id).first()
+            assert audit_log is not None
+            assert audit_log.data["code_review_change"] == " (disabled code review)"
+            assert audit_log.data["enabled_code_review"] is False
+
+    def test_audit_log_triggers_only(self) -> None:
+        repo = Repository.objects.create(name="triggers-repo", organization_id=self.org.id)
+
+        with outbox_runner():
+            response = self.client.put(
+                self.url,
+                data={
+                    "repositoryIds": [repo.id],
+                    "codeReviewTriggers": [CodeReviewTrigger.ON_READY_FOR_REVIEW],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log = AuditLogEntry.objects.filter(organization_id=self.org.id).first()
+            assert audit_log is not None
+            assert (
+                audit_log.data["code_review_change"] == " (added code review on_ready_for_review)"
+            )
+
+    def test_audit_log_triggers_removed(self) -> None:
+        repo = Repository.objects.create(name="removed-repo", organization_id=self.org.id)
+        RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[
+                CodeReviewTrigger.ON_NEW_COMMIT,
+                CodeReviewTrigger.ON_READY_FOR_REVIEW,
+            ],
+        )
+
+        with outbox_runner():
+            response = self.client.put(
+                self.url,
+                data={
+                    "repositoryIds": [repo.id],
+                    "codeReviewTriggers": [CodeReviewTrigger.ON_NEW_COMMIT],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log = AuditLogEntry.objects.filter(organization_id=self.org.id).first()
+            assert audit_log is not None
+            assert (
+                audit_log.data["code_review_change"] == " (removed code review on_ready_for_review)"
+            )
+
+    def test_audit_log_triggers_added_and_removed(self) -> None:
+        repo = Repository.objects.create(name="both-repo", organization_id=self.org.id)
+        RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT],
+        )
+
+        with outbox_runner():
+            response = self.client.put(
+                self.url,
+                data={
+                    "repositoryIds": [repo.id],
+                    "codeReviewTriggers": [CodeReviewTrigger.ON_READY_FOR_REVIEW],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log = AuditLogEntry.objects.filter(organization_id=self.org.id).first()
+            assert audit_log is not None
+            assert (
+                audit_log.data["code_review_change"]
+                == " (added code review on_ready_for_review; removed code review on_new_commit)"
+            )
+
+    def test_audit_log_triggers_cleared_when_empty(self) -> None:
+        repo = Repository.objects.create(name="empty-repo", organization_id=self.org.id)
+        RepositorySettings.objects.create(
+            repository=repo,
+            enabled_code_review=True,
+            code_review_triggers=[],
+        )
+
+        with outbox_runner():
+            response = self.client.put(
+                self.url,
+                data={
+                    "repositoryIds": [repo.id],
+                    "codeReviewTriggers": [],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            audit_log = AuditLogEntry.objects.filter(organization_id=self.org.id).first()
+            assert audit_log is not None
+            assert audit_log.data["code_review_change"] == " (cleared code review triggers)"

@@ -20,7 +20,6 @@ from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
 
 
 class WorkflowEngineActionSerializer(Serializer):
-
     def serialize(
         self, obj: Action, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser, **kwargs
     ) -> dict[str, Any]:

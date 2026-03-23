@@ -6,7 +6,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
@@ -530,6 +530,101 @@ describe('getFieldRenderer', () => {
 
       expect(getWidths()).toEqual(['40%', '13.333%', '20%', '26.667%', '0%']);
     });
+  });
+
+  it('renders replay.id as a link when replay exists', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/replay-count/`,
+      body: {abc123def456: 1},
+    });
+
+    const renderer = getFieldRenderer('replay.id', {'replay.id': 'string'});
+
+    render(
+      renderer(
+        {...data, 'replay.id': 'abc123def456'},
+        {location, organization, theme}
+      ) as React.ReactElement<any, any>
+    );
+
+    const link = await screen.findByRole('link');
+    expect(link).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/explore/replays/abc123def456/`
+    );
+    expect(screen.getByText('abc123de')).toBeInTheDocument();
+  });
+
+  it('renders replay.id as missing when replay does not exist', () => {
+    const renderer = getFieldRenderer('replay.id', {'replay.id': 'string'});
+
+    render(
+      renderer(
+        {...data, 'replay.id': 'abc123def456'},
+        {location, organization, theme}
+      ) as React.ReactElement<any, any>
+    );
+
+    // ViewReplayLink renders "(missing)" when replay existence can't be confirmed
+    expect(screen.getByText('(missing)')).toBeInTheDocument();
+  });
+
+  it('renders replay.id as empty when missing', () => {
+    const renderer = getFieldRenderer('replay.id', {'replay.id': 'string'});
+
+    render(
+      renderer(
+        {...data, 'replay.id': ''},
+        {location, organization, theme}
+      ) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
+  });
+
+  it('renders profile.id as a link to the profile flamechart', () => {
+    const renderer = getFieldRenderer('profile.id', {'profile.id': 'string'});
+
+    render(
+      renderer(
+        {...data, 'profile.id': 'abc123def456'},
+        {location, organization, theme, projects: [project]}
+      ) as React.ReactElement<any, any>
+    );
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/explore/profiling/profile/${project.slug}/abc123def456/flamegraph/`
+    );
+    expect(screen.getByText('abc123de')).toBeInTheDocument();
+  });
+
+  it('renders profile.id as plain text when project is not available', () => {
+    const renderer = getFieldRenderer('profile.id', {'profile.id': 'string'});
+
+    render(
+      renderer(
+        {...data, project: 'unknown-project', 'profile.id': 'abc123def456'},
+        {location, organization, theme, projects: [project]}
+      ) as React.ReactElement<any, any>
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByText('abc123de')).toBeInTheDocument();
+  });
+
+  it('renders profile.id as empty when missing', () => {
+    const renderer = getFieldRenderer('profile.id', {'profile.id': 'string'});
+
+    render(
+      renderer(
+        {...data, 'profile.id': ''},
+        {location, organization, theme, projects: [project]}
+      ) as React.ReactElement<any, any>
+    );
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
 
   it('renders opportunity score', () => {

@@ -11,7 +11,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry import quotas
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.environment import Environment
@@ -60,8 +60,8 @@ logger = logging.getLogger(__name__)
 
 UPTIME_SUBSCRIPTION_TYPE = "uptime_monitor"
 MAX_AUTO_SUBSCRIPTIONS_PER_ORG = 1
-MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 100
-MAX_MONITORS_PER_DOMAIN = 100
+MAX_MANUAL_SUBSCRIPTIONS_PER_ORG = 1000
+MAX_MONITORS_PER_DOMAIN = 1000
 
 
 def resolve_uptime_issue(detector: Detector) -> None:
@@ -581,7 +581,7 @@ def delete_uptime_detector(detector: Detector):
 
     remove_uptime_seat(detector)
     detector.update(status=ObjectStatus.PENDING_DELETION)
-    RegionScheduledDeletion.schedule(detector, days=0)
+    CellScheduledDeletion.schedule(detector, days=0)
     delete_uptime_subscription(uptime_subscription)
 
 

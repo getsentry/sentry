@@ -8,13 +8,13 @@ import {
   getPlatform,
   getPlatformViewConfig,
 } from 'sentry/components/events/viewHierarchy/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Event} from 'sentry/types/event';
-import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -40,7 +40,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
   );
   const viewHierarchies =
     attachments?.filter(attachment => attachment.type === 'event.view_hierarchy') ?? [];
-  const hierarchyMeta: IssueAttachment | undefined = viewHierarchies[0];
+  const hierarchyMeta = viewHierarchies[0];
 
   // There should be only one view hierarchy
   const {isPending, data} = useApiQuery<string | ViewHierarchyData>(
@@ -52,7 +52,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
             orgSlug: organization.slug,
             projectSlug: project.slug,
           })
-        : '',
+        : ('' as unknown as ReturnType<typeof getApiUrl>),
       {
         headers: {
           Accept: '*/*; charset=utf-8',

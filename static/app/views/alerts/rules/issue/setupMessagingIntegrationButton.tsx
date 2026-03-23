@@ -8,10 +8,11 @@ import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {MessagingIntegrationModal} from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
 export enum MessagingIntegrationAnalyticsView {
   ALERT_RULE_CREATION = 'alert_rule_creation_messaging_integration_onboarding',
@@ -24,7 +25,7 @@ type Props = {
   refetchConfigs?: () => void;
 };
 
-function SetupMessagingIntegrationButton({
+export function SetupMessagingIntegrationButton({
   refetchConfigs,
   analyticsView,
   projectId,
@@ -40,13 +41,21 @@ function SetupMessagingIntegrationButton({
   };
 
   const messagingIntegrationsQuery = useApiQuery<OrganizationIntegration[]>(
-    [`/organizations/${organization.slug}/integrations/?integrationType=messaging`],
+    [
+      getApiUrl(`/organizations/$organizationIdOrSlug/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {integrationType: 'messaging'}},
+    ],
     {staleTime: Infinity}
   );
 
   const integrationProvidersQuery = useApiQueries<{providers: IntegrationProvider[]}>(
     providerKeys.map((providerKey: string) => [
-      `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
+      getApiUrl(`/organizations/$organizationIdOrSlug/config/integrations/`, {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {provider_key: providerKey}},
     ]),
     {staleTime: Infinity}
   );
@@ -88,11 +97,13 @@ function SetupMessagingIntegrationButton({
               </Flex>
             }
             disabled={disabled}
-            title={
-              disabled
+            tooltipProps={{
+              title: disabled
                 ? disabledReason
-                : t('Send alerts to your messaging service. Install the integration now.')
-            }
+                : t(
+                    'Send alerts to your messaging service. Install the integration now.'
+                  ),
+            }}
             onClick={() => {
               openModal(
                 deps => (
@@ -124,5 +135,3 @@ function SetupMessagingIntegrationButton({
     </IntegrationFeatures>
   );
 }
-
-export default SetupMessagingIntegrationButton;

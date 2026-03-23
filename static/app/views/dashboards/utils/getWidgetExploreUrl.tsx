@@ -31,6 +31,7 @@ import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreMultiQueryUrl, getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {SpanFields} from 'sentry/views/insights/types';
 
 function getTraceItemDatasetFromWidgetType(widgetType?: WidgetType): TraceItemDataset {
   switch (widgetType) {
@@ -87,6 +88,7 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
   ),
   [TraceItemDataset.PREPROD]: undefined,
   [TraceItemDataset.REPLAYS]: undefined,
+  [TraceItemDataset.PROCESSING_ERRORS]: undefined,
 };
 
 export function getWidgetExploreUrl(
@@ -142,8 +144,8 @@ export function getWidgetExploreUrl(
   );
 }
 
-function getChartType(displayType: DisplayType) {
-  let chartType: ChartType = ChartType.LINE;
+export function getChartType(displayType: DisplayType) {
+  let chartType = ChartType.LINE;
   switch (displayType) {
     case DisplayType.BAR:
       chartType = ChartType.BAR;
@@ -218,7 +220,7 @@ function _getWidgetExploreUrl(
   ];
 
   const chartType = getChartType(widget.displayType);
-  let exploreMode: Mode | undefined = preferMode;
+  let exploreMode = preferMode;
   if (!defined(exploreMode)) {
     switch (widget.displayType) {
       case DisplayType.BAR:
@@ -255,10 +257,13 @@ function _getWidgetExploreUrl(
   let groupBy: string[] =
     defined(query.fields) && widget.displayType === DisplayType.TABLE
       ? query.fields.filter(
-          field => !isAggregateFieldOrEquation(field) && field !== 'timestamp'
+          field =>
+            !isAggregateFieldOrEquation(field) &&
+            field !== 'timestamp' &&
+            field !== SpanFields.IS_STARRED_TRANSACTION // starred transactions are not supported in explore
         )
-      : [...query.columns];
-  if (groupBy && groupBy.length === 0) {
+      : query.columns.filter(column => column !== SpanFields.IS_STARRED_TRANSACTION);
+  if (groupBy?.length === 0) {
     // Force the groupBy to be an array with a single empty string
     // so that qs.stringify appends the key to the URL. If the key
     // is not present, the Explore UI will assign a default groupBy
@@ -266,14 +271,17 @@ function _getWidgetExploreUrl(
     groupBy = [''];
   }
 
-  const yAxisFields: string[] = locationQueryParams.yAxes.flatMap(getAggregateArguments);
+  const yAxisFields = locationQueryParams.yAxes.flatMap(getAggregateArguments);
   const fields = [...new Set([...groupBy, ...yAxisFields])].filter(Boolean);
 
   const sortDirection = widget.queries[0]?.orderby?.startsWith('-') ? '-' : '';
   const sortColumn = trimStart(widget.queries[0]?.orderby ?? '', '-');
 
   let sort: string | undefined = undefined;
-  if (isAggregateField(sortColumn)) {
+  if (sortColumn === SpanFields.IS_STARRED_TRANSACTION) {
+    // is_starred_transaction is not supported in explore
+    sort = undefined;
+  } else if (isAggregateField(sortColumn)) {
     if (exploreMode === Mode.SAMPLES) {
       // if the current sort is on an aggregation, then we should extract its argument
       // and try to sort on that in samples mode
@@ -389,10 +397,14 @@ function _getWidgetExploreUrlForMultipleQueries(
     queries: widget.queries.map(query => ({
       chartType: getChartType(widget.displayType),
       query: applyDashboardFilters(query.conditions, dashboardFilters) ?? '',
-      sortBys: decodeSorts(query.orderby),
+      sortBys: decodeSorts(query.orderby).filter(
+        s => s.field !== SpanFields.IS_STARRED_TRANSACTION
+      ),
       yAxes: query.aggregates,
       fields: [],
-      groupBys: query.columns,
+      groupBys: query.columns.filter(
+        column => column !== SpanFields.IS_STARRED_TRANSACTION
+      ),
     })),
     interval: getWidgetInterval(widget, currentSelection.datetime),
     referrer,
@@ -410,7 +422,9 @@ export function getWidgetTableRowExploreUrlFunction(
     let fields: string[] = [];
     if (widget.queries[selectedQueryIndex]?.fields) {
       fields = widget.queries[selectedQueryIndex].fields.filter(
-        (field: string) => !isAggregateFieldOrEquation(field)
+        (field: string) =>
+          !isAggregateFieldOrEquation(field) &&
+          field !== SpanFields.IS_STARRED_TRANSACTION
       );
     }
 

@@ -3,8 +3,8 @@ import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
   getPreprodBuildsDisplay,
@@ -13,12 +13,12 @@ import {
 import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {PreprodOnboardingPanel} from 'sentry/components/preprod/preprodOnboardingPanel';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
@@ -31,32 +31,36 @@ type Props = {
   selectedProjectIds: string[];
 };
 
-export default function MobileBuilds({organization, selectedProjectIds}: Props) {
+export function MobileBuilds({organization, selectedProjectIds}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
 
   const [searchQuery] = useQueryState('query', parseAsString);
   const [cursor] = useQueryState('cursor', parseAsString);
-  const hasDistributionFeature = organization.features.includes(
-    'preprod-build-distribution'
-  );
   const activeDisplay = useMemo(
-    () => getPreprodBuildsDisplay(location.query.display, hasDistributionFeature),
-    [hasDistributionFeature, location.query.display]
+    () => getPreprodBuildsDisplay(location.query.display),
+    [location.query.display]
   );
 
   const buildsQueryParams = useMemo(() => {
     const query: Record<string, any> = {
       per_page: 25,
       ...normalizeDateTimeParams(location.query),
+      display: activeDisplay,
     };
 
     if (cursor) {
       query.cursor = cursor;
     }
 
-    if (searchQuery?.trim()) {
-      query.query = searchQuery.trim();
+    const sizeStateFilter =
+      activeDisplay === PreprodBuildsDisplay.SIZE ? '!size_state:not_ran' : '';
+    const combinedQuery = [searchQuery?.trim(), sizeStateFilter]
+      .filter(Boolean)
+      .join(' ');
+
+    if (combinedQuery) {
+      query.query = combinedQuery;
     }
 
     // Add project filter for multi-project endpoint
@@ -65,7 +69,7 @@ export default function MobileBuilds({organization, selectedProjectIds}: Props) 
     }
 
     return query;
-  }, [cursor, location, searchQuery, selectedProjectIds]);
+  }, [activeDisplay, cursor, location, searchQuery, selectedProjectIds]);
 
   const {
     data: buildsData,

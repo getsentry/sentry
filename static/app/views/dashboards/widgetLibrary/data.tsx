@@ -1,11 +1,14 @@
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/rageAndDeadClicksWidget';
+import {SERVER_TREE_WIDGET_TEMPLATE} from 'sentry/views/dashboards/widgetLibrary/serverTreeWidget';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
 import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
+import {hasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 
 const getDefaultWidgets = (organization: Organization) => {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
@@ -289,6 +292,12 @@ const getDefaultWidgets = (organization: Organization) => {
     },
     SCORE_BREAKDOWN_WHEEL_WIDGET,
   ];
+
+  if (hasPlatformizedInsights(organization)) {
+    spanWidgets.push(SERVER_TREE_WIDGET_TEMPLATE);
+    spanWidgets.push(RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE);
+  }
+
   const errorsWidgets: WidgetTemplate[] = [
     {
       id: 'issue-for-review',
@@ -344,6 +353,26 @@ const getDefaultWidgets = (organization: Organization) => {
           aggregates: ['count_unique(user)', 'count()'],
           columns: [],
           orderby: '',
+        },
+      ],
+    },
+    {
+      id: 'error-count-by-transaction',
+      title: t('Error Count By Transaction'),
+      description: t('Compare error volume across your top transactions.'),
+      displayType: DisplayType.CATEGORICAL_BAR,
+      widgetType: WidgetType.ERRORS,
+      interval: '5m',
+      isCustomizable: true,
+      limit: 20,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['transaction', 'count()'],
+          aggregates: ['count()'],
+          columns: ['transaction'],
+          orderby: '-count()',
         },
       ],
     },

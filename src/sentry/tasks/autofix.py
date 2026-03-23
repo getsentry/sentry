@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.utils import timezone
+from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 
 from sentry import analytics
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
@@ -24,12 +26,19 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
-from sentry.taskworker.retry import Retry
-from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
+
+
+def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
+    """Fetch a Group by ID, returning None and logging a warning if it no longer exists."""
+    try:
+        return Group.objects.get(id=group_id)
+    except Group.DoesNotExist:
+        logger.warning("%s.group_not_found", task_name, extra={"group_id": group_id})
+        return None
 
 
 @instrumented_task(
@@ -63,7 +72,9 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
     trigger_path = kwargs.get("trigger_path", "unknown")
     sentry_sdk.set_tag("trigger_path", trigger_path)
 
-    group = Group.objects.get(id=group_id)
+    group = _get_group_or_log(group_id, "generate_summary_and_run_automation")
+    if group is None:
+        return
     organization = group.project.organization
 
     task_state = current_task()
@@ -94,16 +105,14 @@ def generate_issue_summary_only(group_id: int) -> None:
     Generate issue summary WITHOUT triggering automation.
     Used for triage signals flow when event count < 10 or when summary doesn't exist yet.
     """
-    from sentry.api.serializers.rest_framework.base import (
-        camel_to_snake_case,
-        convert_dict_key_case,
-    )
     from sentry.seer.autofix.issue_summary import (
         get_and_update_group_fixability_score,
         get_issue_summary,
     )
 
-    group = Group.objects.get(id=group_id)
+    group = _get_group_or_log(group_id, "generate_issue_summary_only")
+    if group is None:
+        return
     organization = group.project.organization
 
     task_state = current_task()
@@ -120,21 +129,12 @@ def generate_issue_summary_only(group_id: int) -> None:
             )
         )
 
-    summary_data, status_code = get_issue_summary(
+    # Generate and cache the summary
+    get_issue_summary(
         group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
     )
 
-    summary_payload = None
-    if status_code == 200:
-        summary_snake = convert_dict_key_case(summary_data, camel_to_snake_case)
-        required_fields = ["headline", "whats_wrong", "trace", "possible_cause"]
-        if all(summary_snake.get(k) is not None for k in required_fields):
-            summary_payload = {
-                "group_id": group.id,
-                **{k: summary_snake[k] for k in required_fields},
-            }
-
-    get_and_update_group_fixability_score(group, force_generate=True, summary=summary_payload)
+    get_and_update_group_fixability_score(group, force_generate=True)
 
 
 @instrumented_task(
@@ -152,7 +152,9 @@ def run_automation_only_task(group_id: int) -> None:
 
     from sentry.seer.autofix.issue_summary import run_automation
 
-    group = Group.objects.get(id=group_id)
+    group = _get_group_or_log(group_id, "run_automation_only_task")
+    if group is None:
+        return
     organization = group.project.organization
 
     task_state = current_task()

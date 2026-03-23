@@ -2,7 +2,7 @@ import type {Location, LocationDescriptorObject} from 'history';
 
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group, GroupTombstoneHelper} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 
 export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
@@ -86,7 +86,7 @@ export function createIssueLink({
   location,
   query,
 }: {
-  data: Event | Group | GroupTombstoneHelper;
+  data: Event | Group;
   location: Location;
   organization: Organization;
   eventId?: string;

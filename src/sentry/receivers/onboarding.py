@@ -93,7 +93,6 @@ def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
 
 @project_created.connect(weak=False, dispatch_uid="record_new_project")
 def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
-
     scope = sentry_sdk.get_current_scope()
     scope.set_extra("project_id", project.id)
     scope.set_extra("source", "record_new_project")
@@ -555,7 +554,6 @@ def record_integration_added(
 
 @project_transferred.connect(weak=False, dispatch_uid="onboarding.record_project_transferred")
 def record_project_transferred(old_org_id: int, project: Project, **kwargs):
-
     analytics.record(
         ProjectTransferredEvent(
             old_organization_id=old_org_id,

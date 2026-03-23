@@ -1,13 +1,19 @@
+from typing import Any
+
 import pytest
 
 from sentry.event_manager import EventManager
 from sentry.services import eventstore
-from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
+from tests.sentry.event_manager.interfaces import CustomSnapshotter as CustomSnapshotterBase
+
+SnapshotInput = dict[str, Any]
+CustomSnapshotter = CustomSnapshotterBase[SnapshotInput]
 
 
 @pytest.fixture
-def make_frames_snapshot(insta_snapshot):
-    def inner(data):
+def make_frames_snapshot(insta_snapshot: InstaSnapshotter) -> CustomSnapshotter:
+    def inner(data: SnapshotInput) -> None:
         mgr = EventManager(data={"stacktrace": {"frames": [data]}})
         mgr.normalize()
         evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
@@ -29,7 +35,7 @@ def make_frames_snapshot(insta_snapshot):
         {"function": "?"},
     ],
 )
-def test_bad_input(make_frames_snapshot, input) -> None:
+def test_bad_input(make_frames_snapshot: CustomSnapshotter, input: SnapshotInput) -> None:
     make_frames_snapshot(input)
 
 
@@ -37,11 +43,11 @@ def test_bad_input(make_frames_snapshot, input) -> None:
 @pytest.mark.parametrize(
     "x", [float("inf"), float("-inf"), float("nan")], ids=["inf", "neginf", "nan"]
 )
-def test_context_with_nan(make_frames_snapshot, x) -> None:
+def test_context_with_nan(make_frames_snapshot: CustomSnapshotter, x: float) -> None:
     make_frames_snapshot({"filename": "x", "vars": {"x": x}})
 
 
-def test_address_normalization(make_frames_snapshot) -> None:
+def test_address_normalization(make_frames_snapshot: CustomSnapshotter) -> None:
     make_frames_snapshot(
         {
             "lineno": 1,

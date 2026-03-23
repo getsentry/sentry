@@ -7,8 +7,8 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -125,6 +125,7 @@ export function ExplorerSeerSectionCtaButton({
         analyticsEventKey="issue_details.seer_opened"
         analyticsEventName="Issue Details: Seer Opened"
         analyticsParams={{
+          group_id: group.id,
           has_streamlined_ui: hasStreamlinedUI,
           autofix_exists: Boolean(runState),
           autofix_status: runState?.status ?? null,

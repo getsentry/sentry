@@ -6,11 +6,11 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {IconChat, IconChevron, IconCode, IconFire, IconFix} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {t} from 'sentry/locale';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   getGenAiOpType,
@@ -19,12 +19,7 @@ import {
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {
-  getIsAiAgentSpan,
-  getIsAiGenerationSpan,
-  getIsExecuteToolSpan,
-  getIsHandoffSpan,
-} from 'sentry/views/insights/pages/agents/utils/query';
+import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {
@@ -80,10 +75,10 @@ export function AISpanList({
   compressGaps?: boolean;
 }) {
   const nodesByTransaction = useMemo(() => {
-    const result: Map<
+    const result = new Map<
       TransactionNode | EapSpanNode | AITraceSpanNode,
       AITraceSpanNode[]
-    > = new Map();
+    >();
     // Use a placeholder key for nodes without a transaction (e.g., conversation view)
     let orphanGroup: AITraceSpanNode | null = null;
 
@@ -134,8 +129,6 @@ function TransactionWrapper({
   compressGaps?: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
-  const theme = useTheme();
-  const colors = [...theme.chart.getColorPalette(5), theme.colors.red400];
 
   const compressedBounds = useMemo(
     () => (compressGaps ? getCompressedTimeBounds(nodes) : null),
@@ -195,7 +188,6 @@ function TransactionWrapper({
               node={node}
               onClick={() => onSelectNode(node)}
               isSelected={uniqueKey === selectedNodeKey}
-              colors={colors}
               compressedStartByNodeId={compressedBounds?.compressedStartByNodeId}
             />
           );
@@ -208,12 +200,10 @@ const TraceListItem = memo(function TraceListItem({
   node,
   onClick,
   isSelected,
-  colors,
   traceBounds,
   indent,
   compressedStartByNodeId,
 }: {
-  colors: readonly string[];
   indent: number;
   isSelected: boolean;
   node: AITraceSpanNode;
@@ -221,9 +211,20 @@ const TraceListItem = memo(function TraceListItem({
   traceBounds: TraceBounds;
   compressedStartByNodeId?: Map<string, number>;
 }) {
+  const theme = useTheme();
   const hasErrors = hasError(node);
-  const {icon, title, subtitle, color} = getNodeInfo(node, colors);
-  const safeColor = color || colors[0] || '#9ca3af';
+  const colorByOpType = useMemo(() => {
+    const palette = theme.tokens.dataviz.categorical[5];
+    return {
+      [GenAiOperationType.AGENT]: palette[0],
+      [GenAiOperationType.AI_CLIENT]: palette[2],
+      [GenAiOperationType.HANDOFF]: palette[4],
+      [GenAiOperationType.TOOL]: palette[5],
+      default: palette[1],
+      error: theme.tokens.graphics.danger.vibrant,
+    };
+  }, [theme]);
+  const {icon, title, subtitle, color} = getSpanPresentation(node, colorByOpType);
   const relativeTiming = calculateRelativeTiming(
     node,
     traceBounds,
@@ -238,18 +239,14 @@ const TraceListItem = memo(function TraceListItem({
       onClick={onClick}
       indent={indent}
     >
-      <Flex
-        align="center"
-        position="relative"
-        style={{color: safeColor, background: 'inherit'}}
-      >
+      <Flex align="center" position="relative" style={{color}}>
         {icon}
         {hasErrors && (
           <Tooltip delay={300} title={t('This span encountered an error')} skipWrapper>
             <Container
               position="absolute"
               radius="full"
-              style={{bottom: -6, right: -6, padding: 1, background: 'inherit'}}
+              style={{bottom: -6, right: -6, padding: 1, background: 'var(--row-bg)'}}
             >
               <IconFire display="block" size="xs" variant="danger" />
             </Container>
@@ -283,7 +280,7 @@ const TraceListItem = memo(function TraceListItem({
             {getDuration(duration, 2, true, true)}
           </Text>
         </Flex>
-        <DurationBar color={safeColor} relativeTiming={relativeTiming} />
+        <DurationBar color={color} relativeTiming={relativeTiming} />
       </Stack>
     </ListItemContainer>
   );
@@ -422,142 +419,106 @@ function calculateRelativeTiming(
   return {leftPercent: adjustedStart, widthPercent: adjustedWidth};
 }
 
-interface NodeInfo {
-  color: string | undefined;
+interface SpanPresentation {
+  color: string;
   icon: React.ReactNode;
   subtitle: React.ReactNode;
   title: React.ReactNode;
 }
 
-function getNodeInfo(node: AITraceSpanNode, colors: readonly string[]): NodeInfo {
-  const truncatedOp = getTruncatedOp(node);
+type ColorByOpType = Record<GenAiOperationType | 'default' | 'error', string>;
+
+function getColor(node: AITraceSpanNode, colorByOpType: ColorByOpType): string {
+  if (hasError(node)) {
+    return colorByOpType.error;
+  }
+  const opType = getGenAiOpType(node);
+  return colorByOpType[opType as GenAiOperationType] ?? colorByOpType.default;
+}
+
+function getSpanPresentation(
+  node: AITraceSpanNode,
+  colorByOpType: ColorByOpType
+): SpanPresentation {
+  const rawOp = node.op ?? 'default';
+  const op = rawOp.startsWith('gen_ai.') ? rawOp.slice(7) : rawOp;
   const genAiOpType = getGenAiOpType(node);
 
-  let nodeInfo: NodeInfo;
-  if (getIsAiAgentSpan(genAiOpType)) {
-    nodeInfo = getAgentNodeInfo(node, truncatedOp, colors[0]!);
-  } else if (getIsAiGenerationSpan(genAiOpType)) {
-    nodeInfo = getGenerationNodeInfo(node, truncatedOp, colors[2]!);
-  } else if (getIsExecuteToolSpan(genAiOpType)) {
-    nodeInfo = getToolNodeInfo(node, truncatedOp, colors[5]!);
-  } else if (getIsHandoffSpan(genAiOpType)) {
-    nodeInfo = getDescriptionNodeInfo(
-      node,
-      truncatedOp,
-      <IconChevron size="md" isDouble direction="right" />,
-      colors[4]
-    );
-  } else {
-    nodeInfo = getDescriptionNodeInfo(
-      node,
-      truncatedOp,
-      <IconCode size="md" />,
-      colors[1]
-    );
+  const rawDesc = node.description || ('name' in node.value ? node.value.name : '');
+  const description = rawDesc.startsWith('gen_ai.') ? rawDesc.slice(7) : rawDesc;
+
+  const color = getColor(node, colorByOpType);
+
+  switch (genAiOpType) {
+    case GenAiOperationType.AGENT: {
+      const name =
+        getStringAttr(node, SpanFields.GEN_AI_AGENT_NAME) ||
+        getStringAttr(node, SpanFields.GEN_AI_FUNCTION_ID) ||
+        '';
+      const model =
+        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+        '';
+      return {
+        icon: <IconBot size="md" />,
+        color,
+        title: name || op,
+        subtitle: model ? (
+          <Fragment>
+            {op} ({model})
+          </Fragment>
+        ) : (
+          op
+        ),
+      };
+    }
+    case GenAiOperationType.AI_CLIENT: {
+      const tokens = getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
+      const cost = getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS);
+      const tokenLabel = tokens ? (
+        <Fragment>
+          <Count value={tokens} />
+          {' Tokens'}
+        </Fragment>
+      ) : null;
+      return {
+        icon: <IconChat size="md" />,
+        color,
+        title: description || op,
+        subtitle:
+          tokenLabel && cost ? (
+            <Fragment>
+              {tokenLabel} ({<LLMCosts cost={cost} />})
+            </Fragment>
+          ) : (
+            (tokenLabel ?? '')
+          ),
+      };
+    }
+    case GenAiOperationType.TOOL: {
+      const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
+      return {
+        icon: <IconFix size="md" />,
+        color,
+        title: toolName || op,
+        subtitle: toolName ? op : '',
+      };
+    }
+    case GenAiOperationType.HANDOFF:
+      return {
+        icon: <IconChevron size="md" isDouble direction="right" />,
+        color,
+        title: op,
+        subtitle: description || '',
+      };
+    default:
+      return {
+        icon: <IconCode size="md" />,
+        color,
+        title: op,
+        subtitle: description || '',
+      };
   }
-
-  if (hasError(node)) {
-    nodeInfo.color = colors[6];
-  }
-
-  return nodeInfo;
-}
-
-function getNodeDescription(node: AITraceSpanNode): string | undefined {
-  const desc = node.description || ('name' in node.value ? node.value.name : '');
-  return desc.startsWith('gen_ai.') ? desc.slice(7) : desc;
-}
-
-function getTruncatedOp(node: AITraceSpanNode): string {
-  const op = node.op ?? 'default';
-  return op.startsWith('gen_ai.') ? op.slice(7) : op;
-}
-
-function getAgentNodeInfo(
-  node: AITraceSpanNode,
-  truncatedOp: string,
-  color: string
-): NodeInfo {
-  const agentName =
-    getStringAttr(node, SpanFields.GEN_AI_AGENT_NAME) ||
-    getStringAttr(node, SpanFields.GEN_AI_FUNCTION_ID) ||
-    '';
-  const model =
-    getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
-    getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
-    '';
-  let subtitle: React.ReactNode = truncatedOp;
-  if (model) {
-    subtitle = (
-      <Fragment>
-        {truncatedOp} ({model})
-      </Fragment>
-    );
-  }
-  return {
-    icon: <IconBot size="md" />,
-    title: agentName || truncatedOp,
-    subtitle,
-    color,
-  };
-}
-
-function getGenerationNodeInfo(
-  node: AITraceSpanNode,
-  truncatedOp: string,
-  color: string
-): NodeInfo {
-  const description = getNodeDescription(node);
-  const tokens = getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS);
-  const cost = getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS);
-  const tokenLabel = tokens ? (
-    <Fragment>
-      <Count value={tokens} />
-      {' Tokens'}
-    </Fragment>
-  ) : null;
-  const subtitle: React.ReactNode =
-    tokenLabel && cost ? (
-      <Fragment>
-        {tokenLabel} ({<LLMCosts cost={cost} />})
-      </Fragment>
-    ) : (
-      (tokenLabel ?? '')
-    );
-  return {
-    icon: <IconChat size="md" />,
-    title: description || truncatedOp,
-    subtitle,
-    color,
-  };
-}
-
-function getToolNodeInfo(
-  node: AITraceSpanNode,
-  truncatedOp: string,
-  color: string
-): NodeInfo {
-  const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
-  return {
-    icon: <IconFix size="md" />,
-    title: toolName || truncatedOp,
-    subtitle: toolName ? truncatedOp : '',
-    color,
-  };
-}
-
-function getDescriptionNodeInfo(
-  node: AITraceSpanNode,
-  truncatedOp: string,
-  icon: React.ReactNode,
-  color: string | undefined
-): NodeInfo {
-  return {
-    icon,
-    title: truncatedOp,
-    subtitle: getNodeDescription(node) || '',
-    color,
-  };
 }
 
 const ListItemContainer = styled('div')<{
@@ -572,10 +533,11 @@ const ListItemContainer = styled('div')<{
   padding-left: ${p => (p.indent ? p.indent * 16 : 4)}px;
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
-  background-color: ${p =>
+  --row-bg: ${p =>
     p.isSelected
       ? p.theme.tokens.background.secondary
       : p.theme.tokens.background.primary};
+  background-color: var(--row-bg);
   outline: ${p =>
     p.isSelected
       ? p.hasErrors

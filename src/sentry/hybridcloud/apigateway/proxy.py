@@ -1,5 +1,5 @@
 """
-Utilities related to proxying a request to a region silo
+Utilities related to proxying a request to a cell
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ from urllib.parse import urljoin, urlparse
 from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from requests import Response as ExternalResponse
 from requests import request as external_request
@@ -25,13 +25,14 @@ from sentry.silo.util import (
     clean_outbound_headers,
     clean_proxy_headers,
 )
-from sentry.types.region import (
-    Region,
-    RegionResolutionError,
-    get_region_by_name,
-    get_region_for_organization,
+from sentry.types.cell import (
+    Cell,
+    CellResolutionError,
+    get_cell_by_name,
+    get_cell_for_organization,
 )
 from sentry.utils import metrics
+from sentry.utils.circuit_breaker2 import CircuitBreaker
 from sentry.utils.http import BodyWithLength
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ ENDPOINT_TIMEOUT_OVERRIDE = {
     "sentry-api-0-dsym-files": 90.0,
     "sentry-api-0-installable-preprod-artifact-download": 90.0,
     "sentry-api-0-project-preprod-artifact-download": 90.0,
-    "sentry-api-0-project-preprod-artifact-size-analysis-download": 90.0,
+    "sentry-api-0-organization-preprod-artifact-size-analysis-download": 90.0,
     "sentry-api-0-organization-objectstore": 90.0,
 }
 
@@ -80,12 +81,12 @@ def proxy_request(request: HttpRequest, org_id_or_slug: str, url_name: str) -> H
     """Take a django request object and proxy it to a remote location given an org_id_or_slug"""
 
     try:
-        region = get_region_for_organization(org_id_or_slug)
-    except RegionResolutionError as e:
+        cell = get_cell_for_organization(org_id_or_slug)
+    except CellResolutionError as e:
         logger.info("region_resolution_error", extra={"org_slug": org_id_or_slug, "error": str(e)})
         return HttpResponse(status=404)
 
-    return proxy_region_request(request, region, url_name)
+    return proxy_cell_request(request, cell, url_name)
 
 
 def proxy_error_embed_request(
@@ -105,25 +106,46 @@ def proxy_error_embed_request(
     app_segments = app_host.split(".")
     host_segments = host.split(".")
     if len(host_segments) - len(app_segments) < 3:
-        # If we don't have a o123.ingest.{region}.{app_host} style domain
-        # we forward to the monolith region
-        region = get_region_by_name(settings.SENTRY_MONOLITH_REGION)
-        return proxy_region_request(request, region, url_name)
+        # If we don't have a o123.ingest.{cell}.{app_host} style domain
+        # we forward to the monolith cell
+        cell = get_cell_by_name(settings.SENTRY_MONOLITH_REGION)
+        return proxy_cell_request(request, cell, url_name)
     try:
-        region_offset = len(app_segments) + 1
-        region_segment = host_segments[region_offset * -1]
-        region = get_region_by_name(region_segment)
+        cell_offset = len(app_segments) + 1
+        cell_segment = host_segments[cell_offset * -1]
+        cell = get_cell_by_name(cell_segment)
     except Exception:
         return None
 
-    return proxy_region_request(request, region, url_name)
+    return proxy_cell_request(request, cell, url_name)
 
 
-def proxy_region_request(
-    request: HttpRequest, region: Region, url_name: str
-) -> StreamingHttpResponse:
-    """Take a django request object and proxy it to a region silo"""
-    target_url = urljoin(region.address, request.path)
+def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpResponseBase:
+    """Take a django request object and proxy it to a cell silo"""
+
+    metric_tags = {"region": cell.name, "url_name": url_name}
+    circuit_breaker: CircuitBreaker | None = None
+    # TODO(mark) remove rollout options
+    if options.get("apigateway.proxy.circuit-breaker.enabled"):
+        try:
+            circuit_breaker = CircuitBreaker(
+                f"apigateway.proxy.{cell.name}",
+                options.get("apigateway.proxy.circuit-breaker.config"),
+            )
+        except Exception as e:
+            logger.warning("apigateway.invalid-breaker-config", extra={"message": str(e)})
+
+    if circuit_breaker is not None:
+        if not circuit_breaker.should_allow_request():
+            metrics.incr("apigateway.proxy.circuit_breaker.rejected", tags=metric_tags)
+            if options.get("apigateway.proxy.circuit-breaker.enforce"):
+                body = {
+                    "error": "apigateway",
+                    "detail": "Downstream service temporarily unavailable",
+                }
+                return JsonResponse(body, status=503)
+
+    target_url = urljoin(cell.address, request.path)
 
     content_encoding = request.headers.get("Content-Encoding")
     header_dict = clean_proxy_headers(request.headers)
@@ -133,8 +155,11 @@ def proxy_region_request(
     assert request.method is not None
     query_params = request.GET
 
-    timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
-    metric_tags = {"region": region.name, "url_name": url_name}
+    # This option has a default of None, which is cast to 0
+    timeout = options.get("apigateway.proxy.timeout")
+    if not timeout:
+        timeout = settings.GATEWAY_PROXY_TIMEOUT
+    timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, timeout)
 
     # XXX: See sentry.testutils.pytest.sentry for more information
     if settings.APIGATEWAY_PROXY_SKIP_RELAY and request.path.startswith("/api/0/relays/"):
@@ -164,8 +189,19 @@ def proxy_region_request(
                 allow_redirects=False,
             )
     except Timeout:
+        metrics.incr("apigateway.proxy.request_timeout", tags=metric_tags)
+        try:
+            if circuit_breaker is not None:
+                circuit_breaker.record_error()
+        except Exception:
+            logger.exception("Failed to record circuitbreaker failure")
+
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
+
+    if resp.status_code >= 500 and circuit_breaker is not None:
+        metrics.incr("apigateway.proxy.request_failed", tags=metric_tags)
+        circuit_breaker.record_error()
 
     new_headers = clean_outbound_headers(resp.headers)
     resp.headers.clear()

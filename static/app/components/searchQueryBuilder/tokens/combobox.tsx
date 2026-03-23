@@ -25,6 +25,7 @@ import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compa
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -36,11 +37,9 @@ import {
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import useOverlay from 'sentry/utils/useOverlay';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;
@@ -75,6 +74,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    */
   description?: ReactNode;
   filterValue?: string;
+  /**
+   * Whether the combobox is loading async items.
+   * When true, a loading indicator will be displayed in the dropdown.
+   */
+  isLoading?: boolean;
   /**
    * When passing `isOpen`, the open state is controlled by the parent.
    */
@@ -148,16 +152,23 @@ function menuIsOpen({
   totalOptions,
   hasCustomMenu,
   isOpen,
+  isLoading,
 }: {
   hiddenOptions: Set<SelectKey>;
   state: ComboBoxState<any>;
   totalOptions: number;
   hasCustomMenu?: boolean;
+  isLoading?: boolean;
   isOpen?: boolean;
 }) {
   const openState = isOpen ?? state.isOpen;
 
   if (hasCustomMenu) {
+    return openState;
+  }
+
+  // Keep the menu open when loading so the loading indicator is visible
+  if (isLoading) {
     return openState;
   }
 
@@ -179,18 +190,18 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions?: number;
   shouldFilterResults?: boolean;
 }) {
-  const hiddenOptions: Set<SelectKey> = useMemo(() => {
-    const options = getHiddenOptions(
+  const hiddenOptions = useMemo(() => {
+    const {hidden} = getHiddenOptions(
       items,
       shouldFilterResults ? filterValue : '',
       maxOptions
     );
 
     if (showAskSeerOption) {
-      options.add(ASK_SEER_ITEM_KEY);
+      hidden.add(ASK_SEER_ITEM_KEY);
     }
 
-    return options;
+    return hidden;
   }, [filterValue, items, maxOptions, shouldFilterResults, showAskSeerOption]);
 
   const disabledKeys = useMemo(() => {
@@ -261,12 +272,14 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   filterValue,
   hiddenOptions,
   isOpen,
+  isLoading,
   listBoxProps,
   listBoxRef,
   popoverRef,
   state,
   overlayProps,
   portalTarget,
+  totalOptions,
 }: {
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
@@ -276,10 +289,13 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<any>;
+  totalOptions: number;
   customMenu?: CustomComboboxMenu<T>;
+  isLoading?: boolean;
   portalTarget?: HTMLElement | null;
 }) {
   const {enableAISearch} = useSearchQueryBuilder();
+  const anyItemsShowing = totalOptions > hiddenOptions.size;
 
   if (customMenu) {
     return customMenu({
@@ -298,15 +314,28 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   return (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <ListBoxOverlay ref={popoverRef}>
-        <ListBox
-          {...listBoxProps}
-          ref={listBoxRef}
-          listState={state}
-          hasSearch={!!filterValue}
-          hiddenOptions={hiddenOptions}
-          overlayIsOpen={isOpen}
-          size="sm"
-        />
+        {isLoading && !anyItemsShowing ? (
+          <Flex justify="center" align="center" height="140px" width="200px">
+            <LoadingIndicator size={24} style={{margin: 0}} />
+          </Flex>
+        ) : (
+          <ListBoxPane>
+            <ListBox
+              {...listBoxProps}
+              ref={listBoxRef}
+              listState={state}
+              hasSearch={!!filterValue}
+              hiddenOptions={hiddenOptions}
+              overlayIsOpen={isOpen}
+              size="sm"
+            />
+          </ListBoxPane>
+        )}
+        {isLoading && anyItemsShowing ? (
+          <Flex justify="center" align="center" height="32px" width="100%">
+            <LoadingIndicator size={24} style={{margin: 0}} />
+          </Flex>
+        ) : null}
         {enableAISearch ? <AskSeer state={state} /> : null}
       </ListBoxOverlay>
     </StyledPositionWrapper>
@@ -345,6 +374,7 @@ export function SearchQueryBuilderCombobox<
   onPaste,
   onClick,
   customMenu,
+  isLoading: incomingIsLoading,
   isOpen: incomingIsOpen,
   ['data-test-id']: dataTestId,
   ref,
@@ -454,12 +484,17 @@ export function SearchQueryBuilderCombobox<
     state
   );
 
-  const previousInputValue = usePrevious(inputValue);
-  useEffect(() => {
-    if (inputValue !== previousInputValue) {
+  // Reset the focused key when the user types in the input.
+  // This is intentionally done in the onChange handler (not an effect watching
+  // inputValue) so that programmatic inputValue changes (e.g. multi-select
+  // checkbox toggles) don't reset focus and scroll position.
+  const handleInputChange: React.ChangeEventHandler<HTMLInputElement> = useCallback(
+    e => {
+      onInputChange?.(e);
       state.selectionManager.setFocusedKey(null);
-    }
-  }, [inputValue, previousInputValue, state.selectionManager]);
+    },
+    [onInputChange, state.selectionManager]
+  );
 
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
@@ -473,6 +508,7 @@ export function SearchQueryBuilderCombobox<
     hiddenOptions,
     totalOptions,
     hasCustomMenu,
+    isLoading: incomingIsLoading,
     isOpen: incomingIsOpen,
   });
 
@@ -577,7 +613,7 @@ export function SearchQueryBuilderCombobox<
         placeholder={placeholder}
         onClick={handleInputClick}
         value={inputValue}
-        onChange={onInputChange}
+        onChange={handleInputChange}
         tabIndex={tabIndex}
         onPaste={onPaste}
         disabled={disabled}
@@ -600,12 +636,14 @@ export function SearchQueryBuilderCombobox<
         filterValue={filterValue}
         hiddenOptions={hiddenOptions}
         isOpen={isOpen}
+        isLoading={incomingIsLoading}
         listBoxProps={listBoxProps}
         listBoxRef={listBoxRef}
         popoverRef={popoverRef}
         state={state}
         overlayProps={overlayProps}
         portalTarget={portalTarget}
+        totalOptions={totalOptions}
       />
     </Flex>
   );
@@ -640,12 +678,20 @@ const ListBoxOverlay = styled(Overlay)`
   min-width: 200px;
   width: 600px;
   max-width: fit-content;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const ListBoxPane = styled('div')`
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 `;
 
 const DescriptionOverlay = styled(Overlay)`
   min-width: 200px;
   max-width: 400px;
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   line-height: 1.2;
 `;

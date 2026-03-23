@@ -231,9 +231,9 @@ class OrganizationReleaseAssembleTest(APITestCase):
             artifact_bundle=artifact_bundle
         ).values_list("project_id", flat=True)
 
-        assert (
-            unauthorized_project.id not in project_associations
-        ), "IDOR vulnerability: unauthorized project was associated with artifact bundle"
+        assert unauthorized_project.id not in project_associations, (
+            "IDOR vulnerability: unauthorized project was associated with artifact bundle"
+        )
 
         # Verify the authorized projects ARE still associated (the fix doesn't break normal flow)
         # Since the manifest project was unauthorized, it should fall back to all authorized projects
@@ -285,6 +285,6 @@ class OrganizationReleaseAssembleTest(APITestCase):
             )
         )
 
-        assert project_associations == [
-            project_b.id
-        ], f"Expected only project_b to be associated, got {project_associations}"
+        assert project_associations == [project_b.id], (
+            f"Expected only project_b to be associated, got {project_associations}"
+        )

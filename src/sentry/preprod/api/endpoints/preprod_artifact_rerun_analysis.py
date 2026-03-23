@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, internal_region_silo_endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
 from sentry.models.project import Project
@@ -35,7 +35,7 @@ class CleanupStats:
     files_total_deleted: int = 0
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -119,7 +119,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
         )
 
 
-@internal_region_silo_endpoint
+@internal_cell_silo_endpoint
 class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
     owner = ApiOwner.EMERGE_TOOLS
     permission_classes = (StaffPermission,)
@@ -254,7 +254,9 @@ def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> CleanupStats:
             ).delete()
 
         if file_ids_to_delete:
-            stats.files_total_deleted, _ = File.objects.filter(id__in=file_ids_to_delete).delete()
+            for file in File.objects.filter(id__in=file_ids_to_delete):
+                file.delete()
+                stats.files_total_deleted += 1
 
     PreprodArtifactSizeMetrics.objects.create(
         preprod_artifact=preprod_artifact,
@@ -269,7 +271,18 @@ def reset_artifact_data(preprod_artifact: PreprodArtifact) -> None:
     preprod_artifact.state = PreprodArtifact.ArtifactState.UPLOADED
     preprod_artifact.error_code = None
     preprod_artifact.error_message = None
-    preprod_artifact.save(update_fields=["state", "error_code", "error_message", "date_updated"])
+    preprod_artifact.installable_app_error_code = None
+    preprod_artifact.installable_app_error_message = None
+    preprod_artifact.save(
+        update_fields=[
+            "state",
+            "error_code",
+            "error_message",
+            "installable_app_error_code",
+            "installable_app_error_message",
+            "date_updated",
+        ]
+    )
 
 
 def success_response(

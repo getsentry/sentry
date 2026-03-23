@@ -1,12 +1,12 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {
   AskSeerPollingResponse,
@@ -86,7 +86,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
   // Poll for state
   const {data: apiData, isPending} = useApiQuery<AskSeerPollingResponse<T>>(
-    queryKey ?? ['__disabled__', {}],
+    queryKey ?? (['__disabled__', {}] as unknown as ApiQueryKey),
     {
       staleTime: 0,
       retry: false,

@@ -17,6 +17,7 @@ from sentry.integrations.github.blame import (
     generate_file_path_mapping,
     is_graphql_response,
 )
+from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
@@ -25,6 +26,10 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+)
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.source_code_management.status_check import StatusCheckClient
@@ -32,7 +37,12 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders, Int
 from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, UnknownHostError
+from sentry.shared_integrations.exceptions import (
+    ApiConflictError,
+    ApiError,
+    ApiRateLimitedError,
+    UnknownHostError,
+)
 from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
@@ -42,6 +52,85 @@ logger = logging.getLogger("sentry.integrations.github")
 # as the lower ceiling before hitting Github anymore, thus, leaving at least these
 # many requests left for other features that need to reach Github
 MINIMUM_REQUESTS = 200
+
+GET_PULL_REQUEST_COMMENTS_QUERY = """
+query GetPullRequestComments(
+    $owner: String!,
+    $repo: String!,
+    $prNumber: Int!,
+    $commentsAfter: String,
+    $includeComments: Boolean!,
+    $reviewThreadsAfter: String,
+    $includeThreads: Boolean!
+) {
+    repository(owner: $owner, name: $repo) {
+        pullRequest(number: $prNumber) {
+            comments(first: 100, after: $commentsAfter) @include(if: $includeComments) {
+                nodes {
+                    id
+                    body
+                    isMinimized
+                    author { login databaseId __typename }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+            reviewThreads(first: 100, after: $reviewThreadsAfter) @include(if: $includeThreads) {
+                nodes {
+                    id
+                    isCollapsed
+                    isOutdated
+                    isResolved
+                    comments(last: 100) {
+                        nodes {
+                            id
+                            fullDatabaseId
+                            url
+                            body
+                            isMinimized
+                            path
+                            startLine
+                            line
+                            diffHunk
+                            createdAt
+                            updatedAt
+                            reactions(last: 10) {
+                                nodes { content }
+                                totalCount
+                            }
+                            author { login databaseId __typename }
+                        }
+                    }
+                }
+                pageInfo { hasNextPage endCursor }
+            }
+        }
+    }
+}
+"""
+
+MINIMIZE_COMMENT_MUTATION = """
+mutation MinimizeComment($commentId: ID!, $reason: ReportedContentClassifiers!) {
+    minimizeComment(input: {subjectId: $commentId, classifier: $reason}) {
+        minimizedComment { isMinimized }
+    }
+}
+"""
+
+RESOLVE_REVIEW_THREAD_MUTATION = """
+mutation ResolveReviewThread($threadId: ID!) {
+    resolveReviewThread(input: {threadId: $threadId}) {
+        thread { isResolved }
+    }
+}
+"""
+
+DELETE_PULL_REQUEST_REVIEW_COMMENT_MUTATION = """
+mutation DeletePullRequestReviewComment($commentNodeId: ID!) {
+    deletePullRequestReviewComment(input: {id: $commentNodeId}) {
+        clientMutationId
+    }
+}
+"""
 
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
@@ -98,7 +187,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
             token = self.jwt
 
         prepared_request.headers["Authorization"] = f"Bearer {token}"
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        prepared_request.headers["Accept"] = GITHUB_API_ACCEPT_HEADER
         return prepared_request
 
     def get_installation_info(self, installation_id: int | str) -> dict[str, Any]:
@@ -290,7 +379,7 @@ class GithubProxyClient(IntegrationProxyClient):
             return prepared_request
 
         prepared_request.headers["Authorization"] = f"Bearer {token}"
-        prepared_request.headers["Accept"] = "application/vnd.github+json"
+        prepared_request.headers["Accept"] = GITHUB_API_ACCEPT_HEADER
         if prepared_request.headers.get("Content-Type") == "application/raw; charset=utf-8":
             prepared_request.headers["Accept"] = "application/vnd.github.raw"
 
@@ -325,12 +414,15 @@ class GitHubBaseClient(
         """
         return self.get_cached(f"/repos/{repo}/commits", params={"sha": end_sha})
 
-    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> Any:
+    def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> list[Any]:
         """
         See https://docs.github.com/en/rest/commits/commits#compare-two-commits
         where start sha is oldest and end is most recent.
         """
-        return self.get_cached(f"/repos/{repo}/compare/{start_sha}...{end_sha}")
+        return self._get_with_pagination(
+            f"/repos/{repo}/compare/{start_sha}...{end_sha}",
+            response_key="commits",
+        )
 
     def repo_hooks(self, repo: str) -> Sequence[Any]:
         """
@@ -338,11 +430,18 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/hooks")
 
-    def get_commits(self, repo: str) -> Sequence[Any]:
+    def get_commits(
+        self, repo: str, sha: str | None = None, path: str | None = None
+    ) -> Sequence[Any]:
         """
         https://docs.github.com/en/rest/commits/commits#list-commits
         """
-        return self.get(f"/repos/{repo}/commits")
+        params: dict[str, str] = {}
+        if sha:
+            params["sha"] = sha
+        if path:
+            params["path"] = path
+        return self.get(f"/repos/{repo}/commits", params=params)
 
     def get_commit(self, repo: str, sha: str) -> Any:
         """
@@ -391,7 +490,7 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}/files")
 
-    def get_pull_request(self, repo: str, pull_number: int) -> Any:
+    def get_pull_request(self, repo: str, pull_number: str) -> Any:
         """
         https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
 
@@ -399,18 +498,50 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/pulls/{pull_number}")
 
+    def get_archive_link(self, repo: str, archive_format: str, ref: str) -> str:
+        """
+        https://docs.github.com/en/rest/repos/contents#download-a-repository-archive-tar-ball-or-zip-ball
+
+        Returns the redirect URL for downloading a repository archive.
+        The API returns a 302; we capture the Location header instead of following it.
+        """
+        resp = self._request(
+            "GET",
+            f"/repos/{repo}/{archive_format}/{ref}",
+            allow_redirects=False,
+            raw_response=True,
+        )
+        if resp.status_code != 302 or "Location" not in resp.headers:
+            raise ApiError.from_response(resp)
+        return resp.headers["Location"]
+
     def get_repo(self, repo: str) -> Any:
         """
         https://docs.github.com/en/rest/repos/repos#get-a-repository
         """
         return self.get(f"/repos/{repo}")
 
+    def get_languages(self, repo: str) -> dict[str, int]:
+        """
+        https://docs.github.com/en/rest/repos/repos#list-repository-languages
+
+        :param repo: "owner/repo" format
+        :returns: {"Python": 50000, "JavaScript": 30000, ...}
+                  Keys are GitHub Linguist names, values are bytes of code.
+        """
+        return self.get(f"/repos/{repo}/languages")
+
     # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
     def get_rate_limit(self, specific_resource: str = "core") -> GithubRateLimitInfo:
         """This gives information of the current rate limit"""
         # There's more but this is good enough
         assert specific_resource in ("core", "search", "graphql")
-        return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_RATE_LIMIT,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture():
+            return GithubRateLimitInfo(self.get("/rate_limit")["resources"][specific_resource])
 
     # This method is used by RepoTreesIntegration
     def get_remaining_api_requests(self) -> int:
@@ -420,23 +551,131 @@ class GitHubBaseClient(
     # This method is used by RepoTreesIntegration
     # https://docs.github.com/en/rest/git/trees#get-a-tree
     def get_tree(self, repo_full_name: str, tree_sha: str) -> list[dict[str, Any]]:
-        # We do not cache this call since it is a rather large object
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_REPO_TREE,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture() as lifecycle:
+            try:
+                # We do not cache this call since it is a rather large object
+                contents: dict[str, Any] = self.get(
+                    f"/repos/{repo_full_name}/git/trees/{tree_sha}",
+                    # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
+                    params={"recursive": 1},
+                )
+            except ApiConflictError as e:
+                # Empty repos return a 409 which is expected
+                lifecycle.record_halt(e)
+                raise
+            # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
+            # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
+            # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
+            # XXX: We will need to improve this by iterating through trees without using the recursive parameter
+            if contents.get("truncated"):
+                # e.g. getsentry/DataForThePeople
+                logger.warning(
+                    "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
+                    repo_full_name,
+                )
+            return contents["tree"]
+
+    def get_tree_full(
+        self, repo_full_name: str, tree_sha: str, recursive: bool = True
+    ) -> dict[str, Any]:
+        """https://docs.github.com/en/rest/git/trees#get-a-tree
+
+        Returns the full API response including the ``truncated`` flag.
+        """
+        params: dict[str, int] = {}
+        if recursive:
+            params["recursive"] = 1
         contents: dict[str, Any] = self.get(
             f"/repos/{repo_full_name}/git/trees/{tree_sha}",
-            # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
-            params={"recursive": 1},
+            params=params,
         )
-        # If truncated is true in the response then the number of items in the tree array exceeded our maximum limit.
-        # If you need to fetch more items, use the non-recursive method of fetching trees, and fetch one sub-tree at a time.
-        # Note: The limit for the tree array is 100,000 entries with a maximum size of 7 MB when using the recursive parameter.
-        # XXX: We will need to improve this by iterating through trees without using the recursive parameter
-        if contents.get("truncated"):
-            # e.g. getsentry/DataForThePeople
-            logger.warning(
-                "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
-                repo_full_name,
-            )
-        return contents["tree"]
+        return contents
+
+    def get_branch(self, repo: str, branch: str) -> Any:
+        """https://docs.github.com/en/rest/branches/branches#get-a-branch"""
+        return self.get(f"/repos/{repo}/branches/{branch}")
+
+    def get_git_ref(self, repo: str, ref: str) -> Any:
+        """https://docs.github.com/en/rest/git/refs#get-a-reference"""
+        return self.get(f"/repos/{repo}/git/refs/heads/{ref}")
+
+    def create_git_ref(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/refs#create-a-reference"""
+        return self.post(f"/repos/{repo}/git/refs", data=data)
+
+    def update_git_ref(self, repo: str, ref: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/refs#update-a-reference"""
+        return self.patch(f"/repos/{repo}/git/refs/heads/{ref}", data=data)
+
+    def create_git_blob(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/blobs#create-a-blob"""
+        return self.post(f"/repos/{repo}/git/blobs", data=data)
+
+    def get_file_content(self, repo: str, path: str, ref: str | None = None) -> Any:
+        """https://docs.github.com/en/rest/repos/contents#get-repository-content"""
+        params = {}
+        if ref:
+            params["ref"] = ref
+        return self.get(f"/repos/{repo}/contents/{path}", params=params)
+
+    def get_git_commit(self, repo: str, sha: str) -> Any:
+        """https://docs.github.com/en/rest/git/commits#get-a-commit-object"""
+        return self.get(f"/repos/{repo}/git/commits/{sha}")
+
+    def create_git_tree(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/trees#create-a-tree"""
+        return self.post(f"/repos/{repo}/git/trees", data=data)
+
+    def create_git_commit(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/git/commits#create-a-commit"""
+        return self.post(f"/repos/{repo}/git/commits", data=data)
+
+    def list_pull_requests(self, repo: str, state: str = "open", head: str | None = None) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#list-pull-requests"""
+        params: dict[str, Any] = {"state": state}
+        if head:
+            params["head"] = head
+        return self.get(f"/repos/{repo}/pulls", params=params)
+
+    def get_pull_request_commits(self, repo: str, pull_number: str) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#list-commits-on-a-pull-request"""
+        return self.get(f"/repos/{repo}/pulls/{pull_number}/commits")
+
+    def get_pull_request_diff(self, repo: str, pull_number: str) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request (diff format)"""
+        return self.get(
+            f"/repos/{repo}/pulls/{pull_number}",
+            headers={"Accept": "application/vnd.github.v3.diff"},
+            allow_text=True,
+        )
+
+    def create_pull_request(self, repo: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#create-a-pull-request"""
+        return self.post(f"/repos/{repo}/pulls", data=data)
+
+    def update_pull_request(self, repo: str, pull_number: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/pulls#update-a-pull-request"""
+        return self.patch(f"/repos/{repo}/pulls/{pull_number}", data=data)
+
+    def create_review_request(self, repo: str, pull_number: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/review-requests#request-reviewers-for-a-pull-request"""
+        return self.post(f"/repos/{repo}/pulls/{pull_number}/requested_reviewers", data=data)
+
+    def create_review_comment(self, repo: str, pull_number: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/comments#create-a-review-comment-for-a-pull-request"""
+        return self.post(f"/repos/{repo}/pulls/{pull_number}/comments", data=data)
+
+    def create_review(self, repo: str, pull_number: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/pulls/reviews#create-a-review-for-a-pull-request"""
+        return self.post(f"/repos/{repo}/pulls/{pull_number}/reviews", data=data)
+
+    def update_check_run(self, repo: str, check_run_id: str, data: dict[str, Any]) -> Any:
+        """https://docs.github.com/en/rest/checks/runs#update-a-check-run"""
+        return self.patch(f"/repos/{repo}/check-runs/{check_run_id}", data=data)
 
     # Used by RepoTreesIntegration
     def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
@@ -453,11 +692,14 @@ class GitHubBaseClient(
             "Bad credentials",  # No permission granted for this repo
         ):
             logger.warning(error_message, extra=extra)
-        elif error_message in (
-            "Server Error",  # Github failed to respond
-            "Connection reset by peer",  # Connection reset by GitHub
-            "Connection broken: invalid chunk length",  # Connection broken by chunk with invalid length
-            "Unable to reach host:",  # Unable to reach host at the moment
+        elif (
+            error_message
+            in (
+                "Server Error",  # Github failed to respond
+                "Connection reset by peer",  # Connection reset by GitHub
+                "Connection broken: invalid chunk length",  # Connection broken by chunk with invalid length
+                "Unable to reach host:",  # Unable to reach host at the moment
+            )
         ):
             should_count_error = True
         elif error_message and error_message.startswith(
@@ -480,11 +722,16 @@ class GitHubBaseClient(
         It uses page_size from the base class to specify how many items per page.
         The upper bound of requests is controlled with self.page_number_limit to prevent infinite requests.
         """
-        return self._get_with_pagination(
-            "/installation/repositories",
-            response_key="repositories",
-            page_number_limit=page_number_limit,
-        )
+        with SCMIntegrationInteractionEvent(
+            interaction_type=SCMIntegrationInteractionType.GET_REPOSITORIES,
+            provider_key=self.integration_name,
+            integration_id=self.integration.id,
+        ).capture():
+            return self._get_with_pagination(
+                "/installation/repositories",
+                response_key="repositories",
+                page_number_limit=page_number_limit,
+            )
 
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
@@ -630,15 +877,11 @@ class GitHubBaseClient(
     ) -> Any:
         return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
 
-    def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
+    def get_comment_reactions(self, repo: str, comment_id: str) -> list[Any]:
         """
-        https://docs.github.com/en/rest/issues/comments?#get-an-issue-comment
+        https://docs.github.com/en/rest/reactions/reactions#list-reactions-for-an-issue-comment
         """
-        endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
-        response = self.get(endpoint)
-        reactions = response.get("reactions", {})
-        reactions.pop("url", None)
-        return reactions
+        return self._get_with_pagination(f"/repos/{repo}/issues/comments/{comment_id}/reactions")
 
     def create_comment_reaction(self, repo: str, comment_id: str, reaction: GitHubReaction) -> Any:
         """
@@ -651,6 +894,18 @@ class GitHubBaseClient(
         """
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}/reactions"
         return self.post(endpoint, data={"content": reaction.value})
+
+    def delete_issue_comment(self, repo: str, comment_id: str) -> None:
+        """
+        https://docs.github.com/en/rest/issues/comments#delete-an-issue-comment
+        """
+        self.delete(f"/repos/{repo}/issues/comments/{comment_id}")
+
+    def delete_comment_reaction(self, repo: str, comment_id: str, reaction_id: str) -> None:
+        """
+        https://docs.github.com/en/rest/reactions/reactions#delete-an-issue-comment-reaction
+        """
+        self.delete(f"/repos/{repo}/issues/comments/{comment_id}/reactions/{reaction_id}")
 
     def get_user(self, gh_username: str) -> Any:
         """
@@ -685,12 +940,85 @@ class GitHubBaseClient(
             headers=headers,
         )
 
-        result = (
-            contents.content.decode("utf-8")
-            if codeowners
-            else b64decode(contents["content"]).decode("utf-8")
+        if codeowners:
+            if not contents.ok:
+                raise ApiError.from_response(contents)
+            return contents.content.decode("utf-8")
+
+        return b64decode(contents["content"]).decode("utf-8")
+
+    def _graphql(
+        self,
+        query: str,
+        variables: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Execute a GraphQL query/mutation against GitHub's API."""
+        payload: dict[str, Any] = {"query": query}
+        if variables:
+            payload["variables"] = variables
+
+        response = self.post(path="/graphql", data=payload, allow_text=False)
+
+        if not isinstance(response, Mapping) or (
+            "data" not in response and "errors" not in response
+        ):
+            raise ApiError("GraphQL response is not in expected format")
+
+        errors = response.get("errors", [])
+        if errors:
+            if any(error.get("type") == "RATE_LIMITED" for error in errors):
+                raise ApiRateLimitedError("GitHub rate limit exceeded")
+            if not response.get("data"):
+                err_message = "\n".join(e.get("message", "") for e in errors)
+                raise ApiError(err_message)
+
+        return response.get("data", {})
+
+    def get_pull_request_comments_graphql(
+        self,
+        owner: str,
+        repo: str,
+        pr_number: int,
+        *,
+        comments_after: str | None = None,
+        include_comments: bool = True,
+        review_threads_after: str | None = None,
+        include_threads: bool = True,
+    ) -> dict[str, Any]:
+        """Fetch PR comments and review threads via GraphQL with independent pagination."""
+        variables: dict[str, Any] = {
+            "owner": owner,
+            "repo": repo,
+            "prNumber": pr_number,
+            "includeComments": include_comments,
+            "includeThreads": include_threads,
+        }
+        if comments_after is not None:
+            variables["commentsAfter"] = comments_after
+        if review_threads_after is not None:
+            variables["reviewThreadsAfter"] = review_threads_after
+        return self._graphql(GET_PULL_REQUEST_COMMENTS_QUERY, variables)
+
+    def minimize_comment(self, comment_node_id: str, reason: str) -> dict[str, Any]:
+        """Minimize (collapse) a comment by its GraphQL node ID."""
+        return self._graphql(
+            MINIMIZE_COMMENT_MUTATION,
+            {"commentId": comment_node_id, "reason": reason},
         )
-        return result
+
+    def resolve_review_thread(self, thread_node_id: str) -> dict[str, Any]:
+        """Resolve a review thread by its GraphQL node ID."""
+        return self._graphql(
+            RESOLVE_REVIEW_THREAD_MUTATION,
+            {"threadId": thread_node_id},
+        )
+
+    def delete_pull_request_review_comment(self, comment_node_id: str) -> dict[str, Any]:
+        """Delete a pull request review comment by its GraphQL node ID."""
+        return self._graphql(
+            DELETE_PULL_REQUEST_REVIEW_COMMENT_MUTATION,
+            {"commentNodeId": comment_node_id},
+        )
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
@@ -796,6 +1124,15 @@ class GitHubBaseClient(
         """
         endpoint = f"/repos/{repo}/check-runs"
         return self.post(endpoint, data=data)
+
+    def get_check_run(self, repo: str, check_run_id: int) -> Any:
+        """
+        https://docs.github.com/en/rest/checks/runs#get-a-check-run
+
+        The repo must be in the format of "owner/repo".
+        """
+        endpoint = f"/repos/{repo}/check-runs/{check_run_id}"
+        return self.get(endpoint)
 
     def get_check_runs(self, repo: str, sha: str) -> Any:
         """

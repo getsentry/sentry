@@ -72,10 +72,6 @@ describe('AutofixChanges', () => {
       url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -128,10 +124,6 @@ describe('AutofixChanges', () => {
       url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {
           ok: true,
@@ -183,10 +175,6 @@ describe('AutofixChanges', () => {
       url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {
           ok: true,
@@ -243,10 +231,6 @@ describe('AutofixChanges', () => {
       url: '/organizations/org-slug/issues/123/autofix/setup/?check_write_access=true',
       method: 'GET',
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {
           ok: true,

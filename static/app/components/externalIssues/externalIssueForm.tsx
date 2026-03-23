@@ -20,11 +20,10 @@ import {
   loadAsyncThenFetchAllFields,
 } from 'sentry/components/externalIssues/utils';
 import type {FieldValue} from 'sentry/components/forms/model';
-import FormModel from 'sentry/components/forms/model';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {FormModel} from 'sentry/components/forms/model';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,
@@ -35,7 +34,8 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {
   setApiQueryData,
@@ -43,8 +43,8 @@ import {
   useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const openExternalIssueModal = ({
   group,
@@ -125,11 +125,13 @@ export function ExternalIssueForm({
   const api = useApi({persistInFlight: true});
   const [model] = useState(() => new FormModel());
   const organization = useOrganization();
-  const endpointString = makeIntegrationIssueConfigQueryKey({
-    orgSlug: organization.slug,
-    groupId: group.id,
-    integrationId: integration.id,
-  })[0];
+  const {url: endpointString} = parseQueryKey(
+    makeIntegrationIssueConfigQueryKey({
+      orgSlug: organization.slug,
+      groupId: group.id,
+      integrationId: integration.id,
+    })
+  );
   const queryClient = useQueryClient();
   const title = tct('[integration] Issue', {integration: integration.provider.name});
 
@@ -416,5 +418,5 @@ export function ExternalIssueForm({
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

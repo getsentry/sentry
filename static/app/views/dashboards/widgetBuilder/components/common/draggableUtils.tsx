@@ -1,7 +1,5 @@
 import type {Translate} from '@dnd-kit/core';
 
-import {space} from 'sentry/styles/space';
-
 export type WidgetDragPositioning = {
   initialTranslate: Translate;
   translate: Translate;
@@ -14,7 +12,7 @@ export const WIDGET_PREVIEW_DRAG_ID = 'widget-preview-draggable';
 export const SIDEBAR_HEIGHT = 54;
 
 const DEFAULT_TRANSLATE_COORDINATES = {x: 0, y: 0};
-const DEFAULT_SPACING = parseInt(space(2).replace('px', ''), 10);
+const DEFAULT_SPACING = 16;
 const DEFAULT_LEFT = DEFAULT_SPACING;
 const DEFAULT_TOP = SIDEBAR_HEIGHT + DEFAULT_SPACING; // 54px sidebar + 16px space
 

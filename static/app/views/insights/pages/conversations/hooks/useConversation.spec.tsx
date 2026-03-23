@@ -313,7 +313,57 @@ describe('useConversation', () => {
     const node = result.current.nodes[0];
     const value = node?.value as {description?: string; name?: string};
     expect(value?.description).toBe('AI generation');
-    expect(value?.name).toBe('My AI Agent');
+    expect(value?.name).toBe('AI generation');
+  });
+
+  it('sorts nodes by start timestamp for AI spans list', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/conv-sort/`,
+      body: [
+        {
+          'gen_ai.conversation.id': 'conv-sort',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1002.0,
+          'precise.start_ts': 1001.0,
+          project: 'test-project',
+          'project.id': 1,
+          'span.description': 'Second by start, first by end',
+          'span.op': 'gen_ai.generate',
+          'span.status': 'ok',
+          span_id: 'span-b',
+          trace: 'trace-sort',
+          'gen_ai.operation.type': 'ai_client',
+        },
+        {
+          'gen_ai.conversation.id': 'conv-sort',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1003.0,
+          'precise.start_ts': 1000.0,
+          project: 'test-project',
+          'project.id': 1,
+          'span.description': 'First by start, second by end',
+          'span.op': 'gen_ai.generate',
+          'span.status': 'ok',
+          span_id: 'span-a',
+          trace: 'trace-sort',
+          'gen_ai.operation.type': 'ai_client',
+        },
+      ],
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-sort'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes).toHaveLength(2);
+    // Sorted by start timestamp: span-a (1000) before span-b (1001)
+    expect(result.current.nodes[0]?.id).toBe('span-a');
+    expect(result.current.nodes[1]?.id).toBe('span-b');
   });
 
   it('filters to only gen_ai spans', async () => {

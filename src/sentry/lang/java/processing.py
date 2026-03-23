@@ -7,7 +7,7 @@ from sentry.lang.java.utils import JAVA_PLATFORMS, get_jvm_images, get_proguard_
 from sentry.lang.java.view_hierarchies import ViewHierarchies
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.stacktraces.processing import find_stacktraces_in_data
@@ -110,17 +110,17 @@ def _handle_response_status(event_data: Any, response_json: dict[str, Any]) -> b
     Returns `True` on success."""
 
     if not response_json:
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
+        error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
     elif response_json["status"] == "completed":
         return True
     elif response_json["status"] == "failed":
         error = SymbolicationFailed(
             message=response_json.get("message") or None,
-            type=EventError.NATIVE_SYMBOLICATOR_FAILED,
+            type=EventErrorType.NATIVE_SYMBOLICATOR_FAILED,
         )
     else:
         logger.error("Unexpected symbolicator status: %s", response_json["status"])
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
+        error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
 
     write_error(error, event_data)
     return None
@@ -154,7 +154,7 @@ def map_symbolicator_process_jvm_errors(
             mapped_errors.append(
                 {
                     "symbolicator_type": ty,
-                    "type": EventError.PROGUARD_MISSING_MAPPING,
+                    "type": EventErrorType.PROGUARD_MISSING_MAPPING,
                     "mapping_uuid": uuid,
                 }
             )
@@ -164,7 +164,7 @@ def map_symbolicator_process_jvm_errors(
             mapped_errors.append(
                 {
                     "symbolicator_type": ty,
-                    "type": EventError.PROGUARD_MISSING_LINENO,
+                    "type": EventErrorType.PROGUARD_MISSING_LINENO,
                     "mapping_uuid": uuid,
                 }
             )

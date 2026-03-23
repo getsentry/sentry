@@ -23,8 +23,12 @@ class TeamDeletionTask(ModelDeletionTask[Team]):
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.models.rule import Rule
         from sentry.monitors.models import Monitor
+        from sentry.workflow_engine.models.detector import Detector
+        from sentry.workflow_engine.models.workflow import Workflow
 
         AlertRule.objects.filter(team_id=instance.id).update(team_id=None)
         Rule.objects.filter(owner_team_id=instance.id).update(owner_team_id=None)
         Monitor.objects.filter(owner_team_id=instance.id).update(owner_team_id=None)
+        Detector.objects.filter(owner_team_id=instance.id).update(owner_team_id=None)
+        Workflow.objects.filter(owner_team_id=instance.id).update(owner_team_id=None)
         super().delete_instance(instance)

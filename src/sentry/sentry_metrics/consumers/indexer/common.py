@@ -7,8 +7,7 @@ from typing import NamedTuple
 from arroyo import Partition
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
-from arroyo.processing.strategies import MessageRejected
-from arroyo.processing.strategies import ProcessingStrategy
+from arroyo.processing.strategies import MessageRejected, ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Message, Value
 

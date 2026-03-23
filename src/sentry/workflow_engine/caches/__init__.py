@@ -1,3 +1,3 @@
-__all__ = ["CacheAccess"]
+__all__ = ["CacheMapping"]
 
-from .cache_access import CacheAccess
+from .mapping import CacheMapping

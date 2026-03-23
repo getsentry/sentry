@@ -23,7 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-
 from ipaddress import ip_address
 
 
@@ -58,7 +57,7 @@ def anonymize_ip(
         return __apply_mask(address_packed, ipv6_mask_packed, 16)
     else:
         # Invalid address
-        raise ValueError("Address does not consist of 4 (IPv4) or 16 (IPv6) " "octets")
+        raise ValueError("Address does not consist of 4 (IPv4) or 16 (IPv6) octets")
 
 
 def __apply_mask(address_packed, mask_packed, nr_bytes):
@@ -93,13 +92,13 @@ def __validate_ipv4_mask(mask_packed):
     # Test that IP address does not get anonymized completely
     if mask_packed == b"\x00\x00\x00\x00":
         raise ValueError(
-            'ipv4_mask cannot be set to "0.0.0.0" (all ' "anonymized addresses will be 0.0.0.0)"
+            'ipv4_mask cannot be set to "0.0.0.0" (all anonymized addresses will be 0.0.0.0)'
         )
 
     # Test that IP address is changed by anonymization
     if mask_packed == b"\xff\xff\xff\xff":
         raise ValueError(
-            'ipv4_mask cannot be set to "255.255.255.255" ' "(addresses will not be anonymized)"
+            'ipv4_mask cannot be set to "255.255.255.255" (addresses will not be anonymized)'
         )
 
 

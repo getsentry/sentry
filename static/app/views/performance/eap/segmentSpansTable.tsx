@@ -1,0 +1,287 @@
+import {Fragment} from 'react';
+import {useTheme, type Theme} from '@emotion/react';
+import styled from '@emotion/styled';
+import type {Location} from 'history';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
+import {Pagination, type CursorHandler} from 'sentry/components/pagination';
+import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {IconPlay, IconProfiling} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {
+  SEGMENT_SPANS_COLUMN_ORDER,
+  type SegmentSpansColumn,
+  type SegmentSpansRow,
+} from 'sentry/views/performance/eap/types';
+import {useSegmentSpansQuery} from 'sentry/views/performance/eap/useSegmentSpansQuery';
+import {
+  getEAPSegmentSpansListSort,
+  SEGMENT_SPANS_CURSOR,
+} from 'sentry/views/performance/eap/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
+
+const LIMIT = 5;
+const PAGINATION_CURSOR_SIZE = 'xs';
+
+type Props = {
+  eventView: EventView;
+  handleDropdownChange: (k: string) => void;
+  totalValues: Record<string, number> | null;
+  transactionName: string;
+  query?: string;
+  showViewSampledEventsButton?: boolean;
+};
+
+export function SegmentSpansTable({
+  eventView,
+  handleDropdownChange,
+  totalValues,
+  transactionName,
+  query = '',
+  showViewSampledEventsButton,
+}: Props) {
+  const theme = useTheme();
+  const location = useLocation();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const navigate = useNavigate();
+
+  const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
+  const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
+  const {selected, options} = getEAPSegmentSpansListSort(location, spanCategory);
+
+  const p95 = totalValues?.['p95()'] ?? 0;
+  const eventViewQuery = new MutableSearch(query);
+  eventViewQuery.addFilterValue('is_transaction', 'true');
+  eventViewQuery.addFilterValue('transaction', transactionName);
+  if (selected.value === TransactionFilterOptions.SLOW && p95) {
+    eventViewQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
+  }
+
+  const {
+    data: tableData,
+    isLoading,
+    pageLinks,
+    meta,
+    error,
+  } = useSegmentSpansQuery({
+    query: eventViewQuery.formatString(),
+    sort: selected.sort,
+    p95,
+    limit: LIMIT,
+  });
+
+  const consolidatedData = tableData?.map(row => {
+    const user =
+      row['user.username'] || row['user.email'] || row['user.ip'] || row['user.id'];
+    return {
+      ...row,
+      'user.display': user,
+    };
+  });
+
+  const handleCursor: CursorHandler = (_cursor, pathname, cursorQuery) => {
+    navigate({
+      pathname,
+      query: {...cursorQuery, [SEGMENT_SPANS_CURSOR]: _cursor},
+    });
+  };
+
+  const handleViewSampledEvents = () => {
+    if (!projectSlug) {
+      return;
+    }
+
+    navigate({
+      pathname: `${location.pathname}events/`,
+      query: {
+        ...location.query,
+        transaction: transactionName,
+        project: `${eventView.project}`,
+      },
+    });
+  };
+
+  return (
+    <Fragment>
+      <Header>
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
+          )}
+          value={selected.value}
+          options={options}
+          onChange={opt => handleDropdownChange(opt.value)}
+        />
+        <Flex>
+          {showViewSampledEventsButton && (
+            <Button
+              size="xs"
+              data-test-id="transaction-events-open"
+              onClick={handleViewSampledEvents}
+            >
+              {t('View Sampled Events')}
+            </Button>
+          )}
+        </Flex>
+        <CustomPagination
+          pageLinks={pageLinks}
+          onCursor={handleCursor}
+          isLoading={isLoading}
+        />
+      </Header>
+
+      <GridEditable
+        isLoading={isLoading}
+        error={error}
+        data={consolidatedData}
+        columnOrder={SEGMENT_SPANS_COLUMN_ORDER}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell: column =>
+            renderHeadCell({
+              column,
+            }),
+          renderBodyCell: (column, row) =>
+            renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
+        }}
+      />
+    </Fragment>
+  );
+}
+
+function renderBodyCell(
+  column: SegmentSpansColumn,
+  row: SegmentSpansRow,
+  meta: EventsMetaType | undefined,
+  projectSlug: string | undefined,
+  location: Location,
+  organization: Organization,
+  theme: Theme
+) {
+  if (column.key === 'span_id') {
+    return (
+      <SpanIdCell
+        moduleName={ModuleName.OTHER}
+        traceId={row.trace}
+        timestamp={row.timestamp}
+        transactionId={row.span_id}
+        spanId={row.span_id}
+        source={TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY}
+        location={location}
+      />
+    );
+  }
+
+  if (column.key === 'profile.id') {
+    return (
+      <div>
+        <LinkButton
+          size="xs"
+          icon={<IconProfiling size="xs" />}
+          to={{
+            pathname: `/organizations/${organization.slug}/profiling/profile/${projectSlug}/${row['profile.id']}/flamegraph/`,
+            query: {
+              referrer: 'performance',
+            },
+          }}
+          aria-label={t('View Profile')}
+          disabled={!row['profile.id']}
+        />
+      </div>
+    );
+  }
+
+  if (column.key === 'replayId') {
+    return (
+      <div>
+        <LinkButton
+          size="xs"
+          icon={<IconPlay size="xs" />}
+          to={{
+            pathname: `/organizations/${organization.slug}/replays/${row.replayId}/`,
+            query: {
+              referrer: 'performance',
+            },
+          }}
+          disabled={!row.replayId}
+          aria-label={t('View Replay')}
+        />
+      </div>
+    );
+  }
+
+  if (!meta || !meta?.fields) {
+    return row[column.key];
+  }
+
+  const renderer = getFieldRenderer(column.key, meta.fields, false);
+
+  const rendered = renderer(row, {
+    location,
+    organization,
+    theme,
+    unit: meta.units?.[column.key],
+  });
+
+  return rendered;
+}
+
+// A wrapper component that handles the isLoading state. This will allow the component to not disappear when the data is loading.
+function CustomPagination({
+  pageLinks,
+  onCursor,
+  isLoading,
+}: {
+  isLoading: boolean;
+  onCursor: CursorHandler;
+  pageLinks: string | undefined;
+}) {
+  if (isLoading) {
+    return (
+      <StyledPagination
+        pageLinks="n/a"
+        disabled
+        onCursor={() => {}}
+        size={PAGINATION_CURSOR_SIZE}
+      />
+    );
+  }
+
+  return (
+    <StyledPagination
+      pageLinks={pageLinks}
+      onCursor={onCursor}
+      size={PAGINATION_CURSOR_SIZE}
+    />
+  );
+}
+
+const Header = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  margin-bottom: ${p => p.theme.space.md};
+  align-items: center;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0 0 0 ${p => p.theme.space.md};
+`;

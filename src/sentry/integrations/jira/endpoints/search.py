@@ -93,7 +93,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
                 return Response({"detail": "Unable to fetch projects from Jira"}, status=400)
 
             projects = [
-                JiraProjectMapping(label=f"{p["key"]} - {p["name"]}", value=p["id"])
+                JiraProjectMapping(label=f"{p['key']} - {p['name']}", value=p["id"])
                 for p in response.get("values", [])
             ]
 

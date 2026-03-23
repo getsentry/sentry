@@ -5,13 +5,13 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ConversationDrawerOpenSource} from 'sentry/utils/analytics/conversationsAnalyticsEvents';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -23,6 +23,7 @@ import {
 } from 'sentry/views/insights/pages/conversations/hooks/useConversation';
 import {useFocusedToolSpan} from 'sentry/views/insights/pages/conversations/hooks/useFocusedToolSpan';
 import {useUrlConversationDrawer} from 'sentry/views/insights/pages/conversations/hooks/useUrlConversationDrawer';
+import {extractMessagesFromNodes} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {useConversationDrawerQueryState} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -77,7 +78,11 @@ const ConversationDrawerContent = memo(function ConversationDrawerContent({
     [setConversationDrawerQueryState, organization]
   );
 
-  const defaultNodeId = useMemo(() => getDefaultSelectedNode(nodes)?.id, [nodes]);
+  const defaultNodeId = useMemo(() => {
+    const messages = extractMessagesFromNodes(nodes);
+    const firstAssistant = messages.find(m => m.role === 'assistant');
+    return firstAssistant?.nodeId ?? getDefaultSelectedNode(nodes)?.id;
+  }, [nodes]);
 
   const selectedNode = useMemo(() => {
     return (
@@ -250,7 +255,7 @@ function ConversationView({
           value={activeTab}
           onChange={key => handleTabChange(key as ConversationTab)}
         >
-          <Container padding="xs lg">
+          <Container paddingTop="lg" borderBottom="primary">
             <TabList>
               <TabList.Item key="messages">{t('Messages')}</TabList.Item>
               <TabList.Item key="trace">{t('AI Spans')}</TabList.Item>
@@ -266,7 +271,7 @@ function ConversationView({
                 />
               </TabPanels.Item>
               <TabPanels.Item key="trace">
-                <Container padding="md lg">
+                <Container padding="md lg md lg">
                   <AISpanList
                     nodes={nodes}
                     selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
@@ -289,6 +294,7 @@ function ConversationView({
           replay: null,
           traceId: nodeTraceMap.get(selectedNode.id) ?? '',
           hideNodeActions: true,
+          initiallyCollapseAiIO: true,
         })}
       </DetailsPanel>
     </Flex>
@@ -319,6 +325,7 @@ const StyledTabs = styled(Tabs)`
 
 const FullWidthTabPanels = styled(TabPanels)`
   width: 100%;
+  padding: 0;
 
   > [role='tabpanel'] {
     width: 100%;

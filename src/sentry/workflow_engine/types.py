@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeAlias, TypedDict, TypeVar
 
 from django.db.models import Q
 from sentry_sdk import logger as sentry_logger
@@ -23,7 +23,8 @@ if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.organization import Organization
     from sentry.services.eventstore.models import GroupEvent
-    from sentry.snuba.models import SnubaQueryEventType
+    from sentry.snuba.dataset import Dataset
+    from sentry.snuba.models import ExtrapolationMode, SnubaQuery, SnubaQueryEventType
     from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowItem
     from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
@@ -39,6 +40,10 @@ T = TypeVar("T")
 
 ERROR_DETECTOR_NAME = "Error Monitor"
 ISSUE_STREAM_DETECTOR_NAME = "Issue Stream"
+
+GroupId: TypeAlias = int
+DataConditionGroupId: TypeAlias = int
+WorkflowId: TypeAlias = int
 
 
 class DetectorException(Exception):
@@ -93,7 +98,7 @@ class WorkflowEventData:
     event: GroupEvent | Activity
     group: Group
     group_state: GroupState | None = None
-    has_reappeared: bool | None = None
+    # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
 
@@ -362,6 +367,7 @@ class DataConditionHandler(Generic[T]):
     subgroup: ClassVar[Subgroup]
     comparison_json_schema: ClassVar[dict[str, Any]] = {}
     condition_result_schema: ClassVar[dict[str, Any]] = {}
+    label_template = ""
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
@@ -371,6 +377,10 @@ class DataConditionHandler(Generic[T]):
         raise a DataConditionEvaluationException.
         """
         raise NotImplementedError
+
+    @classmethod
+    def render_label(cls, condition_data: dict[str, Any]) -> str:
+        return cls.label_template.format(**condition_data)
 
 
 class DataConditionType(TypedDict):
@@ -383,19 +393,20 @@ class DataConditionType(TypedDict):
 
 # TODO - Move this to snuba module
 class SnubaQueryDataSourceType(TypedDict):
-    query_type: int
-    dataset: str
+    query_type: SnubaQuery.Type
+    dataset: Dataset
     query: str
     aggregate: str
     time_window: float
     resolution: float
-    environment: str
-    event_types: list[SnubaQueryEventType]
+    extrapolation_mode: ExtrapolationMode | None
+    environment: Environment | None
+    event_types: list[SnubaQueryEventType.EventType]
 
 
 @dataclass(frozen=True)
 class DetectorSettings:
-    handler: type[DetectorHandler[Any, Any]] | None = None
+    handler: type[DetectorHandler[Any]] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
     filter: Q | None = None

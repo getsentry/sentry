@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.paginator import OffsetPaginator
@@ -47,7 +47,7 @@ def get_dataset(dataset_label: str) -> Any:
 
 
 @extend_schema(tags=["Organizations"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationProjectsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -97,7 +97,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                 queryset = Project.objects.filter(teams__in=team_list)
             else:
                 return Response(
-                    {"detail": "Current access does not point to " "organization."}, status=400
+                    {"detail": "Current access does not point to organization."}, status=400
                 )
         else:
             queryset = Project.objects.filter(organization=organization)
@@ -201,7 +201,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationProjectsCountEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

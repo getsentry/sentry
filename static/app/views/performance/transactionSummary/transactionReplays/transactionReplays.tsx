@@ -3,12 +3,12 @@ import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   ReplayAccess,
   ReplayAccessFallbackAlert,
 } from 'sentry/components/replays/replayAccess';
-import ReplayTable from 'sentry/components/replays/table/replayTable';
+import {ReplayTable} from 'sentry/components/replays/table/replayTable';
 import {
   ReplayActivityColumn,
   ReplayBrowserColumn,
@@ -21,18 +21,18 @@ import {
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
-import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
+import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
-import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
+import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import type {EventSpanData} from './useReplaysFromTransaction';
-import useReplaysFromTransaction from './useReplaysFromTransaction';
-import useReplaysWithTxData from './useReplaysWithTxData';
+import {useReplaysFromTransaction} from './useReplaysFromTransaction';
+import {useReplaysWithTxData} from './useReplaysWithTxData';
 
-function TransactionReplays() {
+export function TransactionReplays() {
   return (
     <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
       <TransactionReplaysContent />
@@ -153,4 +153,3 @@ function ReplaysContent({
     </Layout.Main>
   );
 }
-export default TransactionReplays;

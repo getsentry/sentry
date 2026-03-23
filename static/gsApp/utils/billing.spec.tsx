@@ -941,6 +941,20 @@ describe('getActiveProductTrial', () => {
     expect(replay_pt).toBeNull();
   });
 
+  it('returns null when trial is isStarted but startDate is in the future', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SPANS,
+        isStarted: true,
+        reasonCode: 4001,
+        startDate: moment().utc().add(5, 'days').format(),
+        endDate: moment().utc().add(35, 'days').format(),
+      },
+    ];
+    const pt = getActiveProductTrial(trials, DataCategory.SPANS);
+    expect(pt).toBeNull();
+  });
+
   it('returns null trial when no trials for category', () => {
     const pt = getProductTrial(TEST_TRIALS, DataCategory.ATTACHMENTS);
     expect(pt).toBeNull();
@@ -1007,7 +1021,7 @@ describe('isNewPayingCustomer', () => {
 });
 
 describe('getOnDemandCategories', () => {
-  const plan = PlanDetailsLookupFixture('am1_business')!;
+  const plan = PlanDetailsLookupFixture('am1_business');
   it('filters out unconfigurable categories for per-category budget mode', () => {
     const categories = getOnDemandCategories({
       plan,
@@ -1032,7 +1046,7 @@ describe('getOnDemandCategories', () => {
 
 describe('getOnDemandCategories - AM2 logBytes support', () => {
   it('does not include logBytes in getOnDemandCategories for AM2 plans in per-category mode', () => {
-    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const plan = PlanDetailsLookupFixture('am2_business');
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
@@ -1041,7 +1055,7 @@ describe('getOnDemandCategories - AM2 logBytes support', () => {
   });
 
   it('includes logBytes in getOnDemandCategories for AM2 plans in shared mode', () => {
-    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const plan = PlanDetailsLookupFixture('am2_business');
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.SHARED,

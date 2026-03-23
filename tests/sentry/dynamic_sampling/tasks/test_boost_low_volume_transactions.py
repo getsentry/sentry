@@ -18,7 +18,7 @@ from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
 from sentry.dynamic_sampling.tasks.common import MEASURE_CONFIGS, GetActiveOrgs
 from sentry.dynamic_sampling.types import SamplingMeasure
 from sentry.sentry_metrics import indexer
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -50,14 +50,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     # make up some unique count
                     idx = org_idx * num_orgs + proj_idx
                     num_transactions = self.get_count_for_transaction(idx, name)
-                    self.store_performance_metric(
-                        name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
-                        tags={"transaction": name},
-                        minutes_before_now=30,
-                        value=num_transactions,
-                        project_id=p.id,
-                        org_id=org.id,
-                    )
                     self.store_performance_metric(
                         name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
                         tags={"transaction": name, "is_segment": "true"},
@@ -150,37 +142,31 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             assert totals["total_num_transactions"] == total_counts
             assert totals["total_num_classes"] == num_classes
 
-    def test_fetch_project_transaction_totals_uses_transaction_metric_by_default(self) -> None:
+    def test_fetch_project_transaction_totals_uses_segment_metric_by_default(self) -> None:
         """
-        Verify that FetchProjectTransactionTotals uses the transaction count per root metric
-        by default (when measure=TRANSACTIONS).
-        """
-        orgs = self.org_ids
-        fetcher = FetchProjectTransactionTotals(orgs, measure=SamplingMeasure.TRANSACTIONS)
-
-        expected_metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
-        assert fetcher.metric_id == expected_metric_id
-        assert fetcher.measure == SamplingMeasure.TRANSACTIONS
-        assert fetcher.tag_filters == {}
-
-    def test_fetch_project_transaction_volumes_uses_transaction_metric_by_default(self) -> None:
-        """
-        Verify that FetchProjectTransactionVolumes uses the transaction count per root metric
-        by default (when measure=TRANSACTIONS).
+        Verify that FetchProjectTransactionTotals uses the span count per root metric
+        with is_segment tag by default (measure=SEGMENTS).
         """
         orgs = self.org_ids
-        fetcher = FetchProjectTransactionVolumes(
-            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.TRANSACTIONS
-        )
+        fetcher = FetchProjectTransactionTotals(orgs)
 
-        expected_metric_id = indexer.resolve_shared_org(
-            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
-        )
+        expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
         assert fetcher.metric_id == expected_metric_id
-        assert fetcher.measure == SamplingMeasure.TRANSACTIONS
-        assert fetcher.tag_filters == {}
+        assert fetcher.measure == SamplingMeasure.SEGMENTS
+        assert fetcher.tag_filters == MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]["tags"]
+
+    def test_fetch_project_transaction_volumes_uses_segment_metric_by_default(self) -> None:
+        """
+        Verify that FetchProjectTransactionVolumes uses the span count per root metric
+        with is_segment tag by default (measure=SEGMENTS).
+        """
+        orgs = self.org_ids
+        fetcher = FetchProjectTransactionVolumes(orgs, large_transactions=True, max_transactions=3)
+
+        expected_metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+        assert fetcher.metric_id == expected_metric_id
+        assert fetcher.measure == SamplingMeasure.SEGMENTS
+        assert fetcher.tag_filters == MEASURE_CONFIGS[SamplingMeasure.SEGMENTS]["tags"]
 
     def test_fetch_project_transaction_totals_uses_segment_metric_when_enabled(self) -> None:
         """
@@ -236,30 +222,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         assert "'true'" in query_str
 
     @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
-    def test_fetch_project_transaction_totals_query_excludes_is_segment_filter_for_transactions(
-        self, mock_raw_snql_query
-    ) -> None:
-        """
-        Verify that the query sent to Snuba excludes the is_segment filter for TRANSACTIONS measure.
-        """
-        mock_raw_snql_query.return_value = {"data": []}
-
-        orgs = self.org_ids
-        fetcher = FetchProjectTransactionTotals(orgs, measure=SamplingMeasure.TRANSACTIONS)
-        try:
-            next(fetcher)
-        except StopIteration:
-            pass
-
-        assert mock_raw_snql_query.called
-        call_args = mock_raw_snql_query.call_args
-        request = call_args[0][0]
-
-        query_str = str(request.query)
-        is_segment_id = indexer.resolve_shared_org("is_segment")
-        assert f"tags_raw[{is_segment_id}]" not in query_str
-
-    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
     def test_fetch_project_transaction_volumes_query_includes_is_segment_filter_for_segments(
         self, mock_raw_snql_query
     ) -> None:
@@ -285,32 +247,6 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         is_segment_id = indexer.resolve_shared_org("is_segment")
         assert f"tags_raw[{is_segment_id}]" in query_str
         assert "'true'" in query_str
-
-    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.raw_snql_query")
-    def test_fetch_project_transaction_volumes_query_excludes_is_segment_filter_for_transactions(
-        self, mock_raw_snql_query
-    ) -> None:
-        """
-        Verify that the query sent to Snuba excludes the is_segment filter for TRANSACTIONS measure.
-        """
-        mock_raw_snql_query.return_value = {"data": []}
-
-        orgs = self.org_ids
-        fetcher = FetchProjectTransactionVolumes(
-            orgs, large_transactions=True, max_transactions=3, measure=SamplingMeasure.TRANSACTIONS
-        )
-        try:
-            next(fetcher)
-        except StopIteration:
-            pass
-
-        assert mock_raw_snql_query.called
-        call_args = mock_raw_snql_query.call_args
-        request = call_args[0][0]
-
-        query_str = str(request.query)
-        is_segment_id = indexer.resolve_shared_org("is_segment")
-        assert f"tags_raw[{is_segment_id}]" not in query_str
 
 
 def test_merge_transactions_full() -> None:

@@ -42,7 +42,6 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
     ActionFieldMappingKeys,
     EmailActionHelper,
-    SentryAppIdentifier,
     TicketingActionDataBlobHelper,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -237,7 +236,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         # Verify activate_downstream_actions called with correct args
         mock_activate_downstream_actions.assert_called_once_with(
-            mock.ANY, self.event_data.event, "12345678-1234-5678-1234-567812345678"  # Rule instance
+            mock.ANY,
+            self.event_data.event,
+            "12345678-1234-5678-1234-567812345678",  # Rule instance
         )
 
         # Verify callback execution
@@ -665,7 +666,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             data={"settings": data_blob},
             config={
                 "target_identifier": target_id,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
@@ -686,7 +686,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             },
             config={
                 "target_identifier": target_id,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
@@ -711,7 +710,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": target_id,
                 "target_type": ActionTarget.SENTRY_APP.value,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
         )
 
@@ -730,7 +728,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": target_id,
                 "target_type": ActionTarget.SENTRY_APP.value,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)
@@ -803,8 +800,9 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
         self.mock_callback.assert_called_once()
 
     def test_reraises_processing_deadline_exceeded(self):
+        from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
+
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
-        from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 
         self.mock_callback.side_effect = ProcessingDeadlineExceeded("Deadline exceeded")
 
@@ -816,9 +814,10 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
         self.mock_callback.assert_called_once()
 
     def test_raises_retry_error_for_api_error(self):
+        from taskbroker_client.retry import RetryTaskError
+
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
         from sentry.shared_integrations.exceptions import ApiError
-        from sentry.taskworker.retry import RetryTaskError
 
         self.mock_callback.side_effect = ApiError("API error", 500)
 

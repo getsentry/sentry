@@ -9,14 +9,15 @@ import {Flex} from '@sentry/scraps/layout';
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useApi} from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getWidgetIcon} from 'sentry/views/dashboards/widgetLibrary/widgetCard';
 
@@ -27,7 +28,7 @@ interface WidgetTemplatesListProps {
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 }
 
-function WidgetTemplatesList({
+export function WidgetTemplatesList({
   onSave,
   setOpenWidgetTemplates,
   setIsPreviewDraggable,
@@ -35,11 +36,36 @@ function WidgetTemplatesList({
 }: WidgetTemplatesListProps) {
   const theme = useTheme();
   const organization = useOrganization();
-  const [selectedWidget, setSelectedWidget] = useState<number | null>(0);
+  const location = useLocation();
+  const widgets = getTopNConvertedDefaultWidgets(organization);
+
+  const widgetTemplateId = decodeScalar(location.query?.widgetTemplateId);
+  const initialSelectedIndex = widgetTemplateId
+    ? Math.max(
+        0,
+        widgets.findIndex(w => w.id === widgetTemplateId)
+      )
+    : null;
+  const [selectedWidget, setSelectedWidget] = useState<number | null>(
+    initialSelectedIndex
+  );
 
   const {dispatch} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
   const api = useApi();
+
+  useEffect(() => {
+    if (initialSelectedIndex !== null) {
+      const initialWidget = widgets[initialSelectedIndex];
+      if (initialWidget) {
+        dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: convertWidgetToBuilderState(initialWidget),
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     trackAnalytics('dashboards_views.widget_builder.templates.open', {
@@ -48,8 +74,6 @@ function WidgetTemplatesList({
     // We only want to track this once when the component is mounted
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const widgets = getTopNConvertedDefaultWidgets(organization);
 
   const handleSave = useCallback(
     async (widget: Widget) => {
@@ -79,7 +103,7 @@ function WidgetTemplatesList({
                 setSelectedWidget(index);
                 dispatch({
                   type: BuilderStateAction.SET_STATE,
-                  payload: convertWidgetToBuilderStateParams(widget),
+                  payload: convertWidgetToBuilderState(widget),
                 });
                 trackAnalytics('dashboards_views.widget_builder.templates.selected', {
                   title: widget.title,
@@ -144,8 +168,6 @@ function WidgetTemplatesList({
   );
 }
 
-export default WidgetTemplatesList;
-
 const TemplateContainer = styled('div')<{lastWidget: boolean}>`
   border-bottom: ${p =>
     p.lastWidget ? 'none' : `1px solid ${p.theme.tokens.border.primary}`};
@@ -154,15 +176,15 @@ const TemplateContainer = styled('div')<{lastWidget: boolean}>`
 const TemplateCard = styled('div')<{selected: boolean}>`
   display: flex;
   flex-direction: row;
-  gap: ${space(1.5)};
-  padding: ${space(2)};
+  gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.xl};
   border: none;
   background-color: ${p =>
     p.selected
       ? p.theme.tokens.background.transparent.accent.muted
       : p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  margin: ${p => (p.selected ? space(2) : space(0.5))} 0px;
+  margin: ${p => (p.selected ? p.theme.space.xl : p.theme.space.xs)} 0px;
 
   cursor: pointer;
 
@@ -180,7 +202,7 @@ const TemplateCard = styled('div')<{selected: boolean}>`
 const WidgetTitle = styled('h3')`
   font-size: ${p => p.theme.font.size.lg};
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  margin-bottom: ${space(0.25)};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;
 
 const WidgetDescription = styled('p')`
@@ -193,7 +215,7 @@ const IconWrapper = styled('div')<{backgroundColor: string}>`
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   min-width: 40px;
   height: 40px;
   border-radius: ${p => p.theme.radius.md};

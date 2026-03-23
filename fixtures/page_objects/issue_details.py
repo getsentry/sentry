@@ -2,6 +2,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
+from sentry.utils import json
+
 from .base import BasePage
 from .global_selection import GlobalSelectionPage
 
@@ -11,6 +13,12 @@ class IssueDetailsPage(BasePage):
         super().__init__(browser)
         self.client = client
         self.global_selection = GlobalSelectionPage(browser)
+        # Prevent the issue details tour from appearing by marking it as viewed in the backend
+        self.client.put(
+            "/api/0/assistant/",
+            content_type="application/json",
+            data=json.dumps({"guide": "tour.issue_details", "status": "viewed", "useful": True}),
+        )
 
     def visit_issue(self, org, groupid):
         self.browser.get(f"/organizations/{org}/issues/{groupid}/")
@@ -29,7 +37,7 @@ class IssueDetailsPage(BasePage):
 
     def visit_issue_in_environment(self, org, groupid, environment):
         self.browser.get(f"/organizations/{org}/issues/{groupid}/?environment={environment}")
-        self.browser.wait_until(".group-detail")
+        self.browser.wait_until('[data-test-id="group-event-details"]')
 
     def visit_tag_values(self, org, groupid, tag):
         self.browser.get(f"/organizations/{org}/issues/{groupid}/distributions/{tag}/")
@@ -61,12 +69,12 @@ class IssueDetailsPage(BasePage):
     def resolve_issue(self):
         self.browser.click('[aria-label="Resolve"]')
         # Resolve should become unresolve
-        self.browser.wait_until('[aria-label="Resolved"]')
+        self.browser.wait_until('[aria-label="Unresolve"]')
 
     def archive_issue(self):
         self.browser.click('[aria-label="Archive"]')
-        # Ignore should become unresolve
-        self.browser.wait_until('[aria-label="Archived"]')
+        # Archive should become unarchive
+        self.browser.wait_until('[aria-label="Unarchive"]')
 
     def bookmark_issue(self):
         self.browser.click('button[aria-label="More Actions"]')
@@ -77,23 +85,25 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until('[data-test-id="unbookmark"]')
 
     def assign_to(self, user):
-        assignee = self.browser.find_element(
-            by=By.CSS_SELECTOR, value='[data-test-id="assigned-to"]'
-        )
-
         # Open the assignee picker
-        assignee.find_element(
-            by=By.CSS_SELECTOR, value='[data-test-id="assignee-selector"]'
+        self.browser.find_element(
+            by=By.CSS_SELECTOR, value='[aria-label="Modify issue assignee"]'
         ).click()
 
-        # Wait for the input to be loaded
-        wait = WebDriverWait(assignee, 10)
-        wait.until(expected_conditions.presence_of_element_located((By.TAG_NAME, "input")))
-
-        assignee.find_element(by=By.TAG_NAME, value="input").send_keys(user)
+        # Wait for the search input to appear
+        wait = WebDriverWait(self.browser.driver, 10)
+        search_input = wait.until(
+            expected_conditions.presence_of_element_located(
+                (By.CSS_SELECTOR, 'input[placeholder="Search users or teams..."]')
+            )
+        )
+        search_input.send_keys(user)
 
         # Click the member/team
-        options = assignee.find_elements(by=By.CSS_SELECTOR, value='[role="option"]')
+        wait.until(
+            expected_conditions.presence_of_element_located((By.CSS_SELECTOR, '[role="option"]'))
+        )
+        options = self.browser.find_elements(by=By.CSS_SELECTOR, value='[role="option"]')
         assert len(options) > 0, "No assignees could be found."
         options[0].click()
 
@@ -114,8 +124,6 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until_not('[data-test-id="event-errors-loading"]')
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
-        if self.browser.element_exists("#grouping-info"):
-            self.browser.wait_until_test_id("loaded-grouping-info")
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def mark_reviewed(self):

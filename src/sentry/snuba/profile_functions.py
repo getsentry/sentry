@@ -13,7 +13,6 @@ logger = logging.getLogger("sentry.snuba.profile_functions")
 
 
 class ProfileFunctions(rpc_dataset_common.RPCBase):
-
     DEFINITIONS = PROFILE_FUNCTIONS_DEFINITIONS
 
     @classmethod

@@ -7,11 +7,10 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import {onboardingSteps} from 'sentry/views/onboarding/onboarding';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {StepDescriptor} from 'sentry/views/onboarding/types';
 
 /**
@@ -20,11 +19,13 @@ import type {StepDescriptor} from 'sentry/views/onboarding/types';
  */
 export function useBackActions({
   stepIndex,
+  onboardingSteps,
   recentCreatedProject,
   isRecentCreatedProjectActive,
   goToStep,
 }: {
   goToStep: (step: StepDescriptor) => void;
+  onboardingSteps: StepDescriptor[];
   stepIndex: number;
   isRecentCreatedProjectActive?: boolean;
   recentCreatedProject?: Project;
@@ -65,7 +66,7 @@ export function useBackActions({
   }, [api, organization, onboardingContext, recentCreatedProject]);
 
   const backStepActions = useCallback(
-    ({
+    async ({
       prevStep,
       browserBackButton,
     }: {
@@ -105,7 +106,10 @@ export function useBackActions({
           platform: recentCreatedProject.slug,
           project_id: recentCreatedProject.id,
         });
-        deleteRecentCreatedProject();
+        // Await deletion so the projects store is updated before navigating
+        // back. Without this, re-selecting the same platform can see stale
+        // store data and skip project creation.
+        await deleteRecentCreatedProject();
       }
 
       if (!browserBackButton) {
@@ -152,7 +156,7 @@ export function useBackActions({
         browserBackButton: false,
       });
     },
-    [stepIndex, backStepActions]
+    [stepIndex, backStepActions, onboardingSteps]
   );
 
   return {handleGoBack};

@@ -18,6 +18,7 @@ from sentry.issues.priority import PriorityChangeReason
 from sentry.models.activity import Activity
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.silo.base import SiloMode
+from sentry.snuba.models import ExtrapolationMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -37,7 +38,7 @@ from sentry.workflow_engine.models.workflow_action_group_status import WorkflowA
 
 @freeze_time("2024-12-11 03:21:34")
 class TestWorkflowEngineSerializer(TestCase):
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def setUp(self) -> None:
         # XXX: do this so that DCGA and Action IDs aren't one to one
         other_action = self.create_action()
@@ -96,20 +97,38 @@ class TestWorkflowEngineSerializer(TestCase):
             "name": self.detector.name,
             "organizationId": str(self.detector.project.organization_id),
             "status": AlertRuleStatus.PENDING.value,
+            "queryType": self.alert_rule.snuba_query.type,
+            "dataset": self.alert_rule.snuba_query.dataset,
             "query": self.alert_rule.snuba_query.query,
             "aggregate": self.alert_rule.snuba_query.aggregate,
+            "thresholdType": self.alert_rule.threshold_type,
+            "resolveThreshold": self.critical_detector_trigger.comparison,
             "timeWindow": self.alert_rule.snuba_query.time_window / 60,
+            "environment": self.alert_rule.snuba_query.environment.name
+            if self.alert_rule.snuba_query.environment
+            else None,
             "resolution": self.alert_rule.snuba_query.resolution / 60,
             "thresholdPeriod": 1,
             "triggers": self.expected_triggers,
             "projects": [self.project.slug],
             "owner": self.detector.owner_user_id,
+            "originalAlertRuleId": None,
+            "comparisonDelta": self.alert_rule.comparison_delta / 60
+            if self.alert_rule.comparison_delta
+            else None,
             "dateModified": self.detector.date_updated,
             "dateCreated": self.detector.date_added,
             "createdBy": None,
             "description": self.detector.description or "",
+            "sensitivity": self.detector.config.get("sensitivity"),
+            "seasonality": self.detector.config.get("seasonality"),
             "detectionType": self.detector.config["detection_type"],
         }
+        # Only include extrapolationMode if not None (matches AlertRuleSerializer behavior)
+        if self.alert_rule.snuba_query.extrapolation_mode is not None:
+            self.expected["extrapolationMode"] = ExtrapolationMode(
+                self.alert_rule.snuba_query.extrapolation_mode
+            ).name.lower()
 
     def add_warning_trigger(self) -> None:
         self.warning_trigger = self.create_alert_rule_trigger(
@@ -142,11 +161,13 @@ class TestWorkflowEngineSerializer(TestCase):
             "thresholdType": AlertRuleThresholdType.ABOVE.value,
             "alertThreshold": self.warning_detector_trigger.comparison,
             "resolveThreshold": self.warning_detector_trigger.comparison,
-            "dateCreated": self.critical_trigger.date_added,
+            "dateCreated": self.warning_trigger.date_added,
             "actions": self.expected_warning_action,
         }
         self.expected_triggers[0]["resolveThreshold"] = self.warning_detector_trigger.comparison
         self.expected_triggers.append(self.expected_warning_trigger)
+        # Update top-level resolveThreshold to match the warning threshold
+        self.expected["resolveThreshold"] = self.warning_detector_trigger.comparison
         dual_update_resolve_condition(self.alert_rule)
 
     def add_incident_data(self) -> None:

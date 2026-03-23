@@ -37,7 +37,6 @@ class SlackMetricAlertHandler(BaseMetricAlertHandler):
         organization: Organization,
         project: Project,
     ) -> None:
-
         detector = Detector.objects.get(id=alert_context.action_identifier_id)
         if not detector:
             raise ValueError("Detector not found")

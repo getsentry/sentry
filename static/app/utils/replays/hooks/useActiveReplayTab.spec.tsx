@@ -4,34 +4,17 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {TabKey, useActiveReplayTab} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
 describe('useActiveReplayTab', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/seer/setup-check/',
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-        },
-      }),
+      body: AutofixSetupFixture({}),
     });
   });
 
   describe('when AI features are allowed', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
-        }),
-      });
-    });
-
     describe('AI summary tab is default', () => {
       it('should use AI summary as a default', () => {
         const {result} = renderHookWithProviders(useActiveReplayTab, {
@@ -99,18 +82,6 @@ describe('useActiveReplayTab', () => {
   });
 
   describe('when AI features are not allowed', () => {
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: false,
-            userHasAcknowledged: false,
-          },
-        }),
-      });
-    });
-
     describe('breadcrumbs tab is default', () => {
       it('should use Breadcrumbs as a default', () => {
         const {result} = renderHookWithProviders(useActiveReplayTab, {

@@ -12,7 +12,7 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -347,7 +347,7 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: '/subscriptions/org-slug/',
+    url: '/customers/org-slug/',
     method: 'GET',
     body: {},
   });
@@ -466,12 +466,19 @@ describe('groupEventDetails', () => {
 
   it('renders the Span Evidence section for Performance Issues', async () => {
     const props = makeDefaultMockData();
-    const group: Group = GroupFixture({
+    const group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
     });
     const transactionEvent = EventFixture({
       entries: [{type: EntryType.SPANS, data: []}],
+      contexts: {
+        trace: {
+          trace_id: TRACE_ID,
+          span_id: 'b0e6f15b45c36b12',
+          type: 'trace',
+        },
+      },
     });
 
     mockGroupApis(props.organization, props.project, group, transactionEvent);
@@ -491,7 +498,7 @@ describe('groupEventDetails', () => {
 
   it('renders the Function Evidence section for Profile Issues', async () => {
     const props = makeDefaultMockData();
-    const group: Group = GroupFixture({
+    const group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
       issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     });

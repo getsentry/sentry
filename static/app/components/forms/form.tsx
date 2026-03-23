@@ -6,13 +6,12 @@ import {Observer} from 'mobx-react-lite';
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import type {FormOptions} from 'sentry/components/forms/model';
-import FormModel, {fieldIsRequiredMessage} from 'sentry/components/forms/model';
+import {fieldIsRequiredMessage, FormModel} from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type RenderProps = {
   model: FormModel;
@@ -110,7 +109,7 @@ export function getSubmitButtonTitle(form: FormModel) {
   return t('Fields must contain valid inputs');
 }
 
-function Form({
+export function Form({
   'data-test-id': dataTestId,
   allowUndo,
   apiEndpoint,
@@ -269,7 +268,7 @@ function Form({
               <Observer>
                 {() => (
                   <Button
-                    title={getSubmitButtonTitle(formModel)}
+                    tooltipProps={{title: getSubmitButtonTitle(formModel)}}
                     data-test-id="form-submit"
                     priority={submitPriority ?? 'primary'}
                     disabled={
@@ -293,8 +292,6 @@ function Form({
   );
 }
 
-export default Form;
-
 const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   display: flex;
   justify-content: flex-end;
@@ -309,7 +306,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
     css`
       ${Panel} & {
         margin-top: 0;
-        padding-right: ${space(2)};
+        padding-right: ${p.theme.space.xl};
       }
 
       /* Better padding with form inside of a modal */
@@ -326,7 +323,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
 
 const DefaultButtons = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-auto-flow: column;
   justify-content: flex-end;
   flex: 1;

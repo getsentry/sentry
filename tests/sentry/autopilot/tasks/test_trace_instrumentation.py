@@ -23,11 +23,12 @@ from sentry.testutils.helpers.options import override_options
 
 class TestRunTraceInstrumentationDetector(TestCase):
     @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.has_seer_access", return_value=True)
     @mock.patch(
         "sentry.autopilot.tasks.trace_instrumentation.run_trace_instrumentation_detector_for_project_task.apply_async"
     )
     def test_queues_task_for_each_allowlisted_project(
-        self, mock_apply_async: mock.MagicMock
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
     ) -> None:
         project1 = self.create_project(organization=self.organization)
         project2 = self.create_project(organization=self.organization)
@@ -43,6 +44,21 @@ class TestRunTraceInstrumentationDetector(TestCase):
             (self.organization.id, project1.id),
             (self.organization.id, project2.id),
         }
+
+    @pytest.mark.django_db
+    @mock.patch("sentry.autopilot.tasks.trace_instrumentation.has_seer_access", return_value=False)
+    @mock.patch(
+        "sentry.autopilot.tasks.trace_instrumentation.run_trace_instrumentation_detector_for_project_task.apply_async"
+    )
+    def test_skips_project_without_gen_ai_access(
+        self, mock_apply_async: mock.MagicMock, _mock_has_seer_access: mock.MagicMock
+    ) -> None:
+        with override_options(
+            {"autopilot.trace-instrumentation.projects-allowlist": [self.project.id]}
+        ):
+            run_trace_instrumentation_detector()
+
+        assert not mock_apply_async.called
 
 
 class TraceSpanTestMixin(SpanTestCase, SnubaTestCase):

@@ -11,10 +11,10 @@ from sentry.issues.grouptype import (
 )
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.handlers.detector import (
-    DetectorHandler,
+    BaseDetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
 )
@@ -28,7 +28,7 @@ from sentry.workflow_engine.types import (
 )
 
 
-@region_silo_test
+@cell_silo_test
 class OrganizationDetectorTypesAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-detector-type-index"
 
@@ -42,7 +42,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         )
         self.registry_patcher.start()
 
-        class MockDetectorHandler(DetectorHandler[dict[Never, Never], bool]):
+        class MockDetectorHandler(BaseDetectorHandler[dict[Never, Never], bool]):
             def evaluate_impl(
                 self, data_packet: DataPacket[dict[Never, Never]]
             ) -> GroupedDetectorEvaluationResult:

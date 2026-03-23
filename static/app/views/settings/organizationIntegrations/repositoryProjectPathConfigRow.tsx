@@ -5,12 +5,11 @@ import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Access from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
-import IdBadge from 'sentry/components/idBadge';
+import {Access} from 'sentry/components/acl/access';
+import {Confirm} from 'sentry/components/confirm';
+import {IdBadge} from 'sentry/components/idBadge';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 
@@ -21,7 +20,7 @@ type Props = {
   project: Project;
 };
 
-export default function RepositoryProjectPathConfigRow({
+export function RepositoryProjectPathConfigRow({
   pathConfig,
   project,
   onEdit,
@@ -81,7 +80,7 @@ export default function RepositoryProjectPathConfigRow({
 }
 
 const RepoName = styled(`span`)`
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 `;
 
 const ProjectAndBranch = styled('div')`

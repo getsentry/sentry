@@ -54,14 +54,14 @@ def build_evidence_display(result: CheckResult) -> list[IssueEvidence]:
     if status_reason:
         reason_evidence = IssueEvidence(
             name="Failure reason",
-            value=f'{status_reason["type"]} - {status_reason["description"]}',
+            value=f"{status_reason['type']} - {status_reason['description']}",
             important=True,
         )
         evidence_display.extend([reason_evidence])
 
     duration_evidence = IssueEvidence(
         name="Duration",
-        value=f"{result["duration_ms"]}ms",
+        value=f"{result['duration_ms']}ms",
         important=False,
     )
     evidence_display.append(duration_evidence)
@@ -239,6 +239,10 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
         assertion_failure_data = result.get("assertion_failure_data")
         if assertion_failure_data is not None:
             evidence_data["assertion_failure_data"] = json.dumps(assertion_failure_data)
+
+        check_id = result.get("guid")
+        if check_id:
+            evidence_data["check_id"] = check_id
 
         occurrence = DetectorOccurrence(
             issue_title=f"Downtime detected for {uptime_subscription.url}",

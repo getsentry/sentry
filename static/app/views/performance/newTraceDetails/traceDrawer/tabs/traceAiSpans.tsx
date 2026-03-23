@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
@@ -19,7 +18,7 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/newTraceDetails/useTraceScrollToPath';
 
-function TraceAiSpans({traceSlug}: {traceSlug: string}) {
+export function TraceAiSpans({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,14 +129,13 @@ function TraceAiSpans({traceSlug}: {traceSlug: string}) {
   );
 }
 
-export default TraceAiSpans;
-
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: minmax(300px, 400px) 1fr;
   grid-template-rows: 38px 1fr;
   flex: 1 1 100%;
   min-height: 0;
+  overflow-x: auto;
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
@@ -146,12 +144,12 @@ const Wrapper = styled('div')`
 const SpansHeader = styled('h6')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
-  margin-bottom: ${space(2)};
-  margin-left: ${space(1)};
+  margin-bottom: ${p => p.theme.space.xl};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const HeaderCell = styled('div')<{align?: 'left' | 'right'}>`
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
@@ -164,7 +162,7 @@ const LeftPanel = styled('div')`
   flex: 1;
   min-width: 300px;
   min-height: 0;
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
   overflow-y: auto;
   overflow-x: hidden;
@@ -173,7 +171,7 @@ const LeftPanel = styled('div')`
 
 const RightPanel = styled('div')`
   min-width: 400px;
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
   flex: 1;
   min-height: 0;
   overflow-y: auto;

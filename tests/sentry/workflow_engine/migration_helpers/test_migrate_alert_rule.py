@@ -71,7 +71,6 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -83,14 +82,14 @@ def assert_alert_rule_migrated(alert_rule: AlertRule, project_id: int) -> None:
     assert workflow.name == get_workflow_name(alert_rule)
     assert workflow.organization_id == alert_rule.organization.id
     assert workflow.owner_user_id == alert_rule.user_id
-    assert workflow.owner_team == alert_rule.team
+    assert workflow.owner_team_id == alert_rule.team_id
     detector = Detector.objects.get(id=alert_rule_detector.detector.id)
     assert detector.name == alert_rule.name
     assert detector.project_id == project_id
     assert detector.enabled is True
     assert detector.description == alert_rule.description
     assert detector.owner_user_id == alert_rule.user_id
-    assert detector.owner_team == alert_rule.team
+    assert detector.owner_team_id == alert_rule.team_id
     assert detector.type == MetricIssue.slug
     assert detector.config == {
         "comparison_delta": alert_rule.comparison_delta,
@@ -252,7 +251,6 @@ def assert_sentry_app_action_migrated(
 ) -> None:
     # Verify target_identifier is the string representation of sentry_app_id
     assert action.config.get("target_identifier") == str(alert_rule_trigger_action.sentry_app_id)
-    assert action.config.get("sentry_app_identifier") == SentryAppIdentifier.SENTRY_APP_ID
 
     # Verify data blob has correct structure for Sentry apps
     if not alert_rule_trigger_action.sentry_app_config:

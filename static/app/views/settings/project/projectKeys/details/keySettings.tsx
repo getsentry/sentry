@@ -7,24 +7,23 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
-import Confirm from 'sentry/components/confirm';
+import {Access} from 'sentry/components/acl/access';
+import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
-import Panel from 'sentry/components/panels/panel';
-import PanelAlert from 'sentry/components/panels/panelAlert';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelAlert} from 'sentry/components/panels/panelAlert';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
-import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
-import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/credentials';
-import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
+import {useApi} from 'sentry/utils/useApi';
+import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
+import {KeyRateLimitsForm} from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 
 type Props = {
@@ -70,8 +69,7 @@ export function KeySettings({
     }
   }, [organization, api, onRemove, keyId, projectId]);
 
-  const showOtlpTraces =
-    useOTelFriendlyUI() && organization.features.includes('relay-otlp-traces-endpoint');
+  const showOtlpTraces = organization.features.includes('relay-otlp-traces-endpoint');
   const showOtlpLogs = organization.features.includes('relay-otel-logs-endpoint');
 
   return (

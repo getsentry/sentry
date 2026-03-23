@@ -69,9 +69,9 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     operator = cast(str, args[2])
 
     value = args[3]
-    assert isinstance(
-        value, str
-    ), "Value must be a String"  # This should always be a string. Assertion to deal with typing errors.
+    assert isinstance(value, str), (
+        "Value must be a String"
+    )  # This should always be a string. Assertion to deal with typing errors.
 
     attr_value = resolve_attribute_value(key, value, f"Invalid third parameter {value}")
 

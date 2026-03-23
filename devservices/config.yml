@@ -165,12 +165,11 @@ x-sentry-service-config:
       description: Kafka consumer for uptime monitoring results
 
   modes:
-    default: [snuba, postgres, relay, spotlight]
+    default: [snuba, postgres, relay, spotlight, objectstore]
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     chartcuterie: [postgres, snuba, chartcuterie, spotlight]
     launchpad: [snuba, postgres, launchpad, taskbroker, taskworker, objectstore]
-    objectstore: [snuba, postgres, relay, spotlight, objectstore]
     taskbroker: [snuba, postgres, relay, spotlight, taskbroker]
     taskworker:
       [snuba, postgres, relay, taskbroker, spotlight, taskworker, taskworker-scheduler]
@@ -248,6 +247,7 @@ x-sentry-service-config:
         postgres,
         relay,
         spotlight,
+        objectstore,
         taskbroker,
         taskworker,
         ingest-events,
@@ -297,6 +297,7 @@ x-sentry-service-config:
         process-spans,
         relay,
         symbolicator,
+        objectstore,
         snuba,
         spotlight,
         taskbroker,

@@ -13,7 +13,6 @@ import {InputGroup} from '@sentry/scraps/input';
 
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface NumberInputProps
   extends
@@ -107,14 +106,14 @@ const StepWrap = styled('div')<{size?: NonNullable<NumberInputProps['size']>}>`
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: ${space(1.5)};
+  width: ${p => p.theme.space.lg};
   height: ${p => (p.size === 'xs' ? '1rem' : '1.25rem')};
 `;
 
 const StepButton = styled(Button)`
   display: flex;
   height: 50%;
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   min-height: 0;
   color: ${p => p.theme.tokens.content.secondary};
 `;

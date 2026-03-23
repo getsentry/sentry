@@ -3,7 +3,7 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const outageConfig: IssueCategoryConfigMapping = {
+export const outageConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     usesIssuePlatform: true,
     autofix: false,
@@ -96,5 +96,3 @@ const outageConfig: IssueCategoryConfigMapping = {
     stats: {enabled: false},
   },
 };
-
-export default outageConfig;

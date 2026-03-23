@@ -23,6 +23,7 @@ from sentry.sentry_apps.installations import (
 )
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError
 
 
 @control_silo_endpoint
@@ -45,19 +46,9 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
 
     def delete(self, request: Request, installation) -> Response:
         sentry_app_installation = SentryAppInstallation.objects.get(id=installation.id)
-        with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
-            try:
-                assert (
-                    request.user.is_authenticated
-                ), "User must be authenticated to delete installation"
-                SentryAppInstallationNotifier(
-                    sentry_app_installation=sentry_app_installation,
-                    user=request.user,
-                    action="deleted",
-                ).run()
-            # if the error is from a request exception, log the error and continue
-            except RequestException as exc:
-                sentry_sdk.capture_exception(exc)
+        db = router.db_for_write(SentryAppInstallation)
+
+        with transaction.atomic(using=db):
             sentry_app_installation.update(status=SentryAppInstallationStatus.PENDING_DELETION)
             ScheduledDeletion.schedule(sentry_app_installation, days=0, actor=request.user)
             create_audit_entry(
@@ -67,6 +58,23 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
                 event=audit_log.get_event_id("SENTRY_APP_UNINSTALL"),
                 data={"sentry_app": sentry_app_installation.sentry_app.name},
             )
+
+            def notify_on_commit() -> None:
+                try:
+                    assert request.user.is_authenticated, (
+                        "User must be authenticated to delete installation"
+                    )
+                    SentryAppInstallationNotifier(
+                        sentry_app_installation=sentry_app_installation,
+                        user=request.user,
+                        action="deleted",
+                    ).run()
+                except RequestException as exc:
+                    sentry_sdk.capture_exception(exc)
+                except WebhookTimeoutError:
+                    pass
+
+            transaction.on_commit(notify_on_commit, using=db)
         if request.user.is_authenticated:
             analytics.record(
                 SentryAppUninstalledEvent(

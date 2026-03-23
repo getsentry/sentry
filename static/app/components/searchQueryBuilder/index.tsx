@@ -28,13 +28,15 @@ import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {FieldKind} from 'sentry/utils/fields';
-import PanelProvider from 'sentry/utils/panelProvider';
+import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 export type GetTagValues = (
   tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined},
   searchQuery: string
 ) => Promise<string[]>;
+
+export type GetTagKeys = (searchQuery: string) => Promise<Tag[]>;
 
 export interface SearchQueryBuilderProps {
   /**
@@ -118,6 +120,12 @@ export interface SearchQueryBuilderProps {
    * known column.
    */
   getSuggestedFilterKey?: (key: string) => string | null;
+  /**
+   * When provided, enables async fetching of filter keys.
+   * The combobox will call this function with the current search query
+   * and display the returned keys alongside any static filterKeys.
+   */
+  getTagKeys?: GetTagKeys;
 
   /**
    * Allows for customization of the invalid token messages.

@@ -1,6 +1,10 @@
 import {useCallback, useMemo, useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
+import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
+import {AutofixGithubCopilotPurchaseModal} from 'sentry/components/events/autofix/autofixGithubCopilotPurchaseModal';
 import {
   AutofixStatus,
   AutofixStepType,
@@ -11,7 +15,9 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   fetchMutation,
   setApiQueryData,
@@ -21,9 +27,9 @@ import {
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type AutofixResponse = {
   autofix: AutofixData | null;
@@ -324,23 +330,13 @@ export type CodingAgentIntegration = {
   requires_identity?: boolean;
 };
 
-export function useCodingAgentIntegrations() {
-  const organization = useOrganization();
-
-  return useApiQuery<{
+export function organizationIntegrationsCodingAgents(organization: Organization) {
+  return apiOptions.as<{
     integrations: CodingAgentIntegration[];
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/integrations/coding-agents/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
-      }),
-    ],
-    {
-      staleTime: 5 * 60 * 1000,
-    }
-  );
+  }>()('/organizations/$organizationIdOrSlug/integrations/coding-agents/', {
+    path: {organizationIdOrSlug: organization.slug},
+    staleTime: 5 * 60 * 1000,
+  });
 }
 
 interface LaunchCodingAgentParams {
@@ -358,6 +354,8 @@ interface LaunchCodingAgentResponse {
   failures?: Array<{
     error_message: string;
     repo_name: string;
+    failure_type?: string;
+    github_installation_id?: string;
   }>;
 }
 
@@ -406,7 +404,44 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
     },
     onSuccess: (data, params) => {
       if (data.failures && data.failures.length > 0) {
-        data.failures.forEach(failure => {
+        const permissionFailures = data.failures.filter(
+          f => f.failure_type === 'github_app_permissions'
+        );
+        const copilotLicenseFailures = data.failures.filter(
+          f => f.failure_type === 'github_copilot_not_licensed'
+        );
+        const cursorGithubAccessFailures = data.failures.filter(
+          f => f.failure_type === 'cursor_github_access'
+        );
+        const otherFailures = data.failures.filter(
+          f =>
+            f.failure_type !== 'github_app_permissions' &&
+            f.failure_type !== 'github_copilot_not_licensed' &&
+            f.failure_type !== 'cursor_github_access'
+        );
+
+        if (permissionFailures.length > 0) {
+          const installationId = permissionFailures[0]?.github_installation_id;
+          const installationUrl = installationId
+            ? `https://github.com/settings/installations/${installationId}`
+            : undefined;
+          openModal(deps => (
+            <AutofixGithubAppPermissionsModal
+              {...deps}
+              installationUrl={installationUrl}
+            />
+          ));
+        }
+
+        if (copilotLicenseFailures.length > 0) {
+          openModal(deps => <AutofixGithubCopilotPurchaseModal {...deps} />);
+        }
+
+        if (cursorGithubAccessFailures.length > 0) {
+          openModal(deps => <AutofixCursorGithubAccessModal {...deps} />);
+        }
+
+        otherFailures.forEach(failure => {
           addErrorMessage(t('%s: %s', failure.repo_name, failure.error_message));
         });
 

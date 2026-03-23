@@ -7,17 +7,16 @@ import omit from 'lodash/omit';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
-import TransactionsList from 'sentry/components/discover/transactionsList';
+import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
-import PageFilterBar from 'sentry/components/pageFilters/pageFilterBar';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -33,21 +32,22 @@ import {
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import withProjects from 'sentry/utils/withProjects';
+import {withProjects} from 'sentry/utils/withProjects';
 import Tags from 'sentry/views/discover/results/tags';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
-import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
-import Filter, {
+import {SegmentSpansTable} from 'sentry/views/performance/eap/segmentSpansTable';
+import {
   decodeFilterFromLocation,
+  Filter,
   filterToField,
   filterToSearchConditions,
   SpanOperationBreakdownFilter,
@@ -74,13 +74,13 @@ import {
   isSummaryViewFrontendPageLoad,
 } from 'sentry/views/performance/utils';
 
-import TransactionSummaryCharts from './charts';
+import {TransactionSummaryCharts} from './charts';
 import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
-import RelatedIssues from './relatedIssues';
-import SidebarCharts from './sidebarCharts';
-import StatusBreakdown from './statusBreakdown';
+import {RelatedIssues} from './relatedIssues';
+import {SidebarChartsContainer as SidebarCharts} from './sidebarCharts';
+import {StatusBreakdown} from './statusBreakdown';
 import {TagExplorer} from './tagExplorer';
-import UserStats from './userStats';
+import {UserStats} from './userStats';
 
 type Props = {
   error: QueryError | null;
@@ -96,9 +96,9 @@ type Props = {
   transactionName: string;
 };
 
-export const SERVICE_ENTRY_SPANS_CURSOR_NAME = 'serviceEntrySpansCursor';
+export const SEGMENT_SPANS_CURSOR_NAME = 'segmentSpansCursor';
 
-function OTelSummaryContentInner({
+function EAPSummaryContentInner({
   eventView,
   location,
   totalValues,
@@ -110,7 +110,6 @@ function OTelSummaryContentInner({
 }: Props) {
   const theme = useTheme();
   const navigate = useNavigate();
-  const domainViewFilters = useDomainViewFilters();
   const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const handleSearch = useCallback(
@@ -137,7 +136,7 @@ function OTelSummaryContentInner({
       query: {
         ...location.query,
         showTransactions: value,
-        [SERVICE_ENTRY_SPANS_CURSOR_NAME]: undefined,
+        [SEGMENT_SPANS_CURSOR_NAME]: undefined,
       },
     };
 
@@ -253,7 +252,7 @@ function OTelSummaryContentInner({
     <Fragment>
       <Layout.Main>
         <FilterActions>
-          <SpanCategoryFilter serviceEntrySpanName={transactionName} />
+          <SpanCategoryFilter segmentSpanName={transactionName} />
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter {...datePageFilterProps} />
@@ -265,23 +264,15 @@ function OTelSummaryContentInner({
         </EAPChartsWidgetContainer>
 
         <PerformanceAtScaleContextProvider>
-          <ServiceEntrySpansTable
+          <SegmentSpansTable
             eventView={transactionsListEventView}
             handleDropdownChange={handleTransactionsListSortChange}
             totalValues={totalValues}
             transactionName={transactionName}
+            query={query}
             showViewSampledEventsButton
           />
         </PerformanceAtScaleContextProvider>
-        <TagExplorer
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          projects={projects}
-          transactionName={transactionName}
-          currentFilter={spanOperationBreakdownFilter}
-          domainViewFilters={domainViewFilters}
-        />
         <SuspectFunctionsTable
           eventView={eventView}
           analyticsPageSource="performance_transaction"
@@ -777,8 +768,8 @@ function MetricsWarningIcon() {
 
 const FilterActions = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(2, min-content);
@@ -807,9 +798,9 @@ const StyledIconWarning = styled(IconWarning)`
 
 const EAPChartsWidgetContainer = styled('div')`
   height: 300px;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 export default withProjects(SummaryContent);
 
-export const OTelSummaryContent = withProjects(OTelSummaryContentInner);
+export const EAPSummaryContent = withProjects(EAPSummaryContentInner);

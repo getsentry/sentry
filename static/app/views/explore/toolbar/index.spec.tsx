@@ -12,9 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
@@ -28,16 +27,9 @@ import {
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 function Wrapper({children}: {children: ReactNode}) {
-  return (
-    <SpansQueryParamsProvider>
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        {children}
-      </TraceItemAttributeProvider>
-    </SpansQueryParamsProvider>
-  );
+  return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
 }
 
 jest.mock('sentry/actionCreators/modal');
@@ -83,6 +75,12 @@ describe('ExploreToolbar', () => {
         },
       ],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      method: 'GET',
+      body: [],
+      match: [MockApiClient.matchQuery({attributeType: 'boolean'})],
     });
   });
 
@@ -269,7 +267,7 @@ describe('ExploreToolbar', () => {
 
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',
@@ -288,7 +286,7 @@ describe('ExploreToolbar', () => {
 
     expect(fields).toEqual([
       'id',
-      'span.op',
+      'span.name',
       'span.description',
       'span.duration',
       'transaction',
@@ -363,6 +361,35 @@ describe('ExploreToolbar', () => {
 
     // last one so remove column button is hidden
     expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
+  });
+
+  it('clears the last selected group by', async () => {
+    let groupBys: readonly string[] = [];
+    let mode: Mode | undefined = undefined;
+
+    function Component() {
+      groupBys = useQueryParamsGroupBys();
+      mode = useQueryParamsMode();
+      return <ExploreToolbar />;
+    }
+    render(<Component />, {additionalWrapper: Wrapper});
+
+    const section = screen.getByTestId('section-group-by');
+    const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+
+    expect(groupBys).toEqual(['']);
+
+    await userEvent.click(within(editorColumn).getByRole('button', {name: '—'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
+
+    expect(mode).toEqual(Mode.AGGREGATE);
+    expect(groupBys).toEqual(['span.op']);
+    expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
+
+    await userEvent.click(within(section).getByLabelText('Clear Group By'));
+    expect(mode).toEqual(Mode.SAMPLES);
+    expect(groupBys).toEqual(['']);
+    expect(within(section).queryByLabelText('Clear Group By')).not.toBeInTheDocument();
   });
 
   it('switches to aggregates mode when modifying group bys', async () => {
@@ -472,7 +499,7 @@ describe('ExploreToolbar', () => {
       'id',
       'span.description',
       'span.duration',
-      'span.op',
+      'span.name',
       'timestamp',
       'transaction',
     ];
@@ -484,10 +511,10 @@ describe('ExploreToolbar', () => {
     });
 
     // try changing the field
-    await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
-    expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
+    await userEvent.click(within(section).getByRole('option', {name: 'span.name'}));
+    expect(within(section).getByRole('button', {name: 'span.name'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Desc'})).toBeInTheDocument();
-    expect(sortBys).toEqual([{field: 'span.op', kind: 'desc'}]);
+    expect(sortBys).toEqual([{field: 'span.name', kind: 'desc'}]);
 
     // check the kind options
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
@@ -498,9 +525,9 @@ describe('ExploreToolbar', () => {
 
     // try changing the kind
     await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
-    expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
+    expect(within(section).getByRole('button', {name: 'span.name'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Asc'})).toBeInTheDocument();
-    expect(sortBys).toEqual([{field: 'span.op', kind: 'asc'}]);
+    expect(sortBys).toEqual([{field: 'span.name', kind: 'asc'}]);
   });
 
   it('allows changing sort by in aggregates mode', async () => {
@@ -619,7 +646,39 @@ describe('ExploreToolbar', () => {
     expect(aggregateSortBys).toEqual([{field: 'count(span.duration)', kind: 'asc'}]);
   });
 
-  it('opens compare queries', async () => {
+  it('disables compare queries when only one chart is available', async () => {
+    function Component() {
+      return <ExploreToolbar />;
+    }
+    act(() => {
+      render(
+        <Wrapper>
+          <Component />
+        </Wrapper>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/traces/',
+              query: {
+                visualize: encodeURIComponent(
+                  '{"chartType":1,"yAxes":["p95(span.duration)"]}'
+                ),
+              },
+            },
+          },
+        }
+      );
+    });
+
+    const section = screen.getByTestId('section-save-as');
+    await userEvent.hover(within(section).getByText(/Compare Queries/));
+
+    const compareButton = within(section).getByRole('button', {name: 'Compare'});
+    expect(compareButton).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('opens compare queries when multiple charts are added and Compare Queries link is clicked', async () => {
     function Component() {
       return <ExploreToolbar />;
     }
@@ -642,9 +701,11 @@ describe('ExploreToolbar', () => {
       }
     );
 
+    await userEvent.click(screen.getByRole('button', {name: 'Add Chart'}));
+
     const section = screen.getByTestId('section-save-as');
 
-    await userEvent.click(within(section).getByText(/Compare/));
+    await userEvent.click(within(section).getByText(/Compare Queries/));
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/explore/traces/compare/'
     );
@@ -652,7 +713,7 @@ describe('ExploreToolbar', () => {
       expect.objectContaining({
         queries: [
           '{"chartType":0,"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
-          '{"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
+          '{"chartType":0,"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
         ],
       })
     );
@@ -696,7 +757,6 @@ describe('ExploreToolbar', () => {
     expect(router.location.query).toEqual({
       aggregate: 'count(span.duration)',
       dataset: 'events_analytics_platform',
-      eventTypes: 'transaction',
       interval: '1h',
       project: 'proj-slug',
       query: '',

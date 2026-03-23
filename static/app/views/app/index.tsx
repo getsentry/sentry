@@ -10,33 +10,33 @@ import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import GlobalModal from 'sentry/components/globalModal';
+import {GlobalModal} from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
-import AlertStore from 'sentry/stores/alertStore';
-import ConfigStore from 'sentry/stores/configStore';
-import GuideStore from 'sentry/stores/guideStore';
-import HookStore from 'sentry/stores/hookStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {AlertStore} from 'sentry/stores/alertStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GuideStore} from 'sentry/stores/guideStore';
+import {HookStore} from 'sentry/stores/hookStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
-import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
+import {isValidOrgSlug} from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
-import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
+import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
-import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
-import ExplorerPanel from 'sentry/views/seerExplorer/explorerPanel';
+import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
+import {ExplorerPanel} from 'sentry/views/seerExplorer/explorerPanel';
 import {ExplorerPanelProvider} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
@@ -46,7 +46,7 @@ const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 /**
  * App is the root level container for all uathenticated routes.
  */
-function App() {
+export function App() {
   useColorscheme();
 
   const api = useApi();
@@ -262,8 +262,6 @@ function App() {
     </Profiler>
   );
 }
-
-export default App;
 
 const MainContainer = styled('div')`
   display: flex;

@@ -9,7 +9,6 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
-
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)
@@ -156,7 +155,6 @@ class TestGetEventFilterKeys(APITestCase, SnubaTestCase):
 
 
 class TestGetEventFilterKeyValues(APITestCase, SnubaTestCase):
-
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)

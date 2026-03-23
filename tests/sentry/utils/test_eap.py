@@ -34,9 +34,9 @@ def test_round_trip_conversion():
     for original in test_ids:
         item_id = hex_to_item_id(original)
         recovered = item_id_to_hex(item_id)
-        assert (
-            recovered == original
-        ), f"Round-trip conversion failed for {original}: got {recovered}"
+        assert recovered == original, (
+            f"Round-trip conversion failed for {original}: got {recovered}"
+        )
 
 
 def test_hex_to_item_id_is_little_endian():

@@ -140,7 +140,6 @@ class LeakyBucketRateLimiterTest(TestCase):
 
     def test_get_bucket_state(self) -> None:
         with freeze_time("2077-09-13"):
-
             info = self.limiter.get_bucket_state("foo")
             assert info.current_level == 0.0
             assert info.wait_time == 0.0

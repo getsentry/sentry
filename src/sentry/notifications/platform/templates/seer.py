@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import TypedDict
+
+from pydantic import Field
 
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationData,
     NotificationRenderedTemplate,
+    NotificationSource,
     NotificationTemplate,
     ParagraphBlock,
     PlainTextBlock,
@@ -30,18 +31,17 @@ def _get_next_stopping_point(current: AutofixStoppingPoint) -> AutofixStoppingPo
     return _RANK_TO_STOPPING_POINT.get(current_rank + 1)
 
 
-@dataclass(frozen=True)
 class SeerAutofixError(NotificationData):
     error_message: str
-    source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_ERROR
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_ERROR
     error_title: str = "Seer had some trouble..."
 
 
-@template_registry.register(SeerAutofixError.source)
+@template_registry.register(NotificationSource.SEER_AUTOFIX_ERROR)
 class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
     category = NotificationCategory.SEER
     example_data = SeerAutofixError(
-        source=NotificationTemplateSource.SEER_AUTOFIX_ERROR,
+        source=NotificationSource.SEER_AUTOFIX_ERROR,
         error_message="(401): Could not connect to your GitHub repository for this project.",
     )
 
@@ -64,7 +64,6 @@ class SeerAutofixPullRequest(TypedDict):
     pr_url: str
 
 
-@dataclass(frozen=True)
 class SeerAutofixUpdate(NotificationData):
     run_id: int
     organization_id: int
@@ -72,17 +71,11 @@ class SeerAutofixUpdate(NotificationData):
     group_id: int
     current_point: AutofixStoppingPoint
     group_link: str
-    steps: list[str] = field(default_factory=list)
-    changes: list[SeerAutofixCodeChange] = field(default_factory=list)
-    pull_requests: list[SeerAutofixPullRequest] = field(default_factory=list)
+    steps: list[str] = Field(default_factory=list)
+    changes: list[SeerAutofixCodeChange] = Field(default_factory=list)
+    pull_requests: list[SeerAutofixPullRequest] = Field(default_factory=list)
     summary: str | None = None
-    has_progressed: bool = False
-    automation_stopping_point: AutofixStoppingPoint | None = None
-    source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_UPDATE
-
-    @property
-    def next_point(self) -> AutofixStoppingPoint | None:
-        return _get_next_stopping_point(self.current_point)
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_UPDATE
 
     @property
     def has_next_trigger(self) -> bool:
@@ -101,11 +94,11 @@ class SeerAutofixUpdate(NotificationData):
                 return False
 
 
-@template_registry.register(SeerAutofixUpdate.source)
+@template_registry.register(NotificationSource.SEER_AUTOFIX_UPDATE)
 class SeerAutofixUpdateTemplate(NotificationTemplate[SeerAutofixUpdate]):
     category = NotificationCategory.SEER
     example_data = SeerAutofixUpdate(
-        source=NotificationTemplateSource.SEER_AUTOFIX_UPDATE,
+        source=NotificationSource.SEER_AUTOFIX_UPDATE,
         run_id=12152025,
         project_id=123,
         group_id=456,
@@ -140,7 +133,6 @@ class SeerAutofixUpdateTemplate(NotificationTemplate[SeerAutofixUpdate]):
         return NotificationRenderedTemplate(subject="Seer Autofix Update", body=[])
 
 
-@dataclass(frozen=True)
 class SeerAutofixTrigger(NotificationData):
     """
     Note: This data is only used to render the trigger itself for an autofix run,
@@ -152,7 +144,7 @@ class SeerAutofixTrigger(NotificationData):
     project_id: int
     group_id: int
     run_id: int | None = None
-    source: NotificationTemplateSource = NotificationTemplateSource.SEER_AUTOFIX_TRIGGER
+    source: NotificationSource = NotificationSource.SEER_AUTOFIX_TRIGGER
     stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
 
     @staticmethod

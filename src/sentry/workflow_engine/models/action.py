@@ -10,7 +10,7 @@ from django.db.models import Q
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, cell_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
@@ -37,7 +37,7 @@ class ActionManager(BaseManager["Action"]):
         )
 
 
-@region_silo_model
+@cell_silo_model
 class Action(DefaultFieldsModel, JSONConfigBase):
     """
     Actions are actions that can be taken if the conditions of a DataConditionGroup are satisfied.
@@ -103,10 +103,9 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         indexes = [
             models.Index(
                 "type",
-                models.expressions.RawSQL("config->>'sentry_app_identifier'", []),
                 models.expressions.RawSQL("config->>'target_identifier'", []),
                 condition=Q(type="sentry_app"),
-                name="action_sentry_app_lookup",
+                name="sentry_app_lookup_action",
             ),
         ]
 
@@ -153,11 +152,8 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             },
         )
 
-    def get_dedup_key(self, workflow_id: int | None) -> str:
+    def get_dedup_key(self) -> str:
         key_parts = [self.type]
-        if workflow_id is not None:
-            key_parts.append(str(workflow_id))
-
         if self.integration_id:
             key_parts.append(str(self.integration_id))
 

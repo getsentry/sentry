@@ -7,9 +7,9 @@ import {t} from 'sentry/locale';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 type OrgAuthTokenWithToken = OrgAuthToken & {token: string};
@@ -69,6 +69,10 @@ export function AuthTokenGeneratorProvider({
       {children}
     </AuthTokenGeneratorContext>
   );
+}
+
+export function useAuthToken() {
+  return useContext(AuthTokenGeneratorContext).authToken;
 }
 
 export function AuthTokenGenerator() {

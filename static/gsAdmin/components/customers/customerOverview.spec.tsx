@@ -16,11 +16,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-import CustomerOverview from 'admin/components/customers/customerOverview';
-import * as constants from 'getsentry/constants';
+import {CustomerOverview} from 'admin/components/customers/customerOverview';
 import {AddOnCategory, PlanTier} from 'getsentry/types';
 
 describe('CustomerOverview', () => {
@@ -396,9 +395,10 @@ describe('CustomerOverview', () => {
     expect(screen.queryByText('Transactions:')).not.toBeInTheDocument();
   });
 
-  it('renders admin-only product trials when feature flag is enabled', () => {
+  it('renders SIZE_ANALYSIS admin-only product trials (GA, no feature flag required)', () => {
+    // SIZE_ANALYSIS is now GA: adminOnlyProductTrialFeature is true, no feature flag check needed
     const organization = OrganizationFixture({
-      features: ['expose-category-size-analysis'],
+      features: [], // No feature flags needed
     });
     const subscription = SubscriptionFixture({
       organization,
@@ -415,84 +415,11 @@ describe('CustomerOverview', () => {
     );
 
     expect(screen.getByText('Product Trials')).toBeInTheDocument();
-    // SIZE_ANALYSIS should appear because org has the feature flag
+    // SIZE_ANALYSIS always appears (graduated)
     expect(screen.getByText('Size Analysis Builds:')).toBeInTheDocument();
-  });
-
-  it('does not render admin-only product trials when feature flag is disabled', () => {
-    const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_f',
-      planTier: PlanTier.AM3,
-    });
-
-    render(
-      <CustomerOverview
-        customer={subscription}
-        onAction={jest.fn()}
-        organization={organization}
-      />
-    );
-
-    expect(screen.getByText('Product Trials')).toBeInTheDocument();
-    // SIZE_ANALYSIS should NOT appear because org lacks the feature flag
-    expect(screen.queryByText('Size Analysis Builds:')).not.toBeInTheDocument();
     // Regular product trials should still appear
     expect(screen.getByText('Spans:')).toBeInTheDocument();
     expect(screen.getByText('Replays:')).toBeInTheDocument();
-  });
-
-  it('renders admin-only product trials when feature flag is graduated (true)', () => {
-    // Mock BILLED_DATA_CATEGORY_INFO to simulate a graduated flag (adminOnlyProductTrialFeature: true)
-    const originalBilledDataCategoryInfo = constants.BILLED_DATA_CATEGORY_INFO;
-
-    try {
-      const mockedBilledDataCategoryInfo = {
-        ...originalBilledDataCategoryInfo,
-        [DataCategoryExact.SIZE_ANALYSIS]: {
-          ...originalBilledDataCategoryInfo[DataCategoryExact.SIZE_ANALYSIS],
-          adminOnlyProductTrialFeature: true, // Graduated - no feature flag check needed
-        },
-      };
-
-      // Override the module export for this test
-      Object.defineProperty(constants, 'BILLED_DATA_CATEGORY_INFO', {
-        value: mockedBilledDataCategoryInfo,
-        configurable: true,
-      });
-
-      // Organization has NO feature flags - but graduated flag should still show
-      const organization = OrganizationFixture({
-        features: [], // No feature flags!
-      });
-      const subscription = SubscriptionFixture({
-        organization,
-        plan: 'am3_f',
-        planTier: PlanTier.AM3,
-      });
-
-      render(
-        <CustomerOverview
-          customer={subscription}
-          onAction={jest.fn()}
-          organization={organization}
-        />
-      );
-
-      expect(screen.getByText('Product Trials')).toBeInTheDocument();
-      // SIZE_ANALYSIS should appear because the flag is graduated (true), not requiring feature flag
-      expect(screen.getByText('Size Analysis Builds:')).toBeInTheDocument();
-      // Regular product trials should still appear
-      expect(screen.getByText('Spans:')).toBeInTheDocument();
-      expect(screen.getByText('Replays:')).toBeInTheDocument();
-    } finally {
-      // Restore the original - always runs even if assertions fail
-      Object.defineProperty(constants, 'BILLED_DATA_CATEGORY_INFO', {
-        value: originalBilledDataCategoryInfo,
-        configurable: true,
-      });
-    }
   });
 
   it('renders product trials based on current subscription state', () => {
@@ -566,6 +493,7 @@ describe('CustomerOverview', () => {
       DataCategory.PROFILE_DURATION,
       DataCategory.PROFILE_DURATION_UI,
       DataCategory.LOG_BYTE,
+      DataCategory.SIZE_ANALYSIS,
       AddOnCategory.LEGACY_SEER,
     ];
 
@@ -596,26 +524,38 @@ describe('CustomerOverview', () => {
           name: 'Stop Trial',
         });
         expect(stopTrialButton).toBeInTheDocument();
+        const extendTrialButton = within(definition).getByRole('button', {
+          name: 'Extend Trial',
+        });
+        expect(extendTrialButton).toBeInTheDocument();
 
         if (category === DataCategory.REPLAYS) {
           expect(allowTrialButton).toBeDisabled();
           expect(startTrialButton).toBeDisabled();
           expect(stopTrialButton).toBeEnabled();
-          expect(within(definition).getByText('Active')).toBeInTheDocument();
+          expect(extendTrialButton).toBeEnabled();
+          expect(
+            within(definition).getByText(/Active \(until .* UTC\)/)
+          ).toBeInTheDocument();
         } else if (category === DataCategory.SPANS) {
           expect(allowTrialButton).toBeDisabled();
           expect(startTrialButton).toBeDisabled();
           expect(stopTrialButton).toBeDisabled();
-          expect(within(definition).getByText(/Active \(/)).toBeInTheDocument();
+          expect(extendTrialButton).toBeEnabled();
+          expect(
+            within(definition).getByText(/Active \(until .* UTC\)/)
+          ).toBeInTheDocument();
         } else if (category === AddOnCategory.LEGACY_SEER) {
           expect(allowTrialButton).toBeEnabled();
           expect(startTrialButton).toBeDisabled();
           expect(stopTrialButton).toBeDisabled();
+          expect(extendTrialButton).toBeDisabled();
           expect(within(definition).getByText('Used')).toBeInTheDocument();
         } else {
           expect(allowTrialButton).toBeDisabled();
           expect(startTrialButton).toBeEnabled();
           expect(stopTrialButton).toBeDisabled();
+          expect(extendTrialButton).toBeDisabled();
           expect(within(definition).getByText('Available')).toBeInTheDocument();
         }
       } else {
@@ -688,6 +628,67 @@ describe('CustomerOverview', () => {
     });
   });
 
+  it('renders matching sample rate without comparison string', async () => {
+    const organization = OrganizationFixture({
+      features: ['dynamic-sampling'],
+      desiredSampleRate: 1.0,
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
+      body: {effectiveSampleRate: 1.0},
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    await waitFor(() => {
+      const term = screen.getByText('Sample Rate (24h):');
+      const definition = term.nextElementSibling;
+      expect(definition).toHaveTextContent('100.00%');
+      expect(definition).not.toHaveTextContent('instead of');
+    });
+  });
+
+  it('renders matching rate without comparison when floating-point diff is near zero', async () => {
+    const organization = OrganizationFixture({
+      features: ['dynamic-sampling'],
+      desiredSampleRate: 0.6,
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+    });
+
+    // Simulates floating-point imprecision: 0.600001 * 100 !== 0.6 * 100
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
+      body: {effectiveSampleRate: 0.600001},
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    await waitFor(() => {
+      const term = screen.getByText('Sample Rate (24h):');
+      const definition = term.nextElementSibling;
+      expect(definition).toHaveTextContent('60.00%');
+      expect(definition).not.toHaveTextContent('instead of');
+    });
+  });
+
   it('renders effective sample rate with desired comparison string', async () => {
     const organization = OrganizationFixture({
       features: ['dynamic-sampling'],
@@ -710,6 +711,30 @@ describe('CustomerOverview', () => {
       />
     );
     await screen.findByText('54.00% instead of 60.00% (~6.00%)');
+  });
+
+  it('renders decimal sample rates preserving trailing zeros', async () => {
+    const organization = OrganizationFixture({
+      features: ['dynamic-sampling'],
+      desiredSampleRate: 0.6,
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sampling/effective-sample-rate/`,
+      body: {effectiveSampleRate: 0.501},
+    });
+
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+    await screen.findByText('50.10% instead of 60.00% (~9.90%)');
   });
 
   it('renders n/a when effective sample rate is missing', async () => {

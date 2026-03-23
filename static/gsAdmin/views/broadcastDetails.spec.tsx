@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import BroadcastDetails from 'admin/views/broadcastDetails';
+import {BroadcastDetails} from 'admin/views/broadcastDetails';
 
 describe('Broadcast Details', () => {
   it('renders', async () => {

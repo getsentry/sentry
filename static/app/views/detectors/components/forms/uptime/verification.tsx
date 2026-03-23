@@ -1,20 +1,28 @@
 import {Container} from 'sentry/components/workflowEngine/ui/container';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {Section} from 'sentry/components/workflowEngine/ui/section';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
 import {UptimeAssertionsField} from 'sentry/views/alerts/rules/uptime/assertions/field';
+import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
+import {ConnectedAssertionSuggestionsButton} from 'sentry/views/detectors/components/forms/uptime/connectedAssertionSuggestionsButton';
 import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
 
 export function UptimeDetectorVerificationSection() {
-  const org = useOrganization();
+  const {hasRuntimeAssertions, hasAiAssertionSuggestions} = useUptimeAssertionFeatures();
 
-  if (!org.features.includes('uptime-runtime-assertions')) {
+  if (!hasRuntimeAssertions) {
     return null;
   }
 
   return (
     <Container>
-      <Section title={t('Verification')}>
+      <Section
+        title={t('Verification')}
+        trailingItems={
+          hasAiAssertionSuggestions ? (
+            <ConnectedAssertionSuggestionsButton size="xs" />
+          ) : undefined
+        }
+      >
         <UptimeSectionGrid>
           <UptimeAssertionsField
             name="assertion"

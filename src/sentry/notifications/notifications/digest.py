@@ -183,7 +183,6 @@ class DigestNotification(ProjectNotification):
         notification_uuid: str | None = None,
     ) -> MutableMapping[str, Any]:
         has_session_replay = features.has("organizations:session-replay", organization)
-        show_replay_link = features.has("organizations:session-replay-issue-emails", organization)
         return {
             **get_digest_as_context(digest.digest),
             "event_counts": digest.event_counts,
@@ -199,7 +198,7 @@ class DigestNotification(ProjectNotification):
                 alert_timestamp,
                 notification_uuid=notification_uuid,
             ),
-            "show_replay_links": has_session_replay and show_replay_link,
+            "show_replay_links": has_session_replay,
         }
 
     def get_extra_context(

@@ -7,17 +7,16 @@ import {Link} from '@sentry/scraps/link';
 
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {SpanSamplesContainer} from 'sentry/views/insights/mobile/common/components/spanSamplesPanelContainer';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type ModuleName} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
@@ -120,13 +119,13 @@ export function SpanSamplesPanel({groupId, moduleName, transactionRoute}: Props)
 }
 
 const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
+  padding-right: ${p => p.theme.space.md};
 `;
 
 const HeaderContainer = styled('div')`
   width: 100%;
-  padding-bottom: ${space(2)};
-  padding-top: ${space(1)};
+  padding-bottom: ${p => p.theme.space.xl};
+  padding-top: ${p => p.theme.space.md};
 
   display: grid;
   grid-template-rows: auto auto auto;

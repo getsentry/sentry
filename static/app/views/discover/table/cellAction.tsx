@@ -15,12 +15,11 @@ import {
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {FieldKey} from 'sentry/utils/fields';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
-import useOrganization from 'sentry/utils/useOrganization';
+import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 
 import type {TableColumn} from './types';
 
@@ -240,10 +239,6 @@ function makeCellActions({
     addMenuItem(Actions.OPEN_INTERNAL_LINK, getInternalLinkActionLabel(field));
   }
 
-  if (isUrl(value)) {
-    addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
-  }
-
   if (allowActions) {
     addMenuItem(Actions.OPEN_ROW_IN_EXPLORE, t('View span samples'));
   }
@@ -293,6 +288,10 @@ function makeCellActions({
     );
   }
 
+  if (isUrl(value)) {
+    addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
+  }
+
   if (actions.length === 0) {
     return null;
   }
@@ -338,35 +337,25 @@ type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
   usePortalOnDropdown?: boolean;
 };
 
-function CellAction({
+export function CellAction({
   triggerType = ActionTriggerType.BOLD_HOVER,
   allowActions,
   usePortalOnDropdown,
   ...props
 }: Props) {
-  const organization = useOrganization();
   const {children, column} = props;
   // The menu is activated by clicking the value, which doesn't work if the value is rendered as a link
   // So, `target` contains an internal link extracted from the DOM on click and that link is added dropdown menu.
   const [target, setTarget] = useState<string>();
 
-  const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
-  let filteredActions = allowActions;
-  if (!useCellActionsV2 && filteredActions) {
-    // New dropdown menu options should not be allowed if the feature flag is not on
-    filteredActions = filteredActions.filter(
-      action =>
-        action !== Actions.OPEN_EXTERNAL_LINK && action !== Actions.OPEN_INTERNAL_LINK
-    );
-  }
   const cellActions = makeCellActions({
     ...props,
-    allowActions: filteredActions,
+    allowActions,
     to: target,
   });
   const align = fieldAlignment(column.key as string, column.type);
 
-  if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER) {
+  if (triggerType === ActionTriggerType.BOLD_HOVER) {
     return (
       <Container
         data-test-id={cellActions === null ? undefined : 'cell-action-container'}
@@ -394,6 +383,7 @@ function CellAction({
             trigger={triggerProps => (
               <ActionMenuTriggerV2
                 {...triggerProps}
+                role="button"
                 aria-label={t('Actions')}
                 onClickCapture={e => {
                   // Allow for users to hold shift, ctrl or cmd to open links instead of the menu
@@ -460,8 +450,6 @@ function CellAction({
     </Container>
   );
 }
-
-export default CellAction;
 
 const Container = styled('div')`
   position: relative;

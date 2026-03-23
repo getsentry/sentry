@@ -321,12 +321,12 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert not get_mep("event.type:error"), "event type error"
         assert not get_mep("transaction.duration:<15min"), "outlier filter"
         assert get_mep("epm():>0.01"), "throughput filter"
-        assert not get_mep(
-            "event.type:transaction OR event.type:error"
-        ), "boolean with non-mep filter"
-        assert get_mep(
-            "event.type:transaction OR transaction:foo_transaction"
-        ), "boolean with mep filter"
+        assert not get_mep("event.type:transaction OR event.type:error"), (
+            "boolean with non-mep filter"
+        )
+        assert get_mep("event.type:transaction OR transaction:foo_transaction"), (
+            "boolean with mep filter"
+        )
 
     def test_having_condition_with_preventing_aggregates(self) -> None:
         response = self.do_request(

@@ -1,4 +1,4 @@
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
 describe('oxfordizeArray', () => {
   it('correctly formats lists of strings', () => {

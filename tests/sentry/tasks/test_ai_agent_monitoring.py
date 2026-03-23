@@ -8,7 +8,6 @@ from sentry.tasks.ai_agent_monitoring import (
     fetch_ai_model_costs,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.utils.cache import cache
 
 
@@ -451,57 +450,6 @@ class FetchAIModelCostsTest(TestCase):
         cached_data = _get_ai_model_costs_from_cache()
         assert cached_data is None
 
-    @override_options(
-        {
-            "ai-agent-monitoring.custom-model-mapping": [
-                {
-                    "alternative_model_id": "gemini-pro-alternative",
-                    "existing_model_id": "gemini-2.5-pro",
-                },
-                {
-                    "alternative_model_id": "nonexistent-mapping",
-                    "existing_model_id": "model-that-does-not-exist",
-                },
-            ]
-        }
-    )
-    @responses.activate
-    def test_fetch_ai_model_costs_custom_model_mapping(self) -> None:
-        self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
-        self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
-
-        fetch_ai_model_costs()
-
-        # Verify the data was cached correctly
-        cached_data = _get_ai_model_costs_from_cache()
-        assert cached_data is not None
-        models = cached_data.get("models")
-        assert models is not None
-
-        # Original models should exist
-        assert "gemini-2.5-pro" in models
-
-        # Alternative model IDs should be mapped to existing models
-        assert "gemini-pro-alternative" in models
-
-        # Verify that the alternative models have the same pricing as the existing models
-        gemini_model = models["gemini-2.5-pro"]
-        gemini_alt_model = models["gemini-pro-alternative"]
-        assert gemini_model.get("inputPerToken") == gemini_alt_model.get("inputPerToken")
-        assert gemini_model.get("outputPerToken") == gemini_alt_model.get("outputPerToken")
-        assert gemini_model.get("outputReasoningPerToken") == gemini_alt_model.get(
-            "outputReasoningPerToken"
-        )
-        assert gemini_model.get("inputCachedPerToken") == gemini_alt_model.get(
-            "inputCachedPerToken"
-        )
-        assert gemini_model.get("inputCacheWritePerToken") == gemini_alt_model.get(
-            "inputCacheWritePerToken"
-        )
-
-        # Non-existent mapping should not create a new model
-        assert "nonexistent-mapping" not in models
-
     @responses.activate
     def test_fetch_ai_model_costs_with_normalized_and_prefix_glob_names(self) -> None:
         """Test that normalized and prefix glob versions of model names are added correctly"""
@@ -650,9 +598,9 @@ class FetchAIModelCostsTest(TestCase):
 
         for model_id, expected_normalized in test_cases:
             actual_normalized = _normalize_model_id(model_id)
-            assert (
-                actual_normalized == expected_normalized
-            ), f"Expected {expected_normalized} for {model_id}, got {actual_normalized}"
+            assert actual_normalized == expected_normalized, (
+                f"Expected {expected_normalized} for {model_id}, got {actual_normalized}"
+            )
 
     def test_create_prefix_glob_model_name(self) -> None:
         """Test prefix glob generation for model names"""
@@ -668,6 +616,6 @@ class FetchAIModelCostsTest(TestCase):
 
         for model_id, expected_glob in test_cases:
             actual_glob = _create_prefix_glob_model_name(model_id)
-            assert (
-                actual_glob == expected_glob
-            ), f"Expected {expected_glob} for {model_id}, got {actual_glob}"
+            assert actual_glob == expected_glob, (
+                f"Expected {expected_glob} for {model_id}, got {actual_glob}"
+            )

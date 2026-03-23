@@ -8,21 +8,20 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
-import CustomResolutionModal from 'sentry/components/customResolutionModal';
+import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
+import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
-import useProjectLatestSemverRelease from 'sentry/views/issueDetails/useProjectLatestSemverRelease';
+import {useProjectLatestSemverRelease} from 'sentry/views/issueDetails/useProjectLatestSemverRelease';
 
 function SetupReleasesPrompt() {
   return (
@@ -70,7 +69,7 @@ interface ResolveActionsProps {
   size?: 'xs' | 'sm';
 }
 
-function ResolveActions({
+export function ResolveActions({
   size = 'xs',
   isResolved = false,
   isAutoResolved = false,
@@ -326,7 +325,7 @@ function ResolveActions({
           handleCommitResolution(statusDetails)
         }
         orgSlug={organization.slug}
-        projectSlug={projectSlug}
+        projectSlug={projectSlug!}
       />
     ));
   }
@@ -353,8 +352,11 @@ function ResolveActions({
         <Button
           priority={priority}
           size={size}
-          title={t("We'll nag you with a notification if another event is seen.")}
-          tooltipProps={{delay: 1000, disabled}}
+          tooltipProps={{
+            delay: 1000,
+            disabled,
+            title: t("We'll nag you with a notification if another event is seen."),
+          }}
           onClick={() =>
             openConfirmModal({
               bypass: !shouldConfirm,
@@ -378,8 +380,6 @@ function ResolveActions({
   );
 }
 
-export default ResolveActions;
-
 /**
  * Used to hide the list items when prompting to set up releases
  */
@@ -396,9 +396,9 @@ const StyledDropdownMenu = styled(DropdownMenu)<{itemsHidden: boolean}>`
 const SetupReleases = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
-  padding: ${space(2)} 0;
+  padding: ${p => p.theme.space.xl} 0;
   text-align: center;
   color: ${p => p.theme.colors.gray500};
   width: 250px;
@@ -408,7 +408,7 @@ const SetupReleases = styled('div')`
 
 const SetupReleasesHeader = styled('h6')`
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const MaxReleaseWidthWrapper = styled('div')`

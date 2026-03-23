@@ -3,11 +3,10 @@ import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ClippedBox} from 'sentry/components/clippedBox';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -134,7 +133,7 @@ function QueryClippedBox({group, children}: TruncatedQueryClipBoxProps) {
 const LINE_LENGTH = 60;
 
 const PaddedSpinner = styled('div')`
-  padding: 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space.xs};
 `;
 
 const StyledClippedBox = styled(ClippedBox)`

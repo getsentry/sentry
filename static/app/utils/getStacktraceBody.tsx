@@ -1,4 +1,4 @@
-import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
+import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {Event} from 'sentry/types/event';
 
 type GetStacktraceBodyArgs = {
@@ -22,7 +22,7 @@ type GetStacktraceBodyArgs = {
  *
  * @returns Array of formatted strings each representing a stack trace, one per exception found in the event.
  */
-export default function getStacktraceBody({
+export function getStacktraceBody({
   event,
   hasSimilarityEmbeddingsFeature = false,
   includeLocation = true,

@@ -143,7 +143,6 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         assert mock_trigger.call_count == 2  # warning + critical actions
 
     def test_escalation_with_deduped_actions(self, mock_trigger: MagicMock) -> None:
-
         # make the warning action same as the critical action
         self.warning_action.config = self.critical_action.config
         self.warning_action.save()

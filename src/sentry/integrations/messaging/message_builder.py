@@ -76,7 +76,7 @@ def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
         title = ev_metadata["type"]
 
     elif ev_type == "csp":
-        title = f'{ev_metadata["directive"]} - {ev_metadata["uri"]}'
+        title = f"{ev_metadata['directive']} - {ev_metadata['uri']}"
     else:
         if isinstance(obj, GroupEvent):
             if obj.occurrence is not None:
@@ -257,10 +257,7 @@ def build_attachment_replay_link(
     group: Group, url_format: str, event: Event | GroupEvent | None = None
 ) -> str | None:
     has_replay = features.has("organizations:session-replay", group.organization)
-    has_slack_links = features.has(
-        "organizations:session-replay-slack-new-issue", group.organization
-    )
-    if has_replay and has_slack_links and group.has_replays():
+    if has_replay and group.has_replays():
         referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
         replay_url = f"{group.get_absolute_url()}replays/?referrer={referrer}"
 

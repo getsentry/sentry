@@ -3,7 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import usePageFilters from 'sentry/components/pageFilters/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -14,9 +14,9 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {
@@ -48,6 +48,7 @@ interface ReleaseWidgetQueriesProps {
   }) => void;
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
+  widgetInterval?: string;
 }
 
 export function derivedMetricsToField(field: string): string {
@@ -148,7 +149,7 @@ function getLimit(displayType: DisplayType, limit?: number) {
   }
 }
 
-function ReleaseWidgetQueries({
+export function ReleaseWidgetQueries({
   widget,
   dashboardFilters,
   cursor,
@@ -157,6 +158,7 @@ function ReleaseWidgetQueries({
   onDataFetchStart,
   selection: propsSelection,
   children,
+  widgetInterval,
 }: ReleaseWidgetQueriesProps) {
   const config = ReleasesConfig;
 
@@ -246,7 +248,7 @@ function ReleaseWidgetQueries({
       let releaseCondition = '';
       const releasesArray: string[] = [];
       if (isCustomReleaseSorting) {
-        if (releases && releases.length === 1) {
+        if (releases?.length === 1) {
           releaseCondition += `release:${releases[0]!.version}`;
           releasesArray.push(releases[0]!.version);
         }
@@ -279,7 +281,7 @@ function ReleaseWidgetQueries({
 
       const releasesArray: string[] = [];
       if (requiresCustomReleaseSorting(widget.queries[0]!)) {
-        if (releases && releases.length === 1) {
+        if (releases?.length === 1) {
           releasesArray.push(releases[0]!.version);
         }
         if (releases && releases.length > 1) {
@@ -336,6 +338,7 @@ function ReleaseWidgetQueries({
     loading: requiresCustomReleaseSorting(widget.queries[0]!) ? !releases : undefined,
     afterFetchTableData: afterFetchData,
     afterFetchSeriesData: afterFetchData,
+    widgetInterval,
   });
 
   return children({
@@ -343,5 +346,3 @@ function ReleaseWidgetQueries({
     ...rest,
   });
 }
-
-export default ReleaseWidgetQueries;

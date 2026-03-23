@@ -1,24 +1,22 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
-import PerformanceDuration from 'sentry/components/performanceDuration';
+import {Pagination} from 'sentry/components/pagination';
+import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import type {GridColumn, GridColumnOrder} from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
@@ -27,10 +25,10 @@ import type {
   TableData,
   TableDataRow,
 } from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
-import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {SegmentExplorerQuery} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
   useDomainViewFilters,
@@ -185,34 +183,43 @@ type Props = {
   domainViewFilters?: DomainViewFilters;
 };
 
-type State = {
-  widths: number[];
-};
-export class TagExplorer extends Component<Props> {
-  state: State = {
-    widths: [],
-  };
+export function TagExplorer(props: Props) {
+  const {
+    eventView,
+    organization,
+    location,
+    currentFilter,
+    projects,
+    transactionName,
+    domainViewFilters,
+  } = props;
 
-  handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
-    const widths: number[] = [...this.state.widths];
-    widths[columnIndex] = nextColumn.width
-      ? Number(nextColumn.width)
-      : COL_WIDTH_UNDEFINED;
-    this.setState({widths});
-  };
+  const navigate = useNavigate();
+  const [widths, setWidths] = useState<number[]>([]);
 
-  getColumnOrder = (columns: GridColumnOrder[]) => {
-    const {widths} = this.state;
+  const handleResizeColumn = useCallback(
+    (columnIndex: number, nextColumn: GridColumn) => {
+      setWidths(prevWidths => {
+        const newWidths = [...prevWidths];
+        newWidths[columnIndex] = nextColumn.width
+          ? Number(nextColumn.width)
+          : COL_WIDTH_UNDEFINED;
+        return newWidths;
+      });
+    },
+    []
+  );
+
+  function getColumnOrder(columns: GridColumnOrder[]) {
     return columns.map((col: GridColumnOrder, i: number) => {
       if (typeof widths[i] === 'number') {
         return {...col, width: widths[i]};
       }
       return col;
     });
-  };
+  }
 
-  onSortClick(currentSortKind?: string, currentSortField?: string) {
-    const {organization} = this.props;
+  function onSortClick(currentSortKind?: string, currentSortField?: string) {
     trackAnalytics('performance_views.summary.tag_explorer.sort', {
       organization,
       field: currentSortField,
@@ -220,13 +227,12 @@ export class TagExplorer extends Component<Props> {
     });
   }
 
-  renderHeadCell(
+  function renderHeadCell(
     sortedEventView: EventView,
     tableMeta: TableData['meta'],
     column: TableColumn<ColumnKeys>,
     columnInfo: TagColumn
   ): React.ReactNode {
-    const {location} = this.props;
     const align = fieldAlignment(column.key, column.type, tableMeta);
     const field = {field: column.key, width: column.width};
 
@@ -256,43 +262,26 @@ export class TagExplorer extends Component<Props> {
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
-        onClick={() => this.onSortClick(currentSortKind, currentSortField)}
+        onClick={() => onSortClick(currentSortKind, currentSortField)}
       />
     );
   }
 
-  renderHeadCellWithMeta = (
+  function renderHeadCellWithMeta(
     sortedEventView: EventView,
     tableMeta: TableData['meta'],
     columns: TagColumn[]
-  ) => {
+  ) {
     return (column: TableColumn<ColumnKeys>, index: number): React.ReactNode =>
-      this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]!);
-  };
+      renderHeadCell(sortedEventView, tableMeta, column, columns[index]!);
+  }
 
-  handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
-    const queryString = decodeScalar(location.query.query);
-    const conditions = new MutableSearch(queryString ?? '');
-
-    conditions.addFilterValues(tagKey, [tagValue]);
-
-    const query = conditions.formatString();
-    browserHistory.push({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        query: String(query).trim(),
-      },
-    });
-  };
-
-  handleCellAction = (
+  function handleCellAction(
     column: TableColumn<ColumnKeys>,
     tagValue: string | number,
     actionRow: any
-  ) => {
+  ) {
     return (action: Actions) => {
-      const {eventView, location, organization} = this.props;
       trackAnalytics('performance_views.summary.tag_explorer.cell_action', {
         organization,
       });
@@ -301,7 +290,7 @@ export class TagExplorer extends Component<Props> {
 
       updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
 
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {
           ...location.query,
@@ -310,23 +299,20 @@ export class TagExplorer extends Component<Props> {
         },
       });
     };
-  };
+  }
 
-  onTagKeyClick() {
-    const {organization} = this.props;
+  function onTagKeyClick() {
     trackAnalytics('performance_views.summary.tag_explorer.visit_tag_key', {
       organization,
     });
   }
 
-  renderBodyCell = (
-    parentProps: Props,
+  function renderBodyCell(
     column: TableColumn<ColumnKeys>,
     dataRow: TableDataRow
-  ): React.ReactNode => {
+  ): React.ReactNode {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const value = dataRow[column.key];
-    const {location, organization, transactionName} = parentProps;
 
     if (column.key === 'key') {
       const target = tagsRouteWithQuery({
@@ -334,10 +320,10 @@ export class TagExplorer extends Component<Props> {
         transaction: transactionName,
         projectID: decodeScalar(location.query.project),
         query: {...location.query, tagKey: dataRow.tags_key},
-        view: this.props.domainViewFilters?.view,
+        view: domainViewFilters?.view,
       });
       return (
-        <Link to={target} onClick={() => this.onTagKeyClick()}>
+        <Link to={target} onClick={() => onTagKeyClick()}>
           {dataRow.tags_key}
         </Link>
       );
@@ -351,7 +337,7 @@ export class TagExplorer extends Component<Props> {
         <CellAction
           column={column}
           dataRow={actionRow}
-          handleCellAction={this.handleCellAction(column, dataRow.tags_value, actionRow)}
+          handleCellAction={handleCellAction(column, dataRow.tags_value, actionRow)}
           allowActions={allowActions}
         >
           <div className="truncate">{dataRow.tags_value}</div>
@@ -389,88 +375,78 @@ export class TagExplorer extends Component<Props> {
       );
     }
     return value;
-  };
-
-  renderBodyCellWithData = (parentProps: Props) => {
-    return (column: TableColumn<ColumnKeys>, dataRow: TableDataRow): React.ReactNode =>
-      this.renderBodyCell(parentProps, column, dataRow);
-  };
-
-  render() {
-    const {eventView, organization, location, currentFilter, projects, transactionName} =
-      this.props;
-
-    const tagSort = decodeScalar(location.query?.tagSort);
-    const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
-
-    const tagEventView = eventView.clone();
-    tagEventView.fields = TAG_EXPLORER_COLUMN_ORDER;
-
-    const tagSorts = decodeSorts(tagSort);
-
-    const sortedEventView = tagEventView.withSorts(
-      tagSorts.length
-        ? tagSorts
-        : [
-            {
-              field: 'sumdelta',
-              kind: 'desc',
-            },
-          ]
-    );
-
-    const aggregateColumn = getTransactionField(currentFilter, projects, sortedEventView);
-
-    const adjustedColumns = getColumnsWithReplacedDuration(
-      currentFilter,
-      projects,
-      sortedEventView
-    );
-    const columns = this.getColumnOrder(adjustedColumns);
-
-    const columnSortBy = sortedEventView.getSorts();
-
-    return (
-      <SegmentExplorerQuery
-        eventView={sortedEventView}
-        orgSlug={organization.slug}
-        location={location}
-        aggregateColumn={aggregateColumn}
-        limit={5}
-        cursor={cursor}
-      >
-        {({isLoading, tableData, pageLinks}) => {
-          return (
-            <Fragment>
-              <GuideAnchor target="tag_explorer">
-                <TagsHeader
-                  transactionName={transactionName}
-                  location={location}
-                  organization={organization}
-                  pageLinks={pageLinks}
-                />
-              </GuideAnchor>
-              <GridEditable
-                isLoading={isLoading}
-                data={tableData?.data ? tableData.data : []}
-                columnOrder={columns}
-                columnSortBy={columnSortBy}
-                grid={{
-                  renderHeadCell: this.renderHeadCellWithMeta(
-                    sortedEventView,
-                    tableData?.meta || {},
-                    adjustedColumns
-                  ) as any,
-                  renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-                  onResizeColumn: this.handleResizeColumn as any,
-                }}
-              />
-            </Fragment>
-          );
-        }}
-      </SegmentExplorerQuery>
-    );
   }
+
+  const tagSort = decodeScalar(location.query?.tagSort);
+  const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
+
+  const tagEventView = eventView.clone();
+  tagEventView.fields = TAG_EXPLORER_COLUMN_ORDER;
+
+  const tagSorts = decodeSorts(tagSort);
+
+  const sortedEventView = tagEventView.withSorts(
+    tagSorts.length
+      ? tagSorts
+      : [
+          {
+            field: 'sumdelta',
+            kind: 'desc',
+          },
+        ]
+  );
+
+  const aggregateColumn = getTransactionField(currentFilter, projects, sortedEventView);
+
+  const adjustedColumns = getColumnsWithReplacedDuration(
+    currentFilter,
+    projects,
+    sortedEventView
+  );
+  const columns = getColumnOrder(adjustedColumns);
+
+  const columnSortBy = sortedEventView.getSorts();
+
+  return (
+    <SegmentExplorerQuery
+      eventView={sortedEventView}
+      orgSlug={organization.slug}
+      location={location}
+      aggregateColumn={aggregateColumn}
+      limit={5}
+      cursor={cursor}
+    >
+      {({isLoading, tableData, pageLinks}) => {
+        return (
+          <Fragment>
+            <GuideAnchor target="tag_explorer">
+              <TagsHeader
+                transactionName={transactionName}
+                location={location}
+                organization={organization}
+                pageLinks={pageLinks}
+              />
+            </GuideAnchor>
+            <GridEditable
+              isLoading={isLoading}
+              data={tableData?.data ? tableData.data : []}
+              columnOrder={columns}
+              columnSortBy={columnSortBy}
+              grid={{
+                renderHeadCell: renderHeadCellWithMeta(
+                  sortedEventView,
+                  tableData?.meta || {},
+                  adjustedColumns
+                ) as any,
+                renderBodyCell: renderBodyCell as any,
+                onResizeColumn: handleResizeColumn as any,
+              }}
+            />
+          </Fragment>
+        );
+      }}
+    </SegmentExplorerQuery>
+  );
 }
 
 type HeaderProps = {
@@ -482,13 +458,14 @@ type HeaderProps = {
 
 function TagsHeader(props: HeaderProps) {
   const domainViewFilters = useDomainViewFilters();
+  const navigate = useNavigate();
   const {pageLinks, organization, location, transactionName} = props;
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
     trackAnalytics('performance_views.summary.tag_explorer.change_page', {
       organization,
     });
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [TAGS_CURSOR_NAME]: cursor},
     });
@@ -535,10 +512,10 @@ const AlignRight = styled('div')`
 const Header = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   align-items: center;
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
+  margin: 0 0 0 ${p => p.theme.space.md};
 `;

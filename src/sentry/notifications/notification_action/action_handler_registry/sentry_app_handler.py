@@ -6,7 +6,6 @@ from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.transformers import TargetTypeConfigTransformer
 from sentry.workflow_engine.types import ActionHandler, ActionInvocation, ConfigTransformer
-from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 @action_handler_registry.register(Action.Type.SENTRY_APP)
@@ -23,10 +22,6 @@ class SentryAppActionHandler(ActionHandler):
             "target_type": {
                 "type": ["integer"],
                 "enum": [ActionTarget.SENTRY_APP.value],
-            },
-            "sentry_app_identifier": {
-                "type": ["string"],
-                "enum": [*SentryAppIdentifier],
             },
         },
         "required": ["target_type", "target_identifier"],

@@ -9,14 +9,10 @@ class SeerEntrypointKey(StrEnum):
     SLACK = "slack"
 
 
-class SeerEntrypoint[CachePayloadT](Protocol):
+class SeerAutofixEntrypoint[CachePayloadT](Protocol):
     """
-    A protocol for external entrypoints (usually integrations) into accessing Seer functionality.
-    The idea being, if you want to trigger some operation in Seer, all you should need to do
-    is implement this protocol, instantiate it, and pass it to the operator.
-
-    The operator will do all the interfacing with Seer, and the entrypoint will do the interfacing
-    with your external service.
+    Protocol for entrypoints that support autofix workflows.
+    Implement this to trigger autofix operations and receive updates via the operator.
     """
 
     key: SeerEntrypointKey
@@ -24,9 +20,18 @@ class SeerEntrypoint[CachePayloadT](Protocol):
     @staticmethod
     def has_access(organization: Organization) -> bool:
         """
-        Used by the operator (SeerOperator.has_access) to gate access prevent a workflow unless
+        Used by the operator (SeerAutofixOperator.has_access) to gate access unless
         the organization has access to at least one entrypoint. The operator will check for
         seer-access prior to this check, so no need to repeat that check on the entrypoint.
+        """
+        ...
+
+    def on_trigger_autofix_already_exists(self, *, run_id: int, has_complete_stage: bool) -> None:
+        """
+        Called when an autofix run already exists for the group.
+        Also passes the most recent state from the matching stopping_point step for convenience.
+
+        Example Usage: Sending a 'run in progress' message, etc.
         """
         ...
 
@@ -56,7 +61,9 @@ class SeerEntrypoint[CachePayloadT](Protocol):
 
     @staticmethod
     def on_autofix_update(
-        event_type: SentryAppEventType, event_payload: dict[str, Any], cache_payload: CachePayloadT
+        event_type: SentryAppEventType,
+        event_payload: dict[str, Any],
+        cache_payload: CachePayloadT,
     ) -> None:
         """
         Called when an autofix update is received (via Seer's webhooks).
@@ -67,6 +74,24 @@ class SeerEntrypoint[CachePayloadT](Protocol):
 
         Note: This is a static method, the entrypoint instance will NOT be persisted while autofix
         updates are being received, so leverage the cached payload to persist any state.
+        """
+        ...
+
+
+class SeerExplorerEntrypoint[CachePayloadT](Protocol):
+    """
+    Protocol for entrypoints that support explorer workflows.
+    Explorer-specific methods will be added in later PRs.
+    """
+
+    key: SeerEntrypointKey
+
+    @staticmethod
+    def has_access(organization: Organization) -> bool:
+        """
+        Used to gate access unless the organization has access to at least one entrypoint.
+        The caller will check for seer-access prior to this check, so no need to repeat
+        that check on the entrypoint.
         """
         ...
 

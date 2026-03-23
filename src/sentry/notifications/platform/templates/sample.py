@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.types import NotificationTemplateSource
 from sentry.notifications.platform.types import (
     BoldTextBlock,
     CodeBlock,
@@ -15,15 +12,15 @@ from sentry.notifications.platform.types import (
     NotificationRenderedAction,
     NotificationRenderedImage,
     NotificationRenderedTemplate,
+    NotificationSource,
     NotificationTemplate,
     ParagraphBlock,
     PlainTextBlock,
 )
 
 
-@dataclass(frozen=True)
 class ErrorAlertData(NotificationData):
-    source = NotificationTemplateSource.ERROR_ALERT
+    source: NotificationSource = NotificationSource.ERROR_ALERT
     error_type: str
     error_message: str
     project_name: str
@@ -35,7 +32,7 @@ class ErrorAlertData(NotificationData):
     assign_url: str
 
 
-@template_registry.register(ErrorAlertData.source)
+@template_registry.register(NotificationSource.ERROR_ALERT)
 class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
     category = NotificationCategory.DEBUG
     example_data = ErrorAlertData(
@@ -115,9 +112,8 @@ class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
         )
 
 
-@dataclass(frozen=True)
 class DeploymentData(NotificationData):
-    source = NotificationTemplateSource.DEPLOYMENT
+    source: NotificationSource = NotificationSource.DEPLOYMENT
     project_name: str
     version: str
     environment: str
@@ -128,7 +124,7 @@ class DeploymentData(NotificationData):
     rollback_url: str
 
 
-@template_registry.register(DeploymentData.source)
+@template_registry.register(NotificationSource.DEPLOYMENT)
 class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
     category = NotificationCategory.DEBUG
 
@@ -185,9 +181,8 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
         )
 
 
-@dataclass(frozen=True)
 class SlowLoadMetricAlertData(NotificationData):
-    source = NotificationTemplateSource.SLOW_LOAD_METRIC_ALERT
+    source: NotificationSource = NotificationSource.SLOW_LOAD_METRIC_ALERT
     alert_type: str
     severity: str
     project_name: str
@@ -200,7 +195,7 @@ class SlowLoadMetricAlertData(NotificationData):
     chart_url: str
 
 
-@template_registry.register(SlowLoadMetricAlertData.source)
+@template_registry.register(NotificationSource.SLOW_LOAD_METRIC_ALERT)
 class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetricAlertData]):
     category = NotificationCategory.DEBUG
     example_data = SlowLoadMetricAlertData(
@@ -244,9 +239,8 @@ class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetri
         )
 
 
-@dataclass(frozen=True)
 class PerformanceAlertData(NotificationData):
-    source = NotificationTemplateSource.PERFORMANCE_MONITORING
+    source: NotificationSource = NotificationSource.PERFORMANCE_MONITORING
     metric_name: str
     threshold: str
     current_value: str
@@ -255,7 +249,7 @@ class PerformanceAlertData(NotificationData):
     investigation_url: str
 
 
-@template_registry.register(PerformanceAlertData.source)
+@template_registry.register(NotificationSource.PERFORMANCE_MONITORING)
 class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlertData]):
     category = NotificationCategory.DEBUG
     example_data = PerformanceAlertData(
@@ -311,9 +305,8 @@ class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlert
         )
 
 
-@dataclass(frozen=True)
 class TeamUpdateData(NotificationData):
-    source = NotificationTemplateSource.TEAM_COMMUNICATION
+    source: NotificationSource = NotificationSource.TEAM_COMMUNICATION
     team_name: str
     update_type: str
     message: str
@@ -321,7 +314,7 @@ class TeamUpdateData(NotificationData):
     timestamp: str
 
 
-@template_registry.register(TeamUpdateData.source)
+@template_registry.register(NotificationSource.TEAM_COMMUNICATION)
 class TeamUpdateNotificationTemplate(NotificationTemplate[TeamUpdateData]):
     category = NotificationCategory.DEBUG
     example_data = TeamUpdateData(

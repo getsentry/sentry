@@ -4,17 +4,17 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
+import {DisableInDemoMode} from 'sentry/components/acl/demoModeDisabled';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {EditableIssueViewHeader} from 'sentry/views/issueList/editableIssueViewHeader';
@@ -27,7 +27,7 @@ import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDele
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import {makeFetchGroupSearchViewKey} from 'sentry/views/issueList/queries/useFetchGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
-import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
+import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
 
 type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
@@ -210,7 +210,7 @@ function IssueViewEditMenu() {
   );
 }
 
-function IssueViewsHeader({
+export function IssueViewsHeader({
   title,
   description,
   realtimeActive,
@@ -234,7 +234,7 @@ function IssueViewsHeader({
               <DisableInDemoMode>
                 <Button
                   size="sm"
-                  title={realtimeLabel}
+                  tooltipProps={{title: realtimeLabel}}
                   aria-label={realtimeLabel}
                   icon={realtimeActive ? <IconPause /> : <IconPlay />}
                   onClick={() => onRealtimeChange(!realtimeActive)}
@@ -250,8 +250,6 @@ function IssueViewsHeader({
     </Layout.Header>
   );
 }
-
-export default IssueViewsHeader;
 
 const LeftAlignContainer = styled('div')`
   text-align: left;

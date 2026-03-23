@@ -5,7 +5,7 @@ from sentry_sdk.api import capture_exception
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import StatsMixin, region_silo_endpoint
+from sentry.api.base import StatsMixin, cell_silo_endpoint
 from sentry.api.bases.project_key import ProjectKeyEndpoint
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -20,7 +20,7 @@ from sentry.utils.dates import parse_timestamp
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectKeyStatsEndpoint(ProjectKeyEndpoint, StatsMixin):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -38,7 +38,6 @@ class ProjectKeyStatsEndpoint(ProjectKeyEndpoint, StatsMixin):
     )
 
     def get(self, request: Request, project: Project, project_key: ProjectKey) -> Response:
-
         try:
             stats_params = self._parse_args(request)
         except Exception:

@@ -108,10 +108,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -168,38 +164,6 @@ describe('SeerDrawer', () => {
     });
   });
 
-  it('renders consent state if not consented', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-        },
-        integration: {ok: false, reason: null},
-        githubWriteIntegration: {ok: false, repos: []},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
-
-    expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
-  });
-
   it('renders issue summary if consent flow is removed and there is no autofix quota', async () => {
     const orgWithConsentFlowRemoved = OrganizationFixture({
       hideAiFeatures: false,
@@ -208,10 +172,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: false, reason: null},
         githubWriteIntegration: {ok: false, repos: []},
         billing: {hasAutofixQuota: false},
@@ -258,7 +218,7 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByRole('heading', {name: 'Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Seer Autofix'})).toBeInTheDocument();
 
     // Verify the Start Root Cause Analysis button is available
     const startButton = screen.getByRole('button', {name: 'Start Root Cause Analysis'});
@@ -269,10 +229,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: false, reason: null},
         githubWriteIntegration: {ok: false, repos: []},
       }),
@@ -319,51 +275,27 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
+    let resetButton = await screen.findByRole('button', {
+      name: 'Start a new analysis from scratch',
+    });
+    expect(resetButton).toBeInTheDocument();
+    expect(resetButton).toBeDisabled();
+
     const startButton = screen.getByRole('button', {name: 'Start Root Cause Analysis'});
     await userEvent.click(startButton);
 
-    expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
+    resetButton = await screen.findByRole('button', {
+      name: 'Start a new analysis from scratch',
+    });
+    expect(resetButton).toBeInTheDocument();
+    expect(resetButton).toBeEnabled();
   });
 
-  it('hides ButtonBarWrapper when AI consent is needed', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: false,
-          userHasAcknowledged: false,
-        },
-        integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {autofix: null},
-    });
-
-    render(<SeerDrawer event={mockEvent} group={mockGroup} project={mockProject} />, {
-      organization,
-    });
-
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
-    // AutofixFeedback component should not be rendered when consent is needed
-    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Start Over'})).not.toBeInTheDocument();
-  });
-
-  it('shows ButtonBarWrapper but hides Start Over button when hasAutofix is false', async () => {
+  it('shows disabled reset button when hasAutofix is false', async () => {
     // Mock AI consent as okay but no autofix capability
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -391,23 +323,26 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    // The feedback button should be visible, but not the Start Over button
-    expect(screen.getByTestId('seer-button-bar')).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Start Over'})).not.toBeInTheDocument();
+    const resetButton = await screen.findByRole('button', {
+      name: 'Start a new analysis from scratch',
+    });
+    expect(resetButton).toBeInTheDocument();
+    expect(resetButton).toBeDisabled();
+
+    // But the Start Root Cause Analysis button should not be visible
+    expect(
+      screen.queryByRole('button', {name: 'Start Root Cause Analysis'})
+    ).not.toBeInTheDocument();
 
     // Restore the original implementation
     spy.mockRestore();
   });
 
-  it('shows ButtonBarWrapper with disabled Start Over button when hasAutofix is true but no autofixData', async () => {
+  it('shows disabled reset button when hasAutofix is true but no autofixData', async () => {
     // Mock everything as ready for autofix but no data
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -425,22 +360,19 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    // Both buttons should be visible, but Start Over should be disabled
-    expect(screen.getByTestId('seer-button-bar')).toBeInTheDocument();
-    const startOverButton = screen.getByRole('button', {name: 'Start Over'});
-    expect(startOverButton).toBeInTheDocument();
-    expect(startOverButton).toBeDisabled();
+    // Reset button should be visible and enabled (onReset is always provided)
+    const resetButton = screen.getByRole('button', {
+      name: 'Start a new analysis from scratch',
+    });
+    expect(resetButton).toBeInTheDocument();
+    expect(resetButton).toBeDisabled();
   });
 
-  it('shows ButtonBarWrapper with enabled Start Over button when hasAutofix and autofixData are both true', async () => {
+  it('shows enabled reset button when hasAutofix and autofixData are both true', async () => {
     // Mock everything as ready with existing autofix data
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -458,14 +390,15 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    // Both buttons should be visible, and Start Over should be enabled
-    expect(screen.getByTestId('seer-button-bar')).toBeInTheDocument();
-    const startOverButton = screen.getByRole('button', {name: 'Start Over'});
-    expect(startOverButton).toBeInTheDocument();
-    expect(startOverButton).toBeEnabled();
+    // Reset button should be visible and enabled
+    const resetButton = screen.getByRole('button', {
+      name: 'Start a new analysis from scratch',
+    });
+    expect(resetButton).toBeInTheDocument();
+    expect(resetButton).toBeEnabled();
   });
 
-  it('displays Start Over button with autofix data', async () => {
+  it('displays reset button with autofix data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixData},
@@ -479,10 +412,14 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
+    const resetButton = screen.getByRole('button', {
+      name: 'Start a new analysis from scratch',
+    });
+    expect(resetButton).toBeInTheDocument();
+    expect(resetButton).toBeEnabled();
   });
 
-  it('displays Start Over button even without autofix data', async () => {
+  it('displays reset button even without autofix data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: null},
@@ -496,14 +433,17 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(await screen.findByRole('button', {name: 'Start Over'})).toBeInTheDocument();
+    const resetButton = await screen.findByRole('button', {
+      name: 'Start a new analysis from scratch',
+    });
+    expect(resetButton).toBeInTheDocument();
+    expect(resetButton).toBeDisabled();
     expect(
       await screen.findByRole('button', {name: 'Start Root Cause Analysis'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Start Over'})).toBeDisabled();
   });
 
-  it('resets autofix on clicking the start over button', async () => {
+  it('resets autofix on clicking the reset button', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {autofix: mockAutofixData},
@@ -517,9 +457,12 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    const startOverButton = await screen.findByRole('button', {name: 'Start Over'});
-    expect(startOverButton).toBeInTheDocument();
-    await userEvent.click(startOverButton);
+    const resetButton = await screen.findByRole('button', {
+      name: 'Start a new analysis from scratch',
+    });
+    expect(resetButton).toBeInTheDocument();
+    expect(resetButton).toBeEnabled();
+    await userEvent.click(resetButton);
 
     await waitFor(() => {
       expect(
@@ -532,10 +475,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: false, reason: null},
         githubWriteIntegration: {ok: false, repos: []},
       }),
@@ -559,7 +498,7 @@ describe('SeerDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByRole('heading', {name: 'Seer'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Seer Autofix'})).toBeInTheDocument();
 
     // Since "Install the GitHub Integration" text isn't found, let's check for
     // the "Set Up the GitHub Integration" text which is what the component is actually showing
@@ -571,10 +510,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -600,10 +535,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),
@@ -630,10 +561,6 @@ describe('SeerDrawer', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
         integration: {ok: true, reason: null},
         githubWriteIntegration: {ok: true, repos: []},
       }),

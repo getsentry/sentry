@@ -15,9 +15,8 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.slack.message_builder.issues import get_tags
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.ownership.grammar import Matcher, Owner
+from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.issues.ownership.grammar import Rule as GrammarRule
-from sentry.issues.ownership.grammar import dump_schema
 from sentry.models.environment import Environment
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule

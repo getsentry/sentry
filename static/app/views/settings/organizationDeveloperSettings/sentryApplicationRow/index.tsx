@@ -6,12 +6,11 @@ import {Link} from '@sentry/scraps/link';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {SentryAppPublishRequestModal} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppPublishRequestModal';
-import PanelItem from 'sentry/components/panels/panelItem';
-import {space} from 'sentry/styles/space';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
-import SentryApplicationRowButtons from './sentryApplicationRowButtons';
+import {SentryApplicationRowButtons} from './sentryApplicationRowButtons';
 
 interface Props {
   app: SentryApp;
@@ -20,7 +19,7 @@ interface Props {
   organization: Organization;
 }
 
-export default function SentryApplicationRow({
+export function SentryApplicationRow({
   app,
   organization,
   onPublishSubmission,
@@ -114,5 +113,5 @@ const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
       ? props.theme.tokens.content.success
       : props.theme.colors.gray400};
   font-weight: light;
-  margin-right: ${space(0.75)};
+  margin-right: ${p => p.theme.space.sm};
 `;

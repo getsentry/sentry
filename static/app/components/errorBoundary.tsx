@@ -5,10 +5,9 @@ import * as Sentry from '@sentry/react';
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
 
-import DetailedError from 'sentry/components/errors/detailedError';
+import {DetailedError} from 'sentry/components/errors/detailedError';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type DefaultProps = {
   mini: boolean;
@@ -157,7 +156,7 @@ Anyway, we apologize for the inconvenience.`
 
 const Wrapper = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   max-width: 1000px;
   margin: auto;
 `;

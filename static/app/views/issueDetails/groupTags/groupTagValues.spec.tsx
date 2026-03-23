@@ -5,7 +5,7 @@ import {TagValuesFixture} from 'sentry-fixture/tagvalues';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupTagValues} from 'sentry/views/issueDetails/groupTags/groupTagValues';
 
 describe('GroupTagValues', () => {

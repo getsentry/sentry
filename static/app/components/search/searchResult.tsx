@@ -4,11 +4,10 @@ import styled from '@emotion/styled';
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {IconInput, IconLink, IconSettings} from 'sentry/icons';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
-import highlightFuseMatches from 'sentry/utils/highlightFuseMatches';
+import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {useParams} from 'sentry/utils/useParams';
 
 import type {Result} from './sources/types';
@@ -44,7 +43,7 @@ function HighlightedMarker(p: React.ComponentProps<typeof HighlightMarker>) {
   return <HighlightMarker data-test-id="highlight" {...p} />;
 }
 
-function SearchResult({item, matches, highlighted}: Props) {
+export function SearchResult({item, matches, highlighted}: Props) {
   const params = useParams<{orgId: string}>();
 
   const {sourceType, model, extra} = item;
@@ -99,8 +98,6 @@ function SearchResult({item, matches, highlighted}: Props) {
   );
 }
 
-export default SearchResult;
-
 const SearchDetail = styled('div')`
   font-size: 0.8em;
   line-height: 1.3;
@@ -111,7 +108,7 @@ const SearchDetail = styled('div')`
 const ExtraDetail = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const BadgeDetail = styled('div')<{highlighted: boolean}>`

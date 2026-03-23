@@ -1,8 +1,11 @@
 import isPropValid from '@emotion/is-prop-valid';
+import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -17,28 +20,44 @@ import {useButtonFunctionality} from './useButtonFunctionality';
 export type {LinkButtonProps};
 
 export function LinkButton({
-  size = 'md',
   disabled,
   tooltipProps,
+  size: explicitSize,
   ...props
 }: LinkButtonProps) {
+  const contextSize = useSizeContext();
+  const size = explicitSize ?? contextSize ?? 'md';
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     disabled,
   });
 
   return (
-    <Tooltip skipWrapper {...tooltipProps} title={props.title} disabled={!props.title}>
+    <Tooltip
+      skipWrapper
+      {...tooltipProps}
+      title={tooltipProps?.title}
+      disabled={!tooltipProps?.title}
+    >
       <StyledLinkButton
         aria-label={accessibleLabel}
         aria-disabled={disabled}
         disabled={disabled}
         size={size}
         {...props}
-        // @ts-expect-error set href as undefined to force "disabled" state.
+        shapeVariant={hasChildren ? 'rectangular' : 'square'}
         href={disabled ? undefined : 'href' in props ? props.href : undefined}
-        // @ts-expect-error set to as undefined to force "disabled" state
-        to={disabled ? undefined : 'to' in props ? props.to : undefined}
+        to={
+          disabled
+            ? // Disabled links are just text - this should have never been supported in the first place.
+              // We cast it to the correct value to avoid a rightfully raised type error.
+              (undefined as unknown as LocationDescriptor)
+            : 'to' in props
+              ? props.to
+              : // Disabled links are just text - this should have never been supported in the first place.
+                // We cast it to the correct value to avoid a rightfully raised type error.
+                (undefined as unknown as LocationDescriptor)
+        }
         onClick={handleClick}
       >
         <Flex
@@ -71,7 +90,11 @@ export function LinkButton({
 }
 
 const StyledLinkButton = styled(
-  ({size: _size, title: _title, ...props}: LinkButtonProps) => {
+  ({
+    size: _size,
+    shapeVariant: _shapeVariant,
+    ...props
+  }: LinkButtonProps & {shapeVariant: 'rectangular' | 'square'}) => {
     if ('to' in props && props.to) {
       return <Link {...props} to={props.to} role="button" />;
     }
@@ -98,16 +121,18 @@ const StyledLinkButton = styled(
       prop === 'preventScrollReset' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
-)<LinkButtonProps>`
-  ${p => getLinkButtonStyles(p)}
-
-  &:focus-visible {
-    box-shadow: none;
-  }
+)<Omit<LinkButtonProps, 'size'> & {size: NonNullable<LinkButtonProps['size']>}>`
+  ${p => getLinkButtonStyles(p, p.theme)}
 `;
 
-const getLinkButtonStyles = (p: LinkButtonProps) => {
-  const buttonStyles = getButtonStyles(p as any);
+const getLinkButtonStyles = (
+  p: Omit<LinkButtonProps, 'size'> & {
+    shapeVariant: 'rectangular' | 'square';
+    size: NonNullable<LinkButtonProps['size']>;
+  },
+  theme: Theme
+) => {
+  const buttonStyles = getButtonStyles({...p, theme, shapeVariant: p.shapeVariant});
   return {
     ...(p.disabled || p.busy
       ? {color: buttonStyles.color, ':hover': {color: buttonStyles.color}}

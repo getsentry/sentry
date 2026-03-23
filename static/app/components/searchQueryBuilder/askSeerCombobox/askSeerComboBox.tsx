@@ -15,7 +15,7 @@ import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerC
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {AskSeerSearchSkeleton} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchSkeleton';
-import QueryTokens from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
+import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
 import type {
   AskSeerSearchItems,
   QueryTokensProps,
@@ -32,8 +32,8 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useMutation, type MutationOptions} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import useOrganization from 'sentry/utils/useOrganization';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
@@ -177,7 +177,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     }
   };
 
-  const items: Array<AskSeerSearchItems<T>> = useMemo(() => {
+  const items = useMemo(() => {
     if (data?.queries && data?.queries.length > 0) {
       const results: Array<AskSeerSearchItems<T>> = data?.queries.map((query, index) => ({
         ...query,

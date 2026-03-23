@@ -16,7 +16,6 @@ class SampleScheduleDataTest(APITestCase):
 
     @freeze_time("2023-10-26T12:32:25Z")
     def test_simple_crontab(self) -> None:
-
         expected_ticks = [
             int(datetime(2023, 10, 26, 13, 00).timestamp()),
             int(datetime(2023, 10, 26, 14, 00).timestamp()),

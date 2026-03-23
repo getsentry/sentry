@@ -426,8 +426,8 @@ const IsFieldDescriptions: Record<IsFieldValues, string> = {
   [IsFieldValues.ASSIGNED]: t('Issues assigned to a team member'),
   [IsFieldValues.UNASSIGNED]: t('Issues not assigned to anyone'),
   [IsFieldValues.FOR_REVIEW]: t('Issues pending review'),
-  [IsFieldValues.LINKED]: t('Issues linked to other issues'),
-  [IsFieldValues.UNLINKED]: t('Issues not linked to other issues'),
+  [IsFieldValues.LINKED]: t('Issues linked via an integration'),
+  [IsFieldValues.UNLINKED]: t('Issues not linked via an integration'),
 };
 
 export function getIsFieldDescriptionFromValue(
@@ -1836,7 +1836,11 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
-  [FieldKey.PROJECT]: {kind: FieldKind.FIELD, valueType: FieldValueType.STRING},
+  [FieldKey.PROJECT]: {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
   [FieldKey.HAS]: {
     desc: t('Determines if a tag or field exists in an event'),
     kind: FieldKind.FIELD,
@@ -2562,7 +2566,7 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   git_pr_number: {
     desc: t('The pull request number associated with a build'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    valueType: FieldValueType.INTEGER,
   },
 };
 
@@ -2753,7 +2757,7 @@ export const ISSUE_FIELDS: FieldKey[] = [
  * Search locations are defined in sentry/snuba/events.py, anything that
  * references a tag should not be defined here.
  */
-export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new Set([
+export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS = new Set<FieldKey>([
   FieldKey.APP_IN_FOREGROUND,
   FieldKey.DEVICE_ARCH,
   FieldKey.DEVICE_BRAND,
@@ -3409,8 +3413,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
   },
 };
 
-export const getFieldDefinition = (
-  key: string,
+function _getFieldFromMappings(
   type:
     | 'event'
     | 'replay'
@@ -3421,40 +3424,45 @@ export const getFieldDefinition = (
     | 'log'
     | 'uptime'
     | 'tracemetric' = 'event',
+  key: string,
   kind?: FieldKind
-): FieldDefinition | null => {
+): FieldDefinition | undefined | null {
   switch (type) {
     case 'replay':
-      if (REPLAY_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(REPLAY_FIELD_DEFINITIONS, key)) {
         return REPLAY_FIELD_DEFINITIONS[key as keyof typeof REPLAY_FIELD_DEFINITIONS];
       }
-      if (REPLAY_CLICK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(REPLAY_CLICK_FIELD_DEFINITIONS, key)) {
         return REPLAY_CLICK_FIELD_DEFINITIONS[
           key as keyof typeof REPLAY_CLICK_FIELD_DEFINITIONS
         ];
       }
-      if (REPLAY_TAP_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(REPLAY_TAP_FIELD_DEFINITIONS, key)) {
         return REPLAY_TAP_FIELD_DEFINITIONS[
           key as keyof typeof REPLAY_TAP_FIELD_DEFINITIONS
         ];
       }
       if (REPLAY_FIELDS.includes(key as FieldKey)) {
-        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
+          return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        }
       }
       return null;
     case 'feedback':
-      if (FEEDBACK_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(FEEDBACK_FIELD_DEFINITIONS, key)) {
         return FEEDBACK_FIELD_DEFINITIONS[key as keyof typeof FEEDBACK_FIELD_DEFINITIONS];
       }
       if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
-        return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
+          return EVENT_FIELD_DEFINITIONS[key as FieldKey];
+        }
       }
       return null;
     case 'preprod':
-      if (PREPROD_FIELD_DEFINITIONS[key]) {
+      if (Object.hasOwn(PREPROD_FIELD_DEFINITIONS, key)) {
         return PREPROD_FIELD_DEFINITIONS[key];
       }
-      if (SPAN_FIELD_DEFINITIONS[key]) {
+      if (Object.hasOwn(SPAN_FIELD_DEFINITIONS, key)) {
         return SPAN_FIELD_DEFINITIONS[key];
       }
 
@@ -3473,8 +3481,8 @@ export const getFieldDefinition = (
       return null;
 
     case 'span':
-      if (SPAN_FIELD_DEFINITIONS[key]) {
-        return SPAN_FIELD_DEFINITIONS[key];
+      if (Object.hasOwn(SPAN_FIELD_DEFINITIONS, key)) {
+        return SPAN_FIELD_DEFINITIONS[key] ?? null;
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
@@ -3495,8 +3503,7 @@ export const getFieldDefinition = (
       return null;
 
     case 'log':
-      if (LOG_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      if (Object.hasOwn(LOG_FIELD_DEFINITIONS, key)) {
         return LOG_FIELD_DEFINITIONS[key];
       }
 
@@ -3518,8 +3525,7 @@ export const getFieldDefinition = (
       return null;
 
     case 'tracemetric':
-      if (TRACEMETRIC_FIELD_DEFINITIONS.hasOwnProperty(key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      if (Object.hasOwn(TRACEMETRIC_FIELD_DEFINITIONS, key)) {
         return TRACEMETRIC_FIELD_DEFINITIONS[key];
       }
 
@@ -3542,12 +3548,29 @@ export const getFieldDefinition = (
 
     case 'event':
     default:
-      if (EVENT_FIELD_DEFINITIONS.hasOwnProperty(key)) {
+      if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
   }
+}
+
+export const getFieldDefinition = (
+  key: string,
+  type:
+    | 'event'
+    | 'replay'
+    | 'replay_click'
+    | 'feedback'
+    | 'preprod'
+    | 'span'
+    | 'log'
+    | 'uptime'
+    | 'tracemetric' = 'event',
+  kind?: FieldKind
+): FieldDefinition | null => {
+  return _getFieldFromMappings(type, key, kind) ?? null;
 };
 
 export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {

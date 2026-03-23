@@ -8,32 +8,32 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
-import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {AutofixSection} from 'sentry/views/issueDetails/streamline/sidebar/autofixSection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
-import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
+import {FirstLastSeenSection} from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
-import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
-import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
+import {PeopleSection} from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
+import {SeerSection} from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
 
 type Props = {group: Group; project: Project; event?: Event};
 
-export default function StreamlinedSidebar({group, event, project}: Props) {
+export function StreamlinedSidebar({group, event, project}: Props) {
   const theme = useTheme();
   const activeUser = useUser();
   const organization = useOrganization();
@@ -95,7 +95,11 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           <StyledBreak />
           {showSeerSection && (
             <ErrorBoundary mini>
-              <SeerSection group={group} project={project} event={event} />
+              {organization.features.includes('autofix-on-explorer-v2') ? (
+                <AutofixSection group={group} project={project} event={event} />
+              ) : (
+                <SeerSection group={group} project={project} event={event} />
+              )}
             </ErrorBoundary>
           )}
           {event && (
@@ -133,19 +137,19 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 }
 
 const StyledBreak = styled('hr')`
-  margin-top: ${space(1.5)};
-  margin-bottom: ${space(1.5)};
+  margin-top: ${p => p.theme.space.lg};
+  margin-bottom: ${p => p.theme.space.lg};
   border-color: ${p => p.theme.tokens.border.primary};
 `;
 
 export const SidebarSectionTitle = styled(SidebarSection.Title)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   color: ${p => p.theme.tokens.content.primary};
 `;
 
 const Side = styled(Layout.Side)`
   position: relative;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     border-top: 1px solid ${p => p.theme.tokens.border.primary};
   }
