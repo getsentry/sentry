@@ -102,39 +102,6 @@ export function isSolutionArtifact(value: unknown): value is Artifact<SolutionAr
   return isString(data.one_line_summary) && isArrayOf(data.steps, isSolutionStep);
 }
 
-export interface ImpactItem {
-  evidence: string;
-  impact_description: string;
-  label: string;
-  rating: 'low' | 'medium' | 'high';
-}
-
-export interface ImpactAssessmentArtifact {
-  impacts: ImpactItem[];
-  one_line_description: string;
-}
-
-export interface SuspectCommit {
-  author_email: string;
-  author_name: string;
-  committed_date: string;
-  description: string;
-  message: string;
-  repo_name: string;
-  sha: string;
-}
-
-interface SuggestedAssignee {
-  email: string;
-  name: string;
-  why: string;
-}
-
-export interface TriageArtifact {
-  suggested_assignee?: SuggestedAssignee | null;
-  suspect_commit?: SuspectCommit | null;
-}
-
 export function isCodeChangesArtifact(value: unknown): value is ExplorerFilePatch[] {
   return isArrayOf(value, isExplorerFilePatch) && value.length > 0;
 }
