@@ -277,7 +277,7 @@ class Parameterizer:
             # Only mark the parameterizer as experimental if there are actually any experiments
             # running. If there aren't, then both parameterizers use the default regex patterns, so
             # the "experimental" parameterizer isn't actually experimental.
-            and EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP != DEFAULT_PARAMETERIZATION_REGEXES_MAP
+            and any(r.experimental_pattern is not None for r in regexes)
         )
         self._parameterization_regex = self._make_regex_from_patterns(
             regex_pattern_keys or DEFAULT_PARAMETERIZATION_REGEXES_MAP.keys()
