@@ -44,6 +44,7 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
 import {UserSnoozeDeprecationBanner} from 'sentry/views/alerts/rules/userSnoozeDeprecationBanner';
+import {WorkflowEngineAlert} from 'sentry/views/alerts/rules/workflowEngineAlert';
 
 import {IssueAlertDetailsChart} from './alertChart';
 import {AlertRuleIssuesList} from './issuesList';
@@ -464,6 +465,7 @@ export default function AlertRuleDetails() {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main>
+          <WorkflowEngineAlert />
           {renderIncompatibleAlert()}
           {renderDisabledAlertBanner()}
           {rule.snooze && (

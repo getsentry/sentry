@@ -40,6 +40,7 @@ import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/u
 import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {UserSnoozeDeprecationBanner} from 'sentry/views/alerts/rules/userSnoozeDeprecationBanner';
+import {WorkflowEngineAlert} from 'sentry/views/alerts/rules/workflowEngineAlert';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
@@ -171,6 +172,7 @@ export function MetricDetailsBody({
       )}
       <Layout.Body>
         <Layout.Main>
+          <WorkflowEngineAlert />
           {rule.snooze && (
             <Alert.Container>
               {rule.snoozeForEveryone ? (
