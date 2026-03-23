@@ -29,6 +29,7 @@ import {useActivateNavigationGroupOnHover} from 'sentry/views/navigation/primary
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/navigation/primary/whatsNew';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
@@ -36,7 +37,7 @@ export function PrimaryNavigationItems() {
   const ref = useRef<HTMLUListElement>(null);
 
   const {layout} = usePrimaryNavigation();
-  const hasPageFrame = organization.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   const makeNavigationItemProps = useActivateNavigationGroupOnHover({ref});
 
