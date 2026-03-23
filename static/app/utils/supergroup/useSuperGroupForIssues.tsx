@@ -27,16 +27,16 @@ export function useSuperGroupForIssues() {
   const organization = useOrganization();
 
   const cache = useAggregatedQueryKeys<string, SupergroupState>({
-    cacheKey: `/organizations/${organization.slug}/seer/supergroup-lookup/`,
+    cacheKey: `/organizations/${organization.slug}/seer/supergroups/by-group/`,
     bufferLimit: 25,
     getQueryKey: useCallback(
       (ids: readonly string[]): ApiQueryKey => [
-        getApiUrl('/organizations/$organizationIdOrSlug/seer/supergroups/', {
+        getApiUrl('/organizations/$organizationIdOrSlug/seer/supergroups/by-group/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         {
           query: {
-            query: `issue.id:[${ids.join(',')}]`,
+            group_id: ids as string[],
           },
         },
       ],
