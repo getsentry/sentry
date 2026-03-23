@@ -102,7 +102,6 @@ export function ScmFeatureSelectionCards({
               role="checkbox"
               aria-checked={isSelected}
               disabled={!!meta.alwaysEnabled}
-              aria-label={meta.label}
               key={feature}
             >
               <Container

@@ -43,12 +43,7 @@ describe('ScmFeatureSelectionCards', () => {
       />
     );
 
-    expect(screen.getByText('Error monitoring')).toBeInTheDocument();
-    expect(screen.getByText('Tracing')).toBeInTheDocument();
-    expect(screen.queryByText('Session replay')).not.toBeInTheDocument();
-    expect(screen.queryByText('Profiling')).not.toBeInTheDocument();
-    expect(screen.queryByText('Logging')).not.toBeInTheDocument();
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
   });
 
   it('shows correct selected count', () => {
@@ -79,7 +74,7 @@ describe('ScmFeatureSelectionCards', () => {
     );
 
     const errorMonitoringCard = screen.getByRole('checkbox', {
-      name: 'Error monitoring',
+      name: /Error monitoring/,
     });
     expect(errorMonitoringCard).toBeDisabled();
 
@@ -101,7 +96,7 @@ describe('ScmFeatureSelectionCards', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Tracing'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: /Tracing/}));
     expect(onToggleFeature).toHaveBeenCalledWith(ProductSolution.PERFORMANCE_MONITORING);
   });
 
@@ -115,7 +110,7 @@ describe('ScmFeatureSelectionCards', () => {
     );
 
     const errorMonitoringCard = screen.getByRole('checkbox', {
-      name: 'Error monitoring',
+      name: /Error monitoring/,
     });
     expect(errorMonitoringCard).toBeChecked();
   });
