@@ -49,6 +49,17 @@ const platformOptions = platforms.map(platform => ({
   leadingItems: () => <PlatformIcon platform={platform.id} size={16} />,
 }));
 
+function toSelectedSdk(info: PlatformIntegration): OnboardingSelectedSDK {
+  return {
+    key: info.id,
+    name: info.name,
+    language: info.language,
+    type: info.type,
+    link: info.link,
+    category: 'popular',
+  };
+}
+
 function shouldSuggestFramework(platformKey: PlatformKey): boolean {
   const info = getPlatformInfo(platformKey);
   return (
@@ -71,15 +82,9 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
 
   const setPlatform = useCallback(
     (platformKey: PlatformKey) => {
-      const platformInfo = getPlatformInfo(platformKey);
-      if (platformInfo) {
-        const {id: _id, ...platformInfoSelect} = platformInfo;
-
-        setSelectedPlatform({
-          ...platformInfoSelect,
-          key: platformInfo.id,
-          category: 'popular',
-        });
+      const info = getPlatformInfo(platformKey);
+      if (info) {
+        setSelectedPlatform(toSelectedSdk(info));
       }
     },
     [setSelectedPlatform]
@@ -189,14 +194,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
       ) {
         openConsoleModal({
           organization,
-          selectedPlatform: {
-            key: platformInfo.id,
-            name: platformInfo.name,
-            language: platformInfo.language,
-            type: platformInfo.type,
-            link: platformInfo.link,
-            category: 'popular',
-          },
+          selectedPlatform: toSelectedSdk(platformInfo),
           origin: 'onboarding',
         });
         return;
@@ -205,14 +203,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
       // For base languages (JavaScript, Python, etc.), show a modal suggesting
       // specific frameworks — matching the legacy onboarding behavior.
       if (platformInfo && shouldSuggestFramework(platformKey)) {
-        const basePlatformSdk: OnboardingSelectedSDK = {
-          key: platformInfo.id,
-          name: platformInfo.name,
-          language: platformInfo.language,
-          type: platformInfo.type,
-          link: platformInfo.link,
-          category: 'popular',
-        };
+        const baseSdk = toSelectedSdk(platformInfo);
 
         const {FrameworkSuggestionModal, modalCss} =
           await import('sentry/components/onboarding/frameworkSuggestionModal');
@@ -222,13 +213,13 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
             <FrameworkSuggestionModal
               {...deps}
               organization={organization}
-              selectedPlatform={basePlatformSdk}
+              selectedPlatform={baseSdk}
               onConfigure={selectedFramework => {
                 applyPlatformSelection(selectedFramework);
                 closeModal();
               }}
               onSkip={() => {
-                applyPlatformSelection(basePlatformSdk);
+                applyPlatformSelection(baseSdk);
                 closeModal();
               }}
               newOrg
