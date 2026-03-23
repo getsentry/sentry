@@ -211,7 +211,7 @@ class OrganizationMappingReplicationTest(TransactionTestCase):
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
             update=update_organization_mapping_from_instance(
-                organization=self.organization, region=get_local_cell()
+                organization=self.organization, cell=get_local_cell()
             ),
         )
 
