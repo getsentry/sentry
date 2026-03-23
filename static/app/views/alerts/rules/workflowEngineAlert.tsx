@@ -15,7 +15,7 @@ export function WorkflowEngineAlert() {
     <Alert.Container>
       <Alert variant="warning">
         {tct(
-          "Some aspects of alerts may not be visible if you've used the [link:new monitors and alerts UI].",
+          "The legacy alerts UI does not support all the same features as the [link:new monitors and alerts UI]. If you've created or modified an alert using the new API, those settings will be used during evaluation but aren't fully reflected in the legacy UI.",
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/product/new-monitors-and-alerts/" />
