@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import pickle
 import zlib
 from typing import Any, Literal
@@ -9,6 +10,8 @@ from pydantic import BaseModel
 from sentry import options
 from sentry.digests.types import IdentifierKey, Notification
 from sentry.utils.codecs import BytesCodec, ZstdCodec
+
+logger = logging.getLogger("sentry.digests")
 
 _bytes_zstd = BytesCodec() | ZstdCodec()
 
@@ -66,21 +69,31 @@ class CompressedJsonCodec(Codec):
         return _bytes_zstd.encode(payload.json())
 
     def decode(self, value: bytes) -> Notification:
-        # Deferred to avoid circular import: this module is loaded during
-        # app init (via digests backend config), but Event pulls in the
-        # full model graph which isn't ready yet at that point.
+        # Deferred imports: this module is loaded during app init (via
+        # digests backend config), before the full model graph is ready.
+        from sentry import eventstore
         from sentry.services.eventstore.models import Event
 
         raw = NotificationPayload.parse_raw(_bytes_zstd.decode(value))
-        # Partial Event: only project_id, event_id, group_id, and
-        # datetime are populated. Do not access other fields (e.g.
-        # tags, title, message) — they will silently return empty values.
-        event = Event(
-            project_id=raw.project_id,
-            event_id=raw.event_id,
+
+        event = eventstore.backend.get_event_by_id(
+            raw.project_id,
+            raw.event_id,
             group_id=raw.group_id,
-            data={"timestamp": raw.timestamp},
+            skip_transaction_groupevent=True,
         )
+        if event is None:
+            logger.warning(
+                "digests.codec.event_not_found",
+                extra={"project_id": raw.project_id, "event_id": raw.event_id},
+            )
+            event = Event(
+                project_id=raw.project_id,
+                event_id=raw.event_id,
+                group_id=raw.group_id,
+                data={"timestamp": raw.timestamp},
+            )
+
         return Notification(
             event=event,
             rules=raw.rule_ids,

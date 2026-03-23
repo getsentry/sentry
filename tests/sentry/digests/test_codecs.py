@@ -4,6 +4,7 @@ import pickle
 import zlib
 from collections.abc import Iterator
 from datetime import datetime, timezone
+from unittest import mock
 from unittest.mock import Mock
 
 import pytest
@@ -52,36 +53,60 @@ def _assert_notifications_equal(decoded: Notification, original: Notification) -
 class TestCompressedJsonCodec:
     codec: CompressedJsonCodec = CompressedJsonCodec()
 
+    @pytest.fixture(autouse=True)
+    def _mock_eventstore(self) -> Iterator[None]:
+        """Stub eventstore so decode can fetch events without Snuba."""
+        self._events: dict[tuple[int, str], Event] = {}
+
+        def fake_get_event_by_id(project_id: int, event_id: str, **kwargs: object) -> Event | None:
+            return self._events.get((project_id, event_id))
+
+        with mock.patch(
+            "sentry.eventstore.backend.get_event_by_id", side_effect=fake_get_event_by_id
+        ):
+            yield
+
+    def _register(self, notification: Notification) -> None:
+        e = notification.event
+        self._events[(e.project_id, e.event_id)] = e
+
     def test_round_trip(self) -> None:
         original = _make_notification()
+        self._register(original)
         decoded = self.codec.decode(self.codec.encode(original))
         _assert_notifications_equal(decoded, original)
 
     def test_round_trip_workflow_identifier_key(self) -> None:
         original = _make_notification(identifier_key=IdentifierKey.WORKFLOW)
+        self._register(original)
         decoded = self.codec.decode(self.codec.encode(original))
         assert decoded.identifier_key == IdentifierKey.WORKFLOW
 
     def test_round_trip_none_notification_uuid(self) -> None:
         original = _make_notification(notification_uuid=None)
+        self._register(original)
         decoded = self.codec.decode(self.codec.encode(original))
         assert decoded.notification_uuid is None
 
     def test_round_trip_empty_rules(self) -> None:
         original = _make_notification(rules=[])
+        self._register(original)
         decoded = self.codec.decode(self.codec.encode(original))
         assert list(decoded.rules) == []
 
     def test_decoded_event_datetime(self) -> None:
         ts = 1700000000.0
         original = _make_notification(timestamp=ts)
+        self._register(original)
         decoded = self.codec.decode(self.codec.encode(original))
         expected = datetime.fromtimestamp(ts, tz=timezone.utc)
         assert decoded.event.datetime == expected
 
     def test_decoded_event_group_setter(self) -> None:
         """Verify the decoded Event supports the .group setter used by _bind_records."""
-        decoded = self.codec.decode(self.codec.encode(_make_notification()))
+        original = _make_notification()
+        self._register(original)
+        decoded = self.codec.decode(self.codec.encode(original))
 
         group = Mock(spec=Group, id=99)
         decoded.event.group = group
@@ -91,17 +116,43 @@ class TestCompressedJsonCodec:
         encoded = self.codec.encode(_make_notification())
         assert encoded[:4] == _ZSTD_MAGIC
 
+    def test_event_not_found_falls_back_to_partial(self) -> None:
+        original = _make_notification()
+        # Don't register — eventstore returns None
+        decoded = self.codec.decode(self.codec.encode(original))
+        assert decoded.event.project_id == original.event.project_id
+        assert decoded.event.event_id == original.event.event_id
+        assert decoded.event.group_id == original.event.group_id
+        assert decoded.event.datetime == original.event.datetime
+
 
 class TestCompressedPickleCodec:
     codec: CompressedPickleCodec = CompressedPickleCodec()
+
+    @pytest.fixture(autouse=True)
+    def _mock_eventstore(self) -> Iterator[None]:
+        self._events: dict[tuple[int, str], Event] = {}
+
+        def fake_get_event_by_id(project_id: int, event_id: str, **kwargs: object) -> Event | None:
+            return self._events.get((project_id, event_id))
+
+        with mock.patch(
+            "sentry.eventstore.backend.get_event_by_id", side_effect=fake_get_event_by_id
+        ):
+            yield
 
     @pytest.fixture(autouse=True)
     def _enable_json_zstd(self) -> Iterator[None]:
         with override_options({"digests.encode-json-zstd": True}):
             yield
 
+    def _register(self, notification: Notification) -> None:
+        e = notification.event
+        self._events[(e.project_id, e.event_id)] = e
+
     def test_round_trip(self) -> None:
         original = _make_notification()
+        self._register(original)
         decoded = self.codec.decode(self.codec.encode(original))
         _assert_notifications_equal(decoded, original)
 
@@ -137,6 +188,7 @@ class TestCompressedPickleCodec:
     def test_cross_format_decode(self) -> None:
         """Data written with option off can be read with option on, and vice versa."""
         original = _make_notification()
+        self._register(original)
 
         # Write pickle, read with json-zstd enabled
         with override_options({"digests.encode-json-zstd": False}):
@@ -152,9 +204,9 @@ class TestCompressedPickleCodec:
 
     def test_delegates_to_json_codec(self) -> None:
         original = _make_notification()
+        self._register(original)
         encoded = self.codec.encode(original)
         assert encoded[:4] == _ZSTD_MAGIC
-        # CompressedJsonCodec can decode it directly
         json_codec = CompressedJsonCodec()
         decoded = json_codec.decode(encoded)
         assert decoded.event.event_id == original.event.event_id
