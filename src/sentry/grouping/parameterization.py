@@ -258,6 +258,9 @@ EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP = {
 class Parameterizer:
     def __init__(
         self,
+        # List of `ParameterizationRegex` objects defining the regexes to use. If nothing is passed,
+        # the default set will be used.
+        regexes: Sequence[ParameterizationRegex] = DEFAULT_PARAMETERIZATION_REGEXES,
         # List of `ParameterizationRegex.name` values, used to selectively enable pattern types. To
         # use all available parameterization, omit this argument.
         regex_pattern_keys: Sequence[str] | None = None,
@@ -265,6 +268,10 @@ class Parameterizer:
         # pattern will fall back to the standard pattern.)
         use_experimental_regexes: bool = False,
     ):
+        # Filter regexes by the specified keys, if given
+        if regex_pattern_keys:
+            regexes = [r for r in regexes if r.name in regex_pattern_keys]
+
         self._experimental = (
             use_experimental_regexes
             # Only mark the parameterizer as experimental if there are actually any experiments
