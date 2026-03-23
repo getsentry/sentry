@@ -2,7 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
@@ -108,5 +112,44 @@ describe('DetectorLink', () => {
 
     expect(screen.getByText(/all issues in/i)).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('renders percent thresholds using delta values in details', () => {
+    const percentDetector: MetricDetector = {
+      ...mockDetector,
+      config: {
+        detectionType: 'percent',
+        comparisonDelta: 3600,
+      },
+      conditionGroup: {
+        id: 'cg-1',
+        logicType: DataConditionGroupLogicType.ALL,
+        conditions: [
+          {
+            id: 'c-1',
+            type: DataConditionType.GREATER,
+            comparison: 108,
+            conditionResult: DetectorPriorityLevel.HIGH,
+          },
+          {
+            id: 'c-2',
+            type: DataConditionType.GREATER,
+            comparison: 115,
+            conditionResult: DetectorPriorityLevel.MEDIUM,
+          },
+          {
+            id: 'c-ok',
+            type: DataConditionType.LESS_OR_EQUAL,
+            comparison: 108,
+            conditionResult: DetectorPriorityLevel.OK,
+          },
+        ],
+      },
+    };
+
+    render(<DetectorLink detector={percentDetector} />, {organization});
+
+    expect(screen.getByText(/8% higher than previous 1 hour/)).toBeInTheDocument();
+    expect(screen.getByText(/15% higher than previous 1 hour/)).toBeInTheDocument();
   });
 });

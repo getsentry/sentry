@@ -518,9 +518,9 @@ def compare_snapshots(
         time_now = timezone.now()
 
         metric_tags = {
-            "org_id": str(org_id),
-            "project_id": str(project_id),
-            "app_id": head_artifact.app_id or "",
+            "temp_org_id": str(org_id),
+            "temp_project_id": str(project_id),
+            "temp_app_id": head_artifact.app_id or "",
         }
 
         diff_duration_s = (time_now - task_start_time).total_seconds()
