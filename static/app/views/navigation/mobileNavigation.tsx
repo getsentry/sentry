@@ -21,6 +21,7 @@ import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function MobileNavigation() {
   const theme = useTheme();
@@ -153,8 +154,7 @@ interface NavigationOverlayPortalProps {
 function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement | null>(null);
-  const organization = useOrganization({allowNull: true});
-  const hasPageFrame = organization?.features.includes('page-frame');
+  const hasPageFrame = useHasPageFrameFeature();
 
   useOnClickOutside(ref, e => {
     // Without this check the menu will reopen when the click event triggers

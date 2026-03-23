@@ -426,8 +426,8 @@ const IsFieldDescriptions: Record<IsFieldValues, string> = {
   [IsFieldValues.ASSIGNED]: t('Issues assigned to a team member'),
   [IsFieldValues.UNASSIGNED]: t('Issues not assigned to anyone'),
   [IsFieldValues.FOR_REVIEW]: t('Issues pending review'),
-  [IsFieldValues.LINKED]: t('Issues linked to other issues'),
-  [IsFieldValues.UNLINKED]: t('Issues not linked to other issues'),
+  [IsFieldValues.LINKED]: t('Issues linked via an integration'),
+  [IsFieldValues.UNLINKED]: t('Issues not linked via an integration'),
 };
 
 export function getIsFieldDescriptionFromValue(
