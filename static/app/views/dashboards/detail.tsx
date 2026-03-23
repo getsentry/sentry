@@ -301,7 +301,7 @@ class DashboardDetail extends Component<Props, State> {
             Sentry.metrics.distribution(
               'dashboards.widget.onFullScreenView',
               measure.duration,
-              {unit: 'millisecond'}
+              {unit: 'millisecond', attributes: {path: 'navigate'}}
             );
             performance.clearMarks('dashboard.widget.fullScreenViewClick');
           } catch {

@@ -265,6 +265,7 @@ function WidgetCard(props: Props) {
         const duration = performance.now() - start;
         Sentry.metrics.distribution('dashboards.widget.onFullScreenView', duration, {
           unit: 'millisecond',
+          attributes: {path: 'modal'},
         });
       });
       openWidgetViewerModal({
