@@ -79,10 +79,12 @@ export function AggregateDropdown({traceMetric}: {traceMetric: TraceMetric}) {
             o => findGroupKey(traceMetric.type, o.value) === targetGroup
           );
 
+          // Rate-based aggregates are mutually exclusive — only keep the newly selected one
+          const finalOptions =
+            targetGroup === 'rate' && newlySelected ? [newlySelected] : compatibleOptions;
+
           setMetricVisualizes(
-            compatibleOptions.map(o =>
-              updateVisualizeYAxis(visualize, o.value, traceMetric)
-            )
+            finalOptions.map(o => updateVisualizeYAxis(visualize, o.value, traceMetric))
           );
         }
       }}
