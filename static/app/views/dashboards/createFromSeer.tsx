@@ -285,8 +285,12 @@ export default function CreateFromSeer() {
     );
   }
 
+  if (!seerRunId) {
+    return null;
+  }
+
   if (isLoading && !isUpdating) {
-    return <CreateFromSeerLoading blocks={session?.blocks ?? []} />;
+    return <CreateFromSeerLoading blocks={session?.blocks ?? []} seerRunId={seerRunId} />;
   }
 
   return (

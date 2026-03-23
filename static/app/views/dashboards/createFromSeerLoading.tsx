@@ -3,20 +3,15 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
 import {BlockComponent} from 'sentry/views/seerExplorer/blockComponents';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 interface CreateFromSeerLoadingProps {
   blocks: Block[];
+  seerRunId: number;
 }
 
-export function CreateFromSeerLoading({blocks}: CreateFromSeerLoadingProps) {
-  const location = useLocation();
-  const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
-  if (!seerRunId) {
-    return null;
-  }
+export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoadingProps) {
   const blocksToRender = blocks.slice(-3);
   return (
     <Layout.Page withPadding background="secondary">
