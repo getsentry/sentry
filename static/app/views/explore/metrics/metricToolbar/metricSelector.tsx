@@ -155,6 +155,8 @@ export function MetricSelector({
         }
 
         setSearchInputValue('');
+        listState.selectionManager.setFocused(false);
+        listState.selectionManager.setFocusedKey(null);
         if (
           document.activeElement === document.body ||
           wrapperRef.current?.contains(document.activeElement)
