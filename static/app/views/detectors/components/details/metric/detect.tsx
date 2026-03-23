@@ -76,19 +76,6 @@ function makeDirectionText(condition: MetricCondition) {
   }
 }
 
-function convertComparisonValue(
-  comparison: MetricCondition['comparison'],
-  config: MetricDetector['config']
-) {
-  if (typeof comparison !== 'number') {
-    return '';
-  }
-  if (config.detectionType === 'percent') {
-    return String(percentThresholdAbsoluteToDelta(comparison));
-  }
-  return String(comparison);
-}
-
 export function getConditionDescription({
   aggregate,
   config,
@@ -149,7 +136,7 @@ export function getConditionDescription({
     );
   }
 
-  return `${makeDirectionText(condition)} ${convertComparisonValue(condition.comparison, config)}${unit}`;
+  return `${makeDirectionText(condition)} ${condition.comparison}${unit}`;
 }
 
 function DetectorPriorities({detector}: {detector: MetricDetector}) {
