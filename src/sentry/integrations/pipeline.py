@@ -298,7 +298,7 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
             if not (identity and identity_model):
                 raise NotImplementedError("Integration requires an identity")
             default_auth_id = identity_model.id
-        if self.provider.is_region_restricted and is_violating_cell_restriction(
+        if self.provider.is_cell_restricted and is_violating_cell_restriction(
             organization_id=self.organization.id, integration_id=self.integration.id
         ):
             self.get_logger().info(
