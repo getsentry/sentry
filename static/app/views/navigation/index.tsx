@@ -21,10 +21,7 @@ import {
 } from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {UserDropdown} from 'sentry/views/navigation/primary/userDropdown';
-import {
-  PrimaryNavigationContextProvider,
-  usePrimaryNavigation,
-} from 'sentry/views/navigation/primaryNavigationContext';
+import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 
 function UserAndOrganizationNavigation() {
@@ -98,12 +95,10 @@ export function Navigation() {
   }
 
   return (
-    <PrimaryNavigationContextProvider>
-      <NavigationTourProvider>
-        <SkipLink />
-        <UserAndOrganizationNavigation />
-      </NavigationTourProvider>
-    </PrimaryNavigationContextProvider>
+    <NavigationTourProvider>
+      <SkipLink />
+      <UserAndOrganizationNavigation />
+    </NavigationTourProvider>
   );
 }
 

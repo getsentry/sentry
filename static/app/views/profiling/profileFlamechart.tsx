@@ -4,6 +4,7 @@ import * as qs from 'query-string';
 
 import {Stack} from '@sentry/scraps/layout';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -104,25 +105,27 @@ export default function ProfileFlamegraphWrapper() {
       title={t('Profiling \u2014 Flamechart')}
       orgSlug={organization.slug}
     >
-      <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
-        <ProfileGroupTypeProvider
-          input={profiles.type === 'resolved' ? profiles.data : null}
-          traceID={params.eventId!}
-        >
-          <FlamegraphThemeProvider>
-            <FlamegraphStateQueryParamSync />
-            <FlamegraphStateLocalStorageSync />
-            <FlamegraphContainer>
-              {profiles.type === 'loading' || profiledTransaction.type === 'loading' ? (
-                <Stack justify="center" width="100%" height="100%" position="absolute">
-                  <LoadingIndicator />
-                </Stack>
-              ) : null}
-              <ProfileFlamegraph />
-            </FlamegraphContainer>
-          </FlamegraphThemeProvider>
-        </ProfileGroupTypeProvider>
-      </FlamegraphStateProvider>
+      <LayoutPageWithHiddenFooter>
+        <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
+          <ProfileGroupTypeProvider
+            input={profiles.type === 'resolved' ? profiles.data : null}
+            traceID={params.eventId!}
+          >
+            <FlamegraphThemeProvider>
+              <FlamegraphStateQueryParamSync />
+              <FlamegraphStateLocalStorageSync />
+              <FlamegraphContainer>
+                {profiles.type === 'loading' || profiledTransaction.type === 'loading' ? (
+                  <Stack justify="center" width="100%" height="100%" position="absolute">
+                    <LoadingIndicator />
+                  </Stack>
+                ) : null}
+                <ProfileFlamegraph />
+              </FlamegraphContainer>
+            </FlamegraphThemeProvider>
+          </ProfileGroupTypeProvider>
+        </FlamegraphStateProvider>
+      </LayoutPageWithHiddenFooter>
     </SentryDocumentTitle>
   );
 }
@@ -156,12 +159,9 @@ const FlamegraphContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
+`;
 
-  /*
-   * The footer component is a sibling of this div.
-   * Remove it so the flamegraph can take up the
-   * entire screen.
-   */
+const LayoutPageWithHiddenFooter = styled(Layout.Page)`
   ~ footer {
     display: none;
   }

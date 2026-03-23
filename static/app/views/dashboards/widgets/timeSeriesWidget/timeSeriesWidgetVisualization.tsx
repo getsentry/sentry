@@ -37,7 +37,6 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
@@ -150,7 +149,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     props.pageFilters?.datetime || pageFilters.selection.datetime;
 
   const theme = useTheme();
-  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const hasReleaseBubbles =
@@ -499,14 +497,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const showLegend =
     (showLegendProp !== 'never' && visibleSeriesCount > 1) || showLegendProp === 'always';
 
-  // The threshold maxOffset must account for the legend height so that threshold
-  // lines/areas drawn at pixel coordinates (for "infinite" thresholds) don't overlap
-  // the legend. These values must stay in sync with the `grid.top` config below.
-  const usesChartLegendComponent = organization.features.includes(
-    'chart-legend-component'
-  );
-
-  const thresholdMaxOffset = showLegend && !usesChartLegendComponent ? 25 : 10;
+  const thresholdMaxOffset = 10;
 
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
   // we can look up the types in the tooltip. We need this so we can find the
@@ -597,31 +588,28 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // from the actual chart series. Some plottables (e.g. Samples) use a
   // callback function for itemStyle.color; in that case we fall back to
   // a neutral theme color for the legend swatch.
-  let chartLegendItems: LegendItem[] = [];
-  if (usesChartLegendComponent) {
-    chartLegendItems = props.plottables.map(plottable => {
-      const series = seriesFromPlottables.find(s => s.name === plottable.name);
-      const seriesColor =
-        (series as {color?: unknown})?.color ??
-        (series as {itemStyle?: {color?: unknown}})?.itemStyle?.color;
-      const color = typeof seriesColor === 'string' ? seriesColor : theme.colors.gray300;
-      return {
-        name: plottable.name,
-        label: plottable.label,
-        color,
-      };
+  const chartLegendItems: LegendItem[] = props.plottables.map(plottable => {
+    const series = seriesFromPlottables.find(s => s.name === plottable.name);
+    const seriesColor =
+      (series as {color?: unknown})?.color ??
+      (series as {itemStyle?: {color?: unknown}})?.itemStyle?.color;
+    const color = typeof seriesColor === 'string' ? seriesColor : theme.colors.gray300;
+    return {
+      name: plottable.name,
+      label: plottable.label,
+      color,
+    };
+  });
+
+  if (releaseSeries) {
+    const releaseName = typeof releaseSeries.name === 'string' ? releaseSeries.name : '';
+    const releaseColor =
+      typeof releaseSeries.color === 'string' ? releaseSeries.color : '';
+    chartLegendItems.push({
+      name: releaseName,
+      label: releaseName,
+      color: releaseColor,
     });
-    if (releaseSeries) {
-      const releaseName =
-        typeof releaseSeries.name === 'string' ? releaseSeries.name : '';
-      const releaseColor =
-        typeof releaseSeries.color === 'string' ? releaseSeries.color : '';
-      chartLegendItems.push({
-        name: releaseName,
-        label: releaseName,
-        color: releaseColor,
-      });
-    }
   }
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
@@ -678,7 +666,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   return (
     <Flex direction="column" height="100%">
       {ActionMenu}
-      {usesChartLegendComponent && showLegend && (
+      {showLegend && (
         <ChartLegend
           items={chartLegendItems}
           selected={legendSelection}
@@ -695,7 +683,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             // incorrectly truncating long labels. See
             // https://github.com/apache/echarts/issues/15562
             left: 2,
-            top: showLegend && !usesChartLegendComponent ? 25 : 10,
+            top: 10,
             right: 8,
             bottom: 0,
             containLabel: true,
@@ -703,28 +691,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             ...xAxisGrid,
           }}
           legend={
-            usesChartLegendComponent && showLegend
+            showLegend
               ? {
                   show: false,
                   selected: legendSelection,
                 }
-              : !usesChartLegendComponent && showLegend
-                ? {
-                    top: 0,
-                    left: 0,
-                    formatter(seriesName: string) {
-                      return truncationFormatter(
-                        aliases[seriesName] ?? seriesName,
-                        true,
-                        // Escaping the legend string will cause some special
-                        // characters to render as their HTML equivalents.
-                        // So disable it here.
-                        false
-                      );
-                    },
-                    selected: legendSelection,
-                  }
-                : undefined
+              : undefined
           }
           onLegendSelectChanged={event => {
             handleLegendSelectionChange(event.selected);

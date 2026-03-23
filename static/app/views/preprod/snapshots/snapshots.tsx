@@ -1,4 +1,4 @@
-import {useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,10 +12,13 @@ import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
+import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
+import {ComparisonState, getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
@@ -52,11 +55,17 @@ export default function SnapshotsPage() {
     {
       staleTime: 0,
       enabled: !!snapshotId,
+      refetchInterval: query => {
+        const state = query.state.data?.[0]?.comparison_run_info?.state;
+        return state === ComparisonState.PENDING || state === ComparisonState.PROCESSING
+          ? 5_000
+          : false;
+      },
     }
   );
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItemKey, setSelectedItemName] = useState<string | null>(null);
+  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayColor, setOverlayColor] = useState<string>(() => {
@@ -78,8 +87,22 @@ export default function SnapshotsPage() {
     sizeStorageKey: 'snapshot-sidebar-width',
   });
 
-  const comparisonType = data?.comparison_type ?? 'solo';
+  const location = useLocation();
+  const navigate = useNavigate();
+  const viewOverride = location.query.view;
+  const comparisonType =
+    viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
   const comparisonRunInfo = data?.comparison_run_info;
+
+  const isSoloView = comparisonType === 'solo';
+  const handleToggleView = useCallback(() => {
+    const {view: _view, ...restQuery} = location.query;
+    if (isSoloView) {
+      navigate({...location, query: restQuery}, {replace: true});
+    } else {
+      navigate({...location, query: {...location.query, view: 'solo'}}, {replace: true});
+    }
+  }, [location, navigate, isSoloView]);
 
   const sidebarItems = useMemo(() => {
     if (!data) {
@@ -110,9 +133,30 @@ export default function SnapshotsPage() {
         });
       }
 
+      const renamedGroups = new Map<string, SnapshotDiffPair[]>();
+      for (const pair of data.renamed ?? []) {
+        const group = getImageGroup(pair.head_image);
+        const existing = renamedGroups.get(group);
+        if (existing) {
+          existing.push(pair);
+        } else {
+          renamedGroups.set(group, [pair]);
+        }
+      }
+      for (const [groupKey, pairs] of renamedGroups) {
+        const label = pairs[0]!.head_image.group ?? pairs[0]!.head_image.image_file_name;
+        items.push({
+          type: 'renamed',
+          key: `renamed:${groupKey}`,
+          name: label,
+          badge: null,
+          pairs,
+        });
+      }
+
       const groupImages = (
         imgs: SnapshotImage[],
-        type: 'added' | 'removed' | 'renamed' | 'unchanged'
+        type: 'added' | 'removed' | 'unchanged'
       ) => {
         const groups = new Map<string, SnapshotImage[]>();
         for (const img of imgs) {
@@ -138,7 +182,6 @@ export default function SnapshotsPage() {
 
       groupImages(data.added, 'added');
       groupImages(data.removed, 'removed');
-      groupImages(data.renamed ?? [], 'renamed');
       groupImages(data.unchanged, 'unchanged');
 
       computeSidebarBadges(items);
@@ -187,7 +230,7 @@ export default function SnapshotsPage() {
   // Clamp variantIndex to valid range when the selected item changes implicitly
   // (e.g. search filtering selects a new item with fewer variants)
   const variantCount = currentItem
-    ? currentItem.type === 'changed'
+    ? currentItem.type === 'changed' || currentItem.type === 'renamed'
       ? currentItem.pairs.length
       : currentItem.images.length
     : 0;
@@ -195,17 +238,22 @@ export default function SnapshotsPage() {
     variantCount > 0 ? Math.min(variantIndex, variantCount - 1) : 0;
 
   const handleSelectItem = (name: string) => {
-    setSelectedItemName(name);
+    setSelectedItemKey(name);
     setVariantIndex(0);
   };
 
   // Ref so the keydown handler reads current state without re-registering
-  const stateRef = useRef({filteredItems, currentItemKey});
-  stateRef.current = {filteredItems, currentItemKey};
+  const stateRef = useRef({
+    filteredItems,
+    currentItemKey,
+    safeVariantIndex,
+    variantCount,
+  });
+  stateRef.current = {filteredItems, currentItemKey, safeVariantIndex, variantCount};
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
+      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
@@ -214,15 +262,32 @@ export default function SnapshotsPage() {
       }
       e.preventDefault();
 
-      const {filteredItems: items, currentItemKey: current} = stateRef.current;
-      const currentIndex = items.findIndex(i => i.key === current);
+      const state = stateRef.current;
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        if (state.variantCount <= 1) {
+          return;
+        }
+        const next =
+          e.key === 'ArrowRight'
+            ? Math.min(state.safeVariantIndex + 1, state.variantCount - 1)
+            : Math.max(state.safeVariantIndex - 1, 0);
+        if (next !== state.safeVariantIndex) {
+          setVariantIndex(next);
+        }
+        return;
+      }
+
+      const currentIndex = state.filteredItems.findIndex(
+        i => i.key === state.currentItemKey
+      );
       const nextIndex =
         e.key === 'ArrowDown'
-          ? Math.min(currentIndex + 1, items.length - 1)
+          ? Math.min(currentIndex + 1, state.filteredItems.length - 1)
           : Math.max(currentIndex - 1, 0);
 
-      if (nextIndex !== currentIndex && items[nextIndex]) {
-        setSelectedItemName(items[nextIndex].key);
+      if (nextIndex !== currentIndex && state.filteredItems[nextIndex]) {
+        setSelectedItemKey(state.filteredItems[nextIndex].key);
         setVariantIndex(0);
       }
     }
@@ -235,10 +300,69 @@ export default function SnapshotsPage() {
   // while the expensive image rendering catches up
   const deferredItem = useDeferredValue(currentItem);
 
+  const isComparisonProcessing =
+    !!comparisonRunInfo?.state &&
+    [ComparisonState.PENDING, ComparisonState.PROCESSING].includes(
+      comparisonRunInfo.state
+    );
+
   const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
   const diffImageBaseUrl = data
     ? `/api/0/organizations/${organization.slug}/objectstore/v1/objects/preprod/org=${organization.id};project=${data.project_id}/${organization.id}/${data.project_id}/`
     : '';
+
+  const processingContent = (
+    <Flex width="100%" justify="center" align="center">
+      <BuildProcessing
+        title={t('Generating snapshot comparison')}
+        message={t('Hang tight, this may take a few minutes...')}
+      />
+    </Flex>
+  );
+
+  const snapshotContent = (
+    <Flex
+      direction="row"
+      flex="1"
+      minHeight="0"
+      width="100%"
+      overflow="hidden"
+      style={{maxHeight: 'calc(100vh - 205px)'}}
+    >
+      <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
+        <SnapshotSidebarContent
+          items={filteredItems}
+          totalItemCount={sidebarItems.length}
+          currentItemKey={currentItemKey}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSelectItem={handleSelectItem}
+        />
+      </Flex>
+      <DragHandle
+        data-is-held={isHeld}
+        onMouseDown={onMouseDown}
+        onDoubleClick={onDoubleClick}
+      >
+        <IconGrabbable size="sm" />
+      </DragHandle>
+      <Flex flex="1" minWidth={0} overflow="hidden">
+        <SnapshotMainContent
+          selectedItem={deferredItem}
+          variantIndex={safeVariantIndex}
+          onVariantChange={setVariantIndex}
+          imageBaseUrl={imageBaseUrl}
+          diffImageBaseUrl={diffImageBaseUrl}
+          showOverlay={showOverlay}
+          onShowOverlayChange={setShowOverlay}
+          overlayColor={overlayColor}
+          onOverlayColorChange={setOverlayColor}
+          diffMode={diffMode}
+          onDiffModeChange={setDiffMode}
+        />
+      </Flex>
+    </Flex>
+  );
 
   if (isPending) {
     return (
@@ -276,51 +400,13 @@ export default function SnapshotsPage() {
               comparisonRunInfo={comparisonRunInfo}
               hasBaseArtifact={data.base_artifact_id !== null}
               refetch={refetch}
+              isSoloView={isSoloView}
+              onToggleView={handleToggleView}
             />
           </Layout.HeaderActions>
         </Layout.Header>
 
-        <Flex
-          direction="row"
-          flex="1"
-          minHeight="0"
-          width="100%"
-          overflow="hidden"
-          style={{maxHeight: 'calc(100vh - 205px)'}}
-        >
-          <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
-            <SnapshotSidebarContent
-              items={filteredItems}
-              totalItemCount={sidebarItems.length}
-              currentItemKey={currentItemKey}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              onSelectItem={handleSelectItem}
-            />
-          </Flex>
-          <DragHandle
-            data-is-held={isHeld}
-            onMouseDown={onMouseDown}
-            onDoubleClick={onDoubleClick}
-          >
-            <IconGrabbable size="sm" />
-          </DragHandle>
-          <Flex flex="1" minWidth={0} overflow="hidden">
-            <SnapshotMainContent
-              selectedItem={deferredItem}
-              variantIndex={safeVariantIndex}
-              onVariantChange={setVariantIndex}
-              imageBaseUrl={imageBaseUrl}
-              diffImageBaseUrl={diffImageBaseUrl}
-              showOverlay={showOverlay}
-              onShowOverlayChange={setShowOverlay}
-              overlayColor={overlayColor}
-              onOverlayColorChange={setOverlayColor}
-              diffMode={diffMode}
-              onDiffModeChange={setDiffMode}
-            />
-          </Flex>
-        </Flex>
+        {isComparisonProcessing ? processingContent : snapshotContent}
       </Layout.Page>
     </SentryDocumentTitle>
   );
