@@ -82,11 +82,11 @@ def update_rate_limits_from_provider(
     recorded_limit: int,
     specified_limit: int,
     specified_usage: int,
-    specified_next_window: int,
+    specified_next_window_start: int,
     rate_limit_window_seconds: int,
     get_accounted_usage: Callable[[list[str]], int],
     get_time_in_seconds: Callable[[], int],
-    set_key_values: Callable[[dict[str, int]], None],
+    set_key_values: Callable[[dict[str, tuple[int, int | None]]], None],
 ) -> None:
     """
     Some service-providers offer dynamic rate-limits per organization. We need to cache the
@@ -99,7 +99,7 @@ def update_rate_limits_from_provider(
     :param recorded_limit: Sentry's understanding of the total number of requests available per window.
     :param specified_limit: The actual total number of requests available per window.
     :param specified_usage: The total number of requests the service-provider is telling us they have received.
-    :param specified_next_window: The next rate-limit window after the current window.
+    :param specified_next_window_start: The next rate-limit window after the current window.
     :param rate_limit_window_seconds: The number of seconds in a rate-limit window.
     :param get_accounted_usage: Return the total number of requests issued by the SCM for a given referrer.
     :param get_time_in_seconds: Get the current UTC timestamp in seconds.
@@ -107,22 +107,28 @@ def update_rate_limits_from_provider(
     """
     # We need to figure out what window Sentry thinks its in and what window the service-provider
     # thinks its in.
-    window = get_time_in_seconds() // rate_limit_window_seconds
+    current_time = get_time_in_seconds()
+    time_bucket = current_time // rate_limit_window_seconds
 
     # TODO: This might be a little GitHub specific but we don't have another usage example.
-    specified_window = (specified_next_window // rate_limit_window_seconds) - 1
+    specified_bucket = (specified_next_window_start // rate_limit_window_seconds) - 1
 
     kvs = {}
 
     # If the limit we have recorded in Sentry is different from the rate-limit recording in
     # the service-provider we need to update our limit to match.
     if recorded_limit != specified_limit:
-        kvs[total_limit_key(provider, organization_id)] = specified_limit
+        kvs[total_limit_key(provider, organization_id)] = (specified_limit, None)
 
     # If we share the same window as the service-provider we can update our rate-limits to match
     # what the service-provider recorded. It doesn't matter if we're perfect.
-    if window == specified_window:
-        key_fn = functools.partial(usage_count_key, provider, organization_id, window)
+    if time_bucket == specified_bucket:
+        key_fn = functools.partial(usage_count_key, provider, organization_id, time_bucket)
+
+        # Computed as the window minus the number seconds elapsed within the window. So if our window
+        # is 100 seconds and 10 seconds of the current window has already elapsed then the remaining
+        # time is 90 seconds.
+        expiration = rate_limit_window_seconds - int(current_time % rate_limit_window_seconds)
 
         # The shared usage is the delta of the accounted usage and the reported usage. This
         # value is expected to be strictly higher than our accounted shared usage because a
@@ -140,7 +146,7 @@ def update_rate_limits_from_provider(
         accounted_usage = get_accounted_usage(
             [key_fn(referrer) for referrer in referrer_allocation]
         )
-        kvs[key_fn("shared")] = max(0, specified_usage - accounted_usage)
+        kvs[key_fn("shared")] = (max(0, specified_usage - accounted_usage), expiration)
 
     if kvs:
         set_key_values(kvs)
@@ -164,18 +170,20 @@ def get_and_set_rate_limit(
         pipe.expire(usage_key, expiration)
 
         result = pipe.execute()
-        return (int(result[0]) if result[0] is not None else None, int(result[1]))
+        return (int(result[0]) if result[0] is not None else None, result[1])
 
 
 def get_accounted_usage(keys: list[str]) -> int:
     """Return the sum of a given set of keys."""
     with redis.redis_clusters.get(settings.SENTRY_SCM_REDIS_CLUSTER).pipeline() as pipe:
-        (pipe.get(key) for key in keys)
-        return sum(result if not isinstance(result, int) else 0 for result in pipe.execute())
+        for key in keys:
+            pipe.get(key)
+        return sum(int(r) for r in pipe.execute() if r is not None)
 
 
-def set_key_values(kvs: dict[str, int]) -> None:
+def set_key_values(kvs: dict[str, tuple[int, int | None]]) -> None:
     """For a given set of key, value pairs set them in the Redis Cluster."""
     with redis.redis_clusters.get(settings.SENTRY_SCM_REDIS_CLUSTER).pipeline() as pipe:
-        (pipe.set(k, v) for k, v in kvs.items())
+        for key, (value, expiration) in kvs.items():
+            pipe.set(key, value, ex=expiration)
         pipe.execute()
