@@ -4,7 +4,7 @@ export function TablePreview() {
   const theme = useTheme();
   const headerBg = theme.tokens.background.tertiary;
   const headerText = theme.tokens.content.secondary;
-  const cellText = theme.tokens.border.secondary;
+  const cellText = theme.tokens.content.secondary;
 
   return (
     <svg
