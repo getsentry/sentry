@@ -160,7 +160,8 @@ export function Dashboard({
       const gridH = Math.ceil(
         (measuredHeight + WIDGET_MARGINS[1]) / (ROW_HEIGHT + WIDGET_MARGINS[1])
       );
-      const clampedH = Math.max(TABLE_MIN_HEIGHT, Math.min(gridH, layout.h));
+      const minH = layout.minH ?? TABLE_MIN_HEIGHT;
+      const clampedH = Math.max(minH, Math.min(gridH, layout.h));
 
       if (clampedH >= layout.h) {
         return layout;
