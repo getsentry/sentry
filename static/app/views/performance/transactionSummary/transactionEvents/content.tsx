@@ -255,7 +255,7 @@ function Search(props: Props) {
   const shouldUseEAP = useTransactionSummaryEAP();
 
   const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.TRANSACTIONS],
+    dataCategories: [shouldUseEAP ? DataCategory.SPANS : DataCategory.TRANSACTIONS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
