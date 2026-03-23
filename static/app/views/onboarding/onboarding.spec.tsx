@@ -727,6 +727,80 @@ describe('Onboarding', () => {
       expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
     });
 
+    it('preserves SCM context when going back from setup-docs', async () => {
+      const nextJsProject = ProjectFixture({
+        platform: 'javascript-nextjs',
+        id: '2',
+        slug: 'javascript-nextjs',
+      });
+
+      jest
+        .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+        .mockImplementation(() => ({
+          project: nextJsProject,
+          isProjectActive: false,
+        }));
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${scmOrganization.slug}/sdks/`,
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/keys/`,
+        body: [ProjectKeysFixture()[0]],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/issues/`,
+        body: [],
+      });
+
+      const deleteProjectMock = MockApiClient.addMockResponse({
+        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/`,
+        method: 'DELETE',
+      });
+
+      const initialContext = {
+        selectedPlatform: {
+          key: nextJsProject.slug as PlatformKey,
+          type: 'framework',
+          language: 'javascript',
+          category: 'browser',
+          name: 'Next.js',
+          link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+        },
+        selectedFeatures: [ProductSolution.ERROR_MONITORING],
+      };
+
+      // Seed sessionStorage directly so we can verify it's preserved after back
+      sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
+
+      render(
+        <OnboardingContextProvider initialValue={initialContext}>
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: scmOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`,
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+
+      await waitFor(() => {
+        expect(deleteProjectMock).toHaveBeenCalled();
+      });
+
+      // Context should be preserved — selectedPlatform should not be cleared
+      const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+      expect(stored.selectedPlatform).toBeDefined();
+      expect(stored.selectedFeatures).toBeDefined();
+    });
+
     it('navigates back from scm-connect to welcome', async () => {
       const {router} = renderOnboarding('scm-connect');
 

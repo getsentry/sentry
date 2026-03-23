@@ -185,6 +185,77 @@ describe('ScmProjectDetails', () => {
     });
   });
 
+  it('defaults team selector to first admin team', async () => {
+    render(
+      <ScmProjectDetails
+        onComplete={jest.fn()}
+        stepIndex={3}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedPlatform: mockPlatform,
+        }),
+      }
+    );
+
+    // TeamSelector renders the team slug as the selected value
+    expect(await screen.findByText(`#${teamWithAccess.slug}`)).toBeInTheDocument();
+  });
+
+  it('updates context with project slug after creation', async () => {
+    const createdProject = ProjectFixture({
+      slug: 'my-custom-project',
+      name: 'my-custom-project',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: createdProject,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [teamWithAccess],
+    });
+
+    const onComplete = jest.fn();
+
+    render(
+      <ScmProjectDetails
+        onComplete={onComplete}
+        stepIndex={3}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper({
+          selectedPlatform: mockPlatform,
+        }),
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalled();
+    });
+
+    // Verify the context was updated with the project slug by checking
+    // session storage (OnboardingContext persists there)
+    const stored = JSON.parse(sessionStorageWrapper.getItem('onboarding') ?? '{}');
+    expect(stored.selectedPlatform?.key).toBe('my-custom-project');
+  });
+
   it('shows error message on project creation failure', async () => {
     const onComplete = jest.fn();
 
