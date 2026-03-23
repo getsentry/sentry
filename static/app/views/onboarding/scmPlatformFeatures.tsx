@@ -3,7 +3,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal, openModal} from 'sentry/actionCreators/modal';
@@ -18,8 +18,8 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ScmCardButton} from 'sentry/views/onboarding/components/scmCardButton';
 import {ScmFeatureSelectionCards} from 'sentry/views/onboarding/components/scmFeatureSelectionCards';
+import {ScmPlatformCard} from 'sentry/views/onboarding/components/scmPlatformCard';
 
 import {
   useScmPlatformDetection,
@@ -270,26 +270,14 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
               <Stack gap="sm">
                 <Flex gap="md" wrap="wrap">
                   {resolvedPlatforms.map(({platform, info}) => (
-                    <ScmCardButton
-                      onClick={() => handleSelectDetectedPlatform(platform)}
+                    <ScmPlatformCard
                       key={platform}
-                    >
-                      <Container
-                        border={currentPlatformKey === platform ? 'accent' : 'secondary'}
-                        padding="md"
-                        radius="md"
-                      >
-                        <Flex gap="sm" align="center">
-                          <PlatformIcon platform={platform} size={20} />
-                          <Stack gap="0">
-                            <Text bold>{info.name}</Text>
-                            <Text variant="muted" size="sm">
-                              {info.type}
-                            </Text>
-                          </Stack>
-                        </Flex>
-                      </Container>
-                    </ScmCardButton>
+                      platform={platform}
+                      name={info.name}
+                      type={info.type}
+                      isSelected={currentPlatformKey === platform}
+                      onClick={() => handleSelectDetectedPlatform(platform)}
+                    />
                   ))}
                 </Flex>
                 <Button

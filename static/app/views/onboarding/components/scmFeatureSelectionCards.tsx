@@ -1,7 +1,6 @@
 import type {ComponentType} from 'react';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -16,7 +15,7 @@ import {
 import type {IconGraphProps} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 
-import {ScmCardButton} from './scmCardButton';
+import {ScmFeatureCard} from './scmFeatureCard';
 
 type FeatureMeta = {
   description: string;
@@ -93,45 +92,16 @@ export function ScmFeatureSelectionCards({
       <Grid columns={2} gap="md">
         {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
-          const isSelected = selectedFeatures.includes(feature) || !!meta.alwaysEnabled;
-          const Icon = meta.icon;
-
           return (
-            <ScmCardButton
-              onClick={() => onToggleFeature(feature)}
-              role="checkbox"
-              aria-checked={isSelected}
-              disabled={!!meta.alwaysEnabled}
+            <ScmFeatureCard
               key={feature}
-            >
-              <Container
-                border={isSelected ? 'accent' : 'secondary'}
-                padding="lg"
-                radius="md"
-              >
-                <Flex gap="md" align="start">
-                  <Container padding="xs 0 0 0">
-                    {containerProps => <Icon size="sm" {...containerProps} />}
-                  </Container>
-                  <Flex direction="column" gap="xs" flex="1">
-                    <Flex justify="between" align="center">
-                      <Text bold>{meta.label}</Text>
-                      <Checkbox
-                        readOnly
-                        size="xs"
-                        tabIndex={-1}
-                        role="presentation"
-                        checked={isSelected}
-                        disabled={!!meta.alwaysEnabled}
-                      />
-                    </Flex>
-                    <Text variant="muted" size="sm">
-                      {meta.description}
-                    </Text>
-                  </Flex>
-                </Flex>
-              </Container>
-            </ScmCardButton>
+              icon={meta.icon}
+              label={meta.label}
+              description={meta.description}
+              isSelected={selectedFeatures.includes(feature) || !!meta.alwaysEnabled}
+              disabled={!!meta.alwaysEnabled}
+              onClick={() => onToggleFeature(feature)}
+            />
           );
         })}
       </Grid>
