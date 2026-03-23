@@ -614,6 +614,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/endpoints/                                  @getsentry/issue-workflow
 /src/sentry/rules/                                          @getsentry/issue-detection-backend
 /src/sentry/processing_errors/                              @getsentry/issue-detection-backend
+/tests/sentry/processing_errors/                             @getsentry/issue-detection-backend
 /src/sentry/api/helpers/group_index/delete.py               @getsentry/issue-detection-backend
 /src/sentry/deletions/defaults/group.py                     @getsentry/issue-detection-backend
 /src/sentry/deletions/tasks/groups.py                       @getsentry/issue-detection-backend
