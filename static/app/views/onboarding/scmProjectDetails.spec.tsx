@@ -59,6 +59,10 @@ describe('ScmProjectDetails', () => {
       body: [],
       match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: []},
+    });
   });
 
   afterEach(() => {

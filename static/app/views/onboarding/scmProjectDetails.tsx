@@ -31,7 +31,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     useOnboardingContext();
   const {teams} = useTeams();
   const createProjectAndRules = useCreateProjectAndRules();
-  const {createNotificationAction} = useCreateNotificationAction();
+  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
 
   const firstAdminTeam = useMemo(
     () => teams.find((team: Team) => team.access.includes('team:admin')),
@@ -150,7 +150,11 @@ export function ScmProjectDetails({onComplete}: StepProps) {
           <Text variant="muted" size="sm">
             {t('Get notified when things go wrong')}
           </Text>
-          <IssueAlertOptions {...alertRuleConfig} onFieldChange={handleAlertChange} />
+          <IssueAlertOptions
+            {...alertRuleConfig}
+            onFieldChange={handleAlertChange}
+            notificationProps={notificationProps}
+          />
         </Stack>
       </Stack>
 
