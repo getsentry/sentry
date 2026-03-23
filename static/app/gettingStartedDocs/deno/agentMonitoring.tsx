@@ -112,8 +112,8 @@ Sentry.init({
               {
                 label: 'JavaScript',
                 language: 'javascript',
-                code: `import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+                code: `import { generateText } from "npm:ai";
+import { openai } from "npm:@ai-sdk/openai";
 
 const result = await generateText({
   model: openai("gpt-4o"),
