@@ -300,10 +300,69 @@ export default function SnapshotsPage() {
   // while the expensive image rendering catches up
   const deferredItem = useDeferredValue(currentItem);
 
+  const isComparisonProcessing =
+    !!comparisonRunInfo?.state &&
+    [ComparisonState.PENDING, ComparisonState.PROCESSING].includes(
+      comparisonRunInfo.state
+    );
+
   const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
   const diffImageBaseUrl = data
     ? `/api/0/organizations/${organization.slug}/objectstore/v1/objects/preprod/org=${organization.id};project=${data.project_id}/${organization.id}/${data.project_id}/`
     : '';
+
+  const processingContent = (
+    <Flex width="100%" justify="center" align="center">
+      <BuildProcessing
+        title={t('Generating snapshot comparison')}
+        message={t('Hang tight, this may take a few minutes...')}
+      />
+    </Flex>
+  );
+
+  const snapshotContent = (
+    <Flex
+      direction="row"
+      flex="1"
+      minHeight="0"
+      width="100%"
+      overflow="hidden"
+      style={{maxHeight: 'calc(100vh - 205px)'}}
+    >
+      <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
+        <SnapshotSidebarContent
+          items={filteredItems}
+          totalItemCount={sidebarItems.length}
+          currentItemKey={currentItemKey}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSelectItem={handleSelectItem}
+        />
+      </Flex>
+      <DragHandle
+        data-is-held={isHeld}
+        onMouseDown={onMouseDown}
+        onDoubleClick={onDoubleClick}
+      >
+        <IconGrabbable size="sm" />
+      </DragHandle>
+      <Flex flex="1" minWidth={0} overflow="hidden">
+        <SnapshotMainContent
+          selectedItem={deferredItem}
+          variantIndex={safeVariantIndex}
+          onVariantChange={setVariantIndex}
+          imageBaseUrl={imageBaseUrl}
+          diffImageBaseUrl={diffImageBaseUrl}
+          showOverlay={showOverlay}
+          onShowOverlayChange={setShowOverlay}
+          overlayColor={overlayColor}
+          onOverlayColorChange={setOverlayColor}
+          diffMode={diffMode}
+          onDiffModeChange={setDiffMode}
+        />
+      </Flex>
+    </Flex>
+  );
 
   if (isPending) {
     return (
@@ -347,59 +406,7 @@ export default function SnapshotsPage() {
           </Layout.HeaderActions>
         </Layout.Header>
 
-        {comparisonRunInfo?.state &&
-        [ComparisonState.PENDING, ComparisonState.PROCESSING].includes(
-          comparisonRunInfo.state
-        ) ? (
-          <Flex width="100%" justify="center" align="center">
-            <BuildProcessing
-              title={t('Generating snapshot comparison')}
-              message={t('Hang tight, this may take a few minutes...')}
-            />
-          </Flex>
-        ) : (
-          <Flex
-            direction="row"
-            flex="1"
-            minHeight="0"
-            width="100%"
-            overflow="hidden"
-            style={{maxHeight: 'calc(100vh - 205px)'}}
-          >
-            <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
-              <SnapshotSidebarContent
-                items={filteredItems}
-                totalItemCount={sidebarItems.length}
-                currentItemKey={currentItemKey}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onSelectItem={handleSelectItem}
-              />
-            </Flex>
-            <DragHandle
-              data-is-held={isHeld}
-              onMouseDown={onMouseDown}
-              onDoubleClick={onDoubleClick}
-            >
-              <IconGrabbable size="sm" />
-            </DragHandle>
-            <Flex flex="1" minWidth={0} overflow="hidden">
-              <SnapshotMainContent
-                selectedItem={deferredItem}
-                variantIndex={safeVariantIndex}
-                onVariantChange={setVariantIndex}
-                imageBaseUrl={imageBaseUrl}
-                diffImageBaseUrl={diffImageBaseUrl}
-                showOverlay={showOverlay}
-                onShowOverlayChange={setShowOverlay}
-                overlayColor={overlayColor}
-                onOverlayColorChange={setOverlayColor}
-                diffMode={diffMode}
-                onDiffModeChange={setDiffMode}
-              />
-            </Flex>
-          </Flex>
-        )}
+        {isComparisonProcessing ? processingContent : snapshotContent}
       </Layout.Page>
     </SentryDocumentTitle>
   );
