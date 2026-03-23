@@ -7,6 +7,7 @@ export interface SnapshotImage {
   group?: string | null;
   height: number;
   key: string;
+  previous_image_file_name?: string;
   width: number;
 }
 
