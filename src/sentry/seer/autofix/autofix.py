@@ -823,7 +823,7 @@ def trigger_autofix(
     )
 
 
-CODING_UPDATE_PAYLOAD_TYPES = frozenset({"select_solution", "create_pr"})
+CODING_UPDATE_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
 
 
 def update_autofix(
