@@ -1,17 +1,37 @@
 import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {openConsoleModal, openModal} from 'sentry/actionCreators/modal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   OnboardingContextProvider,
   type OnboardingSessionState,
 } from 'sentry/components/onboarding/onboardingContext';
-import {RepositoryStatus, type Repository} from 'sentry/types/integrations';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
+
+jest.mock('sentry/actionCreators/modal');
+
+// Provide a small platform list so CompactSelect stays below the
+// virtualizeThreshold (50) and renders all options in JSDOM.
+jest.mock('sentry/data/platforms', () => {
+  const actual = jest.requireActual('sentry/data/platforms');
+  return {
+    ...actual,
+    platforms: actual.platforms.filter(
+      (p: {id: string}) =>
+        p.id === 'javascript' ||
+        p.id === 'javascript-nextjs' ||
+        p.id === 'python' ||
+        p.id === 'python-django' ||
+        p.id === 'nintendo-switch'
+    ),
+  };
+});
 
 function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
   return function OnboardingWrapper({children}: {children?: React.ReactNode}) {
@@ -23,17 +43,7 @@ function makeOnboardingWrapper(initialState?: OnboardingSessionState) {
   };
 }
 
-const mockRepository: Repository = {
-  id: '42',
-  name: 'getsentry/sentry',
-  externalId: '123',
-  externalSlug: 'getsentry/sentry',
-  url: 'https://github.com/getsentry/sentry',
-  integrationId: '1',
-  status: RepositoryStatus.ACTIVE,
-  dateCreated: '2024-01-01T00:00:00.000Z',
-  provider: {id: 'integrations:github', name: 'GitHub'},
-};
+const mockRepository = RepositoryFixture({id: '42'});
 
 describe('ScmPlatformFeatures', () => {
   const organization = OrganizationFixture({
@@ -41,6 +51,7 @@ describe('ScmPlatformFeatures', () => {
   });
 
   beforeEach(() => {
+    jest.clearAllMocks();
     sessionStorageWrapper.clear();
   });
 
@@ -254,6 +265,63 @@ describe('ScmPlatformFeatures', () => {
 
     expect(screen.getByRole('checkbox', {name: /Profiling/})).toBeChecked();
     expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeChecked();
+  });
+
+  it('shows framework suggestion modal when selecting a base language', async () => {
+    const mockOpenModal = openModal as jest.Mock;
+
+    render(
+      <ScmPlatformFeatures
+        onComplete={jest.fn()}
+        stepIndex={2}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        organization,
+        additionalWrapper: makeOnboardingWrapper(),
+      }
+    );
+
+    await screen.findByRole('heading', {name: 'Select a platform'});
+
+    // Open the CompactSelect and select a base language
+    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Browser JavaScript'})
+    );
+
+    await waitFor(() => {
+      expect(mockOpenModal).toHaveBeenCalled();
+    });
+  });
+
+  it('opens console modal when selecting a disabled gaming platform', async () => {
+    const mockOpenConsoleModal = openConsoleModal as jest.Mock;
+
+    render(
+      <ScmPlatformFeatures
+        onComplete={jest.fn()}
+        stepIndex={2}
+        genSkipOnboardingLink={() => null}
+      />,
+      {
+        // No enabledConsolePlatforms — all console platforms are blocked
+        organization: OrganizationFixture({
+          features: ['performance-view', 'session-replay', 'profiling-view'],
+        }),
+        additionalWrapper: makeOnboardingWrapper(),
+      }
+    );
+
+    await screen.findByRole('heading', {name: 'Select a platform'});
+
+    // Open the CompactSelect and select a console platform
+    await userEvent.click(screen.getByRole('button', {name: 'None'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Nintendo Switch'}));
+
+    await waitFor(() => {
+      expect(mockOpenConsoleModal).toHaveBeenCalled();
+    });
   });
 
   it('disabling tracing auto-disables profiling', async () => {

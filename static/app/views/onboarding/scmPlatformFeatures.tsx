@@ -38,10 +38,6 @@ const platformsByKey = new Map(platforms.map(p => [p.id, p]));
 
 const getPlatformInfo = (key: PlatformKey) => platformsByKey.get(key);
 
-function getAvailableFeaturesForPlatform(platformKey: PlatformKey): ProductSolution[] {
-  return platformProductAvailability[platformKey] ?? [];
-}
-
 const platformOptions = platforms.map(platform => ({
   value: platform.id,
   label: platform.name,
@@ -56,7 +52,9 @@ function toSelectedSdk(info: PlatformIntegration): OnboardingSelectedSDK {
     language: info.language,
     type: info.type,
     link: info.link,
-    category: 'popular',
+    // PlatformIntegration doesn't carry a category — 'all' is the most
+    // neutral value and avoids implying a specific picker category.
+    category: 'all',
   };
 }
 
@@ -123,7 +121,7 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
         ? [
             ...new Set([
               ProductSolution.ERROR_MONITORING,
-              ...getAvailableFeaturesForPlatform(currentPlatformKey),
+              ...(platformProductAvailability[currentPlatformKey] ?? []),
             ]),
           ]
         : [],
