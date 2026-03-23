@@ -23,6 +23,113 @@ describe('useTrace', () => {
     MockApiClient.clearMockResponses();
   });
 
+  describe('retry with wider period', () => {
+    it('retries with 90d when initial response is empty', async () => {
+      useIsEAPTraceEnabled.mockReturnValue(true);
+
+      const initialMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace/test-trace-id/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+        body: [],
+      });
+
+      const fallbackMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace/test-trace-id/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({statsPeriod: '90d'})],
+        body: [{event_id: 'abc123', event_type: 'error'}],
+      });
+
+      const {result} = renderHookWithProviders(useTrace, {
+        initialProps: {traceSlug: 'test-trace-id'},
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/performance/trace/test-trace-id/`,
+            query: {statsPeriod: '14d'},
+          },
+        },
+      });
+
+      await waitFor(() => expect(fallbackMock).toHaveBeenCalled());
+
+      expect(initialMock).toHaveBeenCalledTimes(1);
+      expect(fallbackMock).toHaveBeenCalledTimes(1);
+      expect(result.current.data).toEqual(
+        expect.arrayContaining([expect.objectContaining({event_id: 'abc123'})])
+      );
+    });
+
+    it('does not retry when initial response has data', async () => {
+      useIsEAPTraceEnabled.mockReturnValue(true);
+
+      const initialMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace/test-trace-id/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+        body: [{event_id: 'abc123', event_type: 'error'}],
+      });
+
+      const fallbackMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace/test-trace-id/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({statsPeriod: '90d'})],
+        body: [],
+      });
+
+      const {result} = renderHookWithProviders(useTrace, {
+        initialProps: {traceSlug: 'test-trace-id'},
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/performance/trace/test-trace-id/`,
+            query: {statsPeriod: '14d'},
+          },
+        },
+      });
+
+      await waitFor(() => expect(result.current.status).toBe('success'));
+
+      expect(initialMock).toHaveBeenCalledTimes(1);
+      expect(fallbackMock).not.toHaveBeenCalled();
+      expect(result.current.data).toEqual(
+        expect.arrayContaining([expect.objectContaining({event_id: 'abc123'})])
+      );
+    });
+
+    it('does not retry when timestamp is set', async () => {
+      useIsEAPTraceEnabled.mockReturnValue(true);
+
+      const initialMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace/test-trace-id/`,
+        method: 'GET',
+        body: [],
+      });
+
+      const fallbackMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/trace/test-trace-id/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({statsPeriod: '90d'})],
+        body: [{event_id: 'abc123', event_type: 'error'}],
+      });
+
+      const {result} = renderHookWithProviders(useTrace, {
+        initialProps: {traceSlug: 'test-trace-id', timestamp: 1234567890},
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/performance/trace/test-trace-id/`,
+            query: {statsPeriod: '14d'},
+          },
+        },
+      });
+
+      await waitFor(() => expect(result.current.status).toBe('success'));
+
+      expect(initialMock).toHaveBeenCalledTimes(1);
+      expect(fallbackMock).not.toHaveBeenCalled();
+      expect(result.current.data).toEqual([]);
+    });
+  });
+
   describe('tracing endpoint query params', () => {
     const validUUid = '550e8400e29b41d4a716446655440000';
     const invalidUUid = 'notAuuid';
@@ -48,11 +155,9 @@ describe('useTrace', () => {
         body: [],
       });
 
-      renderHookWithProviders(() =>
-        useTrace({
-          traceSlug: 'test-trace-id',
-        })
-      );
+      renderHookWithProviders(useTrace, {
+        initialProps: {traceSlug: 'test-trace-id'},
+      });
 
       // Wait for the hook to make the API call
       await waitFor(() => {
@@ -134,11 +239,9 @@ describe('useTrace', () => {
           body: [],
         });
 
-        renderHookWithProviders(() =>
-          useTrace({
-            traceSlug: 'trace-test-id',
-          })
-        );
+        renderHookWithProviders(useTrace, {
+          initialProps: {traceSlug: 'trace-test-id'},
+        });
 
         await waitFor(() => {
           expect(eapTraceMock).toHaveBeenCalled();

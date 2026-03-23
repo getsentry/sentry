@@ -21,6 +21,8 @@ import {AppBodyContent} from 'sentry/views/app/appBodyContent';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
 
@@ -67,6 +69,8 @@ function AppDrawers() {
 }
 
 function AppLayout({organization}: LayoutProps) {
+  const hasPageFrame = useHasPageFrameFeature();
+
   return (
     <PrimaryNavigationContextProvider>
       <Flex
@@ -77,11 +81,18 @@ function AppLayout({organization}: LayoutProps) {
       >
         <Navigation />
         {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
-        <ContentStack flex="1" minWidth="0" id="main" tabIndex={-1}>
+        <ContentStack
+          id="main"
+          tabIndex={-1}
+          flex="1"
+          minWidth="0"
+          background={hasPageFrame ? 'secondary' : undefined}
+        >
           <DemoHeader />
           <AppBodyContent>
             {organization && <OrganizationHeader organization={organization} />}
             <OrganizationDetailsBody>
+              <TopBar />
               <Outlet />
             </OrganizationDetailsBody>
           </AppBodyContent>

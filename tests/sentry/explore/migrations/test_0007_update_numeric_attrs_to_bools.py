@@ -1,6 +1,7 @@
 from sentry.testutils.cases import TestMigrations
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.explore.models import ExploreSavedQueryDataset
 
 
 class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase, SpanTestCase):
@@ -49,8 +50,70 @@ class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase, SpanTestCase):
                 "interval": "1m",
             },
         )
+
+        self.query_2_no_range = ExploreSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="Query",
+            query={
+                "name": "Query",
+                "projects": [-1],
+                "range": None,
+                "query": [
+                    {
+                        "fields": [
+                            "tags[test_without_space,number]",
+                        ],
+                        "query": "tags[test_without_space,number]:0",
+                        "mode": "samples",
+                        "aggregateField": [
+                            {
+                                "groupBy": "span.op",
+                                "yAxes": ["count(span.duration)"],
+                                "chartType": 0,
+                            },
+                        ],
+                    }
+                ],
+                "interval": "1m",
+            },
+        )
+        self.wrong_dataset_query = ExploreSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            dataset=ExploreSavedQueryDataset.METRICS,
+            name="Query",
+            query={
+                "name": "Query",
+                "projects": [-1],
+                "range": "7d",
+                "query": [
+                    {
+                        "fields": [
+                            "tags[test_without_space,number]",
+                            "tags[test_with_space, number]",
+                            "tags[dont_touch, number]",
+                        ],
+                        "query": "tags[test_without_space,number]:0 tags[test_with_space, number]:1 tags[dont_touch,number]:1",
+                        "mode": "samples",
+                        "aggregateField": [
+                            {
+                                "groupBy": "span.op",
+                                "yAxes": ["count(span.duration)"],
+                                "chartType": 0,
+                            },
+                        ],
+                    }
+                ],
+                "interval": "1m",
+            },
+        )
         ExploreSavedQueryProject.objects.create(
             project_id=self.project.id, explore_saved_query=self.query_1
+        )
+        ExploreSavedQueryProject.objects.create(
+            project_id=self.project.id, explore_saved_query=self.query_2_no_range
+        )
+        ExploreSavedQueryProject.objects.create(
+            project_id=self.project.id, explore_saved_query=self.wrong_dataset_query
         )
 
         return super().setup_before_migration(apps)
@@ -70,6 +133,29 @@ class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase, SpanTestCase):
                         "tags[dont_touch, number]",
                     ],
                     "query": "tags[test_without_space,boolean]:False tags[test_with_space, boolean]:True tags[dont_touch,number]:1",
+                    "mode": "samples",
+                    "aggregateField": [
+                        {
+                            "groupBy": "span.op",
+                            "yAxes": ["count(span.duration)"],
+                            "chartType": 0,
+                        },
+                    ],
+                }
+            ],
+            "interval": "1m",
+        }
+        self.query_2_no_range.refresh_from_db()
+        assert self.query_2_no_range.query == {
+            "name": "Query",
+            "projects": [-1],
+            "range": None,
+            "query": [
+                {
+                    "fields": [
+                        "tags[test_without_space,boolean]",
+                    ],
+                    "query": "tags[test_without_space,boolean]:False",
                     "mode": "samples",
                     "aggregateField": [
                         {

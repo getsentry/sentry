@@ -1,4 +1,4 @@
-import {useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useDeferredValue, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,15 +12,19 @@ import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {getImageGroup} from 'sentry/views/preprod/types/snapshotTypes';
 import type {
   SidebarItem,
   SnapshotDetailsApiResponse,
+  SnapshotDiffPair,
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
+import {computeSidebarBadges} from 'sentry/views/preprod/utils/sidebarUtils';
 
 import {SnapshotDevTools} from './header/snapshotDevTools';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
@@ -54,7 +58,7 @@ export default function SnapshotsPage() {
   );
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
+  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayColor, setOverlayColor] = useState<string>(() => {
@@ -76,8 +80,22 @@ export default function SnapshotsPage() {
     sizeStorageKey: 'snapshot-sidebar-width',
   });
 
-  const comparisonType = data?.comparison_type ?? 'solo';
+  const location = useLocation();
+  const navigate = useNavigate();
+  const viewOverride = location.query.view;
+  const comparisonType =
+    viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
   const comparisonRunInfo = data?.comparison_run_info;
+
+  const isSoloView = comparisonType === 'solo';
+  const handleToggleView = useCallback(() => {
+    const {view: _view, ...restQuery} = location.query;
+    if (isSoloView) {
+      navigate({...location, query: restQuery}, {replace: true});
+    } else {
+      navigate({...location, query: {...location.query, view: 'solo'}}, {replace: true});
+    }
+  }, [location, navigate, isSoloView]);
 
   const sidebarItems = useMemo(() => {
     if (!data) {
@@ -87,39 +105,105 @@ export default function SnapshotsPage() {
     if (comparisonType === 'diff') {
       const items: SidebarItem[] = [];
 
+      const changedGroups = new Map<string, SnapshotDiffPair[]>();
       for (const pair of data.changed) {
-        items.push({type: 'changed', name: getImageName(pair.head_image), pair});
+        const group = getImageGroup(pair.head_image);
+        const existing = changedGroups.get(group);
+        if (existing) {
+          existing.push(pair);
+        } else {
+          changedGroups.set(group, [pair]);
+        }
       }
-      for (const img of data.added) {
-        items.push({type: 'added', name: getImageName(img), image: img});
-      }
-      for (const img of data.removed) {
-        items.push({type: 'removed', name: getImageName(img), image: img});
-      }
-      for (const img of data.renamed ?? []) {
-        items.push({type: 'renamed', name: getImageName(img), image: img});
-      }
-      for (const img of data.unchanged) {
-        items.push({type: 'unchanged', name: getImageName(img), image: img});
+      for (const [groupKey, pairs] of changedGroups) {
+        const label = pairs[0]!.head_image.group ?? pairs[0]!.head_image.image_file_name;
+        items.push({
+          type: 'changed',
+          key: `changed:${groupKey}`,
+          name: label,
+          badge: null,
+          pairs,
+        });
       }
 
+      const renamedGroups = new Map<string, SnapshotDiffPair[]>();
+      for (const pair of data.renamed ?? []) {
+        const group = getImageGroup(pair.head_image);
+        const existing = renamedGroups.get(group);
+        if (existing) {
+          existing.push(pair);
+        } else {
+          renamedGroups.set(group, [pair]);
+        }
+      }
+      for (const [groupKey, pairs] of renamedGroups) {
+        const label = pairs[0]!.head_image.group ?? pairs[0]!.head_image.image_file_name;
+        items.push({
+          type: 'renamed',
+          key: `renamed:${groupKey}`,
+          name: label,
+          badge: null,
+          pairs,
+        });
+      }
+
+      const groupImages = (
+        imgs: SnapshotImage[],
+        type: 'added' | 'removed' | 'unchanged'
+      ) => {
+        const groups = new Map<string, SnapshotImage[]>();
+        for (const img of imgs) {
+          const group = getImageGroup(img);
+          const existing = groups.get(group);
+          if (existing) {
+            existing.push(img);
+          } else {
+            groups.set(group, [img]);
+          }
+        }
+        for (const [groupKey, images] of groups) {
+          const label = images[0]!.group ?? images[0]!.image_file_name;
+          items.push({
+            type,
+            key: `${type}:${groupKey}`,
+            name: label,
+            badge: null,
+            images,
+          });
+        }
+      };
+
+      groupImages(data.added, 'added');
+      groupImages(data.removed, 'removed');
+      groupImages(data.unchanged, 'unchanged');
+
+      computeSidebarBadges(items);
       return items;
     }
 
     const groups = new Map<string, SnapshotImage[]>();
     for (const image of data.images) {
-      const name = getImageName(image);
-      const existing = groups.get(name);
+      const group = getImageGroup(image);
+      const existing = groups.get(group);
       if (existing) {
         existing.push(image);
       } else {
-        groups.set(name, [image]);
+        groups.set(group, [image]);
       }
     }
 
     return [...groups.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([name, images]) => ({type: 'solo' as const, name, images}));
+      .map(([groupKey, images]) => {
+        const label = images[0]!.group ?? images[0]!.image_file_name;
+        return {
+          type: 'solo' as const,
+          key: `solo:${groupKey}`,
+          name: label,
+          badge: images.length > 1 ? String(images.length) : null,
+          images,
+        };
+      });
   }, [data, comparisonType]);
 
   const filteredItems = useMemo(() => {
@@ -130,31 +214,39 @@ export default function SnapshotsPage() {
     return sidebarItems.filter(item => item.name.toLowerCase().includes(query));
   }, [sidebarItems, searchQuery]);
 
-  const currentItemName =
-    selectedItemName && filteredItems.some(i => i.name === selectedItemName)
-      ? selectedItemName
-      : (filteredItems[0]?.name ?? null);
-  const currentItem = filteredItems.find(i => i.name === currentItemName) ?? null;
+  const currentItem =
+    (selectedItemKey && filteredItems.find(i => i.key === selectedItemKey)) ||
+    filteredItems[0] ||
+    null;
+  const currentItemKey = currentItem?.key ?? null;
 
   // Clamp variantIndex to valid range when the selected item changes implicitly
   // (e.g. search filtering selects a new item with fewer variants)
+  const variantCount = currentItem
+    ? currentItem.type === 'changed' || currentItem.type === 'renamed'
+      ? currentItem.pairs.length
+      : currentItem.images.length
+    : 0;
   const safeVariantIndex =
-    currentItem?.type === 'solo'
-      ? Math.min(variantIndex, currentItem.images.length - 1)
-      : variantIndex;
+    variantCount > 0 ? Math.min(variantIndex, variantCount - 1) : 0;
 
   const handleSelectItem = (name: string) => {
-    setSelectedItemName(name);
+    setSelectedItemKey(name);
     setVariantIndex(0);
   };
 
   // Ref so the keydown handler reads current state without re-registering
-  const stateRef = useRef({filteredItems, currentItemName});
-  stateRef.current = {filteredItems, currentItemName};
+  const stateRef = useRef({
+    filteredItems,
+    currentItemKey,
+    safeVariantIndex,
+    variantCount,
+  });
+  stateRef.current = {filteredItems, currentItemKey, safeVariantIndex, variantCount};
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
+      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
@@ -163,15 +255,32 @@ export default function SnapshotsPage() {
       }
       e.preventDefault();
 
-      const {filteredItems: items, currentItemName: current} = stateRef.current;
-      const currentIndex = items.findIndex(i => i.name === current);
+      const state = stateRef.current;
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        if (state.variantCount <= 1) {
+          return;
+        }
+        const next =
+          e.key === 'ArrowRight'
+            ? Math.min(state.safeVariantIndex + 1, state.variantCount - 1)
+            : Math.max(state.safeVariantIndex - 1, 0);
+        if (next !== state.safeVariantIndex) {
+          setVariantIndex(next);
+        }
+        return;
+      }
+
+      const currentIndex = state.filteredItems.findIndex(
+        i => i.key === state.currentItemKey
+      );
       const nextIndex =
         e.key === 'ArrowDown'
-          ? Math.min(currentIndex + 1, items.length - 1)
+          ? Math.min(currentIndex + 1, state.filteredItems.length - 1)
           : Math.max(currentIndex - 1, 0);
 
-      if (nextIndex !== currentIndex && items[nextIndex]) {
-        setSelectedItemName(items[nextIndex].name);
+      if (nextIndex !== currentIndex && state.filteredItems[nextIndex]) {
+        setSelectedItemKey(state.filteredItems[nextIndex].key);
         setVariantIndex(0);
       }
     }
@@ -225,6 +334,8 @@ export default function SnapshotsPage() {
               comparisonRunInfo={comparisonRunInfo}
               hasBaseArtifact={data.base_artifact_id !== null}
               refetch={refetch}
+              isSoloView={isSoloView}
+              onToggleView={handleToggleView}
             />
           </Layout.HeaderActions>
         </Layout.Header>
@@ -241,7 +352,7 @@ export default function SnapshotsPage() {
             <SnapshotSidebarContent
               items={filteredItems}
               totalItemCount={sidebarItems.length}
-              currentItemName={currentItemName}
+              currentItemKey={currentItemKey}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onSelectItem={handleSelectItem}

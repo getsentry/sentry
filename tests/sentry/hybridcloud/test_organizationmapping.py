@@ -90,7 +90,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 name=self.organization.name,
                 slug=self.organization.slug,
                 status=self.organization.status,
-                region_name="us",
+                cell_name="us",
                 customer_id=CustomerId(value="99"),
             ),
         )
@@ -178,7 +178,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
         organization_mapping_service.upsert(
             organization_id=self.organization.id,
             update=RpcOrganizationMappingUpdate(
-                slug=temporary_slug, name="saaaaantry", region_name="us"
+                slug=temporary_slug, name="saaaaantry", cell_name="us"
             ),
         )
 
@@ -195,7 +195,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 name="santry_org",
                 slug="different-slug",
                 status=OrganizationStatus.PENDING_DELETION,
-                region_name="us",
+                cell_name="us",
             ),
         )
 

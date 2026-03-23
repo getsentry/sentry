@@ -368,7 +368,7 @@ function generateAdditionalConditions(
       const shouldQuote =
         value === null || value === undefined
           ? false
-          : /[\s()\\"]/g.test(String(value).trim());
+          : /[\s()\\"]/.test(String(value).trim());
       const nextValue =
         value === null || value === undefined
           ? ''

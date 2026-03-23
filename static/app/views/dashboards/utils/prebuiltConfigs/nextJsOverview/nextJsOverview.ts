@@ -110,7 +110,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       widgetType: WidgetType.SPANS,
       legendType: 'breakdown',
       interval: '5m',
-      limit: 4,
+      limit: 3,
       queries: [
         {
           name: '',

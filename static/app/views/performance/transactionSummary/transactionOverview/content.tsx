@@ -13,6 +13,7 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {IconWarning} from 'sentry/icons';
@@ -42,6 +43,7 @@ import Tags from 'sentry/views/discover/results/tags';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SegmentSpansTable} from 'sentry/views/performance/eap/segmentSpansTable';
@@ -97,6 +99,27 @@ type Props = {
 };
 
 export const SEGMENT_SPANS_CURSOR_NAME = 'segmentSpansCursor';
+
+function EAPSearchQueryBuilder({
+  projects,
+  initialQuery,
+  onSearch,
+}: {
+  initialQuery: string;
+  onSearch: (query: string) => void;
+  projects: number[];
+}) {
+  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
+    projects,
+    initialQuery,
+    onSearch,
+    searchSource: 'transaction_summary',
+  });
+
+  return (
+    <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} disallowFreeText />
+  );
+}
 
 function EAPSummaryContentInner({
   eventView,
@@ -237,13 +260,10 @@ function EAPSummaryContentInner({
 
   function renderSearchBar() {
     return (
-      <TransactionSearchQueryBuilder
+      <EAPSearchQueryBuilder
         projects={projectIds}
         initialQuery={query}
         onSearch={handleSearch}
-        searchSource="transaction_summary"
-        disableLoadingTags // already loaded by the parent component
-        filterKeyMenuWidth={420}
       />
     );
   }

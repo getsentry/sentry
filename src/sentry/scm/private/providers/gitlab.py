@@ -28,7 +28,7 @@ from urllib.parse import urlencode
 
 from sentry.integrations.gitlab.client import GitLabApiClient
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
-from sentry.scm.errors import SCMProviderException
+from sentry.scm.errors import SCMCodedError, SCMProviderException
 from sentry.scm.types import (
     SHA,
     ActionResult,
@@ -105,10 +105,10 @@ class GitLabProvider:
         self.organization_id = organization_id
         self.repository = repository
         external_id = repository["external_id"]
-        assert external_id is not None
-        prefix = "gitlab.com:"
-        assert external_id.startswith(prefix)
-        self._repo_id = external_id[len(prefix) :]
+        # External ID format is "{netloc}:{repo_id}", where netloc might contain a colon before a port number
+        if external_id is None or ":" not in external_id:
+            raise SCMCodedError(code="malformed_external_id")
+        self._repo_id = external_id.rsplit(":", maxsplit=1)[1]
 
     def is_rate_limited(self, referrer: Referrer) -> bool:
         return False  # Rate-limits temporarily disabled.

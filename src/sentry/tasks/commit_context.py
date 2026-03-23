@@ -8,6 +8,7 @@ from typing import Any
 import sentry_sdk
 from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
+from taskbroker_client.retry import NoRetriesRemainingError, Retry
 
 from sentry import analytics
 from sentry.analytics.events.groupowner_assignment import GroupOwnerAssignment
@@ -32,7 +33,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.retry import NoRetriesRemainingError, Retry
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
