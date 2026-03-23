@@ -195,14 +195,6 @@ const SLOW_FRAME_RATE_WIDGET: Widget = {
         `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|sum(${SpanFields.MOBILE_SLOW_FRAMES}) / sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
       ],
-      fieldMeta: [
-        null,
-        null,
-        {
-          valueType: 'percentage',
-          valueUnit: null,
-        },
-      ],
       selectedAggregate: 2,
       columns: [],
       conditions: TRANSACTION_OP_CONDITION,
@@ -238,14 +230,6 @@ const FROZEN_FRAME_RATE_WIDGET: Widget = {
         `sum(${SpanFields.MOBILE_FROZEN_FRAMES})`,
         `sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
         `equation|sum(${SpanFields.MOBILE_FROZEN_FRAMES}) / sum(${SpanFields.MOBILE_TOTAL_FRAMES})`,
-      ],
-      fieldMeta: [
-        null,
-        null,
-        {
-          valueType: 'percentage',
-          valueUnit: null,
-        },
       ],
       selectedAggregate: 2,
       columns: [],
@@ -358,12 +342,6 @@ const SCREEN_RENDERING_TABLE: Widget = {
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: ['Transaction', 'Slow Frame %', 'Frozen Frame %', 'Screen Loads'],
-      fieldMeta: [
-        null,
-        {valueType: 'percentage', valueUnit: null},
-        {valueType: 'percentage', valueUnit: null},
-        null,
-      ],
       conditions: SCREEN_RENDERING_CONDITION,
       orderby: `-count(${SpanFields.SPAN_DURATION})`,
       linkedDashboards: [

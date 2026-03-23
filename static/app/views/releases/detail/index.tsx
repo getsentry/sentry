@@ -24,9 +24,9 @@ import type {
   ReleaseProject,
   ReleaseWithHealth,
 } from 'sentry/types/release';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';

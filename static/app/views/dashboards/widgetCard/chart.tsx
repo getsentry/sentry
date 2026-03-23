@@ -17,7 +17,7 @@ import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadin
 import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';

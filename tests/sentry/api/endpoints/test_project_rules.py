@@ -57,6 +57,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from tests.sentry.api.endpoints.test_project_rule_details import assert_serializer_results_match
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -167,6 +168,21 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         else:
             assert workflow_resp_2["id"] == str(get_fake_id_from_object_id(self.workflow.id))
             assert workflow_resp_1["id"] == str(self.rule.id)
+
+    @with_feature("organizations:workflow-engine-projectrulesendpoint-get")
+    def test_workflow_engine_granular_flag(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert (
+            len(response.data)
+            == Workflow.objects.filter(organization=self.project.organization).count()
+        )
+        returned_ids = {item["id"] for item in response.data}
+        assert str(self.rule.id) in returned_ids
+        assert str(get_fake_id_from_object_id(self.workflow.id)) in returned_ids
 
     @with_feature("organizations:workflow-engine-rule-serializers")
     def test_unsupported_condition(self) -> None:
@@ -397,6 +413,21 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 )
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()
+
+        # Verify that the workflow engine serializer returns the same response shape.
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.project.organization.slug,
+                self.project.slug,
+                name=name,
+                owner=owner,
+                actionMatch=action_match,
+                frequency=frequency,
+                status_code=status.HTTP_201_CREATED,
+                **query_args,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
+
         return response
 
     def test_simple(self) -> None:
@@ -1428,7 +1459,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             ],
             "actionMatch": "any",
             "filterMatch": "all",
-            "owner": "team:74234",
+            "owner": f"team:{self.team.id}",
             "projects": [self.project.slug],
         }
         responses.add(

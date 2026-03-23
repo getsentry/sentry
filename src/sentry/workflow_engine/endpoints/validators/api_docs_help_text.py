@@ -108,10 +108,10 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
 
         **Issue Assignment**
         - `targetType`: Who the issue is assigned to
-            - `NoOne`: Unassigned
+            - `Unassigned`: Unassigned
             - `Member`: Assigned to a user
             - `Team`: Assigned to a team
-        - `targetIdentifier`: The ID of the user or team from the `targetType`. Enter "" if `targetType` is `NoOne`.
+        - `targetIdentifier`: The ID of the user or team from the `targetType`. Enter "" if `targetType` is `Unassigned`.
         ```json
             {
                 "type": "assigned_to",
@@ -825,20 +825,15 @@ CONDITION_GROUP_HELP_TEXT = """
         """
 
 OWNER_HELP_TEXT = """
-            The user or team who owns the monitor.
+            The ID user or team who owns the monitor or alert prefaced by the string 'user' or 'team'.
 
             **User**
             ```json
-                "type": "user",
-                "id": "12345",
-                "name": "Jane Doe",
-                "email": "jane.doe@sentry.io"
+                "user:123456"
             ```
 
             **Team**
             ```json
-                "type": "team",
-                "id": "123456789",
-                "name": "example-team"
+                "team:456789"
             ```
         """

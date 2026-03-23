@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import itertools
 from collections.abc import Sequence
+from typing import cast
 from unittest import mock
 
 import orjson
 import pytest
+import sentry_kafka_schemas
+from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry_redis_tools.clients import StrictRedis
 
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.spans.buffer import FlushedSegment, OutputSpan, Span, SpansBuffer
+from sentry.spans.consumers.process.factory import SPANS_CODEC, validate_span_event
+from sentry.spans.consumers.process_segments.types import attribute_value
 from sentry.spans.segment_key import SegmentKey
 from sentry.testutils.helpers.options import override_options
 
@@ -32,7 +38,8 @@ DEFAULT_OPTIONS = {
     "spans.buffer.evalsha-latency-threshold": 100,
     "spans.buffer.debug-traces": [],
     "spans.buffer.evalsha-cumulative-logger-enabled": True,
-    "spans.buffer.zero-copy-dest-threshold-bytes": 0,
+    "spans.process-segments.schema-validation": 1.0,
+    "spans.buffer.done-flush-conditional-zrem": False,
     "spans.buffer.write-distributed-payloads": False,
     "spans.buffer.read-distributed-payloads": False,
     "spans.buffer.write-merged-payloads": True,
@@ -175,7 +182,6 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("d" * 16),
@@ -184,7 +190,6 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("c" * 16),
@@ -193,7 +198,6 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("b" * 16),
@@ -203,7 +207,6 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
                     segment_id=None,
                     is_segment_span=True,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
             ]
         )
@@ -220,6 +223,8 @@ def test_basic(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
             project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"b" * 16, False),
@@ -249,7 +254,6 @@ def test_observability_metrics(
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("d" * 16),
@@ -258,7 +262,6 @@ def test_observability_metrics(
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("c" * 16),
@@ -267,7 +270,6 @@ def test_observability_metrics(
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -277,7 +279,6 @@ def test_observability_metrics(
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
     process_spans(spans, buffer, now=0)
@@ -290,6 +291,8 @@ def test_observability_metrics(
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
             project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"b" * 16, False),
@@ -330,7 +333,6 @@ def test_observability_metrics_parent_span_already_oversized(
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -340,7 +342,6 @@ def test_observability_metrics_parent_span_already_oversized(
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         _SplitBatch(),
         Span(
@@ -350,7 +351,6 @@ def test_observability_metrics_parent_span_already_oversized(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
 
@@ -384,7 +384,6 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
             segment_id=None,
             is_segment_span=True,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
     ]
 
@@ -407,7 +406,6 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 _SplitBatch(),
                 Span(
@@ -417,7 +415,6 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
                     parent_span_id="a" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("a" * 16),
@@ -427,7 +424,6 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
                     is_segment_span=True,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("c" * 16),
@@ -436,7 +432,6 @@ def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
                     parent_span_id="a" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
             ]
         )
@@ -452,6 +447,8 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
             project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"a" * 16, True),
@@ -482,7 +479,6 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="d" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("d" * 16),
@@ -491,7 +487,6 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("b" * 16),
@@ -500,7 +495,6 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="c" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("c" * 16),
@@ -509,7 +503,6 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="a" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("a" * 16),
@@ -519,7 +512,6 @@ def test_deep(buffer: SpansBuffer, spans) -> None:
                     is_segment_span=True,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
             ]
         )
@@ -535,6 +527,8 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
             project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"a" * 16, True),
@@ -566,7 +560,6 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("d" * 16),
@@ -575,7 +568,6 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("e" * 16),
@@ -584,7 +576,6 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
                     parent_span_id="b" * 16,
                     segment_id=None,
                     project_id=1,
-                    end_timestamp=1700000000.0,
                 ),
                 Span(
                     payload=_payload("b" * 16),
@@ -594,7 +585,6 @@ def test_deep2(buffer: SpansBuffer, spans) -> None:
                     is_segment_span=True,
                     segment_id=None,
                     project_id=2,
-                    end_timestamp=1700000000.0,
                 ),
             ]
         )
@@ -609,7 +599,11 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
     rv = buffer.flush_segments(now=11)
     assert rv == {
         _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
-            queue_key=mock.ANY, project_id=2, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
+            queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
+            project_id=2,
+            spans=[_output_segment(b"b" * 16, b"b" * 16, True)],
         )
     }
     buffer.done_flush_segments(rv)
@@ -621,6 +615,8 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
             project_id=1,
             spans=[
                 _output_segment(b"c" * 16, b"b" * 16, False),
@@ -648,7 +644,6 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
                 project_id=1,
                 segment_id=None,
                 is_segment_span=True,
-                end_timestamp=1700000000.0,
             ),
             Span(
                 payload=_payload("d" * 16),
@@ -657,7 +652,6 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
                 parent_span_id="b" * 16,
                 segment_id=None,
                 project_id=1,
-                end_timestamp=1700000000.0,
             ),
             Span(
                 payload=_payload("e" * 16),
@@ -666,7 +660,6 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
                 parent_span_id="b" * 16,
                 segment_id=None,
                 project_id=1,
-                end_timestamp=1700000000.0,
             ),
             Span(
                 payload=_payload("b" * 16),
@@ -676,7 +669,6 @@ def test_parent_in_other_project(buffer: SpansBuffer, spans) -> None:
                 is_segment_span=True,
                 segment_id=None,
                 project_id=2,
-                end_timestamp=1700000000.0,
             ),
         ]
     ),
@@ -690,10 +682,16 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
     rv = buffer.flush_segments(now=11)
     assert rv == {
         _segment_id(2, "a" * 32, "b" * 16): FlushedSegment(
-            queue_key=mock.ANY, project_id=2, spans=[_output_segment(b"b" * 16, b"b" * 16, True)]
+            queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
+            project_id=2,
+            spans=[_output_segment(b"b" * 16, b"b" * 16, True)],
         ),
         _segment_id(1, "a" * 32, "c" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
             project_id=1,
             spans=[
                 _output_segment(b"c" * 16, b"c" * 16, True),
@@ -709,6 +707,8 @@ def test_parent_in_other_project_and_nested_is_segment_span(buffer: SpansBuffer,
     assert rv == {
         _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
             project_id=1,
             spans=[
                 _output_segment(b"d" * 16, b"b" * 16, False),
@@ -734,7 +734,6 @@ def test_flush_rebalance(buffer: SpansBuffer) -> None:
             segment_id=None,
             project_id=1,
             is_segment_span=True,
-            end_timestamp=1700000000.0,
         )
     ]
 
@@ -745,7 +744,11 @@ def test_flush_rebalance(buffer: SpansBuffer) -> None:
     rv = buffer.flush_segments(now=11)
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
-            queue_key=mock.ANY, project_id=1, spans=[_output_segment(b"a" * 16, b"a" * 16, True)]
+            queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
+            project_id=1,
+            spans=[_output_segment(b"a" * 16, b"a" * 16, True)],
         ),
     }
 
@@ -784,7 +787,6 @@ def test_compression_functionality(compression_level) -> None:
                 project_id=1,
                 segment_id=None,
                 is_segment_span=True,
-                end_timestamp=1700000000.0,
             ),
             Span(
                 payload=make_payload("a" * 16),
@@ -793,7 +795,6 @@ def test_compression_functionality(compression_level) -> None:
                 parent_span_id="b" * 16,
                 segment_id=None,
                 project_id=1,
-                end_timestamp=1700000000.0,
             ),
             Span(
                 payload=make_payload("c" * 16),
@@ -802,7 +803,6 @@ def test_compression_functionality(compression_level) -> None:
                 parent_span_id="b" * 16,
                 segment_id=None,
                 project_id=1,
-                end_timestamp=1700000000.0,
             ),
         ]
 
@@ -849,7 +849,6 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
             parent_span_id="b" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000001.0,
         ),
         Span(
             payload=_payload("b" * 16),
@@ -858,7 +857,6 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000002.0,
         ),
     ]
     batch2 = [
@@ -869,7 +867,6 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000003.0,
         ),
         Span(
             payload=_payload("e" * 16),
@@ -878,7 +875,6 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000004.0,
         ),
         Span(
             payload=_payload("a" * 16),
@@ -888,7 +884,6 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
             project_id=1,
             segment_id=None,
             is_segment_span=True,
-            end_timestamp=1700000005.0,
         ),
     ]
 
@@ -934,7 +929,6 @@ def test_dropped_spans_emit_outcomes(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=payload_c,
@@ -943,7 +937,6 @@ def test_dropped_spans_emit_outcomes(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000001.0,
         ),
         Span(
             payload=payload_d,
@@ -952,7 +945,6 @@ def test_dropped_spans_emit_outcomes(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000002.0,
         ),
     ]
     batch2 = [
@@ -963,7 +955,6 @@ def test_dropped_spans_emit_outcomes(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000003.0,
         ),
         Span(
             payload=payload_f,
@@ -972,7 +963,6 @@ def test_dropped_spans_emit_outcomes(
             parent_span_id="a" * 16,
             segment_id=None,
             project_id=1,
-            end_timestamp=1700000004.0,
         ),
         Span(
             payload=payload_a,
@@ -982,7 +972,6 @@ def test_dropped_spans_emit_outcomes(
             project_id=1,
             segment_id=None,
             is_segment_span=True,
-            end_timestamp=1700000005.0,
         ),
     ]
 
@@ -1050,7 +1039,6 @@ def test_kafka_slice_id(buffer: SpansBuffer) -> None:
                 project_id=1,
                 segment_id=None,
                 is_segment_span=True,
-                end_timestamp=1700000000.0,
             )
         ]
 
@@ -1076,7 +1064,6 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
             parent_span_id="c" * 16,  # does not exist in this segment
             project_id=1,
             segment_id="a" * 16,  # refers to the correct span below
-            end_timestamp=1700000000.0,
         ),
         Span(
             payload=_payload("a" * 16),
@@ -1086,7 +1073,6 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
             project_id=1,
             segment_id="a" * 16,
             is_segment_span=True,
-            end_timestamp=1700000001.0,
         ),
     ]
 
@@ -1100,6 +1086,8 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
     assert rv == {
         _segment_id(1, "a" * 32, "a" * 16): FlushedSegment(
             queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
             project_id=1,
             spans=[
                 _output_segment(b"a" * 16, b"a" * 16, True),
@@ -1113,102 +1101,6 @@ def test_preassigned_disconnected_segment(buffer: SpansBuffer) -> None:
     assert list(buffer.get_memory_info())
 
     assert_clean(buffer.client)
-
-
-@mock.patch("sentry.spans.buffer.emit_observability_metrics")
-def test_zero_copy(emit_observability_metrics: mock.MagicMock) -> None:
-    """
-    Test that zero-copy mode (SMEMBERS+SADD instead of SUNIONSTORE) produces
-    identical results. Uses a threshold of 1 byte so that every merge triggers
-    the zero-copy path.
-    """
-    with override_options(
-        {
-            **DEFAULT_OPTIONS,
-            "spans.buffer.zero-copy-dest-threshold-bytes": 1,
-            "spans.buffer.max-spans-per-evalsha": 1,
-        }
-    ):
-        buf = SpansBuffer(assigned_shards=list(range(32)))
-        buf.client.flushdb()
-
-        spans = [
-            Span(
-                payload=_payload("a" * 16),
-                trace_id="a" * 32,
-                span_id="a" * 16,
-                parent_span_id="b" * 16,
-                segment_id=None,
-                project_id=1,
-                end_timestamp=1700000000.0,
-            ),
-            Span(
-                payload=_payload("d" * 16),
-                trace_id="a" * 32,
-                span_id="d" * 16,
-                parent_span_id="b" * 16,
-                segment_id=None,
-                project_id=1,
-                end_timestamp=1700000000.0,
-            ),
-            Span(
-                payload=_payload("c" * 16),
-                trace_id="a" * 32,
-                span_id="c" * 16,
-                parent_span_id="b" * 16,
-                segment_id=None,
-                project_id=1,
-                end_timestamp=1700000000.0,
-            ),
-            Span(
-                payload=_payload("b" * 16),
-                trace_id="a" * 32,
-                span_id="b" * 16,
-                parent_span_id=None,
-                segment_id=None,
-                is_segment_span=True,
-                project_id=1,
-                end_timestamp=1700000000.0,
-            ),
-        ]
-
-        process_spans(spans, buf, now=0)
-
-        assert_ttls(buf.client)
-
-        assert buf.flush_segments(now=5) == {}
-        rv = buf.flush_segments(now=11)
-        _normalize_output(rv)
-        assert rv == {
-            _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
-                queue_key=mock.ANY,
-                project_id=1,
-                spans=[
-                    _output_segment(b"a" * 16, b"b" * 16, False),
-                    _output_segment(b"b" * 16, b"b" * 16, True),
-                    _output_segment(b"c" * 16, b"b" * 16, False),
-                    _output_segment(b"d" * 16, b"b" * 16, False),
-                ],
-            )
-        }
-        buf.done_flush_segments(rv)
-        assert buf.flush_segments(now=30) == {}
-
-        assert_clean(buf.client)
-
-        # Verify used_zero_copy_dest metric was emitted
-        emit_observability_metrics.assert_called()
-        args, _ = emit_observability_metrics.call_args
-        gauge_metrics = args[1]
-        zero_copy_values = [
-            value
-            for evalsha_metrics in gauge_metrics
-            for metric_name, value in evalsha_metrics
-            if metric_name == b"used_zero_copy_dest"
-        ]
-        assert any(v == 1 for v in zero_copy_values), (
-            f"Expected at least one evalsha call to use zero-copy, got {zero_copy_values}"
-        )
 
 
 def test_partition_routing_stable_across_rebalance() -> None:
@@ -1230,7 +1122,6 @@ def test_partition_routing_stable_across_rebalance() -> None:
                 parent_span_id="b" * 16,
                 segment_id=None,
                 project_id=1,
-                end_timestamp=1700000000.0,
                 partition=partition,
             ),
         ]
@@ -1248,7 +1139,6 @@ def test_partition_routing_stable_across_rebalance() -> None:
                 segment_id=None,
                 project_id=1,
                 is_segment_span=True,
-                end_timestamp=1700000000.0,
                 partition=partition,
             ),
         ]
@@ -1267,6 +1157,189 @@ def test_partition_routing_stable_across_rebalance() -> None:
 
         buf.done_flush_segments(rv)
         assert_clean(buf.client)
+
+
+@override_options({**DEFAULT_OPTIONS, "spans.buffer.done-flush-conditional-zrem": True})
+def test_done_flush_skips_cleanup_when_new_spans_arrive(buffer: SpansBuffer) -> None:
+    """
+    Regression test: new spans arriving between flush_segments and
+    done_flush_segments must not be silently lost. done_flush_segments should
+    detect that the queue score changed (due to process_spans zadd) and skip
+    cleanup, preserving the new spans for the next flush cycle.
+    """
+    # Step 1: ingest initial spans
+    initial_spans = [
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+        ),
+    ]
+    process_spans(initial_spans, buffer, now=0)
+
+    # Step 2: flush_segments reads the data and captures the queue score
+    rv = buffer.flush_segments(now=11)
+    assert len(rv) == 1
+    segment_key = next(iter(rv))
+
+    # Step 3: simulate new spans arriving for the same segment (race window)
+    # This updates the queue score via zadd with a new deadline
+    new_spans = [
+        Span(
+            payload=_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+    ]
+    process_spans(new_spans, buffer, now=20)
+
+    # Step 4: done_flush_segments should detect score change and skip cleanup
+    buffer.done_flush_segments(rv)
+
+    # Step 5: the segment data should still be in Redis (not destroyed)
+    # A subsequent flush should pick up the spans (old + new)
+    rv2 = buffer.flush_segments(now=81)
+    assert len(rv2) == 1
+    _normalize_output(rv2)
+    flushed = rv2[segment_key]
+    span_ids = sorted(span.payload["span_id"] for span in flushed.spans)
+    # All three spans should be present (at-least-once: old spans re-flushed + new span)
+    assert "a" * 16 in span_ids
+    assert "b" * 16 in span_ids
+    assert "c" * 16 in span_ids
+
+    # Clean up
+    buffer.done_flush_segments(rv2)
+    assert_clean(buffer.client)
+
+
+@override_options({**DEFAULT_OPTIONS, "spans.buffer.done-flush-conditional-zrem": True})
+def test_done_flush_cleans_up_when_no_new_spans(buffer: SpansBuffer) -> None:
+    """
+    When no new spans arrive between flush_segments and done_flush_segments,
+    cleanup should proceed normally (queue entry removed, set deleted, etc).
+    """
+    spans = [
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+        ),
+    ]
+    process_spans(spans, buffer, now=0)
+
+    rv = buffer.flush_segments(now=11)
+    assert len(rv) == 1
+
+    # No new spans arrive — done_flush should clean up fully
+    buffer.done_flush_segments(rv)
+
+    # Nothing left to flush
+    assert buffer.flush_segments(now=30) == {}
+    assert_clean(buffer.client)
+
+
+@override_options({**DEFAULT_OPTIONS, "spans.buffer.done-flush-conditional-zrem": True})
+def test_done_flush_phase2_catches_race_after_zrem(buffer: SpansBuffer) -> None:
+    """
+    Test Phase 2 safety: even if Phase 1 (conditional ZREM) succeeds because the
+    queue score hasn't been updated yet, Phase 2 (conditional data deletion)
+    catches the race by detecting that the ingested count changed.
+
+    This simulates the window where add-buffer.lua has run (adding spans and
+    incrementing ic) but the ZADD hasn't happened yet.
+    """
+    initial_spans = [
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+        ),
+    ]
+    process_spans(initial_spans, buffer, now=0)
+
+    rv = buffer.flush_segments(now=11)
+    assert len(rv) == 1
+    segment_key = next(iter(rv))
+    flushed_segment = rv[segment_key]
+
+    # Simulate the race: add new spans (changes ic and queue score)
+    new_spans = [
+        Span(
+            payload=_payload("c" * 16),
+            trace_id="a" * 32,
+            span_id="c" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+    ]
+    process_spans(new_spans, buffer, now=20)
+
+    # Now reset the queue score back to the original value, simulating the
+    # window where add-buffer.lua ran but ZADD hasn't updated the score yet.
+    # This means Phase 1 (conditional ZREM) will succeed.
+    buffer.client.zadd(flushed_segment.queue_key, {segment_key: flushed_segment.score})
+
+    # done_flush_segments: Phase 1 ZREM succeeds (score matches), but
+    # Phase 2 should detect ic changed and skip data deletion.
+    buffer.done_flush_segments(rv)
+
+    # The segment data should still be in Redis
+    # Restore the queue entry with a proper deadline so we can flush again
+    buffer.client.zadd(flushed_segment.queue_key, {segment_key: 80})
+
+    rv2 = buffer.flush_segments(now=81)
+    assert len(rv2) == 1
+    _normalize_output(rv2)
+    flushed = rv2[segment_key]
+    span_ids = sorted(span.payload["span_id"] for span in flushed.spans)
+    assert "a" * 16 in span_ids
+    assert "b" * 16 in span_ids
+    assert "c" * 16 in span_ids
+
+    # Clean up
+    buffer.done_flush_segments(rv2)
+    assert_clean(buffer.client)
 
 
 # --- Distributed payload keys tests ---
@@ -1304,7 +1377,6 @@ def _dspan(
         segment_id=None,
         is_segment_span=is_root,
         project_id=1,
-        end_timestamp=1700000000.0 + ts_offset,
     )
 
 
@@ -1424,3 +1496,68 @@ def test_distributed_transition_write_then_read() -> None:
         assert len(rv[seg_key].spans) == 2
         buf.done_flush_segments(rv)
         assert_clean_distributed(buf.client)
+
+
+def _get_schema_examples():
+    """Load all ingest-spans schema examples for parametrization."""
+    examples = []
+    for ex in sentry_kafka_schemas.iter_examples("ingest-spans"):
+        examples.append(pytest.param(ex.load(), id=ex.path.stem))
+    return examples
+
+
+@pytest.mark.parametrize("example", _get_schema_examples())
+def test_schema_examples(buffer: SpansBuffer, example: dict) -> None:
+    """
+    Feed official ingest-spans schema examples through the buffer pipeline
+    to verify they are handled without errors.
+    """
+    # Replicate the parsing logic from process_batch() in factory.py
+    segment_id = cast(str | None, attribute_value(example, "sentry.segment.id"))
+    validate_span_event(cast(SpanEvent, example), segment_id)
+
+    payload = orjson.dumps(example)
+
+    span = Span(
+        trace_id=example["trace_id"],
+        span_id=example["span_id"],
+        parent_span_id=example.get("parent_span_id"),
+        segment_id=segment_id,
+        project_id=example["project_id"],
+        payload=payload,
+        is_segment_span=bool(example.get("parent_span_id") is None or example.get("is_segment")),
+    )
+
+    process_spans([span], buffer, now=0)
+    assert_ttls(buffer.client)
+
+    # Flush past both root-timeout (10s) and timeout (60s)
+    rv = buffer.flush_segments(now=61)
+
+    assert len(rv) == 1
+    segment = list(rv.values())[0]
+    assert len(segment.spans) == 1
+
+    output_span = segment.spans[0]
+    assert output_span.payload["span_id"] == example["span_id"]
+    assert output_span.payload["trace_id"] == example["trace_id"]
+
+    # Verify top-level keys are preserved (except is_segment and attributes
+    # which the buffer modifies)
+    for key in example:
+        if key in ("is_segment", "attributes"):
+            continue
+        assert key in output_span.payload, f"Key {key!r} missing from output payload"
+
+    # Validate that the output span still conforms to the ingest-spans schema.
+    # It's not explicitly written anywhere that the spans schema in
+    # buffered-segments is the same one as the input schema, but right now
+    # that's what it is.
+    SPANS_CODEC.validate(cast(SpanEvent, output_span.payload))
+
+    # Validate that the assembled segment conforms to the buffered-segments schema
+    buffered_segments_codec = get_topic_codec(Topic.BUFFERED_SEGMENTS)
+    buffered_segments_codec.validate({"spans": [span.payload for span in segment.spans]})
+
+    buffer.done_flush_segments(rv)
+    assert_clean(buffer.client)

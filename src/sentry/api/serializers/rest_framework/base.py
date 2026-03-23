@@ -8,7 +8,44 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.fields import empty
 from rest_framework.serializers import ModelSerializer, Serializer
 
+from sentry.utils import metrics
+
 T = TypeVar("T")
+
+
+def _classify_key_case(data: dict) -> str:
+    """Classify the top-level keys of a dict as camel, snake, mixed, or none."""
+    has_camel = False
+    has_snake = False
+    for key in data:
+        converted = camel_to_snake_case(key)
+        if converted != key:
+            has_camel = True
+        elif "_" in key:
+            has_snake = True
+    if has_camel and has_snake:
+        return "mixed"
+    if has_camel:
+        return "camel"
+    if has_snake:
+        return "snake"
+
+    # Uncertain data could be because the data doesn't have enough information to classify.
+    # For example, if the parameters are all single word keys, then they would show up the same
+    # whether they are camel or snake case.
+    return "uncertain"
+
+
+def _record_key_case_metric(serializer_name: str, data: dict) -> None:
+    """Emit a metric classifying the parameter key case of incoming data."""
+    key_case = _classify_key_case(data)
+    metrics.incr(
+        "api.serializer.parameter_key_case",
+        tags={
+            "key_case": key_case,
+            "serializer": serializer_name,
+        },
+    )
 
 
 def camel_to_snake_case(value):
@@ -58,6 +95,8 @@ class CamelSnakeSerializer(Serializer[T]):
 
     def __init__(self, instance=None, data=empty, **kwargs):
         if data is not empty:
+            if isinstance(data, dict):
+                _record_key_case_metric(type(self).__name__, data)
             data = convert_dict_key_case(data, camel_to_snake_case)
         super().__init__(instance=instance, data=data, **kwargs)
 
@@ -79,6 +118,8 @@ class CamelSnakeModelSerializer(ModelSerializer[M]):
 
     def __init__(self, instance=None, data=empty, **kwargs):
         if data is not empty:
+            if isinstance(data, dict):
+                _record_key_case_metric(type(self).__name__, data)
             data = convert_dict_key_case(data, camel_to_snake_case)
         super().__init__(instance=instance, data=data, **kwargs)
 

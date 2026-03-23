@@ -1,7 +1,7 @@
 import type {HTMLAttributes} from 'react';
 import styled from '@emotion/styled';
 
-import formatDuration, {type Format} from 'sentry/utils/duration/formatDuration';
+import {formatDuration, type Format} from 'sentry/utils/duration/formatDuration';
 import type {Duration as TDuration, Unit} from 'sentry/utils/duration/types';
 
 interface Props extends HTMLAttributes<HTMLTimeElement> {

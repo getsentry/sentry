@@ -1,4 +1,4 @@
-import formatDuration from 'sentry/utils/duration/formatDuration';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import type {Duration, Unit} from 'sentry/utils/duration/types';
 
 describe('formatDuration', () => {

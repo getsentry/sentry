@@ -35,7 +35,7 @@ import type {
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
-import LogsTimestampTooltip from 'sentry/views/explore/logs/logsTimeTooltip';
+import {LogsTimestampTooltip} from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
   ColoredLogCircle,
@@ -608,9 +608,7 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
 function ReplayIDRenderer(props: LogFieldRendererProps) {
   const replayId = props.item.value;
 
-  const hasFeature = props.extra.organization.features.includes('ourlogs-replay-ui');
-
-  if (typeof replayId !== 'string' || !replayId || !hasFeature) {
+  if (typeof replayId !== 'string' || !replayId) {
     return props.basicRendered;
   }
 

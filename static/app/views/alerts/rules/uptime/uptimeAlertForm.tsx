@@ -6,26 +6,26 @@ import {Observer} from 'mobx-react-lite';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import HiddenField from 'sentry/components/forms/fields/hiddenField';
-import NumberField from 'sentry/components/forms/fields/numberField';
-import RangeField from 'sentry/components/forms/fields/rangeField';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {HiddenField} from 'sentry/components/forms/fields/hiddenField';
+import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {RangeField} from 'sentry/components/forms/fields/rangeField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {SentryMemberTeamSelectorField} from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
-import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
-import TextareaField from 'sentry/components/forms/fields/textareaField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
+import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
+import {TextareaField} from 'sentry/components/forms/fields/textareaField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 import {useFormEagerValidation} from 'sentry/components/forms/useFormEagerValidation';
 import {List} from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {ListItem} from 'sentry/components/list/listItem';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
@@ -248,27 +248,6 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
               <Button priority="danger">{t('Delete Rule')}</Button>
             </Confirm>
           )}
-          {hasRuntimeAssertions && hasAiAssertionSuggestions && (
-            <AssertionSuggestionsButton
-              getFormData={() => {
-                const data = formModel.getTransformedData();
-                return {
-                  url: data.url,
-                  method: data.method ?? DEFAULT_METHOD,
-                  headers: data.headers ?? [],
-                  body: methodHasBody(formModel) ? data.body : null,
-                  timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-                };
-              }}
-              getCurrentAssertion={() =>
-                formModel.getValue<UptimeAssertion | null>('assertion')
-              }
-              onApplySuggestion={newAssertion => {
-                // Cast to any to satisfy FormModel's FieldValue type
-                formModel.setValue('assertion', newAssertion as any);
-              }}
-            />
-          )}
           {hasRuntimeAssertions && (
             <TestUptimeMonitorButton
               label={t('Test Rule')}
@@ -314,7 +293,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
             label={t('Environment')}
             placeholder={t('Select an environment')}
             noOptionsMessage={() => t('Start typing to create an environment')}
-            onCreateOption={(env: any) => {
+            onCreateOption={env => {
               setNewEnvironment(env);
               formModel.setValue('environment', env);
             }}
@@ -455,12 +434,40 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
         </Configuration>
         {hasRuntimeAssertions && (
           <Fragment>
-            <AlertListItem>{t('Verification')}</AlertListItem>
-            <ListItemSubText>
-              {t(
-                'Define conditions that must be met for the check to be considered successful.'
-              )}
-            </ListItemSubText>
+            <AlertListItem>
+              <Flex justify="between" align="end">
+                <Stack>
+                  {t('Verification')}
+                  <ListItemSubText style={{paddingLeft: 0}}>
+                    {t(
+                      'Define conditions that must be met for the check to be considered successful.'
+                    )}
+                  </ListItemSubText>
+                </Stack>
+                {hasAiAssertionSuggestions && (
+                  <AssertionSuggestionsButton
+                    size="xs"
+                    getFormData={() => {
+                      const data = formModel.getTransformedData();
+                      return {
+                        url: data.url,
+                        method: data.method ?? DEFAULT_METHOD,
+                        headers: data.headers ?? [],
+                        body: methodHasBody(formModel) ? data.body : null,
+                        timeoutMs: data.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+                      };
+                    }}
+                    getCurrentAssertion={() =>
+                      formModel.getValue<UptimeAssertion | null>('assertion')
+                    }
+                    onApplySuggestion={newAssertion => {
+                      formModel.setValue('assertion', newAssertion as any);
+                    }}
+                  />
+                )}
+              </Flex>
+            </AlertListItem>
+
             <Configuration>
               <ConfigurationPanel>
                 <UptimeAssertionsField
@@ -572,6 +579,8 @@ const AlertListItem = styled(ListItem)`
 
 const ListItemSubText = styled(Text)`
   padding-left: ${p => p.theme.space['3xl']};
+  font-size: ${p => p.theme.font.size.md};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
 `;
 

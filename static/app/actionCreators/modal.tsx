@@ -9,7 +9,6 @@ import type {InsightChartModalOptions} from 'sentry/components/modals/insightCha
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/privateGamingSdkAccessModal';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
-import type {TokenRegenerationConfirmationModalProps} from 'sentry/components/modals/tokenRegenerationConfirmationModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {LinkToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/linkToDashboardModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
@@ -441,15 +440,6 @@ export async function openAddTempestCredentialsModal(options: {
 export async function openSaveQueryModal(options: SaveQueryModalProps) {
   const {default: Modal} =
     await import('sentry/components/modals/explore/saveQueryModal');
-
-  openModal(deps => <Modal {...deps} {...options} />);
-}
-
-export async function openTokenRegenerationConfirmationModal(
-  options: TokenRegenerationConfirmationModalProps
-) {
-  const {default: Modal} =
-    await import('sentry/components/modals/tokenRegenerationConfirmationModal');
 
   openModal(deps => <Modal {...deps} {...options} />);
 }

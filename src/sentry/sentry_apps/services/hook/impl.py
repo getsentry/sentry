@@ -128,7 +128,7 @@ class DatabaseBackedHookService(HookService):
     def bulk_create_service_hooks_for_app(
         self,
         *,
-        region_name: str,
+        cell_name: str,
         application_id: int,
         events: list[str],
         installation_organization_ids: list[RpcInstallationOrganizationPair],

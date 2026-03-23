@@ -2,12 +2,12 @@ import logging
 
 from django.conf import settings
 from django.db import IntegrityError
+from taskbroker_client.retry import Retry
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import auth_tasks
-from sentry.taskworker.retry import Retry
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)

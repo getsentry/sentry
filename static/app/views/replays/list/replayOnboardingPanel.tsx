@@ -42,7 +42,7 @@ const OnboardingAlertHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-export default function ReplayOnboardingPanel() {
+export function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();

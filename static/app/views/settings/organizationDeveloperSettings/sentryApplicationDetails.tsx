@@ -16,10 +16,10 @@ import {
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
-import Confirm from 'sentry/components/confirm';
+import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import Form from 'sentry/components/forms/form';
-import FormField from 'sentry/components/forms/formField';
+import {Form} from 'sentry/components/forms/form';
+import {FormField} from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
 import {FormModel} from 'sentry/components/forms/model';
@@ -40,7 +40,7 @@ import {t, tct} from 'sentry/locale';
 import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   setApiQueryData,
   useApiQuery,

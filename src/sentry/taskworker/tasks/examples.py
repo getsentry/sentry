@@ -4,10 +4,11 @@ import logging
 from time import sleep
 from typing import Any
 
-from sentry.taskworker.constants import CompressionType
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.retry import LastAction, NoRetriesRemainingError, Retry, RetryTaskError
+from taskbroker_client.retry import retry_task as retry_task_helper
+
 from sentry.taskworker.namespaces import exampletasks
-from sentry.taskworker.retry import LastAction, NoRetriesRemainingError, Retry, RetryTaskError
-from sentry.taskworker.retry import retry_task as retry_task_helper
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)

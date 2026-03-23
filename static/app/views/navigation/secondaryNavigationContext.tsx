@@ -1,4 +1,4 @@
-import {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
@@ -12,13 +12,12 @@ import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navig
 type SecondaryNavState = 'expanded' | 'collapsed' | 'peek';
 
 interface SecondaryNavigationContext {
-  interaction: React.RefObject<string | null>;
-  setInteraction: (value: string | null) => void;
   setView: (view: SecondaryNavState) => void;
   view: SecondaryNavState;
 }
 
-const SecondaryNavigationContext = createContext<SecondaryNavigationContext | null>(null);
+export const SecondaryNavigationContext =
+  createContext<SecondaryNavigationContext | null>(null);
 
 export function useSecondaryNavigation(): SecondaryNavigationContext {
   const context = useContext(SecondaryNavigationContext);
@@ -55,19 +54,12 @@ export function SecondaryNavigationContextProvider(
     [setIsCollapsedPersisted]
   );
 
-  const interaction = useRef<string | null>(null);
-  const setInteraction = useCallback((value: string | null) => {
-    interaction.current = value;
-  }, []);
-
   const value = useMemo(() => {
     return {
       view,
       setView,
-      interaction,
-      setInteraction,
     };
-  }, [view, setView, interaction, setInteraction]);
+  }, [view, setView]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>

@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
-import sessionStorageWrapper from 'sentry/utils/sessionStorage';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 

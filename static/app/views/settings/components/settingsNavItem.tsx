@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
 type Props = {
   label: React.ReactNode;
@@ -43,15 +43,17 @@ function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement
 
 export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
   return (
-    <SecondaryNavigation.Item
-      to={to}
-      end={index}
-      trailingItems={badge ? <SettingsNavBadge badge={badge} /> : null}
-      analyticsItemName={id ? `settings_${id}` : undefined}
-      {...props}
-    >
-      <LabelHook id={id}>{label}</LabelHook>
-    </SecondaryNavigation.Item>
+    <SecondaryNavigation.ListItem>
+      <SecondaryNavigation.Link
+        to={to}
+        end={index}
+        trailingItems={badge ? <SettingsNavBadge badge={badge} /> : null}
+        analyticsItemName={id ? `settings_${id}` : undefined}
+        {...props}
+      >
+        <LabelHook id={id}>{label}</LabelHook>
+      </SecondaryNavigation.Link>
+    </SecondaryNavigation.ListItem>
   );
 }
 

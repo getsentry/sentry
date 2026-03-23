@@ -7,11 +7,11 @@ import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/components/pageFilters/actions';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import PageFiltersStore from 'sentry/components/pageFilters/store';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 describe('PageFiltersContainer', () => {
   const organization = OrganizationFixture();

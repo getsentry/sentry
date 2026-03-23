@@ -102,13 +102,13 @@ class OrganizationEventsTraceMetaEndpointTest(
                     project=self.project,
                     group_id=first_group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 ),
                 self.create_eap_occurrence(
                     project=self.project,
                     group_id=second_group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="generic",
+                    issue_occurrence_id=uuid4().hex,
                 ),
             ]
         )
@@ -174,7 +174,6 @@ class OrganizationEventsTraceMetaEndpointTest(
                     project=self.gen1_project,
                     group_id=group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="error",
                 ),
             ]
         )
@@ -207,7 +206,6 @@ class OrganizationEventsTraceMetaEndpointTest(
                     project=self.gen1_project,
                     group_id=group.id,
                     trace_id=self.trace_id,
-                    occurrence_type="error",
                 ),
             ]
         )
@@ -264,7 +262,6 @@ class OrganizationEventsTraceMetaEndpointTest(
 
 class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase):
     url_name = "sentry-api-0-organization-trace-meta"
-    FEATURES = ["organizations:trace-spans-format"]
 
     def create_uptime_check(self, trace_id=None, **kwargs):
         defaults = {

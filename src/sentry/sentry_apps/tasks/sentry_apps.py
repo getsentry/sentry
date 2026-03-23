@@ -10,6 +10,8 @@ import sentry_sdk
 from django.urls import reverse
 from requests import HTTPError, Timeout
 from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.retry import NoRetriesRemainingError, Retry, retry_task
 
 from sentry import analytics, nodestore
 from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
@@ -66,9 +68,7 @@ from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import sentryapp_control_tasks, sentryapp_tasks
-from sentry.taskworker.retry import NoRetriesRemainingError, Retry, retry_task
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -173,7 +173,7 @@ def _webhook_issue_data(
     name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
-    processing_deadline_duration=5,
+    processing_deadline_duration=8,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator
@@ -519,7 +519,7 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 
     # Clear application_id cache
     cell_caching_service.clear_key(
-        key=get_by_application_id.key_from(sentry_app.application_id), region_name=region_name
+        key=get_by_application_id.key_from(sentry_app.application_id), cell_name=region_name
     )
 
     # Limit our operations to the region this outbox is for.
@@ -530,12 +530,12 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
     for region_row in region_query:
         cell_caching_service.clear_key(
             key=get_installations_for_organization.key_from(region_row["organization_id"]),
-            region_name=region_name,
+            cell_name=region_name,
         )
         installs = install_map[region_row["organization_id"]]
         for install_id in installs:
             cell_caching_service.clear_key(
-                key=get_installation.key_from(install_id), region_name=region_name
+                key=get_installation.key_from(install_id), cell_name=region_name
             )
 
 
@@ -697,7 +697,7 @@ def get_webhook_data(
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
     compression_type=CompressionType.ZSTD,
-    processing_deadline_duration=5,
+    processing_deadline_duration=8,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator

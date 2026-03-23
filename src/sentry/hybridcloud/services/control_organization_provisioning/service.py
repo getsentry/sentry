@@ -21,8 +21,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     def provision_organization(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         org_provision_args: OrganizationProvisioningOptions,
     ) -> RpcOrganizationSlugReservation:
         """
@@ -36,33 +35,10 @@ class ControlOrganizationProvisioningRpcService(RpcService):
 
     @abstractmethod
     @rpc_method
-    def idempotent_provision_organization(
-        self,
-        *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
-        org_provision_args: OrganizationProvisioningOptions,
-    ) -> RpcOrganizationSlugReservation | None:
-        """
-        Provisions an organization, an organization member, and team based on the provisioning args passed.
-
-        In the event of a slug conflict, the conflicting org will be queried. If the provided owning_user_id
-        matches the organization's owning user, the organization will be returned. Otherwise, None will be returned.
-
-        Note: This is not intended to be used for normal organization provisioning; but rather, for use-cases
-        such as integrations which require strong idempotency.
-        :param cell_name: The cell to provision the organization in.
-        :param org_provision_args: Provisioning and post-provisioning options for the organization.
-        :return: RpcOrganization the organization ID and slug.
-        """
-
-    @abstractmethod
-    @rpc_method
     def update_organization_slug(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         organization_id: int,
         desired_slug: str,
         require_exact: bool = True,
@@ -88,8 +64,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     def bulk_create_organization_slug_reservations(
         self,
         *,
-        cell_name: str | None = None,  # TODO(cells): make required when all callers are updated
-        region_name: str | None = None,  # TODO(cells): remove when all callers are updated
+        cell_name: str,
         slug_mapping: dict[int, str],
     ) -> None:
         """

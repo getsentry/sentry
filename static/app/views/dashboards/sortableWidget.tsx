@@ -18,6 +18,7 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
+import {useWidgetErrorCallback} from './contexts/widgetErrorContext';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import {Toolbar} from './widgetCard/toolbar';
@@ -107,6 +108,7 @@ export function SortableWidget(props: Props) {
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
+  const onWidgetError = useWidgetErrorCallback();
   const hasEditAccess =
     checkUserHasEditAccess(
       currentUser,
@@ -181,6 +183,13 @@ export function SortableWidget(props: Props) {
     dashboardFilters,
     widgetLegendState,
     renderErrorMessage: errorMessage => {
+      if (
+        typeof errorMessage === 'string' &&
+        errorMessage !== t('No data found') &&
+        onWidgetError
+      ) {
+        onWidgetError(widget, errorMessage);
+      }
       return (
         typeof errorMessage === 'string' && (
           <PanelAlert variant="danger">{errorMessage}</PanelAlert>

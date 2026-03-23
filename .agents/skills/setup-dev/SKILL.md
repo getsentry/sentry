@@ -228,7 +228,7 @@ The `_find_docker_socket()` function needs to check multiple socket paths. On ma
 2. `~/.orbstack/run/docker.sock` (OrbStack)
 3. `/var/run/docker.sock` (Docker Desktop / default)
 
-If only Colima is checked, patch it to support all runtimes. Read `${CLAUDE_SKILL_ROOT}/references/orbstack-fix.md` for the exact pattern.
+If only Colima is checked, patch it to support all runtimes. Read `references/orbstack-fix.md` for the exact pattern.
 
 ### Then: Seed the Database
 

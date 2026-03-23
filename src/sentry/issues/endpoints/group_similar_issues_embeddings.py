@@ -142,7 +142,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         viewer_context = SeerViewerContext(
             organization_id=group.project.organization.id, user_id=request.user.id
         )
-        results = get_similarity_data_from_seer(
+        results, _model_used = get_similarity_data_from_seer(
             similar_issues_params, viewer_context=viewer_context
         )
 
