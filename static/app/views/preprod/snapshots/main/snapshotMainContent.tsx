@@ -148,7 +148,56 @@ export function SnapshotMainContent({
     );
   }
 
-  // added, removed, renamed, unchanged
+  if (selectedItem.type === 'renamed') {
+    const currentPair = selectedItem.pairs[variantIndex];
+    if (!currentPair) {
+      return null;
+    }
+    const totalVariants = selectedItem.pairs.length;
+    const imageUrl = `${imageBaseUrl}${currentPair.head_image.key}/`;
+    const displayName = getImageName(currentPair.head_image);
+
+    return (
+      <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+        <Flex align="center" gap="md" padding="xl">
+          {totalVariants > 1 && (
+            <VariantNavigation
+              variantIndex={variantIndex}
+              totalVariants={totalVariants}
+              onVariantChange={onVariantChange}
+            />
+          )}
+          <Stack gap="md">
+            <Flex align="center" gap="md">
+              {currentPair.head_image.display_name && (
+                <Text size="lg" bold>
+                  {currentPair.head_image.display_name}
+                </Text>
+              )}
+              <ImageFileName
+                fileName={currentPair.head_image.image_file_name}
+                previousFileName={currentPair.base_image.image_file_name}
+              />
+            </Flex>
+            <Flex align="center" gap="sm">
+              <Text variant="muted" size="sm">
+                ({t('Renamed')})
+              </Text>
+              {totalVariants > 1 && (
+                <Text variant="muted" size="sm">
+                  {t('Variant %s / %s', variantIndex + 1, totalVariants)}
+                </Text>
+              )}
+            </Flex>
+          </Stack>
+        </Flex>
+        <Separator orientation="horizontal" />
+        <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
+      </Flex>
+    );
+  }
+
+  // added, removed, unchanged
   const currentImage = selectedItem.images[variantIndex];
   if (!currentImage) {
     return null;
@@ -159,7 +208,6 @@ export function SnapshotMainContent({
   const STATUS_LABELS: Record<string, string> = {
     added: t('Added'),
     removed: t('Removed'),
-    renamed: t('Renamed'),
   };
   const statusLabel = STATUS_LABELS[selectedItem.type] ?? t('Unchanged');
 
@@ -180,24 +228,7 @@ export function SnapshotMainContent({
                 {currentImage.display_name}
               </Text>
             )}
-            {currentImage.image_file_name &&
-              (selectedItem.type === 'renamed' &&
-              currentImage.previous_image_file_name ? (
-                <Tooltip
-                  title={
-                    <span>
-                      <InlineCode>{currentImage.previous_image_file_name}</InlineCode>
-                      {' → '}
-                      <InlineCode>{currentImage.image_file_name}</InlineCode>
-                    </span>
-                  }
-                  maxWidth={2000}
-                >
-                  <InlineCode>{currentImage.image_file_name}</InlineCode>
-                </Tooltip>
-              ) : (
-                <InlineCode variant="neutral">{currentImage.image_file_name}</InlineCode>
-              ))}
+            <ImageFileName fileName={currentImage.image_file_name} />
           </Flex>
           <Flex align="center" gap="sm">
             <Text variant="muted" size="sm">
@@ -246,6 +277,32 @@ function VariantNavigation({
       />
     </Flex>
   );
+}
+
+function ImageFileName({
+  fileName,
+  previousFileName,
+}: {
+  fileName: string;
+  previousFileName?: string;
+}) {
+  if (previousFileName) {
+    return (
+      <Tooltip
+        title={
+          <span>
+            <InlineCode>{previousFileName}</InlineCode>
+            {' → '}
+            <InlineCode>{fileName}</InlineCode>
+          </span>
+        }
+        maxWidth={2000}
+      >
+        <InlineCode>{fileName}</InlineCode>
+      </Tooltip>
+    );
+  }
+  return <InlineCode variant="neutral">{fileName}</InlineCode>;
 }
 
 function OverlayControls({

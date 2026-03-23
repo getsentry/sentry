@@ -126,9 +126,30 @@ export default function SnapshotsPage() {
         });
       }
 
+      const renamedGroups = new Map<string, SnapshotDiffPair[]>();
+      for (const pair of data.renamed ?? []) {
+        const group = getImageGroup(pair.head_image);
+        const existing = renamedGroups.get(group);
+        if (existing) {
+          existing.push(pair);
+        } else {
+          renamedGroups.set(group, [pair]);
+        }
+      }
+      for (const [groupKey, pairs] of renamedGroups) {
+        const label = pairs[0]!.head_image.group ?? pairs[0]!.head_image.image_file_name;
+        items.push({
+          type: 'renamed',
+          key: `renamed:${groupKey}`,
+          name: label,
+          badge: null,
+          pairs,
+        });
+      }
+
       const groupImages = (
         imgs: SnapshotImage[],
-        type: 'added' | 'removed' | 'renamed' | 'unchanged'
+        type: 'added' | 'removed' | 'unchanged'
       ) => {
         const groups = new Map<string, SnapshotImage[]>();
         for (const img of imgs) {
@@ -154,7 +175,6 @@ export default function SnapshotsPage() {
 
       groupImages(data.added, 'added');
       groupImages(data.removed, 'removed');
-      groupImages(data.renamed ?? [], 'renamed');
       groupImages(data.unchanged, 'unchanged');
 
       computeSidebarBadges(items);
@@ -203,7 +223,7 @@ export default function SnapshotsPage() {
   // Clamp variantIndex to valid range when the selected item changes implicitly
   // (e.g. search filtering selects a new item with fewer variants)
   const variantCount = currentItem
-    ? currentItem.type === 'changed'
+    ? currentItem.type === 'changed' || currentItem.type === 'renamed'
       ? currentItem.pairs.length
       : currentItem.images.length
     : 0;
