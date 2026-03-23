@@ -258,6 +258,7 @@ class Parameterizer:
         # List of `ParameterizationRegex` objects defining the regexes to use. If nothing is passed,
         # the default set will be used.
         regexes: Sequence[ParameterizationRegex] = DEFAULT_PARAMETERIZATION_REGEXES,
+        *,
         # List of `ParameterizationRegex.name` values, used to selectively enable pattern types. To
         # use all available parameterization, omit this argument.
         regex_keys: Sequence[str] | None = None,
