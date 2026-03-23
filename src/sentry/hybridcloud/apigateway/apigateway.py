@@ -30,8 +30,10 @@ def _get_view_silo_mode(view_func: Callable[..., HttpResponseBase]) -> frozenset
     return endpoint_silo_limit.modes
 
 
-def proxy_request_if_needed(
-    request: Request, view_func: Callable[..., HttpResponseBase], view_kwargs: dict[str, Any]
+async def proxy_request_if_needed(
+    request: Request,
+    view_func: Callable[..., HttpResponseBase],
+    view_kwargs: dict[str, Any],
 ) -> HttpResponseBase | None:
     """
     Main execution flow for the API Gateway.
@@ -61,7 +63,7 @@ def proxy_request_if_needed(
                 "kind": "orgslug",
             },
         )
-        return proxy_request(request, org_id_or_slug, url_name)
+        return await proxy_request(request, org_id_or_slug, url_name)
 
     if url_name == "sentry-error-page-embed" and "dsn" in request.GET:
         # Error embed modal is special as customers can't easily use cell URLs.
@@ -73,7 +75,7 @@ def proxy_request_if_needed(
                 "kind": "error-embed",
             },
         )
-        return proxy_error_embed_request(request, dsn, url_name)
+        return await proxy_error_embed_request(request, dsn, url_name)
 
     if (
         request.resolver_match
@@ -88,7 +90,7 @@ def proxy_request_if_needed(
             },
         )
 
-        return proxy_cell_request(request, cell, url_name)
+        return await proxy_cell_request(request, cell, url_name)
 
     if url_name != "unknown":
         # If we know the URL but didn't proxy it record we could be missing

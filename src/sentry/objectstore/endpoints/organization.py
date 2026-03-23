@@ -6,12 +6,13 @@ from urllib.parse import urlparse
 from wsgiref.util import is_hop_by_hop
 
 import requests
+from asgiref.sync import sync_to_async
 from django.http import HttpRequest, StreamingHttpResponse
 from requests import Response as ExternalResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.utils.http import BodyWithLength
+from sentry.utils.http import BodyAsyncWrapper, BodyWithLength, BodyWithLengthAiter
 
 # TODO(granian): Remove this and related code paths when we fully switch from uwsgi to granian
 uwsgi: Any = None
@@ -150,6 +151,32 @@ def get_raw_body(
     return BodyWithLength(request)
 
 
+def get_raw_body_async(
+    request: HttpRequest,
+) -> BodyAsyncWrapper | ChunkedEncodingAsyncDecoder | BodyWithLengthAiter | None:
+    if request.body:
+        return BodyAsyncWrapper(request.body)
+
+    wsgi_input = request.META.get("wsgi.input")
+    if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
+        return BodyAsyncWrapper(wsgi_input)
+
+    # wsgiref will raise an exception and hang when attempting to read wsgi.input while there's no body.
+    # For now, support bodies only on PUT and POST requests when not using Granian.
+    if request.method not in ("PUT", "POST"):
+        return None
+
+    # wsgiref (dev/test server)
+    if (
+        hasattr(wsgi_input, "_read")
+        and request.headers.get("Transfer-Encoding", "").lower() == "chunked"
+    ):
+        return ChunkedEncodingAsyncDecoder(wsgi_input._read)  # type: ignore[union-attr]
+
+    # wsgiref and the request has been already proxied through control silo
+    return BodyWithLength(request).__aiter__()
+
+
 def get_target_url(path: str) -> str:
     base = options.get("objectstore.config")["base_url"].rstrip("/")
     # `path` should be a relative path, only grab that part
@@ -248,3 +275,13 @@ class ChunkedEncodingDecoder:
                         raise ValueError("Malformed chunk encoded stream")
 
         return b"".join(buffer)
+
+
+class ChunkedEncodingAsyncDecoder(ChunkedEncodingDecoder):
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self) -> bytes:
+        if self._done:
+            raise StopAsyncIteration
+        return await sync_to_async(self.read)()
