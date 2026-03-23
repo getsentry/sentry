@@ -6,11 +6,12 @@ from sentry.search.eap.columns import (
     ResolvedAttribute,
     VirtualColumnDefinition,
     datetime_processor,
-    project_term_resolver,
 )
 from sentry.search.eap.common_columns import COMMON_COLUMNS, project_virtual_contexts
 from sentry.search.events.types import SnubaParams
 from sentry.utils.validators import is_event_id_or_list
+
+ISSUE_VIRTUAL_COLUMN_CONTEXT_MAX_GROUPS = int("1000")
 
 OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
     column.public_alias: column
@@ -294,8 +295,10 @@ OCCURRENCE_ATTRIBUTE_DEFINITIONS = {
 def issue_context_constructor(params: SnubaParams) -> VirtualColumnContext:
     if params.project_ids is None or len(params.project_ids) == 0:
         raise ValueError("Project IDs required for Issue")
-    groups = Group.objects.filter(
-        project_id__in=params.project_ids,
+    groups = (
+        Group.objects.filter(project_id__in=params.project_ids)
+        .select_related("project")
+        .order_by("-last_seen")[:ISSUE_VIRTUAL_COLUMN_CONTEXT_MAX_GROUPS]
     )
     return VirtualColumnContext(
         from_column_name="group_id",
@@ -313,6 +316,6 @@ OCCURRENCE_VIRTUAL_CONTEXTS = {
     "issue": VirtualColumnDefinition(
         constructor=issue_context_constructor,
         filter_column="group_id",
-        term_resolver=project_term_resolver,
+        term_resolver=None,
     ),
 }

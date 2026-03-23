@@ -290,6 +290,38 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         assert len(data) == 1
         assert data[0]["group_id"] == group1.id
 
+    def test_issue_filter_in_list_rejected(self) -> None:
+        """Occurrences issue filter does not support multiple short ids (IN list)."""
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        occurrences = [
+            self.create_eap_occurrence(
+                group_id=group1.id,
+                project=self.project,
+                attributes={"fingerprint": ["g1"]},
+            ),
+            self.create_eap_occurrence(
+                group_id=group2.id,
+                project=self.project,
+                attributes={"fingerprint": ["g2"]},
+            ),
+        ]
+        self.store_eap_items(occurrences)
+        with self.options(
+            {EAPOccurrencesComparator._callsite_allowlist_option_name(): self.callsite_name}
+        ):
+            response = self.do_request(
+                {
+                    "query": (f"issue:[{group1.qualified_short_id},{group2.qualified_short_id}]"),
+                    "field": ["group_id", "project", "project.name"],
+                    "statsPeriod": "2h",
+                    "project": [self.project.id],
+                    "dataset": "occurrences",
+                }
+            )
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "issue filter with more than one issue IDs not supported"
+
     def test_has_filter_on_project(self) -> None:
         group1 = self.create_group(project=self.project)
         occurrences = [
