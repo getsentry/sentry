@@ -465,7 +465,7 @@ export default function AlertRuleDetails() {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main>
-          <APIUsageWarningBanner />
+          <APIUsageWarningBanner errors={rule.errors} />
           {renderIncompatibleAlert()}
           {renderDisabledAlertBanner()}
           {rule.snooze && (
