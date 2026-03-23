@@ -7,6 +7,7 @@ import {InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -179,9 +180,24 @@ export function SnapshotMainContent({
                 {currentImage.display_name}
               </Text>
             )}
-            {currentImage.image_file_name && (
-              <InlineCode variant="neutral">{currentImage.image_file_name}</InlineCode>
-            )}
+            {currentImage.image_file_name &&
+              (selectedItem.type === 'renamed' &&
+              currentImage.previous_image_file_name ? (
+                <Tooltip
+                  title={
+                    <span>
+                      <InlineCode>{currentImage.previous_image_file_name}</InlineCode>
+                      {' → '}
+                      <InlineCode>{currentImage.image_file_name}</InlineCode>
+                    </span>
+                  }
+                  maxWidth={2000}
+                >
+                  <InlineCode>{currentImage.image_file_name}</InlineCode>
+                </Tooltip>
+              ) : (
+                <InlineCode variant="neutral">{currentImage.image_file_name}</InlineCode>
+              ))}
           </Flex>
           <Flex align="center" gap="sm">
             <Text variant="muted" size="sm">
