@@ -47,6 +47,7 @@ export function IndeterminateLoader({
 
 const Track = styled('div')<{trackColor: string; trackOpacity: number}>`
   position: relative;
+  width: 100%;
   width: calc(round(down, 100% - 8px, 16px) + 8px);
   height: 8px;
 
