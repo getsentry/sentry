@@ -132,6 +132,10 @@ class ExplorerIndexRequest(TypedDict):
     projects: list[ExplorerIndexProject]
 
 
+class ExplorerIndexSentryKnowledgeRequest(TypedDict):
+    replace_existing: bool = True
+
+
 class LlmGenerateRequest(TypedDict):
     provider: str
     model: str
@@ -151,6 +155,20 @@ def make_org_project_knowledge_index_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/automation/explorer/index/org-project-knowledge",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_index_sentry_knowledge_request(
+    body: ExplorerIndexSentryKnowledgeRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/automation/explorer/index/sentry-knowledge",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,

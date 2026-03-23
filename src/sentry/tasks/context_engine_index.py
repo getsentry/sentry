@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta, timezone
 
+import orjson
 import sentry_sdk
 from taskbroker_client.retry import Retry
 
@@ -30,6 +31,7 @@ from sentry.seer.signed_seer_api import (
     OrgProjectKnowledgeIndexRequest,
     OrgProjectKnowledgeProjectData,
     SeerViewerContext,
+    make_index_sentry_knowledge_request,
     make_org_project_knowledge_index_request,
 )
 from sentry.tasks.base import instrumented_task
@@ -268,3 +270,25 @@ def schedule_context_engine_indexing_tasks() -> None:
         "Scheduled context engine indexing tasks",
         extra={"total_org_count": len(allowed_org_ids), "dispatched": dispatched},
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.context_engine_index.index_sentry_knowledge",
+    namespace=seer_tasks,
+    processing_deadline_duration=30,
+)
+def index_sentry_knowledge() -> None:
+    body = orjson.dumps({"replace_existing": True})
+
+    response = make_index_sentry_knowledge_request(body)
+
+    if response.status >= 400:
+        raise Exception(
+            f"Seer sentry-knowledge endpoint returned {response.status}: {response.data}"
+        )
+
+    logger.info(
+        "Successfully called Seer sentry-knowledge endpoint",
+        extra={"response": response.json()},
+    )
+    return None
