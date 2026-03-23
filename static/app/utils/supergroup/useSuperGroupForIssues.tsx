@@ -11,13 +11,17 @@ type SupergroupState = Record<string, SupergroupDetail | null>;
 
 function supergroupReducer(
   prevState: undefined | SupergroupState,
-  response: ApiResult,
+  response: ApiResult<{data: SupergroupDetail[]}>,
   aggregates: readonly string[]
 ): undefined | SupergroupState {
   const defaults = Object.fromEntries(
     aggregates.map(id => [id, null])
   ) as SupergroupState;
-  return {...defaults, ...prevState, ...response[0]};
+  const supergroups = response[0].data;
+  const byGroupId: SupergroupState = Object.fromEntries(
+    supergroups.flatMap(sg => sg.group_ids.map(groupId => [String(groupId), sg]))
+  );
+  return {...defaults, ...prevState, ...byGroupId};
 }
 
 /**
