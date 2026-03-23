@@ -553,6 +553,77 @@ describe('Onboarding', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('clears all context when going back from setup-docs in legacy flow', async () => {
+    const organization = OrganizationFixture();
+    const reactProject = ProjectFixture({
+      platform: 'javascript-react',
+      id: '2',
+      slug: 'javascript-react',
+    });
+
+    jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => ({
+        project: reactProject,
+        isProjectActive: false,
+      }));
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${reactProject.slug}/keys/`,
+      body: [ProjectKeysFixture()[0]],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${reactProject.slug}/issues/`,
+      body: [],
+    });
+
+    const deleteProjectMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${reactProject.slug}/`,
+      method: 'DELETE',
+    });
+
+    const initialContext = {
+      selectedPlatform: {
+        key: reactProject.slug as PlatformKey,
+        type: 'framework',
+        language: 'javascript',
+        category: 'browser',
+        name: 'React',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
+      },
+    };
+
+    sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
+
+    render(
+      <OnboardingContextProvider initialValue={initialContext}>
+        <OnboardingWithoutContext />
+      </OnboardingContextProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/onboarding/${organization.slug}/setup-docs/`,
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+
+    await waitFor(() => {
+      expect(deleteProjectMock).toHaveBeenCalled();
+    });
+
+    // Legacy flow should clear all context
+    const stored = sessionStorage.getItem('onboarding');
+    expect(stored).toBeNull();
+  });
+
   describe('SCM onboarding flow', () => {
     const scmOrganization = OrganizationFixture({
       features: ['onboarding-scm'],
@@ -799,6 +870,8 @@ describe('Onboarding', () => {
       const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
       expect(stored.selectedPlatform).toBeDefined();
       expect(stored.selectedFeatures).toBeDefined();
+      // createdProjectSlug should be cleared so the user can re-create
+      expect(stored.createdProjectSlug).toBeUndefined();
     });
 
     it('navigates back from scm-connect to welcome', async () => {

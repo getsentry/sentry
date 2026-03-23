@@ -250,10 +250,12 @@ describe('ScmProjectDetails', () => {
       expect(onComplete).toHaveBeenCalled();
     });
 
-    // Verify the context was updated with the project slug by checking
-    // session storage (OnboardingContext persists there)
+    // Verify the project slug was stored separately in context (not overwriting
+    // selectedPlatform.key) so onboarding.tsx can find the project via
+    // useRecentCreatedProject while preserving the original platform selection.
     const stored = JSON.parse(sessionStorageWrapper.getItem('onboarding') ?? '{}');
-    expect(stored.selectedPlatform?.key).toBe('my-custom-project');
+    expect(stored.createdProjectSlug).toBe('my-custom-project');
+    expect(stored.selectedPlatform?.key).toBe('javascript-nextjs');
   });
 
   it('shows error message on project creation failure', async () => {

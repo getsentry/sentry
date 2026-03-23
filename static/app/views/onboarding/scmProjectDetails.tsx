@@ -13,7 +13,6 @@ import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
 import {slugify} from 'sentry/utils/slugify';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
@@ -27,7 +26,7 @@ import {
 import type {StepProps} from './types';
 
 export function ScmProjectDetails({onComplete}: StepProps) {
-  const {selectedPlatform, selectedRepository, setSelectedPlatform} =
+  const {selectedPlatform, selectedRepository, setCreatedProjectSlug} =
     useOnboardingContext();
   const {teams} = useTeams();
   const createProjectAndRules = useCreateProjectAndRules();
@@ -86,13 +85,10 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         createNotificationAction,
       });
 
-      // onboarding.tsx uses selectedPlatform.key as the project slug for
-      // useRecentCreatedProject lookup. The types don't align (PlatformKey vs
-      // string) because the field is overloaded for both purposes.
-      setSelectedPlatform({
-        ...selectedPlatform,
-        key: project.slug as PlatformKey,
-      });
+      // Store the project slug separately so onboarding.tsx can find
+      // the project via useRecentCreatedProject without corrupting
+      // selectedPlatform.key (which the platform features step needs).
+      setCreatedProjectSlug(project.slug);
 
       onComplete();
     } catch (error) {
@@ -107,7 +103,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     teamSlugResolved,
     alertRuleConfig,
     createNotificationAction,
-    setSelectedPlatform,
+    setCreatedProjectSlug,
     onComplete,
   ]);
 

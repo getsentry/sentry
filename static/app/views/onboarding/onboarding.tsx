@@ -160,7 +160,8 @@ export function OnboardingWithoutContext() {
   const {step: stepId} = useParams<{step: string}>();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
-  const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
+  const selectedProjectSlug =
+    onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
 
   const hasNewWelcomeUI = useHasNewWelcomeUI();
   const hasScmOnboarding = organization.features.includes('onboarding-scm');
