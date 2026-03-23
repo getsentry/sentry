@@ -11,7 +11,7 @@ from django.utils import timezone
 from sentry import features, ratelimits
 from sentry.issues.grouptype import GroupType
 from sentry.processing_errors.grouptype import (
-    JS_SOURCEMAP_ERROR_TYPES,
+    ProcessingErrorDetectorHandler,
     ProcessingErrorPacketValue,
     SourcemapConfigurationType,
 )
@@ -37,18 +37,33 @@ class DetectorConfig:
     """Configuration for a processing error detector type."""
 
     config_type: type[GroupType]
-    error_types: frozenset[str]
     feature_flag: str | None = None
+
+    def __post_init__(self) -> None:
+        settings = self.config_type.detector_settings
+        assert settings is not None, f"{self.config_type.slug} has no detector_settings"
+        handler = settings.handler
+        assert handler is not None, f"{self.config_type.slug} has no handler"
+        assert issubclass(handler, ProcessingErrorDetectorHandler), (
+            f"{self.config_type.slug} handler must be a ProcessingErrorDetectorHandler"
+        )
 
     @property
     def slug(self) -> str:
         return self.config_type.slug
 
+    @property
+    def handler_cls(self) -> type[ProcessingErrorDetectorHandler]:
+        settings = self.config_type.detector_settings
+        assert settings is not None
+        handler = settings.handler
+        assert handler is not None and issubclass(handler, ProcessingErrorDetectorHandler)
+        return handler
+
 
 DETECTOR_CONFIGS: list[DetectorConfig] = [
     DetectorConfig(
         config_type=SourcemapConfigurationType,
-        error_types=JS_SOURCEMAP_ERROR_TYPES,
         feature_flag="organizations:sourcemap-issue-detection",
     ),
 ]
@@ -118,7 +133,7 @@ def _detect_for_config(
     if config.feature_flag and not features.has(config.feature_flag, event.project.organization):
         return
 
-    if not any(e.get("type") in config.error_types for e in errors):
+    if not any(e.get("type") in config.handler_cls.error_types for e in errors):
         return
 
     metrics.incr(f"processing_errors.{config.slug}.event_with_errors")
