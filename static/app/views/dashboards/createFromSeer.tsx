@@ -1,22 +1,19 @@
-import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
+import {memo, useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
 
 import {validateDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {fetchMutation, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {CreateFromSeerLoading} from 'sentry/views/dashboards/createFromSeerLoading';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
@@ -90,18 +87,6 @@ function extractDashboardFromSession(
     }
   }
   return null;
-}
-
-function extractMessages(
-  session: NonNullable<SeerExplorerResponse['session']>
-): string[] {
-  const messages: string[] = [];
-  for (const block of session.blocks ?? []) {
-    if (block.message?.content) {
-      messages.push(block.message.content);
-    }
-  }
-  return messages;
 }
 
 async function validateDashboardAndRecordMetrics(
@@ -229,11 +214,6 @@ export default function CreateFromSeer() {
     }
   }, [organization, seerRunId, isUpdating, sessionStatus, session, sessionUpdatedAt]);
 
-  const blockMessages = useMemo(
-    () => (session ? extractMessages(session) : []),
-    [session]
-  );
-
   const isLoading = !statusIsTerminal(sessionStatus) && !isError;
 
   // Prevent repeat errors on the same widget
@@ -306,20 +286,7 @@ export default function CreateFromSeer() {
   }
 
   if (isLoading && !isUpdating) {
-    return (
-      <Layout.Page withPadding>
-        <Flex direction="column" gap="lg" align="center">
-          <LoadingIndicator>{t('Generating dashboard...')}</LoadingIndicator>
-          {blockMessages.length > 0 && (
-            <Flex direction="column" gap="sm" maxWidth="600px">
-              {blockMessages.map((message, index) => (
-                <MessageBlock key={index} text={message} />
-              ))}
-            </Flex>
-          )}
-        </Flex>
-      </Layout.Page>
-    );
+    return <CreateFromSeerLoading blocks={session?.blocks ?? []} />;
   }
 
   return (
@@ -342,15 +309,3 @@ export default function CreateFromSeer() {
 }
 
 const MemoizedDashboardDetail = memo(DashboardDetail);
-
-const MessageBlock = styled(MarkedText)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  background: ${p => p.theme.tokens.background.secondary};
-  border-radius: ${p => p.theme.radius.md};
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-
-  p {
-    margin-bottom: 0;
-  }
-`;
