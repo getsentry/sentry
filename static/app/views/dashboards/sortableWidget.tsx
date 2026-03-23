@@ -21,6 +21,7 @@ import {useWidgetSlideout} from 'sentry/views/dashboards/utils/useWidgetSlideout
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import {HEADER_HEIGHT} from 'sentry/views/dashboards/widgets/widget/widget';
 
 import {useWidgetErrorCallback} from './contexts/widgetErrorContext';
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
@@ -38,8 +39,8 @@ import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
 
-// Widget frame header (title bar): 26px + 16px padding
-const WIDGET_HEADER_HEIGHT = 42;
+// Widget frame header (title bar): 26px + 12px padding (theme.space.lg)
+const WIDGET_HEADER_HEIGHT = HEADER_HEIGHT + 12;
 // Widget frame padding (top visualization padding + bottom padding + border)
 const WIDGET_FRAME_PADDING = 20;
 
