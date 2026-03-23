@@ -12,6 +12,11 @@ import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {slugify} from 'sentry/utils/slugify';
 import {useTeams} from 'sentry/utils/useTeams';
+import {
+  IssueAlertOptions,
+  RuleAction,
+  type AlertRuleOptions,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import type {StepProps} from './types';
 
@@ -25,6 +30,19 @@ export function ScmProjectDetails({onComplete}: StepProps) {
 
   const [projectName, setProjectName] = useState(defaultName);
   const [teamSlug, setTeamSlug] = useState(firstAdminTeam?.slug ?? '');
+  const [alertRuleConfig, setAlertRuleConfig] = useState<AlertRuleOptions>({
+    alertSetting: RuleAction.DEFAULT_ALERT,
+    threshold: '10',
+    metric: 0,
+    interval: '1m',
+  });
+
+  const handleAlertChange = <K extends keyof AlertRuleOptions>(
+    key: K,
+    value: AlertRuleOptions[K]
+  ) => {
+    setAlertRuleConfig(prev => ({...prev, [key]: value}));
+  };
 
   const canSubmit = projectName.length > 0 && teamSlug.length > 0;
 
@@ -67,6 +85,16 @@ export function ScmProjectDetails({onComplete}: StepProps) {
             value={teamSlug}
             onChange={({value}: {value: string}) => setTeamSlug(value)}
           />
+        </Stack>
+
+        <Stack gap="sm">
+          <Flex gap="xs" align="center">
+            <Text bold>{t('Alert frequency')}</Text>
+          </Flex>
+          <Text variant="muted" size="sm">
+            {t('Get notified when things go wrong')}
+          </Text>
+          <IssueAlertOptions {...alertRuleConfig} onFieldChange={handleAlertChange} />
         </Stack>
       </Stack>
 
