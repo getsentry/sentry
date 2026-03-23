@@ -106,7 +106,8 @@ function normalizePercentageThreshold(aggregate: string, value: number): number 
 function extractThresholdsFromConditions(
   conditions: Array<Omit<MetricCondition, 'id'>>,
   aggregate: string,
-  detectionType: MetricDetectorConfig['detectionType']
+  detectionType: MetricDetectorConfig['detectionType'],
+  isConditionsInDeltaFormat: boolean
 ): {
   thresholds: Array<{
     priority: DetectorPriorityLevel;
@@ -123,7 +124,7 @@ function extractThresholdsFromConditions(
     )
     .map(condition => {
       let value = normalizePercentageThreshold(aggregate, Number(condition.comparison));
-      if (detectionType === 'percent') {
+      if (detectionType === 'percent' && !isConditionsInDeltaFormat) {
         value = percentThresholdAbsoluteToDelta(value);
       }
       return {
@@ -143,7 +144,7 @@ function extractThresholdsFromConditions(
       ? {
           type: resolutionCondition.type,
           value:
-            detectionType === 'percent'
+            detectionType === 'percent' && !isConditionsInDeltaFormat
               ? percentThresholdAbsoluteToDelta(
                   normalizePercentageThreshold(
                     aggregate,
@@ -168,6 +169,11 @@ interface UseMetricDetectorThresholdSeriesProps {
   conditions: Array<Omit<MetricCondition, 'id'>> | undefined;
   detectionType: MetricDetectorConfig['detectionType'];
   comparisonSeries?: Series[];
+  /**
+   * When true, conditions are already in user-facing delta format (e.g., 10 for "10% higher").
+   * When false (default), conditions are in backend absolute format (e.g., 110) and need conversion.
+   */
+  isConditionsInDeltaFormat?: boolean;
 }
 
 interface UseMetricDetectorThresholdSeriesResult {
@@ -186,6 +192,7 @@ export function useMetricDetectorThresholdSeries({
   detectionType,
   aggregate,
   comparisonSeries = [],
+  isConditionsInDeltaFormat = false,
 }: UseMetricDetectorThresholdSeriesProps): UseMetricDetectorThresholdSeriesResult {
   const theme = useTheme();
 
@@ -197,7 +204,8 @@ export function useMetricDetectorThresholdSeries({
     const {thresholds, resolution} = extractThresholdsFromConditions(
       conditions,
       aggregate,
-      detectionType
+      detectionType,
+      isConditionsInDeltaFormat
     );
     const additional: LineSeriesOption[] = [];
 
@@ -315,5 +323,5 @@ export function useMetricDetectorThresholdSeries({
 
     // Other detection types not supported yet
     return {maxValue: undefined, additionalSeries: additional};
-  }, [aggregate, conditions, detectionType, comparisonSeries, theme]);
+  }, [aggregate, conditions, detectionType, comparisonSeries, isConditionsInDeltaFormat, theme]);
 }

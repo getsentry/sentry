@@ -209,6 +209,7 @@ export function MetricDetectorChart({
       conditions,
       detectionType,
       comparisonSeries,
+      isConditionsInDeltaFormat: true,
     });
 
   const isAnomalyDetection = detectionType === 'dynamic';
