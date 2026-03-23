@@ -11,8 +11,6 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.context import GroupingContext
 from sentry.grouping.parameterization import (
-    DEFAULT_PARAMETERIZATION_REGEXES_MAP,
-    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP,
     experimental_parameterizer,
     parameterizer,
 )
@@ -192,8 +190,7 @@ def test_default_parameterizer_misses_experimental_cases(
 
 
 @pytest.mark.skipif(
-    EXPERIMENTAL_PARAMETERIZATION_REGEXES_MAP == DEFAULT_PARAMETERIZATION_REGEXES_MAP,
-    reason="no experimental regexes to test",
+    not experimental_parameterizer._experimental, reason="no experimental regexes to test"
 )
 @pytest.mark.parametrize(("name", "input", "expected"), standard_cases + experimental_cases)
 def test_experimental_parameterization(name: str, input: str, expected: str) -> None:
