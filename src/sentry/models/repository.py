@@ -49,6 +49,7 @@ class Repository(Model):
     date_added = models.DateTimeField(default=timezone.now)
     integration_id = BoundedPositiveIntegerField(db_index=True, null=True)
     languages = ArrayField(models.TextField(), default=list)
+    archived = models.BooleanField(default=False)
 
     class Meta:
         app_label = "sentry"

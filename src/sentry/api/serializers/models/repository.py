@@ -22,6 +22,7 @@ class RepositorySerializerResponse(TypedDict, total=False):
     integrationId: str | None
     externalSlug: str | None
     externalId: str | None
+    archived: bool
     settings: RepositorySettingsSerializerResponse | None
 
 
@@ -85,6 +86,7 @@ class RepositorySerializer(Serializer):
             "integrationId": integration_id,
             "externalSlug": external_slug,
             "externalId": obj.external_id,
+            "archived": obj.archived,
         }
 
         if self._expand("settings"):

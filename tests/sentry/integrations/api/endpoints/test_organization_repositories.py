@@ -322,6 +322,62 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert "settings" in response.data[0]
         assert response.data[0]["settings"] is None
 
+    def test_archived_field_always_present(self) -> None:
+        repo = Repository.objects.create(name="example", organization_id=self.org.id)
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo.id)
+        assert "archived" in response.data[0]
+        assert response.data[0]["archived"] is False
+
+    def test_archived_field_true_for_archived_repo(self) -> None:
+        repo = Repository.objects.create(name="example", organization_id=self.org.id, archived=True)
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo.id)
+        assert response.data[0]["archived"] is True
+
+    def test_filter_archived_false_returns_only_unarchived(self) -> None:
+        repo_active = Repository.objects.create(
+            name="active-repo", organization_id=self.org.id, archived=False
+        )
+        Repository.objects.create(name="archived-repo", organization_id=self.org.id, archived=True)
+
+        response = self.client.get(f"{self.url}?archived=false", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo_active.id)
+        assert response.data[0]["archived"] is False
+
+    def test_filter_archived_true_returns_only_archived(self) -> None:
+        Repository.objects.create(name="active-repo", organization_id=self.org.id, archived=False)
+        repo_archived = Repository.objects.create(
+            name="archived-repo", organization_id=self.org.id, archived=True
+        )
+
+        response = self.client.get(f"{self.url}?archived=true", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(repo_archived.id)
+        assert response.data[0]["archived"] is True
+
+    def test_no_archived_param_returns_all(self) -> None:
+        Repository.objects.create(name="active-repo", organization_id=self.org.id, archived=False)
+        Repository.objects.create(name="archived-repo", organization_id=self.org.id, archived=True)
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
 
 class OrganizationRepositoriesCreateTest(APITestCase):
     def test_simple(self) -> None:

@@ -69,8 +69,14 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         query = request.GET.get("query")
         expand = request.GET.getlist("expand", [])
 
+        archived = request.GET.get("archived", None)
+
         if query:
             queryset = queryset.filter(Q(name__icontains=query))
+        if archived == "true":
+            queryset = queryset.filter(archived=True)
+        elif archived == "false":
+            queryset = queryset.filter(archived=False)
         if status == "active":
             queryset = queryset.filter(status=ObjectStatus.ACTIVE)
         elif status == "deleted":
