@@ -249,6 +249,68 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
         )
 
     @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_multiple_action_filters(self) -> None:
+        """
+        Test that if a workflow has multiple action filters (uses an if/then block) we only render 1 in the old UI and add to the error response
+        """
+
+        detector = self.create_detector(project=self.project)
+        workflow_triggers = self.create_data_condition_group()
+        workflow = self.create_workflow(
+            when_condition_group=workflow_triggers,
+            organization=detector.project.organization,
+            name="Issue resolved trigger workflow",
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.ISSUE_RESOLVED_TRIGGER,
+            comparison=True,
+            condition_result=True,
+        )
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.EXISTING_HIGH_PRIORITY_ISSUE,
+            comparison=True,
+            condition_result=True,
+        )
+        # First if/then block: action DCG with filter condition + action
+        action_group1, _ = self.create_workflow_action(workflow)
+        self.create_data_condition(
+            condition_group=action_group1,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "python"},
+            condition_result=True,
+        )
+        # Second if/then block: action DCG with filter condition + action
+        action_group2, _ = self.create_workflow_action(workflow)
+        self.create_data_condition(
+            condition_group=action_group2,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "java"},
+            condition_result=True,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        multiple_action_filter_resp = None
+        for resp in response.data:
+            if resp["name"] == workflow.name:
+                multiple_action_filter_resp = resp
+
+        assert multiple_action_filter_resp
+        # only the first if/then block's filter is rendered
+        assert len(multiple_action_filter_resp["filters"]) == 1
+        assert (
+            multiple_action_filter_resp["errors"][0]["detail"]
+            == "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
+        )
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
     def test_workflow_engine_only_fetch_workflows_in_project(self) -> None:
         another_rule = self.create_project_rule(
             project=self.create_project(), name="other project rule"
