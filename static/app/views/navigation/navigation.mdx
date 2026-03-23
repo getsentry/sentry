@@ -407,7 +407,7 @@ The `Navigation` component composes both sidebars into the complete navigation e
 - `SkipLink` for keyboard accessibility
 - Falling back to a user-only sidebar when no organization is present
 
-<Storybook.Demo maxHeight="60vh">
+<Storybook.Demo maxHeight={undefined}>
   <Flex gap="xl" align="start" justify="center" width="100%">
     <Flex direction="column" gap="xs" align="center" flex="1">
       <Text size="sm" bold>
@@ -446,7 +446,7 @@ On narrow viewports the two-tier sidebar is replaced by `MobileNavigation`: a st
 
 The two frames below show both levels using `MockPrimaryNav layout="mobile"`, rendering each view directly without the portal overlay so both are visible at once.
 
-<Storybook.Demo maxHeight="80vh">
+<Storybook.Demo maxHeight={undefined}>
   <NavigationTourProvider>
     <Flex direction="column" gap="2xl" align="center">
       <Flex direction="column" gap="md" align="center">
