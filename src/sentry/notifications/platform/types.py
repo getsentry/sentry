@@ -23,7 +23,7 @@ class NotificationCategory(StrEnum):
     DYNAMIC_SAMPLING = "dynamic-sampling"
     REPOSITORY = "repository"
     SEER = "seer"
-    ISSUE_ALERT = "issue-alert"
+    ISSUE = "issue"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -84,7 +84,7 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     NotificationCategory.REPOSITORY: [
         NotificationSource.UNABLE_TO_DELETE_REPOSITORY,
     ],
-    NotificationCategory.ISSUE_ALERT: [
+    NotificationCategory.ISSUE: [
         NotificationSource.ISSUE,
     ],
     NotificationCategory.SEER: [

@@ -69,7 +69,7 @@ class IssueNotificationData(NotificationData):
 
 @template_registry.register(NotificationSource.ISSUE)
 class IssueNotificationTemplate(NotificationTemplate[IssueNotificationData]):
-    category = NotificationCategory.ISSUE_ALERT
+    category = NotificationCategory.ISSUE
     example_data = IssueNotificationData(
         group_id=1,
         event_id="abc123",

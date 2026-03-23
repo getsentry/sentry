@@ -142,7 +142,7 @@ class SlackNotificationProvider(NotificationProvider[SlackRenderable]):
 
         if category == NotificationCategory.SEER:
             return SeerSlackRenderer
-        if category == NotificationCategory.ISSUE_ALERT:
+        if category == NotificationCategory.ISSUE:
             return IssueSlackRenderer
         return cls.default_renderer
 

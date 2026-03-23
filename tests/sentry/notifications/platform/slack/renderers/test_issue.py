@@ -317,7 +317,7 @@ class IssueAlertProviderDispatchTest(TestCase):
         data = IssueNotificationData(group_id=self.group.id)
         renderer = SlackNotificationProvider.get_renderer(
             data=data,
-            category=NotificationCategory.ISSUE_ALERT,
+            category=NotificationCategory.ISSUE,
         )
         assert renderer is IssueSlackRenderer
 
