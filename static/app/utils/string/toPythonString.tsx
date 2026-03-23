@@ -4,23 +4,23 @@
  * match that behavior for comparisons.
  */
 export function toPythonString(value: unknown): string {
-  if (typeof value === "boolean") {
-    return value ? "True" : "False";
+  if (typeof value === 'boolean') {
+    return value ? 'True' : 'False';
   }
   if (value === null || value === undefined) {
-    return "None";
+    return 'None';
   }
   if (Array.isArray(value)) {
-    const items = value.map((item) => {
-      if (typeof item === "string") {
+    const items = value.map(item => {
+      if (typeof item === 'string') {
         return `'${item}'`;
       }
       return toPythonString(item);
     });
-    return `[${items.join(", ")}]`;
+    return `[${items.join(', ')}]`;
   }
-  if (typeof value === "number" || typeof value === "bigint") {
+  if (typeof value === 'number' || typeof value === 'bigint') {
     return value.toString();
   }
-  return typeof value === "string" ? value : (JSON.stringify(value) ?? "None");
+  return typeof value === 'string' ? value : (JSON.stringify(value) ?? 'None');
 }
