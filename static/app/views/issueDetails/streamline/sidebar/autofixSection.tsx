@@ -9,14 +9,18 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
-  getOrderedAutofixArtifacts,
+  getOrderedAutofixSections,
   isCodeChangesArtifact,
-  isCodingAgentsArtifact,
+  isCodeChangesSection,
+  isCodingAgentsSection,
   isPullRequestsArtifact,
+  isPullRequestsSection,
   isRootCauseArtifact,
+  isRootCauseSection,
   isSolutionArtifact,
+  isSolutionSection,
   useExplorerAutofix,
-  type AutofixArtifact,
+  type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesPreview,
@@ -25,6 +29,7 @@ import {
   RootCausePreview,
   SolutionPreview,
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
+import {useGroupSummaryData} from 'sentry/components/group/groupSummary';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconBug} from 'sentry/icons';
@@ -34,6 +39,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -119,7 +125,18 @@ export function AutofixContent({aiConfig, group, project, event}: AutofixContent
   const autofix = useExplorerAutofix(group.id);
   const {data: setupCheck, isPending} = useSeerOnboardingCheck();
 
-  if (isPending || autofix.isLoading || !event || aiConfig.isAutofixSetupLoading) {
+  if (
+    // waiting on the onboarding checks to load
+    isPending ||
+    // autofix results are loading
+    autofix.isLoading ||
+    // waiting for the event to load
+    !event ||
+    // waiting for the ai configs to load
+    aiConfig.isAutofixSetupLoading ||
+    // we're polling and no blocks have been added yet
+    (autofix.isPolling && !autofix.runState?.blocks?.length)
+  ) {
     return <Placeholder height="160px" />;
   }
 
@@ -182,28 +199,32 @@ interface AutofixArtifactsProps {
 }
 
 function AutofixArtifacts({autofix, group, project, event}: AutofixArtifactsProps) {
-  const artifacts = useMemo(
-    () => getOrderedAutofixArtifacts(autofix.runState),
+  const sections = useMemo(
+    () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
   );
 
-  if (!artifacts.length) {
+  const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
+
+  if (!sections.length) {
     return (
       <AutofixEmptyState
         autofix={autofix}
         event={event}
         group={group}
         project={project}
+        referrer={referrer}
       />
     );
   }
 
   return (
     <AutofixPreviews
-      artifacts={artifacts}
+      sections={sections}
       event={event}
       group={group}
       project={project}
+      referrer={referrer}
     />
   );
 }
@@ -213,9 +234,16 @@ interface AutofixEmptyStateProps {
   event: Event;
   group: Group;
   project: Project;
+  referrer?: string;
 }
 
-function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStateProps) {
+function AutofixEmptyState({
+  autofix,
+  group,
+  event,
+  project,
+  referrer,
+}: AutofixEmptyStateProps) {
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
@@ -264,6 +292,9 @@ function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStatePr
         tooltipProps={{title: t('Fix the Issue')}}
         priority="primary"
         onClick={handleStartRootCause}
+        analyticsEventKey="autofix.start_fix_clicked"
+        analyticsEventName="Autofix: Start Fix Clicked"
+        analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
       >
         {t('Fix the Issue')}
       </Button>
@@ -272,13 +303,45 @@ function AutofixEmptyState({autofix, group, event, project}: AutofixEmptyStatePr
 }
 
 interface AutofixPreviewsProps {
-  artifacts: AutofixArtifact[];
   event: Event;
   group: Group;
   project: Project;
+  sections: AutofixSection[];
+  referrer?: string;
 }
 
-function AutofixPreviews({artifacts, event, group, project}: AutofixPreviewsProps) {
+function AutofixPreviews({
+  event,
+  group,
+  project,
+  sections,
+  referrer,
+}: AutofixPreviewsProps) {
+  const hasRootCause =
+    sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact) ?? false;
+
+  const hasSolution =
+    sections.findLast(isSolutionSection)?.artifacts?.some(isSolutionArtifact) ?? false;
+
+  const hasCodeChanges =
+    sections.findLast(isCodeChangesSection)?.artifacts?.some(isCodeChangesArtifact) ??
+    false;
+  const hasPullRequests =
+    sections.findLast(isPullRequestsSection)?.artifacts?.some(isPullRequestsArtifact) ??
+    false;
+
+  // Track autofix features analytics
+  useRouteAnalyticsParams({
+    has_root_cause: hasRootCause,
+    has_solution: hasSolution,
+    has_coded_solution: hasCodeChanges,
+    has_pr: hasPullRequests,
+    autofix_mode: 'explorer',
+    autofix_referrer: referrer,
+  });
+
+  const {data: summaryData, isPending: isSummaryPending} = useGroupSummaryData(group);
+
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
@@ -287,26 +350,26 @@ function AutofixPreviews({artifacts, event, group, project}: AutofixPreviewsProp
 
   return (
     <Flex direction="column" gap="xl">
-      {artifacts.map(artifact => {
-        // there should only be 1 artifact of each type
-        if (isRootCauseArtifact(artifact)) {
-          return <RootCausePreview key="root-cause" artifact={artifact} />;
+      {sections.map(section => {
+        // there should only be 1 section of each type
+        if (isRootCauseSection(section)) {
+          return <RootCausePreview key="root-cause" section={section} />;
         }
 
-        if (isSolutionArtifact(artifact)) {
-          return <SolutionPreview key="solution" artifact={artifact} />;
+        if (isSolutionSection(section)) {
+          return <SolutionPreview key="solution" section={section} />;
         }
 
-        if (isCodeChangesArtifact(artifact)) {
-          return <CodeChangesPreview key="code-changes" artifact={artifact} />;
+        if (isCodeChangesSection(section)) {
+          return <CodeChangesPreview key="code-changes" section={section} />;
         }
 
-        if (isPullRequestsArtifact(artifact)) {
-          return <PullRequestsPreview key="pull-requests" artifact={artifact} />;
+        if (isPullRequestsSection(section)) {
+          return <PullRequestsPreview key="pull-requests" section={section} />;
         }
 
-        if (isCodingAgentsArtifact(artifact)) {
-          return <CodingAgentPreview key="coding-agent" artifact={artifact} />;
+        if (isCodingAgentsSection(section)) {
+          return <CodingAgentPreview key="coding-agent" section={section} />;
         }
 
         // TODO: maybe send a log?
@@ -319,6 +382,21 @@ function AutofixPreviews({artifacts, event, group, project}: AutofixPreviewsProp
         tooltipProps={{title: t('Open Seer')}}
         priority="primary"
         onClick={openSeerDrawer}
+        analyticsEventKey="issue_details.seer_opened"
+        analyticsEventName="Issue Details: Seer Opened"
+        analyticsParams={{
+          group_id: group.id,
+          has_streamlined_ui: true,
+          autofix_exists: true,
+          autofix_step_type: sections[sections.length - 1]?.step ?? null,
+          has_summary: Boolean(summaryData && !isSummaryPending),
+          has_root_cause: hasRootCause,
+          has_solution: hasSolution,
+          has_coded_solution: hasCodeChanges,
+          has_pr: hasPullRequests,
+          mode: 'explorer',
+          referrer,
+        }}
       >
         {t('Open Seer')}
       </Button>

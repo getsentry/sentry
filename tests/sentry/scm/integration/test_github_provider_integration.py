@@ -105,8 +105,6 @@ class TestGitHubProviderIntegration(TestCase):
         assert request_url.path == f"/repos/{REPO_NAME}/issues/1347/comments"
         assert parse_qs(request_url.query) == {"page": ["3"], "per_page": ["25"]}
         assert responses.calls[0].request.headers["Accept"] == "application/vnd.github+json"
-        assert "page" not in responses.calls[0].request.headers
-        assert "per_page" not in responses.calls[0].request.headers
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -229,7 +227,7 @@ class TestGitHubProviderIntegration(TestCase):
     def test_get_issue_comment_reactions(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions?per_page=100&page=1",
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/comments/42/reactions",
             json=[
                 {
                     "id": 1,
@@ -293,7 +291,7 @@ class TestGitHubProviderIntegration(TestCase):
     def test_get_issue_reactions(self, mock_get_jwt):
         responses.add(
             method=responses.GET,
-            url=f"https://api.github.com/repos/{REPO_NAME}/issues/42/reactions?per_page=100&page=1",
+            url=f"https://api.github.com/repos/{REPO_NAME}/issues/42/reactions",
             json=[
                 {
                     "id": 1,

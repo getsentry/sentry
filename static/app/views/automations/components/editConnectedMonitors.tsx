@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
@@ -206,11 +205,6 @@ function AllProjectIssuesSection({
           multiple
         />
       </Container>
-      <Alert variant="muted">
-        {t(
-          '‘All issues’ includes Error, Feedback, and Performance issue types. Select specific monitors to alert on Metric, Cron, and Uptime.'
-        )}
-      </Alert>
     </Stack>
   );
 }

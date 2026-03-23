@@ -1,35 +1,59 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 import {FocusScope} from '@react-aria/focus';
+import {useKeyboard} from '@react-aria/interactions';
+import {useListBox, useOption} from '@react-aria/listbox';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {Item} from '@react-stately/collections';
+import {useListState, type ListState} from '@react-stately/list';
+import type {Node} from '@react-types/shared';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag} from '@sentry/scraps/badge';
-import {LeadWrap} from '@sentry/scraps/compactSelect';
+import {LeadWrap, ListWrap} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
+import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
+import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsSidePanelUI} from 'sentry/views/explore/metrics/metricsFlags';
+import {
+  canUseMetricsSidePanelUI,
+  canUseMetricsUIRefresh,
+} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricTypeValue,
 } from 'sentry/views/explore/metrics/types';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 
 export const NONE_UNIT = 'none';
+
+function nextFrameCallback(cb: () => void) {
+  if ('requestAnimationFrame' in window) {
+    window.requestAnimationFrame(() => cb());
+  } else {
+    setTimeout(() => {
+      cb();
+    }, 1);
+  }
+}
 
 function hasDisplayMetricUnit(
   hasMetricUnitsUI: boolean,
@@ -64,6 +88,8 @@ interface MetricSelectOption {
   metricName: string;
   metricType: TraceMetricTypeValue;
   value: string;
+  count?: number;
+  lastSeen?: number;
   metricUnit?: string;
   trailingItems?: MenuListItemProps['trailingItems'];
 }
@@ -75,34 +101,72 @@ export function MetricSelector({
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
 }) {
+  const triggerId = useId();
+
   const organization = useOrganization();
+  const hasMetricUnitsUI = useHasMetricUnitsUI();
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const listElementRef = useRef<HTMLUListElement>(null);
+  const scrollElementRef = useRef<HTMLDivElement>(null);
+
   const [searchInputValue, setSearchInputValue] = useState('');
   const debouncedSearch = useDebouncedValue(searchInputValue, DEFAULT_DEBOUNCE_DURATION);
-  const [focusedIndex, setFocusedIndex] = useState(-1);
   const {data: metricOptionsData, isFetching} = useMetricOptions({
     search: debouncedSearch,
   });
-  const hasMetricUnitsUI = useHasMetricUnitsUI();
-  const scrollElementRef = useRef<HTMLDivElement>(null);
+  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
 
   const {
     isOpen,
     state: overlayState,
     triggerProps,
     overlayProps,
+    triggerRef,
+    overlayRef,
+    update: updateOverlay,
   } = useOverlay({
     type: 'listbox',
     position: 'bottom-start',
     offset: 6,
     isDismissable: true,
     shouldApplyMinWidth: true,
-    // Reset search and keyboard focus when the overlay closes so it
-    // starts fresh the next time the user opens it.
+    disableTrigger: isFetching && !traceMetric.name,
     onOpenChange: open => {
-      if (!open) {
+      nextFrameCallback(() => {
+        if (open) {
+          updateOverlay?.();
+          if (searchRef.current) {
+            searchRef.current.focus();
+            return;
+          }
+
+          const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
+            'li[role="option"][aria-selected="true"]'
+          );
+          if (firstSelectedOption) {
+            firstSelectedOption.focus();
+            return;
+          }
+
+          overlayRef.current?.querySelector<HTMLLIElement>('li[role="option"]')?.focus();
+          return;
+        }
+
         setSearchInputValue('');
-        setFocusedIndex(-1);
-      }
+        if (
+          document.activeElement === document.body ||
+          wrapperRef.current?.contains(document.activeElement)
+        ) {
+          nextFrameCallback(() => {
+            const triggerElement =
+              triggerRef.current ??
+              wrapperRef.current?.querySelector<HTMLButtonElement>('button');
+            triggerElement?.focus();
+          });
+        }
+      });
     },
   });
 
@@ -170,6 +234,12 @@ export function MetricSelector({
         metricUnit: hasMetricUnitsUI
           ? (option[TraceMetricKnownFieldKey.METRIC_UNIT] ?? NONE_UNIT)
           : undefined,
+        count: option[`count(${TraceMetricKnownFieldKey.METRIC_NAME})`] as number,
+        lastSeen:
+          option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`] === undefined
+            ? undefined
+            : Number(option[`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]) /
+              1_000_000,
         trailingItems: () => (
           <MetricOptionTrailingItems
             hasMetricUnitsUI={hasMetricUnitsUI}
@@ -205,15 +275,6 @@ export function MetricSelector({
     [isFetching, previousOptions, metricOptions]
   );
 
-  // Clamp the focused index when the list shrinks (e.g. after a search
-  // filters out options) so it doesn't point past the end of the list.
-  useEffect(() => {
-    if (displayedOptions.length === 0 || focusedIndex < displayedOptions.length) {
-      return;
-    }
-    setFocusedIndex(Math.max(displayedOptions.length - 1, -1));
-  }, [displayedOptions.length, focusedIndex]);
-
   // Find the option with the longest label to render as a hidden element.
   // This reserves enough width for the overlay so it doesn't resize as
   // the user scrolls through the virtualized list.
@@ -227,18 +288,6 @@ export function MetricSelector({
     [displayedOptions]
   );
 
-  const virtualizer = useVirtualizer({
-    count: displayedOptions.length,
-    getScrollElement: () => scrollElementRef.current,
-    estimateSize: () => 42,
-    overscan: 20,
-  });
-
-  const highlightedOption =
-    focusedIndex >= 0 && focusedIndex < displayedOptions.length
-      ? displayedOptions[focusedIndex]
-      : null;
-
   const handleSelect = useCallback(
     (option: MetricSelectOption) => {
       onChange({
@@ -251,54 +300,121 @@ export function MetricSelector({
     [onChange, hasMetricUnitsUI, overlayState]
   );
 
+  const displayedOptionsMap = useMemo(
+    () => new Map(displayedOptions.map(option => [option.value, option])),
+    [displayedOptions]
+  );
+
+  const listState = useListState<MetricSelectOption>({
+    items: displayedOptions,
+    selectionMode: 'single',
+    selectedKeys: traceMetric.name ? [traceMetricSelectValue] : [],
+    allowDuplicateSelectionEvents: true,
+    disallowEmptySelection: true,
+    onSelectionChange: selection => {
+      if (selection === 'all') {
+        return;
+      }
+      const selectedKey = Array.from(selection)[0];
+      if (!selectedKey) {
+        return;
+      }
+      const selectedOption = displayedOptionsMap.get(String(selectedKey));
+      if (selectedOption) {
+        handleSelect(selectedOption);
+      }
+    },
+    children: (item: MetricSelectOption) => <Item key={item.value}>{item.label}</Item>,
+  });
+
+  const {listBoxProps} = useListBox(
+    {
+      shouldFocusWrap: true,
+      shouldSelectOnPressUp: true,
+      'aria-labelledby': triggerId,
+    },
+    listState,
+    listElementRef
+  );
+
+  const collectionItems = useMemo(
+    () => [...listState.collection],
+    [listState.collection]
+  );
+  const focusedKey = listState.selectionManager.focusedKey;
+
+  const virtualizer = useVirtualizer({
+    count: collectionItems.length,
+    getScrollElement: () => scrollElementRef.current,
+    estimateSize: () => 42,
+    overscan: 20,
+  });
+
+  const focusedIndex = useMemo(
+    () => collectionItems.findIndex(item => item.key === focusedKey),
+    [collectionItems, focusedKey]
+  );
+
+  useEffect(() => {
+    if (focusedIndex >= 0 && isOpen) {
+      virtualizer.scrollToIndex(focusedIndex, {align: 'auto'});
+    }
+  }, [focusedIndex, isOpen, virtualizer]);
+
+  const highlightedOption = focusedKey
+    ? (displayedOptionsMap.get(String(focusedKey)) ?? null)
+    : null;
+
+  const {keyboardProps: triggerKeyboardProps} = useKeyboard({
+    onKeyDown: e => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        overlayState.open();
+      } else {
+        e.continuePropagation();
+      }
+    },
+  });
+
+  // The search input sits outside the listbox, so useListBox's shouldFocusWrap
+  // never sees these keystrokes. Bridge ArrowDown from the search field into the
+  // list; once focus is inside the list, shouldFocusWrap takes over.
+  const {keyboardProps: searchKeyboardProps} = useKeyboard({
+    onKeyDown: e => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const firstKey = listState.collection.getFirstKey();
+        if (firstKey) {
+          listState.selectionManager.setFocused(true);
+          listState.selectionManager.setFocusedKey(firstKey);
+        }
+        overlayRef.current?.querySelector<HTMLLIElement>('li[role="option"]')?.focus();
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      }
+
+      e.continuePropagation();
+    },
+  });
+
+  const mergedTriggerProps = mergeProps(triggerProps, triggerKeyboardProps, {
+    id: triggerId,
+  });
+
   const onSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInputValue(e.target.value);
   }, []);
-
-  const onKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      switch (e.key) {
-        case 'ArrowDown': {
-          e.preventDefault();
-          if (displayedOptions.length === 0) {
-            break;
-          }
-          const next = Math.min(focusedIndex + 1, displayedOptions.length - 1);
-          setFocusedIndex(next);
-          virtualizer.scrollToIndex(next);
-          break;
-        }
-        case 'ArrowUp': {
-          e.preventDefault();
-          if (displayedOptions.length === 0) {
-            break;
-          }
-          const next = Math.max(focusedIndex - 1, 0);
-          setFocusedIndex(next);
-          virtualizer.scrollToIndex(next);
-          break;
-        }
-        case 'Enter':
-          e.preventDefault();
-          if (focusedIndex >= 0 && displayedOptions[focusedIndex]) {
-            handleSelect(displayedOptions[focusedIndex]);
-          }
-          break;
-        default:
-          break;
-      }
-    },
-    [displayedOptions, focusedIndex, handleSelect, virtualizer]
-  );
 
   const virtualItems = virtualizer.getVirtualItems();
 
   // Fall back to rendering all items when the virtualizer can't measure
   // the scroll container (e.g. in tests where the DOM has no layout).
   const itemsToRender =
-    virtualItems.length > 0 || displayedOptions.length === 0
+    virtualItems.length > 0 || collectionItems.length === 0
       ? virtualItems
-      : displayedOptions.map((_, index) => ({
+      : collectionItems.map((_, index) => ({
           index,
           key: index,
           start: 0,
@@ -308,11 +424,14 @@ export function MetricSelector({
         }));
 
   return (
-    <Container width="100%" position="relative">
+    <Container width="100%" position="relative" ref={wrapperRef}>
       <OverlayTrigger.Button
-        {...triggerProps}
+        {...mergedTriggerProps}
         style={{width: '100%', fontWeight: 'bold', textAlign: 'left'}}
         disabled={isFetching && !traceMetric.name}
+        tooltipProps={
+          hasMetricsUIRefresh ? {title: traceMetric.name || t('None')} : undefined
+        }
       >
         <Text ellipsis>{traceMetric.name || t('None')}</Text>
       </OverlayTrigger.Button>
@@ -323,14 +442,13 @@ export function MetricSelector({
       >
         {isOpen ? (
           <Overlay style={{display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
-            <FocusScope contain restoreFocus autoFocus>
+            <FocusScope contain>
               <Flex direction={{xs: 'column', sm: 'row'}}>
                 <Stack
-                  minWidth="300px"
+                  minWidth="400px"
                   minHeight="0"
                   borderRight={{sm: 'primary'}}
                   borderBottom={{xs: 'primary', sm: undefined}}
-                  onKeyDown={onKeyDown}
                 >
                   <Flex align="center" justify="between" padding="sm lg">
                     <Text size="sm" bold wrap="nowrap">
@@ -357,12 +475,13 @@ export function MetricSelector({
                         value={searchInputValue}
                         onChange={onSearchChange}
                         size="xs"
+                        ref={searchRef}
+                        {...searchKeyboardProps}
                       />
                     </InputGroup>
                   </Container>
                   <Container
                     ref={scrollElementRef}
-                    role="listbox"
                     overflowY="auto"
                     flex="1"
                     minHeight="0"
@@ -392,7 +511,7 @@ export function MetricSelector({
                         />
                       </Container>
                     ) : null}
-                    {displayedOptions.length === 0 ? (
+                    {collectionItems.length === 0 ? (
                       <Flex align="center" justify="center" padding="xl">
                         <Text variant="muted" size="sm">
                           {t('No metrics found')}
@@ -413,41 +532,32 @@ export function MetricSelector({
                             transform: `translateY(${itemsToRender[0]?.start ?? 0}px)`,
                           }}
                         >
-                          {itemsToRender.map(virtualRow => {
-                            const option = displayedOptions[virtualRow.index];
-                            if (!option) return null;
+                          <ListWrap
+                            {...listBoxProps}
+                            style={{
+                              ...listBoxProps.style,
+                              padding: 0,
+                            }}
+                            ref={listElementRef}
+                          >
+                            {itemsToRender.map(virtualRow => {
+                              const item = collectionItems[virtualRow.index];
+                              if (item?.type !== 'item') {
+                                return null;
+                              }
 
-                            const isSelected = option.value === traceMetricSelectValue;
-                            const isFocused = virtualRow.index === focusedIndex;
-
-                            return (
-                              <div
-                                key={option.value}
-                                ref={virtualizer.measureElement}
-                                data-index={virtualRow.index}
-                                role="option"
-                                aria-label={option.label}
-                                aria-selected={isSelected}
-                                onClick={() => handleSelect(option)}
-                                onMouseEnter={() => setFocusedIndex(virtualRow.index)}
-                              >
-                                <MenuListItem
-                                  as="div"
+                              return (
+                                <MetricListBoxOption
+                                  key={item.key}
+                                  item={item}
+                                  listState={listState}
                                   size="md"
-                                  label={option.label}
-                                  isFocused={isFocused}
-                                  isSelected={isSelected}
-                                  priority={isSelected ? 'primary' : 'default'}
-                                  leadingItems={
-                                    <LeadWrap aria-hidden="true">
-                                      {isSelected ? <IconCheckmark size="sm" /> : null}
-                                    </LeadWrap>
-                                  }
-                                  trailingItems={option.trailingItems}
+                                  dataIndex={virtualRow.index}
+                                  measureRef={virtualizer.measureElement}
                                 />
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </ListWrap>
                         </Container>
                       </Container>
                     )}
@@ -470,6 +580,58 @@ export function MetricSelector({
   );
 }
 
+interface MetricListBoxOptionProps {
+  dataIndex: number;
+  item: Node<MetricSelectOption>;
+  listState: ListState<MetricSelectOption>;
+  size: MenuListItemProps['size'];
+  measureRef?: React.Ref<HTMLLIElement>;
+}
+
+function MetricListBoxOption({
+  item,
+  listState,
+  size,
+  dataIndex,
+  measureRef,
+}: MetricListBoxOptionProps) {
+  const ref = useRef<HTMLLIElement>(null);
+  const option = item.value!;
+  const {optionProps, isFocused, isSelected, isDisabled, isPressed} = useOption(
+    {key: item.key, 'aria-label': option.label},
+    listState,
+    ref
+  );
+  const optionPropsMerged = mergeProps(optionProps, {
+    onMouseEnter: () => {
+      listState.selectionManager.setFocused(true);
+      listState.selectionManager.setFocusedKey(item.key);
+    },
+  });
+
+  return (
+    <MenuListItem
+      {...optionPropsMerged}
+      as="li"
+      data-index={dataIndex}
+      ref={mergeRefs(ref, measureRef)}
+      size={size}
+      label={option.label}
+      isFocused={listState.selectionManager.isFocused && isFocused}
+      isSelected={isSelected}
+      isPressed={isPressed}
+      disabled={isDisabled}
+      priority={isSelected ? 'primary' : 'default'}
+      leadingItems={
+        <LeadWrap aria-hidden="true">
+          {isSelected ? <IconCheckmark size="sm" /> : null}
+        </LeadWrap>
+      }
+      trailingItems={option.trailingItems}
+    />
+  );
+}
+
 function MetricDetailPanel({
   metric,
   hasMetricUnitsUI,
@@ -487,25 +649,119 @@ function MetricDetailPanel({
 
   return (
     <Stack gap="md">
-      <Text bold>{metric.metricName}</Text>
+      <Text bold wordBreak="break-all">
+        {metric.metricName}
+      </Text>
       <Flex gap="xs" align="center">
-        <Text variant="muted" size="sm">
-          {t('Type:')}
+        <Text variant="muted" size="md">
+          {t('Type')}
         </Text>
         <MetricTypeBadge metricType={metric.metricType} />
       </Flex>
       {hasDisplayMetricUnit(hasMetricUnitsUI, metric.metricUnit) ? (
         <Flex gap="xs" align="center">
-          <Text variant="muted" size="sm">
-            {t('Unit:')}
+          <Text variant="muted" size="md">
+            {t('Unit')}
           </Text>
           <Tag variant="promotion">{metric.metricUnit}</Tag>
         </Flex>
       ) : null}
+      {metric.lastSeen ? (
+        <Flex gap="xs" align="center">
+          <Text variant="muted" size="md">
+            {t('Last seen')}
+          </Text>
+          <DateTime date={metric.lastSeen} timeZone />
+        </Flex>
+      ) : null}
+      {metric.count === undefined ? null : (
+        <Flex gap="xs" align="center">
+          <Text variant="muted" size="md">
+            {t('Times seen')}
+          </Text>
+          <Text size="md">{metric.count.toLocaleString()}</Text>
+        </Flex>
+      )}
+      <MetricAttributesSection
+        metricName={metric.metricName}
+        metricType={metric.metricType}
+      />
     </Stack>
   );
 }
 
 function makeMetricSelectValue(metric: TraceMetric): string {
   return `${metric.name}||${metric.type}||${metric.unit ?? '-'}`;
+}
+
+function MetricAttributesSection({
+  metricName,
+  metricType,
+}: {
+  metricName: string;
+  metricType: string;
+}) {
+  const traceMetricFilter = createTraceMetricFilter({name: metricName, type: metricType});
+
+  const {attributes: stringAttrs, isLoading: stringLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'string'
+    );
+  const {attributes: numberAttrs, isLoading: numberLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'number'
+    );
+  const {attributes: booleanAttrs, isLoading: booleanLoading} =
+    useTraceMetricItemAttributes(
+      {enabled: Boolean(traceMetricFilter), query: traceMetricFilter},
+      'boolean'
+    );
+
+  const attributeKeys = useMemo(() => {
+    const keys = new Set([
+      ...Object.keys(stringAttrs ?? {}),
+      ...Object.keys(numberAttrs ?? {}),
+      ...Object.keys(booleanAttrs ?? {}),
+    ]);
+    return [...keys]
+      .filter(key => !HiddenTraceMetricGroupByFields.includes(key))
+      .sort((a, b) => prettifyTagKey(a).localeCompare(prettifyTagKey(b)));
+  }, [stringAttrs, numberAttrs, booleanAttrs]);
+
+  if (stringLoading || numberLoading || booleanLoading) {
+    return (
+      <Stack gap="xs">
+        <Text size="md">{t('Attributes')}:</Text>
+        <Flex gap="xs">
+          <LoadingIndicator size={16} />
+        </Flex>
+      </Stack>
+    );
+  }
+
+  if (attributeKeys.length === 0) {
+    return (
+      <Stack gap="xs">
+        <Text size="md">{t('Attributes')}:</Text>
+        <Flex gap="xs">
+          <Text size="md">{t('No attributes found')}</Text>
+        </Flex>
+      </Stack>
+    );
+  }
+
+  return (
+    <Stack gap="xs">
+      <Text size="md">{t('Attributes')}:</Text>
+      <Flex wrap="wrap" gap="xs">
+        {attributeKeys.map(key => (
+          <Tag key={key} variant="muted">
+            {prettifyTagKey(key)}
+          </Tag>
+        ))}
+      </Flex>
+    </Stack>
+  );
 }

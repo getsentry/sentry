@@ -173,7 +173,6 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
-        force_raise_for_status: bool = False,
         raw_response: Literal[True] = ...,
     ) -> Response: ...
 
@@ -192,7 +191,6 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
-        force_raise_for_status: bool = False,
         raw_response: bool = ...,
     ) -> Any: ...
 
@@ -210,7 +208,6 @@ class BaseApiClient:
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
-        force_raise_for_status: bool = False,
         raw_response: bool = False,
     ) -> Any | Response:
         if allow_redirects is None:
@@ -266,8 +263,6 @@ class BaseApiClient:
                 }
                 resp: Response = session.send(finalized_request, **session_settings)
                 if raw_response:
-                    if force_raise_for_status:
-                        resp.raise_for_status()
                     return resp
                 resp.raise_for_status()
         except RestrictedIPAddress as e:

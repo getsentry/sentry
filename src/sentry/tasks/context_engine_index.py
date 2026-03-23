@@ -4,6 +4,7 @@ import logging
 from datetime import UTC, datetime, timedelta, timezone
 
 import sentry_sdk
+from taskbroker_client.retry import Retry
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
@@ -33,7 +34,6 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
@@ -212,25 +212,23 @@ def get_allowed_org_ids_context_engine_indexing() -> list[int]:
     """
     Get the list of allowed organizations for context engine indexing.
 
-    Only includes orgs that have the seer-explorer-context-engine feature flag
-    enabled. Spreads orgs evenly across every hour
-    of the day, every day of the week (168 slots total). Each org is
-    deterministically assigned a slot via md5 hash so it is indexed exactly
-    once per week.
+    Divides all active orgs into 24 buckets via md5 hash of org ID. Only the bucket matching the current
+    hour is checked for the seer-explorer-context-engine feature flag, keeping feature check
+    volume at ~1/24th of total orgs.
     """
     now = datetime.now(UTC)
-    current_slot = now.weekday() * 24 + now.hour
-    TOTAL_HOURLY_SLOTS = 24 * 7  # 168 slots across every hour of the week
+    TOTAL_HOURLY_SLOTS = 24
 
     eligible_org_ids: list[int] = []
+
     for org in RangeQuerySetWrapper(
         Organization.objects.filter(status=ObjectStatus.ACTIVE),
         result_value_getter=lambda o: o.id,
     ):
-        if features.has("organizations:seer-explorer", org) and features.has(
-            "organizations:seer-explorer-context-engine", org
-        ):
-            if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == current_slot:
+        # Ordering of these if blocks is very crucial. We want to check the hour first as
+        # checking the feature flag is an expensive operation and we want to avoid it if possible.
+        if int(md5_text(str(org.id)).hexdigest(), 16) % TOTAL_HOURLY_SLOTS == now.hour:
+            if features.has("organizations:seer-explorer-context-engine", org):
                 eligible_org_ids.append(org.id)
 
     return eligible_org_ids
@@ -253,9 +251,6 @@ def schedule_context_engine_indexing_tasks() -> None:
         return
 
     allowed_org_ids = get_allowed_org_ids_context_engine_indexing()
-    if not allowed_org_ids:
-        logger.info("No allowed organizations for context engine indexing")
-        return
 
     dispatched = 0
     for org_id in allowed_org_ids:

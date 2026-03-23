@@ -4,7 +4,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -66,11 +65,6 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
             additional_attributes,
             include_uptime,
             organization=organization,
-        )
-
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return bool(
-            features.has("organizations:trace-spans-format", organization, actor=request.user)
         )
 
     def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:

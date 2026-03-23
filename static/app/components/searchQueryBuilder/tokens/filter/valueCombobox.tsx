@@ -73,6 +73,7 @@ import {
 } from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
+import {fzf} from 'sentry/utils/search/fzf';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -323,6 +324,28 @@ function useSelectionIndex({
   };
 }
 
+function sortSuggestionsByFzf(
+  suggestions: SuggestionItem[],
+  filterValue: string
+): SuggestionItem[] {
+  const query = filterValue.trim().toLowerCase();
+  if (!query) {
+    return suggestions;
+  }
+
+  return suggestions
+    .map((suggestion, index) => {
+      const result = fzf(suggestion.value, query, false);
+      return {
+        suggestion,
+        score: result.end === -1 ? 0 : Math.max(1, result.score),
+        index,
+      };
+    })
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map(({suggestion}) => suggestion);
+}
+
 function useFilterSuggestions({
   token,
   filterValue,
@@ -411,26 +434,32 @@ function useFilterSuggestions({
   );
 
   const suggestionGroups = useMemo(() => {
-    if (!shouldFetchValues) {
-      return predefinedValues ?? [];
+    let groups: SuggestionSection[];
+    if (shouldFetchValues) {
+      const suggestions = data?.map(value => {
+        return {
+          value,
+          description:
+            // When the key is device, we can help users by displaying the readable name
+            key?.key === FieldKey.DEVICE ? (
+              <DeviceName value={value}>
+                {/* Prevent the same value from being displayed twice */}
+                {name => (name === value ? null : name)}
+              </DeviceName>
+            ) : undefined,
+        };
+      });
+
+      groups = [{sectionText: '', suggestions: suggestions ?? []}];
+    } else {
+      groups = predefinedValues ?? [];
     }
 
-    const suggestions = data?.map(value => {
-      return {
-        value,
-        description:
-          // When the key is device, we can help users by displaying the readable name
-          key?.key === FieldKey.DEVICE ? (
-            <DeviceName value={value}>
-              {/* Prevent the same value from being displayed twice */}
-              {name => (name === value ? null : name)}
-            </DeviceName>
-          ) : undefined,
-      };
-    });
-
-    return [{sectionText: '', suggestions: suggestions ?? []}];
-  }, [data, predefinedValues, shouldFetchValues, key?.key]);
+    return groups.map(group => ({
+      ...group,
+      suggestions: sortSuggestionsByFzf(group.suggestions, filterValue),
+    }));
+  }, [data, predefinedValues, shouldFetchValues, key?.key, filterValue]);
 
   const suggestionSectionItems = useFrozenSuggestionSectionItems({
     createItem,

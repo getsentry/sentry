@@ -2,6 +2,7 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -16,13 +17,15 @@ import {useButtonFunctionality} from './useButtonFunctionality';
 export type {ButtonProps};
 
 export function Button({
-  size = 'md',
   disabled,
   type = 'button',
   tooltipProps,
   busy,
+  size: explicitSize,
   ...props
 }: ButtonProps) {
+  const contextSize = useSizeContext();
+  const size = explicitSize ?? contextSize ?? 'md';
   const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     type,
@@ -46,6 +49,7 @@ export function Button({
         type={type}
         busy={busy}
         {...props}
+        shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
         role="button"
       >
@@ -90,8 +94,13 @@ export function Button({
   );
 }
 
-const StyledButton = styled('button')<ButtonProps>`
-  ${p => getButtonStyles(p as any)}
+const StyledButton = styled('button')<
+  Omit<ButtonProps, 'size'> & {
+    shapeVariant: 'rectangular' | 'square';
+    size: NonNullable<ButtonProps['size']>;
+  }
+>`
+  ${p => getButtonStyles(p)}
 `;
 
 const spin = keyframes`

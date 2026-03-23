@@ -686,6 +686,10 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# When enabled, new Slack installations will request extended scopes
+# (reactions:write, channels:history, groups:history, app_mentions:read)
+# Existing installations must re-authorize to get these scopes.
+register("slack.extended-scopes-enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Slack Staging App
 register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -3852,6 +3856,12 @@ register(
 register(
     "taskworker.enabled",
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.producer.max_futures",
+    type=Int,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
