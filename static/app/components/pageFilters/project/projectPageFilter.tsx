@@ -255,13 +255,10 @@ export function ProjectPageFilter({
                   <MenuComponents.Checkbox
                     checked={optionSelectionIntent.kind === 'all'}
                     onChange={() => {
+                      // Toggle: always select all projects when clicked
                       dispatchRef.current?.({
                         type: 'set staged',
-                        value:
-                          // The inverse of All Projects is an empty array
-                          optionSelectionIntent.kind === 'all'
-                            ? []
-                            : [ALL_ACCESS_PROJECTS],
+                        value: [ALL_ACCESS_PROJECTS],
                       });
                     }}
                     aria-label={t('Select All Projects')}
@@ -301,28 +298,9 @@ export function ProjectPageFilter({
               leadingItems: () => (
                 <Fragment>
                   <MenuComponents.Checkbox
-                    checked={
-                      optionSelectionIntent.kind === 'all' ||
-                      optionSelectionIntent.kind === 'my'
-                    }
+                    checked={optionSelectionIntent.kind === 'my'}
                     onChange={() => {
-                      if (optionSelectionIntent.kind === 'all') {
-                        // Remove member projects from the "all" selection
-                        dispatchRef.current?.({
-                          type: 'set staged',
-                          value: nonMemberProjectIds(projects),
-                        });
-                        return;
-                      }
-                      if (optionSelectionIntent.kind === 'my') {
-                        // Deselect My Projects
-                        dispatchRef.current?.({
-                          type: 'set staged',
-                          value: [],
-                        });
-                        return;
-                      }
-                      // For 'custom' or 'none': select My Projects
+                      // Toggle: always select my projects when clicked
                       dispatchRef.current?.({
                         type: 'set staged',
                         value: [MY_PROJECTS_VALUE],
@@ -767,10 +745,6 @@ function memberProjectIds(projects: Project[]): number[] {
 
 function nonMemberProjects(projects: Project[]): Project[] {
   return projects.filter(project => !project.isMember);
-}
-
-function nonMemberProjectIds(projects: Project[]): number[] {
-  return nonMemberProjects(projects).map(project => parseInt(project.id, 10));
 }
 
 function allProjectIds(projects: Project[]): number[] {
