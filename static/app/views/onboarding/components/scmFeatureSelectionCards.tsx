@@ -24,6 +24,7 @@ type FeatureMeta = {
   // so we use it as the shared type since all icons accept the superset.
   icon: ComponentType<IconGraphProps>;
   label: string;
+  alwaysEnabled?: boolean;
 };
 
 const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
@@ -31,6 +32,7 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     label: t('Error monitoring'),
     icon: IconWarning,
     description: t('Automatically capture exceptions and stack traces'),
+    alwaysEnabled: true,
   },
   [ProductSolution.PERFORMANCE_MONITORING]: {
     label: t('Tracing'),
@@ -76,12 +78,10 @@ export function ScmFeatureSelectionCards({
   selectedFeatures,
   onToggleFeature,
 }: ScmFeatureSelectionCardsProps) {
-  // Error Monitoring is always visually checked, so include it in the count
-  // even if not explicitly in selectedFeatures
-  const hasErrorMonitoring = selectedFeatures.includes(ProductSolution.ERROR_MONITORING);
-  const selectedCount = hasErrorMonitoring
-    ? selectedFeatures.length
-    : selectedFeatures.length + 1;
+  const alwaysEnabledCount = availableFeatures.filter(
+    f => FEATURE_META[f].alwaysEnabled && !selectedFeatures.includes(f)
+  ).length;
+  const selectedCount = selectedFeatures.length + alwaysEnabledCount;
   const totalCount = availableFeatures.length;
 
   return (
@@ -93,8 +93,7 @@ export function ScmFeatureSelectionCards({
       <Grid columns={2} gap="md">
         {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
-          const isErrorMonitoring = feature === ProductSolution.ERROR_MONITORING;
-          const isSelected = selectedFeatures.includes(feature) || isErrorMonitoring;
+          const isSelected = selectedFeatures.includes(feature) || !!meta.alwaysEnabled;
           const Icon = meta.icon;
 
           return (
@@ -102,7 +101,7 @@ export function ScmFeatureSelectionCards({
               onClick={() => onToggleFeature(feature)}
               role="checkbox"
               aria-checked={isSelected}
-              disabled={isErrorMonitoring}
+              disabled={!!meta.alwaysEnabled}
               aria-label={meta.label}
               key={feature}
             >
@@ -124,7 +123,7 @@ export function ScmFeatureSelectionCards({
                         tabIndex={-1}
                         role="presentation"
                         checked={isSelected}
-                        disabled={isErrorMonitoring}
+                        disabled={!!meta.alwaysEnabled}
                       />
                     </Flex>
                     <Text variant="muted" size="sm">

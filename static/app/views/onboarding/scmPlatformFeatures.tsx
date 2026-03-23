@@ -269,31 +269,28 @@ export function ScmPlatformFeatures({onComplete}: StepProps) {
             ) : (
               <Stack gap="sm">
                 <Flex gap="md" wrap="wrap">
-                  {resolvedPlatforms.map(({platform, info}) => {
-                    const isSelected = currentPlatformKey === platform;
-                    return (
-                      <ScmCardButton
-                        onClick={() => handleSelectDetectedPlatform(platform)}
-                        key={platform}
+                  {resolvedPlatforms.map(({platform, info}) => (
+                    <ScmCardButton
+                      onClick={() => handleSelectDetectedPlatform(platform)}
+                      key={platform}
+                    >
+                      <Container
+                        border={currentPlatformKey === platform ? 'accent' : 'secondary'}
+                        padding="md"
+                        radius="md"
                       >
-                        <Container
-                          border={isSelected ? 'accent' : 'secondary'}
-                          padding="md"
-                          radius="md"
-                        >
-                          <Flex gap="sm" align="center">
-                            <PlatformIcon platform={platform} size={20} />
-                            <Stack gap="0">
-                              <Text bold>{info.name}</Text>
-                              <Text variant="muted" size="sm">
-                                {info.type}
-                              </Text>
-                            </Stack>
-                          </Flex>
-                        </Container>
-                      </ScmCardButton>
-                    );
-                  })}
+                        <Flex gap="sm" align="center">
+                          <PlatformIcon platform={platform} size={20} />
+                          <Stack gap="0">
+                            <Text bold>{info.name}</Text>
+                            <Text variant="muted" size="sm">
+                              {info.type}
+                            </Text>
+                          </Stack>
+                        </Flex>
+                      </Container>
+                    </ScmCardButton>
+                  ))}
                 </Flex>
                 <Button
                   size="zero"
