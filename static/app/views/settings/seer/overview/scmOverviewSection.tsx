@@ -43,6 +43,7 @@ export function SCMOverviewSection({canWrite}: Props) {
     connectedIdentifiers,
     refetchIntegrations,
     reposByIntegrationId,
+    reposPendingByIntegrationId,
     isPending,
     isError,
   } = useScmIntegrationTreeData();
@@ -55,6 +56,7 @@ export function SCMOverviewSection({canWrite}: Props) {
     [scmIntegrations]
   );
 
+  const isReposPending = Object.values(reposPendingByIntegrationId).some(Boolean);
   const seerRepos = useMemo(() => {
     return Object.entries(reposByIntegrationId ?? {})
       .filter(([integrationId, _]) => {
@@ -78,12 +80,13 @@ export function SCMOverviewSection({canWrite}: Props) {
 
   const stat = (
     <SeerOverview.Stat
+      label={tn('Repository Connected', 'Repositories Connected', connectedRepos.length)}
       value={SeerOverview.formatStatValue(
         connectedRepos.length,
         seerRepos.length,
         isPending
       )}
-      label={tn('Repository Connected', 'Repositories Connected', connectedRepos.length)}
+      isPending={isReposPending}
     />
   );
 
@@ -274,7 +277,7 @@ function ConnectAllReposButton({
   }
 
   return (
-    <Flex>
+    <Flex alignSelf="end">
       <Button
         priority="primary"
         size="xs"

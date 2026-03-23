@@ -3,6 +3,8 @@ import {type ReactNode} from 'react';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+
 export function SeerOverview({children}: {children: ReactNode}) {
   return (
     <Grid columns="minmax(max-content, 140px) 1fr max-content" gap="xl">
@@ -46,13 +48,22 @@ function SectionHeader({children, title}: {title: string; children?: ReactNode})
   );
 }
 
-function Stat({value, label}: {label: string; value: string | number}) {
+function Stat({
+  value,
+  label,
+  isPending,
+}: {
+  isPending: boolean;
+  label: string;
+  value: string | number;
+}) {
   return (
     <Stack alignSelf="start" gap="md" padding="0 lg">
       <Text size="md" variant="muted">
         {label}
       </Text>
-      <Flex paddingLeft="md" justify="end">
+      <Flex paddingLeft="md" justify="end" align="center" gap="md">
+        {isPending ? <LoadingIndicator size={16} style={{margin: 0}} /> : null}
         <Text size="2xl" bold tabular>
           {value}
         </Text>
