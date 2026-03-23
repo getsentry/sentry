@@ -48,7 +48,12 @@ def translate_data_condition_type(
     For ABOVE: A percentage like 170% would become 70% increase
     For BELOW: A percentage like 40% would become 60% decrease.
     """
-    if comparison_delta is None or threshold is None:
+    if threshold is None:
         return threshold
+
+    # DataCondition.comparison is a JSONField, so integer values come back as int
+    # rather than float. Coerce here to match AlertRuleTrigger.alert_threshold (FloatField).
+    if comparison_delta is None:
+        return float(threshold)
 
     return data_condition_type_translators[condition_type](threshold)

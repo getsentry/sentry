@@ -60,6 +60,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -389,43 +390,27 @@ class AlertRuleListDeltaTest(AlertRuleIndexBase, TestWorkflowEngineSerializer):
         new_data = new_resp.data
         assert len(new_data) == len(old_data)
 
-        # Known differences between old and new serializers
-        known_differences = {
-            # resolveThreshold: Old serializer checked AlertRule.resolve_threshold for None,
-            # but workflow engine always creates a resolve condition during migration.
-            # Cannot distinguish between explicit None vs migrated value without AlertRule.
-            "resolveThreshold",
-        }
-
-        mismatches: list[str] = []
         for old_rule, new_rule in zip(old_data, new_data):
-            for field in set(list(old_rule.keys()) + list(new_rule.keys())):
-                if field == "triggers" or field in known_differences:
-                    continue
-                if field not in new_rule:
-                    mismatches.append(f"Missing from new: {field}")
-                elif field not in old_rule:
-                    mismatches.append(f"Extra in new: {field}")
-                elif old_rule[field] != new_rule[field]:
-                    mismatches.append(f"{field}: old={old_rule[field]!r}, new={new_rule[field]!r}")
-
-            old_triggers = sorted(old_rule.get("triggers", []), key=lambda t: t.get("label", ""))
-            new_triggers = sorted(new_rule.get("triggers", []), key=lambda t: t.get("label", ""))
-            if len(old_triggers) != len(new_triggers):
-                mismatches.append(
-                    f"trigger count: old={len(old_triggers)}, new={len(new_triggers)}"
-                )
-            for old_t, new_t in zip(old_triggers, new_triggers):
-                for tfield in set(list(old_t.keys()) + list(new_t.keys())):
-                    if tfield == "actions" or tfield in known_differences:
-                        continue
-                    if old_t.get(tfield) != new_t.get(tfield):
-                        mismatches.append(
-                            f"trigger[{old_t.get('label')}].{tfield}: "
-                            f"old={old_t.get(tfield)!r}, new={new_t.get(tfield)!r}"
-                        )
-
-        assert not mismatches, "List old vs new serializer differences:\n" + "\n".join(mismatches)
+            old_sorted = {
+                **old_rule,
+                "triggers": sorted(old_rule.get("triggers", []), key=lambda t: t.get("label", "")),
+            }
+            new_sorted = {
+                **new_rule,
+                "triggers": sorted(new_rule.get("triggers", []), key=lambda t: t.get("label", "")),
+            }
+            assert_serializer_parity(
+                old_sorted,
+                new_sorted,
+                {
+                    # resolveThreshold: Old serializer checked AlertRule.resolve_threshold for None,
+                    # but workflow engine always creates a resolve condition during migration.
+                    # Cannot distinguish between explicit None vs migrated value without AlertRule.
+                    "resolveThreshold",
+                    "triggers.resolveThreshold",  # same reason as above
+                },
+                label="List old vs new",
+            )
 
 
 @freeze_time()
