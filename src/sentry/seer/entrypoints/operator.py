@@ -219,6 +219,7 @@ class SeerAutofixOperator[CachePayloadT]:
                     run_id = trigger_autofix_explorer(
                         group=group,
                         step=AutofixStep.ROOT_CAUSE,
+                        referrer=AutofixReferrer.SLACK,
                         run_id=None,
                     )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
@@ -232,6 +233,7 @@ class SeerAutofixOperator[CachePayloadT]:
                     run_id = trigger_autofix_explorer(
                         group=group,
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
+                        referrer=AutofixReferrer.SLACK,
                         run_id=run_id,
                     )
             except Exception as e:

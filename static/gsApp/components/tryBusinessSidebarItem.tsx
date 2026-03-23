@@ -6,7 +6,6 @@ import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import TrialStartedSidebarItem from 'getsentry/components/trialStartedSidebarItem';
@@ -40,7 +39,6 @@ function TryBusinessNavigationItem({
 
   const isNew = !subscription.isTrial && subscription.canTrial;
   const showIsNew = isNew && !tryBusinessSeen;
-  const {layout} = usePrimaryNavigation();
 
   return (
     <TrialStartedSidebarItem {...{organization, subscription}}>
@@ -49,7 +47,6 @@ function TryBusinessNavigationItem({
         analyticsKey="try-business"
         indicator={showIsNew ? 'accent' : undefined}
         buttonProps={{
-          size: layout === 'mobile' ? 'xs' : 'sm',
           icon: <IconBusiness size="md" />,
           onClick: () => {
             setTryBusinessSeen(true);

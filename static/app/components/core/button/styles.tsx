@@ -46,6 +46,7 @@ const hoverElevation = '1px';
 
 export function DO_NOT_USE_getButtonStyles(
   p: Pick<ButtonProps, 'priority' | 'busy' | 'disabled'> & {
+    shapeVariant: 'rectangular' | 'square';
     size: NonNullable<ButtonProps['size']>;
     theme: Theme;
   }
@@ -81,7 +82,8 @@ export function DO_NOT_USE_getButtonStyles(
       cursor: 'not-allowed',
     },
 
-    padding: getButtonSizeTheme(p.size, p.theme).padding,
+    padding:
+      p.shapeVariant === 'square' ? '0' : getButtonSizeTheme(p.size, p.theme).padding,
     borderRadius: getButtonSizeTheme(p.size, p.theme).borderRadius,
     border: 'none',
     color: buttonTheme.color,
@@ -89,6 +91,11 @@ export function DO_NOT_USE_getButtonStyles(
     background: 'none',
 
     height: buttonSizes[p.size].height,
+    // Use min width as a progressive enhancement for square buttons.
+    // We can't yet swap to width because I'm not entirely condifent that
+    // that would not break existing buttons.
+    minWidth: p.shapeVariant === 'square' ? buttonSizes[p.size].height : undefined,
+
     minHeight: buttonSizes[p.size].minHeight,
     fontSize: buttonSizes[p.size].fontSize,
     lineHeight: buttonSizes[p.size].lineHeight,
@@ -236,6 +243,7 @@ export function DO_NOT_USE_getButtonStyles(
       padding: '0',
       height: 'auto',
       minHeight: 'auto',
+      minWidth: 'auto',
       border: 'none',
       transform: 'translateY(0px)',
 

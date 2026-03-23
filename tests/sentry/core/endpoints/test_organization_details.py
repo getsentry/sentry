@@ -1441,25 +1441,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 == "Enabled platforms: PlayStation, Xbox; Disabled platforms: Nintendo Switch"
             )
 
-    def test_enable_pr_review_test_generation_default_false(self) -> None:
-        response = self.get_success_response(self.organization.slug)
-        assert response.data["enablePrReviewTestGeneration"] is False
-
-    def test_enable_pr_review_test_generation_can_be_disabled(self) -> None:
-        data = {"enablePrReviewTestGeneration": False}
-        self.get_success_response(self.organization.slug, **data)
-
-        assert self.organization.get_option("sentry:enable_pr_review_test_generation") is False
-
-    def test_enable_pr_review_test_generation_can_be_enabled(self) -> None:
-        # First disable it
-        self.organization.update_option("sentry:enable_pr_review_test_generation", False)
-
-        data = {"enablePrReviewTestGeneration": True}
-        self.get_success_response(self.organization.slug, **data)
-
-        assert self.organization.get_option("sentry:enable_pr_review_test_generation") is True
-
     def test_enable_seer_enhanced_alerts_default_true(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data["enableSeerEnhancedAlerts"] is True

@@ -399,7 +399,7 @@ export function FilterSelector({
       sizeLimit={30}
       onClose={() => {
         setSearchQuery('');
-        setStagedFilterValues([]);
+        setStagedFilterValues(stagedSelect.value);
         setStagedOperator(initialOperator);
       }}
       sizeLimitMessage={t('Use search to find more filter values…')}
