@@ -82,18 +82,18 @@ export default function SnapshotsPage() {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const typeOverride = location.query.type;
+  const viewOverride = location.query.view;
   const comparisonType =
-    typeOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
+    viewOverride === 'solo' ? 'solo' : (data?.comparison_type ?? 'solo');
   const comparisonRunInfo = data?.comparison_run_info;
 
   const isSoloView = comparisonType === 'solo';
   const handleToggleView = useCallback(() => {
-    const {type: _type, ...restQuery} = location.query;
+    const {view: _view, ...restQuery} = location.query;
     if (isSoloView) {
       navigate({...location, query: restQuery}, {replace: true});
     } else {
-      navigate({...location, query: {...location.query, type: 'solo'}}, {replace: true});
+      navigate({...location, query: {...location.query, view: 'solo'}}, {replace: true});
     }
   }, [location, navigate, isSoloView]);
 
