@@ -22,6 +22,10 @@ export function useOrganization(opts: Options<true>): Organization | null;
 export function useOrganization({allowNull = false}: Options = {}) {
   const organization = useContext(OrganizationContext);
 
+  // if (organization && !organization.features?.includes('page-frame')) {
+  //   organization.features = [...(organization?.features ?? []), 'page-frame'];
+  // }
+
   if (allowNull) {
     return organization;
   }

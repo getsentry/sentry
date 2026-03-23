@@ -3,7 +3,8 @@ import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, type FlexProps, Grid, Stack} from '@sentry/scraps/layout';
+import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import Hook from 'sentry/components/hook';
@@ -16,21 +17,27 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {NAVIGATION_MOBILE_TOPBAR_HEIGHT} from 'sentry/views/navigation/constants';
+import {
+  PrimaryNavigationFooterItems,
+  PrimaryNavigationFooterItemsUserDropdown,
+  PrimaryNavigationItems,
+} from 'sentry/views/navigation/navigation';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
-import {PrimaryNavigationItems} from 'sentry/views/navigation/primary/index';
+import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function MobileNavigation() {
-  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [view, setView] = useState<'primary' | 'secondary' | 'closed'>('closed');
   const {layout, activeGroup} = usePrimaryNavigation();
   const {currentStepId, endTour} = useNavigationTour();
+
+  const hasPageFrame = useHasPageFrameFeature();
 
   /** Close menu after any location pathname change */
   useEffect(() => setView('closed'), [location.pathname]);
@@ -72,23 +79,31 @@ export function MobileNavigation() {
     !ConfigStore.get('isSelfHosted') &&
     !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
+  if (hasPageFrame) {
+    return (
+      <SizeProvider size="sm">
+        <MobileNavigationHeader height="48px" padding="sm">
+          <Flex align="center" gap="md" justify="between" width="100%">
+            <Button
+              ref={closeButtonRef}
+              onClick={handleClick}
+              icon={<IconMenu aria-hidden="true" />}
+              aria-label={t('Open main menu')}
+            />
+            <Stack gap="md" direction="row">
+              <PrimaryNavigation.ButtonBar orientation="horizontal">
+                <PrimaryNavigationFooterItems />
+              </PrimaryNavigation.ButtonBar>
+              <PrimaryNavigationFooterItemsUserDropdown />
+            </Stack>
+          </Flex>
+        </MobileNavigationHeader>
+      </SizeProvider>
+    );
+  }
+
   return (
-    <Flex
-      as="header"
-      direction="row"
-      align="center"
-      height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT}px`}
-      paddingLeft="lg"
-      paddingRight="lg"
-      width="100vw"
-      borderBottom="primary"
-      background="secondary"
-      justify="between"
-      position="sticky"
-      overscrollBehavior="none"
-      top={0}
-      style={{zIndex: theme.zIndex.sidebar}}
-    >
+    <MobileNavigationHeader>
       <Flex align="center" gap="md">
         {/* If the view is not closed, it will render under the full screen mobile menu */}
         <OrganizationDropdown onClick={() => setView('closed')} />
@@ -111,7 +126,15 @@ export function MobileNavigation() {
           closeButtonRef={closeButtonRef}
         >
           {view === 'primary' ? (
-            <PrimaryNavigationItems />
+            <Stack height="100%" justify="between">
+              <Stack>
+                <PrimaryNavigationItems />
+              </Stack>
+              <Stack>
+                <PrimaryNavigationFooterItems />
+                <PrimaryNavigationFooterItemsUserDropdown />
+              </Stack>
+            </Stack>
           ) : view === 'secondary' ? (
             <Grid
               position="relative"
@@ -140,7 +163,28 @@ export function MobileNavigation() {
           ) : null}
         </NavigationOverlayPortal>
       )}
-    </Flex>
+    </MobileNavigationHeader>
+  );
+}
+function MobileNavigationHeader(props: FlexProps<'header'>) {
+  const theme = useTheme();
+  return (
+    <Flex
+      as="header"
+      direction="row"
+      align="center"
+      height={`${NAVIGATION_MOBILE_TOPBAR_HEIGHT}px`}
+      padding="lg"
+      width="100vw"
+      borderBottom="primary"
+      background="secondary"
+      justify="between"
+      position="sticky"
+      overscrollBehavior="none"
+      top={0}
+      style={{zIndex: theme.zIndex.sidebar}}
+      {...props}
+    />
   );
 }
 

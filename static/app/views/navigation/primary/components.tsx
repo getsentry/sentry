@@ -236,6 +236,7 @@ interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   const {layout} = usePrimaryNavigation();
   const organization = useOrganization({allowNull: true});
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Tooltip
@@ -271,7 +272,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
           )
         }
       >
-        {layout === 'mobile' ? props.label : null}
+        {hasPageFrame ? null : layout === 'mobile' ? props.label : null}
         {props.children}
       </NavigationButton>
     </Tooltip>
@@ -321,6 +322,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
 
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
@@ -375,7 +377,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
               >
                 {layout === 'mobile' ? (
                   <Fragment>
-                    {props.label}
+                    {hasPageFrame ? null : props.label}
                     {props.children}
                   </Fragment>
                 ) : (
@@ -393,6 +395,7 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
 
 function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
   const {layout} = usePrimaryNavigation();
+  const hasPageFrame = useHasPageFrameFeature();
 
   return (
     <Flex
@@ -407,7 +410,9 @@ function NavigationButton(props: DistributedOmit<ButtonProps, 'size'>) {
           {...p}
           {...props}
           {...(layout === 'mobile'
-            ? {size: 'zero' as const, priority: 'transparent'}
+            ? hasPageFrame
+              ? {priority: 'default'}
+              : {size: 'zero' as const, priority: 'transparent'}
             : {priority: props.priority})}
         />
       )}

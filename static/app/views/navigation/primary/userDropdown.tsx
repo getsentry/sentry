@@ -16,6 +16,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
@@ -29,6 +30,7 @@ export function UserDropdown() {
   const {layout} = usePrimaryNavigation();
   const portalContainerRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();
+  const hasPageFrame = useHasPageFrameFeature();
 
   useEffect(() => {
     portalContainerRef.current = document.body;
@@ -66,7 +68,7 @@ export function UserDropdown() {
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
       minMenuWidth={200}
       trigger={triggerProps =>
-        layout === 'mobile' ? (
+        layout === 'mobile' && !hasPageFrame ? (
           <Flex justify="start" padding="md 2xl">
             {props => (
               <PrimaryNavigation.Button
