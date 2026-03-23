@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {TagFacets, TAGS_FORMATTER} from 'sentry/components/group/tagFacets';
+import {TagFacets} from 'sentry/components/group/tagFacets';
 
 describe('Tag Facets', () => {
   const organization = OrganizationFixture();
@@ -93,13 +93,7 @@ describe('Tag Facets', () => {
         body: {},
       });
       render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={tags}
-          tagFormatter={TAGS_FORMATTER}
-        />,
+        <TagFacets environments={[]} groupId="1" project={project} tagKeys={tags} />,
         {
           organization,
         }
@@ -114,13 +108,7 @@ describe('Tag Facets', () => {
 
     it('displays os, device, async and release tags', async () => {
       render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={tags}
-          tagFormatter={TAGS_FORMATTER}
-        />,
+        <TagFacets environments={[]} groupId="1" project={project} tagKeys={tags} />,
         {
           organization,
         }
@@ -134,13 +122,7 @@ describe('Tag Facets', () => {
 
     it('expands first tag distribution by default', async () => {
       render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={tags}
-          tagFormatter={TAGS_FORMATTER}
-        />,
+        <TagFacets environments={[]} groupId="1" project={project} tagKeys={tags} />,
         {
           organization,
         }
@@ -152,13 +134,7 @@ describe('Tag Facets', () => {
 
     it('closes and expands tag distribution when tag header is clicked', async () => {
       render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={tags}
-          tagFormatter={TAGS_FORMATTER}
-        />,
+        <TagFacets environments={[]} groupId="1" project={project} tagKeys={tags} />,
         {
           organization,
         }
@@ -179,13 +155,7 @@ describe('Tag Facets', () => {
 
     it('links to events with selected tag value', async () => {
       render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={tags}
-          tagFormatter={TAGS_FORMATTER}
-        />,
+        <TagFacets environments={[]} groupId="1" project={project} tagKeys={tags} />,
         {
           organization,
         }
@@ -208,13 +178,7 @@ describe('Tag Facets', () => {
 
     it('links to tags tab', async () => {
       render(
-        <TagFacets
-          environments={[]}
-          groupId="1"
-          project={project}
-          tagKeys={tags}
-          tagFormatter={TAGS_FORMATTER}
-        />,
+        <TagFacets environments={[]} groupId="1" project={project} tagKeys={tags} />,
         {
           organization,
         }

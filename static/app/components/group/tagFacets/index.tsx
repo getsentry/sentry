@@ -15,66 +15,12 @@ import type {Project} from 'sentry/types/project';
 import {generateQueryWithTag} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   useGroupTagsReadable,
   type GroupTag,
 } from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 import {TagFacetsDistributionMeter} from './tagFacetsDistributionMeter';
-
-export const MOBILE_TAGS = [
-  'device',
-  'device.class',
-  'os',
-  'release',
-  'environment',
-  'transaction',
-];
-
-export const FRONTEND_TAGS = ['browser', 'transaction', 'release', 'url', 'environment'];
-
-export const BACKEND_TAGS = [
-  'transaction',
-  'url',
-  'user',
-  'release',
-  'organization.slug',
-];
-
-export const DEFAULT_TAGS = ['transaction', 'environment', 'release'];
-
-export function TAGS_FORMATTER(tagsData: Record<string, GroupTag>) {
-  // For "release" tag keys, format the release tag value to be more readable (ie removing version prefix)
-  const transformedTagsData: Record<string, GroupTag> = {};
-  Object.keys(tagsData).forEach(tagKey => {
-    if (tagKey === 'release') {
-      transformedTagsData[tagKey] = {
-        ...tagsData[tagKey]!,
-        topValues: tagsData[tagKey]!.topValues.map(topValue => {
-          return {
-            ...topValue,
-            name: formatVersion(topValue.name),
-          };
-        }),
-      };
-    } else if (tagKey === 'device') {
-      transformedTagsData[tagKey] = {
-        ...tagsData[tagKey]!,
-        topValues: tagsData[tagKey]!.topValues.map(topValue => {
-          return {
-            ...topValue,
-            name: topValue.readable ?? topValue.name,
-          };
-        }),
-      };
-    } else {
-      transformedTagsData[tagKey] = tagsData[tagKey]!;
-    }
-  });
-
-  return transformedTagsData;
-}
 
 type Props = {
   environments: string[];
