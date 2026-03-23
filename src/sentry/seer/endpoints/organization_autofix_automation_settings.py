@@ -37,11 +37,13 @@ from sentry.seer.utils import filter_repo_by_provider
 logger = logging.getLogger(__name__)
 
 
-def merge_repositories(existing: list[dict], new: list[dict]) -> list[dict]:
+def merge_repositories(
+    existing: list[dict], new: list[dict], key_by_org_id: bool = False
+) -> list[dict]:
     """
-    Merge new repositories with existing ones, skipping duplicates by (org_id, provider, external_id).
+    Merge new repositories with existing ones, skipping duplicates by (provider, external_id) and optionally org_id.
     """
-    return deduplicate_repositories(chain(existing, new))
+    return deduplicate_repositories(chain(existing, new), key_by_org_id=key_by_org_id)
 
 
 class BranchOverrideSerializer(CamelSnakeSerializer):
