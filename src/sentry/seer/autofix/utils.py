@@ -470,10 +470,8 @@ def resolve_repository_ids(
             status=ObjectStatus.ACTIVE,
         )
         .values("id", "external_id", "provider")
-        .order_by("provider")
+        .order_by("provider")  # prefer prefixed provider over bare provider
     ):
-        # order_by("provider") ensures "github" comes before "integrations:github",
-        # so the integrations: row overwrites the bare row and is preferred.
         resolved_ids[
             (str(db_repo["external_id"]), str(db_repo["provider"]).removeprefix("integrations:"))
         ] = db_repo["id"]
