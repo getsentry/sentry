@@ -13,7 +13,6 @@ import {SeerDrawerHeader} from 'sentry/components/events/autofix/v3/header';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -21,7 +20,6 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
 interface SeerDrawerProps {
-  event: Event;
   group: Group;
   project: Project;
 }
