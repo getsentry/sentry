@@ -30,6 +30,7 @@ from sentry.scm.actions import (
     delete_pull_request_comment_reaction,
     delete_pull_request_reaction,
     get_branch,
+    get_capabilities,
     get_check_run,
     get_commit,
     get_commits,
@@ -774,3 +775,64 @@ def test_exec_passes_custom_record_count():
         {"provider": "BaseTestProvider"},
     )
     assert calls[1] == ("sentry.scm.actions.success_by_referrer", 1, {"referrer": "shared"})
+
+
+def test_get_capabilities():
+    assert list(get_capabilities(SourceCodeManager(BaseTestProvider()))) == [
+        "CompareCommitsProtocol",
+        "CreateBranchProtocol",
+        "CreateCheckRunProtocol",
+        "CreateGitBlobProtocol",
+        "CreateGitCommitProtocol",
+        "CreateGitTreeProtocol",
+        "CreateIssueCommentProtocol",
+        "CreateIssueCommentReactionProtocol",
+        "CreateIssueReactionProtocol",
+        "CreatePullRequestCommentProtocol",
+        "CreatePullRequestCommentReactionProtocol",
+        "CreatePullRequestDraftProtocol",
+        "CreatePullRequestProtocol",
+        "CreatePullRequestReactionProtocol",
+        "CreateReviewCommentFileProtocol",
+        "CreateReviewCommentReplyProtocol",
+        "CreateReviewProtocol",
+        "DeleteIssueCommentProtocol",
+        "DeleteIssueCommentReactionProtocol",
+        "DeleteIssueReactionProtocol",
+        "DeletePullRequestCommentProtocol",
+        "DeletePullRequestCommentReactionProtocol",
+        "DeletePullRequestReactionProtocol",
+        "GetBranchProtocol",
+        "GetCheckRunProtocol",
+        "GetCommitProtocol",
+        "GetCommitsByPathProtocol",
+        "GetCommitsProtocol",
+        "GetFileContentProtocol",
+        "GetGitCommitProtocol",
+        "GetIssueCommentReactionsProtocol",
+        "GetIssueCommentsProtocol",
+        "GetIssueReactionsProtocol",
+        "GetPullRequestCommentReactionsProtocol",
+        "GetPullRequestCommentsProtocol",
+        "GetPullRequestCommitsProtocol",
+        "GetPullRequestDiffProtocol",
+        "GetPullRequestFilesProtocol",
+        "GetPullRequestProtocol",
+        "GetPullRequestReactionsProtocol",
+        "GetPullRequestsProtocol",
+        "GetTreeProtocol",
+        "MinimizeCommentProtocol",
+        "RequestReviewProtocol",
+        "UpdateBranchProtocol",
+        "UpdateCheckRunProtocol",
+        "UpdatePullRequestProtocol",
+    ]
+
+    class IncapableProvider:
+        organization_id: int
+        repository: Repository
+
+        def is_rate_limited(self, referrer: Referrer) -> bool:
+            return False
+
+    assert list(get_capabilities(SourceCodeManager(IncapableProvider()))) == []
