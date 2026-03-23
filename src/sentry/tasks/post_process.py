@@ -133,7 +133,6 @@ def _capture_event_stats(event: Event) -> None:
     platform = format_event_platform(event)
     tags = {"platform": platform}
     metrics.incr("events.processed", tags={"platform": platform}, skip_internal=False)
-    metrics.incr(f"events.processed.{platform}", skip_internal=False)
     metrics.distribution("events.size.data", event.size, tags=tags, unit="byte")
 
 

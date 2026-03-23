@@ -108,10 +108,10 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
 
         **Issue Assignment**
         - `targetType`: Who the issue is assigned to
-            - `NoOne`: Unassigned
+            - `Unassigned`: Unassigned
             - `Member`: Assigned to a user
             - `Team`: Assigned to a team
-        - `targetIdentifier`: The ID of the user or team from the `targetType`. Enter "" if `targetType` is `NoOne`.
+        - `targetIdentifier`: The ID of the user or team from the `targetType`. Enter "" if `targetType` is `Unassigned`.
         ```json
             {
                 "type": "assigned_to",

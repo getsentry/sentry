@@ -81,7 +81,7 @@ class OutboxCategory(IntEnum):
             from sentry.receivers.outbox import maybe_process_tombstone
 
             maybe_instance: ReplicatedCellModel | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, region_name=None
+                cast(Any, model), object_identifier, cell_name=None
             )
             if maybe_instance is None:
                 model.handle_async_deletion(
@@ -104,7 +104,7 @@ class OutboxCategory(IntEnum):
             from sentry.receivers.outbox import maybe_process_tombstone
 
             maybe_instance: HasControlReplicationHandlers | None = maybe_process_tombstone(
-                cast(Any, model), object_identifier, region_name=region_name
+                cast(Any, model), object_identifier, cell_name=region_name
             )
             if maybe_instance is None:
                 model.handle_async_deletion(

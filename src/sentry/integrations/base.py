@@ -240,10 +240,10 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     the installer's identity to the organization integration
     """
 
-    is_region_restricted: bool = False
+    is_cell_restricted: bool = False
     """
-    Returns True if each integration installation can only be connected on one region of Sentry at a
-    time. It will raise an error if any organization from another region attempts to install it.
+    Returns True if each integration installation can only be connected on one cell of Sentry at a
+    time. It will raise an error if any organization from another cell attempts to install it.
     """
 
     features: frozenset[IntegrationFeatures] = frozenset()

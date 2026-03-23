@@ -29,8 +29,12 @@ def translate_slack_api_error(error: SlackApiError) -> None:
     reason = unpack_slack_api_error(error)
     if reason is not None:
         if reason in SLACK_SDK_HALT_ERROR_CATEGORIES:
-            raise IntegrationConfigurationError(reason.message) from error
+            raise IntegrationConfigurationError(
+                error_code=error.response.status_code, message=reason.message
+            ) from error
         else:
-            raise IntegrationError(reason.message) from error
+            raise IntegrationError(
+                error_code=error.response.status_code, message=reason.message
+            ) from error
     else:
-        raise IntegrationError(str(error)) from error
+        raise IntegrationError(error_code=error.response.status_code, message=str(error)) from error
