@@ -41,8 +41,8 @@ const TABLE_ITEM_LIMIT = 20;
 
 // Widget frame header (title bar): 26px + 12px padding (theme.space.lg)
 const WIDGET_HEADER_HEIGHT = HEADER_HEIGHT + 12;
-// Widget frame padding (top visualization padding + bottom padding + border)
-const WIDGET_FRAME_PADDING = 20;
+// Widget frame border (top + bottom) — tables use noVisualizationPadding
+const WIDGET_FRAME_BORDER = 2;
 
 /**
  * Calculates the pixel height needed for a table widget based on its row count.
@@ -51,8 +51,9 @@ function calculateTableContentHeight(rowCount: number): number {
   return (
     WIDGET_HEADER_HEIGHT +
     GRID_HEAD_ROW_HEIGHT +
+    // 1px extra height for border
     rowCount * (GRID_BODY_ROW_HEIGHT + 1) +
-    WIDGET_FRAME_PADDING
+    WIDGET_FRAME_BORDER
   );
 }
 
