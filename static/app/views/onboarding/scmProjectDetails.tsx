@@ -1,18 +1,23 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {slugify} from 'sentry/utils/slugify';
 import {useTeams} from 'sentry/utils/useTeams';
+import {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
+  getRequestDataFragment,
   IssueAlertOptions,
   RuleAction,
   type AlertRuleOptions,
@@ -21,8 +26,11 @@ import {
 import type {StepProps} from './types';
 
 export function ScmProjectDetails({onComplete}: StepProps) {
-  const {selectedPlatform, selectedRepository} = useOnboardingContext();
+  const {selectedPlatform, selectedRepository, setSelectedPlatform} =
+    useOnboardingContext();
   const {teams} = useTeams();
+  const createProjectAndRules = useCreateProjectAndRules();
+  const {createNotificationAction} = useCreateNotificationAction();
 
   const firstAdminTeam = teams.find((team: Team) => team.access.includes('team:admin'));
 
@@ -44,7 +52,48 @@ export function ScmProjectDetails({onComplete}: StepProps) {
     setAlertRuleConfig(prev => ({...prev, [key]: value}));
   };
 
-  const canSubmit = projectName.length > 0 && teamSlug.length > 0;
+  const canSubmit =
+    projectName.length > 0 &&
+    teamSlug.length > 0 &&
+    !!selectedPlatform &&
+    !createProjectAndRules.isPending;
+
+  const handleCreateProject = useCallback(async () => {
+    if (!selectedPlatform || !canSubmit) {
+      return;
+    }
+
+    try {
+      const {project} = await createProjectAndRules.mutateAsync({
+        projectName,
+        platform: selectedPlatform,
+        team: teamSlug,
+        alertRuleConfig: getRequestDataFragment(alertRuleConfig),
+        createNotificationAction,
+      });
+
+      // Update context so SetupDocs can find the project by slug
+      setSelectedPlatform({
+        ...selectedPlatform,
+        key: project.slug,
+      });
+
+      onComplete();
+    } catch (error) {
+      addErrorMessage(t('Failed to create project'));
+      Sentry.captureException(error);
+    }
+  }, [
+    selectedPlatform,
+    canSubmit,
+    createProjectAndRules,
+    projectName,
+    teamSlug,
+    alertRuleConfig,
+    createNotificationAction,
+    setSelectedPlatform,
+    onComplete,
+  ]);
 
   return (
     <Flex direction="column" align="center" gap="xl" flexGrow={1}>
@@ -102,7 +151,7 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         <Button onClick={() => onComplete()}>{t('Back')}</Button>
         <Button
           priority="primary"
-          onClick={() => onComplete()}
+          onClick={handleCreateProject}
           disabled={!canSubmit}
           icon={<IconProject />}
         >
