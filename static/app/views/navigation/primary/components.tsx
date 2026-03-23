@@ -85,7 +85,6 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         direction="column"
         align="center"
         justify="center"
-        position="relative"
         borderBottom={hasPageFrame ? 'primary' : undefined}
         width={hasPageFrame ? '100%' : undefined}
         height={hasPageFrame ? `${PRIMARY_HEADER_HEIGHT}px` : undefined}
