@@ -387,9 +387,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         has_vcs = commit_comparison is not None
 
         metric_tags = {
-            "temp_org_id": str(project.organization_id),
-            "temp_project_id": str(project.id),
-            "temp_app_id": artifact.app_id or "",
+            "org_id_temp": str(project.organization_id),
+            "project_id_temp": str(project.id),
+            "app_id_temp": artifact.app_id or "",
         }
 
         metrics.distribution(
