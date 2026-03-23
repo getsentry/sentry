@@ -164,7 +164,7 @@ Makefile                                                 @getsentry/owners-sentr
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build
 pyproject.toml                                           @getsentry/owners-python-build
-prettier*                                                @getsentry/owners-js-build
+.oxfmtrc.json                                            @getsentry/owners-js-build
 vercel.json                                              @getsentry/owners-js-build
 /.github/workflows/frontend.yml                          @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build
@@ -818,6 +818,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/releases/                                   @getsentry/coding-workflows-sentry-backend
 
 ## SCM
+/src/sentry/scm/                                                        @getsentry/scm
 /src/sentry/integrations/source_code_management/                        @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/repository/                                    @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/github_enterprise/                             @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm

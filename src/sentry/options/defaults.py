@@ -2526,6 +2526,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# TTL in seconds for nodestore cache entries. Event bodies are immutable
+# so longer TTLs are safe and improve cache hit rates for batch reads
+# (e.g. group events list endpoint).
+register(
+    "nodestore.cache-ttl",
+    default=300,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # === Backpressure related runtime options ===
 
 # Enables monitoring of services for backpressure management.
@@ -3856,6 +3866,12 @@ register(
 register(
     "taskworker.enabled",
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.producer.max_futures",
+    type=Int,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

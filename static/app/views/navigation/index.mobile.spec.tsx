@@ -12,6 +12,7 @@ import {mockMatchMedia} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {Navigation} from 'sentry/views/navigation';
+import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
@@ -97,7 +98,12 @@ describe('mobile navigation', () => {
 
   describe('accessibility', () => {
     it('does not render a skip link', () => {
-      render(<Navigation />, navigationContext());
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
       expect(
         screen.queryByRole('link', {name: 'Skip to main content'})
       ).not.toBeInTheDocument();
@@ -106,7 +112,12 @@ describe('mobile navigation', () => {
 
   describe('secondary nav route inference', () => {
     it('opens secondary navigation by default when on a sub-view', async () => {
-      render(<Navigation />, navigationContext());
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
 
@@ -116,7 +127,12 @@ describe('mobile navigation', () => {
     });
 
     it('clicking back navigates to primary navigation', async () => {
-      render(<Navigation />, navigationContext());
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext()
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));
 

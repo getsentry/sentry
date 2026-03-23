@@ -56,7 +56,7 @@ export default function SnapshotsPage() {
   );
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItemKey, setSelectedItemName] = useState<string | null>(null);
+  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayColor, setOverlayColor] = useState<string>(() => {
@@ -195,17 +195,22 @@ export default function SnapshotsPage() {
     variantCount > 0 ? Math.min(variantIndex, variantCount - 1) : 0;
 
   const handleSelectItem = (name: string) => {
-    setSelectedItemName(name);
+    setSelectedItemKey(name);
     setVariantIndex(0);
   };
 
   // Ref so the keydown handler reads current state without re-registering
-  const stateRef = useRef({filteredItems, currentItemKey});
-  stateRef.current = {filteredItems, currentItemKey};
+  const stateRef = useRef({
+    filteredItems,
+    currentItemKey,
+    safeVariantIndex,
+    variantCount,
+  });
+  stateRef.current = {filteredItems, currentItemKey, safeVariantIndex, variantCount};
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
+      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
@@ -214,15 +219,32 @@ export default function SnapshotsPage() {
       }
       e.preventDefault();
 
-      const {filteredItems: items, currentItemKey: current} = stateRef.current;
-      const currentIndex = items.findIndex(i => i.key === current);
+      const state = stateRef.current;
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        if (state.variantCount <= 1) {
+          return;
+        }
+        const next =
+          e.key === 'ArrowRight'
+            ? Math.min(state.safeVariantIndex + 1, state.variantCount - 1)
+            : Math.max(state.safeVariantIndex - 1, 0);
+        if (next !== state.safeVariantIndex) {
+          setVariantIndex(next);
+        }
+        return;
+      }
+
+      const currentIndex = state.filteredItems.findIndex(
+        i => i.key === state.currentItemKey
+      );
       const nextIndex =
         e.key === 'ArrowDown'
-          ? Math.min(currentIndex + 1, items.length - 1)
+          ? Math.min(currentIndex + 1, state.filteredItems.length - 1)
           : Math.max(currentIndex - 1, 0);
 
-      if (nextIndex !== currentIndex && items[nextIndex]) {
-        setSelectedItemName(items[nextIndex].key);
+      if (nextIndex !== currentIndex && state.filteredItems[nextIndex]) {
+        setSelectedItemKey(state.filteredItems[nextIndex].key);
         setVariantIndex(0);
       }
     }

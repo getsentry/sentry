@@ -15,6 +15,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    shell: bash -euo pipefail {0}
+
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
@@ -62,6 +66,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+
           CHANGED_FILES=$(gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files --paginate --jq '.[].filename' | tr '\n' ' ')
           echo "Changed files: $CHANGED_FILES"
           echo "files=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
@@ -83,7 +88,7 @@ jobs:
       - name: Download coverage database
         id: download-coverage
         run: |
-          set -euo pipefail
+
           mkdir -p .artifacts/coverage
 
           GCS_PATH="gs://getsentry-coverage-data/latest/.coverage.combined"
@@ -106,7 +111,7 @@ jobs:
           COVERAGE_DB: ${{ steps.download-coverage.outputs.coverage-file }}
           CHANGED_FILES: ${{ steps.changed.outputs.files }}
         run: |
-          set -euo pipefail
+
 
           python3 .github/workflows/scripts/compute-sentry-selected-tests.py \
             --coverage-db "$COVERAGE_DB" \
