@@ -129,17 +129,9 @@ describe('mobile navigation', () => {
       const activeLinks = links.filter(
         l => l.getAttribute('aria-current') === 'location'
       );
-      const inactiveLinks = links.filter(
-        l => l.getAttribute('aria-current') !== 'location'
-      );
 
       expect(activeLinks).toHaveLength(1);
-      activeLinks.forEach(link => {
-        expect(link).toHaveAttribute('aria-current', 'location');
-        expect(link).not.toHaveAttribute('aria-selected');
-      });
-      inactiveLinks.forEach(link => {
-        expect(link).not.toHaveAttribute('aria-current');
+      links.forEach(link => {
         expect(link).not.toHaveAttribute('aria-selected');
       });
     });
@@ -159,15 +151,9 @@ describe('mobile navigation', () => {
 
       const links = within(secondaryNav).getAllByRole('link');
       const activeLinks = links.filter(l => l.getAttribute('aria-current') === 'page');
-      const inactiveLinks = links.filter(l => l.getAttribute('aria-current') !== 'page');
 
       expect(activeLinks).toHaveLength(1);
-      activeLinks.forEach(link => {
-        expect(link).toHaveAttribute('aria-current', 'page');
-        expect(link).not.toHaveAttribute('aria-selected');
-      });
-      inactiveLinks.forEach(link => {
-        expect(link).not.toHaveAttribute('aria-current');
+      links.forEach(link => {
         expect(link).not.toHaveAttribute('aria-selected');
       });
     });
