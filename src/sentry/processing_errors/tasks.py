@@ -34,7 +34,7 @@ MAX_AGE_DAYS = 1
 @instrumented_task(
     name="sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
     namespace=workflow_engine_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def resolve_stale_sourcemap_detectors() -> None:
     """
