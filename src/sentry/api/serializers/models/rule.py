@@ -734,8 +734,8 @@ class WorkflowEngineRuleSerializer(Serializer):
             if len(errors):
                 result[workflow]["errors"] = errors
 
-            if workflow.id in last_triggered_lookup:
-                result[workflow]["last_triggered"] = last_triggered_lookup[workflow.id]
+            if "lastTriggered" in self.expand:
+                result[workflow]["last_triggered"] = last_triggered_lookup.get(workflow.id, None)
 
             result[workflow]["actions"] = serialized_actions
 
