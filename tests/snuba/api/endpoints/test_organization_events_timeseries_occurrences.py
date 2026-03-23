@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import timedelta
 from typing import Any
 
@@ -46,9 +47,16 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
     def _store_occurrences_and_request_timeseries(
-        self, event_counts: list[int], y_axis: str, **occurrence_kwargs: Any
+        self,
+        event_counts: list[int],
+        y_axis: str,
+        *,
+        extra_occurrence_kwargs_fn: Callable[[int, int], dict[str, Any]] | None = None,
+        **occurrence_kwargs: Any,
     ):
-        """Create a group, build occurrences from event_counts (with group_id), store them, run timeseries request."""
+        """Create a group, build occurrences from event_counts (with group_id), store them, run timeseries request.
+        extra_occurrence_kwargs_fn: when set, occurrence attributes are a function of (hour, minute).
+        """
         group = self.create_group(project=self.project)
         occurrences = [
             self.create_eap_occurrence(
@@ -56,6 +64,7 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
                 project=self.project,
                 timestamp=self.start + timedelta(hours=hour, minutes=minute),
                 **occurrence_kwargs,
+                **(extra_occurrence_kwargs_fn(hour, minute) if extra_occurrence_kwargs_fn else {}),
             )
             for hour, count in enumerate(event_counts)
             for minute in range(count)
@@ -148,3 +157,28 @@ class OrganizationEventsTimeseriesOccurrencesEndpointTest(
     def test_epm_timeseries(self) -> None:
         """Rate aggregate epm() on /events-timeseries: events/min per bucket, meta rate/1/minute."""
         self._run_rate_timeseries_test("epm()", "1/minute", 60.0)
+
+    def test_count_unique_timeseries(self) -> None:
+        event_counts = [6, 0, 6, 3, 0, 3]
+        response = self._store_occurrences_and_request_timeseries(
+            event_counts,
+            "count_unique(title)",
+            extra_occurrence_kwargs_fn=lambda hour, minute: {
+                "title": f"foo-{minute}",
+                "attributes": {"fingerprint": ["g1"]},
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["dataset"] == "occurrences"
+        assert len(response.data["timeSeries"]) == 1
+        timeseries = response.data["timeSeries"][0]
+        assert timeseries["yAxis"] == "count_unique(title)"
+        assert timeseries["values"] == build_expected_timeseries(
+            self.start, 3_600_000, event_counts, ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "dataScanned": "full",
+            "valueType": "integer",
+            "valueUnit": None,
+            "interval": 3_600_000,
+        }
