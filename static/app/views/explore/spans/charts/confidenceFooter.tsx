@@ -112,11 +112,11 @@ function confidenceMessage({
         ? t('%s matches', <Count value={sampleCount} />)
         : t('%s match', <Count value={sampleCount} />);
 
-    const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
-      rawSpanCounts.highAccuracy.count > 1 ? (
-        t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+    const totalSpansCount = defined(rawSpanCounts.total.count) ? (
+      rawSpanCounts.total.count > 1 ? (
+        t('%s spans', <Count value={rawSpanCounts.total.count} />)
       ) : (
-        t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+        t('%s span', <Count value={rawSpanCounts.total.count} />)
       )
     ) : (
       <Placeholder width={40} />
@@ -147,11 +147,11 @@ function confidenceMessage({
           ? t('%s samples', <Count value={sampleCount} />)
           : t('%s sample', <Count value={sampleCount} />);
 
-      const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
-        rawSpanCounts.highAccuracy.count > 1 ? (
-          t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+      const totalSpansCount = defined(rawSpanCounts.total.count) ? (
+        rawSpanCounts.total.count > 1 ? (
+          t('%s spans', <Count value={rawSpanCounts.total.count} />)
         ) : (
-          t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+          t('%s span', <Count value={rawSpanCounts.total.count} />)
         )
       ) : (
         <Placeholder width={40} />
@@ -230,11 +230,11 @@ function confidenceMessage({
       <Placeholder width={40} />
     );
 
-    const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
-      rawSpanCounts.highAccuracy.count > 1 ? (
-        t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+    const totalSpansCount = defined(rawSpanCounts.total.count) ? (
+      rawSpanCounts.total.count > 1 ? (
+        t('%s spans', <Count value={rawSpanCounts.total.count} />)
       ) : (
-        t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+        t('%s span', <Count value={rawSpanCounts.total.count} />)
       )
     ) : (
       <Placeholder width={40} />
@@ -274,11 +274,11 @@ function confidenceMessage({
       ? t('%s matches', <Count value={sampleCount} />)
       : t('%s match', <Count value={sampleCount} />);
 
-  const totalSpansCount = defined(rawSpanCounts.highAccuracy.count) ? (
-    rawSpanCounts.highAccuracy.count > 1 ? (
-      t('%s spans', <Count value={rawSpanCounts.highAccuracy.count} />)
+  const totalSpansCount = defined(rawSpanCounts.total.count) ? (
+    rawSpanCounts.total.count > 1 ? (
+      t('%s spans', <Count value={rawSpanCounts.total.count} />)
     ) : (
-      t('%s span', <Count value={rawSpanCounts.highAccuracy.count} />)
+      t('%s span', <Count value={rawSpanCounts.total.count} />)
     )
   ) : (
     <Placeholder width={40} />

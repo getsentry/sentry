@@ -1,9 +1,13 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
+import {explodeFieldString} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/types';
-import {extractTraceMetricFromWidget} from 'sentry/views/dashboards/utils/extractTraceMetricFromWidget';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {useRawCounts, type RawCounts} from 'sentry/views/explore/useRawCounts';
 
 type Props = {
@@ -17,6 +21,25 @@ type RawCountConfig = {
   supported: boolean;
   aggregate?: string;
 };
+
+export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): string {
+  const parts = traceMetrics.map(traceMetric => {
+    const filters = [
+      `metric.name:${traceMetric.name}`,
+      `metric.type:${traceMetric.type}`,
+    ];
+
+    if (traceMetric.unit === NONE_UNIT) {
+      filters.push(`( !has:metric.unit OR metric.unit:${NONE_UNIT} )`);
+    } else if (traceMetric.unit) {
+      filters.push(`metric.unit:${traceMetric.unit}`);
+    }
+
+    return `( ${filters.join(' ')} )`;
+  });
+
+  return parts.join(' OR ');
+}
 
 export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null {
   const rawCountConfig = useMemo<RawCountConfig>(() => {
@@ -34,12 +57,15 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
           enabled: isSupportedDisplayType,
         };
       case WidgetType.TRACEMETRICS: {
-        const traceMetric = extractTraceMetricFromWidget(widget);
-        if (!traceMetric?.name || !traceMetric?.type) {
+        const traceMetrics = widget.queries?.[0]?.aggregates
+          .map(aggregate => explodeFieldString(aggregate))
+          .map(extractTraceMetricFromColumn)
+          .filter(defined);
+
+        if (!traceMetrics) {
           return {
             supported: true,
             dataset: DiscoverDatasets.TRACEMETRICS,
-            aggregate: 'count(value,,,-)',
             enabled: false,
           };
         }
@@ -47,8 +73,9 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
         return {
           supported: true,
           dataset: DiscoverDatasets.TRACEMETRICS,
-          aggregate: `count(value,${traceMetric.name},${traceMetric.type},${traceMetric.unit ?? '-'})`,
           enabled: isSupportedDisplayType,
+          query: createTraceMetricEventsFilter(traceMetrics),
+          normalModeExtrapolated: true,
         };
       }
       case WidgetType.LOGS:
