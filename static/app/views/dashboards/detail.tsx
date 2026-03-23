@@ -303,7 +303,7 @@ class DashboardDetail extends Component<Props, State> {
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
             navigate(
               {
-                pathname: location.pathname.replace(/widget\/[0-9]+\/$/, ''),
+                pathname: location.pathname.replace(/widget\/\d+\/$/, ''),
                 query,
               },
               {preventScrollReset: true}
