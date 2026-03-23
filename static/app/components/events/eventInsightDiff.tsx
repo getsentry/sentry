@@ -1,11 +1,12 @@
-import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Text} from '@sentry/scraps/text';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -54,7 +55,7 @@ function EventInsightDiffContent({baseMetricId, headMetricId, project}: ContentP
   const totalInstallSizeBytes = query.data?.size_metric_diff_item.head_install_size ?? 0;
 
   if (!insightDiffItems || insightDiffItems.length === 0) {
-    return <EmptyMessage>{t('No insight diff for comparison')}</EmptyMessage>;
+    return <Text>{t('No insight diff for comparison')}</Text>;
   }
 
   return (
