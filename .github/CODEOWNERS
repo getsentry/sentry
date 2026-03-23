@@ -244,7 +244,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/snuba/tasks.py                                @getsentry/alerts-notifications
 /tests/snuba/incidents/                                   @getsentry/alerts-notifications
 /tests/sentry/rules/                                      @getsentry/alerts-notifications
-
 /tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_subscriptions.py                 @getsentry/alerts-notifications
 /tests/sentry/snuba/test_tasks.py                         @getsentry/alerts-notifications
