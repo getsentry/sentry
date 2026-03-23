@@ -901,6 +901,10 @@ def _check_attributes_by_type(
     }
 
 
+# We want to limit the number of threads to the number of attribute types to avoid overwhelming the RPC server.
+MAX_ATTRIBUTE_VALIDATION_THREADS = 3
+
+
 def _check_attributes_exist(
     resolver: SearchResolver,
     item_type: SupportedTraceItemType,
@@ -918,7 +922,7 @@ def _check_attributes_exist(
     found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
     with ThreadPoolExecutor(
         thread_name_prefix="attr_validate",
-        max_workers=len(attrs_by_type),
+        max_workers=MAX_ATTRIBUTE_VALIDATION_THREADS,
     ) as pool:
         futures = [
             pool.submit(_check_attributes_by_type, meta, attr_type, names)
