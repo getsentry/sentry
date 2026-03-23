@@ -331,6 +331,7 @@ export function MetricSelector({
     {
       shouldFocusWrap: true,
       shouldSelectOnPressUp: true,
+      shouldUseVirtualFocus: true,
       'aria-labelledby': triggerId,
     },
     listState,
@@ -376,28 +377,70 @@ export function MetricSelector({
     },
   });
 
-  // The search input sits outside the listbox, so useListBox's shouldFocusWrap
-  // never sees these keystrokes. Bridge ArrowDown from the search field into the
-  // list; once focus is inside the list, shouldFocusWrap takes over.
-  const {keyboardProps: searchKeyboardProps} = useKeyboard({
-    onKeyDown: e => {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        const firstKey = listState.collection.getFirstKey();
-        if (firstKey) {
-          listState.selectionManager.setFocused(true);
-          listState.selectionManager.setFocusedKey(firstKey);
-        }
-        overlayRef.current?.querySelector<HTMLLIElement>('li[role="option"]')?.focus();
-      }
+  const handleSearchKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      const manager = listState.selectionManager;
+      const collection = listState.collection;
 
       if (e.key === 'Enter') {
         e.preventDefault();
+        if (focusedKey) {
+          const selectedOption = displayedOptionsMap.get(String(focusedKey));
+          if (selectedOption) {
+            handleSelect(selectedOption);
+          }
+        }
+        return;
       }
 
-      e.continuePropagation();
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        manager.setFocused(true);
+        const nextKey =
+          focusedKey === null
+            ? collection.getFirstKey()
+            : (collection.getKeyAfter(focusedKey) ?? collection.getFirstKey());
+        if (nextKey !== null) {
+          manager.setFocusedKey(nextKey);
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        manager.setFocused(true);
+        const prevKey =
+          focusedKey === null
+            ? collection.getLastKey()
+            : (collection.getKeyBefore(focusedKey) ?? collection.getLastKey());
+        if (prevKey !== null) {
+          manager.setFocusedKey(prevKey);
+        }
+        return;
+      }
+
+      if (e.key === 'Home') {
+        e.preventDefault();
+        manager.setFocused(true);
+        const firstKey = collection.getFirstKey();
+        if (firstKey !== null) {
+          manager.setFocusedKey(firstKey);
+        }
+        return;
+      }
+
+      if (e.key === 'End') {
+        e.preventDefault();
+        manager.setFocused(true);
+        const lastKey = collection.getLastKey();
+        if (lastKey !== null) {
+          manager.setFocusedKey(lastKey);
+        }
+        return;
+      }
     },
-  });
+    [focusedKey, displayedOptionsMap, handleSelect, listState]
+  );
 
   const mergedTriggerProps = mergeProps(triggerProps, triggerKeyboardProps, {
     id: triggerId,
@@ -441,7 +484,13 @@ export function MetricSelector({
         style={{...overlayProps.style, display: isOpen ? 'block' : 'none'}}
       >
         {isOpen ? (
-          <Overlay style={{display: 'flex', flexDirection: 'column', overflow: 'hidden'}}>
+          <Overlay
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
             <FocusScope contain>
               <Flex direction={{xs: 'column', sm: 'row'}}>
                 <Stack
@@ -465,7 +514,9 @@ export function MetricSelector({
                           paddingLeft="2xs"
                           align="center"
                           justify="center"
-                          style={{transform: 'translateY(1px) translateX(1px)'}}
+                          style={{
+                            transform: 'translateY(1px) translateX(1px)',
+                          }}
                         >
                           <IconSearch size="xs" variant="muted" />
                         </Flex>
@@ -476,7 +527,7 @@ export function MetricSelector({
                         onChange={onSearchChange}
                         size="xs"
                         ref={searchRef}
-                        {...searchKeyboardProps}
+                        onKeyDown={handleSearchKeyDown}
                       />
                     </InputGroup>
                   </Container>
@@ -597,7 +648,6 @@ function MetricListBoxOption({
 }: MetricListBoxOptionProps) {
   const ref = useRef<HTMLLIElement>(null);
   const option = item.value!;
-  const [isHovered, setIsHovered] = useState(false);
   const {optionProps, isFocused, isSelected, isDisabled, isPressed} = useOption(
     {key: item.key, 'aria-label': option.label},
     listState,
@@ -605,13 +655,13 @@ function MetricListBoxOption({
   );
   const optionPropsMerged = mergeProps(optionProps, {
     onMouseEnter: () => {
-      // Only update focusedKey — do NOT call setFocused(true).
-      // setFocused(true) triggers a useEffect in useSelectableItem that calls
-      // focusSafely(ref.current), which would steal DOM focus from the search input.
+      listState.selectionManager.setFocused(true);
       listState.selectionManager.setFocusedKey(item.key);
-      setIsHovered(true);
     },
-    onMouseLeave: () => setIsHovered(false),
+    onMouseLeave: () => {
+      listState.selectionManager.setFocused(false);
+      listState.selectionManager.setFocusedKey(null);
+    },
   });
 
   return (
@@ -622,7 +672,7 @@ function MetricListBoxOption({
       ref={mergeRefs(ref, measureRef)}
       size={size}
       label={option.label}
-      isFocused={isFocused || isHovered}
+      isFocused={isFocused}
       isSelected={isSelected}
       isPressed={isPressed}
       disabled={isDisabled}
@@ -706,7 +756,10 @@ function MetricAttributesSection({
   metricName: string;
   metricType: string;
 }) {
-  const traceMetricFilter = createTraceMetricFilter({name: metricName, type: metricType});
+  const traceMetricFilter = createTraceMetricFilter({
+    name: metricName,
+    type: metricType,
+  });
 
   const {attributes: stringAttrs, isLoading: stringLoading} =
     useTraceMetricItemAttributes(
